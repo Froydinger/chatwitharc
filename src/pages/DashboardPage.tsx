@@ -164,6 +164,7 @@ useEffect(() => {
   const [canvasPage, setCanvasPage] = useState(1);
   const [selectedCanvas, setSelectedCanvas] = useState<CanvasItem | null>(null);
   const [canvasDetailTab, setCanvasDetailTab] = useState<CanvasDetailTab>("canvas");
+  const [tabDirection, setTabDirection] = useState<1 | -1>(1);
   const imageFetchStartedRef = useRef(false);
   const { openWithContent } = useCanvasStore();
 
@@ -239,6 +240,8 @@ useEffect(() => {
   const switchTab = (tab: DashboardTab) => {
     const tabIndex = tabs.findIndex(t => t.key === tab);
     if (tabIndex === -1) return;
+    const prevIndex = tabs.findIndex(t => t.key === activeTab);
+    setTabDirection(tabIndex >= prevIndex ? 1 : -1);
 
     // Animate bubble like it's being grabbed and dropped
     // Pickup animation
@@ -703,8 +706,17 @@ useEffect(() => {
     }
   };
 
+  const tabVariants = {
+    initial: (dir: number) => ({ opacity: 0, x: dir * 36, scale: 0.98, filter: 'blur(6px)' }),
+    animate: { opacity: 1, x: 0, scale: 1, filter: 'blur(0px)', transition: { type: 'spring', stiffness: 320, damping: 30, mass: 0.7 } },
+    exit: (dir: number) => ({ opacity: 0, x: dir * -28, scale: 0.985, filter: 'blur(6px)', transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } }),
+  };
+
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 18, scale: 0.985, filter: 'blur(8px)' }}
+      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+      transition={{ type: 'spring', stiffness: 260, damping: 28, mass: 0.85 }}
       className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
       style={{
         paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
@@ -780,10 +792,10 @@ useEffect(() => {
         </div>
 
         {/* ═══ TAB CONTENT ═══ */}
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="wait" initial={false} custom={tabDirection}>
           {/* ====== OVERVIEW ====== */}
           {activeTab === "overview" && (
-            <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-5">
+            <motion.div key="overview" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-5">
 
               {/* Quick stat chips — single clean row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
@@ -846,7 +858,7 @@ useEffect(() => {
 
           {/* ====== FULL CHATS ====== */}
           {activeTab === "chats" && (
-            <motion.div key="chats" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-4">
+            <motion.div key="chats" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -921,7 +933,7 @@ useEffect(() => {
 
           {/* ====== IMAGES ====== */}
           {activeTab === "images" && (
-            <motion.div key="images" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-4">
+            <motion.div key="images" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
               <AnimatePresence mode="wait">
                 {viewingImageIndex !== null && currentImage ? (
                   <motion.div key="viewer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
@@ -1046,7 +1058,7 @@ useEffect(() => {
 
           {/* ====== FULL CANVASES ====== */}
           {activeTab === "canvases" && (
-            <motion.div key="canvases" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-4">
+            <motion.div key="canvases" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
               <AnimatePresence mode="wait">
                 {selectedCanvas ? (
                   <motion.div key="canvas-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
@@ -1185,7 +1197,7 @@ useEffect(() => {
 
           {/* ====== MEMORIES ====== */}
           {activeTab === "memories" && (
-            <motion.div key="memories" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-4">
+            <motion.div key="memories" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1469,7 +1481,7 @@ useEffect(() => {
         isOpen={isMusicPopupOpen}
         onClose={() => setIsMusicPopupOpen(false)}
       />
-    </div>
+    </motion.div>
   );
 }
 
