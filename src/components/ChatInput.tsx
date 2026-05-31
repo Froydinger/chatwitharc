@@ -2376,8 +2376,8 @@ ${safeCode}
               className={[
                 "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
                 accentColor === "noir"
-                  ? "!bg-white/80 text-black ring-2 ring-white/60 !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
-                  : "!bg-primary/80 text-primary-foreground ring-2 ring-primary !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]",
+                  ? "!bg-white/20 ring-2 ring-white/40 text-foreground hover:!bg-white/30 !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
+                  : "!bg-primary/20 ring-2 ring-primary/40 text-primary hover:!bg-primary/30 !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]",
               ].join(" ")}
               aria-label="Stop"
             >
