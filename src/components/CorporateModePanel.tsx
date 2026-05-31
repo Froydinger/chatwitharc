@@ -35,7 +35,7 @@ export function CorporateModePanel() {
   const isMobileLocal = isMobileLocalDevice();
 
   const handleToggle = (v: boolean) => {
-    const { isLoading, isGeneratingImage, messages, createNewSession } = useArcStore.getState();
+    const { isLoading, isGeneratingImage, createNewSession } = useArcStore.getState();
     if (isLoading || isGeneratingImage) {
       toast({
         title: "Finish the current message first",
@@ -53,8 +53,11 @@ export function CorporateModePanel() {
       return;
     }
     setEnabled(v, accent);
-    if (messages.length > 0) {
-      createNewSession();
+    // Always start a fresh chat so the user isn't stuck on a session whose
+    // capabilities (cloud tools vs. local-only) no longer match the new mode.
+    createNewSession();
+    if (window.location.pathname.startsWith('/chat/')) {
+      window.history.replaceState({}, '', '/');
     }
     toast({
       title: v ? "Corporate Mode enabled" : "Corporate Mode disabled",
