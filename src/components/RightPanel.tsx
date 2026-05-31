@@ -150,7 +150,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                 onClick={cycleThemeMode}
                 title={themeLabel}
                 aria-label={themeLabel}
-                className="h-9 w-9 rounded-full bg-muted/40 hover:bg-primary/15 hover:text-primary transition-colors flex-1"
+                className="h-9 w-9 rounded-full bg-muted/40 hover:bg-primary/15 hover:text-primary transition-colors lg:flex-1"
               >
                 <motion.span
                   key={themeMode}
