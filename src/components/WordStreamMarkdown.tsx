@@ -214,9 +214,9 @@ export const WordStreamMarkdown = ({
         return node.map((c, i) => walk(c, `${keyPrefix}-${i}`));
       }
       if (isValidElement(node)) {
-        const tagName = (node as any).props?.node?.tagName;
+        const tagName = typeof (node as any).type === "string" ? (node as any).type : (node as any).props?.node?.tagName;
         if (!["strong", "em", "a", "del"].includes(tagName)) return node;
-        return cloneElement(node as any, undefined, walk((node as any).props.children, `${keyPrefix}-inline`));
+        return cloneElement(node as any, null, walk((node as any).props.children, `${keyPrefix}-inline`));
       }
       return node;
     };
