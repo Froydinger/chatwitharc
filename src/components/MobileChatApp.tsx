@@ -266,12 +266,9 @@ export function MobileChatApp() {
       const leftHalfMax = w / 2 - deadZone;
       const rightHalfMin = w / 2 + deadZone;
 
-      // Right-half swipe-left to open Dashboard from the new chat screen
-      const isNewChatScreen =
-        window.location.pathname === "/" && messages.length === 0;
+      // Right-half swipe-left to open Dashboard from any chat
       if (
         !rightPanelOpen &&
-        isNewChatScreen &&
         t.clientX > rightHalfMin
       ) {
         startX = t.clientX;
