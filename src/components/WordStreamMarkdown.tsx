@@ -62,11 +62,16 @@ const hideUnclosedMarkdownTail = (input: string): string => {
 
   let out = input;
 
-  // Unclosed link/image: `[text` or `[text](partial` — strip (can't fabricate).
+  // Unclosed link/image: only strip genuinely unfinished syntax. Completed
+  // bracket text like citations (`[1]`) must stay visible while streaming.
   const lastOpenBracket = out.lastIndexOf("[");
   if (lastOpenBracket !== -1) {
     const tail = out.slice(lastOpenBracket);
-    if (!/^!?\[[^\]]*\]\([^)]*\)/.test(tail)) {
+    const closeBracketIndex = tail.indexOf("]");
+    const hasOpenParenAfterBracket = closeBracketIndex !== -1 && tail[closeBracketIndex + 1] === "(";
+    const hasClosedParen = hasOpenParenAfterBracket && tail.indexOf(")", closeBracketIndex + 2) !== -1;
+
+    if (closeBracketIndex === -1 || (hasOpenParenAfterBracket && !hasClosedParen)) {
       out = out.slice(0, lastOpenBracket);
     }
   }
