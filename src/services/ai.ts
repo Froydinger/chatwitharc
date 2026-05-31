@@ -76,6 +76,7 @@ export interface SendMessageResult {
   codeUpdate?: CodeUpdate;
   memorySaved?: { content: string };
   weatherData?: import('@/components/WeatherCard').WeatherData;
+  locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
 }
 
 export class AIService {
