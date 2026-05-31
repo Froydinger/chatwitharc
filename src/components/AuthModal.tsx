@@ -316,7 +316,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                                 "hover:bg-white/[0.07] hover:border-white/20",
                                 "[color-scheme:dark] [&]:!text-white"
                               )}
-                              style={{ color: "#fff", caretColor: "#fff", WebkitTextSecurity: "disc" as any }}
+                              style={{ color: "#fff", caretColor: "#fff" }}
                               disabled={loading}
                               autoComplete={isLogin ? "current-password" : "new-password"}
                               required
