@@ -271,6 +271,67 @@ useEffect(() => {
     window.scrollTo({ top: 0 });
   };
 
+  // PWA mobile: horizontal swipe to switch tabs (or return to chat from leftmost tab)
+  useEffect(() => {
+    if (!isMobile) return;
+    const isPWA =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+    if (!isPWA) return;
+
+    let startX = 0;
+    let startY = 0;
+    let tracking = false;
+
+    const onTouchStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t) return;
+      // Ignore swipes that begin on the floating nav pill so drag-to-pick still works
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-dashboard-nav-pill]')) return;
+      startX = t.clientX;
+      startY = t.clientY;
+      tracking = true;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!tracking) return;
+      const t = e.touches[0];
+      if (!t) return;
+      const dx = t.clientX - startX;
+      const dy = Math.abs(t.clientY - startY);
+      if (dy > 60) { tracking = false; return; }
+      if (Math.abs(dx) < 70) return;
+      tracking = false;
+      const idx = tabs.findIndex(tt => tt.key === activeTab);
+      if (dx < 0) {
+        // swipe-left → next tab
+        const next = tabs[idx + 1];
+        if (next) switchTab(next.key);
+      } else {
+        // swipe-right → previous tab, or back to chat if already at first tab
+        if (idx <= 0) {
+          navigate('/');
+        } else {
+          switchTab(tabs[idx - 1].key);
+        }
+      }
+    };
+
+    const onTouchEnd = () => { tracking = false; };
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile, activeTab, navigate]);
+
+
   useEffect(() => {
     if (!authLoading && !user) navigate("/", { replace: true });
   }, [authLoading, user, navigate]);
@@ -1257,6 +1318,7 @@ useEffect(() => {
       <div className="fixed bottom-0 left-0 right-0 sm:right-auto z-50 pointer-events-none flex justify-center sm:justify-start" style={{ paddingBottom: '20px' }}>
         <div
           ref={setPillRef}
+          data-dashboard-nav-pill
           className="flex items-center px-2 gap-1 py-3 rounded-full pointer-events-auto relative mx-5 sm:mx-8 w-[calc(100%-40px)] sm:w-[420px] md:w-[480px]"
           style={{
             background: 'linear-gradient(135deg, hsl(var(--primary) / 0.14) 0%, hsl(var(--primary) / 0.08) 50%, hsl(var(--primary) / 0.14) 100%), hsl(var(--background) / 0.55)',
