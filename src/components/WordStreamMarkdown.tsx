@@ -137,7 +137,7 @@ export const WordStreamMarkdown = ({
   }, [animateWords, onTyping, revealState.count, totalWords]);
 
   const visibleText = useMemo(
-    () => (animateWords ? getPrefixByWords(tokens, revealState.count) : text),
+    () => hideUnclosedMarkdownTail(animateWords ? getPrefixByWords(tokens, revealState.count) : text),
     [animateWords, revealState.count, text, tokens]
   );
 
