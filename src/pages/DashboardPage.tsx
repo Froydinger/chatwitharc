@@ -1515,7 +1515,7 @@ useEffect(() => {
               );
             })}
           </div>
-        </div>
+        </motion.div>
       </div>,
       document.body
       )}
