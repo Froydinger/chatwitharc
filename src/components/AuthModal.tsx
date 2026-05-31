@@ -111,7 +111,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
 
             {/* Main Glass Card */}
-            <div className="relative backdrop-blur-[40px] bg-gradient-to-br from-black/85 via-black/80 to-black/85 rounded-3xl border border-white/[0.08] shadow-2xl shadow-black/50 p-8">
+            <div className="relative backdrop-blur-[40px] bg-gradient-to-br from-black/85 via-black/80 to-black/85 rounded-3xl border-0 shadow-2xl shadow-black/50 p-8">
               <motion.button
                 whileHover={{ scale: 1.1, backgroundColor: "rgba(255, 255, 255, 0.15)" }}
                 whileTap={{ scale: 0.95 }}
@@ -263,7 +263,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       transition={{ duration: 0.25, ease: "easeInOut" }}
                       className="overflow-hidden"
                     >
-                      <form onSubmit={onSubmit} className="space-y-4">
+                      <form onSubmit={onSubmit} className="space-y-4 px-1 pt-1 pb-1">
                         <div className="space-y-2">
                           <label htmlFor="email" className="text-sm font-medium text-white/80">Email</label>
                           <div className="relative group">
@@ -283,11 +283,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                               className={cn(
                                 "w-full h-12 pl-10 pr-4 rounded-xl",
                                 "bg-white/5 border border-white/10",
-                                "backdrop-blur-sm text-white placeholder:text-white/40",
+                                "backdrop-blur-sm placeholder:text-white/40",
                                 "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50",
                                 "transition-all duration-200",
-                                "hover:bg-white/[0.07] hover:border-white/20"
+                                "hover:bg-white/[0.07] hover:border-white/20",
+                                "[color-scheme:dark] [&]:!text-white"
                               )}
+                              style={{ color: "#fff", caretColor: "#fff" }}
                               disabled={loading}
                               required
                             />
@@ -308,11 +310,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                               className={cn(
                                 "w-full h-12 pl-10 pr-10 rounded-xl",
                                 "bg-white/5 border border-white/10",
-                                "backdrop-blur-sm text-white placeholder:text-white/40",
+                                "backdrop-blur-sm placeholder:text-white/40",
                                 "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50",
                                 "transition-all duration-200",
-                                "hover:bg-white/[0.07] hover:border-white/20"
+                                "hover:bg-white/[0.07] hover:border-white/20",
+                                "[color-scheme:dark] [&]:!text-white"
                               )}
+                              style={{ color: "#fff", caretColor: "#fff" }}
                               disabled={loading}
                               autoComplete={isLogin ? "current-password" : "new-password"}
                               required
