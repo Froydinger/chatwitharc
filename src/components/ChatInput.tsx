@@ -2214,7 +2214,7 @@ ${safeCode}
               <div className={cn(
                 "relative flex flex-wrap items-center justify-center gap-1.5 py-2 px-3 rounded-2xl ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[calc(100vw-32px)]",
                 isDashboard
-                  ? "bg-black/80 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,.5)]"
+                  ? "bg-background/80 border border-border/40 shadow-[0_8px_32px_rgba(0,0,0,.3)] dark:bg-black/80 dark:border-white/10 dark:shadow-[0_8px_32px_rgba(0,0,0,.5)]"
                   : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]"
               )}>
                 {([
