@@ -1508,7 +1508,9 @@ useEffect(() => {
             })}
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
+      )}
 
       {/* Music Popup */}
       <MusicPopup
