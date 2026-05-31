@@ -256,6 +256,7 @@ export function MobileChatApp() {
     let startX = 0;
     let startY = 0;
     let tracking = false;
+    let trackingDashboard = false;
 
     const onTouchStart = (e: TouchEvent) => {
       const t = e.touches[0];
@@ -264,6 +265,21 @@ export function MobileChatApp() {
       const deadZone = 40; // px buffer around center
       const leftHalfMax = w / 2 - deadZone;
       const rightHalfMin = w / 2 + deadZone;
+
+      // Right-edge swipe-left to open Dashboard from the new chat screen
+      const isNewChatScreen =
+        window.location.pathname === "/" && messages.length === 0;
+      if (
+        !rightPanelOpen &&
+        isNewChatScreen &&
+        t.clientX > w - 24
+      ) {
+        startX = t.clientX;
+        startY = t.clientY;
+        trackingDashboard = true;
+        return;
+      }
+
       if (rightPanelOpen) {
         // Close swipe must start in the right half
         if (t.clientX < rightHalfMin) return;
@@ -277,11 +293,17 @@ export function MobileChatApp() {
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (!tracking) return;
+      if (!tracking && !trackingDashboard) return;
       const t = e.touches[0];
       if (!t) return;
       const dx = t.clientX - startX;
       const dy = Math.abs(t.clientY - startY);
+      if (trackingDashboard && dx < -50 && dy < 60) {
+        trackingDashboard = false;
+        navigate("/dashboard");
+        return;
+      }
+      if (!tracking) return;
       if (!rightPanelOpen && dx > 50 && dy < 60) {
         tracking = false;
         setRightPanelOpen(true);
@@ -291,7 +313,7 @@ export function MobileChatApp() {
       }
     };
 
-    const onTouchEnd = () => { tracking = false; };
+    const onTouchEnd = () => { tracking = false; trackingDashboard = false; };
 
     window.addEventListener('touchstart', onTouchStart, { passive: true });
     window.addEventListener('touchmove', onTouchMove, { passive: true });
@@ -301,7 +323,7 @@ export function MobileChatApp() {
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
     };
-  }, [isMobile, rightPanelOpen, setRightPanelOpen]);
+  }, [isMobile, rightPanelOpen, setRightPanelOpen, messages.length, navigate]);
 
 
   // Persist docked preference
