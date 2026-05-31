@@ -142,7 +142,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
         <div className="flex flex-col h-full" style={{ paddingTop: isStandaloneApp ? '30px' : undefined }}>
           {/* Header */}
           <div className="flex items-center p-2 border-b border-border bg-background">
-            <div className="flex items-center w-full">
+            <div className="flex items-center w-full gap-2">
               {/* Theme cycle: dark → light → system */}
               <Button
                 variant="ghost"
