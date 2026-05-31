@@ -179,7 +179,7 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                     size="icon"
                     onClick={onClose}
                     title="Close sidebar"
-                    className="lg:hidden rounded-full transition-colors bg-muted/50 hover:bg-primary/15 hover:text-primary flex-1"
+                    className="lg:hidden h-9 w-9 rounded-full transition-colors bg-muted/50 hover:bg-primary/15 hover:text-primary"
                   >
                     <X className="h-4 w-4" />
                   </Button>
