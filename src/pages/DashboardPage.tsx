@@ -23,7 +23,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ThemedLogo } from "@/components/ThemedLogo";
 import { cn } from "@/lib/utils";
 import { getFaviconByLabel } from "@/constants/faviconOptions";
 import { useAdminBanner } from "@/components/AdminBanner";
@@ -174,6 +173,14 @@ useEffect(() => {
   };
   const imageFetchStartedRef = useRef(false);
   const { openWithContent } = useCanvasStore();
+  const dashboardEntryRef = useRef<'swipe' | 'default'>(
+    sessionStorage.getItem('arc_dashboard_entry') === 'swipe' ? 'swipe' : 'default'
+  );
+  const isSwipeEntry = dashboardEntryRef.current === 'swipe';
+
+  useEffect(() => {
+    sessionStorage.removeItem('arc_dashboard_entry');
+  }, []);
 
   // Jelly nav bubble
   const BUBBLE_R = 28;
@@ -749,13 +756,15 @@ useEffect(() => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: '100%', filter: 'blur(8px)' }}
+      initial={isSwipeEntry
+        ? { opacity: 0.96, x: 18, filter: 'blur(2px)' }
+        : { opacity: 0, x: '100%', filter: 'blur(8px)' }}
       animate={isExiting
         ? { opacity: 0, x: '100%', filter: 'blur(8px)' }
         : { opacity: 1, x: 0, filter: 'blur(0px)' }}
       transition={isExiting
         ? { duration: 0.28, ease: [0.4, 0, 0.2, 1] as const }
-        : { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }}
+        : { duration: isSwipeEntry ? 0.22 : 0.32, ease: [0.22, 1, 0.36, 1] as const }}
       className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
       style={{
         paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
@@ -783,7 +792,6 @@ useEffect(() => {
               >
                 <MessageSquare className="h-4.5 w-4.5 text-primary" />
               </Button>
-              <ThemedLogo className="h-9 w-9" />
               <div>
                 <h1 className="text-base sm:text-2xl font-light text-foreground tracking-tight">
                   {greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}.
