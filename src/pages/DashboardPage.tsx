@@ -95,7 +95,7 @@ export function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as DashboardTab) || "overview";
   const { user, loading: authLoading } = useAuth();
-  const { isSubscribed, subscriptionEnd, openCheckout } = useSubscription();
+  const { isSubscribed, subscriptionEnd, openCheckout, hasBoost } = useSubscription();
   const { profile } = useProfile();
   const { isLoaded } = useChatSync();
   const {
