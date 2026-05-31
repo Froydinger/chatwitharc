@@ -211,7 +211,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       variant="ghost"
                       onClick={handleGoogleAuth}
                       disabled={loading}
-                      className="w-full h-12 rounded-xl border border-white/10 hover:border-white/20 text-base"
+                      className="w-full h-12 rounded-xl border border-white/10 hover:border-white/20 text-base !text-white"
                       type="button"
                     >
                       <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -229,7 +229,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       variant="ghost"
                       onClick={handleAppleAuth}
                       disabled={loading}
-                      className="w-full h-12 rounded-xl border border-white/10 hover:border-white/20 text-base"
+                      className="w-full h-12 rounded-xl border border-white/10 hover:border-white/20 text-base !text-white"
                       type="button"
                     >
                       <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
