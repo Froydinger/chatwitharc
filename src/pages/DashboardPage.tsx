@@ -833,10 +833,13 @@ useEffect(() => {
 
         {/* ═══ FREE BADGE ═══ */}
         <div>
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/25 bg-primary/8 text-primary text-xs font-medium">
+          <button
+            onClick={() => navigate('/dashboard/settings?section=plan')}
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/25 bg-primary/8 text-primary text-xs font-medium cursor-pointer hover:bg-primary/15 hover:border-primary/40 transition-colors"
+          >
             <Zap className="h-3.5 w-3.5" />
             <span>{hasBoost ? "ArcAI Boost — Unlimited chats, voice & images" : "ArcAI — Free forever · Unlimited chats · 10 images/day"}</span>
-          </div>
+          </button>
         </div>
 
         {/* ═══ TAB CONTENT ═══ */}
