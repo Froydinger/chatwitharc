@@ -283,11 +283,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                               className={cn(
                                 "w-full h-12 pl-10 pr-4 rounded-xl",
                                 "bg-white/5 border border-white/10",
-                                "backdrop-blur-sm text-white placeholder:text-white/40",
+                                "backdrop-blur-sm placeholder:text-white/40",
                                 "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50",
                                 "transition-all duration-200",
-                                "hover:bg-white/[0.07] hover:border-white/20"
+                                "hover:bg-white/[0.07] hover:border-white/20",
+                                "[color-scheme:dark] [&]:!text-white"
                               )}
+                              style={{ color: "#fff", caretColor: "#fff" }}
                               disabled={loading}
                               required
                             />
