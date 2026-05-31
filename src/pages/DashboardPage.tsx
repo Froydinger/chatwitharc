@@ -286,6 +286,14 @@ useEffect(() => {
   useEffect(() => {
     if (!isMobile) return;
 
+    // Prevent Android Chrome / PWA from hijacking horizontal swipes for back-navigation
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverscroll = html.style.overscrollBehaviorX;
+    const prevBodyOverscroll = body.style.overscrollBehaviorX;
+    html.style.overscrollBehaviorX = 'contain';
+    body.style.overscrollBehaviorX = 'contain';
+
     let startX = 0;
     let startY = 0;
     let tracking = false;
@@ -355,6 +363,8 @@ useEffect(() => {
       window.removeEventListener('touchstart', onTouchStart);
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
+      html.style.overscrollBehaviorX = prevHtmlOverscroll;
+      body.style.overscrollBehaviorX = prevBodyOverscroll;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile, activeTab, navigate]);
