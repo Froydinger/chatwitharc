@@ -475,7 +475,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     // AI messages with code block support and markdown
                     message.content.trim().length > 0 && !["canvas", "code", "ide", "file"].includes(message.type) && (
                       <div
-                        className={`relative z-10 w-full min-w-0 arc-message-bubble arc-typing-glow ${isLatestAssistant && isThinking ? "arc-typing-glow-active" : ""}`}
+                        className={`relative z-10 w-full min-w-0 arc-message-bubble arc-typing-glow ${isLatestAssistant && (isThinking || shouldAnimateTypewriter) ? "arc-typing-glow-active" : ""}`}
                       >
 
                         {contentParts.map((part, idx) => {
