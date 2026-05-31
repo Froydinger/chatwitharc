@@ -86,6 +86,7 @@ export interface Message {
   ideProjectId?: string; // Database project ID for cloud persistence
   memoryAction?: MemoryAction; // Track memory/search actions
   weatherData?: import('@/components/WeatherCard').WeatherData; // Inline weather card
+  locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number }; // Shown as pin badge when AI used user location
   // Which model produced this response. Mirrors RouteDestination so the
   // badge can show the exact model name (e.g. "Gemini 2.5 Pro" vs "Flash").
   sourceModel?:
