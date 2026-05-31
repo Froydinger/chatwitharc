@@ -326,6 +326,10 @@ export function SettingsPanel() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    if (!displayNameDirty) setDisplayNameDraft(profile?.display_name || "");
+  }, [profile?.display_name, displayNameDirty]);
+
   const handleDataDeleted = () => {
     createNewSession();
     toast({ title: "Account Reset", description: "Starting fresh with a new session" });
