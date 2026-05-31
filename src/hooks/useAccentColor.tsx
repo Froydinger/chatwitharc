@@ -159,6 +159,11 @@ export function useAccentColor() {
       root.style.setProperty("--user-message-bg", config.userMessageBg);
       root.style.setProperty("--user-message-border", config.userMessageBorder);
 
+      // Apply accent-tinted dark background (cleared in light mode below)
+      if (config.darkBackground) {
+        root.style.setProperty("--background", config.darkBackground);
+      }
+
       // Noir theme: black text on white buttons for contrast
       if (isNoir) {
         root.style.setProperty("--primary-foreground", "0 0% 5%");
