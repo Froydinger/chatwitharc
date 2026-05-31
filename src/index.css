@@ -161,12 +161,31 @@ All colors MUST be HSL for perfect glass effects.
   :root.light .glass-strong,
   :root.light .glass-card,
   :root.light .glass-panel {
+    background: rgba(255, 255, 255, 0.75) !important;
     border: 1px solid hsl(var(--foreground) / 0.06) !important;
     box-shadow:
       0 4px 16px hsl(var(--foreground) / 0.04),
       0 1px 3px hsl(var(--foreground) / 0.03),
       inset 0 1px 0 hsl(0 0% 100% / 0.5) !important;
+    color: hsl(var(--foreground)) !important;
   }
+
+  :root.light .glass-panel :is(.text-foreground, .text-card-foreground, .text-secondary-foreground, .text-accent-foreground) {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  :root.light .glass-panel :is(.text-muted-foreground, [class*="text-foreground/"]) {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  :root.light .glass-panel :is(input, textarea, select) {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  :root.light .glass-panel :is(input::placeholder, textarea::placeholder) {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
 
   :root.light .glass-glow {
     box-shadow:
