@@ -1044,22 +1044,24 @@ All colors MUST be HSL for perfect glass effects.
     100% { transform: scale(1);    filter: drop-shadow(0 0 0 hsl(var(--primary) / 0)); }
   }
 
-  /* Continuous accent glow while Arc is typing */
+  /* Continuous accent glow while Arc is typing - uses drop-shadow so it works on transparent bubble */
   @keyframes arc-typing-pulse {
     0%, 100% {
-      box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.28),
-        inset 0 1px 0 hsl(0 0% 100% / 0.06),
-        0 0 22px 2px hsl(var(--primary) / 0.20),
-        0 0 60px 12px hsl(var(--primary) / 0.10);
+      filter:
+        drop-shadow(0 0 6px hsl(var(--primary) / 0.28))
+        drop-shadow(0 0 18px hsl(var(--primary) / 0.16));
     }
     50% {
-      box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.28),
-        inset 0 1px 0 hsl(0 0% 100% / 0.08),
-        0 0 34px 5px hsl(var(--primary) / 0.34),
-        0 0 90px 22px hsl(var(--primary) / 0.18);
+      filter:
+        drop-shadow(0 0 10px hsl(var(--primary) / 0.42))
+        drop-shadow(0 0 28px hsl(var(--primary) / 0.24));
     }
+  }
+
+  .arc-typing-glow {
+    /* Default (not typing): no glow. Transition fades it out smoothly when class flips off. */
+    filter: drop-shadow(0 0 0 hsl(var(--primary) / 0));
+    transition: filter 700ms ease-out;
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -1072,47 +1074,27 @@ All colors MUST be HSL for perfect glass effects.
     .arc-logo-pulse {
       animation: arc-logo-handoff 480ms cubic-bezier(0.22, 1, 0.36, 1) 1;
     }
-    .arc-typing-glow {
+    .arc-typing-glow.arc-typing-glow-active {
       animation: arc-typing-pulse 2.4s ease-in-out infinite;
-      transition: box-shadow 700ms ease-out;
-    }
-    @keyframes arc-word-materialize {
-      0% {
-        opacity: 0;
-        filter: blur(5px);
-        transform: translateY(5px) scale(0.985);
-        text-shadow: 0 0 18px hsl(var(--primary) / 0.28);
-      }
-      58% {
-        opacity: 1;
-        filter: blur(1.5px);
-        transform: translateY(0) scale(1.006);
-        text-shadow: 0 0 12px hsl(var(--primary) / 0.18);
-      }
-      100% {
-        opacity: 1;
-        filter: blur(0);
-        transform: translateY(0) scale(1);
-        text-shadow: 0 0 0 hsl(var(--primary) / 0);
-      }
     }
 
-    /* Revealed words stay visible; only the newest queued word gets animated. */
+    /* Words just fade in - no blur, no transform shift */
+    @keyframes arc-word-materialize {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
     .arc-word {
-      display: inline-block;
+      display: inline;
       opacity: 1;
-      filter: blur(0);
-      transform: translateY(0) scale(1);
-      will-change: auto;
     }
     .arc-word.arc-word-entering {
-      animation: arc-word-materialize 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
-      will-change: opacity, transform, filter;
+      animation: arc-word-materialize 140ms ease-out both;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .arc-word { opacity: 1; filter: none; transform: none; }
+    .arc-word { opacity: 1; }
   }
 
   /* Noir theme: Black buttons with white text/icons */
