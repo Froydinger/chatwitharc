@@ -1106,7 +1106,7 @@ All colors MUST be HSL for perfect glass effects.
       will-change: auto;
     }
     .arc-word.arc-word-entering {
-      animation: arc-word-materialize 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: arc-word-materialize 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
       will-change: opacity, transform, filter;
     }
   }

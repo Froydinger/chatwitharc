@@ -80,12 +80,13 @@ export const WordStreamMarkdown = ({
     if (!animateWords || revealState.count >= totalWords) return;
 
     const behind = totalWords - revealState.count;
-    const interval = behind > 240 ? 16 : behind > 120 ? 20 : behind > 48 ? 26 : 34;
+    // Slightly slower cadence so each word's blur-in finishes before the next starts.
+    const interval = behind > 240 ? 32 : behind > 120 ? 48 : behind > 48 ? 64 : 80;
 
     const id = window.setTimeout(() => {
       setRevealState((state) => {
         const next = Math.min(totalWords, state.count + 1);
-        return { count: next, enteringFrom: state.count };
+        return { count: next, enteringFrom: next - 1 };
       });
       onTyping?.();
     }, interval);
@@ -109,7 +110,7 @@ export const WordStreamMarkdown = ({
         }
         const idx = cursor.i;
         cursor.i += 1;
-        const isEntering = idx >= revealState.enteringFrom && idx < revealState.count;
+        const isEntering = idx === revealState.count - 1;
         return (
           <span
             key={`arc-word-${idx}`}
