@@ -48,6 +48,7 @@ const accentColorConfigs = {
   yellow: {
     primary: "45 100% 48%",
     primaryGlow: "45 100% 58%",
+    darkBackground: "45 18% 4%",
     aiMessageBg: "45 18% 14%",
     aiMessageBorder: "45 22% 22%",
     userMessageBg: "45 100% 48%",
