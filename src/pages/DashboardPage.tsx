@@ -165,6 +165,12 @@ useEffect(() => {
   const [selectedCanvas, setSelectedCanvas] = useState<CanvasItem | null>(null);
   const [canvasDetailTab, setCanvasDetailTab] = useState<CanvasDetailTab>("canvas");
   const [tabDirection, setTabDirection] = useState<1 | -1>(1);
+  const [isExiting, setIsExiting] = useState(false);
+  const exitToChat = (path: string = '/') => {
+    if (isExiting) return;
+    setIsExiting(true);
+    setTimeout(() => navigate(path), 280);
+  };
   const imageFetchStartedRef = useRef(false);
   const { openWithContent } = useCanvasStore();
 
@@ -320,7 +326,7 @@ useEffect(() => {
       } else {
         // swipe-right → previous tab, or back to chat if already at first tab
         if (idx <= 0) {
-          navigate('/');
+          exitToChat('/');
         } else {
           switchTab(tabs[idx - 1].key);
         }
@@ -720,13 +726,18 @@ useEffect(() => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 18, scale: 0.985, filter: 'blur(8px)' }}
-      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-      transition={{ type: 'spring' as const, stiffness: 260, damping: 28, mass: 0.85 }}
+      initial={{ opacity: 0, x: '100%', filter: 'blur(8px)' }}
+      animate={isExiting
+        ? { opacity: 0, x: '100%', filter: 'blur(8px)' }
+        : { opacity: 1, x: 0, filter: 'blur(0px)' }}
+      transition={isExiting
+        ? { duration: 0.28, ease: [0.4, 0, 0.2, 1] as const }
+        : { type: 'spring' as const, stiffness: 260, damping: 30, mass: 0.85 }}
       className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
       style={{
         paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
         paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
+        willChange: 'transform, opacity, filter',
       }}
     >
       <PaymentFailureBanner />
@@ -743,7 +754,7 @@ useEffect(() => {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => navigate("/")}
+                onClick={() => exitToChat("/")}
                 className="rounded-full glass-shimmer"
                 title="Back to chat"
               >
