@@ -2173,7 +2173,7 @@ ${safeCode}
             onBlur={() => setIsActive(false)}
             placeholder=""
             disabled={false}
-            className="!border-0 !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 px-4 focus:outline-none focus:ring-0 text-[16px]"
+            className="!border-0 !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 pl-0 pr-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
           />
         </div>
