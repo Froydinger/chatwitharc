@@ -303,8 +303,14 @@ useEffect(() => {
       if (!t) return;
       const dx = t.clientX - startX;
       const dy = Math.abs(t.clientY - startY);
-      if (dy > 60) { tracking = false; return; }
-      if (Math.abs(dx) < 70) return;
+      const adx = Math.abs(dx);
+
+      // Strong vertical movement → cancel horizontal swipe tracking
+      if (dy > 30 && dy > adx) { tracking = false; return; }
+
+      // Need a clear horizontal bias before switching tabs
+      if (adx < 50 || adx < dy * 1.8) return;
+
       tracking = false;
       const idx = tabs.findIndex(tt => tt.key === activeTab);
       if (dx < 0) {
@@ -708,15 +714,15 @@ useEffect(() => {
 
   const tabVariants = {
     initial: (dir: number) => ({ opacity: 0, x: dir * 36, scale: 0.98, filter: 'blur(6px)' }),
-    animate: { opacity: 1, x: 0, scale: 1, filter: 'blur(0px)', transition: { type: 'spring', stiffness: 320, damping: 30, mass: 0.7 } },
-    exit: (dir: number) => ({ opacity: 0, x: dir * -28, scale: 0.985, filter: 'blur(6px)', transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } }),
+    animate: { opacity: 1, x: 0, scale: 1, filter: 'blur(0px)', transition: { type: 'spring' as const, stiffness: 320, damping: 30, mass: 0.7 } },
+    exit: (dir: number) => ({ opacity: 0, x: dir * -28, scale: 0.985, filter: 'blur(6px)', transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] as const } }),
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 18, scale: 0.985, filter: 'blur(8px)' }}
       animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-      transition={{ type: 'spring', stiffness: 260, damping: 28, mass: 0.85 }}
+      transition={{ type: 'spring' as const, stiffness: 260, damping: 28, mass: 0.85 }}
       className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
       style={{
         paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
