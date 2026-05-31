@@ -50,6 +50,7 @@ function ResearchUpgradeWall({ onClose }: { onClose: () => void }) {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="max-w-md w-full mx-6 glass-card rounded-3xl p-8 relative overflow-hidden text-center space-y-6"
+        style={{ transition: 'background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease' }}
       >
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
 
