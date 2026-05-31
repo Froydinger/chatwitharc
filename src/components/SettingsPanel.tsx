@@ -85,6 +85,7 @@ import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { LocalAIPanel } from "@/components/LocalAIPanel";
 import { CorporateModePanel } from "@/components/CorporateModePanel";
+import { SharedLinksCard } from "@/components/SharedLinksCard";
 import { cn } from "@/lib/utils";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
@@ -94,7 +95,7 @@ const SECTIONS: { id: SectionId; label: string; icon: LucideIcon; subtitle: stri
   { id: "account",    label: "Account",       icon: User,        subtitle: "Identity & login" },
   { id: "appearance", label: "Appearance",    icon: Palette,     subtitle: "Look & feel" },
   { id: "ai",         label: "AI & Models",   icon: Sparkles,    subtitle: "Models, voice, images" },
-  { id: "privacy",    label: "Privacy & Data",icon: Lock,        subtitle: "Memory, exports, sync" },
+  { id: "privacy",    label: "Privacy, Sharing, & Data",icon: Lock,        subtitle: "Memory, sharing, exports" },
   { id: "plan",       label: "Plan & Usage",  icon: CreditCard,  subtitle: "Subscription" },
 ];
 
@@ -869,6 +870,7 @@ export function SettingsPanel() {
           <>
             {!isMobileLocal && <CorporateModePanel />}
             {MemoryCard}
+            <SharedLinksCard />
             {ExportCard}
             {SyncCard}
           </>
