@@ -165,6 +165,12 @@ useEffect(() => {
   const [selectedCanvas, setSelectedCanvas] = useState<CanvasItem | null>(null);
   const [canvasDetailTab, setCanvasDetailTab] = useState<CanvasDetailTab>("canvas");
   const [tabDirection, setTabDirection] = useState<1 | -1>(1);
+  const [isExiting, setIsExiting] = useState(false);
+  const exitToChat = (path: string = '/') => {
+    if (isExiting) return;
+    setIsExiting(true);
+    setTimeout(() => navigate(path), 280);
+  };
   const imageFetchStartedRef = useRef(false);
   const { openWithContent } = useCanvasStore();
 
