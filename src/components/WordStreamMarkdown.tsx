@@ -44,6 +44,48 @@ const getPrefixByWords = (tokens: string[], wordLimit: number) => {
 };
 
 /**
+ * Hide trailing, not-yet-closed markdown delimiters so partially-streamed
+ * formatting (e.g. `**bol`, `*ital`, `` `cod ``, `[lin`) doesn't render as
+ * literal punctuation and then snap into formatted text once it closes.
+ * We trim the dangling tail from the visible slice; it reappears (correctly
+ * formatted) on the next tick when the closer arrives.
+ */
+const hideUnclosedMarkdownTail = (input: string): string => {
+  if (!input) return input;
+
+  // Don't touch fenced code blocks while open — let them stream raw.
+  const fenceCount = (input.match(/```/g) ?? []).length;
+  if (fenceCount % 2 === 1) return input;
+
+  let out = input;
+
+  // Unclosed link/image: `[text` or `[text](partial`
+  const lastOpenBracket = out.lastIndexOf("[");
+  if (lastOpenBracket !== -1) {
+    const tail = out.slice(lastOpenBracket);
+    // Closed link looks like [..](..)
+    if (!/^!?\[[^\]]*\]\([^)]*\)/.test(tail)) {
+      out = out.slice(0, lastOpenBracket);
+    }
+  }
+
+  // Unclosed inline tokens at the very tail: **, __, *, _, `, ~~
+  // Walk delimiters from longest to shortest.
+  const trimDangling = (s: string, delim: string): string => {
+    const occurrences = s.split(delim).length - 1;
+    if (occurrences % 2 === 0) return s;
+    const idx = s.lastIndexOf(delim);
+    return idx === -1 ? s : s.slice(0, idx);
+  };
+
+  for (const delim of ["**", "__", "~~", "`", "*", "_"]) {
+    out = trimDangling(out, delim);
+  }
+
+  return out;
+};
+
+/**
  * Renders assistant markdown with a real per-word reveal queue.
  * Only the revealed prefix is mounted, so large backend chunks cannot blip the
  * full response into view. Newly released words get a one-shot blur-to-crisp
@@ -95,7 +137,7 @@ export const WordStreamMarkdown = ({
   }, [animateWords, onTyping, revealState.count, totalWords]);
 
   const visibleText = useMemo(
-    () => (animateWords ? getPrefixByWords(tokens, revealState.count) : text),
+    () => hideUnclosedMarkdownTail(animateWords ? getPrefixByWords(tokens, revealState.count) : text),
     [animateWords, revealState.count, text, tokens]
   );
 
