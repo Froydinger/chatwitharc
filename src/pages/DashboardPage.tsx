@@ -706,8 +706,17 @@ useEffect(() => {
     }
   };
 
+  const tabVariants = {
+    initial: (dir: number) => ({ opacity: 0, x: dir * 36, scale: 0.98, filter: 'blur(6px)' }),
+    animate: { opacity: 1, x: 0, scale: 1, filter: 'blur(0px)', transition: { type: 'spring', stiffness: 320, damping: 30, mass: 0.7 } },
+    exit: (dir: number) => ({ opacity: 0, x: dir * -28, scale: 0.985, filter: 'blur(6px)', transition: { duration: 0.22, ease: [0.4, 0, 0.2, 1] } }),
+  };
+
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 18, scale: 0.985, filter: 'blur(8px)' }}
+      animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+      transition={{ type: 'spring', stiffness: 260, damping: 28, mass: 0.85 }}
       className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
       style={{
         paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
