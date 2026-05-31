@@ -776,9 +776,8 @@ export function LandingScreen() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass-card text-xs text-yellow-400 font-medium">
-            <Zap className="w-3.5 h-3.5" />
-            Built for speed
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-500/20">
+            <Zap className="w-6 h-6 text-slate-900" />
           </div>
           <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
             Think fast.
