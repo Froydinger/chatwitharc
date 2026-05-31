@@ -318,6 +318,21 @@ useEffect(() => {
       if (adx < 50 || adx < dy * 1.8) return;
 
       tracking = false;
+      // Lock scroll so the page doesn't drift vertically while the swipe animation plays
+      const html = document.documentElement;
+      const body = document.body;
+      const prevHtmlOverflow = html.style.overflow;
+      const prevBodyOverflow = body.style.overflow;
+      const prevTouchAction = body.style.touchAction;
+      html.style.overflow = 'hidden';
+      body.style.overflow = 'hidden';
+      body.style.touchAction = 'none';
+      setTimeout(() => {
+        html.style.overflow = prevHtmlOverflow;
+        body.style.overflow = prevBodyOverflow;
+        body.style.touchAction = prevTouchAction;
+      }, 450);
+
       const idx = tabs.findIndex(tt => tt.key === activeTab);
       if (dx < 0) {
         // swipe-left → next tab
