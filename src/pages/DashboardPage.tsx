@@ -755,7 +755,7 @@ useEffect(() => {
         : { opacity: 1, x: 0, filter: 'blur(0px)' }}
       transition={isExiting
         ? { duration: 0.28, ease: [0.4, 0, 0.2, 1] as const }
-        : { type: 'spring' as const, stiffness: 260, damping: 30, mass: 0.85 }}
+        : { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const }}
       className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
       style={{
         paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
