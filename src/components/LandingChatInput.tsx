@@ -109,7 +109,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
             onFocus={() => setIsActive(true)}
             onBlur={() => setIsActive(false)}
             placeholder="Message ArcAI..."
-            className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 px-4 focus:outline-none focus:ring-0 text-[16px]"
+            className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 pl-0 pr-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
           />
         </div>
