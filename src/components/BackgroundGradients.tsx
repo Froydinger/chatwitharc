@@ -67,8 +67,8 @@ export const BackgroundGradients = () => {
               hsl(0 0% 8% / 0.15) 70%,
               transparent 100%)`)
       : `radial-gradient(circle at center,
-          hsl(${primaryGlow} / ${0.15 * lightMul}) 0%,
-          hsl(${primaryGlow} / ${0.08 * lightMul}) 40%,
+          hsl(${primaryGlow} / ${0.04 * lightMul}) 0%,
+          hsl(${primaryGlow} / ${0.02 * lightMul}) 40%,
           transparent 70%)`;
 
     return (
