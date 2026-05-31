@@ -82,17 +82,14 @@
     <meta name="keywords" content="AI assistant, free AI chatbot, voice AI assistant, AI image generator, AI code generator, AI writing assistant, ChatGPT alternative, Claude alternative, Gemini alternative, multimodal AI, real-time voice AI, AI personal assistant, AI creativity tool, affordable AI, AI for personal growth, conversational AI, AI canvas, AI music player, best free AI, AI companion">
     <!-- Canonical is set per-route via react-helmet-async (see src/components/SEO.tsx) -->
 
-    <!-- PWA Configuration -->
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#0a0a0f" media="(prefers-color-scheme: dark)">
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <!-- PWA Configuration - transparent icon, iOS adapts to light/dark wallpaper -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/icon.png">
+    <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="ArcAI">
-    <!-- Apple touch icons: light/dark variants so the home screen icon follows the OS theme -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/arc-ios-pwa-icon-180.png" media="(prefers-color-scheme: dark)">
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-icon-light.png" media="(prefers-color-scheme: light)">
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/arc-ios-pwa-icon-180.png">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
