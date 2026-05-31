@@ -212,17 +212,17 @@ export function RightPanel({ isOpen, onClose, activeTab, onTabChange, isDocked =
                   {!isMobileLocal && (
                     <Button
                       variant="ghost"
-                      size="icon"
                       onClick={handleToggleCorporate}
                       title={corporateMode ? "Disable Corporate Mode" : "Enable Corporate Mode"}
                       className={cn(
-                        "h-9 w-9 lg:h-auto lg:w-auto rounded-full transition-colors lg:flex-1",
+                        "h-9 px-3 rounded-lg text-xs font-medium transition-all flex-1",
                         corporateMode
                           ? "bg-primary/15 text-primary hover:bg-primary/25"
-                          : "bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+                          : "bg-muted/50 text-foreground hover:bg-muted hover:text-primary"
                       )}
                     >
-                      {corporateMode ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                      {corporateMode ? <Lock className="h-3.5 w-3.5 mr-1.5" /> : <Unlock className="h-3.5 w-3.5 mr-1.5" />}
+                      {corporateMode ? "Corp On" : "Corp Mode"}
                     </Button>
                   )}
                   {/* Mobile: X close button */}
