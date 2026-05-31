@@ -45,11 +45,13 @@ const getPrefixByWords = (tokens: string[], wordLimit: number) => {
 };
 
 /**
- * Hide trailing, not-yet-closed markdown delimiters so partially-streamed
- * formatting (e.g. `**bol`, `*ital`, `` `cod ``, `[lin`) doesn't render as
- * literal punctuation and then snap into formatted text once it closes.
- * We trim the dangling tail from the visible slice; it reappears (correctly
- * formatted) on the next tick when the closer arrives.
+ * Keep partially-streamed inline markdown rendering smoothly: instead of
+ * hiding the dangling tail (which causes formatted words to "pop in" once
+ * the closer arrives), append a synthetic closer so the text renders
+ * already-formatted while the real closer is still on its way. The synthetic
+ * closer is silently replaced once the real one streams in — no visual jump.
+ * Unclosed link/image syntax is still trimmed because we can't fabricate an
+ * href.
  */
 const hideUnclosedMarkdownTail = (input: string): string => {
   if (!input) return input;
@@ -60,27 +62,33 @@ const hideUnclosedMarkdownTail = (input: string): string => {
 
   let out = input;
 
-  // Unclosed link/image: `[text` or `[text](partial`
+  // Unclosed link/image: `[text` or `[text](partial` — strip (can't fabricate).
   const lastOpenBracket = out.lastIndexOf("[");
   if (lastOpenBracket !== -1) {
     const tail = out.slice(lastOpenBracket);
-    // Closed link looks like [..](..)
     if (!/^!?\[[^\]]*\]\([^)]*\)/.test(tail)) {
       out = out.slice(0, lastOpenBracket);
     }
   }
 
-  // Unclosed inline tokens at the very tail: **, __, *, _, `, ~~
-  // Walk delimiters from longest to shortest.
-  const trimDangling = (s: string, delim: string): string => {
-    const occurrences = s.split(delim).length - 1;
-    if (occurrences % 2 === 0) return s;
-    const idx = s.lastIndexOf(delim);
-    return idx === -1 ? s : s.slice(0, idx);
+  // For each inline delimiter, if there's an odd count, append a synthetic
+  // closer so the open span renders formatted immediately. Walk longest-first
+  // so `**` is handled before `*`. Count non-overlapping occurrences.
+  const appendCloserIfOdd = (s: string, delim: string): string => {
+    // Count non-overlapping occurrences (escape regex specials).
+    const esc = delim.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const matches = s.match(new RegExp(esc, "g"));
+    const count = matches ? matches.length : 0;
+    if (count === 0 || count % 2 === 0) return s;
+    // Don't close if the tail is just the delimiter alone (no content yet) —
+    // avoids rendering empty `**` shells that flash.
+    const tailAfter = s.slice(s.lastIndexOf(delim) + delim.length);
+    if (tailAfter.length === 0) return s.slice(0, s.lastIndexOf(delim));
+    return s + delim;
   };
 
   for (const delim of ["**", "__", "~~", "`", "*", "_"]) {
-    out = trimDangling(out, delim);
+    out = appendCloserIfOdd(out, delim);
   }
 
   return out;

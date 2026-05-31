@@ -1067,11 +1067,12 @@ All colors MUST be HSL for perfect glass effects.
     transition: --arc-glow-strength 380ms ease-out;
   }
 
-  /* Light mode: dramatically quieter so the page stays calm */
+  /* Light mode: quieter than dark but still visibly warm */
   .light .arc-typing-glow {
     text-shadow:
-      0 0 6px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.22)),
-      0 0 16px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.14));
+      0 0 6px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.42)),
+      0 0 16px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.28)),
+      0 0 32px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.18));
   }
 
   @property --arc-glow-strength {
