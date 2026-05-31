@@ -1,39 +1,19 @@
-## Goal
+## Plan
 
-Mirror the existing left-edge swipe (which opens the sidebar) with an opposite right-edge swipe that navigates to `/dashboard` from the new chat screen.
+1. **Confirm the real platform limitation**
+   - Treat iOS Home Screen icons as install-time cached assets.
+   - Verify whether the working project uses a manifest-only transparent PNG pattern, separate `apple-touch-icon` media links, or another Apple-specific asset setup.
 
-## Where
+2. **Compare against the working project pattern**
+   - Check the current app’s `index.html`, manifest, and icon files against the working example’s exact icon tags and manifest fields.
+   - Look specifically for differences in transparent PNG alpha, `apple-touch-icon` dimensions, manifest icon source, and whether Apple is using the manifest icon or the touch icon.
 
-`src/components/MobileChatApp.tsx`, in the same PWA/standalone edge-swipe `useEffect` (currently lines 248–304) that already handles the sidebar gesture.
+3. **Apply the closest supported setup**
+   - Keep the icon glyph cyan.
+   - Use a transparent PNG for the Apple touch icon if the working example relies on iOS applying the plate.
+   - Avoid service workers or cache-busting hacks.
+   - Remove conflicting icon declarations that could force the black baked icon.
 
-## Behavior
-
-- Trigger: only on mobile + PWA/standalone (same gating as sidebar swipe), and only when on the new chat screen (route `/` and no active messages) — matches "from new chat screen".
-- Gesture: touch starts within ~24px of the right edge, horizontal drag left ≥ 50px, vertical drift < 60px.
-- Must not fire while the sidebar (`rightPanelOpen`) is open, and must not conflict with the existing left→right open-sidebar swipe (right-edge start zone is disjoint from the left-half start zone).
-- Action: `navigate('/dashboard')` using the existing `useNavigate` already imported in the file.
-
-## Implementation sketch
-
-Inside the existing `onTouchStart` / `onTouchMove` handlers, add a parallel `trackingDashboard` flag:
-
-```text
-onTouchStart:
-  if !rightPanelOpen
-     && isNewChatScreen   // location.pathname === '/' && messages.length === 0
-     && touch.clientX > innerWidth - 24:
-       startX, startY = touch; trackingDashboard = true
-
-onTouchMove:
-  if trackingDashboard && dx < -50 && |dy| < 60:
-       trackingDashboard = false
-       navigate('/dashboard')
-```
-
-Reset `trackingDashboard` in `onTouchEnd` alongside `tracking`.
-
-## Out of scope
-
-- No changes to the Dashboard page itself.
-- No new animations beyond the standard route transition already in `PageTransition`.
-- Desktop and non-PWA mobile web behavior unchanged.
+4. **Set expectations clearly**
+   - If the icon still does not live-switch after reinstall, explain that iOS may not support live plate switching for this app install path/device/version, even if another installed clip appears to do so.
+   - Final test remains: delete the Home Screen icon, deploy, reopen in iPhone Safari, Share → Add to Home Screen, then toggle iOS Light/Dark mode.
