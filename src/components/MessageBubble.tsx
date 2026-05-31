@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Copy, Edit2, Check, MapPin } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -127,10 +127,25 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [haloed, setHaloed] = useState(false);
     const [settled, setSettled] = useState(false);
     const [logoPulse, setLogoPulse] = useState(false);
+    const [isTypewriterVisuallyActive, setIsTypewriterVisuallyActive] = useState(false);
+    const glowSettleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const prevThinkingRef = useRef(isThinking);
     const prevContentLenRef = useRef(message.content.length);
     const prevAnimateRef = useRef(shouldAnimateTypewriter);
     const hasAssistantContent = !isUser && message.content.trim().length > 0;
+
+    useEffect(() => {
+      return () => {
+        if (glowSettleTimeoutRef.current) clearTimeout(glowSettleTimeoutRef.current);
+      };
+    }, []);
+
+    useEffect(() => {
+      if (shouldAnimateTypewriter && hasAssistantContent) {
+        if (glowSettleTimeoutRef.current) clearTimeout(glowSettleTimeoutRef.current);
+        setIsTypewriterVisuallyActive(true);
+      }
+    }, [hasAssistantContent, shouldAnimateTypewriter]);
 
     useEffect(() => {
       if (isUser || !isLatestAssistant) return;
@@ -196,6 +211,20 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
         handleCancelEdit();
       }
     };
+
+    const handleTypewriterTyping = useCallback(() => {
+      if (glowSettleTimeoutRef.current) clearTimeout(glowSettleTimeoutRef.current);
+      setIsTypewriterVisuallyActive(true);
+      const event = new CustomEvent('typewriter-typing');
+      window.dispatchEvent(event);
+    }, []);
+
+    const handleTypewriterComplete = useCallback(() => {
+      if (glowSettleTimeoutRef.current) clearTimeout(glowSettleTimeoutRef.current);
+      glowSettleTimeoutRef.current = setTimeout(() => {
+        setIsTypewriterVisuallyActive(false);
+      }, 120);
+    }, []);
 
     const handleMessageClick = () => {
       if (!isEditing) setShowActions((s) => !s);
@@ -475,7 +504,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     // AI messages with code block support and markdown
                     message.content.trim().length > 0 && !["canvas", "code", "ide", "file"].includes(message.type) && (
                       <div
-                        className={`relative z-10 w-full min-w-0 arc-message-bubble arc-typing-glow ${isLatestAssistant && (isThinking || shouldAnimateTypewriter) ? "arc-typing-glow-active" : ""}`}
+                        className={`relative z-10 w-full min-w-0 arc-message-bubble arc-typing-glow ${isLatestAssistant && (isThinking || isTypewriterVisuallyActive) ? "arc-typing-glow-active" : ""}`}
                       >
 
                         {contentParts.map((part, idx) => {
@@ -495,10 +524,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                 key={idx}
                                 text={part.content}
                                 shouldAnimate={true}
-                                onTyping={() => {
-                                  const event = new CustomEvent('typewriter-typing');
-                                  window.dispatchEvent(event);
-                                }}
+                                onTyping={handleTypewriterTyping}
+                                onComplete={handleTypewriterComplete}
                               />
                             );
                           }

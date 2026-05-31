@@ -1047,11 +1047,15 @@ All colors MUST be HSL for perfect glass effects.
   /* Accent glow while Arc is streaming - warm settle-out when done */
   .arc-typing-glow {
     text-shadow: 0 0 0 hsl(var(--primary) / 0);
-    transition: text-shadow 1400ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition: text-shadow 1800ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .arc-typing-glow.arc-typing-glow-active,
-  .arc-typing-glow.arc-typing-glow-active * {
+  .arc-typing-glow * {
+    text-shadow: inherit;
+    transition: inherit;
+  }
+
+  .arc-typing-glow.arc-typing-glow-active {
     text-shadow:
       0 0 4px hsl(var(--primary) / 0.65),
       0 0 12px hsl(var(--primary) / 0.55),
