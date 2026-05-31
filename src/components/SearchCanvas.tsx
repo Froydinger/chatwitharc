@@ -956,7 +956,7 @@ export function SearchCanvas() {
                                   initial={{ opacity: 0, scale: 0.9 }}
                                   animate={{ opacity: 1, scale: 1 }}
                                   transition={{ delay: index * 0.03 }}
-                                  className="group flex items-center gap-2 px-3 py-2 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-all"
+                                  className="group flex items-center gap-2 px-3 py-2 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-[background-color,border-color]"
                                 >
                                   <div className="flex-shrink-0 w-4 h-4">
                                     {getFaviconUrl(result.url) ? (
