@@ -185,7 +185,7 @@ export const WordStreamMarkdown = ({
     };
 
     return walk(children, "w");
-  }, [animateWords, revealState.count, revealState.enteringFrom]);
+  }, [animateWords, revealState.count]);
 
   const components = useMemo(() => {
     const cursor = { i: 0 };
