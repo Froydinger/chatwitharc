@@ -2188,7 +2188,7 @@ ${safeCode}
               initial={{ opacity: 0, y: 8, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 6, scale: 0.97 }}
-              transition={{ type: "spring", damping: 30, stiffness: 700, mass: 0.25 }}
+              transition={{ duration: 0.18, ease: [0.25, 0.8, 0.25, 1] }}
               className={cn(
                 "fixed z-[9999] flex items-center justify-center px-4",
                 rightPanelOpen && "lg:mr-80 xl:mr-96"
