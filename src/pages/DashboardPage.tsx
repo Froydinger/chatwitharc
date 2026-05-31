@@ -480,8 +480,23 @@ useEffect(() => {
     chatSessions.forEach(s => {
       s.messages.forEach(m => {
         if (m.type === 'code' || m.type === 'canvas') {
-          // For writing canvases, use canvasContent; for code, use content
-          const canvasContent = m.type === 'canvas' ? (m.canvasContent || '') : (typeof m.content === 'string' ? m.content : '');
+          // For writing canvases, use canvasContent.
+          // For code canvases, prefer codeContent (the actual code) over content (which is just the label).
+          // Fall back through legacy fields, and finally strip ```html fences if the real code was saved inside content.
+          let canvasContent = '';
+          if (m.type === 'canvas') {
+            canvasContent = (m as any).canvasContent || (typeof m.content === 'string' ? m.content : '');
+          } else {
+            const codeContent = (m as any).codeContent;
+            const rawContent = typeof m.content === 'string' ? m.content : '';
+            if (typeof codeContent === 'string' && codeContent.trim().length > 0) {
+              canvasContent = codeContent;
+            } else {
+              // Legacy: extract fenced code from content if present, else use content directly
+              const fenced = rawContent.match(/```(?:\w+)?\n([\s\S]*?)```/);
+              canvasContent = fenced ? fenced[1] : rawContent;
+            }
+          }
           items.push({
             id: m.id,
             type: m.type === 'canvas' ? 'writing' : 'code',
