@@ -9,7 +9,7 @@ All colors MUST be HSL for perfect glass effects.
 @layer base {
   :root {
     /* App-like Dark Background - Dark Grey */
-    --background: 240 8% 12%;
+    --background: 240 8% 4%;
     --foreground: 240 5% 96%;
 
     /* Card & Surface Colors */
