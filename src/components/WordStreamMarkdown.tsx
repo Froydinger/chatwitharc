@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { cloneElement, isValidElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { CodeBlock } from "@/components/CodeBlock";
@@ -213,6 +213,11 @@ export const WordStreamMarkdown = ({
       if (Array.isArray(node)) {
         return node.map((c, i) => walk(c, `${keyPrefix}-${i}`));
       }
+      if (isValidElement(node)) {
+        const tagName = (node as any).props?.node?.tagName;
+        if (!["strong", "em", "a", "del"].includes(tagName)) return node;
+        return cloneElement(node as any, undefined, walk((node as any).props.children, `${keyPrefix}-inline`));
+      }
       return node;
     };
 
@@ -254,12 +259,12 @@ export const WordStreamMarkdown = ({
       ),
       strong: ({ node, children, ...props }: any) => (
         <strong className="font-semibold text-foreground" {...props}>
-          {renderTextWithWords(children, cursor)}
+          {children}
         </strong>
       ),
       em: ({ node, children, ...props }: any) => (
         <em className="italic text-foreground/85" {...props}>
-          {renderTextWithWords(children, cursor)}
+          {children}
         </em>
       ),
       a: ({ node, href, children, ...props }: any) => {
