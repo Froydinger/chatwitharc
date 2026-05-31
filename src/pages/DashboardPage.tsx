@@ -792,7 +792,7 @@ useEffect(() => {
         </div>
 
         {/* ═══ TAB CONTENT ═══ */}
-        <AnimatePresence mode="wait" initial={false}>
+        <AnimatePresence mode="wait" initial={false} custom={tabDirection}>
           {/* ====== OVERVIEW ====== */}
           {activeTab === "overview" && (
             <motion.div key="overview" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.35 }} className="space-y-5">
