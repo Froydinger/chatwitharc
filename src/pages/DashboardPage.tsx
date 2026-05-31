@@ -286,6 +286,14 @@ useEffect(() => {
   useEffect(() => {
     if (!isMobile) return;
 
+    // Prevent Android Chrome / PWA from hijacking horizontal swipes for back-navigation
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverscroll = html.style.overscrollBehaviorX;
+    const prevBodyOverscroll = body.style.overscrollBehaviorX;
+    html.style.overscrollBehaviorX = 'contain';
+    body.style.overscrollBehaviorX = 'contain';
+
     let startX = 0;
     let startY = 0;
     let tracking = false;
