@@ -142,6 +142,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
     useEffect(() => {
       if (shouldAnimateTypewriter && hasAssistantContent) {
+        if (glowSettleTimeoutRef.current) clearTimeout(glowSettleTimeoutRef.current);
         setIsTypewriterVisuallyActive(true);
       }
     }, [hasAssistantContent, shouldAnimateTypewriter]);
