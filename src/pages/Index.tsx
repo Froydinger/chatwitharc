@@ -25,13 +25,7 @@ export function Index() {
     }
   }, [loading]);
 
-  // Force light mode for landing page when not authenticated
-  useEffect(() => {
-    if (!user && !loading) {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('light');
-    }
-  }, [user, loading]);
+  // Landing/lander now follows system theme via useTheme (no force-light)
 
 
   // Load session from URL if present (priority: URL takes precedence)
