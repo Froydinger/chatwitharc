@@ -263,7 +263,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       transition={{ duration: 0.25, ease: "easeInOut" }}
                       className="overflow-hidden"
                     >
-                      <form onSubmit={onSubmit} className="space-y-4">
+                      <form onSubmit={onSubmit} className="space-y-4 px-1 pt-1 pb-1">
                         <div className="space-y-2">
                           <label htmlFor="email" className="text-sm font-medium text-white/80">Email</label>
                           <div className="relative group">
