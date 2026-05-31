@@ -35,6 +35,7 @@ const accentColorConfigs = {
   green: {
     primary: "145 82% 35%",
     primaryGlow: "145 80% 45%",
+    darkBackground: "145 20% 4%",
     aiMessageBg: "145 18% 14%",
     aiMessageBorder: "145 22% 22%",
     userMessageBg: "145 82% 35%",
