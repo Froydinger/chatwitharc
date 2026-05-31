@@ -71,7 +71,7 @@ export const Starfield = () => {
 
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: -5 }}>
+    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
       {stars.map((star) => (
         <div
           key={star.id}
