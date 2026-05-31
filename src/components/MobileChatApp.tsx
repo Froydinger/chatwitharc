@@ -258,11 +258,15 @@ export function MobileChatApp() {
     let tracking = false;
 
     const onTouchStart = (e: TouchEvent) => {
-      if (rightPanelOpen) return;
       const t = e.touches[0];
       if (!t) return;
-      // Start swipe only if finger begins within 24px of the left edge
-      if (t.clientX <= 24) {
+      if (rightPanelOpen) {
+        // Track any touch when panel is open so we can detect a left-swipe close
+        startX = t.clientX;
+        startY = t.clientY;
+        tracking = true;
+      } else if (t.clientX <= 24) {
+        // Start open-swipe only near the left edge
         startX = t.clientX;
         startY = t.clientY;
         tracking = true;
@@ -275,9 +279,12 @@ export function MobileChatApp() {
       if (!t) return;
       const dx = t.clientX - startX;
       const dy = Math.abs(t.clientY - startY);
-      if (dx > 50 && dy < 60) {
+      if (!rightPanelOpen && dx > 50 && dy < 60) {
         tracking = false;
         setRightPanelOpen(true);
+      } else if (rightPanelOpen && dx < -50 && dy < 60) {
+        tracking = false;
+        setRightPanelOpen(false);
       }
     };
 
