@@ -1067,9 +1067,17 @@ export function MobileChatApp() {
                 </motion.div>
               )}
 
-              <div className="pointer-events-auto glass-dock" data-has-images={hasSelectedImages}>
+              <motion.div
+                className="pointer-events-auto glass-dock"
+                data-has-images={hasSelectedImages}
+                initial={{ opacity: 0, y: 24, scale: 0.97, filter: 'blur(6px)' }}
+                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: 16, scale: 0.98, filter: 'blur(4px)' }}
+                transition={{ type: 'spring', stiffness: 260, damping: 26, mass: 0.85 }}
+                style={{ willChange: 'transform, opacity, filter' }}
+              >
                 <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
-              </div>
+              </motion.div>
               {/* Quick Prompts - below input bar on empty state */}
               {messages.length === 0 && (
                 <div className="pointer-events-auto mt-4 flex justify-center">
