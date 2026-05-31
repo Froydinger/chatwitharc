@@ -1362,9 +1362,16 @@ useEffect(() => {
       {/* ═══ BOTTOM NAVIGATION (portaled so transform parent doesn't break fixed positioning) ═══ */}
       {createPortal(
       <div className="fixed bottom-0 left-0 right-0 sm:right-auto z-50 pointer-events-none flex justify-center sm:justify-start" style={{ paddingBottom: '20px' }}>
-        <div
+        <motion.div
           ref={setPillRef}
           data-dashboard-nav-pill
+          initial={{ opacity: 0, y: 40, scale: 0.92, filter: 'blur(8px)' }}
+          animate={isExiting
+            ? { opacity: 0, y: 40, scale: 0.94, filter: 'blur(6px)' }
+            : { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+          transition={isExiting
+            ? { duration: 0.24, ease: [0.4, 0, 0.2, 1] as const }
+            : { type: 'spring' as const, stiffness: 280, damping: 24, mass: 0.8, delay: 0.08 }}
           className="flex items-center px-2 gap-1 py-3 rounded-full pointer-events-auto relative mx-5 sm:mx-8 w-[calc(100%-40px)] sm:w-[420px] md:w-[480px]"
           style={{
             background: 'linear-gradient(135deg, hsl(var(--primary) / 0.14) 0%, hsl(var(--primary) / 0.08) 50%, hsl(var(--primary) / 0.14) 100%), hsl(var(--background) / 0.55)',
@@ -1372,6 +1379,7 @@ useEffect(() => {
             WebkitBackdropFilter: 'blur(24px) saturate(140%)',
             border: '1px solid hsl(var(--primary) / 0.28)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 18px hsl(var(--primary) / 0.12), inset 0 1px 0 hsl(var(--foreground) / 0.08)',
+            willChange: 'transform, opacity, filter',
           }}
         >
           {/* Jelly bubble — rendered first so tabs stack above it visually but bubble captures pointer via z-index */}
