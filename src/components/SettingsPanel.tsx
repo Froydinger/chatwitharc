@@ -85,6 +85,7 @@ import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { LocalAIPanel } from "@/components/LocalAIPanel";
 import { CorporateModePanel } from "@/components/CorporateModePanel";
+import { SharedLinksCard } from "@/components/SharedLinksCard";
 import { cn } from "@/lib/utils";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
