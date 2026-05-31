@@ -2225,34 +2225,29 @@ ${safeCode}
                   { label: "Code", icon: <Code2 className="h-3.5 w-3.5" />, color: "text-blue-400", action: () => { setInputValue("code/"); textareaRef.current?.focus(); }, hideInCorporate: true },
                 ] as Array<{ label: string; icon: JSX.Element; color: string; action: () => void; hideInCorporate?: boolean }>)
                   .filter((item) => !(useCorporateModeStore.getState().enabled && item.hideInCorporate))
-                  .map((item, i) => (
-                  <motion.button
+                  .map((item) => (
+                  <button
                     key={item.label}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.02, duration: 0.18, ease: [0.25, 0.8, 0.25, 1] }}
                     type="button"
                     onMouseDown={(e) => { e.preventDefault(); item.action(); }}
                     className={cn(
                       "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium",
-                      "hover:bg-white/10 active:scale-95 transition-all",
+                      "hover:bg-white/10 active:scale-95 transition-colors duration-150",
                       item.color
                     )}
                   >
                     {item.icon}
                     <span className="text-foreground/80">{item.label}</span>
-                  </motion.button>
+                  </button>
                 ))}
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.1, duration: 0.18, ease: [0.25, 0.8, 0.25, 1] }}
+                <button
                   type="button"
                   onMouseDown={(e) => { e.preventDefault(); setInputValue(""); textareaRef.current?.focus(); }}
-                  className="flex items-center justify-center h-7 w-7 rounded-full hover:bg-white/10 active:scale-95 transition-all text-muted-foreground"
+                  className="flex items-center justify-center h-7 w-7 rounded-full hover:bg-white/10 active:scale-95 transition-colors duration-150 text-muted-foreground"
                 >
                   <X className="h-3.5 w-3.5" />
-                </motion.button>
+                </button>
+
               </div>
             </motion.div>
           </AnimatePresence>,
