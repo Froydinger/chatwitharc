@@ -275,6 +275,17 @@ export async function streamLocalChat(
   const engine = await loadLocalModel(undefined, preferred ?? FAST_MODEL);
 
   const isMobileLite = getActiveLocalModelId() === IOS_LITE_MODEL && isMobileLocalDevice();
+
+  // Wire abort → interrupt the engine immediately so Stop truly halts
+  // on-device generation (not just on the next chunk boundary).
+  const onAbort = () => {
+    try { (engine as any).interruptGenerate?.(); } catch {}
+  };
+  if (abortSignal) {
+    if (abortSignal.aborted) onAbort();
+    else abortSignal.addEventListener('abort', onAbort, { once: true });
+  }
+
   const completion = await engine.chat.completions.create({
     messages: messages as any,
     stream: true,
@@ -289,9 +300,11 @@ export async function streamLocalChat(
 
   for await (const chunk of completion as any) {
     if (abortSignal?.aborted) {
+      try { (engine as any).interruptGenerate?.(); } catch {}
       try { (completion as any).controller?.abort?.(); } catch {}
       break;
     }
+
     const delta = chunk.choices?.[0]?.delta?.content || '';
     if (delta) {
       full += delta;
