@@ -42,12 +42,14 @@ export const useAccentStore = create<AccentStore>((set, get) => ({
     try {
       const saved = localStorage.getItem("themeMode");
       if (isThemeMode(saved)) return saved;
-      // Legacy: migrate old lightMode boolean (only "false" forces dark; default is light)
+      // Legacy migration: only an explicit lightMode boolean overrides the new default
       const legacy = localStorage.getItem("lightMode");
       if (legacy === "false") return "dark";
-      return "light";
+      if (legacy === "true") return "light";
+      // Default for new users: follow OS preference
+      return "system";
     } catch {
-      return "light";
+      return "system";
     }
   })(),
 
