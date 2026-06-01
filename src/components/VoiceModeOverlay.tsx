@@ -520,12 +520,20 @@ export function VoiceModeOverlay() {
               </motion.button>
             </div>
 
-            {/* Voice usage meter — hidden for Boost users */}
+            {/* Voice usage meter — hidden for Boost users. Flexes within the
+                space between the left cluster (mute + swap) and right cluster
+                (attach + camera + close) so it never overlaps on narrow screens. */}
             <div
-              className="absolute left-1/2 -translate-x-1/2 z-10"
-              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.75rem)' }}
+              className="absolute z-10 flex justify-center pointer-events-none"
+              style={{
+                top: 'calc(env(safe-area-inset-top, 0px) + 1.75rem)',
+                left: 'calc(9rem + env(safe-area-inset-left, 0px))',
+                right: 'calc(14rem + env(safe-area-inset-right, 0px))',
+              }}
             >
-              <UsageMeter kind="voice" />
+              <div className="pointer-events-auto min-w-0 max-w-full [&>*]:max-w-full [&>*]:truncate">
+                <UsageMeter kind="voice" />
+              </div>
             </div>
 
             {/* Hidden file input for attachments */}
