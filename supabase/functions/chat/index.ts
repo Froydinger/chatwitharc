@@ -715,18 +715,20 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "get_weather",
-          description: "Get current weather conditions for a specific location. Use this whenever the user asks about weather, temperature, forecast, or conditions for a place. A weather card will be displayed to the user automatically.",
+          description: "Get current weather conditions for a specific location. Use this whenever the user asks about weather, temperature, forecast, or conditions for a place. If the user's precise latitude/longitude are available in context (e.g. for 'weather near me'), ALWAYS pass them as latitude/longitude instead of a city name — this is far more accurate than a place name. A weather card will be displayed to the user automatically.",
           parameters: {
             type: "object",
             properties: {
               location: {
                 type: "string",
-                description: "City name, e.g. 'Chicago', 'Oak Forest, IL', 'Tokyo, Japan'"
-              }
+                description: "City name, e.g. 'Chicago', 'Oak Forest, IL', 'Tokyo, Japan'. Optional if latitude/longitude are provided."
+              },
+              latitude: { type: "number", description: "Precise latitude. Prefer this over location when user coordinates are known." },
+              longitude: { type: "number", description: "Precise longitude. Prefer this over location when user coordinates are known." }
             },
-            required: ["location"],
             additionalProperties: false
           }
+
         }
       }
     ];
