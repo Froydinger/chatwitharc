@@ -22,7 +22,7 @@ export function PricingPage() {
           </div>
           <h1 className="text-5xl font-bold mb-4">ArcAI is free for everyone.</h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Want more? Upgrade to Boost for unlimited image and voice generation — plus publish your code creations to the web.
+            Want more? <br /> Upgrade to Boost for unlimited image and voice generation & publish your code creations to the web.
           </p>
         </div>
 
