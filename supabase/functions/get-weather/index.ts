@@ -82,32 +82,56 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { location } = await req.json();
-    if (!location || typeof location !== 'string') {
-      return new Response(JSON.stringify({ error: 'location required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const body = await req.json();
+    const { location, latitude: latIn, longitude: lonIn } = body || {};
+
+    let latitude: number | null = null;
+    let longitude: number | null = null;
+    let displayLocation = '';
+
+    // Prefer precise coordinates when provided (skips geocoding entirely)
+    if (typeof latIn === 'number' && typeof lonIn === 'number' && isFinite(latIn) && isFinite(lonIn)) {
+      latitude = latIn;
+      longitude = lonIn;
+      // Reverse-geocode for a friendly label, but never block on it
+      try {
+        const rg = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=en&format=json`
+        );
+        const rgData = await rg.json();
+        const r = rgData?.results?.[0];
+        if (r) displayLocation = [r.name, r.admin1, r.country_code].filter(Boolean).join(', ');
+      } catch {}
+      if (!displayLocation && typeof location === 'string') displayLocation = location;
+      if (!displayLocation) displayLocation = `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`;
+    } else {
+      if (!location || typeof location !== 'string') {
+        return new Response(JSON.stringify({ error: 'location or latitude/longitude required' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const stateHint = extractStateHint(location);
+      let place: any = null;
+      for (const q of buildQueryVariants(location)) {
+        place = await geocode(q, stateHint);
+        if (place) break;
+      }
+
+      if (!place) {
+        return new Response(JSON.stringify({
+          error: `Could not find location: ${location}`,
+          fallback: true,
+        }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      latitude = place.latitude;
+      longitude = place.longitude;
+      displayLocation = [place.name, place.admin1, place.country_code].filter(Boolean).join(', ');
     }
 
-    const stateHint = extractStateHint(location);
-    let place: any = null;
-    for (const q of buildQueryVariants(location)) {
-      place = await geocode(q, stateHint);
-      if (place) break;
-    }
-
-    if (!place) {
-      // Return 200 with structured error so client doesn't crash
-      return new Response(JSON.stringify({
-        error: `Could not find location: ${location}`,
-        fallback: true,
-      }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const { latitude, longitude, name, admin1, country_code } = place;
-    const displayLocation = [name, admin1, country_code].filter(Boolean).join(', ');
 
     const wxUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
       `&current=temperature_2m,apparent_temperature,is_day,relative_humidity_2m,weather_code,wind_speed_10m` +
