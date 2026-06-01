@@ -1391,7 +1391,11 @@ Output the complete, finished writing using the update_canvas tool.`;
           const args = JSON.parse(toolCall.function.arguments);
           try {
             const wxResp = await supabase.functions.invoke('get-weather', {
-              body: { location: args.location },
+              body: {
+                location: args.location,
+                latitude: typeof args.latitude === 'number' ? args.latitude : undefined,
+                longitude: typeof args.longitude === 'number' ? args.longitude : undefined,
+              },
             });
             if (wxResp.error || wxResp.data?.error) {
               conversationMessages.push({
