@@ -562,6 +562,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                             try {
                               const result = await lovable.auth.signInWithOAuth("google", {
                                 redirect_uri: window.location.origin,
+                                extraParams: { prompt: "select_account" },
                               });
                               if (result.error) {
                                 toast({ title: "Connection failed", description: String(result.error), variant: "destructive" });
