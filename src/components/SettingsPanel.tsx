@@ -550,6 +550,7 @@ export function SettingsPanel() {
               onClick={async () => {
                 const result = await lovable.auth.signInWithOAuth("google", {
                   redirect_uri: window.location.origin + "/dashboard/settings",
+                  extraParams: { prompt: "select_account" },
                 });
                 if (result.error) {
                   toast({ title: "Failed to connect Google", description: String(result.error), variant: "destructive" });
