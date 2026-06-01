@@ -1,11 +1,45 @@
+import { useState } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
-import { Check, Sparkles, ArrowLeft, Zap, Rocket } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Check, Sparkles, ArrowLeft, Zap, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+
+const contactSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100, "Name too long"),
+  email: z.string().trim().email("Invalid email").max(255, "Email too long"),
+  message: z.string().trim().min(1, "Message is required").max(1000, "Message too long"),
+});
 
 export function PricingPage() {
+  const { toast } = useToast();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+
   const openBoost = () => {
     window.dispatchEvent(new CustomEvent("open-upgrade-modal"));
+  };
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = contactSchema.safeParse({ name, email, message });
+    if (!parsed.success) {
+      toast({
+        title: "Check the form",
+        description: parsed.error.issues[0]?.message ?? "Invalid input",
+        variant: "destructive",
+      });
+      return;
+    }
+    const subject = encodeURIComponent(`ArcAI support — ${parsed.data.name}`);
+    const body = encodeURIComponent(
+      `From: ${parsed.data.name} <${parsed.data.email}>\n\n${parsed.data.message}`
+    );
+    window.location.href = `mailto:support@askarc.chat?subject=${subject}&body=${body}`;
   };
 
   return (
@@ -79,16 +113,6 @@ export function PricingPage() {
               ))}
             </ul>
 
-            {/* Publishing fine print — set expectations up front */}
-            <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-1.5">
-              <div className="flex items-center gap-1.5 text-primary font-medium">
-                <Rocket className="h-3.5 w-3.5" />
-                How publishing works
-              </div>
-              <p>Publish a code creation while you're a Boost subscriber and it stays live forever — even if you cancel later.</p>
-              <p>Publications are <strong>final</strong>: once live they cannot be edited or re-published. You can unpublish at any time, but unpublished sites cannot be brought back.</p>
-            </div>
-
             <GlassButton className="w-full" onClick={openBoost}>
               Get Boost
             </GlassButton>
@@ -98,9 +122,56 @@ export function PricingPage() {
           </GlassCard>
         </div>
 
-        <p className="text-center text-sm text-muted-foreground mt-8">
-          Questions? <Link to="/support" className="underline">Contact support</Link>.
-        </p>
+        {/* Contact / Support */}
+        <div className="max-w-2xl mx-auto mt-12">
+          <GlassCard className="p-6 sm:p-8">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center">
+                <Mail className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold">Need a hand?</h2>
+                <p className="text-xs text-muted-foreground">
+                  Signed in? <Link to="/support" className="underline hover:text-foreground">Open a support ticket</Link>. Otherwise, drop us a note below.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleContactSubmit} className="space-y-3 mt-4">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  maxLength={100}
+                  required
+                />
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Your email"
+                  maxLength={255}
+                  required
+                />
+              </div>
+              <Textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="How can we help?"
+                rows={4}
+                maxLength={1000}
+                required
+              />
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <p className="text-[11px] text-muted-foreground">
+                  Sends to <span className="font-mono">support@askarc.chat</span> via your email app.
+                </p>
+                <GlassButton type="submit">Send message</GlassButton>
+              </div>
+            </form>
+          </GlassCard>
+        </div>
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import { SiteManageModal } from '@/components/SiteManageModal';
 import { unpublishFromNetlify } from '@/lib/deploy';
 import { toast } from 'sonner';
 
+
 export function DeploysPanel() {
   const [sites, setSites] = useState<PublishedSite[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,7 +72,18 @@ export function DeploysPanel() {
             className="h-8 text-sm bg-muted/30 border-border/30"
           />
         )}
+
+        {/* How publishing works — sets expectations for permanence */}
+        <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-1.5">
+          <div className="flex items-center gap-1.5 text-primary font-medium">
+            <Rocket className="h-3.5 w-3.5" />
+            How publishing works
+          </div>
+          <p>Publish a code creation while you're a Boost subscriber and it stays live forever — even if you cancel later.</p>
+          <p>Publications are <strong>final</strong>: once live they cannot be edited or re-published. You can unpublish at any time, but unpublished sites cannot be brought back.</p>
+        </div>
       </div>
+
 
       <div className="px-4 py-3 space-y-2 pb-24">
         {loading ? (
