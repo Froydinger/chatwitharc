@@ -26,10 +26,10 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">1. Who we are</h2>
               <p className="text-muted-foreground">
-                ArcAI ("ArcAI", "we", "us") is operated by <strong>Win The Night™ Productions</strong>{" "}
-                in collaboration with <strong>Froydinger™ Design Systems</strong>. Contact:{" "}
-                <a href="mailto:support@askarc.chat" className="text-primary hover:underline">
-                  support@askarc.chat
+                ArcAI ("ArcAI", "we", "us") is operated by <strong>Win The Night™ Productions</strong> in collaboration
+                with <strong>Froydinger™ Design Systems</strong>. Contact:{" "}
+                <a href="mailto:arc@froydinger.com" className="text-primary hover:underline">
+                  arc@froydinger.com
                 </a>
                 .
               </p>
@@ -38,10 +38,9 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">2. Free, forever</h2>
               <p className="text-muted-foreground">
-                ArcAI is <strong>free for everyone</strong>. There is no paid plan, no
-                subscription, and no Merchant of Record — anything you read elsewhere about
-                billing, refunds, or Pro tiers no longer applies. The only soft limit is 10 image
-                generations per day for non-admin accounts so the service stays sustainable for
+                ArcAI is <strong>free for everyone</strong>. There is no paid plan, no subscription, and no Merchant of
+                Record — anything you read elsewhere about billing, refunds, or Pro tiers no longer applies. The only
+                soft limit is 10 image generations per day for non-admin accounts so the service stays sustainable for
                 all users.
               </p>
             </section>
@@ -49,18 +48,18 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">3. The service</h2>
               <p className="text-muted-foreground">
-                ArcAI is an AI assistant accessible via web and an installable PWA. We grant you a
-                non-exclusive, non-transferable, revocable license to use the service for personal
-                or internal business use, subject to these terms.
+                ArcAI is an AI assistant accessible via web and an installable PWA. We grant you a non-exclusive,
+                non-transferable, revocable license to use the service for personal or internal business use, subject to
+                these terms.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">4. Accounts &amp; sign-in</h2>
               <p className="text-muted-foreground">
-                Sign-in is handled by <strong>Google or Apple OAuth</strong>. You must provide
-                accurate information and keep your identity provider account secure. You're
-                responsible for everything that happens under your account.
+                Sign-in is handled by <strong>Google or Apple OAuth</strong>. You must provide accurate information and
+                keep your identity provider account secure. You're responsible for everything that happens under your
+                account.
               </p>
             </section>
 
@@ -70,98 +69,85 @@ export default function TermsPage() {
               <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                 <li>Use the service to violate any law or third-party rights.</li>
                 <li>
-                  Generate, distribute, or store unlawful, defamatory, harassing, hateful, or
-                  sexually exploitative content involving minors.
+                  Generate, distribute, or store unlawful, defamatory, harassing, hateful, or sexually exploitative
+                  content involving minors.
                 </li>
+                <li>Attempt to reverse engineer, scrape, overload, or disrupt the service or its infrastructure.</li>
                 <li>
-                  Attempt to reverse engineer, scrape, overload, or disrupt the service or its
-                  infrastructure.
+                  Use the service to build a competing product, train competing models on outputs, or resell access.
                 </li>
-                <li>
-                  Use the service to build a competing product, train competing models on
-                  outputs, or resell access.
-                </li>
-                <li>
-                  Bypass the daily image limit, authentication, or any other technical guardrail.
-                </li>
+                <li>Bypass the daily image limit, authentication, or any other technical guardrail.</li>
               </ul>
               <p className="text-muted-foreground mt-3">
-                If you abuse the free, unlimited service, your account may be suspended or
-                terminated. 99.99% of people will never have to think about this — you know who
-                you are.
+                If you abuse the free, unlimited service, your account may be suspended or terminated. 99.99% of people
+                will never have to think about this — you know who you are.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">6. Intellectual property</h2>
               <p className="text-muted-foreground">
-                The ArcAI software, branding, and underlying systems are owned by Win The Night
-                Productions and Froydinger Design Systems. You retain ownership of inputs you
-                submit and outputs generated for you, subject to the rights of the underlying AI
-                model providers. You grant us a limited license to process your inputs solely to
-                provide the service.
+                The ArcAI software, branding, and underlying systems are owned by Win The Night Productions and
+                Froydinger Design Systems. You retain ownership of inputs you submit and outputs generated for you,
+                subject to the rights of the underlying AI model providers. You grant us a limited license to process
+                your inputs solely to provide the service.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">7. AI output disclaimer</h2>
               <p className="text-muted-foreground">
-                AI-generated output may be inaccurate, incomplete, biased, or offensive. You are
-                responsible for reviewing output before relying on it. ArcAI is not a substitute
-                for professional advice (medical, legal, financial, or otherwise).
+                AI-generated output may be inaccurate, incomplete, biased, or offensive. You are responsible for
+                reviewing output before relying on it. ArcAI is not a substitute for professional advice (medical,
+                legal, financial, or otherwise).
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">8. Emails we send</h2>
               <p className="text-muted-foreground">
-                Transactional emails (account, security, support) are sent through{" "}
-                <strong>Lovable Emails</strong> from{" "}
-                <code className="text-xs">notify.askarc.chat</code>. We don't send marketing or
-                newsletter emails.
+                Transactional emails (account, security, support) are sent through <strong>Lovable Emails</strong> from{" "}
+                <code className="text-xs">notify.askarc.chat</code>. We don't send marketing or newsletter emails.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">9. Suspension &amp; termination</h2>
               <p className="text-muted-foreground">
-                We may suspend or terminate access at any time for breach of these terms,
-                suspected fraud, or to comply with law. You may close your account at any time
-                from settings.
+                We may suspend or terminate access at any time for breach of these terms, suspected fraud, or to comply
+                with law. You may close your account at any time from settings.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">10. Warranty disclaimer</h2>
               <p className="text-muted-foreground">
-                The service is provided "as is" without warranties of any kind, express or
-                implied, including merchantability, fitness for a particular purpose, and
-                non-infringement.
+                The service is provided "as is" without warranties of any kind, express or implied, including
+                merchantability, fitness for a particular purpose, and non-infringement.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">11. Limitation of liability</h2>
               <p className="text-muted-foreground">
-                Because the service is free, our liability is limited to the maximum extent
-                permitted by law. We are not liable for indirect, incidental, special, or
-                consequential damages.
+                Because the service is free, our liability is limited to the maximum extent permitted by law. We are not
+                liable for indirect, incidental, special, or consequential damages.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">12. Changes</h2>
               <p className="text-muted-foreground">
-                We may update these terms. Material changes will be announced in-app. Continued
-                use after the effective date constitutes acceptance.
+                We may update these terms. Material changes will be announced in-app. Continued use after the effective
+                date constitutes acceptance.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">13. Governing law</h2>
               <p className="text-muted-foreground">
-                These terms are governed by the laws of the United States and the state of
-                residence of Win The Night Productions, without regard to conflict-of-laws rules.
+                These terms are governed by the laws of the United States and the state of residence of Win The Night
+                Productions, without regard to conflict-of-laws rules.
               </p>
             </section>
 
@@ -169,8 +155,8 @@ export default function TermsPage() {
               <h2 className="text-xl font-semibold mb-2">14. Contact</h2>
               <p className="text-muted-foreground">
                 Questions?{" "}
-                <a href="mailto:support@askarc.chat" className="text-primary hover:underline">
-                  support@askarc.chat
+                <a href="mailto:arc@froydinger.com" className="text-primary hover:underline">
+                  arc@froydinger.com
                 </a>
               </p>
             </section>
@@ -178,10 +164,7 @@ export default function TermsPage() {
         </div>
 
         <div className="text-center mt-8">
-          <Link
-            to="/privacy"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Read the Privacy Notice →
           </Link>
         </div>

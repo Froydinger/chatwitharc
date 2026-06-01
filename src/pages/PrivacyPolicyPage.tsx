@@ -28,8 +28,8 @@ export default function PrivacyPolicyPage() {
               <p className="text-muted-foreground">
                 ArcAI is operated by <strong>Win The Night™ Productions</strong> in collaboration with{" "}
                 <strong>Froydinger™ Design Systems</strong>. Questions? Email{" "}
-                <a href="mailto:support@askarc.chat" className="text-primary hover:underline">
-                  support@askarc.chat
+                <a href="mailto:arc@froydinger.com" className="text-primary hover:underline">
+                  arc@froydinger.com
                 </a>
                 .
               </p>
@@ -38,10 +38,9 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">ArcAI is free for everyone</h2>
               <p className="text-muted-foreground">
-                There is no subscription, no checkout, and no billing system. We do not collect
-                payment information, billing addresses, or anything tied to a paid plan — because
-                there isn't one. The only soft limit is 10 image generations per day for
-                non-admin accounts.
+                There is no subscription, no checkout, and no billing system. We do not collect payment information,
+                billing addresses, or anything tied to a paid plan — because there isn't one. The only soft limit is 10
+                image generations per day for non-admin accounts.
               </p>
             </section>
 
@@ -49,20 +48,19 @@ export default function PrivacyPolicyPage() {
               <h2 className="text-xl font-semibold mb-2">What we store</h2>
               <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                 <li>
-                  <strong>Account data:</strong> name, email, profile photo, and the OAuth
-                  identifier from Google or Apple.
+                  <strong>Account data:</strong> name, email, profile photo, and the OAuth identifier from Google or
+                  Apple.
                 </li>
                 <li>
-                  <strong>Content:</strong> chats, prompts, uploads, generated images and files,
-                  voice transcripts, and memories you create inside Arc's Brain.
+                  <strong>Content:</strong> chats, prompts, uploads, generated images and files, voice transcripts, and
+                  memories you create inside Arc's Brain.
                 </li>
                 <li>
-                  <strong>Usage diagnostics:</strong> session metadata, feature usage, device type,
-                  and error logs used to keep the service stable.
+                  <strong>Usage diagnostics:</strong> session metadata, feature usage, device type, and error logs used
+                  to keep the service stable.
                 </li>
                 <li>
-                  <strong>Support data:</strong> tickets and attachments you submit through the
-                  in-app support flow.
+                  <strong>Support data:</strong> tickets and attachments you submit through the in-app support flow.
                 </li>
               </ul>
             </section>
@@ -81,26 +79,23 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">Who processes your data for us</h2>
               <p className="text-muted-foreground mb-3">
-                We share data only with infrastructure providers acting strictly as processors on
-                our behalf:
+                We share data only with infrastructure providers acting strictly as processors on our behalf:
               </p>
               <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                 <li>
-                  <strong>Lovable Cloud</strong> — hosting, database, authentication, and file
-                  storage.
+                  <strong>Lovable Cloud</strong> — hosting, database, authentication, and file storage.
                 </li>
                 <li>
-                  <strong>AI model providers</strong> (Google, OpenAI, and others routed through
-                  the Lovable AI Gateway) — to generate responses to your prompts.
+                  <strong>AI model providers</strong> (Google, OpenAI, and others routed through the Lovable AI Gateway)
+                  — to generate responses to your prompts.
                 </li>
                 <li>
                   <strong>Lovable Emails</strong> — transactional emails sent from{" "}
-                  <code className="text-xs">notify.askarc.chat</code> (account, support, and
-                  system messages).
+                  <code className="text-xs">notify.askarc.chat</code> (account, support, and system messages).
                 </li>
                 <li>
-                  <strong>Web Search, image, and audio providers</strong> — only when you explicitly
-                  trigger web search, image, or audio features.
+                  <strong>Web Search, image, and audio providers</strong> — only when you explicitly trigger web search,
+                  image, or audio features.
                 </li>
                 <li>Law enforcement or regulators when legally required.</li>
               </ul>
@@ -109,30 +104,27 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">Authentication</h2>
               <p className="text-muted-foreground">
-                ArcAI supports <strong>Google and Apple Sign-In only</strong>. We do not store
-                passwords, magic-link tokens, or any other credential — authentication is handled
-                entirely by your identity provider.
+                ArcAI supports <strong>Google and Apple Sign-In only</strong>. We do not store passwords, magic-link
+                tokens, or any other credential — authentication is handled entirely by your identity provider.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">Retention &amp; deletion</h2>
               <p className="text-muted-foreground">
-                You can delete individual chats, memories, and uploads at any time. Deleting your
-                account permanently removes your data from our database within 30 days, except
-                where retention is required by law. Deletions cannot be reversed — we keep no
-                shadow backups.
+                You can delete individual chats, memories, and uploads at any time. Deleting your account permanently
+                removes your data from our database within 30 days, except where retention is required by law. Deletions
+                cannot be reversed — we keep no shadow backups.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">Your rights</h2>
               <p className="text-muted-foreground">
-                Depending on your jurisdiction (GDPR, UK GDPR, CCPA, and similar), you have the
-                right to access, correct, delete, port, or restrict processing of your data, and
-                to object or withdraw consent. Email{" "}
-                <a href="mailto:support@askarc.chat" className="text-primary hover:underline">
-                  support@askarc.chat
+                Depending on your jurisdiction (GDPR, UK GDPR, CCPA, and similar), you have the right to access,
+                correct, delete, port, or restrict processing of your data, and to object or withdraw consent. Email{" "}
+                <a href="mailto:arc@froydinger.com" className="text-primary hover:underline">
+                  arc@froydinger.com
                 </a>{" "}
                 to exercise any of these rights.
               </p>
@@ -141,33 +133,32 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">Children</h2>
               <p className="text-muted-foreground">
-                ArcAI is not directed to children under 13 (or under 16 in the EEA/UK), and we do
-                not knowingly collect data from them.
+                ArcAI is not directed to children under 13 (or under 16 in the EEA/UK), and we do not knowingly collect
+                data from them.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">Security</h2>
               <p className="text-muted-foreground">
-                TLS in transit, encrypted at rest, row-level security on every table, and
-                OAuth-only authentication. No method of transmission is 100% secure, but we hold
-                ourselves to a high bar.
+                TLS in transit, encrypted at rest, row-level security on every table, and OAuth-only authentication. No
+                method of transmission is 100% secure, but we hold ourselves to a high bar.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">Changes</h2>
               <p className="text-muted-foreground">
-                We'll update this page and the date above when the policy changes. Material
-                updates will be announced in-app.
+                We'll update this page and the date above when the policy changes. Material updates will be announced
+                in-app.
               </p>
             </section>
 
             <section>
               <h2 className="text-xl font-semibold mb-2">Contact</h2>
               <p className="text-muted-foreground">
-                <a href="mailto:support@askarc.chat" className="text-primary hover:underline">
-                  support@askarc.chat
+                <a href="mailto:arc@froydinger.com" className="text-primary hover:underline">
+                  arc@froydinger.com
                 </a>
               </p>
             </section>
@@ -175,10 +166,7 @@ export default function PrivacyPolicyPage() {
         </div>
 
         <div className="text-center mt-8">
-          <Link
-            to="/terms"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Read the Terms of Service →
           </Link>
         </div>

@@ -36,16 +36,17 @@ export function PricingPage() {
       return;
     }
     const subject = encodeURIComponent(`ArcAI support — ${parsed.data.name}`);
-    const body = encodeURIComponent(
-      `From: ${parsed.data.name} <${parsed.data.email}>\n\n${parsed.data.message}`
-    );
-    window.location.href = `mailto:support@askarc.chat?subject=${subject}&body=${body}`;
+    const body = encodeURIComponent(`From: ${parsed.data.name} <${parsed.data.email}>\n\n${parsed.data.message}`);
+    window.location.href = `mailto:arc@froydinger.com?subject=${subject}&body=${body}`;
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground py-16 px-6">
       <div className="max-w-5xl mx-auto">
-        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
+        >
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
 
@@ -56,7 +57,8 @@ export function PricingPage() {
           </div>
           <h1 className="text-5xl font-bold mb-4">ArcAI is free for everyone.</h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Want more? <br /> Upgrade to Boost for unlimited image and voice generation & publish your code creations to the web.
+            Want more? <br /> Upgrade to Boost for unlimited image and voice generation & publish your code creations to
+            the web.
           </p>
         </div>
 
@@ -132,7 +134,11 @@ export function PricingPage() {
               <div>
                 <h2 className="text-lg font-semibold">Need a hand?</h2>
                 <p className="text-xs text-muted-foreground">
-                  Signed in? <Link to="/support" className="underline hover:text-foreground">Open a support ticket</Link>. Otherwise, drop us a note below.
+                  Signed in?{" "}
+                  <Link to="/support" className="underline hover:text-foreground">
+                    Open a support ticket
+                  </Link>
+                  . Otherwise, drop us a note below.
                 </p>
               </div>
             </div>
@@ -165,7 +171,7 @@ export function PricingPage() {
               />
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <p className="text-[11px] text-muted-foreground">
-                  Sends to <span className="font-mono">support@askarc.chat</span> via your email app.
+                  Sends to <span className="font-mono">arc@froydinger.com</span> via your email app.
                 </p>
                 <GlassButton type="submit">Send message</GlassButton>
               </div>
