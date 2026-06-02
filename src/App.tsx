@@ -39,6 +39,9 @@ import { SupportPage } from "./pages/SupportPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import { SharedChatPage } from "./pages/SharedChatPage";
+import { TasksPage } from "./pages/TasksPage";
+import { SharedChatsPage } from "./pages/SharedChatsPage";
+import { SharedChatRoomPage } from "./pages/SharedChatRoomPage";
 
 const queryClient = new QueryClient();
 
@@ -114,6 +117,9 @@ const App = () => {
                   <Route path="/admin" element={<AdminPage />} />
                   <Route path="/unsubscribe" element={<UnsubscribePage />} />
                   <Route path="/support" element={<SupportPage />} />
+                  <Route path="/tasks" element={<TasksPage />} />
+                  <Route path="/shared" element={<SharedChatsPage />} />
+                  <Route path="/shared/:chatId" element={<SharedChatRoomPage />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="/terms" element={<TermsPage />} />
                   <Route path="/privacy" element={<PrivacyPolicyPage />} />

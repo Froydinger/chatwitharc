@@ -19,3 +19,5 @@ project_id = "jxywhodnndagbsmnbnnw"
     verify_jwt = false
   [functions.payments-portal]
     verify_jwt = false
+  [functions.run-scheduled-tasks]
+    verify_jwt = false

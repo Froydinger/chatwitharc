@@ -560,6 +560,110 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_task_runs: {
+        Row: {
+          chat_session_id: string | null
+          error: string | null
+          finished_at: string | null
+          id: string
+          output: string | null
+          started_at: string
+          status: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          chat_session_id?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          output?: string | null
+          started_at?: string
+          status?: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          chat_session_id?: string | null
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          output?: string | null
+          started_at?: string
+          status?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_task_runs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_tasks: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          cron_expr: string | null
+          id: string
+          last_run_at: string | null
+          model: string | null
+          next_run_at: string | null
+          prompt: string
+          push_on_complete: boolean
+          result_chat_id: string | null
+          run_at: string | null
+          schedule_type: string
+          status: string
+          timezone: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          cron_expr?: string | null
+          id?: string
+          last_run_at?: string | null
+          model?: string | null
+          next_run_at?: string | null
+          prompt: string
+          push_on_complete?: boolean
+          result_chat_id?: string | null
+          run_at?: string | null
+          schedule_type: string
+          status?: string
+          timezone?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          cron_expr?: string | null
+          id?: string
+          last_run_at?: string | null
+          model?: string | null
+          next_run_at?: string | null
+          prompt?: string
+          push_on_complete?: boolean
+          result_chat_id?: string | null
+          run_at?: string | null
+          schedule_type?: string
+          status?: string
+          timezone?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       search_sessions: {
         Row: {
           created_at: string
@@ -596,6 +700,156 @@ export type Database = {
           summary_conversation?: Json | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      shared_chat_invites: {
+        Row: {
+          accepted_at: string | null
+          chat_id: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          chat_id: string
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          role?: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          chat_id?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_chat_invites_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "shared_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_chat_members: {
+        Row: {
+          chat_id: string
+          id: string
+          joined_at: string
+          last_read_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_chat_members_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "shared_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_chat_messages: {
+        Row: {
+          attachments: Json | null
+          author_user_id: string | null
+          chat_id: string
+          content: string
+          created_at: string
+          id: string
+          mentions: string[] | null
+          role: string
+        }
+        Insert: {
+          attachments?: Json | null
+          author_user_id?: string | null
+          chat_id: string
+          content: string
+          created_at?: string
+          id?: string
+          mentions?: string[] | null
+          role?: string
+        }
+        Update: {
+          attachments?: Json | null
+          author_user_id?: string | null
+          chat_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          mentions?: string[] | null
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_chat_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "shared_chats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_chats: {
+        Row: {
+          agent_id: string | null
+          canvas_content: string | null
+          created_at: string
+          id: string
+          owner_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id?: string | null
+          canvas_content?: string | null
+          created_at?: string
+          id?: string
+          owner_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string | null
+          canvas_content?: string | null
+          created_at?: string
+          id?: string
+          owner_id?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -830,6 +1084,14 @@ export type Database = {
         Returns: number
       }
       is_admin_user: { Args: never; Returns: boolean }
+      is_shared_chat_member: {
+        Args: { _chat_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_shared_chat_owner: {
+        Args: { _chat_id: string; _user_id: string }
+        Returns: boolean
+      }
       list_chat_sessions_meta: {
         Args: { max_sessions?: number; searching_user_id: string }
         Returns: {
