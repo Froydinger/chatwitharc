@@ -269,6 +269,8 @@ export class AIService {
             codeUpdate: data.code_update,
             memorySaved: data.memory_saved,
             weatherData: data.weather_data,
+            scheduledTask: data.scheduled_task,
+            notificationDispatch: data.notification_dispatch,
             locationUsed: usedLocation ? {
               city: usedLocation.city,
               region: usedLocation.region,
