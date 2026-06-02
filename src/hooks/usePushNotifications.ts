@@ -56,6 +56,14 @@ function waitForState(worker: ServiceWorker, state: ServiceWorkerState) {
   });
 }
 
+function subscriptionUsesKey(sub: PushSubscription, keyBytes: Uint8Array) {
+  const existing = sub.options?.applicationServerKey;
+  if (!existing) return true;
+  const existingBytes = new Uint8Array(existing);
+  if (existingBytes.length !== keyBytes.length) return false;
+  return existingBytes.every((value, index) => value === keyBytes[index]);
+}
+
 async function ensurePushRegistration(repair = false) {
   if (repair) {
     const registrations = await navigator.serviceWorker.getRegistrations();
@@ -189,6 +197,7 @@ export function usePushNotifications() {
       }
 
       const publicKey = await getVapidPublicKey();
+      const publicKeyBytes = urlBase64ToUint8Array(publicKey);
       let sub: PushSubscription | null = null;
       let lastErr: any = null;
 
@@ -199,10 +208,14 @@ export function usePushNotifications() {
         try {
           const reg = await ensurePushRegistration(attempt === 4);
           sub = await reg.pushManager.getSubscription();
+          if (sub && !subscriptionUsesKey(sub, publicKeyBytes)) {
+            await sub.unsubscribe().catch(() => false);
+            sub = null;
+          }
           if (!sub) {
             sub = await reg.pushManager.subscribe({
               userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(publicKey),
+              applicationServerKey: publicKeyBytes,
             });
           }
         } catch (err: any) {
