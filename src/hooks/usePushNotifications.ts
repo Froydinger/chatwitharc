@@ -181,11 +181,6 @@ export function usePushNotifications() {
         );
       }
 
-      // Make sure the SW is registered AND active.
-      let reg = await navigator.serviceWorker.getRegistration();
-      if (!reg) reg = await navigator.serviceWorker.register("/sw.js");
-      reg = await navigator.serviceWorker.ready;
-
       const perm = await Notification.requestPermission();
       setPermission(perm);
       if (perm !== "granted") {
@@ -193,31 +188,31 @@ export function usePushNotifications() {
         throw new Error("Notification permission was not granted.");
       }
 
-      // Some platforms (iOS PWA, fresh installs) throw AbortError for ~1s after
-      // the SW activates. Retry a few times before giving up.
-      let sub = await reg.pushManager.getSubscription();
-      if (!sub) {
-        let lastErr: any = null;
-        for (let attempt = 0; attempt < 4; attempt++) {
-          try {
+      const publicKey = await getVapidPublicKey();
+      let sub: PushSubscription | null = null;
+      let lastErr: any = null;
+
+      // Safari PWAs can keep a broken registration after install/update. Retry
+      // with increasing waits, then rebuild the SW registration once before the
+      // final attempts so users don't get stuck forever on Apple's push service.
+      for (let attempt = 0; attempt < 8 && !sub; attempt++) {
+        try {
+          const reg = await ensurePushRegistration(attempt === 4);
+          sub = await reg.pushManager.getSubscription();
+          if (!sub) {
             sub = await reg.pushManager.subscribe({
               userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+              applicationServerKey: urlBase64ToUint8Array(publicKey),
             });
-            break;
-          } catch (err: any) {
-            lastErr = err;
-            const msg = String(err?.message ?? "");
-            const transient =
-              err?.name === "AbortError" ||
-              /push service/i.test(msg) ||
-              /not available/i.test(msg);
-            if (!transient || attempt === 3) throw err;
-            await sleep(600 * (attempt + 1));
           }
+        } catch (err: any) {
+          lastErr = err;
+          if (!isTransientPushError(err) || attempt === 7) throw err;
+          await sleep(1000 * (attempt + 1));
         }
-        if (!sub) throw lastErr ?? new Error("Could not subscribe to push service.");
       }
+
+      if (!sub) throw lastErr ?? new Error("Could not subscribe to push service.");
 
       const { error } = await supabase.functions.invoke("register-push-subscription", {
         body: { subscription: sub.toJSON(), userAgent: navigator.userAgent },
@@ -249,7 +244,7 @@ export function usePushNotifications() {
   const unsubscribe = useCallback(async () => {
     setLoading(true);
     try {
-      const reg = await navigator.serviceWorker.getRegistration();
+      const reg = await navigator.serviceWorker.getRegistration("/");
       const sub = await reg?.pushManager.getSubscription();
       if (sub) {
         const endpoint = sub.endpoint;
