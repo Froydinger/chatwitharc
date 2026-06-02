@@ -106,7 +106,7 @@ export function PricingPage() {
                 "Everything in Free",
                 "Unlimited image generations",
                 "Unlimited voice conversations",
-                "Unlimited shared chats with your team",
+                "Create unlimited shared chats (still up to 6 people per chat)",
                 "Publish code creations to the web (yourname.froydingermedia.online)",
                 "Cancel anytime — no contracts",
               ].map((item) => (
