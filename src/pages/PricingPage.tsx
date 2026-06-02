@@ -73,11 +73,12 @@ export function PricingPage() {
             <ul className="space-y-3 mb-8">
               {[
                 "Unlimited chats with every model",
+                "Unlimited reminders & scheduled tasks",
+                "Up to 2 shared chats with your team",
                 "10 voice conversations every 30 days",
                 "10 image generations per day",
                 "Web search, file uploads, document analysis",
                 "Memory, canvases, code generation",
-                "All future free features at no cost",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-primary mt-0.5 shrink-0" />
@@ -105,6 +106,7 @@ export function PricingPage() {
                 "Everything in Free",
                 "Unlimited image generations",
                 "Unlimited voice conversations",
+                "Unlimited shared chats with your team",
                 "Publish code creations to the web (yourname.froydingermedia.online)",
                 "Cancel anytime — no contracts",
               ].map((item) => (
