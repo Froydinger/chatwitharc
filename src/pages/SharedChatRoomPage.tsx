@@ -1,9 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, Send, UserPlus, Settings, Sparkles, Trash2, Users } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { ArrowLeft, Send, UserPlus, Settings, Sparkles, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +10,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { ThemedLogo } from "@/components/ThemedLogo";
+import { MessageBubble } from "@/components/MessageBubble";
+import type { Message } from "@/store/useArcStore";
 
 interface Msg {
   id: string;
@@ -36,6 +35,17 @@ function initials(name?: string) {
   if (!name) return "?";
   const parts = name.trim().split(/\s+/);
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || name[0].toUpperCase();
+}
+
+// Adapt shared message → Arc Message so we can render with the real MessageBubble
+function toArcMessage(m: Msg): Message {
+  return {
+    id: m.id,
+    content: m.content,
+    role: m.author_user_id === null ? "assistant" : "user",
+    timestamp: new Date(m.created_at),
+    type: "text",
+  };
 }
 
 export function SharedChatRoomPage() {
@@ -171,26 +181,9 @@ export function SharedChatRoomPage() {
     }
   }
 
-  async function deleteMsg(m: Msg) {
-    if (!confirm("Delete this message?")) return;
-    await supabase.from("shared_chat_messages").delete().eq("id", m.id);
-  }
-
   const isOwner = chat?.owner_id === user?.id;
   const atMemberCap = members.length >= 6;
-
-  const markdownComponents = useMemo(() => ({
-    p: ({ node, ...props }: any) => <p className="text-[15px] leading-relaxed mb-2 last:mb-0 text-foreground/90" {...props} />,
-    a: ({ node, ...props }: any) => <a className="text-primary underline underline-offset-2" target="_blank" rel="noopener noreferrer" {...props} />,
-    code: ({ inline, children, ...props }: any) => inline
-      ? <code className="rounded bg-white/10 px-1.5 py-0.5 text-[13px] font-mono" {...props}>{children}</code>
-      : <pre className="rounded-xl bg-black/40 border border-white/10 p-3 my-2 overflow-x-auto text-[13px] font-mono"><code {...props}>{children}</code></pre>,
-    ul: ({ node, ...props }: any) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
-    ol: ({ node, ...props }: any) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
-    h1: ({ node, ...props }: any) => <h1 className="text-lg font-semibold mb-1.5" {...props} />,
-    h2: ({ node, ...props }: any) => <h2 className="text-base font-semibold mb-1.5" {...props} />,
-    h3: ({ node, ...props }: any) => <h3 className="text-base font-semibold mb-1" {...props} />,
-  }), []);
+  const lastAssistantId = [...messages].reverse().find((m) => m.author_user_id === null)?.id;
 
   if (authLoading || !user) return null;
 
@@ -210,8 +203,8 @@ export function SharedChatRoomPage() {
           </Button>
         </div>
 
-        {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1 pb-2 space-y-4">
+        {/* Messages — uses the real MessageBubble from regular chat, wrapped with an author avatar */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1 pb-2 space-y-5">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-16">
               <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-60" />
@@ -224,16 +217,11 @@ export function SharedChatRoomPage() {
             const prof = m.author_user_id ? profilesMap.get(m.author_user_id) : undefined;
             const name = isArc ? "Arc" : prof?.display_name ?? "User";
             const avatarUrl = isArc ? null : prof?.avatar_url ?? null;
+            const arcMsg = toArcMessage(m);
 
             return (
-              <motion.div
-                key={m.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex gap-3 ${isMine ? "flex-row-reverse" : "flex-row"}`}
-              >
-                {/* Avatar */}
-                <Avatar className="h-8 w-8 mt-0.5 shrink-0 border border-white/10">
+              <div key={m.id} className={`flex gap-2.5 items-start ${isMine ? "flex-row-reverse" : "flex-row"}`}>
+                <Avatar className="h-8 w-8 mt-1 shrink-0 border border-white/10">
                   {isArc ? (
                     <div className="h-full w-full flex items-center justify-center bg-primary/15">
                       <ThemedLogo className="h-4 w-4" />
@@ -244,41 +232,24 @@ export function SharedChatRoomPage() {
                     <AvatarFallback className="text-[11px] bg-white/10">{initials(name)}</AvatarFallback>
                   )}
                 </Avatar>
-
-                {/* Bubble */}
-                <div className={`min-w-0 max-w-[85%] ${isMine ? "items-end" : "items-start"} flex flex-col gap-1`}>
-                  <div className={`flex items-center gap-2 text-[11px] text-muted-foreground px-0.5 ${isMine ? "flex-row-reverse" : ""}`}>
+                <div className="min-w-0 flex-1 flex flex-col gap-1">
+                  <div className={`text-[11px] text-muted-foreground px-1 ${isMine ? "text-right" : "text-left"}`}>
                     <span className="font-medium text-foreground/80">{name}{isArc && " · AI"}</span>
+                    <span className="mx-1.5">·</span>
                     <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                    {(isMine || isOwner) && (
-                      <button className="opacity-50 hover:opacity-100 transition-opacity" onClick={() => deleteMsg(m)} title="Delete">
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    )}
                   </div>
-                  {isArc ? (
-                    <div className="prose prose-invert max-w-none text-[15px] leading-relaxed text-foreground/90">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                        {m.content}
-                      </ReactMarkdown>
-                    </div>
-                  ) : (
-                    <div className={`rounded-2xl px-4 py-2.5 border ${isMine
-                      ? "bg-primary text-primary-foreground border-primary/40 rounded-tr-md"
-                      : "bg-white/[0.06] border-white/10 rounded-tl-md"}`}>
-                      <div className="prose prose-invert max-w-none">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                          {m.content}
-                        </ReactMarkdown>
-                      </div>
-                    </div>
-                  )}
+                  <MessageBubble
+                    message={arcMsg}
+                    isLatestAssistant={isArc && m.id === lastAssistantId}
+                    shouldAnimateTypewriter={false}
+                    isThinking={false}
+                  />
                 </div>
-              </motion.div>
+              </div>
             );
           })}
           {aiThinking && (
-            <div className="flex gap-3 items-center">
+            <div className="flex gap-2.5 items-center">
               <Avatar className="h-8 w-8 border border-white/10">
                 <div className="h-full w-full flex items-center justify-center bg-primary/15">
                   <ThemedLogo className="h-4 w-4" />
@@ -289,22 +260,24 @@ export function SharedChatRoomPage() {
           )}
         </div>
 
-        {/* Composer — matches regular chat glass-dock */}
-        <div className="glass-dock mt-3 p-2 flex gap-2 items-end rounded-2xl">
-          <Textarea
-            ref={textareaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Message the group… use @arc to ask the AI"
-            rows={1}
-            className="min-h-[44px] max-h-40 resize-none border-0 bg-transparent focus-visible:ring-0 text-[15px]"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
-            }}
-          />
-          <Button onClick={send} disabled={sending || !text.trim()} size="icon" className="rounded-xl shrink-0">
-            <Send className="h-4 w-4" />
-          </Button>
+        {/* Composer — matches ChatInput shell exactly */}
+        <div className="mt-3">
+          <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3 flex gap-2 items-end">
+            <Textarea
+              ref={textareaRef}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Message the group… use @arc to ask the AI"
+              rows={1}
+              className="min-h-[40px] max-h-40 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none text-[15px] px-0 py-1.5"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
+              }}
+            />
+            <Button onClick={send} disabled={sending || !text.trim()} size="icon" className="rounded-full shrink-0">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
