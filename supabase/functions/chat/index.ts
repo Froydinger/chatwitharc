@@ -1437,8 +1437,56 @@ Output the complete, finished writing using the update_canvas tool.`;
               content: `Weather lookup error: ${e?.message || 'unknown'}.`,
             });
           }
+        } else if (toolCall.function.name === 'send_notification') {
+          const args = JSON.parse(toolCall.function.arguments);
+          const channel: 'push' | 'email' | 'both' = ['push', 'email', 'both'].includes(args.channel) ? args.channel : 'push';
+          const title = String(args.title ?? 'A note from Arc').slice(0, 200);
+          const body = String(args.body ?? '').slice(0, 2000);
+          const url = typeof args.url === 'string' && args.url.length > 0 ? args.url : '/dashboard';
+          const results: string[] = [];
+
+          if (channel === 'push' || channel === 'both') {
+            try {
+              const pushResp = await supabase.functions.invoke('send-push-notification', {
+                body: {
+                  user_ids: [user.id],
+                  payload: { title, body: body.slice(0, 200), url, tag: `arc-note-${Date.now()}` },
+                },
+              });
+              results.push(pushResp.error ? `push failed: ${pushResp.error.message}` : 'push sent');
+            } catch (e: any) {
+              results.push(`push failed: ${e?.message ?? e}`);
+            }
+          }
+          if (channel === 'email' || channel === 'both') {
+            try {
+              const emailResp = await supabase.functions.invoke('send-transactional-email', {
+                body: {
+                  templateName: 'arc-notification',
+                  recipientEmail: user.email,
+                  idempotencyKey: `arc-note-${user.id}-${Date.now()}`,
+                  templateData: {
+                    title,
+                    message: body,
+                    url: url.startsWith('http') ? url : `https://askarc.chat${url.startsWith('/') ? url : `/${url}`}`,
+                    ctaLabel: 'Open ArcAI',
+                  },
+                },
+              });
+              results.push(emailResp.error ? `email failed: ${emailResp.error.message}` : 'email sent');
+            } catch (e: any) {
+              results.push(`email failed: ${e?.message ?? e}`);
+            }
+          }
+
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: `Notification dispatch (${channel}): ${results.join(', ')}. Briefly confirm to the user in one sentence what you sent and where.`,
+          });
         }
       }
+
       
       // For code/canvas updates, skip the second API call entirely - we already have the output!
       // This dramatically reduces latency for /code and /write commands (saves 30-60+ seconds)
