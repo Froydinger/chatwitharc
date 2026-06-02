@@ -12,6 +12,7 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+const SITE_URL = "https://askarc.chat";
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
@@ -106,10 +107,18 @@ async function processTask(task: any): Promise<void> {
     let chatId = task.result_chat_id as string | null;
     if (chatId) {
       const { data: existing } = await admin
-        .from("chat_sessions").select("messages").eq("id", chatId).maybeSingle();
+        .from("chat_sessions").select("messages, title, created_at").eq("id", chatId).maybeSingle();
       const merged = [...((existing?.messages as any[]) ?? []), userMsg, aiMsg];
-      await admin.from("chat_sessions")
-        .update({ messages: merged, updated_at: now }).eq("id", chatId);
+      const { error: updateError } = await admin.from("chat_sessions")
+        .upsert({
+          id: chatId,
+          user_id: task.user_id,
+          title: existing?.title || `📅 ${task.title}`,
+          messages: merged,
+          created_at: existing?.created_at || now,
+          updated_at: now,
+        }, { onConflict: "id" });
+      if (updateError) throw updateError;
     } else {
       const { data: created } = await admin
         .from("chat_sessions")
@@ -119,6 +128,7 @@ async function processTask(task: any): Promise<void> {
           messages: [userMsg, aiMsg],
         })
         .select("id").single();
+      if (!created?.id) throw new Error("Could not create task result chat");
       chatId = created?.id ?? null;
       if (chatId) {
         await admin.from("scheduled_tasks").update({ result_chat_id: chatId }).eq("id", task.id);
@@ -170,10 +180,8 @@ async function processTask(task: any): Promise<void> {
         const { data: u } = await admin.auth.admin.getUserById(task.user_id);
         const email = u?.user?.email;
         if (email) {
-          const chatUrl = chatId
-            ? `https://askarc.chat/chat/${chatId}`
-            : "https://askarc.chat/dashboard";
-          await admin.functions.invoke("send-transactional-email", {
+          const chatUrl = chatId ? `${SITE_URL}/chat/${chatId}` : `${SITE_URL}/dashboard`;
+          const { data: emailData, error: emailError } = await admin.functions.invoke("send-transactional-email", {
             body: {
               templateName: "scheduled-task-complete",
               recipientEmail: email,
@@ -185,9 +193,15 @@ async function processTask(task: any): Promise<void> {
               },
             },
           });
+          if (emailError || emailData?.error) {
+            throw new Error(emailError?.message || emailData?.detail || emailData?.error || "Email send failed");
+          }
         }
       } catch (e) {
         console.error("task email failed", e);
+        await admin.from("scheduled_task_runs")
+          .update({ error: `Email failed: ${String((e as any)?.message ?? e).slice(0, 500)}` })
+          .eq("id", run!.id);
       }
     }
   } catch (err: any) {
