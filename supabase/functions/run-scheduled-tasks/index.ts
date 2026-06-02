@@ -212,41 +212,37 @@ async function processTask(task: any): Promise<void> {
     }
     await admin.from("scheduled_tasks").update(updates).eq("id", task.id);
 
-    // Push
-    if (task.push_on_complete) {
-      await fetch(`${SUPABASE_URL}/functions/v1/send-push-notification`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${SERVICE_KEY}`,
-          "Content-Type": "application/json",
+    // Always send push (even if in-app) so the user knows the task fired
+    await fetch(`${SUPABASE_URL}/functions/v1/send-push-notification`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_ids: [task.user_id],
+        payload: {
+          title: `✅ ${task.title}`,
+          body: output.slice(0, 140) || "Your scheduled task finished.",
+          url: chatId ? `/chat/${chatId}` : "/dashboard",
+          tag: `task-${task.id}`,
         },
-        body: JSON.stringify({
-          user_ids: [task.user_id],
-          payload: {
-            title: `✅ ${task.title}`,
-            body: output.slice(0, 140) || "Your scheduled task finished.",
-            url: chatId ? `/chat/${chatId}` : "/dashboard",
-            tag: `task-${task.id}`,
-          },
-        }),
-      }).catch((e) => console.error("push failed", e));
-    }
+      }),
+    }).catch((e) => console.error("push failed", e));
 
-    // Email
-    if (task.notify_email) {
-      try {
-        const { data: u } = await admin.auth.admin.getUserById(task.user_id);
-        const email = u?.user?.email;
-        if (email) {
-          const chatUrl = chatId ? `${SITE_URL}/chat/${chatId}` : `${SITE_URL}/dashboard`;
-          await sendTaskEmail(email, task.title, output.slice(0, 600), chatUrl, `task-${task.id}-${run!.id}`);
-        }
-      } catch (e) {
-        console.error("task email failed", e);
-        await admin.from("scheduled_task_runs")
-          .update({ error: `Email failed: ${String((e as any)?.message ?? e).slice(0, 500)}` })
-          .eq("id", run!.id);
+    // Always send email too
+    try {
+      const { data: u } = await admin.auth.admin.getUserById(task.user_id);
+      const email = u?.user?.email;
+      if (email) {
+        const chatUrl = chatId ? `${SITE_URL}/chat/${chatId}` : `${SITE_URL}/dashboard`;
+        await sendTaskEmail(email, task.title, output.slice(0, 600), chatUrl, `task-${task.id}-${run!.id}`);
       }
+    } catch (e) {
+      console.error("task email failed", e);
+      await admin.from("scheduled_task_runs")
+        .update({ error: `Email failed: ${String((e as any)?.message ?? e).slice(0, 500)}` })
+        .eq("id", run!.id);
     }
   } catch (err: any) {
     console.error("task failed", task.id, err);
