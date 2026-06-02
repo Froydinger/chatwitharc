@@ -745,16 +745,37 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "send_notification",
-          description: "Send the CURRENT user a notification via push, email, or both. Use this when the user asks you to email/notify/remind/ping them about something (now or as a follow-up to this conversation). NEVER use this to message someone else. Pick channel based on user wording: 'email me' → email; 'push me'/'ping me' → push; 'notify me'/'remind me' without channel → ask first OR pick best fit (long content → email, short alert → push). Always confirm in your reply what you sent.",
+          description: "Send the CURRENT user a notification via push, email, or both, RIGHT NOW. Use for immediate (non-scheduled) notifications. For anything time-delayed or recurring use schedule_task instead. NEVER use this to message someone else.",
           parameters: {
             type: "object",
             properties: {
-              channel: { type: "string", enum: ["push", "email", "both"], description: "Where to send the notification." },
+              channel: { type: "string", enum: ["push", "email", "both"], description: "Where to send." },
               title: { type: "string", description: "Short title / subject line (under 80 chars)." },
-              body: { type: "string", description: "The notification body. For email this can be a few sentences; for push keep it under 200 chars." },
-              url: { type: "string", description: "Optional link to open when tapped (e.g. /chat/<id> or full https URL). Defaults to /dashboard." }
+              body: { type: "string", description: "Body. Email: a few sentences. Push: under 200 chars." },
+              url: { type: "string", description: "Optional link (e.g. /chat/<id> or https URL). Defaults to /dashboard." }
             },
             required: ["channel", "title", "body"],
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "schedule_task",
+          description: "Schedule a task to run at a future time (once or recurring). When it fires, Arc completes the prompt and delivers the result via the chosen channels: in-chat (new message in a chat session), push, and/or email. Use for ANY future-dated reminder, recurring digest, or 'remind me / notify me later' request.",
+          parameters: {
+            type: "object",
+            properties: {
+              title: { type: "string", description: "Short human-readable title (e.g. 'Pool reminder', 'Daily news digest')." },
+              prompt: { type: "string", description: "The instruction Arc will execute when the task fires. Write it as if speaking to Arc at that future moment (e.g. 'Remind me to clean the pool.' or 'Give me a short news digest for today.')." },
+              when_iso: { type: "string", description: "ISO8601 UTC timestamp for ONE-TIME tasks. Compute from 'Current date and time' above (e.g. for 'in 1 minute' add 60s)." },
+              cron_expr: { type: "string", description: "Standard 5-field UTC cron for RECURRING tasks (e.g. '0 13 * * *' = daily 8am Central). Use instead of when_iso." },
+              deliver_in_chat: { type: "boolean", description: "Save result as a new message in a chat session. Default true." },
+              deliver_push: { type: "boolean", description: "Send a push notification when done. Default false." },
+              deliver_email: { type: "boolean", description: "Send an email when done. Default false." }
+            },
+            required: ["title", "prompt"],
             additionalProperties: false
           }
         }
