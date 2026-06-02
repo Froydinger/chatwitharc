@@ -47,9 +47,11 @@ export function ScheduledTaskCard({ task }: { task: ScheduledTaskData }) {
     toast.success("Task cancelled");
   };
 
+  const glass = "rounded-2xl border border-primary/25 bg-background/55 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3),0_0_18px_hsl(var(--primary)/0.10),inset_0_1px_0_hsl(var(--foreground)/0.06)]";
+
   if (deleted) {
     return (
-      <div className="glass-dock rounded-2xl px-4 py-3 text-sm text-muted-foreground flex items-center gap-2 max-w-md">
+      <div className={`${glass} px-4 py-3 text-sm text-muted-foreground flex items-center gap-2 max-w-md`}>
         <Trash2 className="h-4 w-4" />
         Cancelled "{task.title}"
       </div>
@@ -57,7 +59,7 @@ export function ScheduledTaskCard({ task }: { task: ScheduledTaskData }) {
   }
 
   return (
-    <div className="glass-dock rounded-2xl p-4 max-w-md flex flex-col gap-3">
+    <div className={`${glass} p-4 max-w-md flex flex-col gap-3`}>
       <div className="flex items-start gap-3">
         <div className="rounded-xl bg-primary/15 text-primary p-2 shrink-0">
           {isCron ? <Repeat className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
