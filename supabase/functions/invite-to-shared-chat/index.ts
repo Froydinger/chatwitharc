@@ -45,6 +45,25 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Enforce member cap: 6 total (owner + up to 5 additional)
+    const MAX_MEMBERS = 6;
+    const { count: memberCount } = await admin
+      .from("shared_chat_members")
+      .select("user_id", { count: "exact", head: true })
+      .eq("chat_id", chat_id);
+    const { count: pendingCount } = await admin
+      .from("shared_chat_invites")
+      .select("id", { count: "exact", head: true })
+      .eq("chat_id", chat_id)
+      .is("accepted_at", null);
+    if ((memberCount ?? 0) + (pendingCount ?? 0) >= MAX_MEMBERS) {
+      return new Response(JSON.stringify({
+        error: `This chat is full. Shared chats include the owner plus up to 5 others (6 total).`,
+      }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Resolve inviter display name (best effort)
     const { data: inviterProfile } = await admin
       .from("profiles").select("display_name").eq("user_id", user.id).maybeSingle();
