@@ -1,12 +1,19 @@
 {
+  "id": "/?source=pwa",
   "name": "ArcAI",
   "short_name": "ArcAI",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "utilities"],
   "icons": [
+    { "src": "/icons/apple-touch-icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/mac512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/mac512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
     { "src": "/icons/apple-icon-ios.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
   ]
 }
