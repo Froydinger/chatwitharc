@@ -53,7 +53,9 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
               {[
                 "Unlimited image generation",
                 "Unlimited voice conversations",
-                "Everything in Free (chats, search, files, memory, canvases)",
+                "Unlimited shared chats with your team",
+                "Publish code creations to the web",
+                "Everything in Free (chats, search, files, memory, canvases, reminders)",
                 "Cancel anytime",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2.5 text-sm">
@@ -68,7 +70,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
                 <Sparkles className="h-3 w-3" />
                 <span className="font-medium text-foreground">Free forever includes</span>
               </div>
-              10 image generations per day · 10 voice conversations per 30 days · Unlimited chat
+              Unlimited chat & reminders · 10 images/day · 10 voice convos / 30 days · 2 shared chats
             </div>
 
             {canCheckout ? (
