@@ -119,6 +119,7 @@ export interface ArcState {
   addResourcesToSession: (sessionId: string, resources: ChatResource[]) => void;
   loadSession: (sessionId: string) => void;
   hydrateSession: (sessionId: string) => Promise<void>;
+  refreshSessionFromSupabase: (sessionId: string) => Promise<void>;
   hydrateAllSessions: () => Promise<void>;
   isHydratingSession: string | null; // Track which session is currently being hydrated
   isHydratingAll: boolean; // Track bulk hydration for sidebar tabs
@@ -428,6 +429,55 @@ export const useArcStore = create<ArcState>()(
           console.error('❌ Failed to hydrate session:', error);
         } finally {
           set({ isHydratingSession: null });
+        }
+      },
+
+      refreshSessionFromSupabase: async (sessionId: string) => {
+        if (!supabase || !isSupabaseConfigured) return;
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) return;
+
+          const { data, error } = await supabase
+            .from('chat_sessions')
+            .select('messages, canvas_content, updated_at')
+            .eq('id', sessionId)
+            .eq('user_id', user.id)
+            .single();
+
+          if (error) {
+            console.error('❌ Failed to refresh session:', error);
+            return;
+          }
+
+          const remoteMessages: Message[] = Array.isArray(data?.messages) ? (data.messages as any) : [];
+          const remoteCanvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
+
+          set(s => {
+            const localSession = s.chatSessions.find(cs => cs.id === sessionId);
+            const localCount = localSession?.messages?.length ?? 0;
+            if (remoteMessages.length < localCount) return s;
+
+            const updatedSessions = s.chatSessions.map(cs =>
+              cs.id === sessionId
+                ? {
+                    ...cs,
+                    messages: remoteMessages,
+                    canvasContent: remoteCanvasContent,
+                    lastMessageAt: data?.updated_at ? new Date(data.updated_at) : new Date(),
+                    isHydrated: true,
+                    messageCount: remoteMessages.length,
+                  }
+                : cs
+            );
+
+            return {
+              chatSessions: updatedSessions,
+              messages: s.currentSessionId === sessionId ? JSON.parse(JSON.stringify(remoteMessages)) : s.messages,
+            };
+          });
+        } catch (error) {
+          console.error('❌ Failed to refresh session:', error);
         }
       },
 
