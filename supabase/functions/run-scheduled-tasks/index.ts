@@ -58,38 +58,110 @@ function nextCronRun(expr: string, from: Date): Date {
   return new Date(from.getTime() + 60 * 60 * 1000);
 }
 
+const TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "get_weather",
+      description: "Get current weather + short forecast for a location. Use for any weather/forecast/temperature task.",
+      parameters: {
+        type: "object",
+        properties: { location: { type: "string", description: "City, state/country (e.g. 'Plainfield, IL')" } },
+        required: ["location"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_search",
+      description: "Search the live web for current info: news, headlines, prices, scores, events. Use for any 'today's news / digest / latest' style task.",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string", description: "Concise search query" } },
+        required: ["query"],
+      },
+    },
+  },
+] as const;
+
+async function runTool(name: string, args: any): Promise<string> {
+  try {
+    if (name === "get_weather") {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-weather`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}` },
+        body: JSON.stringify({ location: args?.location }),
+      });
+      const json = await res.json().catch(() => ({}));
+      return JSON.stringify(json).slice(0, 4000);
+    }
+    if (name === "web_search") {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/perplexity-search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}` },
+        body: JSON.stringify({ query: args?.query }),
+      });
+      const json = await res.json().catch(() => ({}));
+      // perplexity-search returns formatted/sources; trim aggressively
+      const out = json?.formatted || json?.content || JSON.stringify(json);
+      return String(out).slice(0, 6000);
+    }
+    return `Unknown tool: ${name}`;
+  } catch (e) {
+    return `Tool ${name} failed: ${String((e as any)?.message ?? e).slice(0, 300)}`;
+  }
+}
+
 async function callAi(prompt: string, model: string, taskTitle: string): Promise<string> {
   const system = `You are Arc, proactively pinging the user because a reminder/task they scheduled is due RIGHT NOW. You are NOT responding to a fresh request — you are the one initiating contact.
 
 Rules:
 - Write as a proactive notification FROM you TO the user (e.g. "Hey! Time to grab eggs from the store 🥚" — not "I've added eggs to your list").
 - Address the user directly in second person. Be warm, brief, and human (1–3 sentences for simple reminders).
-- If the scheduled task asks for content (a briefing, summary, joke, etc.), deliver that content directly with a tiny lead-in.
-- Never claim you did an action you didn't actually do (don't say "I added X to your list" unless the task literally was to do that).
+- If the scheduled task asks for content (weather, news digest, summary, joke, etc.), USE THE TOOLS (get_weather, web_search) to fetch real current data, then deliver the content directly with a tiny lead-in.
+- Never claim you did an action you didn't actually do.
 - Never mention links, emails, or push notifications — those are handled separately.
 - Do not restate the schedule or that this was scheduled; the user knows.`;
 
-  const userMsg = `The user scheduled this reminder/task earlier: "${taskTitle}"\n\nTheir original instructions were:\n"""${prompt}"""\n\nThe scheduled time has arrived. Send them the proactive ping now.`;
+  const userMsg = `The user scheduled this reminder/task earlier: "${taskTitle}"\n\nTheir original instructions were:\n"""${prompt}"""\n\nThe scheduled time has arrived. Use tools if needed (weather → get_weather; news/web → web_search), then send them the proactive ping now.`;
 
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: userMsg },
-      ],
-    }),
-  });
-  if (!res.ok) {
-    throw new Error(`AI gateway ${res.status}: ${await res.text().catch(() => "")}`);
+  const messages: any[] = [
+    { role: "system", content: system },
+    { role: "user", content: userMsg },
+  ];
+
+  for (let iter = 0; iter < 3; iter++) {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
+      body: JSON.stringify({ model, messages, tools: TOOLS, tool_choice: "auto" }),
+    });
+    if (!res.ok) throw new Error(`AI gateway ${res.status}: ${await res.text().catch(() => "")}`);
+    const json = await res.json();
+    const msg = json?.choices?.[0]?.message;
+    if (!msg) return "";
+    const toolCalls = msg.tool_calls;
+    if (!toolCalls || toolCalls.length === 0) {
+      return msg.content ?? "";
+    }
+    // Push assistant tool-call turn + each tool result
+    messages.push({ role: "assistant", content: msg.content ?? "", tool_calls: toolCalls });
+    for (const tc of toolCalls) {
+      let args: any = {};
+      try { args = JSON.parse(tc.function?.arguments ?? "{}"); } catch { /* ignore */ }
+      const result = await runTool(tc.function?.name, args);
+      messages.push({ role: "tool", tool_call_id: tc.id, content: result });
+    }
   }
-  const json = await res.json();
-  return json?.choices?.[0]?.message?.content ?? "";
+  // Final synth pass with no tools, in case loop exhausted
+  const finalRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
+    body: JSON.stringify({ model, messages }),
+  });
+  const finalJson = await finalRes.json().catch(() => ({}));
+  return finalJson?.choices?.[0]?.message?.content ?? "";
 }
 
 function escapeHtml(value: string): string {
