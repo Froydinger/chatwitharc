@@ -74,7 +74,7 @@ export function PricingPage() {
               {[
                 "Unlimited chats with every model",
                 "Unlimited reminders & scheduled tasks",
-                "Up to 2 shared chats with your team",
+                "Create up to 2 shared chats (owner + up to 5 others, 6 total)",
                 "10 voice conversations every 30 days",
                 "10 image generations per day",
                 "Web search, file uploads, document analysis",
@@ -106,7 +106,7 @@ export function PricingPage() {
                 "Everything in Free",
                 "Unlimited image generations",
                 "Unlimited voice conversations",
-                "Unlimited shared chats with your team",
+                "Create unlimited shared chats (still up to 6 people per chat)",
                 "Publish code creations to the web (yourname.froydingermedia.online)",
                 "Cancel anytime — no contracts",
               ].map((item) => (

@@ -53,7 +53,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
               {[
                 "Unlimited image generation",
                 "Unlimited voice conversations",
-                "Unlimited shared chats with your team",
+                "Create unlimited shared chats (up to 6 people each)",
                 "Publish code creations to the web",
                 "Everything in Free (chats, search, files, memory, canvases, reminders)",
                 "Cancel anytime",
@@ -70,7 +70,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
                 <Sparkles className="h-3 w-3" />
                 <span className="font-medium text-foreground">Free forever includes</span>
               </div>
-              Unlimited chat & reminders · 10 images/day · 10 voice convos / 30 days · 2 shared chats
+              Unlimited chat & reminders · 10 images/day · 10 voice convos / 30 days · 2 shared chats (6 people each)
             </div>
 
             {canCheckout ? (
