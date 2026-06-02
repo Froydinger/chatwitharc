@@ -1,8 +1,8 @@
 // Authenticated user → send a welcome / test push to themselves only.
-// Used right after a successful subscribe so the user sees push working,
-// and for the "Send test notification" button in settings.
+// Uses web-push-neo (Web Crypto + fetch) because the classic `web-push` npm
+// package crashes the Deno edge runtime (Deno.core.runMicrotasks not supported).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import webpush from "https://esm.sh/web-push@3.6.7?target=deno";
+import { sendNotification } from "npm:web-push-neo@1.1.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,14 +13,6 @@ const corsHeaders = {
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:admin@askarc.chat";
-
-if (VAPID_PUBLIC && VAPID_PRIVATE) {
-  try {
-    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
-  } catch (e) {
-    console.error("VAPID setup failed:", e);
-  }
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -90,31 +82,43 @@ Deno.serve(async (req) => {
         }
       : {
           title: "Welcome to ArcAI 🎉",
-          body: "Push is on! I'll ping you when scheduled tasks finish or someone @mentions you in a shared chat.",
+          body: "Push is on! I'll ping you when scheduled tasks finish or someone @mentions you.",
           icon: "/icons/apple-touch-icon-180.png",
           badge: "/icons/apple-touch-icon-180.png",
           url: "/",
           tag: "arc-welcome",
-          requireInteraction: false,
         };
 
     const json = JSON.stringify(payload);
+    const vapidDetails = {
+      subject: VAPID_SUBJECT,
+      publicKey: VAPID_PUBLIC,
+      privateKey: VAPID_PRIVATE,
+    };
+
     const results = await Promise.allSettled((subs ?? []).map(async (s: any) => {
       try {
-        await webpush.sendNotification(
+        const res = await sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           json,
+          { vapidDetails, TTL: 60 },
         );
+        if (res.status === 404 || res.status === 410) {
+          await admin.from("push_subscriptions").delete().eq("id", s.id);
+          return { id: s.id, ok: false, status: res.status };
+        }
+        if (res.status >= 400) {
+          const text = await res.text().catch(() => "");
+          console.error("push failed", res.status, text);
+          return { id: s.id, ok: false, status: res.status, error: text };
+        }
         await admin.from("push_subscriptions")
           .update({ last_used_at: new Date().toISOString() })
           .eq("id", s.id);
         return { id: s.id, ok: true };
       } catch (err: any) {
-        const status = err?.statusCode;
-        if (status === 404 || status === 410) {
-          await admin.from("push_subscriptions").delete().eq("id", s.id);
-        }
-        return { id: s.id, ok: false, status, error: String(err?.message ?? err) };
+        console.error("send error", err?.message ?? err);
+        return { id: s.id, ok: false, error: String(err?.message ?? err) };
       }
     }));
 
