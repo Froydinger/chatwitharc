@@ -194,9 +194,14 @@ export function SharedChatRoomPage() {
               ))}
             </div>
             {isOwner && (
-              <div className="flex gap-2 pt-2">
-                <Input placeholder="Invite by email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && invite()} />
-                <Button onClick={invite} className="gap-2"><UserPlus className="h-4 w-4" /> Send</Button>
+              <div className="space-y-2 pt-2">
+                <div className="flex gap-2">
+                  <Input placeholder="Invite by email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} onKeyDown={(e) => e.key === "Enter" && invite()} disabled={members.length >= 6} />
+                  <Button onClick={invite} className="gap-2" disabled={members.length >= 6}><UserPlus className="h-4 w-4" /> Send</Button>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  {members.length}/6 people · owner + up to 5 others
+                </div>
               </div>
             )}
           </GlassCard>
