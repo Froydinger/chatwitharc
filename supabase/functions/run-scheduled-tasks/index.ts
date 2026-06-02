@@ -58,7 +58,19 @@ function nextCronRun(expr: string, from: Date): Date {
   return new Date(from.getTime() + 60 * 60 * 1000);
 }
 
-async function callAi(prompt: string, model: string): Promise<string> {
+async function callAi(prompt: string, model: string, taskTitle: string): Promise<string> {
+  const system = `You are Arc, proactively pinging the user because a reminder/task they scheduled is due RIGHT NOW. You are NOT responding to a fresh request — you are the one initiating contact.
+
+Rules:
+- Write as a proactive notification FROM you TO the user (e.g. "Hey! Time to grab eggs from the store 🥚" — not "I've added eggs to your list").
+- Address the user directly in second person. Be warm, brief, and human (1–3 sentences for simple reminders).
+- If the scheduled task asks for content (a briefing, summary, joke, etc.), deliver that content directly with a tiny lead-in.
+- Never claim you did an action you didn't actually do (don't say "I added X to your list" unless the task literally was to do that).
+- Never mention links, emails, or push notifications — those are handled separately.
+- Do not restate the schedule or that this was scheduled; the user knows.`;
+
+  const userMsg = `The user scheduled this reminder/task earlier: "${taskTitle}"\n\nTheir original instructions were:\n"""${prompt}"""\n\nThe scheduled time has arrived. Send them the proactive ping now.`;
+
   const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -68,8 +80,8 @@ async function callAi(prompt: string, model: string): Promise<string> {
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: "You are Arc, completing a user's scheduled task. Be concise and useful. Never invent links or claim an email was sent; delivery and chat links are handled by the scheduler after you respond." },
-        { role: "user", content: prompt },
+        { role: "system", content: system },
+        { role: "user", content: userMsg },
       ],
     }),
   });
@@ -143,7 +155,7 @@ async function processTask(task: any): Promise<void> {
     .single();
 
   try {
-    const output = await callAi(task.prompt, task.model || "google/gemini-2.5-flash");
+    const output = await callAi(task.prompt, task.model || "google/gemini-2.5-flash", task.title);
 
     // Build messages payload for chat_sessions
     const now = new Date().toISOString();
