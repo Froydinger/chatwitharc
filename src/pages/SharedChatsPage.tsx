@@ -118,9 +118,9 @@ export function SharedChatsPage() {
             <Users className="h-7 w-7 text-primary" /> Shared Chats
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Group conversations with Arc and the people you invite.
+            Group conversations with Arc and the people you invite. Each chat fits the owner plus up to 5 others (6 total).
             {!hasBoost && (
-              <> Free includes up to {FREE_SHARED_CHAT_LIMIT} ({ownedCount}/{FREE_SHARED_CHAT_LIMIT} used).</>
+              <> Free includes up to {FREE_SHARED_CHAT_LIMIT} chats ({ownedCount}/{FREE_SHARED_CHAT_LIMIT} used).</>
             )}
           </p>
         </motion.div>
