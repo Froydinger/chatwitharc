@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, MessageSquare, RefreshCw, Search, Layers, Share2 } from "lucide-react";
+import { Plus, Trash2, MessageSquare, RefreshCw, Search, LayoutDashboard, Share2 } from "lucide-react";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
 import { useArcStore } from "@/store/useArcStore";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
@@ -38,6 +38,21 @@ export function ChatHistoryPanel() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+  const pillRef = useRef<HTMLDivElement | null>(null);
+  const [compactPill, setCompactPill] = useState(false);
+
+  useEffect(() => {
+    if (!pillRef.current) return;
+    const el = pillRef.current;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setCompactPill(entry.contentRect.width < 280);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
 
   /** Navigate back to chat - close panel only on mobile/tablet */
   const goToChat = () => {
@@ -201,37 +216,41 @@ export function ChatHistoryPanel() {
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-4 pt-4 px-4 pb-4 h-full overflow-y-auto scrollbar-hide">
-      {/* Quick Actions — compact segmented glass pill */}
-      <div className="flex items-center gap-1.5 p-1.5 rounded-full backdrop-blur-2xl bg-background/40 border border-border/40 shadow-[0_0_12px_hsl(var(--primary)/0.15)]">
+      {/* Quick Actions — compact segmented glass pill (responsive) */}
+      <div
+        ref={pillRef}
+        className="flex items-center gap-1 p-1.5 rounded-full backdrop-blur-2xl bg-background/40 border border-border/40 shadow-[0_0_12px_hsl(var(--primary)/0.15)]"
+      >
         <button
           onClick={() => navigate('/dashboard')}
-          className="flex-1 h-9 rounded-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold transition-all hover:scale-[1.02] active:scale-[0.97] bg-primary/60 text-white shadow-[0_0_8px_hsl(var(--primary)/0.45)] relative overflow-hidden"
+          className="flex-1 min-w-0 h-9 px-2 rounded-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold transition-all hover:scale-[1.02] active:scale-[0.97] bg-primary/60 text-white shadow-[0_0_8px_hsl(var(--primary)/0.45)] relative overflow-hidden"
           title="Dashboard"
         >
           <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          <Layers className="h-3.5 w-3.5 relative z-10" />
-          <span className="relative z-10">Dashboard</span>
+          <LayoutDashboard className="h-3.5 w-3.5 relative z-10 shrink-0" />
+          <span className="relative z-10 truncate">{compactPill ? "Dash" : "Dashboard"}</span>
         </button>
         <button
           onClick={handleNewChat}
-          className="flex-1 h-9 rounded-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground/90 transition-all hover:scale-[1.02] active:scale-[0.97] hover:bg-primary/10"
+          className="flex-1 min-w-0 h-9 px-2 rounded-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground/90 transition-all hover:scale-[1.02] active:scale-[0.97] hover:bg-primary/10"
           title="New chat"
         >
-          <Plus className="h-3.5 w-3.5" />
-          <span>New</span>
+          <Plus className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">New</span>
         </button>
         <button
           onClick={() => {
             openSearchMode();
             goToChat();
           }}
-          className="flex-1 h-9 rounded-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground/90 transition-all hover:scale-[1.02] active:scale-[0.97] hover:bg-primary/10"
+          className="flex-1 min-w-0 h-9 px-2 rounded-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground/90 transition-all hover:scale-[1.02] active:scale-[0.97] hover:bg-primary/10"
           title="Research Mode"
         >
-          <Search className="h-3.5 w-3.5" strokeWidth={2} />
-          <span>Research</span>
+          <Search className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+          <span className="truncate">Research</span>
         </button>
       </div>
+
 
       {/* Chat History Header */}
       <div className="flex items-center justify-between pt-2">
