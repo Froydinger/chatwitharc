@@ -38,6 +38,21 @@ export function ChatHistoryPanel() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
+  const pillRef = useRef<HTMLDivElement | null>(null);
+  const [compactPill, setCompactPill] = useState(false);
+
+  useEffect(() => {
+    if (!pillRef.current) return;
+    const el = pillRef.current;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setCompactPill(entry.contentRect.width < 280);
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
 
   /** Navigate back to chat - close panel only on mobile/tablet */
   const goToChat = () => {
