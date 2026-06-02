@@ -70,7 +70,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
                 <Sparkles className="h-3 w-3" />
                 <span className="font-medium text-foreground">Free forever includes</span>
               </div>
-              Unlimited chat & reminders · 10 images/day · 10 voice convos / 30 days · 2 shared chats
+              Unlimited chat & reminders · 10 images/day · 10 voice convos / 30 days · 2 shared chats (6 people each)
             </div>
 
             {canCheckout ? (
