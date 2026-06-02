@@ -827,6 +827,15 @@ serve(async (req) => {
         console.log('🔧 Forcing web_search tool (forceWebSearch=true)');
       }
     }
+
+    // Force schedule_task for obvious future-dated requests
+    if (toolChoice === "auto") {
+      const scheduleRegex = /\b(in\s+\d+\s*(second|sec|minute|min|hour|hr|day|week|month)s?|tomorrow|tonight|later|every\s+(day|morning|night|hour|week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|at\s+\d{1,2}(:\d{2})?\s*(am|pm)|daily|weekly|each\s+(day|morning|week)|remind me (to|in|at|tomorrow|every))\b/i;
+      if (scheduleRegex.test(lastUserMessage)) {
+        toolChoice = { type: "function", function: { name: "schedule_task" } };
+        console.log('⏰ Future-dated request detected — forcing schedule_task');
+      }
+    }
     
     // For canvas/code mode, use a trimmed system prompt for better performance
     if (isCanvasOrCodeMode) {
