@@ -1514,6 +1514,62 @@ Output the complete, finished writing using the update_canvas tool.`;
             tool_call_id: toolCall.id,
             content: `Notification dispatch (${channel}): ${results.join(', ')}. Briefly confirm to the user in one sentence what you sent and where.`,
           });
+        } else if (toolCall.function.name === 'schedule_task') {
+          const args = JSON.parse(toolCall.function.arguments);
+          const title = String(args.title ?? 'Scheduled task').slice(0, 200);
+          const prompt = String(args.prompt ?? '').slice(0, 4000);
+          const deliverInChat = args.deliver_in_chat !== false;
+          const deliverPush = args.deliver_push === true;
+          const deliverEmail = args.deliver_email === true;
+          const whenIso = typeof args.when_iso === 'string' ? args.when_iso : null;
+          const cronExpr = typeof args.cron_expr === 'string' ? args.cron_expr : null;
+
+          try {
+            if (!prompt) throw new Error('prompt required');
+            if (!whenIso && !cronExpr) throw new Error('Provide when_iso or cron_expr');
+
+            const scheduleType = cronExpr ? 'cron' : 'once';
+            const nextRunAt = cronExpr
+              ? new Date(Date.now() + 60_000).toISOString() // run-scheduled-tasks will recompute after first fire
+              : new Date(whenIso!).toISOString();
+
+            const { data: inserted, error: insErr } = await supabase
+              .from('scheduled_tasks')
+              .insert({
+                user_id: user.id,
+                title,
+                prompt,
+                schedule_type: scheduleType,
+                run_at: scheduleType === 'once' ? nextRunAt : null,
+                cron_expr: cronExpr,
+                next_run_at: nextRunAt,
+                push_on_complete: deliverPush,
+                notify_email: deliverEmail,
+                status: 'active',
+              })
+              .select('id')
+              .single();
+
+            if (insErr) throw insErr;
+
+            const channels = [
+              deliverInChat ? 'chat' : null,
+              deliverPush ? 'push' : null,
+              deliverEmail ? 'email' : null,
+            ].filter(Boolean).join(' + ') || 'chat';
+
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `Scheduled task created (id=${inserted?.id}). Fires ${scheduleType === 'cron' ? `on cron "${cronExpr}"` : `at ${nextRunAt}`}. Delivery: ${channels}. Confirm to the user in ONE short friendly sentence, mentioning when and how they'll receive it.`,
+            });
+          } catch (e: any) {
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `Schedule task failed: ${e?.message ?? e}. Apologize briefly and ask the user to retry.`,
+            });
+          }
         }
       }
 
