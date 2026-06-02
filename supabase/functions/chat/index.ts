@@ -482,7 +482,8 @@ serve(async (req) => {
 
     // Tool usage behavioral instructions (tools are defined via the API tools parameter - do NOT describe their schemas here)
     enhancedSystemPrompt += '\n\n--- BEHAVIORAL GUIDELINES ---\n' +
-      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
+      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
+      '• send_notification sends a push, email, or both to THE CURRENT USER. Routing rules: "email me"/"send an email"/"in my inbox" → channel="email". "push me"/"ping me"/"notify on my phone" → channel="push". "notify me"/"remind me"/"let me know" without a channel → either ASK them (push, email, or both) OR pick the obvious fit yourself (long/detailed summary → email; quick alert → push) and mention what you chose. Never use this to message anyone else.\n' +
       '• Use get_weather (NOT web_search) for any weather, temperature, or forecast questions. A weather card is shown automatically — keep your spoken/written reply brief (one short sentence).\n' +
       '• When web_search returns results, ALWAYS synthesize and summarize them in your own words. NEVER just say "click on the sources".\n' +
       '• You MUST use search_past_chats IMMEDIATELY (without asking) whenever the user references past conversations, e.g. "did we talk about...", "do you remember...", "we discussed...", "I mentioned...". NEVER say "I don\'t have a record" without searching first.\n' +
