@@ -92,8 +92,8 @@ export function PushNotificationsCard() {
 
       {availabilityReason === "push-service-unavailable" && (
         <div className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
-          The browser's push service isn't ready yet. Try again in a few seconds, or fully close
-          and reopen the app.
+          The browser's push service is still waking up. Leave this open while Arc retries;
+          if it still fails, fully close and reopen the installed app once.
         </div>
       )}
 
