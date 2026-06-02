@@ -1283,6 +1283,8 @@ Output the complete, finished writing using the update_canvas tool.`;
     let canvasUpdate: { content: string; label?: string } | null = null;
     let codeUpdate: { code: string; language: string; label?: string } | null = null;
     let weatherData: any = null;
+    let scheduledTask: any = null;
+    let notificationDispatch: any = null;
     
     // Check if the AI wants to use tools (web search or chat search)
     let memorySaved: { content: string } | null = null;
