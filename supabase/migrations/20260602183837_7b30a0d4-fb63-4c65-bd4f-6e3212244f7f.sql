@@ -1,0 +1,1 @@
+ALTER TABLE public.scheduled_tasks ADD COLUMN IF NOT EXISTS notify_email boolean NOT NULL DEFAULT false;

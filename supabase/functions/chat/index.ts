@@ -482,7 +482,8 @@ serve(async (req) => {
 
     // Tool usage behavioral instructions (tools are defined via the API tools parameter - do NOT describe their schemas here)
     enhancedSystemPrompt += '\n\n--- BEHAVIORAL GUIDELINES ---\n' +
-      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
+      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
+      '• send_notification sends a push, email, or both to THE CURRENT USER. Routing rules: "email me"/"send an email"/"in my inbox" → channel="email". "push me"/"ping me"/"notify on my phone" → channel="push". "notify me"/"remind me"/"let me know" without a channel → either ASK them (push, email, or both) OR pick the obvious fit yourself (long/detailed summary → email; quick alert → push) and mention what you chose. Never use this to message anyone else.\n' +
       '• Use get_weather (NOT web_search) for any weather, temperature, or forecast questions. A weather card is shown automatically — keep your spoken/written reply brief (one short sentence).\n' +
       '• When web_search returns results, ALWAYS synthesize and summarize them in your own words. NEVER just say "click on the sources".\n' +
       '• You MUST use search_past_chats IMMEDIATELY (without asking) whenever the user references past conversations, e.g. "did we talk about...", "do you remember...", "we discussed...", "I mentioned...". NEVER say "I don\'t have a record" without searching first.\n' +
@@ -729,6 +730,24 @@ serve(async (req) => {
             additionalProperties: false
           }
 
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "send_notification",
+          description: "Send the CURRENT user a notification via push, email, or both. Use this when the user asks you to email/notify/remind/ping them about something (now or as a follow-up to this conversation). NEVER use this to message someone else. Pick channel based on user wording: 'email me' → email; 'push me'/'ping me' → push; 'notify me'/'remind me' without channel → ask first OR pick best fit (long content → email, short alert → push). Always confirm in your reply what you sent.",
+          parameters: {
+            type: "object",
+            properties: {
+              channel: { type: "string", enum: ["push", "email", "both"], description: "Where to send the notification." },
+              title: { type: "string", description: "Short title / subject line (under 80 chars)." },
+              body: { type: "string", description: "The notification body. For email this can be a few sentences; for push keep it under 200 chars." },
+              url: { type: "string", description: "Optional link to open when tapped (e.g. /chat/<id> or full https URL). Defaults to /dashboard." }
+            },
+            required: ["channel", "title", "body"],
+            additionalProperties: false
+          }
         }
       }
     ];
@@ -1418,8 +1437,56 @@ Output the complete, finished writing using the update_canvas tool.`;
               content: `Weather lookup error: ${e?.message || 'unknown'}.`,
             });
           }
+        } else if (toolCall.function.name === 'send_notification') {
+          const args = JSON.parse(toolCall.function.arguments);
+          const channel: 'push' | 'email' | 'both' = ['push', 'email', 'both'].includes(args.channel) ? args.channel : 'push';
+          const title = String(args.title ?? 'A note from Arc').slice(0, 200);
+          const body = String(args.body ?? '').slice(0, 2000);
+          const url = typeof args.url === 'string' && args.url.length > 0 ? args.url : '/dashboard';
+          const results: string[] = [];
+
+          if (channel === 'push' || channel === 'both') {
+            try {
+              const pushResp = await supabase.functions.invoke('send-push-notification', {
+                body: {
+                  user_ids: [user.id],
+                  payload: { title, body: body.slice(0, 200), url, tag: `arc-note-${Date.now()}` },
+                },
+              });
+              results.push(pushResp.error ? `push failed: ${pushResp.error.message}` : 'push sent');
+            } catch (e: any) {
+              results.push(`push failed: ${e?.message ?? e}`);
+            }
+          }
+          if (channel === 'email' || channel === 'both') {
+            try {
+              const emailResp = await supabase.functions.invoke('send-transactional-email', {
+                body: {
+                  templateName: 'arc-notification',
+                  recipientEmail: user.email,
+                  idempotencyKey: `arc-note-${user.id}-${Date.now()}`,
+                  templateData: {
+                    title,
+                    message: body,
+                    url: url.startsWith('http') ? url : `https://askarc.chat${url.startsWith('/') ? url : `/${url}`}`,
+                    ctaLabel: 'Open ArcAI',
+                  },
+                },
+              });
+              results.push(emailResp.error ? `email failed: ${emailResp.error.message}` : 'email sent');
+            } catch (e: any) {
+              results.push(`email failed: ${e?.message ?? e}`);
+            }
+          }
+
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: `Notification dispatch (${channel}): ${results.join(', ')}. Briefly confirm to the user in one sentence what you sent and where.`,
+          });
         }
       }
+
       
       // For code/canvas updates, skip the second API call entirely - we already have the output!
       // This dramatically reduces latency for /code and /write commands (saves 30-60+ seconds)

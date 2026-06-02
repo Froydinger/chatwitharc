@@ -613,6 +613,7 @@ export type Database = {
           last_run_at: string | null
           model: string | null
           next_run_at: string | null
+          notify_email: boolean
           prompt: string
           push_on_complete: boolean
           result_chat_id: string | null
@@ -632,6 +633,7 @@ export type Database = {
           last_run_at?: string | null
           model?: string | null
           next_run_at?: string | null
+          notify_email?: boolean
           prompt: string
           push_on_complete?: boolean
           result_chat_id?: string | null
@@ -651,6 +653,7 @@ export type Database = {
           last_run_at?: string | null
           model?: string | null
           next_run_at?: string | null
+          notify_email?: boolean
           prompt?: string
           push_on_complete?: boolean
           result_chat_id?: string | null
