@@ -1712,6 +1712,8 @@ Output the complete, finished writing using the update_canvas tool.`;
       code_update: codeUpdate,
       memory_saved: memorySaved,
       weather_data: weatherData,
+      scheduled_task: scheduledTask,
+      notification_dispatch: notificationDispatch,
     };
     
     // NOTE: We no longer save from the backend - the frontend handles all persistence.
