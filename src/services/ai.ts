@@ -76,6 +76,8 @@ export interface SendMessageResult {
   codeUpdate?: CodeUpdate;
   memorySaved?: { content: string };
   weatherData?: import('@/components/WeatherCard').WeatherData;
+  scheduledTask?: import('@/components/ScheduledTaskCard').ScheduledTaskData;
+  notificationDispatch?: import('@/components/NotificationDispatchCard').NotificationDispatchData;
   locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
 }
 
