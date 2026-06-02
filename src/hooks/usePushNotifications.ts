@@ -93,6 +93,27 @@ async function ensurePushRegistration(repair = false) {
   return navigator.serviceWorker.ready;
 }
 
+async function showLocalPushProof(
+  title: string,
+  options: NotificationOptions & { url?: string },
+) {
+  if (typeof window === "undefined" || Notification.permission !== "granted") return;
+  try {
+    const reg = await ensurePushRegistration(false);
+    await reg.showNotification(title, {
+      body: options.body,
+      icon: options.icon || "/icons/apple-touch-icon-180.png",
+      badge: options.badge || "/icons/apple-touch-icon-180.png",
+      tag: options.tag,
+      data: { url: options.url || "/" },
+      requireInteraction: options.requireInteraction || false,
+      silent: options.silent || false,
+    });
+  } catch {
+    // Local proof is best-effort; the real push subscription still matters.
+  }
+}
+
 export type PushPermission = NotificationPermission | "unsupported";
 export type PushAvailabilityReason =
   | "ready"
@@ -241,6 +262,11 @@ export function usePushNotifications() {
         // Non-fatal — welcome push failure shouldn't block subscription
         console.warn("welcome push failed:", e);
       }
+      await showLocalPushProof("Welcome to ArcAI 🎉", {
+        body: "Push is on! I'll ping you when scheduled tasks finish or someone @mentions you in a shared chat.",
+        tag: "arc-welcome-local",
+        url: "/",
+      });
 
       return true;
     } catch (e: any) {
@@ -277,6 +303,11 @@ export function usePushNotifications() {
       body: { test: true },
     });
     if (error) throw error;
+    await showLocalPushProof("ArcAI", {
+      body: "Test notification — you're all set 🎉",
+      tag: "arc-test-local",
+      url: "/",
+    });
   }, []);
 
   return {
