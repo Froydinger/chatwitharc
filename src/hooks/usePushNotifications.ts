@@ -264,7 +264,7 @@ export function usePushNotifications() {
       }
       await showLocalPushProof("Welcome to ArcAI 🎉", {
         body: "Push is on! I'll ping you when scheduled tasks finish or someone @mentions you in a shared chat.",
-        tag: "arc-welcome-local",
+        tag: "arc-welcome",
         url: "/",
       });
 
@@ -305,7 +305,7 @@ export function usePushNotifications() {
     if (error) throw error;
     await showLocalPushProof("ArcAI", {
       body: "Test notification — you're all set 🎉",
-      tag: "arc-test-local",
+      tag: "arc-test",
       url: "/",
     });
   }, []);
