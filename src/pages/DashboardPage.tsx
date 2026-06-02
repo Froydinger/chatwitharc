@@ -867,6 +867,34 @@ useEffect(() => {
                 ))}
               </div>
 
+              {/* Shortcuts: Scheduled Tasks & Shared Chats */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  onClick={() => navigate("/tasks")}
+                  className="group flex items-center gap-3 px-3.5 py-3 rounded-2xl border border-primary/15 bg-primary/[0.04] hover:bg-primary/10 hover:border-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all text-left"
+                >
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                    <Clock className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground leading-none">Scheduled Tasks</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 uppercase tracking-wider truncate">Run prompts on a timer</p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => navigate("/shared")}
+                  className="group flex items-center gap-3 px-3.5 py-3 rounded-2xl border border-primary/15 bg-primary/[0.04] hover:bg-primary/10 hover:border-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all text-left"
+                >
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                    <Users className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground leading-none">Shared Chats</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 uppercase tracking-wider truncate">Group convos with Arc</p>
+                  </div>
+                </button>
+              </div>
+
               {/* Insight tip — subtle inline */}
               <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-primary/15 bg-primary/[0.04]">
                 <Sparkles className="h-4 w-4 text-primary shrink-0" />
