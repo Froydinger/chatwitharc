@@ -27,6 +27,8 @@ import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 import { ModelSourceBadge } from "@/components/ModelSourceBadge";
 import { WeatherCard } from "@/components/WeatherCard";
+import { ScheduledTaskCard } from "@/components/ScheduledTaskCard";
+import { NotificationDispatchCard } from "@/components/NotificationDispatchCard";
 import { SvgArtifact } from "@/components/SvgArtifact";
 
 // Stable module-level constant — never recreated on re-render, so iframes never remount
@@ -308,6 +310,30 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   className="mb-3 relative z-10 flex justify-start"
                 >
                   <WeatherCard weather={message.weatherData} />
+                </motion.div>
+              )}
+
+              {/* Scheduled Task Card */}
+              {!isUser && message.scheduledTask && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mb-3 relative z-10 flex justify-start"
+                >
+                  <ScheduledTaskCard task={message.scheduledTask} />
+                </motion.div>
+              )}
+
+              {/* Notification Dispatch Card */}
+              {!isUser && message.notificationDispatch && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mb-3 relative z-10 flex justify-start"
+                >
+                  <NotificationDispatchCard dispatch={message.notificationDispatch} />
                 </motion.div>
               )}
 

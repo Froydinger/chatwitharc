@@ -1283,6 +1283,8 @@ Output the complete, finished writing using the update_canvas tool.`;
     let canvasUpdate: { content: string; label?: string } | null = null;
     let codeUpdate: { code: string; language: string; label?: string } | null = null;
     let weatherData: any = null;
+    let scheduledTask: any = null;
+    let notificationDispatch: any = null;
     
     // Check if the AI wants to use tools (web search or chat search)
     let memorySaved: { content: string } | null = null;
@@ -1518,10 +1520,19 @@ Output the complete, finished writing using the update_canvas tool.`;
             }
           }
 
+          notificationDispatch = {
+            channel,
+            title,
+            body,
+            url,
+            results,
+            sent_at: new Date().toISOString(),
+          };
+
           conversationMessages.push({
             role: 'tool',
             tool_call_id: toolCall.id,
-            content: `Notification dispatch (${channel}): ${results.join(', ')}. Briefly confirm to the user in one sentence what you sent and where.`,
+            content: `Notification dispatch (${channel}): ${results.join(', ')}. A confirmation card is already shown to the user — reply with ONE short friendly sentence (max 12 words) acknowledging it. Do NOT repeat the title/body.`,
           });
         } else if (toolCall.function.name === 'schedule_task') {
           const args = JSON.parse(toolCall.function.arguments);
@@ -1567,10 +1578,22 @@ Output the complete, finished writing using the update_canvas tool.`;
               deliverEmail ? 'email' : null,
             ].filter(Boolean).join(' + ') || 'chat';
 
+            scheduledTask = {
+              id: inserted?.id,
+              title,
+              prompt,
+              schedule_type: scheduleType,
+              cron_expr: cronExpr,
+              next_run_at: nextRunAt,
+              deliver_in_chat: deliverInChat,
+              deliver_push: deliverPush,
+              deliver_email: deliverEmail,
+            };
+
             conversationMessages.push({
               role: 'tool',
               tool_call_id: toolCall.id,
-              content: `Scheduled task created (id=${inserted?.id}). Fires ${scheduleType === 'cron' ? `on cron "${cronExpr}"` : `at ${nextRunAt}`}. Delivery: ${channels}. Confirm to the user in ONE short friendly sentence, mentioning when and how they'll receive it.`,
+              content: `Scheduled task created (id=${inserted?.id}). A confirmation card with edit/delete is shown to the user. Reply with ONE short friendly sentence (max 12 words). Do NOT repeat the schedule details.`,
             });
           } catch (e: any) {
             conversationMessages.push({
@@ -1689,6 +1712,8 @@ Output the complete, finished writing using the update_canvas tool.`;
       code_update: codeUpdate,
       memory_saved: memorySaved,
       weather_data: weatherData,
+      scheduled_task: scheduledTask,
+      notification_dispatch: notificationDispatch,
     };
     
     // NOTE: We no longer save from the backend - the frontend handles all persistence.

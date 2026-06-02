@@ -1802,6 +1802,8 @@ ${safeCode}
                 type: 'text',
                 memoryAction,
                 weatherData: result.weatherData,
+                scheduledTask: result.scheduledTask,
+                notificationDispatch: result.notificationDispatch,
                 locationUsed: result.locationUsed,
                 sourceModel: didSearchWeb
                   ? (result.searchProvider === 'tavily' ? 'cloud-search-tavily' : 'cloud-search')
