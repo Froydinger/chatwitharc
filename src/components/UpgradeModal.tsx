@@ -53,7 +53,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
               {[
                 "Unlimited image generation",
                 "Unlimited voice conversations",
-                "Unlimited shared chats with your team",
+                "Create unlimited shared chats (up to 6 people each)",
                 "Publish code creations to the web",
                 "Everything in Free (chats, search, files, memory, canvases, reminders)",
                 "Cancel anytime",
