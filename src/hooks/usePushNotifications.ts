@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-// Public VAPID key — safe to ship in the client (that's the whole point of VAPID).
-const VAPID_PUBLIC_KEY =
+// Fallback public VAPID key — safe to ship in the client. The subscribe flow
+// prefers the backend-configured key so browser subscriptions always match the
+// key used to send notifications.
+const FALLBACK_VAPID_PUBLIC_KEY =
   "BB_eg9kxkjqOLLkwKDQhiuNPXtdHRbcQEQXvkROOxHDWFla5mhghTc59na3wIbs43WMsMqkQPxBQ6RSTO_BMx2o";
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -15,6 +17,105 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+let vapidPublicKeyPromise: Promise<string> | null = null;
+
+async function getVapidPublicKey() {
+  if (!vapidPublicKeyPromise) {
+    vapidPublicKeyPromise = supabase.functions
+      .invoke<{ publicKey?: string }>("get-vapid-public-key", { body: {} })
+      .then(({ data, error }) => {
+        if (error || !data?.publicKey) return FALLBACK_VAPID_PUBLIC_KEY;
+        return data.publicKey;
+      })
+      .catch(() => FALLBACK_VAPID_PUBLIC_KEY);
+  }
+  return vapidPublicKeyPromise;
+}
+
+function isTransientPushError(err: any) {
+  const msg = String(err?.message ?? "");
+  return (
+    err?.name === "AbortError" ||
+    /push service/i.test(msg) ||
+    /not available/i.test(msg) ||
+    /registration failed/i.test(msg)
+  );
+}
+
+function waitForState(worker: ServiceWorker, state: ServiceWorkerState) {
+  if (worker.state === state) return Promise.resolve();
+  return new Promise<void>((resolve, reject) => {
+    const timeout = window.setTimeout(() => reject(new Error("Service worker activation timed out")), 10000);
+    worker.addEventListener("statechange", () => {
+      if (worker.state === state) {
+        window.clearTimeout(timeout);
+        resolve();
+      }
+    });
+  });
+}
+
+function subscriptionUsesKey(sub: PushSubscription, keyBytes: Uint8Array) {
+  const existing = sub.options?.applicationServerKey;
+  if (!existing) return true;
+  const source = existing as unknown;
+  const existingBytes = ArrayBuffer.isView(source)
+    ? new Uint8Array(source.buffer, source.byteOffset, source.byteLength)
+    : new Uint8Array(source as ArrayBuffer);
+  if (existingBytes.length !== keyBytes.length) return false;
+  return existingBytes.every((value, index) => value === keyBytes[index]);
+}
+
+async function ensurePushRegistration(repair = false) {
+  if (repair) {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map((r) => r.unregister().catch(() => false)));
+    await sleep(900);
+  }
+
+  let reg = await navigator.serviceWorker.getRegistration("/");
+  if (!reg) {
+    reg = await navigator.serviceWorker.register("/sw.js", {
+      scope: "/",
+      updateViaCache: "none",
+    });
+  } else {
+    try {
+      await reg.update();
+    } catch {
+      // Updating is best-effort; ready below is the important part.
+    }
+  }
+
+  const activatingWorker = reg.installing || reg.waiting;
+  if (activatingWorker && activatingWorker.state !== "activated") {
+    await waitForState(activatingWorker, "activated").catch(() => undefined);
+  }
+
+  return navigator.serviceWorker.ready;
+}
+
+async function showLocalPushProof(
+  title: string,
+  options: NotificationOptions & { url?: string },
+) {
+  if (typeof window === "undefined" || Notification.permission !== "granted") return;
+  try {
+    const reg = await ensurePushRegistration(false);
+    await reg.showNotification(title, {
+      body: options.body,
+      icon: options.icon || "/icons/apple-touch-icon-180.png",
+      badge: options.badge || "/icons/apple-touch-icon-180.png",
+      tag: options.tag,
+      data: { url: options.url || "/" },
+      requireInteraction: options.requireInteraction || false,
+      silent: options.silent || false,
+    });
+  } catch {
+    // Local proof is best-effort; the real push subscription still matters.
+  }
+}
 
 export type PushPermission = NotificationPermission | "unsupported";
 export type PushAvailabilityReason =
@@ -112,11 +213,6 @@ export function usePushNotifications() {
         );
       }
 
-      // Make sure the SW is registered AND active.
-      let reg = await navigator.serviceWorker.getRegistration();
-      if (!reg) reg = await navigator.serviceWorker.register("/sw.js");
-      reg = await navigator.serviceWorker.ready;
-
       const perm = await Notification.requestPermission();
       setPermission(perm);
       if (perm !== "granted") {
@@ -124,31 +220,36 @@ export function usePushNotifications() {
         throw new Error("Notification permission was not granted.");
       }
 
-      // Some platforms (iOS PWA, fresh installs) throw AbortError for ~1s after
-      // the SW activates. Retry a few times before giving up.
-      let sub = await reg.pushManager.getSubscription();
-      if (!sub) {
-        let lastErr: any = null;
-        for (let attempt = 0; attempt < 4; attempt++) {
-          try {
+      const publicKey = await getVapidPublicKey();
+      const publicKeyBytes = urlBase64ToUint8Array(publicKey);
+      let sub: PushSubscription | null = null;
+      let lastErr: any = null;
+
+      // Safari PWAs can keep a broken registration after install/update. Retry
+      // with increasing waits, then rebuild the SW registration once before the
+      // final attempts so users don't get stuck forever on Apple's push service.
+      for (let attempt = 0; attempt < 8 && !sub; attempt++) {
+        try {
+          const reg = await ensurePushRegistration(attempt === 4);
+          sub = await reg.pushManager.getSubscription();
+          if (sub && !subscriptionUsesKey(sub, publicKeyBytes)) {
+            await sub.unsubscribe().catch(() => false);
+            sub = null;
+          }
+          if (!sub) {
             sub = await reg.pushManager.subscribe({
               userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+              applicationServerKey: publicKeyBytes,
             });
-            break;
-          } catch (err: any) {
-            lastErr = err;
-            const msg = String(err?.message ?? "");
-            const transient =
-              err?.name === "AbortError" ||
-              /push service/i.test(msg) ||
-              /not available/i.test(msg);
-            if (!transient || attempt === 3) throw err;
-            await sleep(600 * (attempt + 1));
           }
+        } catch (err: any) {
+          lastErr = err;
+          if (!isTransientPushError(err) || attempt === 7) throw err;
+          await sleep(1000 * (attempt + 1));
         }
-        if (!sub) throw lastErr ?? new Error("Could not subscribe to push service.");
       }
+
+      if (!sub) throw lastErr ?? new Error("Could not subscribe to push service.");
 
       const { error } = await supabase.functions.invoke("register-push-subscription", {
         body: { subscription: sub.toJSON(), userAgent: navigator.userAgent },
@@ -164,6 +265,11 @@ export function usePushNotifications() {
         // Non-fatal — welcome push failure shouldn't block subscription
         console.warn("welcome push failed:", e);
       }
+      await showLocalPushProof("Welcome to ArcAI 🎉", {
+        body: "Push is on! I'll ping you when scheduled tasks finish or someone @mentions you in a shared chat.",
+        tag: "arc-welcome",
+        url: "/",
+      });
 
       return true;
     } catch (e: any) {
@@ -180,7 +286,7 @@ export function usePushNotifications() {
   const unsubscribe = useCallback(async () => {
     setLoading(true);
     try {
-      const reg = await navigator.serviceWorker.getRegistration();
+      const reg = await navigator.serviceWorker.getRegistration("/");
       const sub = await reg?.pushManager.getSubscription();
       if (sub) {
         const endpoint = sub.endpoint;
@@ -200,6 +306,11 @@ export function usePushNotifications() {
       body: { test: true },
     });
     if (error) throw error;
+    await showLocalPushProof("ArcAI", {
+      body: "Test notification — you're all set 🎉",
+      tag: "arc-test",
+      url: "/",
+    });
   }, []);
 
   return {
