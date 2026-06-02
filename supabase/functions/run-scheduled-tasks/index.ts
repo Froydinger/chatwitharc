@@ -68,7 +68,7 @@ async function callAi(prompt: string, model: string): Promise<string> {
     body: JSON.stringify({
       model,
       messages: [
-        { role: "system", content: "You are Arc, completing a user's scheduled task. Be concise and useful." },
+        { role: "system", content: "You are Arc, completing a user's scheduled task. Be concise and useful. Never invent links or claim an email was sent; delivery and chat links are handled by the scheduler after you respond." },
         { role: "user", content: prompt },
       ],
     }),
@@ -86,6 +86,27 @@ function escapeHtml(value: string): string {
 
 async function sendTaskEmail(email: string, taskTitle: string, preview: string, chatUrl: string, idempotencyKey: string) {
   const messageId = crypto.randomUUID();
+  const normalizedEmail = email.toLowerCase();
+  const { data: existingToken } = await admin
+    .from("email_unsubscribe_tokens")
+    .select("token, used_at")
+    .eq("email", normalizedEmail)
+    .maybeSingle();
+  let unsubscribeToken = existingToken?.used_at ? crypto.randomUUID() : existingToken?.token;
+  if (!unsubscribeToken) {
+    unsubscribeToken = crypto.randomUUID();
+    const { error: tokenError } = await admin
+      .from("email_unsubscribe_tokens")
+      .upsert({ token: unsubscribeToken, email: normalizedEmail }, { onConflict: "email", ignoreDuplicates: true });
+    if (tokenError) throw tokenError;
+    const { data: storedToken, error: readTokenError } = await admin
+      .from("email_unsubscribe_tokens")
+      .select("token")
+      .eq("email", normalizedEmail)
+      .maybeSingle();
+    if (readTokenError || !storedToken?.token) throw readTokenError || new Error("Could not prepare email token");
+    unsubscribeToken = storedToken.token;
+  }
   const safeTitle = escapeHtml(taskTitle);
   const safePreview = escapeHtml(preview).replace(/\n/g, "<br />");
   const subject = `✅ ${taskTitle} is done`;
@@ -102,6 +123,7 @@ async function sendTaskEmail(email: string, taskTitle: string, preview: string, 
     purpose: "transactional",
     label: "scheduled-task-complete",
     idempotency_key: idempotencyKey,
+    unsubscribe_token: unsubscribeToken,
     message_id: messageId,
   }, { apiKey: LOVABLE_API_KEY, sendUrl: Deno.env.get("LOVABLE_SEND_URL") });
 
