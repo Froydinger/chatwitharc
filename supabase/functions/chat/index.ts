@@ -1520,10 +1520,19 @@ Output the complete, finished writing using the update_canvas tool.`;
             }
           }
 
+          notificationDispatch = {
+            channel,
+            title,
+            body,
+            url,
+            results,
+            sent_at: new Date().toISOString(),
+          };
+
           conversationMessages.push({
             role: 'tool',
             tool_call_id: toolCall.id,
-            content: `Notification dispatch (${channel}): ${results.join(', ')}. Briefly confirm to the user in one sentence what you sent and where.`,
+            content: `Notification dispatch (${channel}): ${results.join(', ')}. A confirmation card is already shown to the user — reply with ONE short friendly sentence (max 12 words) acknowledging it. Do NOT repeat the title/body.`,
           });
         } else if (toolCall.function.name === 'schedule_task') {
           const args = JSON.parse(toolCall.function.arguments);
