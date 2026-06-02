@@ -160,13 +160,15 @@ async function processTask(task: any): Promise<void> {
       type: "text",
       content: output,
       createdAt: now,
+      scheduledTask: { id: task.id, title: task.title },
     };
 
     let chatId = task.result_chat_id as string | null;
     if (chatId) {
+      // Append ONLY the assistant message so it looks like Arc proactively pinged the user.
       const { data: existing } = await admin
         .from("chat_sessions").select("messages, title, created_at").eq("id", chatId).maybeSingle();
-      const merged = [...((existing?.messages as any[]) ?? []), userMsg, aiMsg];
+      const merged = [...((existing?.messages as any[]) ?? []), aiMsg];
       const { error: updateError } = await admin.from("chat_sessions")
         .upsert({
           id: chatId,
@@ -178,6 +180,7 @@ async function processTask(task: any): Promise<void> {
         }, { onConflict: "id" });
       if (updateError) throw updateError;
     } else {
+      // No existing chat → start a new one with the original prompt + reply for context.
       const { data: created } = await admin
         .from("chat_sessions")
         .insert({
