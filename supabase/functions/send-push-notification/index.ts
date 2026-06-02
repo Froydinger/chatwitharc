@@ -1,7 +1,8 @@
-// Send push notifications via Web Push protocol.
-// Usage (admin / service-role): POST { user_id?: string, user_ids?: string[], payload: { title, body, url?, icon?, ... } }
+// Send push notifications via Web Push protocol — admin / service-role only.
+// Uses web-push-neo (Web Crypto + fetch). The classic `web-push` npm package
+// crashes the Deno edge runtime.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import webpush from "https://esm.sh/web-push@3.6.7?target=deno";
+import { sendNotification } from "npm:web-push-neo@1.1.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,14 +13,6 @@ const corsHeaders = {
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
 const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:admin@askarc.chat";
-
-if (VAPID_PUBLIC && VAPID_PRIVATE) {
-  try {
-    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
-  } catch (e) {
-    console.error("VAPID setup failed:", e);
-  }
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -36,8 +29,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Auth: caller must be authenticated AND an admin (sending notifications is
-    // a privileged action). Internal callers can pass the service role key.
     const authHeader = req.headers.get("Authorization") ?? "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const isServiceCall = authHeader === `Bearer ${serviceKey}`;
@@ -85,23 +76,33 @@ Deno.serve(async (req) => {
     }
 
     const json = JSON.stringify(payload);
+    const vapidDetails = {
+      subject: VAPID_SUBJECT,
+      publicKey: VAPID_PUBLIC,
+      privateKey: VAPID_PRIVATE,
+    };
+
     const results = await Promise.allSettled((subs ?? []).map(async (s: any) => {
       try {
-        await webpush.sendNotification(
+        const res = await sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           json,
+          { vapidDetails, TTL: 60 },
         );
+        if (res.status === 404 || res.status === 410) {
+          await admin.from("push_subscriptions").delete().eq("id", s.id);
+          return { id: s.id, ok: false, status: res.status };
+        }
+        if (res.status >= 400) {
+          const text = await res.text().catch(() => "");
+          return { id: s.id, ok: false, status: res.status, error: text };
+        }
         await admin.from("push_subscriptions")
           .update({ last_used_at: new Date().toISOString() })
           .eq("id", s.id);
         return { id: s.id, ok: true };
       } catch (err: any) {
-        const status = err?.statusCode;
-        if (status === 404 || status === 410) {
-          // Subscription is dead — prune it
-          await admin.from("push_subscriptions").delete().eq("id", s.id);
-        }
-        return { id: s.id, ok: false, status, error: String(err?.message ?? err) };
+        return { id: s.id, ok: false, error: String(err?.message ?? err) };
       }
     }));
 
@@ -113,7 +114,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("send-push-notification error:", e);
-    return new Response(JSON.stringify({ error: String(e?.message ?? e) }), {
+    return new Response(JSON.stringify({ error: String((e as any)?.message ?? e) }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

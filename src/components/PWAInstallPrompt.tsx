@@ -1,135 +1,75 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, X, Smartphone, MonitorSmartphone } from "lucide-react";
-import { GlassCard } from "@/components/ui/glass-card";
+import { Bell, X } from "lucide-react";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useAuth } from "@/hooks/useAuth";
-import { useDownloadInfo } from "@/hooks/useDownloadInfo";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { toast } from "sonner";
 
-interface BeforeInstallPromptEvent extends Event {
-  readonly platforms: string[];
-  readonly userChoice: Promise<{
-    outcome: 'accepted' | 'dismissed';
-    platform: string;
-  }>;
-  prompt(): Promise<void>;
-}
-
-// Helper functions to detect platform
-const isElectron = () => {
-  return /electron/i.test(navigator.userAgent);
-};
-
-const isPWA = () => {
-  return window.matchMedia('(display-mode: standalone)').matches ||
-         (window.navigator as any).standalone === true;
-};
-
-const isMacOS = () => {
-  return /Macintosh|MacIntel|MacPPC|Mac68K/i.test(navigator.platform) ||
-         /Mac/i.test(navigator.userAgent);
-};
-
-const isDesktop = () => {
-  return !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-};
+const DISMISS_KEY = "push-prompt-dismissed-at";
+const FOREVER_KEY = "push-prompt-hidden-forever";
+const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24h
 
 export function PWAInstallPrompt() {
   const { user } = useAuth();
-  const { url: downloadUrl } = useDownloadInfo();
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [isMacDesktop, setIsMacDesktop] = useState(false);
+  const {
+    supported,
+    subscribed,
+    permission,
+    loading,
+    availabilityReason,
+    subscribe,
+  } = usePushNotifications();
+  const [show, setShow] = useState(false);
 
   useEffect(() => {
-    // Don't show anything if user is not logged in
     if (!user) {
+      setShow(false);
       return;
     }
-
-    // Don't show anything if running in Electron app or already installed as PWA
-    if (isElectron() || isPWA()) {
+    if (!supported || subscribed) {
+      setShow(false);
       return;
     }
-
-    // Check if Mac desktop
-    if (isMacOS() && isDesktop()) {
-      setIsMacDesktop(true);
-
-      // Check if we should show the Mac download prompt
-      const hiddenForever = localStorage.getItem('pwa-prompt-hidden-forever');
-      if (hiddenForever === 'true') return;
-
-      const dismissed = localStorage.getItem('pwa-prompt-dismissed');
-      if (dismissed) {
-        const dismissedTime = parseInt(dismissed);
-        const now = Date.now();
-        const twentyFourHours = 24 * 60 * 60 * 1000;
-
-        if (now - dismissedTime < twentyFourHours) {
-          return;
-        }
-      }
-
-      // Show Mac download prompt after a short delay
-      setTimeout(() => setShowPrompt(true), 3000);
+    // Only prompt when the OS prompt is actually available
+    if (permission === "denied") {
+      setShow(false);
       return;
     }
-
-    const handleBeforeInstallPrompt = (e: Event) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
-      // Save the event so it can be triggered later
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Show our custom install prompt
-      setShowPrompt(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, [user]);
-
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-
-    // Show the install prompt
-    deferredPrompt.prompt();
-
-    // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
-    } else {
-      console.log('User dismissed the install prompt');
+    if (availabilityReason !== "ready") {
+      // ios/macOS-needs-install or unsupported — don't nag
+      setShow(false);
+      return;
     }
+    if (localStorage.getItem(FOREVER_KEY) === "true") return;
+    const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0);
+    if (dismissedAt && Date.now() - dismissedAt < COOLDOWN_MS) return;
 
-    // Clear the deferredPrompt
-    setDeferredPrompt(null);
-    setShowPrompt(false);
+    const t = window.setTimeout(() => setShow(true), 2500);
+    return () => window.clearTimeout(t);
+  }, [user, supported, subscribed, permission, availabilityReason]);
+
+  const handleEnable = async () => {
+    try {
+      await subscribe();
+      toast.success("Push enabled — check for the welcome ping!");
+      setShow(false);
+    } catch (e: any) {
+      toast.error(e?.message || "Couldn't enable push");
+    }
   };
 
   const handleDismiss = () => {
-    setShowPrompt(false);
-    // Hide for 24 hours
-    localStorage.setItem('pwa-prompt-dismissed', Date.now().toString());
+    localStorage.setItem(DISMISS_KEY, String(Date.now()));
+    setShow(false);
   };
 
   const handleHideForever = () => {
-    setShowPrompt(false);
-    localStorage.setItem('pwa-prompt-hidden-forever', 'true');
+    localStorage.setItem(FOREVER_KEY, "true");
+    setShow(false);
   };
 
-  const handleMacDownload = () => {
-    window.location.href = downloadUrl;
-    handleDismiss();
-  };
-
-  // Don't show if not prompted and not Mac desktop
-  if (!showPrompt || (!deferredPrompt && !isMacDesktop)) return null;
+  if (!show) return null;
 
   return (
     <AnimatePresence>
@@ -143,22 +83,15 @@ export function PWAInstallPrompt() {
         <div className="bg-card/95 backdrop-blur-xl border border-border rounded-2xl p-4 shadow-xl">
           <div className="flex items-start gap-3">
             <div className="bg-primary/10 rounded-lg p-2">
-              {isMacDesktop ? (
-                <MonitorSmartphone className="h-5 w-5 text-primary" />
-              ) : (
-                <Smartphone className="h-5 w-5 text-primary" />
-              )}
+              <Bell className="h-5 w-5 text-primary" />
             </div>
 
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-foreground mb-1">
-                {isMacDesktop ? 'Download ArcAI for Mac' : 'Install ArcAI'}
+                Turn on notifications
               </h3>
               <p className="text-sm text-muted-foreground mb-3">
-                {isMacDesktop
-                  ? 'Get the native Mac app for the best experience with ArcAi!'
-                  : 'Add ArcAI to your home screen for quick access and a native app experience.'
-                }
+                Get pinged when scheduled tasks finish or someone @mentions you in a shared chat.
               </p>
 
               <div className="flex flex-col gap-2">
@@ -166,11 +99,12 @@ export function PWAInstallPrompt() {
                   <GlassButton
                     variant="glow"
                     size="sm"
-                    onClick={isMacDesktop ? handleMacDownload : handleInstall}
+                    onClick={handleEnable}
+                    disabled={loading}
                     className="flex-1"
                   >
-                    <Download className="h-4 w-4 mr-2" />
-                    {isMacDesktop ? 'Download' : 'Install'}
+                    <Bell className="h-4 w-4 mr-2" />
+                    {loading ? "Enabling…" : "Enable"}
                   </GlassButton>
 
                   <GlassButton
@@ -178,18 +112,17 @@ export function PWAInstallPrompt() {
                     size="sm"
                     onClick={handleDismiss}
                     className="border border-border"
+                    aria-label="Dismiss for 24 hours"
                   >
                     <X className="h-4 w-4" />
                   </GlassButton>
                 </div>
-                {isMacDesktop && (
-                  <button
-                    onClick={handleHideForever}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Don't show again
-                  </button>
-                )}
+                <button
+                  onClick={handleHideForever}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors text-left"
+                >
+                  Don't show again
+                </button>
               </div>
             </div>
           </div>
