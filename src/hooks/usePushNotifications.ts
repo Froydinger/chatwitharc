@@ -59,7 +59,9 @@ function waitForState(worker: ServiceWorker, state: ServiceWorkerState) {
 function subscriptionUsesKey(sub: PushSubscription, keyBytes: Uint8Array) {
   const existing = sub.options?.applicationServerKey;
   if (!existing) return true;
-  const existingBytes = new Uint8Array(existing);
+  const existingBytes = existing instanceof ArrayBuffer
+    ? new Uint8Array(existing)
+    : new Uint8Array(existing.buffer, existing.byteOffset, existing.byteLength);
   if (existingBytes.length !== keyBytes.length) return false;
   return existingBytes.every((value, index) => value === keyBytes[index]);
 }
