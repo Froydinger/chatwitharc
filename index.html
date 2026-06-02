@@ -193,24 +193,25 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Force Unregister All Service Workers -->
+    <!-- Register service worker (push notifications, no caching) -->
     <script>
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for (let registration of registrations) {
-            registration.unregister().then(function(success) {
-              console.log('Service worker unregistered:', success);
-            });
+        const isInIframe = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+        const host = window.location.hostname;
+        const isPreviewHost = host.includes('id-preview--') || host.includes('lovableproject.com');
+        if (isInIframe || isPreviewHost) {
+          // Clean up any SW in preview/iframe contexts to avoid caching weirdness
+          navigator.serviceWorker.getRegistrations().then(function(regs) {
+            regs.forEach(function(r) { r.unregister(); });
+          });
+          if ('caches' in window) {
+            caches.keys().then(function(names) { names.forEach(function(n) { caches.delete(n); }); });
           }
-        });
-
-        // Clear all caches
-        if ('caches' in window) {
-          caches.keys().then(function(names) {
-            for (let name of names) {
-              caches.delete(name);
-              console.log('Deleted cache:', name);
-            }
+        } else {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js').catch(function(err) {
+              console.warn('SW registration failed:', err);
+            });
           });
         }
       }
