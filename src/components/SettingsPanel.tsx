@@ -86,6 +86,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { LocalAIPanel } from "@/components/LocalAIPanel";
 import { CorporateModePanel } from "@/components/CorporateModePanel";
 import { SharedLinksCard } from "@/components/SharedLinksCard";
+import { PushNotificationsCard } from "@/components/PushNotificationsCard";
 import { cn } from "@/lib/utils";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
@@ -834,6 +835,7 @@ export function SettingsPanel() {
           <>
             {ProfileCard}
             {EmailCard}
+            <PushNotificationsCard />
             {ConnectedAccountsCard}
             {DangerZoneCard}
             {AdminCard}
