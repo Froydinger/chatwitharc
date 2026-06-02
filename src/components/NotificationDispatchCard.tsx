@@ -16,7 +16,7 @@ export function NotificationDispatchCard({ dispatch }: { dispatch: NotificationD
   const Icon = dispatch.channel === "email" ? Mail : Bell;
 
   return (
-    <div className="glass-dock rounded-2xl p-4 max-w-md flex flex-col gap-2">
+    <div className="rounded-2xl border border-primary/25 bg-background/55 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3),0_0_18px_hsl(var(--primary)/0.10),inset_0_1px_0_hsl(var(--foreground)/0.06)] p-4 max-w-md flex flex-col gap-2">
       <div className="flex items-start gap-3">
         <div className={`rounded-xl p-2 shrink-0 ${hasFail ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary"}`}>
           {hasFail ? <AlertCircle className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
