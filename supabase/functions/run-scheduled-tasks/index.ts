@@ -163,6 +163,33 @@ async function processTask(task: any): Promise<void> {
         }),
       }).catch((e) => console.error("push failed", e));
     }
+
+    // Email
+    if (task.notify_email) {
+      try {
+        const { data: u } = await admin.auth.admin.getUserById(task.user_id);
+        const email = u?.user?.email;
+        if (email) {
+          const chatUrl = chatId
+            ? `https://askarc.chat/chat/${chatId}`
+            : "https://askarc.chat/dashboard";
+          await admin.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "scheduled-task-complete",
+              recipientEmail: email,
+              idempotencyKey: `task-${task.id}-${run!.id}`,
+              templateData: {
+                taskTitle: task.title,
+                preview: output.slice(0, 600),
+                chatUrl,
+              },
+            },
+          });
+        }
+      } catch (e) {
+        console.error("task email failed", e);
+      }
+    }
   } catch (err: any) {
     console.error("task failed", task.id, err);
     await admin.from("scheduled_task_runs")

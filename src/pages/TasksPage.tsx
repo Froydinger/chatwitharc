@@ -24,6 +24,7 @@ interface Task {
   last_run_at: string | null;
   status: "active" | "paused" | "completed" | "failed";
   push_on_complete: boolean;
+  notify_email: boolean;
   result_chat_id: string | null;
   timezone: string;
 }
@@ -97,6 +98,7 @@ export function TasksPage() {
   const [prompt, setPrompt] = useState("");
   const [scheduleText, setScheduleText] = useState("every day at 8am");
   const [pushOn, setPushOn] = useState(true);
+  const [emailOn, setEmailOn] = useState(false);
   const [model, setModel] = useState("google/gemini-2.5-flash");
   const [creating, setCreating] = useState(false);
 
@@ -149,6 +151,7 @@ export function TasksPage() {
       next_run_at: nextRun,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
       push_on_complete: pushOn,
+      notify_email: emailOn,
       model,
     });
     setCreating(false);
@@ -237,6 +240,10 @@ export function TasksPage() {
             <div className="flex items-center justify-between">
               <Label className="flex items-center gap-2">Push notification when done</Label>
               <Switch checked={pushOn} onCheckedChange={setPushOn} />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2">Email me the results</Label>
+              <Switch checked={emailOn} onCheckedChange={setEmailOn} />
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setShowNew(false)}>Cancel</Button>
