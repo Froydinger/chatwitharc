@@ -835,6 +835,7 @@ export function SettingsPanel() {
           <>
             {ProfileCard}
             {EmailCard}
+            <PushNotificationsCard />
             {ConnectedAccountsCard}
             {DangerZoneCard}
             {AdminCard}
