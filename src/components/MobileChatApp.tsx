@@ -38,6 +38,7 @@ import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { SmartSuggestions } from "@/components/SmartSuggestions";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { GENERAL_QUICK_PROMPTS, pickRandomPrompts } from "@/components/WelcomeSection";
+import { supabase } from "@/integrations/supabase/client";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
@@ -149,6 +150,7 @@ export function MobileChatApp() {
     updateSessionCanvasContent,
     isHydratingSession,
     loadSession,
+    refreshSessionFromSupabase,
   } = useArcStore();
   const { profile } = useProfile();
   const isMobile = useIsMobile();
@@ -186,6 +188,22 @@ export function MobileChatApp() {
 
   // Pre-generate prompts in background for instant access
   usePromptPreload();
+
+  useEffect(() => {
+    if (!currentSessionId) return;
+    const channel = supabase
+      .channel(`chat-session-live-${currentSessionId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "chat_sessions", filter: `id=eq.${currentSessionId}` },
+        () => void refreshSessionFromSupabase(currentSessionId)
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentSessionId, refreshSessionFromSupabase]);
 
   // Model family is now managed by useModelStore - no sessionStorage needed
 
