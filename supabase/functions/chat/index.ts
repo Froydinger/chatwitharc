@@ -730,6 +730,24 @@ serve(async (req) => {
           }
 
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "send_notification",
+          description: "Send the CURRENT user a notification via push, email, or both. Use this when the user asks you to email/notify/remind/ping them about something (now or as a follow-up to this conversation). NEVER use this to message someone else. Pick channel based on user wording: 'email me' → email; 'push me'/'ping me' → push; 'notify me'/'remind me' without channel → ask first OR pick best fit (long content → email, short alert → push). Always confirm in your reply what you sent.",
+          parameters: {
+            type: "object",
+            properties: {
+              channel: { type: "string", enum: ["push", "email", "both"], description: "Where to send the notification." },
+              title: { type: "string", description: "Short title / subject line (under 80 chars)." },
+              body: { type: "string", description: "The notification body. For email this can be a few sentences; for push keep it under 200 chars." },
+              url: { type: "string", description: "Optional link to open when tapped (e.g. /chat/<id> or full https URL). Defaults to /dashboard." }
+            },
+            required: ["channel", "title", "body"],
+            additionalProperties: false
+          }
+        }
       }
     ];
 
