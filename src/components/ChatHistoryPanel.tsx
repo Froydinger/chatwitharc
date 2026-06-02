@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, MessageSquare, RefreshCw, Search, Layers, Share2 } from "lucide-react";
+import { Plus, Trash2, MessageSquare, RefreshCw, Search, LayoutDashboard, Share2 } from "lucide-react";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
 import { useArcStore } from "@/store/useArcStore";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
