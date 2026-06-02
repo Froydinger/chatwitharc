@@ -352,7 +352,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                             <Button
                               variant="secondary"
                               size="sm"
-                              className="bg-black/50 hover:bg-black/70 text-white border-white/20"
+                              className="bg-foreground/85 hover:bg-foreground text-background border border-border/40"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setEditImageUrls(message.imageUrls!);
