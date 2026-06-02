@@ -27,6 +27,8 @@ import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 import { ModelSourceBadge } from "@/components/ModelSourceBadge";
 import { WeatherCard } from "@/components/WeatherCard";
+import { ScheduledTaskCard } from "@/components/ScheduledTaskCard";
+import { NotificationDispatchCard } from "@/components/NotificationDispatchCard";
 import { SvgArtifact } from "@/components/SvgArtifact";
 
 // Stable module-level constant — never recreated on re-render, so iframes never remount
