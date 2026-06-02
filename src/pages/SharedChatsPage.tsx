@@ -67,7 +67,7 @@ export function SharedChatsPage() {
     if (atLimit) {
       toast({
         title: "Free limit reached",
-        description: `Free includes up to ${FREE_SHARED_CHAT_LIMIT} shared chats. Upgrade to Boost for unlimited.`,
+        description: `Free accounts can create up to ${FREE_SHARED_CHAT_LIMIT} shared chats. Upgrade to Boost for unlimited.`,
       });
       openCheckout();
       return;
