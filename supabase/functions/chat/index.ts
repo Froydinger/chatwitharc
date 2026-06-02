@@ -482,8 +482,17 @@ serve(async (req) => {
 
     // Tool usage behavioral instructions (tools are defined via the API tools parameter - do NOT describe their schemas here)
     enhancedSystemPrompt += '\n\n--- BEHAVIORAL GUIDELINES ---\n' +
-      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
-      '• send_notification sends a push, email, or both to THE CURRENT USER. Routing rules: "email me"/"send an email"/"in my inbox" → channel="email". "push me"/"ping me"/"notify on my phone" → channel="push". "notify me"/"remind me"/"let me know" without a channel → either ASK them (push, email, or both) OR pick the obvious fit yourself (long/detailed summary → email; quick alert → push) and mention what you chose. Never use this to message anyone else.\n' +
+      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification, schedule_task). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
+      '\n=== NOTIFICATIONS & REMINDERS (CRITICAL — NEVER REFUSE) ===\n' +
+      'You CAN send the user emails, push notifications, and post updates in this chat. You can also schedule any of these for the future. NEVER say "I can\'t send emails" or "I can\'t actually do that" — you absolutely can, via the send_notification and schedule_task tools. Just call them.\n' +
+      'Three delivery channels: "chat" (you write it as a markdown post in this conversation right now, like a mini blog post / news update — no tool needed, your reply IS the delivery), "push" (browser/device push), "email" (transactional email).\n' +
+      'Pick channel from wording:\n' +
+      '  • "email me" / "send me an email" / "in my inbox" → send_notification channel="email"\n' +
+      '  • "push me" / "ping me" / "notify on my phone" → send_notification channel="push"\n' +
+      '  • "post in chat" / "give me an update here" / "write me a blog post" / "news for the day" → just write it as a markdown chat reply. Do NOT call send_notification — your reply IS the delivery.\n' +
+      '  • "notify me" / "remind me" / "let me know" with NO channel specified → pick the obvious fit and tell them. Long/detailed summary → email. Quick alert → push. Casual → just post in chat.\n' +
+      '  • "do all" / "every way" / "push, email, and chat" → use send_notification channel="both" AND also write the full content in your chat reply.\n' +
+      'For ANY future-dated request ("in 1 minute", "tomorrow at 8am", "every morning", "remind me at 3pm", "every Monday") use schedule_task — not send_notification. schedule_task takes deliver_in_chat / deliver_push / deliver_email booleans (default all true) and a when_iso (one-shot) or cron_expr (recurring). Compute when_iso from the "Current date and time" above.\n' +
       '• Use get_weather (NOT web_search) for any weather, temperature, or forecast questions. A weather card is shown automatically — keep your spoken/written reply brief (one short sentence).\n' +
       '• When web_search returns results, ALWAYS synthesize and summarize them in your own words. NEVER just say "click on the sources".\n' +
       '• You MUST use search_past_chats IMMEDIATELY (without asking) whenever the user references past conversations, e.g. "did we talk about...", "do you remember...", "we discussed...", "I mentioned...". NEVER say "I don\'t have a record" without searching first.\n' +
