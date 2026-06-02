@@ -1578,10 +1578,22 @@ Output the complete, finished writing using the update_canvas tool.`;
               deliverEmail ? 'email' : null,
             ].filter(Boolean).join(' + ') || 'chat';
 
+            scheduledTask = {
+              id: inserted?.id,
+              title,
+              prompt,
+              schedule_type: scheduleType,
+              cron_expr: cronExpr,
+              next_run_at: nextRunAt,
+              deliver_in_chat: deliverInChat,
+              deliver_push: deliverPush,
+              deliver_email: deliverEmail,
+            };
+
             conversationMessages.push({
               role: 'tool',
               tool_call_id: toolCall.id,
-              content: `Scheduled task created (id=${inserted?.id}). Fires ${scheduleType === 'cron' ? `on cron "${cronExpr}"` : `at ${nextRunAt}`}. Delivery: ${channels}. Confirm to the user in ONE short friendly sentence, mentioning when and how they'll receive it.`,
+              content: `Scheduled task created (id=${inserted?.id}). A confirmation card with edit/delete is shown to the user. Reply with ONE short friendly sentence (max 12 words). Do NOT repeat the schedule details.`,
             });
           } catch (e: any) {
             conversationMessages.push({
