@@ -313,6 +313,30 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </motion.div>
               )}
 
+              {/* Scheduled Task Card */}
+              {!isUser && message.scheduledTask && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mb-3 relative z-10 flex justify-start"
+                >
+                  <ScheduledTaskCard task={message.scheduledTask} />
+                </motion.div>
+              )}
+
+              {/* Notification Dispatch Card */}
+              {!isUser && message.notificationDispatch && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mb-3 relative z-10 flex justify-start"
+                >
+                  <NotificationDispatchCard dispatch={message.notificationDispatch} />
+                </motion.div>
+              )}
+
               {/* Images */}
               {message.type === "image" &&
                 (message.imageUrl || message.imageUrls) && (
