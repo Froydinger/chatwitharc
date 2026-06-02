@@ -1538,7 +1538,8 @@ Output the complete, finished writing using the update_canvas tool.`;
           const args = JSON.parse(toolCall.function.arguments);
           const title = String(args.title ?? 'Scheduled task').slice(0, 200);
           const prompt = String(args.prompt ?? '').slice(0, 4000);
-          const deliverInChat = args.deliver_in_chat !== false;
+          // Always keep a chat copy so scheduled work is accessible later from the app/email link.
+          const deliverInChat = true;
           const deliverPush = args.deliver_push === true;
           const deliverEmail = args.deliver_email === true;
           const whenIso = typeof args.when_iso === 'string' ? args.when_iso : null;
@@ -1563,8 +1564,10 @@ Output the complete, finished writing using the update_canvas tool.`;
                 run_at: scheduleType === 'once' ? nextRunAt : null,
                 cron_expr: cronExpr,
                 next_run_at: nextRunAt,
+                result_chat_id: sessionId || null,
                 push_on_complete: deliverPush,
                 notify_email: deliverEmail,
+                model: selectedModel,
                 status: 'active',
               })
               .select('id')
