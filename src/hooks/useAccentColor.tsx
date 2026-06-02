@@ -181,6 +181,8 @@ export function useAccentColor() {
         root.style.setProperty("--ring", config.lightPrimary);
         root.style.setProperty("--ai-message-bg", config.lightAiMessageBg);
         root.style.setProperty("--ai-message-border", config.lightAiMessageBorder);
+        // In light mode, primary buttons need dark text for legibility on lighter accent fills
+        root.style.setProperty("--primary-foreground", "0 0% 5%");
       }
 
       // Update selection color - noir uses inverted colors
