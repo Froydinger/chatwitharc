@@ -154,7 +154,7 @@ export function SupportPopup({ isOpen, onClose }: SupportPopupProps) {
                   }}
                   disabled={checkoutLoading}
                 >
-                  {checkoutLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Upgrade to Pro"}
+                  {checkoutLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Upgrade to Boost"}
                 </Button>
               )}
             </div>

@@ -624,7 +624,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           
           {/* Memory/Search Action Indicator - persistent in chat */}
           {message.memoryAction && (
-            <MemoryIndicator action={message.memoryAction} messageContent={message.content} />
+            <MemoryIndicator actions={[message.memoryAction]} messageContent={message.content} />
           )}
 
           {/* Source model badge - shows which AI handled this response */}

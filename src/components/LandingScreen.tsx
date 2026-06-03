@@ -936,10 +936,10 @@ export function LandingScreen() {
           </p>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
-              Pro
+              Boost
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
-              Included with Pro plan
+              Included with Boost
             </span>
           </div>
         </motion.div>
@@ -980,10 +980,10 @@ export function LandingScreen() {
           </p>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
-              Pro
+              Boost
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
-              Included with Pro plan
+              Included with Boost
             </span>
           </div>
         </motion.div>

@@ -332,10 +332,10 @@ export function RightPanel({
                   <Crown className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex-1 text-left min-w-0">
-                  <p className="text-sm font-semibold text-foreground">Upgrade to Pro</p>
-                  <p className="text-[11px] text-muted-foreground truncate">Unlimited messages & more</p>
+                  <p className="text-sm font-semibold text-foreground">Upgrade to Boost</p>
+                  <p className="text-[11px] text-muted-foreground truncate">Unlimited images & voice</p>
                 </div>
-                <span className="text-xs font-bold text-primary">$12/mo</span>
+                <span className="text-xs font-bold text-primary">$7/mo</span>
               </button>
             </div>
           )}
