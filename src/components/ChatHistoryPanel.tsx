@@ -205,7 +205,7 @@ export function ChatHistoryPanel() {
         <div className="flex items-center gap-1 p-1 rounded-full backdrop-blur-2xl bg-background/40 border border-border/40 shadow-[0_0_12px_hsl(var(--primary)/0.12)]">
           <button
             onClick={handleNewChat}
-            className="flex-1 min-w-0 h-8 px-2 rounded-full inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold text-foreground/90 transition-all hover:scale-[1.02] active:scale-[0.97] hover:bg-primary/10"
+            className="flex-1 min-w-0 h-8 px-2 rounded-full inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold text-foreground/90 transition-all hover:scale-[1.02] active:scale-[0.97] bg-primary/30 hover:bg-primary/60"
             title="New chat"
           >
             <Plus className="h-3.5 w-3.5 shrink-0" />
