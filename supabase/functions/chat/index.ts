@@ -1635,8 +1635,10 @@ Output the complete, finished writing using the update_canvas tool.`;
           const deliverInChat = true;
           const deliverPush = args.deliver_push === true;
           const deliverEmail = args.deliver_email === true;
-          const whenIso = typeof args.when_iso === 'string' ? args.when_iso : null;
-          const cronExpr = typeof args.cron_expr === 'string' ? args.cron_expr : null;
+          const requestedText = `${messages[messages.length - 1]?.content ?? ''}\n${title}\n${prompt}`;
+          const deterministic = deterministicScheduleFromText(requestedText, parsedClientOffset);
+          const whenIso = deterministic?.whenIso ?? (typeof args.when_iso === 'string' ? args.when_iso : null);
+          const cronExpr = deterministic?.cronExpr ?? (typeof args.cron_expr === 'string' ? args.cron_expr : null);
 
           try {
             if (!prompt) throw new Error('prompt required');
@@ -1657,6 +1659,7 @@ Output the complete, finished writing using the update_canvas tool.`;
                 run_at: scheduleType === 'once' ? nextRunAt : null,
                 cron_expr: cronExpr,
                 next_run_at: nextRunAt,
+                timezone: clientTimezone || 'UTC',
                 result_chat_id: sessionId || null,
                 push_on_complete: deliverPush,
                 notify_email: deliverEmail,
