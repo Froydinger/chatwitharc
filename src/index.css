@@ -338,6 +338,34 @@ All colors MUST be HSL for perfect glass effects.
   border-color: hsl(0 0% 78%) !important;
 }
 
+/* Noir dark-mode message bubbles — pure black gradient */
+:root.dark[data-accent="noir"] .user-message-bubble {
+  background: linear-gradient(
+    135deg,
+    hsl(0 0% 8%) 0%,
+    hsl(0 0% 5%) 50%,
+    hsl(0 0% 3%) 100%
+  ) !important;
+  border: 1px solid hsl(0 0% 18%) !important;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    inset 0 0 20px hsl(0 0% 100% / 0.08) !important;
+}
+
+:root.dark[data-accent="noir"] .user-message-bubble:hover {
+  background: linear-gradient(
+    135deg,
+    hsl(0 0% 12%) 0%,
+    hsl(0 0% 8%) 50%,
+    hsl(0 0% 5%) 100%
+  ) !important;
+  border-color: hsl(0 0% 22%) !important;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.7),
+    inset 0 0 28px hsl(0 0% 100% / 0.12),
+    0 0 24px hsl(0 0% 100% / 0.06) !important;
+}
+
 @layer base {
   * {
     @apply border-border;
