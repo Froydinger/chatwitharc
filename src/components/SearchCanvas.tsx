@@ -14,7 +14,6 @@ import {
   Clock,
   Send,
   ArrowLeft,
-  
   RotateCcw,
   MessageCircle,
   CheckSquare,
@@ -50,7 +49,7 @@ function ResearchUpgradeWall({ onClose }: { onClose: () => void }) {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         className="max-w-md w-full mx-6 glass-card rounded-3xl p-8 relative overflow-hidden text-center space-y-6"
-        style={{ transition: 'background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease' }}
+        style={{ transition: "background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease" }}
       >
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
 
@@ -64,15 +63,19 @@ function ResearchUpgradeWall({ onClose }: { onClose: () => void }) {
           <Lock className="w-8 h-8 text-white" />
         </div>
 
-        <h2 className="text-2xl font-bold text-white">Unlock Research Mode</h2>
+        <h2 className="text-2xl font-bold text-white">Unlock Deep Search Mode</h2>
         <p className="text-gray-400 text-sm leading-relaxed">
-          Search the web, get cited summaries, and save sources — all powered by AI. Research Mode is available with Arc Pro.
+          Search the web, get cited summaries, and save sources — all powered by AI. Deep Search is available with Arc
+          Pro.
         </p>
 
         {/* Feature pills */}
         <div className="flex flex-wrap justify-center gap-2">
           {["Web Search", "AI Summaries", "Source Citations", "Save Links"].map((f) => (
-            <span key={f} className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span
+              key={f}
+              className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+            >
               {f}
             </span>
           ))}
@@ -80,7 +83,7 @@ function ResearchUpgradeWall({ onClose }: { onClose: () => void }) {
 
         <button
           onClick={() => {
-            window.dispatchEvent(new Event('open-upgrade-modal'));
+            window.dispatchEvent(new Event("open-upgrade-modal"));
           }}
           className="w-full px-6 py-3.5 rounded-full font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all flex items-center justify-center gap-2"
         >
@@ -118,7 +121,7 @@ export function SearchCanvas() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    supabase.rpc('is_admin_user').then(({ data }) => setIsAdmin(!!data));
+    supabase.rpc("is_admin_user").then(({ data }) => setIsAdmin(!!data));
   }, []);
 
   const hasAccess = isSubscribed || isAdmin;
@@ -289,7 +292,7 @@ export function SearchCanvas() {
 
       toast({
         title: `Found ${results.length} sources`,
-        description: "Research complete",
+        description: "Deep Search complete",
       });
     } catch (error: any) {
       console.error("Search error:", error);
@@ -612,7 +615,16 @@ export function SearchCanvas() {
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-background" style={{ paddingTop: isElectronApp ? 'calc(env(safe-area-inset-top, 0px) + 30px)' : (isPWAMode ? 'env(safe-area-inset-top, 0px)' : undefined) }}>
+    <div
+      className="flex flex-col h-full w-full bg-background"
+      style={{
+        paddingTop: isElectronApp
+          ? "calc(env(safe-area-inset-top, 0px) + 30px)"
+          : isPWAMode
+            ? "env(safe-area-inset-top, 0px)"
+            : undefined,
+      }}
+    >
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border/20">
         <div className="flex items-center gap-3">
@@ -622,7 +634,7 @@ export function SearchCanvas() {
 
           <div className="flex items-center gap-2">
             <Search className="w-5 h-5 text-primary" fill="currentColor" strokeWidth={1.5} />
-            <span className="font-semibold text-foreground">Research</span>
+            <span className="font-semibold text-foreground">Deep Search</span>
           </div>
         </div>
 
@@ -682,14 +694,12 @@ export function SearchCanvas() {
         >
           <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
           <div className="flex-1 text-sm">
-            <p className="font-semibold text-foreground">
-              Research connects to the internet
-            </p>
+            <p className="font-semibold text-foreground">Deep Search connects to the internet</p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Corporate Mode keeps chat fully on-device, but Research queries the
-              web. Your saved memories and context are
-              <span className="font-medium text-foreground"> never sent</span> —
-              only the search query you type leaves this device.
+              Corporate Mode keeps chat fully on-device, but Deep Search queries the web. Your saved memories and
+              context are
+              <span className="font-medium text-foreground"> never sent</span> — only the search query you type leaves
+              this device.
             </p>
           </div>
         </div>
@@ -707,7 +717,9 @@ export function SearchCanvas() {
               <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium line-clamp-1">{sessions[0].query}</p>
-                <p className="text-xs text-muted-foreground">{sessions[0].results.length} sources · {formatTimestamp(sessions[0].timestamp)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {sessions[0].results.length} sources · {formatTimestamp(sessions[0].timestamp)}
+                </p>
               </div>
               <span className="text-xs text-muted-foreground flex-shrink-0">{sessions.length} total</span>
             </motion.button>
@@ -833,11 +845,7 @@ export function SearchCanvas() {
               >
                 {/* Left search icon */}
                 <div className="shrink-0 flex items-center justify-center text-muted-foreground ml-2">
-                  {isSearching ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Search className="h-5 w-5" />
-                  )}
+                  {isSearching ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
                 </div>
 
                 <input
@@ -1066,66 +1074,73 @@ export function SearchCanvas() {
                           let videoCount = 0;
                           const seenVideoIds = new Set<string>();
                           return ({ node, href, children, ...props }: any) => {
-                          // YouTube links — dedupe and only embed the first one
-                          if (href && getYouTubeVideoId(href)) {
-                            const videoId = getYouTubeVideoId(href)!;
-                            if (seenVideoIds.has(videoId)) return null;
-                            seenVideoIds.add(videoId);
-                            const linkText =
-                              typeof children === "string"
-                                ? children
-                                : Array.isArray(children)
-                                  ? children.join("")
-                                  : String(children);
-                            videoCount++;
-                            if (videoCount <= 1) {
+                            // YouTube links — dedupe and only embed the first one
+                            if (href && getYouTubeVideoId(href)) {
+                              const videoId = getYouTubeVideoId(href)!;
+                              if (seenVideoIds.has(videoId)) return null;
+                              seenVideoIds.add(videoId);
+                              const linkText =
+                                typeof children === "string"
+                                  ? children
+                                  : Array.isArray(children)
+                                    ? children.join("")
+                                    : String(children);
+                              videoCount++;
+                              if (videoCount <= 1) {
+                                return (
+                                  <div className="my-4">
+                                    <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
+                                  </div>
+                                );
+                              }
                               return (
-                                <div className="my-4">
-                                  <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
+                                <div className="my-2">
+                                  <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} compact />
                                 </div>
                               );
                             }
-                            return (
-                              <div className="my-2">
-                                <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} compact />
-                              </div>
-                            );
-                          }
 
-                          // Image links — render as compact chips, no full embed inline
-                          if (href && isImageUrl(href)) {
-                            const linkText =
+                            // Image links — render as compact chips, no full embed inline
+                            if (href && isImageUrl(href)) {
+                              const linkText =
+                                typeof children === "string"
+                                  ? children
+                                  : Array.isArray(children)
+                                    ? children.join("")
+                                    : String(children);
+                              return (
+                                <div className="my-2 inline-block">
+                                  <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} compact />
+                                </div>
+                              );
+                            }
+
+                            // Detect superscript citation links (unicode superscript digits)
+                            const childText =
                               typeof children === "string"
                                 ? children
                                 : Array.isArray(children)
                                   ? children.join("")
                                   : String(children);
+                            const isCitation = /^[⁰¹²³⁴⁵⁶⁷⁸⁹]+$/.test(childText);
+
                             return (
-                              <div className="my-2 inline-block">
-                                <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} compact />
-                              </div>
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={
+                                  isCitation
+                                    ? "text-primary hover:underline underline-offset-2 text-[0.8em] align-super font-medium"
+                                    : "text-primary hover:underline underline-offset-2"
+                                }
+                                {...props}
+                              >
+                                {children}
+                              </a>
                             );
-                          }
-
-                          // Detect superscript citation links (unicode superscript digits)
-                          const childText = typeof children === "string" ? children : Array.isArray(children) ? children.join("") : String(children);
-                          const isCitation = /^[⁰¹²³⁴⁵⁶⁷⁸⁹]+$/.test(childText);
-
-                          return (
-                            <a
-                              href={href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={isCitation
-                                ? "text-primary hover:underline underline-offset-2 text-[0.8em] align-super font-medium"
-                                : "text-primary hover:underline underline-offset-2"
-                              }
-                              {...props}
-                            >
-                              {children}
-                            </a>
-                          );
-                        };})(),
+                          };
+                        })(),
                         code: ({ node, className, ...props }) => {
                           const isInline = !className;
                           return isInline ? (
@@ -1238,59 +1253,71 @@ export function SearchCanvas() {
                                         let videoCount = 0;
                                         const seenVideoIds = new Set<string>();
                                         return ({ node, href, children, ...props }: any) => {
-                                        // YouTube links — dedupe and only embed first one
-                                        if (href && getYouTubeVideoId(href)) {
-                                          const videoId = getYouTubeVideoId(href)!;
-                                          if (seenVideoIds.has(videoId)) return null;
-                                          seenVideoIds.add(videoId);
-                                          const linkText =
-                                            typeof children === "string"
-                                              ? children
-                                              : Array.isArray(children)
-                                                ? children.join("")
-                                                : String(children);
-                                          videoCount++;
-                                          if (videoCount <= 1) {
+                                          // YouTube links — dedupe and only embed first one
+                                          if (href && getYouTubeVideoId(href)) {
+                                            const videoId = getYouTubeVideoId(href)!;
+                                            if (seenVideoIds.has(videoId)) return null;
+                                            seenVideoIds.add(videoId);
+                                            const linkText =
+                                              typeof children === "string"
+                                                ? children
+                                                : Array.isArray(children)
+                                                  ? children.join("")
+                                                  : String(children);
+                                            videoCount++;
+                                            if (videoCount <= 1) {
+                                              return (
+                                                <div className="my-4">
+                                                  <MediaEmbed
+                                                    url={href}
+                                                    title={linkText !== href ? linkText : undefined}
+                                                  />
+                                                </div>
+                                              );
+                                            }
                                             return (
-                                              <div className="my-4">
-                                                <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
+                                              <div className="my-2">
+                                                <MediaEmbed
+                                                  url={href}
+                                                  title={linkText !== href ? linkText : undefined}
+                                                  compact
+                                                />
                                               </div>
                                             );
                                           }
-                                          return (
-                                            <div className="my-2">
-                                              <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} compact />
-                                            </div>
-                                          );
-                                        }
 
-                                        // Image links — compact only
-                                        if (href && isImageUrl(href)) {
-                                          const linkText =
-                                            typeof children === "string"
-                                              ? children
-                                              : Array.isArray(children)
-                                                ? children.join("")
-                                                : String(children);
-                                          return (
-                                            <div className="my-2 inline-block">
-                                              <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} compact />
-                                            </div>
-                                          );
-                                        }
+                                          // Image links — compact only
+                                          if (href && isImageUrl(href)) {
+                                            const linkText =
+                                              typeof children === "string"
+                                                ? children
+                                                : Array.isArray(children)
+                                                  ? children.join("")
+                                                  : String(children);
+                                            return (
+                                              <div className="my-2 inline-block">
+                                                <MediaEmbed
+                                                  url={href}
+                                                  title={linkText !== href ? linkText : undefined}
+                                                  compact
+                                                />
+                                              </div>
+                                            );
+                                          }
 
-                                        return (
-                                          <a
-                                            href={href}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-primary hover:underline underline-offset-2"
-                                            {...props}
-                                          >
-                                            {children}
-                                          </a>
-                                        );
-                                      };})(),
+                                          return (
+                                            <a
+                                              href={href}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-primary hover:underline underline-offset-2"
+                                              {...props}
+                                            >
+                                              {children}
+                                            </a>
+                                          );
+                                        };
+                                      })(),
                                     }}
                                   >
                                     {response.content.replace(/\n\n---\n\*.*\*$/, "")}

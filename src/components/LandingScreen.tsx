@@ -167,7 +167,7 @@ function ResearchDemo() {
       {/* Mini header bar — mimics real Research UI */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-200 dark:border-slate-700">
         <Search className="w-4 h-4 text-emerald-400" fill="currentColor" strokeWidth={1.5} />
-        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Research</span>
+        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Deep Search</span>
         <div className="ml-auto flex items-center gap-1.5">
           <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-700/60 flex items-center justify-center">
             <Plus className="w-3 h-3 text-slate-500 dark:text-slate-400 dark:text-slate-500" />
@@ -207,7 +207,9 @@ function ResearchDemo() {
                 animate={{ opacity: [0.3, 1, 0.3], scaleX: [0.3, 1, 0.3] }}
                 transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
               />
-              <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Searching the web...</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                Searching the web...
+              </span>
             </motion.div>
           )}
 
@@ -243,7 +245,9 @@ function ResearchDemo() {
 
               {/* Follow-up input — mimics real UI */}
               <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 mt-2">
-                <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Ask a follow-up...</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                  Ask a follow-up...
+                </span>
                 <div className="ml-auto w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
                   <Send className="w-2.5 h-2.5 text-emerald-400" />
                 </div>
@@ -612,10 +616,16 @@ export function LandingScreen() {
           </span>
         </div>
         <div className="hidden md:flex items-center space-x-6">
-          <a href="#features" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100 transition-colors">
+          <a
+            href="#features"
+            className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100 transition-colors"
+          >
             Features
           </a>
-          <a href="#pricing" className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100 transition-colors">
+          <a
+            href="#pricing"
+            className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100 transition-colors"
+          >
             Pricing
           </a>
           <button
@@ -625,7 +635,10 @@ export function LandingScreen() {
             Sign In / Sign Up
           </button>
         </div>
-        <button className="md:hidden text-slate-900 dark:text-slate-100" onClick={() => setShowMobileMenu(!showMobileMenu)}>
+        <button
+          className="md:hidden text-slate-900 dark:text-slate-100"
+          onClick={() => setShowMobileMenu(!showMobileMenu)}
+        >
           <Menu className="w-6 h-6" />
         </button>
       </nav>
@@ -677,7 +690,10 @@ export function LandingScreen() {
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-tight">
-            Your mind, <span className="bg-gradient-to-r from-slate-900 to-blue-600 dark:from-white dark:to-blue-400 bg-clip-text text-transparent">amplified.</span>
+            Your mind,{" "}
+            <span className="bg-gradient-to-r from-slate-900 to-blue-600 dark:from-white dark:to-blue-400 bg-clip-text text-transparent">
+              amplified.
+            </span>
           </h1>
           <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-xl mx-auto leading-relaxed">
             The intelligent AI companion that adapts to you. Create, code, and think with fluid, intuitive
@@ -915,14 +931,15 @@ export function LandingScreen() {
             </span>
           </h2>
           <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed max-w-lg">
-            Research Mode searches the web, summarizes sources, and gives you answers with citations — not
-            hallucinations.
+            Deep Search searches the web, summarizes sources, and gives you answers with citations — not hallucinations.
           </p>
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
               Pro
             </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Included with Pro plan</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              Included with Pro plan
+            </span>
           </div>
         </motion.div>
 
@@ -964,7 +981,9 @@ export function LandingScreen() {
             <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
               Pro
             </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Included with Pro plan</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              Included with Pro plan
+            </span>
           </div>
         </motion.div>
 
@@ -981,7 +1000,9 @@ export function LandingScreen() {
             {/* Now Playing header */}
             <div className="flex items-center gap-2 mb-5">
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-xs text-slate-600 dark:text-slate-300 font-medium uppercase tracking-wider">Now Playing</span>
+              <span className="text-xs text-slate-600 dark:text-slate-300 font-medium uppercase tracking-wider">
+                Now Playing
+              </span>
             </div>
 
             {/* Album + Track info */}
@@ -1054,9 +1075,15 @@ export function LandingScreen() {
                   key={i}
                   className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-slate-100 dark:bg-slate-700/60 transition-colors"
                 >
-                  <img src={track.art} alt="" className="w-8 h-8 rounded-md object-cover border border-slate-200 dark:border-slate-700" />
+                  <img
+                    src={track.art}
+                    alt=""
+                    className="w-8 h-8 rounded-md object-cover border border-slate-200 dark:border-slate-700"
+                  />
                   <span className="text-sm text-slate-700 dark:text-slate-200 truncate">{track.name}</span>
-                  <span className="ml-auto text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500">Arc AI</span>
+                  <span className="ml-auto text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-500">
+                    Arc AI
+                  </span>
                 </div>
               ))}
             </div>

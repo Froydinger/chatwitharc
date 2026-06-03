@@ -2,7 +2,24 @@
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { X, Paperclip, ArrowRight, Sparkles, Plus, ImagePlus, Mic, Code2, PenLine, Search, Globe, Square, Lightbulb, Rocket, FileText, ListPlus } from "lucide-react";
+import {
+  X,
+  Paperclip,
+  ArrowRight,
+  Sparkles,
+  Plus,
+  ImagePlus,
+  Mic,
+  Code2,
+  PenLine,
+  Search,
+  Globe,
+  Square,
+  Lightbulb,
+  Rocket,
+  FileText,
+  ListPlus,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
@@ -28,12 +45,7 @@ import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { routeRequest } from "@/utils/routeRequest";
 import { streamLocalChat } from "@/services/localAI";
 import { buildLocalSystemPrompt } from "@/utils/localSystemPrompt";
-import {
-  findFirstToolCall,
-  executeLocalToolCall,
-  stripToolTags,
-  hasPartialOpenTag,
-} from "@/utils/localToolProtocol";
+import { findFirstToolCall, executeLocalToolCall, stripToolTags, hasPartialOpenTag } from "@/utils/localToolProtocol";
 import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptionsDock";
 import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore } from "@/store/useImageGenStore";
@@ -55,7 +67,7 @@ export const cancelCurrentRequest = () => {
   store.setSearchingChats(false);
   store.setAccessingMemory(false);
   store.setSearchingWeb(false);
-  
+
   // Also stop canvas AI writing state
   const canvasStore = useCanvasStore.getState();
   if (canvasStore.isAIWriting) {
@@ -103,11 +115,20 @@ function checkForImageRequest(message: string): boolean {
   if (/^(image|draw|create)\//.test(m) || /^\/(image|draw|create)\b/.test(m)) return true;
   // Natural language detection for image generation requests
   // Supports: "generate an image of...", "draw me a cat", "make me a picture of...", "can you create an image of..."
-  if (/^(can\s+you\s+)?(please\s+)?(generate|create|make|draw|paint|design|render|produce|visualize|show\s+me|give\s+me)\s+(me\s+)?(an?\s+)?(image|picture|photo|illustration|artwork|graphic|icon|logo|wallpaper|poster|banner|thumbnail)/i.test(m)) return true;
+  if (
+    /^(can\s+you\s+)?(please\s+)?(generate|create|make|draw|paint|design|render|produce|visualize|show\s+me|give\s+me)\s+(me\s+)?(an?\s+)?(image|picture|photo|illustration|artwork|graphic|icon|logo|wallpaper|poster|banner|thumbnail)/i.test(
+      m,
+    )
+  )
+    return true;
   // "draw me a [subject]" or "paint me a [subject]" - drawing/painting implies visual
   if (/^(can\s+you\s+)?(please\s+)?(draw|paint|sketch)\s+(me\s+)?(a|an|the|some)\s+/i.test(m)) return true;
   // Broader match: verb + optional "me" + image word anywhere in short messages
-  if (/\b(generate|create|make|draw|paint)\s+(me\s+)?(an?\s+)?(image|picture|photo|illustration)\b/i.test(m) && m.length < 200) return true;
+  if (
+    /\b(generate|create|make|draw|paint)\s+(me\s+)?(an?\s+)?(image|picture|photo|illustration)\b/i.test(m) &&
+    m.length < 200
+  )
+    return true;
   return false;
 }
 
@@ -168,10 +189,10 @@ function isConversationalMessage(message: string): boolean {
   ];
 
   // If it matches conversational patterns, it's conversational
-  if (conversationalPatterns.some(p => p.test(m))) return true;
+  if (conversationalPatterns.some((p) => p.test(m))) return true;
 
   // Short messages ending in ? are usually questions, not requests
-  if (isShort && m.endsWith('?')) return true;
+  if (isShort && m.endsWith("?")) return true;
 
   // Very short messages (under 15 chars) without action words are usually reactions
   if (m.length < 15 && !/(add|change|fix|update|make|create|build|remove|delete)/.test(m)) return true;
@@ -183,35 +204,35 @@ function isConversationalMessage(message: string): boolean {
 function looksLikeNaturalCodeRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
-  
+
   // Skip if it's conversational
   if (isConversationalMessage(m)) return false;
-  
+
   // Patterns that strongly indicate code generation intent
   const codePatterns = [
     /^(build|create|make|code|develop|write)\s+(me\s+)?(a|an|the)?\s*(website|webpage|web page|app|application|landing page|dashboard|form|calculator|game|tool|component|ui|interface)/i,
     /^(can you|could you|please)?\s*(build|create|make|code|develop|write)\s+(me\s+)?(a|an|the)?\s*(website|webpage|web page|app|application|landing page|dashboard|form|calculator|game|tool|component|ui|interface)/i,
     /^(i need|i want)\s+(a|an|the)?\s*(website|webpage|web page|app|application|landing page|dashboard|form|calculator|game|tool|component|ui|interface)/i,
   ];
-  
-  return codePatterns.some(p => p.test(m));
+
+  return codePatterns.some((p) => p.test(m));
 }
 
 function looksLikeNaturalCanvasRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
-  
+
   // Skip if it's conversational
   if (isConversationalMessage(m)) return false;
-  
+
   // Patterns that strongly indicate writing/canvas intent
   const canvasPatterns = [
     /^(write|compose|draft|create)\s+(me\s+)?(a|an|the)?\s*(poem|essay|article|blog|story|letter|email|script|speech|song|lyrics|haiku|limerick|sonnet)/i,
     /^(can you|could you|please)?\s*(write|compose|draft|create)\s+(me\s+)?(a|an|the)?\s*(poem|essay|article|blog|story|letter|email|script|speech|song|lyrics|haiku|limerick|sonnet)/i,
     /^(i need|i want)\s+(a|an|the)?\s*(poem|essay|article|blog|story|letter|email|script|speech|song|lyrics)/i,
   ];
-  
-  return canvasPatterns.some(p => p.test(m));
+
+  return canvasPatterns.some((p) => p.test(m));
 }
 
 // Heuristic for when the Canvas is already open and the user is clearly asking
@@ -301,7 +322,6 @@ function extractPrefixPrompt(message: string): string {
     .trim();
 }
 
-
 function extractImagePrompt(message: string): string {
   let prompt = (message || "").trim();
   prompt = prompt.replace(/^(please\s+)?(?:can|could|would)\s+you\s+/i, "").trim();
@@ -335,7 +355,10 @@ export interface ChatInputRef {
   sendMessage: (content: string) => void;
 }
 
-export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ onImagesChange, rightPanelOpen = false, inline = false }, ref) {
+export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
+  { onImagesChange, rightPanelOpen = false, inline = false },
+  ref,
+) {
   useProfile();
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
@@ -344,8 +367,22 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const subscription = useSubscription();
   const isGuestMode = !user;
 
-  const { messages, addMessage, replaceLastMessage, isLoading, setLoading, isGeneratingImage, setGeneratingImage, editMessage, setSearchingChats, setAccessingMemory, setSearchingWeb, updateMessageMemoryAction, upsertCanvasMessage, upsertCodeMessage } =
-    useArcStore();
+  const {
+    messages,
+    addMessage,
+    replaceLastMessage,
+    isLoading,
+    setLoading,
+    isGeneratingImage,
+    setGeneratingImage,
+    editMessage,
+    setSearchingChats,
+    setAccessingMemory,
+    setSearchingWeb,
+    updateMessageMemoryAction,
+    upsertCanvasMessage,
+    upsertCodeMessage,
+  } = useArcStore();
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
   const { openSearchMode } = useSearchStore();
@@ -353,9 +390,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
   // Subscribe to canvas store reactively for auto-mode indicator when canvas is open
   // Use individual selectors for reliable re-renders when canvas open state changes
-  const isWriteCanvasOpen = useCanvasStore(
-    (s) => s.isOpen && s.canvasType === 'writing'
-  );
+  const isWriteCanvasOpen = useCanvasStore((s) => s.isOpen && s.canvasType === "writing");
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -371,8 +406,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
   // Tiles menu
   const [showMenu, setShowMenu] = useState(false);
-   const menuButtonRef = useRef<HTMLButtonElement>(null);
-   const inputBarRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const inputBarRef = useRef<HTMLDivElement>(null);
   const modelLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Tick to force re-render when the input bar's screen position can change
@@ -404,10 +439,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     ro.observe(el);
     const bodyRo = new ResizeObserver(bump);
     bodyRo.observe(document.body);
-    return () => { ro.disconnect(); bodyRo.disconnect(); };
+    return () => {
+      ro.disconnect();
+      bodyRo.disconnect();
+    };
   }, []);
-
-
 
   // Prompt library
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
@@ -433,14 +469,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   // Auto mode = indicator is shown because canvas is open, not from explicit /write prefix
   const isCanvasAutoMode = isWriteCanvasOpen && !shouldShowCanvasMode;
 
-
   // Show slash picker when user types just "/"
   const showSlashPicker = inputValue.trim() === "/";
 
-  // Handle /research command to open research mode
+  // Handle /deep command to open research mode
   useEffect(() => {
     const val = inputValue.trim().toLowerCase();
-    if (val === "/research") {
+    if (val === "/deep") {
       setInputValue("");
       openSearchMode();
     }
@@ -448,7 +483,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
   // Voice mode store
   const { activateVoiceMode } = useVoiceModeStore();
-  
+
   // Navigation (for activating voice from non-chat pages like Dashboard)
   const navigate = useNavigate();
   const location = useLocation();
@@ -459,17 +494,21 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   const cursorPositionRef = useRef<number | null>(null);
 
   // Expose handleImageUploadFiles, focusInput, and sendMessage via ref
-  useImperativeHandle(ref, () => ({
-    handleImageUploadFiles: (files: File[]) => {
-      handleUploadFiles(files);
-    },
-    focusInput: () => {
-      textareaRef.current?.focus();
-    },
-    sendMessage: (content: string) => {
-      handleSend(content);
-    },
-  }), [toast]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      handleImageUploadFiles: (files: File[]) => {
+        handleUploadFiles(files);
+      },
+      focusInput: () => {
+        textareaRef.current?.focus();
+      },
+      sendMessage: (content: string) => {
+        handleSend(content);
+      },
+    }),
+    [toast],
+  );
 
   useEffect(() => {
     if (!textareaRef.current) return;
@@ -496,8 +535,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
+          behavior: "smooth",
+          block: "center",
         });
       }
     }, 300);
@@ -506,15 +545,15 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   // Create and cleanup object URLs for image previews
   useEffect(() => {
     // Revoke old URLs
-    imagePreviewUrls.forEach(url => URL.revokeObjectURL(url));
-    
+    imagePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+
     // Create new URLs
-    const newUrls = selectedImages.map(file => URL.createObjectURL(file));
+    const newUrls = selectedImages.map((file) => URL.createObjectURL(file));
     setImagePreviewUrls(newUrls);
-    
+
     // Cleanup on unmount or when images change
     return () => {
-      newUrls.forEach(url => URL.revokeObjectURL(url));
+      newUrls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [selectedImages]);
 
@@ -552,20 +591,21 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
   // Supported document MIME types
   const DOCUMENT_TYPES = [
-    'application/pdf',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation', // PPTX
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // XLSX
-    'text/plain',
-    'text/markdown',
-    'text/html',
-    'text/csv',
-    'application/json',
-    'application/xml',
-    'text/xml',
+    "application/pdf",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // DOCX
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation", // PPTX
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // XLSX
+    "text/plain",
+    "text/markdown",
+    "text/html",
+    "text/csv",
+    "application/json",
+    "application/xml",
+    "text/xml",
   ];
 
-  const isDocumentFile = (file: File) => DOCUMENT_TYPES.includes(file.type) || /\.(pdf|docx|pptx|xlsx|txt|md|html|csv|json|xml)$/i.test(file.name);
+  const isDocumentFile = (file: File) =>
+    DOCUMENT_TYPES.includes(file.type) || /\.(pdf|docx|pptx|xlsx|txt|md|html|csv|json|xml)$/i.test(file.name);
 
   // File input
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -601,9 +641,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     }
 
     // Warn about unsupported files
-    const unsupported = files.filter(f => !f.type.startsWith("image/") && !isDocumentFile(f));
+    const unsupported = files.filter((f) => !f.type.startsWith("image/") && !isDocumentFile(f));
     if (unsupported.length > 0) {
-      toast({ title: "Unsupported file type", description: `${unsupported[0].name} is not supported. Try PDF, DOCX, PPTX, XLSX, TXT, CSV, JSON, or images.`, variant: "destructive" });
+      toast({
+        title: "Unsupported file type",
+        description: `${unsupported[0].name} is not supported. Try PDF, DOCX, PPTX, XLSX, TXT, CSV, JSON, or images.`,
+        variant: "destructive",
+      });
     }
   };
   // Keep old name for backward compat with imperative handle
@@ -669,94 +713,111 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
   }, []);
 
   /* ---------- Handle edited message resend ---------- */
-  const handleEditedMessage = useCallback(async (newContent: string, editedMessageId: string) => {
-    if (!newContent.trim()) return;
-    // If loading, queue the edited message instead of blocking
-    if (isLoading) {
-      useMessageQueueStore.getState().addToQueue(newContent.trim());
-      return;
-    }
-
-    setLoading(true);
-    let didSearchChats = false;
-
-    try {
-      const ai = new AIService();
-      // Get all messages up to the edited one, replace its content, and send to AI
-      const messageIndex = messages.findIndex((m) => m.id === editedMessageId);
-      if (messageIndex === -1) {
-        setLoading(false);
+  const handleEditedMessage = useCallback(
+    async (newContent: string, editedMessageId: string) => {
+      if (!newContent.trim()) return;
+      // If loading, queue the edited message instead of blocking
+      if (isLoading) {
+        useMessageQueueStore.getState().addToQueue(newContent.trim());
         return;
       }
 
-      // Remove all messages after the edited one
-      const messagesToKeep = messages.slice(0, messageIndex + 1);
-      
-      // Build conversation history for AI
-      const aiMessages = messagesToKeep
-        .filter((m) => m.type === "text")
-        .map((m) => ({
-          role: m.role,
-          content: m.id === editedMessageId ? newContent : m.content,
-        }));
+      setLoading(true);
+      let didSearchChats = false;
 
-      let didSearchWeb = false;
-      const { currentSessionId } = useArcStore.getState();
-      const result = await ai.sendMessage(aiMessages, undefined, (tools) => {
-        console.log('🔧 Tools used:', tools);
-        
-        // Set indicators when we detect tool usage
-        if (tools.includes('search_past_chats')) {
-          console.log('✅ Setting searchingChats indicator');
-          setSearchingChats(true);
-          didSearchChats = true;
+      try {
+        const ai = new AIService();
+        // Get all messages up to the edited one, replace its content, and send to AI
+        const messageIndex = messages.findIndex((m) => m.id === editedMessageId);
+        if (messageIndex === -1) {
+          setLoading(false);
+          return;
         }
-        if (tools.includes('web_search')) {
-          setSearchingWeb(true);
-          didSearchWeb = true;
+
+        // Remove all messages after the edited one
+        const messagesToKeep = messages.slice(0, messageIndex + 1);
+
+        // Build conversation history for AI
+        const aiMessages = messagesToKeep
+          .filter((m) => m.type === "text")
+          .map((m) => ({
+            role: m.role,
+            content: m.id === editedMessageId ? newContent : m.content,
+          }));
+
+        let didSearchWeb = false;
+        const { currentSessionId } = useArcStore.getState();
+        const result = await ai.sendMessage(
+          aiMessages,
+          undefined,
+          (tools) => {
+            console.log("🔧 Tools used:", tools);
+
+            // Set indicators when we detect tool usage
+            if (tools.includes("search_past_chats")) {
+              console.log("✅ Setting searchingChats indicator");
+              setSearchingChats(true);
+              didSearchChats = true;
+            }
+            if (tools.includes("web_search")) {
+              setSearchingWeb(true);
+              didSearchWeb = true;
+            }
+          },
+          currentSessionId || undefined,
+        );
+
+        // Clear the loading state
+        setLoading(false);
+
+        // Keep tool indicators visible for 2 seconds so user sees them
+        setTimeout(() => {
+          setSearchingChats(false);
+          setAccessingMemory(false);
+          setSearchingWeb(false);
+        }, 2000);
+
+        // Determine memory action based on what tools were used
+        let memoryAction: any = undefined;
+        if (didSearchWeb && result.webSources && result.webSources.length > 0) {
+          memoryAction = {
+            type: "web_searched" as const,
+            sources: result.webSources,
+            query: newContent,
+            searchProvider: result.searchProvider,
+          };
+        } else if (didSearchChats) {
+          memoryAction = { type: "chats_searched" as const };
         }
-      }, currentSessionId || undefined);
-      
-      // Clear the loading state
-      setLoading(false);
-      
-      // Keep tool indicators visible for 2 seconds so user sees them
-      setTimeout(() => {
+
+        await addMessage({
+          content: result.content,
+          role: "assistant",
+          type: "text",
+          memoryAction,
+          sourceModel: didSearchWeb
+            ? result.searchProvider === "tavily"
+              ? "cloud-search-tavily"
+              : "cloud-search"
+            : "cloud-chat",
+        });
+      } catch (err: any) {
+        console.error("Chat error:", err);
+        setLoading(false);
         setSearchingChats(false);
         setAccessingMemory(false);
-        setSearchingWeb(false);
-      }, 2000);
-      
-      // Determine memory action based on what tools were used
-      let memoryAction: any = undefined;
-      if (didSearchWeb && result.webSources && result.webSources.length > 0) {
-        memoryAction = { type: 'web_searched' as const, sources: result.webSources, query: newContent, searchProvider: result.searchProvider };
-      } else if (didSearchChats) {
-        memoryAction = { type: 'chats_searched' as const };
-      }
 
-      await addMessage({
-        content: result.content,
-        role: "assistant",
-        type: "text",
-        memoryAction,
-        sourceModel: didSearchWeb ? (result.searchProvider === 'tavily' ? 'cloud-search-tavily' : 'cloud-search') : 'cloud-chat',
-      });
-    } catch (err: any) {
-      console.error('Chat error:', err);
-      setLoading(false);
-      setSearchingChats(false);
-      setAccessingMemory(false);
-      
-      toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
-      await addMessage({
-        content: "Sorry, I encountered an error. Please try again.",
-        role: "assistant",
-        type: "text",
-        sourceModel: 'cloud-chat',
-      });
-    }
-  }, [messages, isLoading, setLoading, addMessage, toast, setSearchingChats, setAccessingMemory]);
+        toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
+        await addMessage({
+          content: "Sorry, I encountered an error. Please try again.",
+          role: "assistant",
+          type: "text",
+          sourceModel: "cloud-chat",
+        });
+      }
+    },
+    [messages, isLoading, setLoading, addMessage, toast, setSearchingChats, setAccessingMemory],
+  );
 
   /* ---------- Quick prompt / edit event hooks ---------- */
   useEffect(() => {
@@ -776,9 +837,23 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       } catch {}
     };
     const editHandler = (ev: Event) => {
-      const e = ev as CustomEvent<{ content: string; baseImageUrl: string | string[]; additionalImages?: string[]; editInstruction: string; imageModel?: string; aspectRatio?: string }>;
+      const e = ev as CustomEvent<{
+        content: string;
+        baseImageUrl: string | string[];
+        additionalImages?: string[];
+        editInstruction: string;
+        imageModel?: string;
+        aspectRatio?: string;
+      }>;
       if (!e?.detail) return;
-      handleExternalImageEditRef.current(e.detail.content, e.detail.baseImageUrl, e.detail.editInstruction, e.detail.imageModel, e.detail.additionalImages, e.detail.aspectRatio);
+      handleExternalImageEditRef.current(
+        e.detail.content,
+        e.detail.baseImageUrl,
+        e.detail.editInstruction,
+        e.detail.imageModel,
+        e.detail.additionalImages,
+        e.detail.aspectRatio,
+      );
     };
     const editedMessageHandler = (ev: Event) => {
       const e = ev as CustomEvent<{ content: string; editedMessageId: string }>;
@@ -814,9 +889,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
       // Merge base images with additional images
       const baseUrls = Array.isArray(baseImageUrl) ? baseImageUrl : [baseImageUrl];
-      const allImageUrls = additionalImages && additionalImages.length > 0
-        ? [...baseUrls, ...additionalImages]
-        : baseUrls;
+      const allImageUrls =
+        additionalImages && additionalImages.length > 0 ? [...baseUrls, ...additionalImages] : baseUrls;
 
       await addMessage({
         content: userMessage || editInstruction || "Edit request",
@@ -862,7 +936,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         imageUrl: finalUrl,
       });
     } catch (err: any) {
-      const errMsg = err?.message || 'Image editing failed. Please try again.';
+      const errMsg = err?.message || "Image editing failed. Please try again.";
       await replaceLastMessage({
         content: errMsg,
         role: "assistant",
@@ -875,7 +949,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
   // Keep ref in sync so event listeners always call the latest version
   handleExternalImageEditRef.current = handleExternalImageEdit;
-
 
   const handleSend = async (messageOverride?: string) => {
     const messageToSend = messageOverride ?? inputValue;
@@ -895,22 +968,22 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
     // Guest mode: check if limit reached
     if (isGuestMode) {
-      const guestCount = parseInt(localStorage.getItem('arcai-guest-messages') || '0', 10);
+      const guestCount = parseInt(localStorage.getItem("arcai-guest-messages") || "0", 10);
       if (guestCount >= 15) {
         // Dispatch event to show signup prompt
-        window.dispatchEvent(new CustomEvent('arcai:guestMessageSent'));
+        window.dispatchEvent(new CustomEvent("arcai:guestMessageSent"));
         return;
-    }
+      }
 
-    // Authenticated user: check daily message limit
-    if (user && !subscription.canSendMessage) {
-      toast({
-        title: "Daily message limit reached",
-        description: "Upgrade to ArcAi Pro for unlimited messages.",
-        variant: "destructive",
-      });
-      return;
-    }
+      // Authenticated user: check daily message limit
+      if (user && !subscription.canSendMessage) {
+        toast({
+          title: "Daily message limit reached",
+          description: "Upgrade to ArcAi Pro for unlimited messages.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     const userMessage = messageToSend.trim();
@@ -936,7 +1009,15 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     // === CORPORATE MODE: hard-strip every cloud tool from this turn ===
     const corporateMode = useCorporateModeStore.getState().enabled;
     if (corporateMode) {
-      if (images.length || documents.length || wasCanvasMode || wasCodingMode || wasImageMode || wasSearchMode || wasBuildMode) {
+      if (
+        images.length ||
+        documents.length ||
+        wasCanvasMode ||
+        wasCodingMode ||
+        wasImageMode ||
+        wasSearchMode ||
+        wasBuildMode
+      ) {
         toast({
           title: "Corporate Mode is on",
           description: "Tools and attachments are disabled. Sending as plain on-device chat.",
@@ -955,12 +1036,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
     if (wasBuildMode) {
       const buildPrompt = extractPrefixPrompt(userMessage);
       // Navigate to App Builder — the prompt will be handled there
-      navigate(buildPrompt ? `/apps?prompt=${encodeURIComponent(buildPrompt)}` : '/apps');
+      navigate(buildPrompt ? `/apps?prompt=${encodeURIComponent(buildPrompt)}` : "/apps");
       return;
     }
 
-    // Search mode (/search) - now does a regular web search in chat (NOT Research Mode)
-    // Research Mode is opened separately via the button
+    // Search mode (/search) - now does a regular web search in chat (NOT Deep Search Mode)
+    // Deep Search Mode is opened separately via the button
     // We set forceWebSearch flag so the chat API always does a web search
 
     // Reset cancellation flag
@@ -969,7 +1050,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
     // Track message usage
     if (isGuestMode) {
-      window.dispatchEvent(new CustomEvent('arcai:guestMessageSent'));
+      window.dispatchEvent(new CustomEvent("arcai:guestMessageSent"));
     } else if (user) {
       subscription.recordMessage();
     }
@@ -978,13 +1059,17 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       const ai = new AIService();
 
       // Guest mode restrictions: only basic text chat
-      if (isGuestMode && (images.length > 0 || documents.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode)) {
+      if (
+        isGuestMode &&
+        (images.length > 0 || documents.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode)
+      ) {
         await addMessage({ content: userMessage || "Sent message", role: "user", type: "text" });
         await addMessage({
-          content: "✨ Image generation, canvas, code, and document analysis features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
+          content:
+            "✨ Image generation, canvas, code, and document analysis features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
           role: "assistant",
           type: "text",
-          sourceModel: 'cloud-chat',
+          sourceModel: "cloud-chat",
         });
         setLoading(false);
         return;
@@ -993,7 +1078,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       // With Documents -> analyze
       if (documents.length > 0) {
         await addMessage({
-          content: userMessage || `Analyzing ${documents.length} document${documents.length > 1 ? 's' : ''}: ${documents.map(d => d.name).join(', ')}`,
+          content:
+            userMessage ||
+            `Analyzing ${documents.length} document${documents.length > 1 ? "s" : ""}: ${documents.map((d) => d.name).join(", ")}`,
           role: "user",
           type: "text",
         });
@@ -1012,9 +1099,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               [{ role: "user", content: analysisPrompt }],
               fileData,
               doc.name,
-              doc.type || 'application/octet-stream'
+              doc.type || "application/octet-stream",
             );
-            await addMessage({ content: response, role: "assistant", type: "text", sourceModel: 'cloud-document' });
+            await addMessage({ content: response, role: "assistant", type: "text", sourceModel: "cloud-document" });
           }
         } catch (err: any) {
           toast({ title: "Error", description: err?.message || "Failed to analyze document", variant: "destructive" });
@@ -1022,7 +1109,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             content: "Sorry, I couldn't analyze the document. Please try again.",
             role: "assistant",
             type: "text",
-            sourceModel: 'cloud-document',
+            sourceModel: "cloud-document",
           });
         }
         return;
@@ -1062,7 +1149,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             role: "assistant",
             type: "image-generating",
             imagePrompt: userMessage,
-            sourceModel: 'cloud-image-edit',
+            sourceModel: "cloud-image-edit",
           });
           setGeneratingImage(true);
 
@@ -1092,15 +1179,15 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               role: "assistant",
               type: "image",
               imageUrl: finalUrl,
-              sourceModel: 'cloud-image-edit',
+              sourceModel: "cloud-image-edit",
             });
           } catch (err: any) {
-            const errMsg = err?.message || 'Image editing failed. Please try again.';
+            const errMsg = err?.message || "Image editing failed. Please try again.";
             await replaceLastMessage({
               content: errMsg,
               role: "assistant",
               type: "text",
-              sourceModel: 'cloud-image-edit',
+              sourceModel: "cloud-image-edit",
             });
           } finally {
             setGeneratingImage(false);
@@ -1128,19 +1215,22 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
                 }),
             ),
           );
-          const isSvgRequest = /\bsvg\b|as\s+svg|to\s+svg|make.{0,20}svg|svg.{0,20}version|convert.{0,20}svg|vector\s+graphic/i.test(userMessage);
+          const isSvgRequest =
+            /\bsvg\b|as\s+svg|to\s+svg|make.{0,20}svg|svg.{0,20}version|convert.{0,20}svg|vector\s+graphic/i.test(
+              userMessage,
+            );
           const analysisPrompt = isSvgRequest
             ? `You are an SVG artist. Carefully analyze this image and recreate it as a complete, valid SVG. Use shapes (rect, circle, ellipse, path, polygon), gradients, and accurate colors to faithfully represent the image. Set a viewBox and width/height attributes. Output ONLY the SVG markup inside a single \`\`\`svg code block with absolutely no other text, explanation, or commentary outside the code block.`
-            : (userMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`);
+            : userMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
           const response = await ai.sendMessageWithImage([{ role: "user", content: analysisPrompt }], base64s);
-          await addMessage({ content: response, role: "assistant", type: "text", sourceModel: 'cloud-vision' });
+          await addMessage({ content: response, role: "assistant", type: "text", sourceModel: "cloud-vision" });
         } catch {
           toast({ title: "Error", description: "Failed to analyze images", variant: "destructive" });
           await addMessage({
             content: "Sorry, I couldn't analyze these images. Please try again.",
             role: "assistant",
             type: "text",
-            sourceModel: 'cloud-vision',
+            sourceModel: "cloud-vision",
           });
         }
         return;
@@ -1159,7 +1249,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
           role: "assistant",
           type: "image-generating",
           imagePrompt,
-          sourceModel: 'cloud-image',
+          sourceModel: "cloud-image",
         });
         setGeneratingImage(true);
 
@@ -1190,15 +1280,15 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             role: "assistant",
             type: "image",
             imageUrl: finalUrl,
-            sourceModel: 'cloud-image',
+            sourceModel: "cloud-image",
           });
         } catch (err: any) {
-          const errMsg = err?.message || 'Image generation failed. Please try again.';
+          const errMsg = err?.message || "Image generation failed. Please try again.";
           await replaceLastMessage({
             content: errMsg,
             role: "assistant",
             type: "text",
-            sourceModel: 'cloud-image',
+            sourceModel: "cloud-image",
           });
         } finally {
           setGeneratingImage(false);
@@ -1210,7 +1300,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
       // and the user's message looks like an edit directive, route to image edit
       if (!wasCanvasMode && !wasCodingMode && !wasSearchMode) {
         const lastMsg = messages[messages.length - 1];
-        if (lastMsg?.role === 'assistant' && lastMsg.type === 'image' && lastMsg.imageUrl && isImageEditRequest(userMessage)) {
+        if (
+          lastMsg?.role === "assistant" &&
+          lastMsg.type === "image" &&
+          lastMsg.imageUrl &&
+          isImageEditRequest(userMessage)
+        ) {
           // Route as image edit against the last generated/edited image
           await addMessage({ content: userMessage, role: "user", type: "text" });
           await addMessage({
@@ -1218,7 +1313,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             role: "assistant",
             type: "image-generating",
             imagePrompt: userMessage,
-            sourceModel: 'cloud-image-edit',
+            sourceModel: "cloud-image-edit",
           });
           setGeneratingImage(true);
 
@@ -1228,7 +1323,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
             try {
               const resp = await fetch(editedUrl);
               const blob = await resp.blob();
-              const { data: { user } } = await supabase.auth.getUser();
+              const {
+                data: { user },
+              } = await supabase.auth.getUser();
               if (user) {
                 const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
                 const { error } = await supabase.storage.from("avatars").upload(name, blob, {
@@ -1246,15 +1343,15 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
               role: "assistant",
               type: "image",
               imageUrl: finalUrl,
-              sourceModel: 'cloud-image-edit',
+              sourceModel: "cloud-image-edit",
             });
           } catch (err: any) {
-            const errMsg = err?.message || 'Image editing failed. Please try again.';
+            const errMsg = err?.message || "Image editing failed. Please try again.";
             await replaceLastMessage({
               content: errMsg,
               role: "assistant",
               type: "text",
-              sourceModel: 'cloud-image-edit',
+              sourceModel: "cloud-image-edit",
             });
           } finally {
             setGeneratingImage(false);
@@ -1265,12 +1362,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
 
       // Plain text - Show message IMMEDIATELY, then do memory detection in background
       let didSearchChats = false;
-      
+
       // Add user message RIGHT AWAY for instant feedback
-      const userMessageId = await addMessage({ 
-        content: userMessage, 
-        role: "user", 
-        type: "text"
+      const userMessageId = await addMessage({
+        content: userMessage,
+        role: "user",
+        type: "text",
       });
 
       // Memory detection is now handled server-side via the AI's save_memory tool
@@ -1292,34 +1389,34 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         // is clearly conversational (e.g. "nice!", "thanks", "how does this work?")
         const shouldRouteToCanvas =
           wasCanvasMode ||
-          (canvasState.isOpen && canvasState.canvasType === 'writing' && !isConversationalMessage(userMessage));
+          (canvasState.isOpen && canvasState.canvasType === "writing" && !isConversationalMessage(userMessage));
 
         // Check if code canvas is open and user is asking to edit it.
         // Also auto-open the canvas from the last code message in chat if it isn't open yet,
         // so follow-up messages work without requiring the user to click the code card first.
-        let isCodeCanvasOpen = canvasState.isOpen && canvasState.canvasType === 'code';
+        let isCodeCanvasOpen = canvasState.isOpen && canvasState.canvasType === "code";
         if (!isCodeCanvasOpen && looksLikeCodeEditRequest(userMessage)) {
           const recentMsgs = useArcStore.getState().messages;
           // First: look for a dedicated code tile message (type === 'code')
-          const lastCodeMsg = [...recentMsgs].reverse().find(m => (m as any).type === 'code');
+          const lastCodeMsg = [...recentMsgs].reverse().find((m) => (m as any).type === "code");
           if (lastCodeMsg) {
-            const codeContent = (lastCodeMsg as any).codeContent || '';
-            const codeLang = (lastCodeMsg as any).codeLanguage || 'html';
-            useCanvasStore.getState().openWithContent(codeContent, 'code', codeLang);
+            const codeContent = (lastCodeMsg as any).codeContent || "";
+            const codeLang = (lastCodeMsg as any).codeLanguage || "html";
+            useCanvasStore.getState().openWithContent(codeContent, "code", codeLang);
             isCodeCanvasOpen = true;
           } else {
             // Fallback: scan recent assistant text messages for fenced code blocks
             const recentTextMsgs = [...recentMsgs]
               .reverse()
-              .filter(m => m.role === 'assistant' && (m as any).type === 'text')
+              .filter((m) => m.role === "assistant" && (m as any).type === "text")
               .slice(0, 5);
             for (const msg of recentTextMsgs) {
               const match = msg.content.match(/```(\w+)?\n([\s\S]+?)```/);
               if (match) {
-                const codeLang = match[1] || 'html';
-                const codeContent = match[2] || '';
+                const codeLang = match[1] || "html";
+                const codeContent = match[2] || "";
                 if (codeContent.trim().length > 50) {
-                  useCanvasStore.getState().openWithContent(codeContent, 'code', codeLang);
+                  useCanvasStore.getState().openWithContent(codeContent, "code", codeLang);
                   isCodeCanvasOpen = true;
                   break;
                 }
@@ -1341,11 +1438,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         const truncateForContext = (content: string, budget: number = MAX_CONTEXT_CHARS): string => {
           if (content.length <= budget) return content;
           const keepEach = Math.floor(budget / 2) - 50;
-          const lines = content.split('\n');
+          const lines = content.split("\n");
           const totalLines = lines.length;
-          return content.slice(0, keepEach)
-            + `\n\n/* ... [${totalLines} lines total, middle truncated to fit message limit] ... */\n\n`
-            + content.slice(-keepEach);
+          return (
+            content.slice(0, keepEach) +
+            `\n\n/* ... [${totalLines} lines total, middle truncated to fit message limit] ... */\n\n` +
+            content.slice(-keepEach)
+          );
         };
 
         let messageToSend: string;
@@ -1353,12 +1452,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput({ on
         if (shouldRouteToCodeCanvas && freshCanvasState.content) {
           // Code canvas is open and user wants to modify existing code
           const existingCode = freshCanvasState.content;
-          const language = freshCanvasState.codeLanguage || 'html';
+          const language = freshCanvasState.codeLanguage || "html";
           const userReq = cleanedMessage || userMessage;
           // Budget: 15000 total - instructions (~500) - user request - safety margin
           const codeBudget = Math.max(4000, 14000 - userReq.length - 500);
           const safeCode = truncateForContext(existingCode, codeBudget);
-          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CODE: The user has existing ${language} code (${existingCode.split('\n').length} lines). Modify it based on their request using the update_code tool. You MUST output the COMPLETE, FULL modified code - do NOT truncate, summarize, or cut off mid-way. Write EVERY line.
+          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CODE: The user has existing ${language} code (${existingCode.split("\n").length} lines). Modify it based on their request using the update_code tool. You MUST output the COMPLETE, FULL modified code - do NOT truncate, summarize, or cut off mid-way. Write EVERY line.
 
 EXISTING CODE TO MODIFY:
 \`\`\`${language}
@@ -1391,15 +1490,15 @@ MANDATORY: Output the COMPLETE updated content. Never stop mid-sentence or mid-p
           // Code canvas is open and user isn't explicitly asking to edit, but also not conversational
           // Only provide code context for messages that might be related to the code
           const existingCode = freshCanvasState.content;
-          const language = freshCanvasState.codeLanguage || 'html';
+          const language = freshCanvasState.codeLanguage || "html";
           const userReq = cleanedMessage || userMessage;
           const contextBudget = Math.max(4000, 14000 - userReq.length - 500);
           const safeCode = truncateForContext(existingCode, contextBudget);
           messageToSend = `${userReq}
 
-[CONTEXT: The user has a Code Canvas open with ${language} code (${existingCode.split('\n').length} lines). ONLY modify this code if the user is explicitly asking for changes. For casual conversation like "great!", "looks good", questions about how something works, etc. - just respond conversationally WITHOUT updating the code.]
+[CONTEXT: The user has a Code Canvas open with ${language} code (${existingCode.split("\n").length} lines). ONLY modify this code if the user is explicitly asking for changes. For casual conversation like "great!", "looks good", questions about how something works, etc. - just respond conversationally WITHOUT updating the code.]
 
-Current code (${existingCode.split('\n').length} lines):
+Current code (${existingCode.split("\n").length} lines):
 \`\`\`${language}
 ${safeCode}
 \`\`\``;
@@ -1410,12 +1509,11 @@ ${safeCode}
 
         aiMessages.push({ role: "user", content: messageToSend });
 
-        
         // Check if cancelled before making the call
         if (cancelRequested) {
           return;
         }
-        
+
         let didSearchWeb = false;
         const { currentSessionId } = useArcStore.getState();
 
@@ -1424,26 +1522,26 @@ ${safeCode}
         const shouldForceCode = isCodingRequest || shouldRouteToCodeCanvas;
         const shouldForceCanvas = shouldRouteToCanvas && !shouldForceCode;
 
-        console.log('🎯 Canvas/Code mode detection:', {
+        console.log("🎯 Canvas/Code mode detection:", {
           isCodingRequest,
           shouldRouteToCodeCanvas,
           shouldRouteToCanvas,
           shouldForceCode,
           shouldForceCanvas,
-          wasSearchMode
+          wasSearchMode,
         });
 
         // For canvas/code: use streaming with auto-continuation
         // For regular text chat: use non-streaming (handles web search properly)
         if (shouldForceCode || shouldForceCanvas) {
           // STREAMING MODE - for canvas/code generation
-          let streamedContent = '';
-          let streamMode: 'canvas' | 'code' | 'text' = shouldForceCode ? 'code' : 'canvas';
-          
+          let streamedContent = "";
+          let streamMode: "canvas" | "code" | "text" = shouldForceCode ? "code" : "canvas";
+
           // Create AbortController for this request
           currentAbortController = new AbortController();
           const abortSignal = currentAbortController.signal;
-          
+
           await streamWithContinuation({
             messages: aiMessages,
             profile,
@@ -1465,49 +1563,56 @@ ${safeCode}
               if (cancelRequested || abortSignal.aborted) return; // Stop accumulating if cancelled
               streamedContent += delta;
             },
-            
+
             // onContinuing - show toast when auto-continuation kicks in
             onContinuing: () => {
-              toast({ 
-                title: "Continuing generation...", 
+              toast({
+                title: "Continuing generation...",
                 description: "Code was incomplete, automatically continuing where it left off.",
-                variant: "default"
+                variant: "default",
               });
             },
-            
+
             // onDone - finalize (result includes wasContinued flag)
             onDone: async (result) => {
               // CRITICAL: If cancelled, do NOT add any messages or open canvas
               if (cancelRequested || abortSignal.aborted) return;
               const streamWebSources = result.webSources || [];
-              
+
               // Determine memory action
               let memoryAction: any = undefined;
               if (streamWebSources.length > 0) {
-                memoryAction = { type: 'web_searched' as const, sources: streamWebSources, query: userMessage, searchProvider: (result as any).searchProvider };
+                memoryAction = {
+                  type: "web_searched" as const,
+                  sources: streamWebSources,
+                  query: userMessage,
+                  searchProvider: (result as any).searchProvider,
+                };
               }
-              
+
               // Get the FULL code - prefer streamedContent, fallback to result.content
-              const finalContent = streamedContent || result.content || '';
-              const lang = result.language || 'html';
+              const finalContent = streamedContent || result.content || "";
+              const lang = result.language || "html";
 
-              console.log(`✅ Code ready: streamed=${streamedContent.length}, result=${(result.content||'').length}, using=${finalContent.length} chars`);
+              console.log(
+                `✅ Code ready: streamed=${streamedContent.length}, result=${(result.content || "").length}, using=${finalContent.length} chars`,
+              );
 
-              if (result.mode === 'code') {
+              if (result.mode === "code") {
                 // Save to history FIRST
                 const codeMsgId = await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
                 // Tag the source model on the saved code tile
                 useArcStore.setState((state) => {
-                  const idx = state.messages.findIndex(m => m.id === codeMsgId);
+                  const idx = state.messages.findIndex((m) => m.id === codeMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: 'cloud-code' } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code" } as any;
                   return { messages: updated } as any;
                 });
 
                 // Read content back from saved message (same source as tile click)
                 const messages = useArcStore.getState().messages;
-                const lastCodeMsg = [...messages].reverse().find(m => m.type === 'code');
+                const lastCodeMsg = [...messages].reverse().find((m) => m.type === "code");
                 const verifiedContent = (lastCodeMsg as any)?.codeContent || finalContent;
                 const verifiedLang = (lastCodeMsg as any)?.codeLanguage || lang;
 
@@ -1515,58 +1620,58 @@ ${safeCode}
 
                 // Open canvas with verified content from saved message
                 const { openWithContent } = useCanvasStore.getState();
-                openWithContent(verifiedContent, 'code', verifiedLang);
+                openWithContent(verifiedContent, "code", verifiedLang);
 
                 if (result.wasContinued) {
                   toast({
                     title: "Code generation complete!",
                     description: "Successfully continued and finished the code.",
-                    variant: "default"
+                    variant: "default",
                   });
                 }
-              } else if (result.mode === 'canvas') {
+              } else if (result.mode === "canvas") {
                 // Save to history FIRST
                 const canvasMsgId = await upsertCanvasMessage(finalContent, result.label, memoryAction);
                 useArcStore.setState((state) => {
-                  const idx = state.messages.findIndex(m => m.id === canvasMsgId);
+                  const idx = state.messages.findIndex((m) => m.id === canvasMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: 'cloud-canvas' } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas" } as any;
                   return { messages: updated } as any;
                 });
 
                 // Read content back from saved message
                 const messages = useArcStore.getState().messages;
-                const lastCanvasMsg = [...messages].reverse().find(m => m.type === 'canvas');
+                const lastCanvasMsg = [...messages].reverse().find((m) => m.type === "canvas");
                 const verifiedContent = (lastCanvasMsg as any)?.canvasContent || finalContent;
 
                 // Open canvas with verified content
                 const { openWithContent } = useCanvasStore.getState();
-                openWithContent(verifiedContent, 'writing');
+                openWithContent(verifiedContent, "writing");
               }
-              
+
               // Persist to session for canvas/code (use streamedContent, not result.content)
               const { currentSessionId, updateSessionCanvasContent } = useArcStore.getState();
               if (currentSessionId) {
                 await updateSessionCanvasContent(currentSessionId, streamedContent || result.content);
               }
             },
-            
+
             // onError - just show toast, canvas isn't open yet
             onError: (errorMsg) => {
               if (!abortSignal.aborted) {
                 toast({ title: "Error", description: errorMsg, variant: "destructive" });
               }
-            }
+            },
           });
-          
+
           // Clean up abort controller
           currentAbortController = null;
         } else {
           // NON-STREAMING MODE - for regular text chat (handles web search properly)
           // The ThinkingIndicator component will show while isLoading is true
           // We don't add a placeholder message - the thinking indicator handles UI
-          
+
           try {
             // SMART ROUTING: decide if this can run on local Gemma
             const route = routeRequest({
@@ -1577,7 +1682,7 @@ ${safeCode}
               isImageGenerationRequest: false,
             });
 
-            if (route === 'local') {
+            if (route === "local") {
               // === LOCAL ON-DEVICE PATH ===
               try {
                 const localSystem = await buildLocalSystemPrompt(profile as any);
@@ -1585,7 +1690,7 @@ ${safeCode}
                 // Cap history: last 8 string-only messages. Local model can't
                 // see images, so drop array-content messages entirely.
                 const localHistory = aiMessages
-                  .filter((m: any) => typeof m.content === 'string' && m.content.trim())
+                  .filter((m: any) => typeof m.content === "string" && m.content.trim())
                   .slice(-8)
                   .map((m: any) => ({ role: m.role, content: m.content as string }));
 
@@ -1597,10 +1702,10 @@ ${safeCode}
                 const ensurePlaceholder = async () => {
                   if (placeholderId) return placeholderId;
                   placeholderId = await addMessage({
-                    content: '',
-                    role: 'assistant',
-                    type: 'text',
-                    sourceModel: 'local',
+                    content: "",
+                    role: "assistant",
+                    type: "text",
+                    sourceModel: "local",
                   });
                   // First token = thinking is over; clear the loader.
                   setLoading(false);
@@ -1610,51 +1715,58 @@ ${safeCode}
                 // Conversation we feed the local model. We may run multiple
                 // turns: model emits a <recall>/<remember> tag → we execute
                 // it → we append the result and let the model continue.
-                const conversation: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-                  { role: 'system', content: localSystem },
+                const conversation: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+                  { role: "system", content: localSystem },
                   ...localHistory,
                 ];
 
-                let displayed = '';
-                let pendingMemoryAction: { type: 'memory_saved' | 'memory_accessed' | 'chats_searched'; content?: string; query?: string } | null = null;
+                let displayed = "";
+                let pendingMemoryAction: {
+                  type: "memory_saved" | "memory_accessed" | "chats_searched";
+                  content?: string;
+                  query?: string;
+                } | null = null;
                 const MAX_TOOL_TURNS = 3;
 
                 for (let turn = 0; turn < MAX_TOOL_TURNS + 1; turn++) {
                   if (cancelRequested || currentAbortController?.signal.aborted) break;
 
-                  let streamed = '';
-                  let pending = '';
+                  let streamed = "";
+                  let pending = "";
                   let rafScheduled = false;
 
                   const flush = async () => {
                     rafScheduled = false;
                     if (!pending) return;
                     const visible = hasPartialOpenTag(streamed)
-                      ? stripToolTags(streamed.slice(0, streamed.lastIndexOf('<')))
+                      ? stripToolTags(streamed.slice(0, streamed.lastIndexOf("<")))
                       : stripToolTags(streamed);
-                    const next = (displayed + (visible ? (displayed ? ' ' : '') + visible : '')).trim();
-                    if (!next) { pending = ''; return; }
+                    const next = (displayed + (visible ? (displayed ? " " : "") + visible : "")).trim();
+                    if (!next) {
+                      pending = "";
+                      return;
+                    }
                     const id = await ensurePlaceholder();
                     useArcStore.setState((state) => {
-                      const idx = state.messages.findIndex(m => m.id === id);
+                      const idx = state.messages.findIndex((m) => m.id === id);
                       if (idx === -1) return state;
                       const updated = [...state.messages];
                       updated[idx] = { ...updated[idx], content: next };
                       return { messages: updated } as any;
                     });
-                    pending = '';
+                    pending = "";
                   };
 
                   const localAbort = new AbortController();
                   if (currentAbortController) {
-                    currentAbortController.signal.addEventListener('abort', () => localAbort.abort(), { once: true });
+                    currentAbortController.signal.addEventListener("abort", () => localAbort.abort(), { once: true });
                   }
 
                   // Hard per-turn timeout — local model should never hang the UI.
                   // 90s is generous for a slow first-token on a cold engine.
                   const TURN_TIMEOUT_MS = 90_000;
                   const turnTimeout = setTimeout(() => {
-                    console.warn('[Arc Local] turn timed out, aborting stream');
+                    console.warn("[Arc Local] turn timed out, aborting stream");
                     localAbort.abort();
                   }, TURN_TIMEOUT_MS);
 
@@ -1666,7 +1778,9 @@ ${safeCode}
                         pending += delta;
                         if (!rafScheduled) {
                           rafScheduled = true;
-                          requestAnimationFrame(() => { flush(); });
+                          requestAnimationFrame(() => {
+                            flush();
+                          });
                         }
                         // If a complete tag has arrived, stop this turn early.
                         if (turn < MAX_TOOL_TURNS && findFirstToolCall(streamed)) {
@@ -1674,7 +1788,7 @@ ${safeCode}
                         }
                       },
                       localAbort.signal,
-                      () => {}
+                      () => {},
                     );
                   } finally {
                     clearTimeout(turnTimeout);
@@ -1683,7 +1797,7 @@ ${safeCode}
                   // Final flush of this turn's visible content.
                   const visibleNow = stripToolTags(streamed).trim();
                   if (visibleNow) {
-                    displayed = (displayed ? displayed + ' ' : '') + visibleNow;
+                    displayed = (displayed ? displayed + " " : "") + visibleNow;
                     displayed = displayed.trim();
                   }
 
@@ -1692,33 +1806,33 @@ ${safeCode}
                   if (!call) break;
 
                   // Show the right thinking indicator while we run the tool.
-                  if (call.tool === 'recall') {
+                  if (call.tool === "recall") {
                     setSearchingChats(true);
                     setLoading(true);
-                  } else if (call.tool === 'remember') {
+                  } else if (call.tool === "remember") {
                     setAccessingMemory(true);
                     setLoading(true);
                   }
 
-                  conversation.push({ role: 'assistant', content: streamed });
-                  let result = '';
+                  conversation.push({ role: "assistant", content: streamed });
+                  let result = "";
                   try {
                     result = await executeLocalToolCall(call);
                   } catch (e: any) {
-                    result = `Tool error: ${e?.message || 'unknown'}`;
+                    result = `Tool error: ${e?.message || "unknown"}`;
                   }
 
                   // Record the memory action for the bubble pill.
-                  if (call.tool === 'recall') {
-                    pendingMemoryAction = { type: 'chats_searched', query: call.arg, content: result };
+                  if (call.tool === "recall") {
+                    pendingMemoryAction = { type: "chats_searched", query: call.arg, content: result };
                     setSearchingChats(false);
-                  } else if (call.tool === 'remember') {
-                    pendingMemoryAction = { type: 'memory_saved', content: call.arg };
+                  } else if (call.tool === "remember") {
+                    pendingMemoryAction = { type: "memory_saved", content: call.arg };
                     setAccessingMemory(false);
                   }
 
                   conversation.push({
-                    role: 'user',
+                    role: "user",
                     content: `<tool_result tool="${call.tool}">${result}</tool_result>\n\nContinue your reply to the user using this result. Do NOT emit another <${call.tool}> tag for the same query.`,
                   });
                 }
@@ -1735,10 +1849,10 @@ ${safeCode}
                 // Re-apply sourceModel since editMessage doesn't touch it but
                 // also doesn't strip it — defensive set in case of races.
                 useArcStore.setState((state) => {
-                  const idx = state.messages.findIndex(m => m.id === id);
+                  const idx = state.messages.findIndex((m) => m.id === id);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: 'local' } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "local" } as any;
                   return { messages: updated } as any;
                 });
                 setLoading(false);
@@ -1747,21 +1861,27 @@ ${safeCode}
 
                 if (cancelRequested) return;
               } catch (localErr: any) {
-                console.warn('Local model failed, falling back to cloud:', localErr);
-                toast({ title: 'Local model error', description: 'Falling back to cloud.', variant: 'default' });
+                console.warn("Local model failed, falling back to cloud:", localErr);
+                toast({ title: "Local model error", description: "Falling back to cloud.", variant: "default" });
                 // Fall through to cloud path below
                 const ai = new AIService();
                 const result = await ai.sendMessage(
-                  aiMessages, profile, undefined,
+                  aiMessages,
+                  profile,
+                  undefined,
                   currentSessionId || undefined,
-                  false, false, false, false, isGuestMode
+                  false,
+                  false,
+                  false,
+                  false,
+                  isGuestMode,
                 );
                 if (cancelRequested) return;
                 await addMessage({
                   content: result.content,
-                  role: 'assistant',
-                  type: 'text',
-                  sourceModel: 'cloud-chat',
+                  role: "assistant",
+                  type: "text",
+                  sourceModel: "cloud-chat",
                 });
               }
             } else {
@@ -1771,7 +1891,7 @@ ${safeCode}
                 aiMessages,
                 profile,
                 (tools) => {
-                  if (tools.includes('web_search')) {
+                  if (tools.includes("web_search")) {
                     didSearchWeb = true;
                   }
                 },
@@ -1780,46 +1900,57 @@ ${safeCode}
                 false, // forceCanvas
                 false, // forceCode
                 false, // forceResearch
-                isGuestMode // guestMode
+                isGuestMode, // guestMode
               );
-              
+
               // CRITICAL: If cancelled while waiting for response, discard everything
               if (cancelRequested) return;
-              
+
               // Determine memory action
               let memoryAction: any = undefined;
               if (result.memorySaved) {
-                memoryAction = { type: 'context_saved' as const, content: result.memorySaved.content };
-                window.dispatchEvent(new CustomEvent('context-blocks-updated'));
+                memoryAction = { type: "context_saved" as const, content: result.memorySaved.content };
+                window.dispatchEvent(new CustomEvent("context-blocks-updated"));
               } else if (result.webSources && result.webSources.length > 0) {
-                memoryAction = { type: 'web_searched' as const, sources: result.webSources, query: userMessage, searchProvider: result.searchProvider };
+                memoryAction = {
+                  type: "web_searched" as const,
+                  sources: result.webSources,
+                  query: userMessage,
+                  searchProvider: result.searchProvider,
+                };
               }
-              
+
               // Add the complete response with source tag
               await addMessage({
                 content: result.content,
-                role: 'assistant',
-                type: 'text',
+                role: "assistant",
+                type: "text",
                 memoryAction,
                 weatherData: result.weatherData,
                 scheduledTask: result.scheduledTask,
                 notificationDispatch: result.notificationDispatch,
                 locationUsed: result.locationUsed,
                 sourceModel: didSearchWeb
-                  ? (result.searchProvider === 'tavily' ? 'cloud-search-tavily' : 'cloud-search')
-                  : 'cloud-chat',
+                  ? result.searchProvider === "tavily"
+                    ? "cloud-search-tavily"
+                    : "cloud-search"
+                  : "cloud-chat",
               });
-              
+
               // Handle canvas/code updates if the AI decided to use those tools
               if (result.codeUpdate) {
                 const { openCodeCanvas } = useCanvasStore.getState();
-                openCodeCanvas(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
-                const codeMsgId = await upsertCodeMessage(result.codeUpdate.code, result.codeUpdate.language || 'html', result.codeUpdate.label);
+                openCodeCanvas(result.codeUpdate.code, result.codeUpdate.language || "html", result.codeUpdate.label);
+                const codeMsgId = await upsertCodeMessage(
+                  result.codeUpdate.code,
+                  result.codeUpdate.language || "html",
+                  result.codeUpdate.label,
+                );
                 useArcStore.setState((state) => {
-                  const idx = state.messages.findIndex(m => m.id === codeMsgId);
+                  const idx = state.messages.findIndex((m) => m.id === codeMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: 'cloud-code' } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code" } as any;
                   return { messages: updated } as any;
                 });
               } else if (result.canvasUpdate) {
@@ -1827,10 +1958,10 @@ ${safeCode}
                 openCanvas(result.canvasUpdate.content);
                 const canvasMsgId = await upsertCanvasMessage(result.canvasUpdate.content, result.canvasUpdate.label);
                 useArcStore.setState((state) => {
-                  const idx = state.messages.findIndex(m => m.id === canvasMsgId);
+                  const idx = state.messages.findIndex((m) => m.id === canvasMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: 'cloud-canvas' } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas" } as any;
                   return { messages: updated } as any;
                 });
               }
@@ -1838,10 +1969,10 @@ ${safeCode}
           } catch (err: any) {
             // On error, add error message
             await addMessage({
-              content: 'Sorry, I encountered an error. Please try again.',
-              role: 'assistant',
-              type: 'text',
-              sourceModel: 'cloud-chat',
+              content: "Sorry, I encountered an error. Please try again.",
+              role: "assistant",
+              type: "text",
+              sourceModel: "cloud-chat",
             });
             throw err; // Re-throw to be caught by outer catch
           }
@@ -1856,7 +1987,7 @@ ${safeCode}
           content: "Sorry, I encountered an error. Please try again.",
           role: "assistant",
           type: "text",
-          sourceModel: 'cloud-chat',
+          sourceModel: "cloud-chat",
         });
       }
     } finally {
@@ -1923,140 +2054,158 @@ ${safeCode}
   return (
     <div className="space-y-2 relative">
       {/* Drag overlay — portaled to body so it escapes any transformed parent */}
-      {portalRoot && createPortal(
-        <AnimatePresence>
-          {isDragOver && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{ position: "fixed", inset: 0, zIndex: 9999 }}
-              className="flex items-center justify-center bg-background/90 backdrop-blur-md"
-            >
+      {portalRoot &&
+        createPortal(
+          <AnimatePresence>
+            {isDragOver && (
               <motion.div
-                initial={{ scale: 0.92, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.92, opacity: 0 }}
-                transition={{ type: "spring", damping: 25, stiffness: 400 }}
-                style={{ position: "absolute", inset: 24 }}
-                className="rounded-3xl border-2 border-dashed border-primary/60 bg-primary/5 flex flex-col items-center justify-center gap-4 pointer-events-none"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                style={{ position: "fixed", inset: 0, zIndex: 9999 }}
+                className="flex items-center justify-center bg-background/90 backdrop-blur-md"
               >
-                <div className="rounded-2xl bg-primary/10 p-5">
-                  <Paperclip className="h-14 w-14 text-primary" />
-                </div>
-                <p className="text-2xl font-semibold text-foreground">Drop files here</p>
-                <p className="text-base text-muted-foreground">Images, PDFs, DOCX, PPTX, and more</p>
+                <motion.div
+                  initial={{ scale: 0.92, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.92, opacity: 0 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 400 }}
+                  style={{ position: "absolute", inset: 24 }}
+                  className="rounded-3xl border-2 border-dashed border-primary/60 bg-primary/5 flex flex-col items-center justify-center gap-4 pointer-events-none"
+                >
+                  <div className="rounded-2xl bg-primary/10 p-5">
+                    <Paperclip className="h-14 w-14 text-primary" />
+                  </div>
+                  <p className="text-2xl font-semibold text-foreground">Drop files here</p>
+                  <p className="text-base text-muted-foreground">Images, PDFs, DOCX, PPTX, and more</p>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        portalRoot,
-      )}
+            )}
+          </AnimatePresence>,
+          portalRoot,
+        )}
 
       {/* Image options dock — visible whenever the user is in image-gen mode.
           Stacked above any selected-images / selected-documents previews. */}
-      {!inline && shouldShowBanana && selectedImages.length === 0 && (() => {
-        const hasDocs = selectedDocuments.length > 0;
-        // Anchor relative to the input bar so the dock floats just above it
-        // instead of being glued to the viewport bottom. Falls back to the
-        // old bottom-anchored math if the ref isn't measured yet.
-        const rect = inputBarRef.current?.getBoundingClientRect();
-        const previewStack = hasDocs ? 100 : 0;
-        const dockBottom = rect
-          ? `${Math.max(12, window.innerHeight - rect.top + 12 + previewStack)}px`
-          : `calc(${110 + previewStack}px + env(safe-area-inset-bottom, 0px))`;
-        return (
-          <ImageOptionsDock
-            portalRoot={portalRoot}
-            bottomOffset={dockBottom}
-          />
-        );
-
-      })()}
-
+      {!inline &&
+        shouldShowBanana &&
+        selectedImages.length === 0 &&
+        (() => {
+          const hasDocs = selectedDocuments.length > 0;
+          // Anchor relative to the input bar so the dock floats just above it
+          // instead of being glued to the viewport bottom. Falls back to the
+          // old bottom-anchored math if the ref isn't measured yet.
+          const rect = inputBarRef.current?.getBoundingClientRect();
+          const previewStack = hasDocs ? 100 : 0;
+          const dockBottom = rect
+            ? `${Math.max(12, window.innerHeight - rect.top + 12 + previewStack)}px`
+            : `calc(${110 + previewStack}px + env(safe-area-inset-bottom, 0px))`;
+          return <ImageOptionsDock portalRoot={portalRoot} bottomOffset={dockBottom} />;
+        })()}
 
       {/* Selected Documents preview - for non-inline, portal anchored above input */}
-      {!inline && selectedDocuments.length > 0 && portalRoot && (() => {
-        const rect = inputBarRef.current?.getBoundingClientRect();
-        const imgStack = selectedImages.length > 0 ? 220 : 0;
-        const bottom = rect
-          ? `${Math.max(12, window.innerHeight - rect.top + 12 + imgStack)}px`
-          : `calc(${110 + imgStack}px + env(safe-area-inset-bottom, 0px))`;
-        return createPortal(
-          <div
-            className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
-            style={{ bottom }}
-          >
-            <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Documents ({selectedDocuments.length}/3)</span>
-                <button onClick={() => setSelectedDocuments([])} className="text-xs text-muted-foreground hover:text-foreground">Clear</button>
-              </div>
-              <div className="flex flex-col gap-2">
-                {selectedDocuments.map((doc, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 group">
-                    <FileText className="h-4 w-4 text-primary shrink-0" />
-                    <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
-                    <span className="text-xs text-muted-foreground">{(doc.size / 1024).toFixed(0)} KB</span>
-                    <button onClick={() => removeDocument(i)} className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>,
-          portalRoot,
-        );
-      })()}
-
-      {/* Selected Images preview - for non-inline, portal anchored above input */}
-      {!inline && selectedImages.length > 0 && portalRoot && (() => {
-        const rect = inputBarRef.current?.getBoundingClientRect();
-        const bottom = rect
-          ? `${Math.max(12, window.innerHeight - rect.top + 12)}px`
-          : `calc(110px + env(safe-area-inset-bottom, 0px))`;
-        return createPortal(
-          <div
-            className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
-            style={{ bottom }}
-          >
-            <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/14)</span>
-                <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">Clear All</button>
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {selectedImages.map((f, i) => {
-                  const url = imagePreviewUrls[i];
-                  return (
-                    <div key={i} className="relative group shrink-0">
-                      <img src={url} alt={`sel-${i}`} className="w-10 h-10 sm:w-16 sm:h-16 object-cover rounded-full border border-border/40" />
-                      <button onClick={() => removeImage(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity" title="Remove">
+      {!inline &&
+        selectedDocuments.length > 0 &&
+        portalRoot &&
+        (() => {
+          const rect = inputBarRef.current?.getBoundingClientRect();
+          const imgStack = selectedImages.length > 0 ? 220 : 0;
+          const bottom = rect
+            ? `${Math.max(12, window.innerHeight - rect.top + 12 + imgStack)}px`
+            : `calc(${110 + imgStack}px + env(safe-area-inset-bottom, 0px))`;
+          return createPortal(
+            <div className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]" style={{ bottom }}>
+              <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">Documents ({selectedDocuments.length}/3)</span>
+                  <button
+                    onClick={() => setSelectedDocuments([])}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {selectedDocuments.map((doc, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 group">
+                      <FileText className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
+                      <span className="text-xs text-muted-foreground">{(doc.size / 1024).toFixed(0)} KB</span>
+                      <button
+                        onClick={() => removeDocument(i)}
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
                         <X className="w-3 h-3" />
                       </button>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-              {selectedImages.length > 0 && (
-                <div className="mt-3 pt-2 border-t border-border/30">
-                  <button type="button" onClick={() => setAllImagesEditMode(!allImagesEditMode)} className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80">
-                    {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
+            </div>,
+            portalRoot,
+          );
+        })()}
+
+      {/* Selected Images preview - for non-inline, portal anchored above input */}
+      {!inline &&
+        selectedImages.length > 0 &&
+        portalRoot &&
+        (() => {
+          const rect = inputBarRef.current?.getBoundingClientRect();
+          const bottom = rect
+            ? `${Math.max(12, window.innerHeight - rect.top + 12)}px`
+            : `calc(110px + env(safe-area-inset-bottom, 0px))`;
+          return createPortal(
+            <div className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]" style={{ bottom }}>
+              <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/14)</span>
+                  <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">
+                    Clear All
                   </button>
                 </div>
-              )}
-              {(shouldShowBanana || allImagesEditMode) && (
-                <div className="mt-3 pt-2 border-t border-border/30">
-                  <ImageOptionsContent />
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {selectedImages.map((f, i) => {
+                    const url = imagePreviewUrls[i];
+                    return (
+                      <div key={i} className="relative group shrink-0">
+                        <img
+                          src={url}
+                          alt={`sel-${i}`}
+                          className="w-10 h-10 sm:w-16 sm:h-16 object-cover rounded-full border border-border/40"
+                        />
+                        <button
+                          onClick={() => removeImage(i)}
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remove"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
-          </div>,
-          portalRoot,
-        );
-      })()}
-
+                {selectedImages.length > 0 && (
+                  <div className="mt-3 pt-2 border-t border-border/30">
+                    <button
+                      type="button"
+                      onClick={() => setAllImagesEditMode(!allImagesEditMode)}
+                      className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80"
+                    >
+                      {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
+                    </button>
+                  </div>
+                )}
+                {(shouldShowBanana || allImagesEditMode) && (
+                  <div className="mt-3 pt-2 border-t border-border/30">
+                    <ImageOptionsContent />
+                  </div>
+                )}
+              </div>
+            </div>,
+            portalRoot,
+          );
+        })()}
 
       {/* Input Row */}
       <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">
@@ -2068,36 +2217,39 @@ ${safeCode}
             shouldShowBanana
               ? "Disable image mode"
               : shouldShowCodeMode
-              ? "Disable code mode"
-              : shouldShowBuildMode
-              ? "Disable build mode"
-              : showCanvasIndicator
-              ? (isCanvasAutoMode ? "Writing to canvas" : "Disable canvas mode")
-              : shouldShowSearchMode
-              ? "Disable search mode"
-              : showMenu
-              ? "Close menu"
-              : "Quick options"
+                ? "Disable code mode"
+                : shouldShowBuildMode
+                  ? "Disable build mode"
+                  : showCanvasIndicator
+                    ? isCanvasAutoMode
+                      ? "Writing to canvas"
+                      : "Disable canvas mode"
+                    : shouldShowSearchMode
+                      ? "Disable search mode"
+                      : showMenu
+                        ? "Close menu"
+                        : "Quick options"
           }
           className={[
             "ci-menu-btn h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 relative glass-shimmer",
             shouldShowBanana
               ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
               : shouldShowCodeMode
-              ? "!bg-blue-500/20 ring-1 ring-blue-400/50 !shadow-[0_0_24px_rgba(59,130,246,0.25)]"
-              : shouldShowBuildMode
-              ? "!bg-amber-500/20 ring-1 ring-amber-400/50 !shadow-[0_0_24px_rgba(245,158,11,0.25)]"
-              : showCanvasIndicator
-              ? "!bg-purple-500/20 ring-1 ring-purple-400/50 !shadow-[0_0_24px_rgba(168,85,247,0.25)]"
-              : shouldShowSearchMode
-              ? "!bg-cyan-500/20 ring-1 ring-cyan-400/50 !shadow-[0_0_24px_rgba(34,211,238,0.25)]"
-              : "text-muted-foreground hover:text-foreground",
+                ? "!bg-blue-500/20 ring-1 ring-blue-400/50 !shadow-[0_0_24px_rgba(59,130,246,0.25)]"
+                : shouldShowBuildMode
+                  ? "!bg-amber-500/20 ring-1 ring-amber-400/50 !shadow-[0_0_24px_rgba(245,158,11,0.25)]"
+                  : showCanvasIndicator
+                    ? "!bg-purple-500/20 ring-1 ring-purple-400/50 !shadow-[0_0_24px_rgba(168,85,247,0.25)]"
+                    : shouldShowSearchMode
+                      ? "!bg-cyan-500/20 ring-1 ring-cyan-400/50 !shadow-[0_0_24px_rgba(34,211,238,0.25)]"
+                      : "text-muted-foreground hover:text-foreground",
           ].join(" ")}
           onClick={() => {
             if (shouldShowBanana) {
               setForceImageMode(false);
               // Clear input if it's just the prefix
-              if (/^(image|draw|create)\/\s*$/i.test(inputValue) || /^\/(image|draw|create)\s*$/i.test(inputValue)) setInputValue("");
+              if (/^(image|draw|create)\/\s*$/i.test(inputValue) || /^\/(image|draw|create)\s*$/i.test(inputValue))
+                setInputValue("");
             } else if (shouldShowCodeMode) {
               setForceCodingMode(false);
               if (/^code\/\s*$/i.test(inputValue) || /^\/code\s*$/i.test(inputValue)) setInputValue("");
@@ -2181,80 +2333,145 @@ ${safeCode}
             rows={1}
           />
         </div>
-        
+
         {/* Slash command picker - portaled to escape overflow */}
         {/* Slash command picker - Unified glassy card design */}
-        {portalRoot && showSlashPicker && createPortal(
-          <AnimatePresence>
-            <motion.div
-              initial={{ opacity: 0, y: 8, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 6, scale: 0.97 }}
-              transition={{ duration: 0.18, ease: [0.25, 0.8, 0.25, 1] }}
-              className={cn(
-                "fixed z-[9999] flex items-center justify-center px-4",
-                rightPanelOpen && "lg:mr-80 xl:mr-96"
-              )}
-              style={(() => {
-                const rect = inputBarRef.current?.getBoundingClientRect();
-                // If we have the input bar, position relative to it:
-                // input in upper half → menu below; input near bottom → menu above.
-                if (rect) {
-                  const inputInUpperHalf = rect.top < window.innerHeight * 0.5;
-                  if (inputInUpperHalf) {
-                    return { top: rect.bottom + 12, left: 0, right: 0 };
+        {portalRoot &&
+          showSlashPicker &&
+          createPortal(
+            <AnimatePresence>
+              <motion.div
+                initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                transition={{ duration: 0.18, ease: [0.25, 0.8, 0.25, 1] }}
+                className={cn(
+                  "fixed z-[9999] flex items-center justify-center px-4",
+                  rightPanelOpen && "lg:mr-80 xl:mr-96",
+                )}
+                style={(() => {
+                  const rect = inputBarRef.current?.getBoundingClientRect();
+                  // If we have the input bar, position relative to it:
+                  // input in upper half → menu below; input near bottom → menu above.
+                  if (rect) {
+                    const inputInUpperHalf = rect.top < window.innerHeight * 0.5;
+                    if (inputInUpperHalf) {
+                      return { top: rect.bottom + 12, left: 0, right: 0 };
+                    }
+                    return { bottom: window.innerHeight - rect.top + 12, left: 0, right: 0 };
                   }
-                  return { bottom: window.innerHeight - rect.top + 12, left: 0, right: 0 };
-                }
-                // Fallback
-                return isDashboard
-                  ? { top: 120, left: 0, right: 0 }
-                  : { bottom: "calc(100px + env(safe-area-inset-bottom, 0px))", left: 0, right: 0 };
-              })()}
-            >
-              {/* Compact inline pill bar */}
-              <div className={cn(
-                "relative flex flex-wrap items-center justify-center gap-1.5 py-2 px-3 rounded-2xl ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[calc(100vw-32px)]",
-                isDashboard
-                  ? "bg-background/80 border border-border/40 shadow-[0_8px_32px_rgba(0,0,0,.3)] dark:bg-black/80 dark:border-white/10 dark:shadow-[0_8px_32px_rgba(0,0,0,.5)]"
-                  : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]"
-              )}>
-                {([
-                  { label: "Image", icon: <ImagePlus className="h-3.5 w-3.5" />, color: "text-green-400", action: () => { setInputValue("image/"); textareaRef.current?.focus(); }, hideInCorporate: true },
-                  { label: "Search", icon: <Globe className="h-3.5 w-3.5" />, color: "text-cyan-400", action: () => { setInputValue("search/"); textareaRef.current?.focus(); }, hideInCorporate: true },
-                  { label: "Write", icon: <PenLine className="h-3.5 w-3.5" />, color: "text-purple-400", action: () => { setForceCanvasMode(true); setInputValue("write/ "); textareaRef.current?.focus(); }, hideInCorporate: true },
-                  { label: "Research", icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setInputValue(""); openSearchMode(); textareaRef.current?.focus(); }, hideInCorporate: true },
-                  { label: "Code", icon: <Code2 className="h-3.5 w-3.5" />, color: "text-blue-400", action: () => { setInputValue("code/"); textareaRef.current?.focus(); }, hideInCorporate: true },
-                ] as Array<{ label: string; icon: JSX.Element; color: string; action: () => void; hideInCorporate?: boolean }>)
-                  .filter((item) => !(useCorporateModeStore.getState().enabled && item.hideInCorporate))
-                  .map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    onMouseDown={(e) => { e.preventDefault(); item.action(); }}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium",
-                      "hover:bg-white/10 active:scale-95 transition-colors duration-150",
-                      item.color
-                    )}
-                  >
-                    {item.icon}
-                    <span className="text-foreground/80">{item.label}</span>
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onMouseDown={(e) => { e.preventDefault(); setInputValue(""); textareaRef.current?.focus(); }}
-                  className="flex items-center justify-center h-7 w-7 rounded-full hover:bg-white/10 active:scale-95 transition-colors duration-150 text-muted-foreground"
+                  // Fallback
+                  return isDashboard
+                    ? { top: 120, left: 0, right: 0 }
+                    : { bottom: "calc(100px + env(safe-area-inset-bottom, 0px))", left: 0, right: 0 };
+                })()}
+              >
+                {/* Compact inline pill bar */}
+                <div
+                  className={cn(
+                    "relative flex flex-wrap items-center justify-center gap-1.5 py-2 px-3 rounded-2xl ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[calc(100vw-32px)]",
+                    isDashboard
+                      ? "bg-background/80 border border-border/40 shadow-[0_8px_32px_rgba(0,0,0,.3)] dark:bg-black/80 dark:border-white/10 dark:shadow-[0_8px_32px_rgba(0,0,0,.5)]"
+                      : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]",
+                  )}
                 >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-
-              </div>
-            </motion.div>
-          </AnimatePresence>,
-          portalRoot
-        )}
+                  {(
+                    [
+                      {
+                        label: "Image",
+                        icon: <ImagePlus className="h-3.5 w-3.5" />,
+                        color: "text-green-400",
+                        action: () => {
+                          setInputValue("image/");
+                          textareaRef.current?.focus();
+                        },
+                        hideInCorporate: true,
+                      },
+                      {
+                        label: "Search",
+                        icon: <Globe className="h-3.5 w-3.5" />,
+                        color: "text-cyan-400",
+                        action: () => {
+                          setInputValue("search/");
+                          textareaRef.current?.focus();
+                        },
+                        hideInCorporate: true,
+                      },
+                      {
+                        label: "Write",
+                        icon: <PenLine className="h-3.5 w-3.5" />,
+                        color: "text-purple-400",
+                        action: () => {
+                          setForceCanvasMode(true);
+                          setInputValue("write/ ");
+                          textareaRef.current?.focus();
+                        },
+                        hideInCorporate: true,
+                      },
+                      {
+                        label: "Deep",
+                        icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />,
+                        color: "text-orange-400",
+                        action: () => {
+                          setInputValue("");
+                          openSearchMode();
+                          textareaRef.current?.focus();
+                        },
+                        hideInCorporate: true,
+                      },
+                      {
+                        label: "Code",
+                        icon: <Code2 className="h-3.5 w-3.5" />,
+                        color: "text-blue-400",
+                        action: () => {
+                          setInputValue("code/");
+                          textareaRef.current?.focus();
+                        },
+                        hideInCorporate: true,
+                      },
+                    ] as Array<{
+                      label: string;
+                      icon: JSX.Element;
+                      color: string;
+                      action: () => void;
+                      hideInCorporate?: boolean;
+                    }>
+                  )
+                    .filter((item) => !(useCorporateModeStore.getState().enabled && item.hideInCorporate))
+                    .map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          item.action();
+                        }}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium",
+                          "hover:bg-white/10 active:scale-95 transition-colors duration-150",
+                          item.color,
+                        )}
+                      >
+                        {item.icon}
+                        <span className="text-foreground/80">{item.label}</span>
+                      </button>
+                    ))}
+                  <button
+                    type="button"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setInputValue("");
+                      textareaRef.current?.focus();
+                    }}
+                    className="flex items-center justify-center h-7 w-7 rounded-full hover:bg-white/10 active:scale-95 transition-colors duration-150 text-muted-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </motion.div>
+            </AnimatePresence>,
+            portalRoot,
+          )}
 
         {/* Mic Icon - Voice Mode */}
         <button
@@ -2262,7 +2479,8 @@ ${safeCode}
             if (user && !subscription.canUseVoice) {
               toast({
                 title: "Voice limit reached",
-                description: "You've used your 10 free voice conversations this month. Upgrade to ArcAI Boost for unlimited voice.",
+                description:
+                  "You've used your 10 free voice conversations this month. Upgrade to ArcAI Boost for unlimited voice.",
               });
               subscription.openCheckout();
               return;
@@ -2275,11 +2493,12 @@ ${safeCode}
               try {
                 // Check current permission state if the Permissions API is available
                 if (navigator.permissions) {
-                  const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-                  if (permissionStatus.state === 'denied') {
+                  const permissionStatus = await navigator.permissions.query({ name: "microphone" as PermissionName });
+                  if (permissionStatus.state === "denied") {
                     toast({
                       title: "Microphone access blocked",
-                      description: "Please allow microphone access in your browser settings (and macOS System Settings > Privacy & Security > Microphone), then try again.",
+                      description:
+                        "Please allow microphone access in your browser settings (and macOS System Settings > Privacy & Security > Microphone), then try again.",
                       variant: "destructive",
                     });
                     return;
@@ -2290,23 +2509,24 @@ ${safeCode}
                 // so the browser shows the native permission dialog right now,
                 // in this user-gesture context (required by Safari/Arc/PWA).
                 const permissionStatus = navigator.permissions
-                  ? await navigator.permissions.query({ name: 'microphone' as PermissionName })
+                  ? await navigator.permissions.query({ name: "microphone" as PermissionName })
                   : null;
 
-                if (!permissionStatus || permissionStatus.state === 'prompt') {
+                if (!permissionStatus || permissionStatus.state === "prompt") {
                   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                   // Immediately stop the stream — it will be reopened by useAudioCapture
-                  stream.getTracks().forEach(track => track.stop());
+                  stream.getTracks().forEach((track) => track.stop());
                 }
               } catch (err: any) {
                 // NotAllowedError = user denied or system blocked
-                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
                   toast({
                     title: "Microphone access denied",
-                    description: "To use voice mode, allow microphone access in your browser settings. On Mac, also check System Settings > Privacy & Security > Microphone.",
+                    description:
+                      "To use voice mode, allow microphone access in your browser settings. On Mac, also check System Settings > Privacy & Security > Microphone.",
                     variant: "destructive",
                   });
-                } else if (err.name === 'NotFoundError') {
+                } else if (err.name === "NotFoundError") {
                   toast({
                     title: "No microphone found",
                     description: "Please connect a microphone and try again.",
@@ -2324,9 +2544,9 @@ ${safeCode}
             }
 
             if (user) subscription.recordVoiceSession();
-            
+
             // If we're not on a chat page, create a session and navigate first
-            const isOnChatPage = location.pathname === '/' || location.pathname.startsWith('/chat/');
+            const isOnChatPage = location.pathname === "/" || location.pathname.startsWith("/chat/");
             if (!isOnChatPage) {
               const newId = useArcStore.getState().createNewSession();
               navigate(`/chat/${newId}`);
@@ -2422,7 +2642,8 @@ ${safeCode}
       {portalRoot &&
         createPortal(
           <AnimatePresence>
-             {showMenu && (() => {
+            {showMenu &&
+              (() => {
                 const barRect = inputBarRef.current?.getBoundingClientRect();
                 const btnRect = menuButtonRef.current?.getBoundingClientRect();
                 const left = barRect ? barRect.left : 0;
@@ -2430,10 +2651,7 @@ ${safeCode}
                   ? { left, top: barRect ? barRect.bottom + 8 : 120 }
                   : { left, bottom: btnRect ? window.innerHeight - btnRect.top + 8 : 90 };
                 return (
-                  <div
-                    className="fixed z-[35] pointer-events-auto ci-tiles"
-                    style={posStyle}
-                  >
+                  <div className="fixed z-[35] pointer-events-auto ci-tiles" style={posStyle}>
                     <motion.div
                       initial={{ opacity: 0, y: isDashboard ? -8 : 8, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -2443,36 +2661,83 @@ ${safeCode}
                         "relative grid grid-cols-2 sm:flex sm:flex-nowrap items-center justify-center gap-2 py-3 px-3 sm:px-4 rounded-3xl sm:rounded-full ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[88vw] sm:max-w-none",
                         isDashboard
                           ? "bg-background/80 border border-border/40 shadow-[0_8px_32px_rgba(0,0,0,.3)] dark:bg-black/80 dark:border-white/10 dark:shadow-[0_8px_32px_rgba(0,0,0,.5)]"
-                          : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]"
+                          : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]",
                       )}
-                  >
-                    {([
-                      { label: "Attach", icon: <Paperclip className="h-5 w-5" />, color: "text-blue-400", hideLabelDesktop: true, action: () => { setShowMenu(false); fileInputRef.current?.click(); }, hideInCorporate: true },
-                      { label: "Image", icon: <ImagePlus className="h-5 w-5" />, color: "text-green-400", action: () => { setForceImageMode(true); setShowMenu(false); }, hideInCorporate: true },
-                      { label: "Research", icon: <Search className="h-5 w-5" fill="currentColor" strokeWidth={1.5} />, color: "text-orange-400", action: () => { setShowMenu(false); openSearchMode(); }, hideInCorporate: true },
-                      { label: "Ideas", icon: <Lightbulb className="h-5 w-5" />, color: "text-violet-400", action: () => { setShowMenu(false); setShowPromptLibrary(true); } },
-                    ] as Array<{ label: string; icon: JSX.Element; color: string; hideLabelDesktop?: boolean; hideInCorporate?: boolean; action: () => void }>)
-                      .filter((item) => !(useCorporateModeStore.getState().enabled && item.hideInCorporate))
-                      .map((item) => (
-                      <button
-                        key={item.label}
-                        onClick={item.action}
-                        className={cn(
-                          "flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium",
-                          "hover:bg-white/10 active:scale-95 transition-colors duration-150",
-                          item.color
-                        )}
-                      >
-                        {item.icon}
-                        {item.hideLabelDesktop ? <span className="sm:hidden text-foreground/80">{item.label}</span> : <span className="text-foreground/80">{item.label}</span>}
-                      </button>
-                    ))}
-
-
-                  </motion.div>
-                </div>
-              );
-            })()}
+                    >
+                      {(
+                        [
+                          {
+                            label: "Attach",
+                            icon: <Paperclip className="h-5 w-5" />,
+                            color: "text-blue-400",
+                            hideLabelDesktop: true,
+                            action: () => {
+                              setShowMenu(false);
+                              fileInputRef.current?.click();
+                            },
+                            hideInCorporate: true,
+                          },
+                          {
+                            label: "Image",
+                            icon: <ImagePlus className="h-5 w-5" />,
+                            color: "text-green-400",
+                            action: () => {
+                              setForceImageMode(true);
+                              setShowMenu(false);
+                            },
+                            hideInCorporate: true,
+                          },
+                          {
+                            label: "Deep",
+                            icon: <Search className="h-5 w-5" fill="currentColor" strokeWidth={1.5} />,
+                            color: "text-orange-400",
+                            action: () => {
+                              setShowMenu(false);
+                              openSearchMode();
+                            },
+                            hideInCorporate: true,
+                          },
+                          {
+                            label: "Ideas",
+                            icon: <Lightbulb className="h-5 w-5" />,
+                            color: "text-violet-400",
+                            action: () => {
+                              setShowMenu(false);
+                              setShowPromptLibrary(true);
+                            },
+                          },
+                        ] as Array<{
+                          label: string;
+                          icon: JSX.Element;
+                          color: string;
+                          hideLabelDesktop?: boolean;
+                          hideInCorporate?: boolean;
+                          action: () => void;
+                        }>
+                      )
+                        .filter((item) => !(useCorporateModeStore.getState().enabled && item.hideInCorporate))
+                        .map((item) => (
+                          <button
+                            key={item.label}
+                            onClick={item.action}
+                            className={cn(
+                              "flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium",
+                              "hover:bg-white/10 active:scale-95 transition-colors duration-150",
+                              item.color,
+                            )}
+                          >
+                            {item.icon}
+                            {item.hideLabelDesktop ? (
+                              <span className="sm:hidden text-foreground/80">{item.label}</span>
+                            ) : (
+                              <span className="text-foreground/80">{item.label}</span>
+                            )}
+                          </button>
+                        ))}
+                    </motion.div>
+                  </div>
+                );
+              })()}
           </AnimatePresence>,
           portalRoot,
         )}
@@ -2488,13 +2753,13 @@ ${safeCode}
               setShowPromptLibrary(false);
 
               // Code prompts auto-send immediately
-              if (prompt.toLowerCase().startsWith('code:')) {
+              if (prompt.toLowerCase().startsWith("code:")) {
                 handleSend(prompt);
                 return;
               }
 
               // Image prompts: set banana mode and populate input
-              if (prompt.toLowerCase().includes('generate image')) {
+              if (prompt.toLowerCase().includes("generate image")) {
                 setForceImageMode(true);
               }
 
@@ -2505,53 +2770,76 @@ ${safeCode}
               }, 100);
             }}
           />,
-          portalRoot
+          portalRoot,
         )}
 
       {/* hidden file input */}
-      <input ref={fileInputRef} type="file" accept="image/*,.pdf,.docx,.pptx,.xlsx,.txt,.md,.html,.csv,.json,.xml" multiple className="hidden" onChange={handleFileSelect} />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.pdf,.docx,.pptx,.xlsx,.txt,.md,.html,.csv,.json,.xml"
+        multiple
+        className="hidden"
+        onChange={handleFileSelect}
+      />
 
       {/* Inline selected images preview — portaled to inlinePortalRef if provided */}
-      {inline && selectedImages.length > 0 && (() => {
-        const content = (
-          <div className="mt-3 w-full">
-            <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/14)</span>
-                <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">Clear All</button>
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {selectedImages.map((f, i) => {
-                  const url = imagePreviewUrls[i];
-                  return (
-                    <div key={i} className="relative group shrink-0">
-                      <img src={url} alt={`sel-${i}`} className="w-10 h-10 sm:w-16 sm:h-16 object-cover rounded-full border border-border/40" />
-                      <button onClick={() => removeImage(i)} className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity" title="Remove">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-              {selectedImages.length > 0 && (
-                <div className="mt-3 pt-2 border-t border-border/30">
-                  <button type="button" onClick={() => setAllImagesEditMode(!allImagesEditMode)} className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80">
-                    {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
+      {inline &&
+        selectedImages.length > 0 &&
+        (() => {
+          const content = (
+            <div className="mt-3 w-full">
+              <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/14)</span>
+                  <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">
+                    Clear All
                   </button>
                 </div>
-              )}
-              {(shouldShowBanana || allImagesEditMode) && (
-                <div className="mt-3 pt-2 border-t border-border/30">
-                  <ImageOptionsContent />
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {selectedImages.map((f, i) => {
+                    const url = imagePreviewUrls[i];
+                    return (
+                      <div key={i} className="relative group shrink-0">
+                        <img
+                          src={url}
+                          alt={`sel-${i}`}
+                          className="w-10 h-10 sm:w-16 sm:h-16 object-cover rounded-full border border-border/40"
+                        />
+                        <button
+                          onClick={() => removeImage(i)}
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remove"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
+                {selectedImages.length > 0 && (
+                  <div className="mt-3 pt-2 border-t border-border/30">
+                    <button
+                      type="button"
+                      onClick={() => setAllImagesEditMode(!allImagesEditMode)}
+                      className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80"
+                    >
+                      {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
+                    </button>
+                  </div>
+                )}
+                {(shouldShowBanana || allImagesEditMode) && (
+                  <div className="mt-3 pt-2 border-t border-border/30">
+                    <ImageOptionsContent />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        );
-        // Portal to the inline target outside glass-dock if available
-        const inlineTarget = document.getElementById('dashboard-image-preview-target');
-        return inlineTarget ? createPortal(content, inlineTarget) : content;
-      })()}
+          );
+          // Portal to the inline target outside glass-dock if available
+          const inlineTarget = document.getElementById("dashboard-image-preview-target");
+          return inlineTarget ? createPortal(content, inlineTarget) : content;
+        })()}
       {/* Inline document preview */}
       {inline && selectedDocuments.length > 0 && (
         <div className="mt-2 w-full">
@@ -2560,7 +2848,10 @@ ${safeCode}
               <div key={i} className="flex items-center gap-2 py-1 group">
                 <FileText className="h-4 w-4 text-primary shrink-0" />
                 <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
-                <button onClick={() => removeDocument(i)} className="w-4 h-4 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => removeDocument(i)}
+                  className="w-4 h-4 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                >
                   <X className="w-3 h-3" />
                 </button>
               </div>
