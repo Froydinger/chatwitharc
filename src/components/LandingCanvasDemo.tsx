@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PenLine, Sparkles, Code, Eye, Check, Clock, MessageCircle, Bell } from "lucide-react";
+import { ThemedLogo } from "./ThemedLogo";
 
 const CODE_LINES = [
   `import React from "react";`,
@@ -554,7 +555,7 @@ function TeamChatsDemo() {
   const messages = [
     { user: "Sarah", avatar: "SA", color: "from-pink-400 to-rose-500", text: "Finished the blog post draft, but need feedback on structure" },
     { user: "You", avatar: "👤", color: "from-emerald-400 to-teal-500", text: "@arc what's the best way to make this article more readable?" },
-    { user: "Arc", avatar: "⚡", color: "from-blue-400 to-cyan-500", text: "Break it into sections with clear headers, add bullet points for key ideas, and use short paragraphs. Readability improves ~40% with these changes.", highlight: true },
+    { user: "Arc", isArc: true, color: "from-blue-400 to-cyan-500", text: "Break it into sections with clear headers, add bullet points for key ideas, and use short paragraphs. Readability improves ~40% with these changes.", highlight: true },
   ];
 
   useEffect(() => {
@@ -641,10 +642,12 @@ function TeamChatsDemo() {
                     transition={{ delay: idx * 0.1 }}
                     className="flex items-end gap-2"
                   >
-                    <div
-                      className={`flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br ${msg.color} flex items-center justify-center text-xs font-semibold text-white`}
-                    >
-                      {msg.avatar}
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full ${(msg as any).isArc ? "bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center" : `bg-gradient-to-br ${msg.color} flex items-center justify-center text-xs font-semibold text-white`}`}>
+                      {(msg as any).isArc ? (
+                        <ThemedLogo className="w-5 h-5" alt="Arc" />
+                      ) : (
+                        <span>{(msg as any).avatar}</span>
+                      )}
                     </div>
                     <div className="flex-1">
                       <div className="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">

@@ -73,8 +73,11 @@ export function SharedChatRoomPage() {
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [imageMode, setImageMode] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (!authLoading && !user) navigate("/"); }, [authLoading, user, navigate]);
 
@@ -150,6 +153,38 @@ export function SharedChatRoomPage() {
     setMembers((m) => m.filter((x) => x.user_id !== uid));
   }
 
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    const images = files.filter((f) => f.type.startsWith("image/"));
+    setSelectedImages((prev) => [...prev, ...images]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function uploadImagesToStorage(files: File[]): Promise<string[]> {
+    const imageUrls: string[] = [];
+    try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (!authUser) throw new Error("Not authenticated");
+
+      const uploadPromises = files.map(async (file) => {
+        const name = `${authUser.id}/team-chat-${chatId}-${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split(".").pop()}`;
+        const { error } = await supabase.storage.from("avatars").upload(name, file, {
+          contentType: file.type,
+          upsert: false,
+        });
+        if (error) throw error;
+        const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
+        return pub.publicUrl;
+      });
+      return await Promise.all(uploadPromises);
+    } catch (e) {
+      toast({ title: "Image upload failed", description: String(e), variant: "destructive" });
+      throw e;
+    }
+  }
+
   async function generateSharedImage(prompt: string) {
     setAiThinking(true);
     try {
@@ -172,31 +207,49 @@ export function SharedChatRoomPage() {
   }
 
   async function send() {
-    if (!user || !chatId || !text.trim() || sending) return;
+    if (!user || !chatId || (!text.trim() && selectedImages.length === 0) || sending) return;
     let content = text.trim();
-    setText(""); setSending(true);
+    setText("");
+    setSending(true);
+    setUploadingImages(selectedImages.length > 0);
 
-    // /image command or active image mode
-    const imageMatch = content.match(/^\/image\s+(.+)/i);
-    const wantImage = imageMode || !!imageMatch;
-    const imagePrompt = imageMatch ? imageMatch[1] : content;
+    try {
+      // /image command or active image mode
+      const imageMatch = content.match(/^\/image\s+(.+)/i);
+      const wantImage = imageMode || !!imageMatch;
+      const imagePrompt = imageMatch ? imageMatch[1] : content;
 
-    const mentionedNames = Array.from(content.matchAll(/@([\w-]+)/g)).map((m) => m[1].toLowerCase());
-    const wantArc = mentionedNames.includes("arc") && !wantImage;
-    const mentionedIds: string[] = [];
-    for (const [uid, info] of profilesMap.entries()) {
-      const name = info.display_name;
-      if (mentionedNames.some((n) => name.toLowerCase().replace(/\s+/g, "").includes(n.replace(/\s+/g, "")))) {
-        if (uid !== user.id) mentionedIds.push(uid);
+      const mentionedNames = Array.from(content.matchAll(/@([\w-]+)/g)).map((m) => m[1].toLowerCase());
+      const wantArc = (mentionedNames.includes("arc") || (selectedImages.length > 0 && mentionedNames.includes("arc"))) && !wantImage;
+      const mentionedIds: string[] = [];
+      for (const [uid, info] of profilesMap.entries()) {
+        const name = info.display_name;
+        if (mentionedNames.some((n) => name.toLowerCase().replace(/\s+/g, "").includes(n.replace(/\s+/g, "")))) {
+          if (uid !== user.id) mentionedIds.push(uid);
+        }
       }
-    }
 
-    const { error } = await supabase.from("shared_chat_messages").insert({
-      chat_id: chatId, author_user_id: user.id, role: "user", content, mentions: mentionedIds,
-    });
-    setSending(false);
-    setImageMode(false);
-    textareaRef.current?.focus();
+      // Handle image attachments
+      let attachments: MsgAttachment[] = [];
+      if (selectedImages.length > 0) {
+        const imageUrls = await uploadImagesToStorage(selectedImages);
+        attachments = imageUrls.map((url) => ({ type: "image" as const, url }));
+        setSelectedImages([]);
+      }
+      setUploadingImages(false);
+
+      const { error } = await supabase.from("shared_chat_messages").insert({
+        chat_id: chatId,
+        author_user_id: user.id,
+        role: "user",
+        content: content || (selectedImages.length > 0 ? "📸 Shared an image" : ""),
+        mentions: mentionedIds,
+        attachments: attachments.length > 0 ? attachments : undefined,
+      });
+
+      setSending(false);
+      setImageMode(false);
+      textareaRef.current?.focus();
     if (error) {
       toast({ title: "Send failed", description: error.message, variant: "destructive" });
       setText(content);
@@ -340,6 +393,16 @@ export function SharedChatRoomPage() {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="max-w-3xl mx-auto pointer-events-auto relative">
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
           {/* + menu popover */}
           {showPlusMenu && (
             <div className="absolute bottom-full left-2 mb-3 z-30">
@@ -351,6 +414,14 @@ export function SharedChatRoomPage() {
                 >
                   <ImagePlus className="h-4 w-4" />
                   <span className="text-foreground/80">Image</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { fileInputRef.current?.click(); setShowPlusMenu(false); }}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-cyan-400 hover:bg-white/10 active:scale-95 transition"
+                >
+                  <Paperclip className="h-4 w-4" />
+                  <span className="text-foreground/80">Attach</span>
                 </button>
                 <button
                   type="button"
@@ -389,7 +460,7 @@ export function SharedChatRoomPage() {
                 )}
               </button>
 
-              <div className="flex-1">
+              <div className="flex-1 flex flex-col gap-2">
                 <Textarea
                   ref={textareaRef}
                   value={text}
@@ -401,15 +472,36 @@ export function SharedChatRoomPage() {
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
                   }}
                 />
+                {selectedImages.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {selectedImages.map((file, idx) => (
+                      <div key={idx} className="relative group">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Selected ${idx + 1}`}
+                          className="h-16 w-16 rounded-lg object-cover border border-primary/30 bg-white/5"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setSelectedImages((prev) => prev.filter((_, i) => i !== idx))}
+                          className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive/80 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label={`Remove image ${idx + 1}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <button
                 onClick={send}
-                disabled={sending || !text.trim()}
+                disabled={sending || (!text.trim() && selectedImages.length === 0)}
                 aria-label="Send"
                 className={cn(
                   "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-                  text.trim()
+                  (text.trim() || selectedImages.length > 0)
                     ? "bg-primary/10 ring-1 ring-primary/40 text-primary hover:bg-primary/20 !shadow-[0_0_10px_rgba(var(--primary-rgb),0.25)]"
                     : "text-muted-foreground cursor-not-allowed opacity-30",
                 )}
