@@ -36,7 +36,7 @@ import { ThemedLogo } from "./ThemedLogo";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
-import { LandingCanvasDemo } from "./LandingCanvasDemo";
+import { LandingCanvasDemo, ScheduledRemindersDemo, TeamChatsDemo } from "./LandingCanvasDemo";
 import { LandingVoiceDemo } from "./LandingVoiceDemo";
 import { useDownloadInfo } from "@/hooks/useDownloadInfo";
 
@@ -1097,6 +1097,12 @@ export function LandingScreen() {
 
       {/* Canvas Demo Section */}
       <LandingCanvasDemo />
+
+      {/* Scheduled Reminders Demo Section */}
+      <ScheduledRemindersDemo />
+
+      {/* Team Chats Demo Section */}
+      <TeamChatsDemo />
 
       {/* Pricing Section — ArcAI is free for everyone */}
       <section className="relative z-10 py-20 px-6" id="pricing">

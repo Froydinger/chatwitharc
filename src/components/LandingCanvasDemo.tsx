@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PenLine, Sparkles, Code, Eye, Check } from "lucide-react";
+import { PenLine, Sparkles, Code, Eye, Check, Clock, MessageCircle, Bell } from "lucide-react";
 
 const CODE_LINES = [
   `import React from "react";`,
@@ -394,6 +394,302 @@ function WritingCanvasCard({
     </div>
   );
 }
+
+/* ---- Scheduled Reminders Demo ---- */
+function ScheduledRemindersDemo() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const reminders = [
+    { time: "9:00 AM", task: "Team standup", color: "from-blue-400 to-blue-600" },
+    { time: "2:30 PM", task: "Client presentation", color: "from-purple-400 to-purple-600" },
+    { time: "5:00 PM", task: "Wrap up weekly review", color: "from-emerald-400 to-emerald-600" },
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % reminders.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <section className="relative z-10 py-20 px-6">
+      <div className="max-w-5xl mx-auto">
+        <motion.div
+          className="text-center mb-12 space-y-3"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <Clock className="w-6 h-6 text-slate-900" />
+            </div>
+          </div>
+          <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
+            Stay on schedule.
+            <br />
+            <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+              Never miss a moment.
+            </span>
+          </h2>
+          <p className="text-slate-600 dark:text-slate-300 max-w-lg mx-auto text-lg">
+            Smart reminders that learn your rhythm — get notified at the right time, in the right way.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="max-w-2xl mx-auto"
+          initial={{ opacity: 0, y: 30, scale: 0.97 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.6, type: "spring", stiffness: 300, damping: 30 }}
+        >
+          <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700/60 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)]">
+            {/* Title bar */}
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
+                </div>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 ml-2 font-medium">Reminders</span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="h-[320px] relative overflow-hidden px-6 py-6">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeIndex}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.4 }}
+                  className="space-y-3"
+                >
+                  {reminders.map((reminder, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: idx === activeIndex ? 1 : 0.4, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className={`p-4 rounded-xl border transition-all ${
+                        idx === activeIndex
+                          ? `bg-gradient-to-r ${reminder.color} border-transparent`
+                          : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p
+                            className={`text-sm font-semibold ${
+                              idx === activeIndex
+                                ? "text-white"
+                                : "text-slate-900 dark:text-slate-100"
+                            }`}
+                          >
+                            {reminder.task}
+                          </p>
+                          <p
+                            className={`text-xs mt-1 ${
+                              idx === activeIndex
+                                ? "text-white/80"
+                                : "text-slate-600 dark:text-slate-300"
+                            }`}
+                          >
+                            {reminder.time}
+                          </p>
+                        </div>
+                        {idx === activeIndex && (
+                          <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                            className="w-3 h-3 rounded-full bg-white shadow-lg"
+                          />
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Notification popup */}
+              <AnimatePresence>
+                {activeIndex === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                    transition={{ delay: 0.3 }}
+                    className="absolute top-4 right-4 bg-slate-900 dark:bg-slate-950 text-white px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 shadow-lg"
+                  >
+                    <Bell className="w-3 h-3" />
+                    Reminder in 5 min
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Bottom bar */}
+            <div className="flex items-center justify-between px-4 py-2 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+              <span className="text-[10px] text-gray-600 dark:text-gray-300">
+                {reminders.length} upcoming
+              </span>
+              <span className="text-[10px] text-gray-600 dark:text-gray-300">Smart</span>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ---- Team Chats Demo ---- */
+function TeamChatsDemo() {
+  const [messagePhase, setMessagePhase] = useState(0);
+  const [typedMessage, setTypedMessage] = useState("");
+
+  const messages = [
+    { user: "Sarah", avatar: "SA", color: "from-pink-400 to-rose-500", text: "Just pushed the new feature branch" },
+    { user: "You", avatar: "👤", color: "from-emerald-400 to-teal-500", text: "Great! Let me review the PR" },
+    { user: "Marcus", avatar: "MA", color: "from-amber-400 to-orange-500", text: "I've added tests for the edge cases" },
+  ];
+
+  useEffect(() => {
+    const currentMessage = messages[messagePhase];
+    if (typedMessage.length < currentMessage.text.length) {
+      const timeout = setTimeout(() => {
+        setTypedMessage((prev) => prev + currentMessage.text[prev.length]);
+      }, 30 + Math.random() * 50);
+      return () => clearTimeout(timeout);
+    } else if (messagePhase < messages.length - 1) {
+      const timeout = setTimeout(() => {
+        setMessagePhase((prev) => prev + 1);
+        setTypedMessage("");
+      }, 2000);
+      return () => clearTimeout(timeout);
+    } else {
+      const timeout = setTimeout(() => {
+        setMessagePhase(0);
+        setTypedMessage("");
+      }, 3000);
+      return () => clearTimeout(timeout);
+    }
+  }, [typedMessage, messagePhase]);
+
+  return (
+    <section className="relative z-10 py-20 px-6">
+      <div className="max-w-5xl mx-auto">
+        <motion.div
+          className="text-center mb-12 space-y-3"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center shadow-lg shadow-pink-500/20">
+              <MessageCircle className="w-6 h-6 text-slate-900" />
+            </div>
+          </div>
+          <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
+            Team works better.
+            <br />
+            <span className="bg-gradient-to-r from-pink-400 to-rose-400 bg-clip-text text-transparent">
+              In the same space.
+            </span>
+          </h2>
+          <p className="text-slate-600 dark:text-slate-300 max-w-lg mx-auto text-lg">
+            Share, collaborate, and keep everyone in sync. One thread, infinite conversations.
+          </p>
+        </motion.div>
+
+        <motion.div
+          className="max-w-2xl mx-auto"
+          initial={{ opacity: 0, y: 30, scale: 0.97 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.6, type: "spring", stiffness: 300, damping: 30 }}
+        >
+          <div className="rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-700/60 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)]">
+            {/* Title bar */}
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
+                </div>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 ml-2 font-medium">Team Chat · #engineering</span>
+              </div>
+              <div className="flex items-center gap-1 px-2 py-1 rounded text-xs text-pink-400/70">
+                <Sparkles className="w-3 h-3" />
+                <span>Live</span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="h-[320px] relative overflow-hidden px-4 py-4 flex flex-col">
+              <div className="flex-1 overflow-y-auto space-y-3 mb-3">
+                {messages.slice(0, messagePhase + 1).map((msg, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="flex items-end gap-2"
+                  >
+                    <div
+                      className={`flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br ${msg.color} flex items-center justify-center text-xs font-semibold text-white`}
+                    >
+                      {msg.avatar}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                        {msg.user}
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-800/60 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200">
+                        {idx < messagePhase ? msg.text : typedMessage}
+                        {idx === messagePhase && (
+                          <span className="inline-block w-1 h-4 bg-pink-400 ml-1 align-text-bottom animate-pulse" />
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Input area */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700"
+              >
+                <span className="text-xs text-slate-500 dark:text-slate-400">Message...</span>
+                <div className="ml-auto w-5 h-5 rounded-full flex items-center justify-center">
+                  <MessageCircle className="w-2.5 h-2.5 text-pink-400" />
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Bottom bar */}
+            <div className="flex items-center justify-between px-4 py-2 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+              <span className="text-[10px] text-gray-600 dark:text-gray-300">
+                {messages.length} participants
+              </span>
+              <span className="text-[10px] text-gray-600 dark:text-gray-300">Real-time</span>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+export { ScheduledRemindersDemo, TeamChatsDemo };
 
 /** Minimal syntax coloring */
 function colorize(line: string) {
