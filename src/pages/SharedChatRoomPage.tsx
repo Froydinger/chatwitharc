@@ -258,21 +258,22 @@ export function SharedChatRoomPage() {
       setSending(false);
       setImageMode(false);
       textareaRef.current?.focus();
-    await supabase.from("shared_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId);
 
-    if (mentionedIds.length) {
-      supabase.functions.invoke("send-push-notification", {
-        body: {
-          user_ids: mentionedIds,
-          payload: {
-            title: `${profilesMap.get(user.id)?.display_name ?? "Someone"} mentioned you`,
-            body: content.slice(0, 140),
-            url: `/shared/${chatId}`,
-            tag: `mention-${chatId}`,
+      await supabase.from("shared_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId);
+
+      if (mentionedIds.length) {
+        supabase.functions.invoke("send-push-notification", {
+          body: {
+            user_ids: mentionedIds,
+            payload: {
+              title: `${profilesMap.get(user.id)?.display_name ?? "Someone"} mentioned you`,
+              body: content.slice(0, 140),
+              url: `/shared/${chatId}`,
+              tag: `mention-${chatId}`,
+            },
           },
-        },
-      }).catch(() => {});
-    }
+        }).catch(() => {});
+      }
 
       if (wantImage) {
         void generateSharedImage(imagePrompt);
