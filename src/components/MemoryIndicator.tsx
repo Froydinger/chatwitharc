@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
+import { Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { MemoryAction } from "@/store/useArcStore";
 import { ToolsUsedModal } from "@/components/ToolsUsedModal";
@@ -16,7 +16,7 @@ export const MemoryIndicator = ({ actions, messageContent }: MemoryIndicatorProp
   if (!actions || actions.length === 0) return null;
 
   const toolCount = actions.length;
-  const hasWebSearch = actions.some(a => a.type === 'web_searched');
+  const hasWebSearch = actions.some((a) => a.type === "web_searched");
 
   return (
     <>
@@ -32,8 +32,8 @@ export const MemoryIndicator = ({ actions, messageContent }: MemoryIndicatorProp
           onClick={() => setIsModalOpen(true)}
           className="h-6 px-2.5 text-[10px] text-primary/70 hover:text-primary hover:bg-primary/10 gap-1"
         >
-          <Sparkles className="h-3 w-3" />
-          {toolCount} tool{toolCount !== 1 ? 's' : ''} used
+          <Zap className="h-3 w-3" />
+          {toolCount} tool{toolCount !== 1 ? "s" : ""} used
         </Button>
       </motion.div>
 
