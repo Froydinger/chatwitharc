@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, UserPlus, Settings, Sparkles, Users, Plus, ImagePlus, X, Loader2, Trash2, Mail } from "lucide-react";
+import { ArrowLeft, ArrowRight, UserPlus, Settings, Sparkles, Users, Plus, ImagePlus, X, Loader2, Trash2, Mail, Paperclip } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -238,14 +238,14 @@ export function SharedChatRoomPage() {
       }
       setUploadingImages(false);
 
-      const { error } = await supabase.from("shared_chat_messages").insert({
+      const { error } = await supabase.from("shared_chat_messages").insert([{
         chat_id: chatId,
         author_user_id: user.id,
         role: "user",
         content: content || (selectedImages.length > 0 ? "📸 Shared an image" : ""),
         mentions: mentionedIds,
-        attachments: attachments.length > 0 ? attachments : undefined,
-      });
+        attachments: attachments.length > 0 ? (attachments as any) : undefined,
+      }]);
 
       if (error) {
         toast({ title: "Send failed", description: error.message, variant: "destructive" });
