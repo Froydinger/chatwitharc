@@ -73,8 +73,11 @@ export function SharedChatRoomPage() {
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [imageMode, setImageMode] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (!authLoading && !user) navigate("/"); }, [authLoading, user, navigate]);
 
@@ -150,6 +153,38 @@ export function SharedChatRoomPage() {
     setMembers((m) => m.filter((x) => x.user_id !== uid));
   }
 
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    const images = files.filter((f) => f.type.startsWith("image/"));
+    setSelectedImages((prev) => [...prev, ...images]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function uploadImagesToStorage(files: File[]): Promise<string[]> {
+    const imageUrls: string[] = [];
+    try {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (!authUser) throw new Error("Not authenticated");
+
+      const uploadPromises = files.map(async (file) => {
+        const name = `${authUser.id}/team-chat-${chatId}-${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split(".").pop()}`;
+        const { error } = await supabase.storage.from("avatars").upload(name, file, {
+          contentType: file.type,
+          upsert: false,
+        });
+        if (error) throw error;
+        const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
+        return pub.publicUrl;
+      });
+      return await Promise.all(uploadPromises);
+    } catch (e) {
+      toast({ title: "Image upload failed", description: String(e), variant: "destructive" });
+      throw e;
+    }
+  }
+
   async function generateSharedImage(prompt: string) {
     setAiThinking(true);
     try {
@@ -172,31 +207,49 @@ export function SharedChatRoomPage() {
   }
 
   async function send() {
-    if (!user || !chatId || !text.trim() || sending) return;
+    if (!user || !chatId || (!text.trim() && selectedImages.length === 0) || sending) return;
     let content = text.trim();
-    setText(""); setSending(true);
+    setText("");
+    setSending(true);
+    setUploadingImages(selectedImages.length > 0);
 
-    // /image command or active image mode
-    const imageMatch = content.match(/^\/image\s+(.+)/i);
-    const wantImage = imageMode || !!imageMatch;
-    const imagePrompt = imageMatch ? imageMatch[1] : content;
+    try {
+      // /image command or active image mode
+      const imageMatch = content.match(/^\/image\s+(.+)/i);
+      const wantImage = imageMode || !!imageMatch;
+      const imagePrompt = imageMatch ? imageMatch[1] : content;
 
-    const mentionedNames = Array.from(content.matchAll(/@([\w-]+)/g)).map((m) => m[1].toLowerCase());
-    const wantArc = mentionedNames.includes("arc") && !wantImage;
-    const mentionedIds: string[] = [];
-    for (const [uid, info] of profilesMap.entries()) {
-      const name = info.display_name;
-      if (mentionedNames.some((n) => name.toLowerCase().replace(/\s+/g, "").includes(n.replace(/\s+/g, "")))) {
-        if (uid !== user.id) mentionedIds.push(uid);
+      const mentionedNames = Array.from(content.matchAll(/@([\w-]+)/g)).map((m) => m[1].toLowerCase());
+      const wantArc = (mentionedNames.includes("arc") || (selectedImages.length > 0 && mentionedNames.includes("arc"))) && !wantImage;
+      const mentionedIds: string[] = [];
+      for (const [uid, info] of profilesMap.entries()) {
+        const name = info.display_name;
+        if (mentionedNames.some((n) => name.toLowerCase().replace(/\s+/g, "").includes(n.replace(/\s+/g, "")))) {
+          if (uid !== user.id) mentionedIds.push(uid);
+        }
       }
-    }
 
-    const { error } = await supabase.from("shared_chat_messages").insert({
-      chat_id: chatId, author_user_id: user.id, role: "user", content, mentions: mentionedIds,
-    });
-    setSending(false);
-    setImageMode(false);
-    textareaRef.current?.focus();
+      // Handle image attachments
+      let attachments: MsgAttachment[] = [];
+      if (selectedImages.length > 0) {
+        const imageUrls = await uploadImagesToStorage(selectedImages);
+        attachments = imageUrls.map((url) => ({ type: "image" as const, url }));
+        setSelectedImages([]);
+      }
+      setUploadingImages(false);
+
+      const { error } = await supabase.from("shared_chat_messages").insert({
+        chat_id: chatId,
+        author_user_id: user.id,
+        role: "user",
+        content: content || (selectedImages.length > 0 ? "📸 Shared an image" : ""),
+        mentions: mentionedIds,
+        attachments: attachments.length > 0 ? attachments : undefined,
+      });
+
+      setSending(false);
+      setImageMode(false);
+      textareaRef.current?.focus();
     if (error) {
       toast({ title: "Send failed", description: error.message, variant: "destructive" });
       setText(content);
