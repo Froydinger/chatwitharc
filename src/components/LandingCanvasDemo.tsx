@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PenLine, Sparkles, Code, Eye, Check, Clock, MessageCircle, Bell, Zap } from "lucide-react";
+import { PenLine, Sparkles, Code, Eye, Check, Clock, MessageCircle, Bell } from "lucide-react";
+import { ThemedLogo } from "./ThemedLogo";
 
 const CODE_LINES = [
   `import React from "react";`,
@@ -641,11 +642,11 @@ function TeamChatsDemo() {
                     transition={{ delay: idx * 0.1 }}
                     className="flex items-end gap-2"
                   >
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full ${(msg as any).isArc ? "bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center" : `bg-gradient-to-br ${msg.color} flex items-center justify-center text-xs font-semibold text-white`}`}>
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${(msg as any).isArc ? "bg-gradient-to-br from-blue-400 to-cyan-500" : `bg-gradient-to-br ${msg.color}`}`}>
                       {(msg as any).isArc ? (
-                        <Sparkles className="w-4 h-4 text-white" />
+                        <div style={{ width: '20px', height: '20px', maskImage: 'url(/arc-logo-ui.png)', WebkitMaskImage: 'url(/arc-logo-ui.png)', maskSize: 'contain', WebkitMaskSize: 'contain', maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat', maskPosition: 'center', WebkitMaskPosition: 'center', backgroundColor: 'white' }} />
                       ) : (
-                        <span>{(msg as any).avatar}</span>
+                        <span className="text-xs font-semibold text-white">{(msg as any).avatar}</span>
                       )}
                     </div>
                     <div className="flex-1">
