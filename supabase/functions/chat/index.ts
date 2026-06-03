@@ -423,7 +423,7 @@ serve(async (req) => {
       console.log('Authenticated user:', user.id);
     }
 
-    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime } = body;
+    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
 
     console.log('📊 Request details:', {
       model: model || 'google/gemini-3-flash-preview (default)',
@@ -516,6 +516,15 @@ serve(async (req) => {
       console.warn(`⚠️ Model "${model}" not in allowed list, will use default`);
     }
     
+    const parsedClientOffset = (() => {
+      const numeric = Number(clientTimezoneOffsetMinutes);
+      if (Number.isFinite(numeric) && Math.abs(numeric) <= 840) return numeric;
+      const match = String(clientDateTime ?? '').match(/GMT([+-])(\d{2})(\d{2})/);
+      if (!match) return 0;
+      const minutes = parseInt(match[2], 10) * 60 + parseInt(match[3], 10);
+      return match[1] === '-' ? minutes : -minutes;
+    })();
+
     // Fetch admin settings for system prompt and global context
     const { data: settingsData } = await supabase
       .from('admin_settings')
@@ -545,7 +554,7 @@ serve(async (req) => {
     // Inject current date/time so the AI always knows when "now" is
     const nowString = clientDateTime || new Date().toUTCString();
     const nowUtcIso = new Date().toISOString();
-    enhancedSystemPrompt += `\n\nCurrent date and time (user local): ${nowString}\nCurrent UTC ISO (reference for when_iso math): ${nowUtcIso}`;
+    enhancedSystemPrompt += `\n\nCurrent date and time (user local): ${nowString}\nUser timezone: ${clientTimezone || 'UTC'} (getTimezoneOffset=${parsedClientOffset})\nCurrent UTC ISO (reference for when_iso math): ${nowUtcIso}`;
 
     // Add user context (keep this minimal)
     if (profile?.display_name) {
