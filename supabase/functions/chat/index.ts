@@ -14,6 +14,41 @@ const supabase = createClient(
 // NOTE: saveResponseToDatabase was removed - frontend now handles all persistence
 // to avoid race conditions and duplicate messages from double-saves.
 
+// ---- Cron helpers (mirror of run-scheduled-tasks/index.ts) ----
+function _cronFieldMatches(value: number, expr: string): boolean {
+  if (expr === '*') return true;
+  for (const part of expr.split(',')) {
+    if (part.startsWith('*/')) {
+      const n = parseInt(part.slice(2), 10);
+      if (n > 0 && value % n === 0) return true;
+    } else if (part.includes('-')) {
+      const [a, b] = part.split('-').map((v) => parseInt(v, 10));
+      if (value >= a && value <= b) return true;
+    } else if (parseInt(part, 10) === value) {
+      return true;
+    }
+  }
+  return false;
+}
+function nextCronRun(expr: string, from: Date): Date {
+  const parts = expr.trim().split(/\s+/);
+  if (parts.length !== 5) return new Date(from.getTime() + 60 * 60 * 1000);
+  const [mins, hours, dom, mon, dow] = parts;
+  const d = new Date(from.getTime() + 60 * 1000);
+  d.setUTCSeconds(0, 0);
+  for (let i = 0; i < 525600; i++) {
+    if (
+      _cronFieldMatches(d.getUTCMinutes(), mins) &&
+      _cronFieldMatches(d.getUTCHours(), hours) &&
+      _cronFieldMatches(d.getUTCDate(), dom) &&
+      _cronFieldMatches(d.getUTCMonth() + 1, mon) &&
+      _cronFieldMatches(d.getUTCDay(), dow)
+    ) return d;
+    d.setUTCMinutes(d.getUTCMinutes() + 1);
+  }
+  return new Date(from.getTime() + 60 * 60 * 1000);
+}
+
 // Sanitize any leaked tool call JSON from AI response text
 function sanitizeLeakedToolCalls(text: string): string {
   if (!text) return text;
@@ -464,7 +499,8 @@ serve(async (req) => {
 
     // Inject current date/time so the AI always knows when "now" is
     const nowString = clientDateTime || new Date().toUTCString();
-    enhancedSystemPrompt += `\n\nCurrent date and time: ${nowString}`;
+    const nowUtcIso = new Date().toISOString();
+    enhancedSystemPrompt += `\n\nCurrent date and time (user local): ${nowString}\nCurrent UTC ISO (reference for when_iso math): ${nowUtcIso}`;
 
     // Add user context (keep this minimal)
     if (profile?.display_name) {
@@ -493,6 +529,7 @@ serve(async (req) => {
       '  • "notify me" / "remind me" / "let me know" with NO channel specified → pick the obvious fit and tell them. Long/detailed summary → email. Quick alert → push. Casual → just post in chat.\n' +
       '  • "do all" / "every way" / "push, email, and chat" → use send_notification channel="both" AND also write the full content in your chat reply.\n' +
       'For ANY future-dated request ("in 1 minute", "tomorrow at 8am", "every morning", "remind me at 3pm", "every Monday") use schedule_task — not send_notification. schedule_task takes deliver_in_chat / deliver_push / deliver_email booleans (default all true) and a when_iso (one-shot) or cron_expr (recurring). Compute when_iso from the "Current date and time" above.\n' +
+      '⏰ TIME MATH (CRITICAL — DO NOT GUESS): The "Current date and time" above is in the user\'s LOCAL timezone. when_iso MUST be a real UTC ISO string ending in Z. cron_expr fields MUST be UTC. Steps: (1) parse the local now from "Current date and time"; (2) read the user\'s offset from the GMT±HHMM in that string; (3) add the requested offset (e.g. "10 minutes" = +600s, "tomorrow 9am" = next 09:00 local); (4) convert to UTC ISO. Examples (user is "GMT-0500 (Central Daylight Time)"): "in 10 minutes" from 17:51 local Tue → when_iso 2026-06-03T22:51:00Z (NOT 22:52, NOT 22:50, exactly +600s). "Every day at 9am" → cron_expr "0 14 * * *" (9am Central = 14:00 UTC). "Every Monday 8am Eastern (UTC-4 DST)" → cron_expr "0 12 * * 1". Never set cron minutes/hours to the LOCAL value — always convert to UTC first. Re-check your math before calling the tool.\n' +
       'CLARIFY BEFORE SCHEDULING: If the request is ambiguous (missing time, missing recurrence, unclear location for weather, unclear topic for a digest), ask ONE short follow-up question first and DO NOT call schedule_task yet. Once the user answers, schedule it. Only skip the question if everything needed is already clear.\n' +
       'When the scheduled task fires it can use tools too (currently get_weather and web_search), so phrase the saved `prompt` like a real instruction (e.g. "Give me the morning weather for Plainfield IL" or "Top 3 tech news headlines today") — not a meta description.\n' +
       '• Use get_weather (NOT web_search) for any weather, temperature, or forecast questions. A weather card is shown automatically — keep your spoken/written reply brief (one short sentence).\n' +
@@ -1553,7 +1590,7 @@ Output the complete, finished writing using the update_canvas tool.`;
 
             const scheduleType = cronExpr ? 'cron' : 'once';
             const nextRunAt = cronExpr
-              ? new Date(Date.now() + 60_000).toISOString() // run-scheduled-tasks will recompute after first fire
+              ? nextCronRun(cronExpr, new Date()).toISOString()
               : new Date(whenIso!).toISOString();
 
             const { data: inserted, error: insErr } = await supabase
