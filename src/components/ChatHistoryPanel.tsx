@@ -164,11 +164,11 @@ export function ChatHistoryPanel() {
   }, [sortedSessions, query]);
 
   const isSearching = query.trim().length > 0;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = useMemo(() => {
-    const start = (page - 1) * ITEMS_PER_PAGE;
-    return filtered.slice(start, start + ITEMS_PER_PAGE);
-  }, [filtered, page]);
+  const paginated = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount]
+  );
+  const hasMore = visibleCount < filtered.length;
 
   // Group by date label (only when not searching)
   const grouped = useMemo(() => {
@@ -187,17 +187,36 @@ export function ChatHistoryPanel() {
   }, [paginated, isSearching, filtered.length]);
 
   useEffect(() => {
-    setPage(1);
+    setVisibleCount(ITEMS_PER_PAGE);
   }, [query]);
 
-  // Auto-jump to page with active session
+  // Ensure active session is included in visible window
   useEffect(() => {
     if (!currentSessionId || isSearching) return;
     const idx = filtered.findIndex((s) => s.id === currentSessionId);
     if (idx < 0) return;
-    const target = Math.floor(idx / ITEMS_PER_PAGE) + 1;
-    setPage((p) => (p === target ? p : target));
-  }, [currentSessionId, filtered, isSearching]);
+    if (idx >= visibleCount) {
+      const next = Math.ceil((idx + 1) / ITEMS_PER_PAGE) * ITEMS_PER_PAGE;
+      setVisibleCount(next);
+    }
+  }, [currentSessionId, filtered, isSearching, visibleCount]);
+
+  // Infinite scroll: auto-load when sentinel is visible
+  useEffect(() => {
+    if (!hasMore) return;
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setVisibleCount((c) => c + ITEMS_PER_PAGE);
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore, paginated.length]);
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
