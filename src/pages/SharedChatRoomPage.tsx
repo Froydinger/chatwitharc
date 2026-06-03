@@ -268,7 +268,7 @@ export function SharedChatRoomPage() {
         </div>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1 pb-2 space-y-5">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1 pb-40 space-y-5">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-16">
               <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-60" />
