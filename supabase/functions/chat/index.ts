@@ -49,6 +49,53 @@ function nextCronRun(expr: string, from: Date): Date {
   return new Date(from.getTime() + 60 * 60 * 1000);
 }
 
+function utcCronForLocalTime(hour: number, minute: number, offsetMinutes: number): string {
+  const utcMinuteOfDay = ((hour * 60 + minute + offsetMinutes) % 1440 + 1440) % 1440;
+  return `${utcMinuteOfDay % 60} ${Math.floor(utcMinuteOfDay / 60)} * * *`;
+}
+
+function deterministicScheduleFromText(text: string, offsetMinutes: number): { cronExpr?: string; whenIso?: string } | null {
+  const s = text.toLowerCase();
+  const parseHour = (rawHour: string, rawMin?: string, ampm?: string) => {
+    let hour = parseInt(rawHour, 10);
+    const minute = rawMin ? parseInt(rawMin, 10) : 0;
+    if (!Number.isFinite(hour) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    if (ampm === 'pm' && hour < 12) hour += 12;
+    if (ampm === 'am' && hour === 12) hour = 0;
+    return { hour, minute };
+  };
+
+  const inMatch = s.match(/\bin\s+(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+  if (inMatch) {
+    const amount = parseInt(inMatch[1], 10);
+    const multiplier = inMatch[2].startsWith('h') ? 60 * 60 * 1000 : 60 * 1000;
+    return { whenIso: new Date(Date.now() + amount * multiplier).toISOString() };
+  }
+
+  if (/\bevery\s+(\d+\s*)?(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b|\bhourly\b/.test(s)) return null;
+
+  const recurring = /\b(every|daily|each day|weekday|weekdays|morning|evening|night|afternoon)\b/.test(s);
+  if (!recurring) return null;
+
+  let time = s.match(/\b(?:at|around)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/) || s.match(/\b(\d{1,2})(?::(\d{2}))\s*(am|pm)?\b/);
+  let parsed = time ? parseHour(time[1], time[2], time[3]) : null;
+  if (!parsed) {
+    if (/\bmorning\b/.test(s)) parsed = { hour: 9, minute: 0 };
+    else if (/\bafternoon\b/.test(s)) parsed = { hour: 13, minute: 0 };
+    else if (/\bevening\b/.test(s)) parsed = { hour: 18, minute: 0 };
+    else if (/\bnight\b/.test(s)) parsed = { hour: 21, minute: 0 };
+    else parsed = { hour: 9, minute: 0 };
+  }
+
+  const base = utcCronForLocalTime(parsed.hour, parsed.minute, offsetMinutes);
+  if (/\bweekdays?\b/.test(s)) return { cronExpr: base.replace(' * * *', ' * * 1-5') };
+  const dayMap: Record<string, number> = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+  for (const [day, value] of Object.entries(dayMap)) {
+    if (new RegExp(`\\b${day}s?\\b`).test(s)) return { cronExpr: base.replace(' * * *', ` * * ${value}`) };
+  }
+  return { cronExpr: base };
+}
+
 // Sanitize any leaked tool call JSON from AI response text
 function sanitizeLeakedToolCalls(text: string): string {
   if (!text) return text;
@@ -378,7 +425,7 @@ serve(async (req) => {
       console.log('Authenticated user:', user.id);
     }
 
-    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime } = body;
+    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
 
     console.log('📊 Request details:', {
       model: model || 'google/gemini-3-flash-preview (default)',
@@ -471,6 +518,15 @@ serve(async (req) => {
       console.warn(`⚠️ Model "${model}" not in allowed list, will use default`);
     }
     
+    const parsedClientOffset = (() => {
+      const numeric = Number(clientTimezoneOffsetMinutes);
+      if (Number.isFinite(numeric) && Math.abs(numeric) <= 840) return numeric;
+      const match = String(clientDateTime ?? '').match(/GMT([+-])(\d{2})(\d{2})/);
+      if (!match) return 0;
+      const minutes = parseInt(match[2], 10) * 60 + parseInt(match[3], 10);
+      return match[1] === '-' ? minutes : -minutes;
+    })();
+
     // Fetch admin settings for system prompt and global context
     const { data: settingsData } = await supabase
       .from('admin_settings')
@@ -500,7 +556,7 @@ serve(async (req) => {
     // Inject current date/time so the AI always knows when "now" is
     const nowString = clientDateTime || new Date().toUTCString();
     const nowUtcIso = new Date().toISOString();
-    enhancedSystemPrompt += `\n\nCurrent date and time (user local): ${nowString}\nCurrent UTC ISO (reference for when_iso math): ${nowUtcIso}`;
+    enhancedSystemPrompt += `\n\nCurrent date and time (user local): ${nowString}\nUser timezone: ${clientTimezone || 'UTC'} (getTimezoneOffset=${parsedClientOffset})\nCurrent UTC ISO (reference for when_iso math): ${nowUtcIso}`;
 
     // Add user context (keep this minimal)
     if (profile?.display_name) {
@@ -529,7 +585,7 @@ serve(async (req) => {
       '  • "notify me" / "remind me" / "let me know" with NO channel specified → pick the obvious fit and tell them. Long/detailed summary → email. Quick alert → push. Casual → just post in chat.\n' +
       '  • "do all" / "every way" / "push, email, and chat" → use send_notification channel="both" AND also write the full content in your chat reply.\n' +
       'For ANY future-dated request ("in 1 minute", "tomorrow at 8am", "every morning", "remind me at 3pm", "every Monday") use schedule_task — not send_notification. schedule_task takes deliver_in_chat / deliver_push / deliver_email booleans (default all true) and a when_iso (one-shot) or cron_expr (recurring). Compute when_iso from the "Current date and time" above.\n' +
-      '⏰ TIME MATH (CRITICAL — DO NOT GUESS): The "Current date and time" above is in the user\'s LOCAL timezone. when_iso MUST be a real UTC ISO string ending in Z. cron_expr fields MUST be UTC. Steps: (1) parse the local now from "Current date and time"; (2) read the user\'s offset from the GMT±HHMM in that string; (3) add the requested offset (e.g. "10 minutes" = +600s, "tomorrow 9am" = next 09:00 local); (4) convert to UTC ISO. Examples (user is "GMT-0500 (Central Daylight Time)"): "in 10 minutes" from 17:51 local Tue → when_iso 2026-06-03T22:51:00Z (NOT 22:52, NOT 22:50, exactly +600s). "Every day at 9am" → cron_expr "0 14 * * *" (9am Central = 14:00 UTC). "Every Monday 8am Eastern (UTC-4 DST)" → cron_expr "0 12 * * 1". Never set cron minutes/hours to the LOCAL value — always convert to UTC first. Re-check your math before calling the tool.\n' +
+      '⏰ TIME MATH (CRITICAL): Prefer natural local phrasing in the user request; the backend will validate/correct recurring daily/morning/evening cron times from User timezone. For one-shot requests, when_iso MUST be a UTC ISO string ending in Z. "in 10 minutes" means exactly now + 600 seconds. For recurring, cron_expr is UTC, not local; e.g. if getTimezoneOffset=300, local 9am is cron "0 14 * * *".\n' +
       'CLARIFY BEFORE SCHEDULING: If the request is ambiguous (missing time, missing recurrence, unclear location for weather, unclear topic for a digest), ask ONE short follow-up question first and DO NOT call schedule_task yet. Once the user answers, schedule it. Only skip the question if everything needed is already clear.\n' +
       'When the scheduled task fires it can use tools too (currently get_weather and web_search), so phrase the saved `prompt` like a real instruction (e.g. "Give me the morning weather for Plainfield IL" or "Top 3 tech news headlines today") — not a meta description.\n' +
       '• Use get_weather (NOT web_search) for any weather, temperature, or forecast questions. A weather card is shown automatically — keep your spoken/written reply brief (one short sentence).\n' +
@@ -1581,8 +1637,10 @@ Output the complete, finished writing using the update_canvas tool.`;
           const deliverInChat = true;
           const deliverPush = args.deliver_push === true;
           const deliverEmail = args.deliver_email === true;
-          const whenIso = typeof args.when_iso === 'string' ? args.when_iso : null;
-          const cronExpr = typeof args.cron_expr === 'string' ? args.cron_expr : null;
+          const requestedText = `${messages[messages.length - 1]?.content ?? ''}\n${title}\n${prompt}`;
+          const deterministic = deterministicScheduleFromText(requestedText, parsedClientOffset);
+          const whenIso = deterministic?.whenIso ?? (typeof args.when_iso === 'string' ? args.when_iso : null);
+          const cronExpr = deterministic?.cronExpr ?? (typeof args.cron_expr === 'string' ? args.cron_expr : null);
 
           try {
             if (!prompt) throw new Error('prompt required');
@@ -1603,6 +1661,7 @@ Output the complete, finished writing using the update_canvas tool.`;
                 run_at: scheduleType === 'once' ? nextRunAt : null,
                 cron_expr: cronExpr,
                 next_run_at: nextRunAt,
+                timezone: clientTimezone || 'UTC',
                 result_chat_id: sessionId || null,
                 push_on_complete: deliverPush,
                 notify_email: deliverEmail,
