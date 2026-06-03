@@ -156,7 +156,6 @@ export function TasksPage() {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
       push_on_complete: pushOn,
       notify_email: emailOn,
-      model,
     });
     setCreating(false);
     if (error) {
