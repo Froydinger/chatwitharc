@@ -421,6 +421,21 @@ export function MobileChatApp() {
     }
   };
 
+  // Keyboard shortcut: press "S" (when not typing in a field) to toggle the sidebar.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "s") return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+      const el = document.activeElement as HTMLElement | null;
+      const tag = el?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable) return;
+      e.preventDefault();
+      setRightPanelOpen(!rightPanelOpen);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [rightPanelOpen, setRightPanelOpen]);
+
 
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
