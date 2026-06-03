@@ -175,6 +175,24 @@ All colors MUST be HSL for perfect glass effects.
     border-color: hsl(0 0% 85%);
   }
 
+  /* Noir in light mode — softer, lighter button shadows */
+  :root.light[data-accent="noir"] .glass-btn,
+  :root.light[data-accent="noir"] .glass,
+  :root.light[data-accent="noir"] .glass-strong,
+  :root.light[data-accent="noir"] .glass-card,
+  :root.light[data-accent="noir"] .glass-panel {
+    box-shadow:
+      0 1px 3px hsl(0 0% 0% / 0.025),
+      inset 0 1px 0 hsl(0 0% 100% / 0.7) !important;
+    border-color: hsl(0 0% 92%) !important;
+  }
+  :root.light[data-accent="noir"] .glass-glow {
+    box-shadow:
+      0 2px 8px hsl(0 0% 0% / 0.03),
+      inset 0 1px 0 hsl(0 0% 100% / 0.7) !important;
+  }
+
+
 
   /* Light mode glass cards/panels — visible borders + soft accent shadows */
   :root.light .glass,
