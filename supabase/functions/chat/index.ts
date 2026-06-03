@@ -499,7 +499,8 @@ serve(async (req) => {
 
     // Inject current date/time so the AI always knows when "now" is
     const nowString = clientDateTime || new Date().toUTCString();
-    enhancedSystemPrompt += `\n\nCurrent date and time: ${nowString}`;
+    const nowUtcIso = new Date().toISOString();
+    enhancedSystemPrompt += `\n\nCurrent date and time (user local): ${nowString}\nCurrent UTC ISO (reference for when_iso math): ${nowUtcIso}`;
 
     // Add user context (keep this minimal)
     if (profile?.display_name) {
