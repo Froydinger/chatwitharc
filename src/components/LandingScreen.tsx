@@ -260,8 +260,8 @@ function ResearchDemo() {
   );
 }
 
-const PromptPill = ({ icon, text }: { icon: string; text: string }) => (
-  <div className="flex items-center space-x-2 px-4 py-2 rounded-full glass-card cursor-pointer hover:bg-slate-100 dark:bg-slate-700/60 text-sm text-slate-700 dark:text-slate-200">
+const PromptPill = ({ icon, text, onClick }: { icon: string; text: string; onClick?: () => void }) => (
+  <div onClick={onClick} className="flex items-center space-x-2 px-4 py-2 rounded-full glass-card cursor-pointer hover:bg-slate-100 dark:bg-slate-700/60 text-sm text-slate-700 dark:text-slate-200">
     <span className="opacity-70">{icon}</span>
     <span>{text}</span>
   </div>
@@ -347,21 +347,21 @@ const AppMockup = ({ onOpenAuth }: { onOpenAuth?: () => void }) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              <PromptPill icon="💬" text="Ask" />
+              <PromptPill icon="💬" text="Ask" onClick={onOpenAuth} />
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              <PromptPill icon="💭" text="Reflect" />
+              <PromptPill icon="💭" text="Reflect" onClick={onOpenAuth} />
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
             >
-              <PromptPill icon="✨" text="Create" />
+              <PromptPill icon="✨" text="Create" onClick={onOpenAuth} />
             </motion.div>
           </div>
 
