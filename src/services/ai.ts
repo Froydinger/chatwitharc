@@ -228,7 +228,9 @@ export class AIService {
                 forceCanvas: forceCanvas || false,
                 forceCode: forceCode || false,
                 useProModel: isComplex || false,
-                clientDateTime: new Date().toString()
+                clientDateTime: new Date().toString(),
+                clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                clientTimezoneOffsetMinutes: new Date().getTimezoneOffset()
               }
             }),
             timeoutMs
@@ -421,7 +423,9 @@ export class AIService {
         sessionId,
         stream: true,
         useProModel: isComplex || false,
-        clientDateTime: new Date().toString()
+        clientDateTime: new Date().toString(),
+        clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        clientTimezoneOffsetMinutes: new Date().getTimezoneOffset()
       }),
       signal: abortSignal, // Allow cancellation
     });
