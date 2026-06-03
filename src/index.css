@@ -382,6 +382,17 @@ All colors MUST be HSL for perfect glass effects.
     color: white !important;
   }
 
+  /* Light mode text selection - higher contrast */
+  :root.light *::selection {
+    background: #1e40af !important;
+    color: white !important;
+  }
+
+  :root.light *::-moz-selection {
+    background: #1e40af !important;
+    color: white !important;
+  }
+
   /* TipTap/ProseMirror selection + content styling (no typography plugin needed) */
   .tiptap-editor {
     --tiptap-selection-bg: hsla(var(--primary), 0.35);
@@ -460,6 +471,13 @@ All colors MUST be HSL for perfect glass effects.
   input::selection,
   textarea::selection {
     background: #2563eb !important;
+    color: white !important;
+  }
+
+  /* Light mode input/textarea selection - higher contrast */
+  :root.light input::selection,
+  :root.light textarea::selection {
+    background: #1e40af !important;
     color: white !important;
   }
 
@@ -603,6 +621,13 @@ All colors MUST be HSL for perfect glass effects.
   input::-moz-selection,
   textarea::-moz-selection {
     background: #2563eb !important;
+    color: white !important;
+  }
+
+  /* Light mode moz-selection for inputs - higher contrast */
+  :root.light input::-moz-selection,
+  :root.light textarea::-moz-selection {
+    background: #1e40af !important;
     color: white !important;
   }
 
