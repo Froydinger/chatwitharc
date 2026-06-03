@@ -431,8 +431,9 @@ export function SharedChatRoomPage() {
           <div className="space-y-5">
             <div>
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-                People · {members.length}/6
+                People · {members.length + pendingInvites.length}/6
               </div>
+
               <div className="space-y-1.5">
                 {members.map((m) => (
                   <div key={m.user_id} className="flex items-center gap-2.5 p-2 rounded-lg bg-white/5">
