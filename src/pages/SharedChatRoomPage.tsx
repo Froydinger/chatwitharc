@@ -32,7 +32,10 @@ interface Member {
   avatar_url?: string | null;
 }
 
+interface PendingInvite { id: string; email: string }
+
 interface ProfileInfo { display_name: string; avatar_url: string | null }
+
 
 function initials(name?: string) {
   if (!name) return "?";
