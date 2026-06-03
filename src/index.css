@@ -43,23 +43,23 @@ All colors MUST be HSL for perfect glass effects.
     --warning: 38 92% 50%;
     --warning-foreground: 240 5% 96%;
 
-  /* UI Elements */
-  --border: 240 8% 20%;
-  --input: 240 8% 12%;
-  --input-dark: 240 10% 15%;
-  --ring: 200 95% 55%;
+    /* UI Elements */
+    --border: 240 8% 20%;
+    --input: 240 8% 12%;
+    --input-dark: 240 10% 15%;
+    --ring: 200 95% 55%;
 
     /* Glass Effects */
     --glass-bg: 240 8% 8%;
     --glass-border: 240 10% 22%;
     --glass-glow: 200 90% 65%;
-    
+
     /* Message Bubble Colors */
     --ai-message-bg: 240 8% 16%;
     --ai-message-border: 240 10% 24%;
     --user-message-bg: 200 95% 55%;
     --user-message-border: 200 95% 55%;
-    
+
     /* Radius System */
     --radius: 0.75rem;
     --radius-lg: 1rem;
@@ -118,34 +118,43 @@ All colors MUST be HSL for perfect glass effects.
 
   /* Light mode glass bubble overrides — softer shadows, visible borders */
   :root.light .user-message-bubble {
-    background: linear-gradient(135deg,
-      hsl(var(--primary) / 0.10) 0%,
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary) / 0.1) 0%,
       hsl(var(--primary) / 0.06) 50%,
-      hsl(var(--primary) / 0.18) 100%) !important;
-    border: 1px solid hsl(var(--primary) / 0.30) !important;
+      hsl(var(--primary) / 0.18) 100%
+    ) !important;
+    border: 1px solid hsl(var(--primary) / 0.3) !important;
     box-shadow:
       0 8px 24px hsl(var(--primary) / 0.12),
       inset 0 0 16px hsl(var(--primary-glow) / 0.06) !important;
   }
   :root.light .user-message-bubble:hover {
-    background: linear-gradient(135deg,
+    background: linear-gradient(
+      135deg,
       hsl(var(--primary) / 0.14) 0%,
       hsl(var(--primary) / 0.08) 50%,
-      hsl(var(--primary) / 0.22) 100%) !important;
-    border-color: hsl(var(--primary) / 0.40) !important;
+      hsl(var(--primary) / 0.22) 100%
+    ) !important;
+    border-color: hsl(var(--primary) / 0.4) !important;
     box-shadow:
       0 12px 30px hsl(var(--primary) / 0.16),
-      inset 0 0 22px hsl(var(--primary-glow) / 0.10),
-      0 0 20px hsl(var(--primary-glow) / 0.10) !important;
+      inset 0 0 22px hsl(var(--primary-glow) / 0.1),
+      0 0 20px hsl(var(--primary-glow) / 0.1) !important;
   }
 
   /* Light mode glass dock — softer shadows */
   :root.light .glass-dock {
     background:
-      linear-gradient(135deg, hsl(var(--primary) / 0.10) 0%, hsl(var(--primary) / 0.06) 50%, hsl(var(--primary) / 0.10) 100%),
-      hsl(var(--background) / 0.70);
+      linear-gradient(
+        135deg,
+        hsl(var(--primary) / 0.1) 0%,
+        hsl(var(--primary) / 0.06) 50%,
+        hsl(var(--primary) / 0.1) 100%
+      ),
+      hsl(var(--background) / 0.7);
     box-shadow:
-      0 8px 24px hsl(var(--primary) / 0.10),
+      0 8px 24px hsl(var(--primary) / 0.1),
       0 0 18px hsl(var(--primary) / 0.08),
       inset 0 1px 0 hsl(var(--foreground) / 0.04);
   }
@@ -192,8 +201,6 @@ All colors MUST be HSL for perfect glass effects.
       inset 0 1px 0 hsl(0 0% 100% / 0.7) !important;
   }
 
-
-
   /* Light mode glass cards/panels — visible borders + soft accent shadows */
   :root.light .glass,
   :root.light .glass-strong,
@@ -208,7 +215,9 @@ All colors MUST be HSL for perfect glass effects.
     color: hsl(var(--foreground)) !important;
   }
 
-  :root.light .glass-panel :is(.text-foreground, .text-card-foreground, .text-secondary-foreground, .text-accent-foreground) {
+  :root.light
+    .glass-panel
+    :is(.text-foreground, .text-card-foreground, .text-secondary-foreground, .text-accent-foreground) {
     color: hsl(var(--foreground)) !important;
   }
 
@@ -224,10 +233,9 @@ All colors MUST be HSL for perfect glass effects.
     color: hsl(var(--muted-foreground)) !important;
   }
 
-
   :root.light .glass-glow {
     box-shadow:
-      0 6px 24px hsl(var(--primary) / 0.10),
+      0 6px 24px hsl(var(--primary) / 0.1),
       0 2px 8px hsl(var(--primary) / 0.06),
       inset 0 1px 0 hsl(0 0% 100% / 0.5) !important;
   }
@@ -238,7 +246,6 @@ All colors MUST be HSL for perfect glass effects.
       0 2px 8px hsl(var(--foreground) / 0.04),
       inset 0 1px 0 hsl(0 0% 100% / 0.6) !important;
   }
-
 
   /* Noir Theme - Deep Black Glass (dark mode only) */
   :root.dark[data-accent="noir"] {
@@ -282,8 +289,6 @@ All colors MUST be HSL for perfect glass effects.
     --user-message-bg: 0 0% 0%;
     --user-message-border: 0 0% 0%;
   }
-
-
 }
 
 /* Noir dark-mode button overrides — black button with white text */
@@ -316,7 +321,6 @@ All colors MUST be HSL for perfect glass effects.
   border-color: hsl(0 0% 78%) !important;
 }
 
-
 @layer base {
   * {
     @apply border-border;
@@ -325,7 +329,7 @@ All colors MUST be HSL for perfect glass effects.
   html {
     background: hsl(var(--background));
   }
-  
+
   /* Prevent FOUC (safe mode): never fully hide the app (CSP can block inline scripts). */
   body {
     opacity: 1;
@@ -448,7 +452,12 @@ All colors MUST be HSL for perfect glass effects.
     border-radius: 9999px !important;
     overflow: hidden !important;
     background:
-      linear-gradient(135deg, hsl(var(--primary) / 0.14) 0%, hsl(var(--primary) / 0.08) 50%, hsl(var(--primary) / 0.14) 100%),
+      linear-gradient(
+        135deg,
+        hsl(var(--primary) / 0.14) 0%,
+        hsl(var(--primary) / 0.08) 50%,
+        hsl(var(--primary) / 0.14) 100%
+      ),
       hsl(var(--background) / 0.55);
     backdrop-filter: blur(24px) saturate(140%);
     -webkit-backdrop-filter: blur(24px) saturate(140%);
@@ -457,13 +466,21 @@ All colors MUST be HSL for perfect glass effects.
       0 8px 32px rgba(0, 0, 0, 0.3),
       0 0 18px hsl(var(--primary) / 0.12),
       inset 0 1px 0 hsl(var(--foreground) / 0.08);
-    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition:
+      background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: text;
   }
 
   .glass-dock:hover {
     transform: scale(1.02);
-    background: linear-gradient(135deg, hsl(var(--background) / 0.68) 0%, hsl(var(--background) / 0.62) 50%, hsl(var(--primary) / 0.18) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--background) / 0.68) 0%,
+      hsl(var(--background) / 0.62) 50%,
+      hsl(var(--primary) / 0.18) 100%
+    );
     border-color: hsl(var(--primary) / 0.35);
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.3),
@@ -472,7 +489,12 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   .glass-dock:focus-within {
-    background: linear-gradient(135deg, hsl(var(--background) / 0.65) 0%, hsl(var(--background) / 0.6) 50%, hsl(var(--primary) / 0.22) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--background) / 0.65) 0%,
+      hsl(var(--background) / 0.6) 50%,
+      hsl(var(--primary) / 0.22) 100%
+    );
     border-color: hsl(var(--primary) / 0.4);
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.3),
@@ -484,16 +506,29 @@ All colors MUST be HSL for perfect glass effects.
   .glass-dock > * {
     border-radius: 9999px !important;
   }
-  
+
   .glass-dock * {
     box-sizing: border-box;
   }
 
   /* Neutralize inner halo inside glass-dock */
-  .glass-dock button { border-color: transparent !important; }
+  .glass-dock button {
+    border-color: transparent !important;
+  }
   .glass-dock textarea,
-  .glass-dock input { background: transparent !important; border: none !important; border-radius: 0 !important; outline: none !important; box-shadow: none !important; ring: none !important; }
-  .glass-dock :is(.input-wrapper, .input-container, .chat-input, form) { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+  .glass-dock input {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    ring: none !important;
+  }
+  .glass-dock :is(.input-wrapper, .input-container, .chat-input, form) {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
   .glass-dock .chat-input-halo {
     background: transparent !important;
     border: none !important;
@@ -515,9 +550,8 @@ All colors MUST be HSL for perfect glass effects.
     --tw-ring-color: transparent !important;
   }
 
-
   .glass-dock[data-has-images="true"] {
-    box-shadow: 
+    box-shadow:
       0 12px 40px rgba(0, 0, 0, 0.4),
       0 4px 12px rgba(0, 0, 0, 0.25),
       inset 0 1px 0 hsl(var(--foreground) / 0.1);
@@ -525,19 +559,28 @@ All colors MUST be HSL for perfect glass effects.
 
   /* Neon pulse glow for Pro upsell tile */
   @keyframes neon-pulse {
-    0%, 100% {
-      box-shadow: 0 0 15px rgba(6, 182, 212, 0.15), 0 0 30px rgba(6, 182, 212, 0.05);
+    0%,
+    100% {
+      box-shadow:
+        0 0 15px rgba(6, 182, 212, 0.15),
+        0 0 30px rgba(6, 182, 212, 0.05);
       border-color: rgba(6, 182, 212, 0.3);
     }
     50% {
-      box-shadow: 0 0 25px rgba(6, 182, 212, 0.3), 0 0 50px rgba(6, 182, 212, 0.1);
+      box-shadow:
+        0 0 25px rgba(6, 182, 212, 0.3),
+        0 0 50px rgba(6, 182, 212, 0.1);
       border-color: rgba(6, 182, 212, 0.5);
     }
   }
 
   @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   input::-moz-selection,
@@ -548,18 +591,14 @@ All colors MUST be HSL for perfect glass effects.
 
   /* App-like Glass Components */
   .glass {
-    background: linear-gradient(135deg, 
-      hsla(var(--glass-bg), 0.8) 0%,
-      hsla(var(--glass-bg), 0.6) 100%);
+    background: linear-gradient(135deg, hsla(var(--glass-bg), 0.8) 0%, hsla(var(--glass-bg), 0.6) 100%);
     backdrop-filter: blur(12px) saturate(180%);
     border: 1px solid hsla(var(--glass-border), 0.4);
     border-radius: var(--radius);
   }
 
   .glass-strong {
-    background: linear-gradient(135deg, 
-      hsla(var(--glass-bg), 0.9) 0%,
-      hsla(var(--glass-bg), 0.7) 100%);
+    background: linear-gradient(135deg, hsla(var(--glass-bg), 0.9) 0%, hsla(var(--glass-bg), 0.7) 100%);
     backdrop-filter: blur(16px) saturate(180%);
     border: 1px solid hsla(var(--glass-border), 0.5);
     border-radius: var(--radius);
@@ -599,7 +638,7 @@ All colors MUST be HSL for perfect glass effects.
 
   /* Outer rim shine - top-left and bottom-right ridges only */
   .glass-shimmer::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: -1px;
     border-radius: inherit;
@@ -633,7 +672,7 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   .outline-shimmer::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: -1px;
     border-radius: inherit;
@@ -659,10 +698,7 @@ All colors MUST be HSL for perfect glass effects.
   /* Glass button styling - makes any button feel like glass */
   .glass-btn {
     position: relative;
-    background: linear-gradient(145deg,
-      hsla(var(--glass-bg), 0.85) 0%,
-      hsla(var(--glass-bg), 0.65) 100%
-    ) !important;
+    background: linear-gradient(145deg, hsla(var(--glass-bg), 0.85) 0%, hsla(var(--glass-bg), 0.65) 100%) !important;
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid hsla(var(--foreground), 0.12) !important;
@@ -675,10 +711,7 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   .glass-btn:hover {
-    background: linear-gradient(145deg,
-      hsla(var(--glass-bg), 0.95) 0%,
-      hsla(var(--glass-bg), 0.75) 100%
-    ) !important;
+    background: linear-gradient(145deg, hsla(var(--glass-bg), 0.95) 0%, hsla(var(--glass-bg), 0.75) 100%) !important;
     border-color: hsla(var(--primary), 0.35) !important;
     box-shadow:
       0 8px 32px hsla(var(--primary), 0.2),
@@ -763,17 +796,18 @@ All colors MUST be HSL for perfect glass effects.
 
   /* Hide scrollbars but keep functionality */
   .scrollbar-hide {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
-    display: none;  /* Chrome, Safari and Opera */
+    display: none; /* Chrome, Safari and Opera */
   }
 
   /* Breathing glow animation for quick prompts */
   @keyframes breathe-glow {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 0.5;
     }
     50% {
@@ -913,8 +947,8 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   /* Gradient Text */
-.gradient-text {
-  background: linear-gradient(135deg, #fff 0%, #3b82f6 100%);
+  .gradient-text {
+    background: linear-gradient(135deg, #fff 0%, #3b82f6 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
@@ -925,7 +959,7 @@ All colors MUST be HSL for perfect glass effects.
     overflow: hidden;
   }
   .shine-button::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: -100%;
@@ -933,46 +967,69 @@ All colors MUST be HSL for perfect glass effects.
     height: 100%;
     background: linear-gradient(
       to right,
-      rgba(255,255,255,0) 0%,
-      rgba(255,255,255,0.2) 50%,
-      rgba(255,255,255,0) 100%
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0) 100%
     );
     transform: skewX(-25deg);
     animation: shine 3s infinite;
   }
   @keyframes shine {
-    0% { left: -100%; }
-    20% { left: 200%; }
-    100% { left: 200%; }
+    0% {
+      left: -100%;
+    }
+    20% {
+      left: 200%;
+    }
+    100% {
+      left: 200%;
+    }
   }
 
   /* Fade In Animations */
   @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   .animate-fade-in {
     animation: fadeInUp 0.8s ease-out forwards;
     opacity: 0;
   }
-  .delay-100 { animation-delay: 0.1s; }
-  .delay-200 { animation-delay: 0.2s; }
-  .delay-300 { animation-delay: 0.3s; }
-  .delay-500 { animation-delay: 0.5s; }
+  .delay-100 {
+    animation-delay: 0.1s;
+  }
+  .delay-200 {
+    animation-delay: 0.2s;
+  }
+  .delay-300 {
+    animation-delay: 0.3s;
+  }
+  .delay-500 {
+    animation-delay: 0.5s;
+  }
 
   /* Logo Breathing Glow */
   @keyframes logo-breathe {
-    0%, 100% {
+    0%,
+    100% {
       filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.3)) brightness(1);
     }
     50% {
-      filter: drop-shadow(0 0 60px rgba(59, 130, 246, 0.8)) drop-shadow(0 0 80px rgba(6, 182, 212, 0.4)) brightness(1.15);
+      filter: drop-shadow(0 0 60px rgba(59, 130, 246, 0.8)) drop-shadow(0 0 80px rgba(6, 182, 212, 0.4))
+        brightness(1.15);
     }
   }
 
   /* Starfield twinkle animation - stars gently appear and disappear */
   @keyframes starTwinkle {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 0;
       transform: scale(0.6);
     }
@@ -999,7 +1056,9 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   /* Mac PWA/Electron Draggable Top Bar */
-  html, body, * {
+  html,
+  body,
+  * {
     -webkit-app-region: no-drag;
   }
 
@@ -1033,7 +1092,12 @@ All colors MUST be HSL for perfect glass effects.
 
   /* User message bubble - glowy glass style matching input bar */
   .user-message-bubble {
-    background: linear-gradient(135deg, hsl(var(--background) / 0.92) 0%, hsl(var(--background) / 0.88) 50%, hsl(var(--primary) / 0.22) 100%) !important;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--background) / 0.32) 0%,
+      hsl(var(--background) / 0.88) 50%,
+      hsl(var(--primary) / 0.22) 100%
+    ) !important;
     border: 1px solid hsl(var(--primary) / 0.35) !important;
     box-shadow:
       0 8px 32px rgba(0, 0, 0, 0.3),
@@ -1042,7 +1106,12 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   .user-message-bubble:hover {
-    background: linear-gradient(135deg, hsl(var(--background) / 0.9) 0%, hsl(var(--background) / 0.85) 50%, hsl(var(--primary) / 0.28) 100%) !important;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--background) / 0.9) 0%,
+      hsl(var(--background) / 0.85) 50%,
+      hsl(var(--primary) / 0.28) 100%
+    ) !important;
     border-color: hsl(var(--primary) / 0.45) !important;
     box-shadow:
       0 12px 40px rgba(0, 0, 0, 0.35),
@@ -1058,10 +1127,6 @@ All colors MUST be HSL for perfect glass effects.
     box-shadow: none;
     border-radius: 0;
   }
-
-
-
-
 
   /* One-shot aurora halo on arrival */
   @keyframes arc-aurora-halo {
@@ -1090,16 +1155,31 @@ All colors MUST be HSL for perfect glass effects.
 
   /* Settle bounce on stream end */
   @keyframes arc-settle {
-    0%   { transform: scale(1); }
-    50%  { transform: scale(1.012); }
-    100% { transform: scale(1); }
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.012);
+    }
+    100% {
+      transform: scale(1);
+    }
   }
 
   /* Logo handoff pulse - thinking -> speaking */
   @keyframes arc-logo-handoff {
-    0%   { transform: scale(1);    filter: drop-shadow(0 0 0 hsl(var(--primary) / 0)); }
-    40%  { transform: scale(1.10); filter: drop-shadow(0 0 14px hsl(var(--primary) / 0.7)); }
-    100% { transform: scale(1);    filter: drop-shadow(0 0 0 hsl(var(--primary) / 0)); }
+    0% {
+      transform: scale(1);
+      filter: drop-shadow(0 0 0 hsl(var(--primary) / 0));
+    }
+    40% {
+      transform: scale(1.1);
+      filter: drop-shadow(0 0 14px hsl(var(--primary) / 0.7));
+    }
+    100% {
+      transform: scale(1);
+      filter: drop-shadow(0 0 0 hsl(var(--primary) / 0));
+    }
   }
 
   /* Accent glow while Arc is streaming - warm settle-out when done.
@@ -1110,9 +1190,9 @@ All colors MUST be HSL for perfect glass effects.
     --arc-glow-strength: 0;
     text-shadow:
       0 0 4px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.95)),
-      0 0 12px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.80)),
-      0 0 28px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.60)),
-      0 0 52px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.40));
+      0 0 12px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.8)),
+      0 0 28px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.6)),
+      0 0 52px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.4));
     transition: --arc-glow-strength 2200ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
@@ -1134,7 +1214,7 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   @property --arc-glow-strength {
-    syntax: '<number>';
+    syntax: "<number>";
     inherits: true;
     initial-value: 0;
   }
@@ -1152,8 +1232,12 @@ All colors MUST be HSL for perfect glass effects.
 
     /* Words just fade in - no blur, no transform shift */
     @keyframes arc-word-materialize {
-      from { opacity: 0; }
-      to   { opacity: 1; }
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
     }
 
     .arc-word {
@@ -1166,7 +1250,9 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .arc-word { opacity: 1; }
+    .arc-word {
+      opacity: 1;
+    }
   }
 
   /* Noir theme: Black buttons with white text/icons */
@@ -1288,4 +1374,3 @@ All colors MUST be HSL for perfect glass effects.
     transform: scale(0.97);
   }
 }
-
