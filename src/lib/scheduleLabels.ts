@@ -1,6 +1,9 @@
 const WEEKDAYS = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
 
-function localTimeFromUtcCron(hour: number, minute: number) {
+function localTimeFromUtcCron(hour: number, minute: number, nextRunAt?: string | null) {
+  if (nextRunAt) {
+    return new Date(nextRunAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
   const date = new Date(Date.UTC(2026, 0, 1, hour, minute));
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
@@ -28,7 +31,7 @@ export function describeCronSchedule(cron?: string | null, nextRunAt?: string | 
   const numericHour = Number(hour);
   if (!Number.isInteger(numericMinute) || !Number.isInteger(numericHour)) return fallback;
 
-  const time = localTimeFromUtcCron(numericHour, numericMinute);
+  const time = localTimeFromUtcCron(numericHour, numericMinute, nextRunAt);
   if (dayOfMonth === "*" && month === "*" && dayOfWeek === "*") return `Daily at ${time}`;
   if (dayOfMonth === "*" && month === "*" && dayOfWeek === "1-5") return `Weekdays at ${time}`;
   if (dayOfMonth === "*" && month === "*" && /^\d$/.test(dayOfWeek)) {
