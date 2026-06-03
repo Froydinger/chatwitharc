@@ -203,10 +203,6 @@ export function ChatHistoryPanel() {
       <div className="px-3 pt-3 pb-2 space-y-2.5 shrink-0">
         {/* Glass quick-action row */}
         <div className="flex items-center gap-1 p-1 rounded-full backdrop-blur-2xl bg-background/40 border border-border/40 shadow-[0_0_12px_hsl(var(--primary)/0.12)]">
-            <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            <LayoutDashboard className="h-3.5 w-3.5 relative z-10 shrink-0" />
-            <span className="relative z-10 truncate">Dash</span>
-          </button>
           <button
             onClick={handleNewChat}
             className="flex-1 min-w-0 h-8 px-2 rounded-full inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold text-foreground/90 transition-all hover:scale-[1.02] active:scale-[0.97] hover:bg-primary/10"
