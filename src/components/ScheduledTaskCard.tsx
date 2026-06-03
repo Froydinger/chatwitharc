@@ -38,7 +38,10 @@ export function ScheduledTaskCard({ task }: { task: ScheduledTaskData }) {
 
   const handleDelete = async () => {
     setDeleting(true);
-    const { error } = await supabase.from("scheduled_tasks" as any).delete().eq("id", task.id);
+    const { error } = await supabase
+      .from("scheduled_tasks" as any)
+      .delete()
+      .eq("id", task.id);
     setDeleting(false);
     if (error) {
       toast.error("Couldn't cancel task");
@@ -48,7 +51,8 @@ export function ScheduledTaskCard({ task }: { task: ScheduledTaskData }) {
     toast.success("Task cancelled");
   };
 
-  const glass = "rounded-2xl border border-primary/25 bg-background/55 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3),0_0_18px_hsl(var(--primary)/0.10),inset_0_1px_0_hsl(var(--foreground)/0.06)]";
+  const glass =
+    "rounded-2xl border border-primary/25 bg-background/55 backdrop-blur-2xl shadow-[0_2px_32px_rgba(0,0,0,0.1),0_0_18px_hsl(var(--primary)/0.10),inset_0_1px_0_hsl(var(--foreground)/0.06)]";
 
   if (deleted) {
     return (
@@ -94,12 +98,7 @@ export function ScheduledTaskCard({ task }: { task: ScheduledTaskData }) {
       </div>
 
       <div className="flex items-center gap-2 pt-1">
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-8 text-xs flex-1"
-          onClick={() => navigate("/tasks")}
-        >
+        <Button size="sm" variant="ghost" className="h-8 text-xs flex-1" onClick={() => navigate("/tasks")}>
           <ExternalLink className="h-3 w-3 mr-1.5" /> Manage
         </Button>
         <Button
