@@ -444,13 +444,40 @@ export function SharedChatRoomPage() {
                     <div className="flex-1 text-sm truncate">
                       {m.display_name}{m.user_id === user.id && " (you)"}
                     </div>
-                    {m.role === "owner" && (
+                    {m.role === "owner" ? (
                       <span className="text-[10px] uppercase tracking-wide text-primary font-medium">Owner</span>
+                    ) : isOwner ? (
+                      <button
+                        onClick={() => removeMember(m.user_id)}
+                        className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
+                        aria-label="Remove member"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+                {pendingInvites.map((inv) => (
+                  <div key={inv.id} className="flex items-center gap-2.5 p-2 rounded-lg bg-white/5 opacity-80">
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="text-[10px] bg-white/10"><Mail className="h-3.5 w-3.5" /></AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 text-sm truncate">{inv.email}</div>
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Pending</span>
+                    {isOwner && (
+                      <button
+                        onClick={() => revokeInvite(inv.id)}
+                        className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
+                        aria-label="Revoke invite"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     )}
                   </div>
                 ))}
               </div>
             </div>
+
 
             {isOwner && (
               <div>
