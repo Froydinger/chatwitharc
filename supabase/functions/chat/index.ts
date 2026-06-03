@@ -201,7 +201,7 @@ async function webSearchTavily(query: string): Promise<WebSearchResponse> {
         search_depth: 'advanced',
         max_results: 5,
         include_answer: true,
-        include_raw_content: true,
+        include_raw_content: false,
         include_images: false,
       }),
     });
@@ -225,12 +225,13 @@ async function webSearchTavily(query: string): Promise<WebSearchResponse> {
       searchSummary += 'Search Results:\n';
       data.results.forEach((result: any, idx: number) => {
         searchSummary += `${idx + 1}. ${result.title}\n`;
-        const pageContent = result.raw_content || result.content || '';
+        const pageContent = (result.content || '').slice(0, 1200);
         searchSummary += `   ${pageContent}\n`;
         searchSummary += `   Source: ${result.url}\n\n`;
-        sources.push({ title: result.title, url: result.url, content: result.content?.slice(0, 200) || '' });
+        sources.push({ title: result.title, url: result.url, content: (result.content || '').slice(0, 200) });
       });
     }
+
     
     return { summary: searchSummary || 'No relevant results found.', sources, searchProvider: 'tavily' };
   } catch (error: unknown) {
