@@ -103,7 +103,7 @@ export function TasksPage() {
   const [scheduleText, setScheduleText] = useState("every day at 8am");
   const [pushOn, setPushOn] = useState(true);
   const [emailOn, setEmailOn] = useState(false);
-  const [creating_unused_placeholder, _] = [false, null]; void creating_unused_placeholder; void _;
+  
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
