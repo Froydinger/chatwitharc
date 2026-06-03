@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   X,
   Crown,
@@ -12,9 +13,12 @@ import {
   Monitor,
   MoreHorizontal,
   MessageSquare,
+  Check,
+  Palette,
 } from "lucide-react";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
-import { useAccentStore } from "@/store/useAccentStore";
+import { useAccentStore, type AccentColor } from "@/store/useAccentStore";
+import { useAccentColor } from "@/hooks/useAccentColor";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
 import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +40,17 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 export type RightPanelTab = "history" | "quote" | "settings";
+
+// Quick accent-color swatches for the overflow menu (matches Settings → Appearance)
+const ACCENT_SWATCHES: { id: AccentColor; label: string; gradient: string }[] = [
+  { id: "red",    label: "Red",    gradient: "linear-gradient(135deg, hsl(0,90%,48%), hsl(0,90%,58%))" },
+  { id: "blue",   label: "Blue",   gradient: "linear-gradient(135deg, hsl(205,100%,48%), hsl(205,95%,58%))" },
+  { id: "green",  label: "Green",  gradient: "linear-gradient(135deg, hsl(145,82%,35%), hsl(145,80%,45%))" },
+  { id: "yellow", label: "Yellow", gradient: "linear-gradient(135deg, hsl(45,100%,48%), hsl(45,100%,58%))" },
+  { id: "purple", label: "Purple", gradient: "linear-gradient(135deg, hsl(268,85%,52%), hsl(268,82%,62%))" },
+  { id: "orange", label: "Orange", gradient: "linear-gradient(135deg, hsl(22,100%,50%), hsl(22,98%,60%))" },
+  { id: "noir",   label: "Noir",   gradient: "linear-gradient(135deg, hsl(0,0%,4%), hsl(0,0%,18%))" },
+];
 
 interface RightPanelProps {
   isOpen: boolean;
@@ -61,9 +76,11 @@ export function RightPanel({
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const isAdminBannerActive = useAdminBanner();
   const { isSubscribed } = useSubscription();
+  const navigate = useNavigate();
   const corporateMode = useCorporateModeStore((s) => s.enabled);
   const setCorporate = useCorporateModeStore((s) => s.setEnabled);
   const accent = useAccentStore((s) => s.accentColor);
+  const { setAccentColor } = useAccentColor();
   const themeMode = useAccentStore((s) => s.themeMode);
   const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
   const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
@@ -276,6 +293,43 @@ export function RightPanel({
                   <DropdownMenuItem onClick={cycleThemeMode} className="gap-2 cursor-pointer">
                     <ThemeIcon className="h-4 w-4" />
                     <span className="text-sm">Theme: {themeLabel}</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Accent color</DropdownMenuLabel>
+                  <div className="flex items-center justify-between gap-1 px-2 py-1.5">
+                    {ACCENT_SWATCHES.map((opt) => {
+                      const isActive = accent === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setAccentColor(opt.id);
+                          }}
+                          title={opt.label}
+                          aria-label={`Select ${opt.label} accent color`}
+                          className={cn(
+                            "relative h-6 w-6 rounded-full transition-transform",
+                            isActive ? "ring-2 ring-offset-1 ring-offset-popover ring-primary scale-110" : "hover:scale-110",
+                          )}
+                          style={{ background: opt.gradient }}
+                        >
+                          {isActive && (
+                            <Check className="absolute inset-0 m-auto h-3.5 w-3.5 text-white drop-shadow" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => navigate("/dashboard/settings?section=appearance")}
+                    className="gap-2 cursor-pointer"
+                  >
+                    <Palette className="h-4 w-4" />
+                    <span className="text-sm">Appearance settings</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
