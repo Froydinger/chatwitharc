@@ -226,7 +226,7 @@ export function ChatHistoryPanel() {
               goToChat();
             }}
             className="flex-1 min-w-0 h-8 px-2 rounded-full inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold text-foreground/90 transition-all hover:scale-[1.02] active:scale-[0.97] hover:bg-primary/10"
-            title="Deep Search"
+            title="Deep Search™"
           >
             <Search className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
             <span className="truncate">Deep</span>
