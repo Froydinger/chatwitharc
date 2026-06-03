@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { describeCronSchedule } from "@/lib/scheduleLabels";
 
 interface Task {
   id: string;
@@ -262,7 +263,7 @@ export function TasksPage() {
                       <StatusPill status={t.status} />
                       <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                         {t.schedule_type === "cron" ? <Repeat className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                        {t.schedule_type === "cron" ? t.cron_expr : "once"}
+                        {t.schedule_type === "cron" ? describeCronSchedule(t.cron_expr, t.next_run_at) : "once"}
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{t.prompt}</p>
