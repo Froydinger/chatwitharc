@@ -210,7 +210,7 @@ export function ChatHistoryPanel() {
           >
             <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             <LayoutDashboard className="h-3.5 w-3.5 relative z-10 shrink-0" />
-            <span className="relative z-10 truncate">Dashboard</span>
+            <span className="relative z-10 truncate">Dash</span>
           </button>
           <button
             onClick={handleNewChat}
