@@ -464,11 +464,12 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                         onClick={() => setAccentColor(opt.id as AccentColor)}
                         className={cn(
                           "aspect-square rounded-xl relative transition-all",
+                          opt.id === "noir" && "accent-swatch-noir",
                           accentColor === opt.id
                             ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110"
                             : "hover:scale-105"
                         )}
-                        style={{ background: opt.gradient }}
+                        style={opt.id === "noir" ? undefined : { background: opt.gradient }}
                         aria-label={`Select ${opt.label}`}
                       >
                         {accentColor === opt.id && <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow-lg" />}

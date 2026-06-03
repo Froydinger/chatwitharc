@@ -674,6 +674,22 @@ All colors MUST be HSL for perfect glass effects.
     border-radius: var(--radius);
   }
 
+  /* Noir accent swatch preview — flips with the active theme:
+     black in dark mode, white in light mode (with a hairline so it stays
+     visible on light cards). Inherits the button's border-radius, so it works
+     for both the square (settings) and circle (sidebar) swatches. */
+  :root.dark .accent-swatch-noir {
+    background: linear-gradient(135deg, hsl(0 0% 4%), hsl(0 0% 18%));
+  }
+  :root.light .accent-swatch-noir {
+    background: linear-gradient(135deg, hsl(0 0% 100%), hsl(0 0% 85%));
+    border: 1px solid hsl(0 0% 80%);
+  }
+  /* Active checkmark needs dark ink on the white (light-mode) swatch */
+  :root.light .accent-swatch-noir svg {
+    color: hsl(0 0% 10%) !important;
+  }
+
   /* Solid panel - fully opaque for sidebars and panels */
   .panel-solid {
     background: hsl(var(--background));

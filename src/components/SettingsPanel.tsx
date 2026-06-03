@@ -682,11 +682,13 @@ export function SettingsPanel() {
                 key={opt.id}
                 onClick={() => setAccentColor(opt.id)}
                 className={`aspect-square rounded-xl relative transition-all ${
+                  opt.id === "noir" ? "accent-swatch-noir " : ""
+                }${
                   isActive
                     ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110"
                     : "hover:scale-105"
                 }`}
-                style={{ background: opt.gradient }}
+                style={opt.id === "noir" ? undefined : { background: opt.gradient }}
                 aria-label={`Select ${opt.label} accent color`}
               >
                 {isActive && <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-lg" />}
