@@ -247,14 +247,17 @@ export function SharedChatRoomPage() {
         attachments: attachments.length > 0 ? attachments : undefined,
       });
 
+      if (error) {
+        toast({ title: "Send failed", description: error.message, variant: "destructive" });
+        setText(content);
+        setSending(false);
+        setUploadingImages(false);
+        return;
+      }
+
       setSending(false);
       setImageMode(false);
       textareaRef.current?.focus();
-    if (error) {
-      toast({ title: "Send failed", description: error.message, variant: "destructive" });
-      setText(content);
-      return;
-    }
     await supabase.from("shared_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId);
 
     if (mentionedIds.length) {
@@ -271,12 +274,17 @@ export function SharedChatRoomPage() {
       }).catch(() => {});
     }
 
-    if (wantImage) {
-      void generateSharedImage(imagePrompt);
-    } else if (wantArc) {
-      setAiThinking(true);
-      supabase.functions.invoke("shared-chat-respond", { body: { chat_id: chatId } })
-        .catch((e) => { setAiThinking(false); toast({ title: "Arc couldn't reply", description: String(e), variant: "destructive" }); });
+      if (wantImage) {
+        void generateSharedImage(imagePrompt);
+      } else if (wantArc) {
+        setAiThinking(true);
+        supabase.functions.invoke("shared-chat-respond", { body: { chat_id: chatId } })
+          .catch((e) => { setAiThinking(false); toast({ title: "Arc couldn't reply", description: String(e), variant: "destructive" }); });
+      }
+    } catch (e: any) {
+      setSending(false);
+      setUploadingImages(false);
+      toast({ title: "Error", description: String(e?.message ?? e), variant: "destructive" });
     }
   }
 
