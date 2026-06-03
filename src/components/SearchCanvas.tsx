@@ -65,8 +65,8 @@ function ResearchUpgradeWall({ onClose }: { onClose: () => void }) {
 
         <h2 className="text-2xl font-bold text-white">Unlock Deep Search™</h2>
         <p className="text-gray-400 text-sm leading-relaxed">
-          Search the web, get cited summaries, and save sources — all powered by AI. Deep Search™ is available with Arc
-          Pro.
+          Search the web, get cited summaries, and save sources — all powered by AI. Deep Search™ is available with ArcAI
+          Boost.
         </p>
 
         {/* Feature pills */}
@@ -88,10 +88,10 @@ function ResearchUpgradeWall({ onClose }: { onClose: () => void }) {
           className="w-full px-6 py-3.5 rounded-full font-semibold bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 transition-all flex items-center justify-center gap-2"
         >
           <Crown className="w-4 h-4" />
-          Upgrade to Pro
+          Upgrade to Boost
         </button>
 
-        <p className="text-[11px] text-gray-500">$12/month · Cancel anytime</p>
+        <p className="text-[11px] text-gray-500">$7/month · Cancel anytime</p>
       </motion.div>
     </div>
   );

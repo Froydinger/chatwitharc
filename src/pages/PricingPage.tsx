@@ -77,8 +77,9 @@ export function PricingPage() {
                 "Create up to 2 shared chats (owner + up to 5 others, 6 total)",
                 "10 voice conversations every 30 days",
                 "10 image generations per day",
-                "Web search, file uploads, document analysis",
-                "Memory, canvases, code generation",
+                "File uploads & document analysis",
+                "Memory & canvases",
+                "Code generation & execution",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-primary mt-0.5 shrink-0" />
@@ -106,6 +107,7 @@ export function PricingPage() {
                 "Everything in Free",
                 "Unlimited image generations",
                 "Unlimited voice conversations",
+                "Deep Search™ — web search with AI summaries & citations",
                 "Create unlimited shared chats (still up to 6 people per chat)",
                 "Publish code creations to the web (yourname.froydingermedia.online)",
                 "Cancel anytime — no contracts",

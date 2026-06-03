@@ -978,6 +978,14 @@ export function LandingScreen() {
             Lo-fi beats, jazz, ambient — curated focus music built right into ArcAi. No tab switching, no interruptions.
             Just vibes.
           </p>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
+              Boost
+            </span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
+              Included with Boost
+            </span>
+          </div>
         </motion.div>
 
         <motion.div

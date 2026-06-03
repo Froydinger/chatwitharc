@@ -100,8 +100,8 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
             <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/20 mb-3">
               <Crown className="w-8 h-8 text-cyan-400" />
             </div>
-            <h3 className="text-lg font-bold text-foreground mb-1">Pro Feature</h3>
-            <p className="text-sm text-muted-foreground mb-4 text-center px-8">Upgrade to Pro to unlock the music player</p>
+            <h3 className="text-lg font-bold text-foreground mb-1">Boost Feature</h3>
+            <p className="text-sm text-muted-foreground mb-4 text-center px-8">Upgrade to Boost to unlock the music player</p>
             <button
               onClick={() => {
                 onClose();
@@ -110,7 +110,7 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
               className="px-6 py-2.5 rounded-full font-semibold text-sm bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:opacity-90 transition-opacity flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.3)]"
             >
               <Crown className="w-4 h-4" />
-              Upgrade to Pro
+              Upgrade to Boost
             </button>
           </div>
         )}

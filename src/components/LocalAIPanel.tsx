@@ -325,7 +325,7 @@ export function LocalAIPanel() {
       {!isMobileLocal && proLocked && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
           <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-muted-foreground">Upgrade to Pro to unlock on-device AI.</p>
+          <p className="text-xs text-muted-foreground">Upgrade to Boost to unlock on-device AI.</p>
         </div>
       )}
 
