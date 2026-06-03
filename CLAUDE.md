@@ -37,5 +37,5 @@ in `src/` — can be changed in this repo as normal.
   `orange`, `noir`) defined in `src/hooks/useAccentColor.tsx`, selected in
   `src/components/SettingsPanel.tsx` (Appearance) and quick-switched from the
   sidebar overflow menu in `src/components/RightPanel.tsx`. The default for new
-  users is set in `src/store/useAccentStore.ts` (currently `noir`); existing
+  users is set in `src/store/useAccentStore.ts` (currently `blue`); existing
   users keep whatever is saved in `localStorage` / their Supabase profile.
