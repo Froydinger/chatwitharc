@@ -64,6 +64,7 @@ export function SharedChatRoomPage() {
   const [chat, setChat] = useState<{ id: string; title: string; owner_id: string } | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [profilesMap, setProfilesMap] = useState<Map<string, ProfileInfo>>(new Map());
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
