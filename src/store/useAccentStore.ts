@@ -33,9 +33,10 @@ export const useAccentStore = create<AccentStore>((set, get) => ({
   accentColor: (() => {
     try {
       const saved = localStorage.getItem("accentColor");
-      return isAccentColor(saved) ? saved : "blue";
+      // New users default to Noir; existing users keep whatever they've saved.
+      return isAccentColor(saved) ? saved : "noir";
     } catch {
-      return "blue";
+      return "noir";
     }
   })(),
   themeMode: (() => {
