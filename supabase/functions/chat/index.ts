@@ -1588,7 +1588,7 @@ Output the complete, finished writing using the update_canvas tool.`;
 
             const scheduleType = cronExpr ? 'cron' : 'once';
             const nextRunAt = cronExpr
-              ? new Date(Date.now() + 60_000).toISOString() // run-scheduled-tasks will recompute after first fire
+              ? nextCronRun(cronExpr, new Date()).toISOString()
               : new Date(whenIso!).toISOString();
 
             const { data: inserted, error: insErr } = await supabase
