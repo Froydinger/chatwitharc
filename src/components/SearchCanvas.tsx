@@ -1420,7 +1420,7 @@ export function SearchCanvas() {
                   </div>
                 </div>
 
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Deep Search</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Deep Search™</h2>
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Get instant answers with real-time web search and cited sources
                 </p>
