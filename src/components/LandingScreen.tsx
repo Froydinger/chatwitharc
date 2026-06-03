@@ -370,7 +370,8 @@ const AppMockup = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.7 }}
-            className="glass-dock w-[88%] md:w-full max-w-xl rounded-full h-11 md:h-12 flex items-center gap-2 pl-1.5 pr-1.5 relative"
+            onClick={() => setShowAuthModal(true)}
+            className="glass-dock w-[88%] md:w-full max-w-xl rounded-full h-11 md:h-12 flex items-center gap-2 pl-1.5 pr-1.5 relative cursor-pointer"
           >
             <div className="shrink-0 h-8 w-8 md:h-9 md:w-9 rounded-full flex items-center justify-center text-muted-foreground">
               <Plus className="h-4 w-4 md:h-4.5 md:w-4.5" />
