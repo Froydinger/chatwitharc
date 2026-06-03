@@ -66,14 +66,8 @@ export function RightPanel({
   const accent = useAccentStore((s) => s.accentColor);
   const themeMode = useAccentStore((s) => s.themeMode);
   const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
-  const ThemeIcon =
-    themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
-  const themeLabel =
-    themeMode === "light"
-      ? "Light"
-      : themeMode === "system"
-      ? "System"
-      : "Dark";
+  const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
+  const themeLabel = themeMode === "light" ? "Light" : themeMode === "system" ? "System" : "Dark";
 
   const { selectedModelId, status: localStatus } = useLocalAIStore();
   const { toast } = useToast();
@@ -82,8 +76,7 @@ export function RightPanel({
   const handleToggleCorporate = () => {
     if (isMobileLocal) return;
     const next = !corporateMode;
-    const { isLoading, isGeneratingImage, messages, createNewSession } =
-      useArcStore.getState();
+    const { isLoading, isGeneratingImage, messages, createNewSession } = useArcStore.getState();
     if (isLoading || isGeneratingImage) {
       toast({
         title: "Finish the current message first",
@@ -96,8 +89,7 @@ export function RightPanel({
       setCorporate(true, accent);
       toast({
         title: "Download a local model first",
-        description:
-          "Corporate Mode needs an on-device model. Open Settings → Arc Local to pick one.",
+        description: "Corporate Mode needs an on-device model. Open Settings → Arc Local to pick one.",
       });
       return;
     }
@@ -113,13 +105,11 @@ export function RightPanel({
 
   useEffect(() => {
     const isPWA =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true;
+      window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
     const isElectron = /electron/i.test(navigator.userAgent);
     const isMobileDevice =
       /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-      (navigator.userAgent.includes("Macintosh") &&
-        navigator.maxTouchPoints > 1);
+      (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
     setIsStandaloneApp((isPWA || isElectron) && !isMobileDevice);
   }, []);
 
@@ -157,14 +147,10 @@ export function RightPanel({
           "hidden lg:inline-flex h-9 w-9 rounded-full transition-colors",
           isDocked
             ? "bg-primary/15 text-primary hover:bg-primary/25"
-            : "bg-muted/40 hover:bg-primary/15 hover:text-primary"
+            : "bg-muted/40 hover:bg-primary/15 hover:text-primary",
         )}
       >
-        {isDocked ? (
-          <PinOff className="h-4 w-4" />
-        ) : (
-          <Pin className="h-4 w-4" />
-        )}
+        {isDocked ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
       </Button>
     </>
   );
@@ -195,7 +181,7 @@ export function RightPanel({
         className={cn(
           "fixed left-0 z-50 panel-solid border-r border-border/60 shadow-2xl",
           "w-full sm:w-[22rem] lg:w-[20rem] xl:w-[22rem]",
-          "flex flex-col overflow-hidden"
+          "flex flex-col overflow-hidden",
         )}
         style={{
           top: `calc(env(safe-area-inset-top, 0px) + ${
@@ -206,10 +192,7 @@ export function RightPanel({
           })`,
         }}
       >
-        <div
-          className="flex flex-col h-full"
-          style={{ paddingTop: isStandaloneApp ? "30px" : undefined }}
-        >
+        <div className="flex flex-col h-full" style={{ paddingTop: isStandaloneApp ? "30px" : undefined }}>
           {/* Header — minimal: dock/close · segmented tabs · theme + overflow */}
           <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50">
             {DockOrClose}
@@ -222,8 +205,8 @@ export function RightPanel({
                   className={cn(
                     "inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-xs font-semibold transition-all",
                     activeTab === "history"
-                      ? "bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.45)]"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-primary/20 text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.45)]"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   <MessageSquare className="h-3.5 w-3.5" />
@@ -234,8 +217,8 @@ export function RightPanel({
                   className={cn(
                     "inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-xs font-semibold transition-all",
                     activeTab === "quote"
-                      ? "bg-primary text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.45)]"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-primary/20 text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.45)]"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   <Quote className="h-3.5 w-3.5" />
@@ -278,40 +261,19 @@ export function RightPanel({
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-56 panel-solid border-border/60"
-                >
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">
-                    Modes
-                  </DropdownMenuLabel>
-                  <DropdownMenuItem
-                    onClick={handleToggleCorporate}
-                    className="gap-2 cursor-pointer"
-                  >
-                    {corporateMode ? (
-                      <Lock className="h-4 w-4 text-primary" />
-                    ) : (
-                      <Unlock className="h-4 w-4" />
-                    )}
+                <DropdownMenuContent align="end" className="w-56 panel-solid border-border/60">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Modes</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={handleToggleCorporate} className="gap-2 cursor-pointer">
+                    {corporateMode ? <Lock className="h-4 w-4 text-primary" /> : <Unlock className="h-4 w-4" />}
                     <div className="flex flex-col flex-1">
-                      <span className="text-sm">
-                        {corporateMode
-                          ? "Corporate Mode: On"
-                          : "Corporate Mode"}
-                      </span>
+                      <span className="text-sm">{corporateMode ? "Corporate Mode: On" : "Corporate Mode"}</span>
                       <span className="text-[10px] text-muted-foreground">
-                        {corporateMode
-                          ? "On-device only"
-                          : "Lock to on-device model"}
+                        {corporateMode ? "On-device only" : "Lock to on-device model"}
                       </span>
                     </div>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={cycleThemeMode}
-                    className="gap-2 cursor-pointer"
-                  >
+                  <DropdownMenuItem onClick={cycleThemeMode} className="gap-2 cursor-pointer">
                     <ThemeIcon className="h-4 w-4" />
                     <span className="text-sm">Theme: {themeLabel}</span>
                   </DropdownMenuItem>
@@ -363,21 +325,15 @@ export function RightPanel({
           {!isSubscribed && (
             <div className="p-3 border-t border-border/50">
               <button
-                onClick={() =>
-                  window.dispatchEvent(new CustomEvent("open-upgrade-modal"))
-                }
+                onClick={() => window.dispatchEvent(new CustomEvent("open-upgrade-modal"))}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/25 hover:border-primary/50 transition-all group"
               >
                 <div className="p-1.5 rounded-lg bg-primary/20">
                   <Crown className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex-1 text-left min-w-0">
-                  <p className="text-sm font-semibold text-foreground">
-                    Upgrade to Pro
-                  </p>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    Unlimited messages & more
-                  </p>
+                  <p className="text-sm font-semibold text-foreground">Upgrade to Pro</p>
+                  <p className="text-[11px] text-muted-foreground truncate">Unlimited messages & more</p>
                 </div>
                 <span className="text-xs font-bold text-primary">$12/mo</span>
               </button>
