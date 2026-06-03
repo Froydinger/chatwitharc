@@ -8,7 +8,6 @@ import {
   Search,
   LayoutDashboard,
   Share2,
-  ChevronLeft,
   ChevronRight,
   X,
 } from "lucide-react";
@@ -83,7 +82,8 @@ export function ChatHistoryPanel() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [shareSessionId, setShareSessionId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [page, setPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement | null>(null);
 
@@ -164,11 +164,11 @@ export function ChatHistoryPanel() {
   }, [sortedSessions, query]);
 
   const isSearching = query.trim().length > 0;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
-  const paginated = useMemo(() => {
-    const start = (page - 1) * ITEMS_PER_PAGE;
-    return filtered.slice(start, start + ITEMS_PER_PAGE);
-  }, [filtered, page]);
+  const paginated = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount]
+  );
+  const hasMore = visibleCount < filtered.length;
 
   // Group by date label (only when not searching)
   const grouped = useMemo(() => {
@@ -187,17 +187,36 @@ export function ChatHistoryPanel() {
   }, [paginated, isSearching, filtered.length]);
 
   useEffect(() => {
-    setPage(1);
+    setVisibleCount(ITEMS_PER_PAGE);
   }, [query]);
 
-  // Auto-jump to page with active session
+  // Ensure active session is included in visible window
   useEffect(() => {
     if (!currentSessionId || isSearching) return;
     const idx = filtered.findIndex((s) => s.id === currentSessionId);
     if (idx < 0) return;
-    const target = Math.floor(idx / ITEMS_PER_PAGE) + 1;
-    setPage((p) => (p === target ? p : target));
-  }, [currentSessionId, filtered, isSearching]);
+    if (idx >= visibleCount) {
+      const next = Math.ceil((idx + 1) / ITEMS_PER_PAGE) * ITEMS_PER_PAGE;
+      setVisibleCount(next);
+    }
+  }, [currentSessionId, filtered, isSearching, visibleCount]);
+
+  // Infinite scroll: auto-load when sentinel is visible
+  useEffect(() => {
+    if (!hasMore) return;
+    const el = loadMoreRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setVisibleCount((c) => c + ITEMS_PER_PAGE);
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore, paginated.length]);
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden">
@@ -335,6 +354,19 @@ export function ChatHistoryPanel() {
           </div>
         ) : (
           <div className="space-y-4">
+            <button
+              onClick={() => {
+                navigate("/dashboard?tab=chats");
+                goToChat();
+              }}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-border/40 bg-muted/20 hover:bg-primary/10 hover:border-primary/40 transition-all text-[11px] font-semibold text-muted-foreground hover:text-primary group"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <LayoutDashboard className="h-3.5 w-3.5" />
+                Full chat history
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </button>
             {grouped.map((group) => (
               <div key={group.label} className="space-y-1">
                 <div className="px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
@@ -416,32 +448,20 @@ export function ChatHistoryPanel() {
               </div>
             ))}
 
-            {/* Compact pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-1 pt-2 pb-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary disabled:opacity-30"
-                  aria-label="Previous page"
+            {/* Infinite scroll sentinel + Load more */}
+            {hasMore && (
+              <div
+                ref={loadMoreRef}
+                className="flex items-center justify-center pt-2 pb-1"
+              >
+                <button
+                  onClick={() =>
+                    setVisibleCount((c) => c + ITEMS_PER_PAGE)
+                  }
+                  className="h-8 px-3 rounded-full text-[11px] font-semibold text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-[11px] font-semibold tabular-nums text-muted-foreground px-2">
-                  {page} / {totalPages}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary disabled:opacity-30"
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                  Load more ({filtered.length - visibleCount} left)
+                </button>
               </div>
             )}
           </div>
