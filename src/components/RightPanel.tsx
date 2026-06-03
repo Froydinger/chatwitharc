@@ -311,9 +311,10 @@ export function RightPanel({
                           aria-label={`Select ${opt.label} accent color`}
                           className={cn(
                             "relative h-6 w-6 rounded-full transition-transform",
+                            opt.id === "noir" && "accent-swatch-noir",
                             isActive ? "ring-2 ring-offset-1 ring-offset-popover ring-primary scale-110" : "hover:scale-110",
                           )}
-                          style={{ background: opt.gradient }}
+                          style={opt.id === "noir" ? undefined : { background: opt.gradient }}
                         >
                           {isActive && (
                             <Check className="absolute inset-0 m-auto h-3.5 w-3.5 text-white drop-shadow" />
