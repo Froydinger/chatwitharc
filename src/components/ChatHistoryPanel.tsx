@@ -82,7 +82,8 @@ export function ChatHistoryPanel() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [shareSessionId, setShareSessionId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [page, setPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement | null>(null);
 
