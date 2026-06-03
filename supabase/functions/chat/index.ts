@@ -49,6 +49,51 @@ function nextCronRun(expr: string, from: Date): Date {
   return new Date(from.getTime() + 60 * 60 * 1000);
 }
 
+function utcCronForLocalTime(hour: number, minute: number, offsetMinutes: number): string {
+  const utcMinuteOfDay = ((hour * 60 + minute + offsetMinutes) % 1440 + 1440) % 1440;
+  return `${utcMinuteOfDay % 60} ${Math.floor(utcMinuteOfDay / 60)} * * *`;
+}
+
+function deterministicScheduleFromText(text: string, offsetMinutes: number): { cronExpr?: string; whenIso?: string } | null {
+  const s = text.toLowerCase();
+  const parseHour = (rawHour: string, rawMin?: string, ampm?: string) => {
+    let hour = parseInt(rawHour, 10);
+    const minute = rawMin ? parseInt(rawMin, 10) : 0;
+    if (!Number.isFinite(hour) || hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    if (ampm === 'pm' && hour < 12) hour += 12;
+    if (ampm === 'am' && hour === 12) hour = 0;
+    return { hour, minute };
+  };
+
+  const inMatch = s.match(/\bin\s+(\d+)\s*(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b/);
+  if (inMatch) {
+    const amount = parseInt(inMatch[1], 10);
+    const multiplier = inMatch[2].startsWith('h') ? 60 * 60 * 1000 : 60 * 1000;
+    return { whenIso: new Date(Date.now() + amount * multiplier).toISOString() };
+  }
+
+  const recurring = /\b(every|daily|each day|weekday|weekdays|morning|evening|night|afternoon)\b/.test(s);
+  if (!recurring) return null;
+
+  let time = s.match(/\b(?:at|around)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/) || s.match(/\b(\d{1,2})(?::(\d{2}))\s*(am|pm)?\b/);
+  let parsed = time ? parseHour(time[1], time[2], time[3]) : null;
+  if (!parsed) {
+    if (/\bmorning\b/.test(s)) parsed = { hour: 9, minute: 0 };
+    else if (/\bafternoon\b/.test(s)) parsed = { hour: 13, minute: 0 };
+    else if (/\bevening\b/.test(s)) parsed = { hour: 18, minute: 0 };
+    else if (/\bnight\b/.test(s)) parsed = { hour: 21, minute: 0 };
+    else parsed = { hour: 9, minute: 0 };
+  }
+
+  const base = utcCronForLocalTime(parsed.hour, parsed.minute, offsetMinutes);
+  if (/\bweekdays?\b/.test(s)) return { cronExpr: base.replace(' * * *', ' * * 1-5') };
+  const dayMap: Record<string, number> = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+  for (const [day, value] of Object.entries(dayMap)) {
+    if (new RegExp(`\\b${day}s?\\b`).test(s)) return { cronExpr: base.replace(' * * *', ` * * ${value}`) };
+  }
+  return { cronExpr: base };
+}
+
 // Sanitize any leaked tool call JSON from AI response text
 function sanitizeLeakedToolCalls(text: string): string {
   if (!text) return text;
