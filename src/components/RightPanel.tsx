@@ -205,7 +205,7 @@ export function RightPanel({
                   className={cn(
                     "inline-flex items-center gap-1.5 h-7 px-3 rounded-full text-xs font-semibold transition-all",
                     activeTab === "history"
-                      ? "bg-primary/60 text-primary-foreground shadow-[0_0_10px_hsl(var(--primary)/0.45)]"
+                      ? "bg-primary/60 text-primary-foreground shadow-[0_0_5px_hsl(var(--primary)/0.45)]"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
