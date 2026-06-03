@@ -103,7 +103,7 @@ export function TasksPage() {
   const [scheduleText, setScheduleText] = useState("every day at 8am");
   const [pushOn, setPushOn] = useState(true);
   const [emailOn, setEmailOn] = useState(false);
-  const [model, setModel] = useState("google/gemini-2.5-flash");
+  
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -156,7 +156,6 @@ export function TasksPage() {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
       push_on_complete: pushOn,
       notify_email: emailOn,
-      model,
     });
     setCreating(false);
     if (error) {
@@ -220,26 +219,12 @@ export function TasksPage() {
               <Label>Prompt</Label>
               <Textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Give me a 3-bullet briefing on AI news from the last 24 hours." rows={4} />
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Schedule</Label>
-                <Input value={scheduleText} onChange={(e) => setScheduleText(e.target.value)} placeholder="every day at 8am" />
-                <p className="text-xs text-muted-foreground">
-                  Try: <code>every day at 8am</code>, <code>every hour</code>, <code>every monday</code>, <code>in 30 minutes</code>
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>Model</Label>
-                <Select value={model} onValueChange={setModel}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="google/gemini-2.5-flash">Gemini 2.5 Flash (fast)</SelectItem>
-                    <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro (smart)</SelectItem>
-                    <SelectItem value="openai/gpt-5-mini">GPT-5 mini</SelectItem>
-                    <SelectItem value="openai/gpt-5">GPT-5</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label>Schedule</Label>
+              <Input value={scheduleText} onChange={(e) => setScheduleText(e.target.value)} placeholder="every day at 8am" />
+              <p className="text-xs text-muted-foreground">
+                Try: <code>every day at 8am</code>, <code>every hour</code>, <code>every monday</code>, <code>in 30 minutes</code>
+              </p>
             </div>
             <div className="flex items-center justify-between">
               <Label className="flex items-center gap-2">Push notification when done</Label>
