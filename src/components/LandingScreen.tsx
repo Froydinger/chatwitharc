@@ -376,7 +376,7 @@ const AppMockup = () => {
               <Plus className="h-4 w-4 md:h-4.5 md:w-4.5" />
             </div>
             <div className="flex-1 text-left text-muted-foreground/70 font-light text-sm truncate">Ask anything...</div>
-            <div className="shrink-0 h-8 w-8 md:h-9 md:w-9 rounded-full flex items-center justify-center bg-primary/10 text-primary-foreground ring-2 ring-primary shadow-[0_0_12px_hsl(var(--primary)/0.3)]">
+            <div className="shrink-0 h-8 w-8 md:h-9 md:w-9 rounded-full flex items-center justify-center bg-primary/10 text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]">
               <ArrowRight className="h-4 w-4 md:h-4.5 md:w-4.5" />
             </div>
           </motion.div>
