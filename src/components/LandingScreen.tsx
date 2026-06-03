@@ -291,7 +291,7 @@ const FeatureCard = ({
 );
 
 // App Mockup Component
-const AppMockup = () => {
+const AppMockup = ({ onOpenAuth }: { onOpenAuth?: () => void }) => {
   const [activeCardPopup, setActiveCardPopup] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -370,7 +370,7 @@ const AppMockup = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.7 }}
-            onClick={() => setShowAuthModal(true)}
+            onClick={onOpenAuth}
             className="glass-dock w-[88%] md:w-full max-w-xl rounded-full h-11 md:h-12 flex items-center gap-2 pl-1.5 pr-1.5 relative cursor-pointer"
           >
             <div className="shrink-0 h-8 w-8 md:h-9 md:w-9 rounded-full flex items-center justify-center text-muted-foreground">
@@ -687,7 +687,7 @@ export function LandingScreen() {
 
           {/* App Showcase - framed between logo and headline */}
           <div className="mb-10">
-            <AppMockup />
+            <AppMockup onOpenAuth={() => setShowAuthModal(true)} />
           </div>
 
           <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight leading-tight">
