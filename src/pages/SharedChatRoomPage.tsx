@@ -110,21 +110,23 @@ export function SharedChatRoomPage() {
 
   async function loadAll() {
     if (!chatId || !user) return;
-    const [{ data: c }, { data: msgs }, { data: mems }] = await Promise.all([
+    const [{ data: c }, { data: msgs }, { data: mems }, { data: invs }] = await Promise.all([
       supabase.from("shared_chats").select("id,title,owner_id").eq("id", chatId).maybeSingle(),
       supabase.from("shared_chat_messages").select("*").eq("chat_id", chatId).order("created_at", { ascending: true }).limit(200),
       supabase.from("shared_chat_members").select("user_id,role").eq("chat_id", chatId),
+      supabase.from("shared_chat_invites").select("id,email,accepted_at").eq("chat_id", chatId).is("accepted_at", null),
     ]);
     if (!c) { toast({ title: "Chat not found", variant: "destructive" }); navigate("/shared"); return; }
     setChat(c as any);
     setMessages((msgs as any) ?? []);
+    setPendingInvites(((invs as any[]) ?? []).map((i) => ({ id: i.id, email: i.email })));
     const userIds = Array.from(new Set([
       ...((mems as any[]) ?? []).map((m) => m.user_id),
       ...((msgs as any[]) ?? []).map((m) => m.author_user_id).filter(Boolean),
     ]));
     if (userIds.length) {
       const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
-      const map = new Map<string, ProfileInfo>((profs ?? []).map((p: any) => [p.user_id, { display_name: p.display_name ?? "User", avatar_url: p.avatar_url ?? null }]));
+      const map = new Map<string, ProfileInfo>((profs ?? []).map((p: any) => [p.user_id, { display_name: p.display_name?.trim() || "User", avatar_url: p.avatar_url ?? null }]));
       setProfilesMap(map);
       setMembers((mems as any[] ?? []).map((m) => ({ ...m, display_name: map.get(m.user_id)?.display_name ?? "User", avatar_url: map.get(m.user_id)?.avatar_url ?? null })));
     } else {
@@ -133,6 +135,19 @@ export function SharedChatRoomPage() {
     await supabase.from("shared_chat_members")
       .update({ last_read_at: new Date().toISOString() })
       .eq("chat_id", chatId).eq("user_id", user.id);
+  }
+
+  async function revokeInvite(id: string) {
+    const { error } = await supabase.from("shared_chat_invites").delete().eq("id", id);
+    if (error) { toast({ title: "Couldn't revoke", description: error.message, variant: "destructive" }); return; }
+    setPendingInvites((p) => p.filter((x) => x.id !== id));
+  }
+
+  async function removeMember(uid: string) {
+    if (!chatId) return;
+    const { error } = await supabase.from("shared_chat_members").delete().eq("chat_id", chatId).eq("user_id", uid);
+    if (error) { toast({ title: "Couldn't remove", description: error.message, variant: "destructive" }); return; }
+    setMembers((m) => m.filter((x) => x.user_id !== uid));
   }
 
   async function generateSharedImage(prompt: string) {
