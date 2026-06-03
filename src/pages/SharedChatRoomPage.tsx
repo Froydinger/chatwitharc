@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Send, UserPlus, Settings, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, UserPlus, Settings, Sparkles, Users, Plus, ImagePlus, X, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { MessageBubble } from "@/components/MessageBubble";
+import { cn } from "@/lib/utils";
 import type { Message } from "@/store/useArcStore";
 
+interface MsgAttachment { type: "image"; url: string }
 interface Msg {
   id: string;
   chat_id: string;
   author_user_id: string | null;
   role: "user" | "assistant" | "system";
   content: string;
+  attachments?: MsgAttachment[] | null;
   created_at: string;
 }
 
@@ -37,15 +40,17 @@ function initials(name?: string) {
   return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || name[0].toUpperCase();
 }
 
-// Adapt shared message → Arc Message so we can render with the real MessageBubble
 function toArcMessage(m: Msg): Message {
+  const imgs = (m.attachments ?? []).filter((a) => a?.type === "image" && a.url).map((a) => a.url);
+  const isImage = imgs.length > 0;
   return {
     id: m.id,
     content: m.content,
     role: m.author_user_id === null ? "assistant" : "user",
     timestamp: new Date(m.created_at),
-    type: "text",
-  };
+    type: isImage ? "image" : "text",
+    ...(isImage ? { imageUrl: imgs[0], imageUrls: imgs } : {}),
+  } as Message;
 }
 
 export function SharedChatRoomPage() {
@@ -61,6 +66,8 @@ export function SharedChatRoomPage() {
   const [sending, setSending] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPlusMenu, setShowPlusMenu] = useState(false);
+  const [imageMode, setImageMode] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -74,7 +81,7 @@ export function SharedChatRoomPage() {
       .channel(`shared-${chatId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "shared_chat_messages", filter: `chat_id=eq.${chatId}` }, (payload) => {
         setMessages((prev) => prev.find((m) => m.id === (payload.new as any).id) ? prev : [...prev, payload.new as any]);
-        setAiThinking(false);
+        if ((payload.new as any).author_user_id === null) setAiThinking(false);
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "shared_chat_messages", filter: `chat_id=eq.${chatId}` }, (payload) => {
         setMessages((prev) => prev.filter((m) => m.id !== (payload.old as any).id));
@@ -88,6 +95,14 @@ export function SharedChatRoomPage() {
   }, [messages.length, aiThinking]);
 
   useEffect(() => { textareaRef.current?.focus(); }, [chatId]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 24 * 6) + "px";
+  }, [text]);
 
   async function loadAll() {
     if (!chatId || !user) return;
@@ -116,12 +131,39 @@ export function SharedChatRoomPage() {
       .eq("chat_id", chatId).eq("user_id", user.id);
   }
 
+  async function generateSharedImage(prompt: string) {
+    setAiThinking(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-image", { body: { prompt } });
+      if (error || !data?.success || !data?.imageUrl) {
+        throw new Error(data?.error || error?.message || "Image generation failed");
+      }
+      await supabase.from("shared_chat_messages").insert({
+        chat_id: chatId,
+        author_user_id: null,
+        role: "assistant",
+        content: `🎨 ${prompt}`,
+        attachments: [{ type: "image", url: data.imageUrl }],
+      });
+    } catch (e: any) {
+      toast({ title: "Image generation failed", description: String(e?.message ?? e), variant: "destructive" });
+    } finally {
+      setAiThinking(false);
+    }
+  }
+
   async function send() {
     if (!user || !chatId || !text.trim() || sending) return;
-    const content = text.trim();
+    let content = text.trim();
     setText(""); setSending(true);
+
+    // /image command or active image mode
+    const imageMatch = content.match(/^\/image\s+(.+)/i);
+    const wantImage = imageMode || !!imageMatch;
+    const imagePrompt = imageMatch ? imageMatch[1] : content;
+
     const mentionedNames = Array.from(content.matchAll(/@([\w-]+)/g)).map((m) => m[1].toLowerCase());
-    const wantArc = mentionedNames.includes("arc");
+    const wantArc = mentionedNames.includes("arc") && !wantImage;
     const mentionedIds: string[] = [];
     for (const [uid, info] of profilesMap.entries()) {
       const name = info.display_name;
@@ -134,6 +176,7 @@ export function SharedChatRoomPage() {
       chat_id: chatId, author_user_id: user.id, role: "user", content, mentions: mentionedIds,
     });
     setSending(false);
+    setImageMode(false);
     textareaRef.current?.focus();
     if (error) {
       toast({ title: "Send failed", description: error.message, variant: "destructive" });
@@ -156,7 +199,9 @@ export function SharedChatRoomPage() {
       }).catch(() => {});
     }
 
-    if (wantArc) {
+    if (wantImage) {
+      void generateSharedImage(imagePrompt);
+    } else if (wantArc) {
       setAiThinking(true);
       supabase.functions.invoke("shared-chat-respond", { body: { chat_id: chatId } })
         .catch((e) => { setAiThinking(false); toast({ title: "Arc couldn't reply", description: String(e), variant: "destructive" }); });
@@ -203,12 +248,12 @@ export function SharedChatRoomPage() {
           </Button>
         </div>
 
-        {/* Messages — uses the real MessageBubble from regular chat, wrapped with an author avatar */}
+        {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1 pb-2 space-y-5">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-16">
               <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-60" />
-              <p className="text-sm">Say hi! Mention <code className="px-1 py-0.5 rounded bg-white/10">@arc</code> to bring Arc into the conversation.</p>
+              <p className="text-sm">Say hi! Mention <code className="px-1 py-0.5 rounded bg-white/10">@arc</code> to bring Arc in, or use <code className="px-1 py-0.5 rounded bg-white/10">/image</code> to generate one.</p>
             </div>
           )}
           {messages.map((m) => {
@@ -249,34 +294,105 @@ export function SharedChatRoomPage() {
             );
           })}
           {aiThinking && (
-            <div className="flex gap-2.5 items-center">
-              <Avatar className="h-8 w-8 border border-white/10">
+            <div className="flex gap-2.5 items-center animate-fade-in">
+              <Avatar className="h-8 w-8 border border-primary/30">
                 <div className="h-full w-full flex items-center justify-center bg-primary/15">
                   <ThemedLogo className="h-4 w-4" />
                 </div>
               </Avatar>
-              <div className="text-sm text-muted-foreground italic">Arc is thinking…</div>
+              <div className="rounded-2xl px-4 py-3 bg-primary/10 border border-primary/20 shadow-[0_0_24px_rgba(var(--primary-rgb),0.15)] flex items-center gap-2.5">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-sm text-foreground/90 font-medium">Arc is thinking…</span>
+                <span className="flex gap-1 ml-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-bounce" style={{ animationDelay: "120ms" }} />
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary/70 animate-bounce" style={{ animationDelay: "240ms" }} />
+                </span>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Composer — matches ChatInput shell exactly */}
-        <div className="mt-3">
-          <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3 flex gap-2 items-end">
-            <Textarea
-              ref={textareaRef}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Message the group… use @arc to ask the AI"
-              rows={1}
-              className="min-h-[40px] max-h-40 resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none text-[15px] px-0 py-1.5"
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
+        {/* Composer — mirrors ChatInput shell exactly */}
+        <div className="mt-3 relative">
+          {/* + menu popover */}
+          {showPlusMenu && (
+            <div className="absolute bottom-full left-0 mb-3 z-30">
+              <div className="glass-shimmer rounded-full px-3 py-2 ring-[0.5px] ring-border/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,.3)] flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => { setImageMode(true); setShowPlusMenu(false); textareaRef.current?.focus(); }}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-green-400 hover:bg-white/10 active:scale-95 transition"
+                >
+                  <ImagePlus className="h-4 w-4" />
+                  <span className="text-foreground/80">Image</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPlusMenu(false)}
+                  className="flex items-center justify-center h-7 w-7 rounded-full hover:bg-white/10 active:scale-95 transition text-muted-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="chat-input-halo flex items-center gap-3 rounded-full">
+            {/* LEFT BUTTON — + menu or image-mode indicator */}
+            <button
+              type="button"
+              aria-label={imageMode ? "Disable image mode" : showPlusMenu ? "Close menu" : "Quick options"}
+              onClick={() => {
+                if (imageMode) setImageMode(false);
+                else setShowPlusMenu((v) => !v);
               }}
-            />
-            <Button onClick={send} disabled={sending || !text.trim()} size="icon" className="rounded-full shrink-0">
-              <Send className="h-4 w-4" />
-            </Button>
+              className={cn(
+                "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 relative glass-shimmer",
+                imageMode
+                  ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {imageMode ? (
+                <>
+                  <ImagePlus className="h-5 w-5 text-green-400" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">×</span>
+                </>
+              ) : (
+                <Plus className="h-5 w-5" />
+              )}
+            </button>
+
+            {/* Input */}
+            <div className="flex-1">
+              <Textarea
+                ref={textareaRef}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder={imageMode ? "Describe an image…" : "Message the group… @arc or /image"}
+                rows={1}
+                className="!border-0 !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 pl-0 pr-2 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none text-[16px]"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
+                }}
+              />
+            </div>
+
+            {/* Send */}
+            <button
+              onClick={send}
+              disabled={sending || !text.trim()}
+              aria-label="Send"
+              className={cn(
+                "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
+                text.trim()
+                  ? "bg-primary/10 ring-1 ring-primary/40 text-primary hover:bg-primary/20 !shadow-[0_0_10px_rgba(var(--primary-rgb),0.25)]"
+                  : "text-muted-foreground cursor-not-allowed opacity-30",
+              )}
+            >
+              <ArrowRight className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </div>
