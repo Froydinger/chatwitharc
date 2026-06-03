@@ -63,9 +63,9 @@ function ResearchUpgradeWall({ onClose }: { onClose: () => void }) {
           <Lock className="w-8 h-8 text-white" />
         </div>
 
-        <h2 className="text-2xl font-bold text-white">Unlock Deep Search Mode</h2>
+        <h2 className="text-2xl font-bold text-white">Unlock Deep Search™</h2>
         <p className="text-gray-400 text-sm leading-relaxed">
-          Search the web, get cited summaries, and save sources — all powered by AI. Deep Search is available with Arc
+          Search the web, get cited summaries, and save sources — all powered by AI. Deep Search™ is available with Arc
           Pro.
         </p>
 
@@ -634,7 +634,7 @@ export function SearchCanvas() {
 
           <div className="flex items-center gap-2">
             <Search className="w-5 h-5 text-primary" fill="currentColor" strokeWidth={1.5} />
-            <span className="font-semibold text-foreground">Deep Search</span>
+            <span className="font-semibold text-foreground">Deep Search™</span>
           </div>
         </div>
 
@@ -694,9 +694,9 @@ export function SearchCanvas() {
         >
           <ShieldCheck className="w-5 h-5 text-primary mt-0.5 shrink-0" />
           <div className="flex-1 text-sm">
-            <p className="font-semibold text-foreground">Deep Search connects to the internet</p>
+            <p className="font-semibold text-foreground">Deep Search™ connects to the internet</p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Corporate Mode keeps chat fully on-device, but Deep Search queries the web. Your saved memories and
+              Corporate Mode keeps chat fully on-device, but Deep Search™ queries the web. Your saved memories and
               context are
               <span className="font-medium text-foreground"> never sent</span> — only the search query you type leaves
               this device.
@@ -1420,7 +1420,7 @@ export function SearchCanvas() {
                   </div>
                 </div>
 
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Research anything</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Deep Search</h2>
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Get instant answers with real-time web search and cited sources
                 </p>
