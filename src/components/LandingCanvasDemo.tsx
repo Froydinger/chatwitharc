@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { PenLine, Sparkles, Code, Eye, Check, Clock, MessageCircle, Bell } from "lucide-react";
-import { ThemedLogo } from "./ThemedLogo";
+import { PenLine, Sparkles, Code, Eye, Check, Clock, MessageCircle, Bell, Zap } from "lucide-react";
 
 const CODE_LINES = [
   `import React from "react";`,
@@ -644,7 +643,7 @@ function TeamChatsDemo() {
                   >
                     <div className={`flex-shrink-0 w-8 h-8 rounded-full ${(msg as any).isArc ? "bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center" : `bg-gradient-to-br ${msg.color} flex items-center justify-center text-xs font-semibold text-white`}`}>
                       {(msg as any).isArc ? (
-                        <ThemedLogo className="w-5 h-5" alt="Arc" />
+                        <Sparkles className="w-4 h-4 text-white" />
                       ) : (
                         <span>{(msg as any).avatar}</span>
                       )}
