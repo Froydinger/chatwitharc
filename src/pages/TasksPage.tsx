@@ -34,21 +34,25 @@ function parseSchedule(input: string): { type: "once" | "cron"; cron?: string; r
   const s = input.trim().toLowerCase();
   if (!s) return null;
   const tzOffsetMin = new Date().getTimezoneOffset(); // local → UTC offset
+  const localCron = (hour: number, minute = 0, suffix = "* * *") => {
+    const utcMin = ((hour * 60 + minute + tzOffsetMin) % 1440 + 1440) % 1440;
+    return `${utcMin % 60} ${Math.floor(utcMin / 60)} ${suffix}`;
+  };
   const presets: Record<string, string> = {
     "every minute": "* * * * *",
     "every 5 minutes": "*/5 * * * *",
     "every 15 minutes": "*/15 * * * *",
     "every 30 minutes": "*/30 * * * *",
     "every hour": "0 * * * *",
-    "every day": "0 9 * * *",
-    "daily": "0 9 * * *",
-    "every morning": "0 8 * * *",
-    "every evening": "0 19 * * *",
-    "every monday": "0 9 * * 1",
-    "every sunday": "0 9 * * 0",
-    "every weekday": "0 9 * * 1-5",
-    "weekly": "0 9 * * 1",
-    "monthly": "0 9 1 * *",
+    "every day": localCron(9),
+    "daily": localCron(9),
+    "every morning": localCron(9),
+    "every evening": localCron(19),
+    "every monday": localCron(9, 0, "* * 1"),
+    "every sunday": localCron(9, 0, "* * 0"),
+    "every weekday": localCron(9, 0, "* * 1-5"),
+    "weekly": localCron(9, 0, "* * 1"),
+    "monthly": localCron(9, 0, "1 * *"),
   };
   if (presets[s]) return { type: "cron", cron: presets[s] };
 
