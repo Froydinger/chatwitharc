@@ -475,7 +475,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Handle /deep command to open research mode
   useEffect(() => {
     const val = inputValue.trim().toLowerCase();
-    if (val === "/deep") {
+    if (val === "/deep" || val === "/research") {
       setInputValue("");
       openSearchMode();
     }
