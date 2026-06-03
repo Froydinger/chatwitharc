@@ -72,6 +72,8 @@ function deterministicScheduleFromText(text: string, offsetMinutes: number): { c
     return { whenIso: new Date(Date.now() + amount * multiplier).toISOString() };
   }
 
+  if (/\bevery\s+(\d+\s*)?(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b|\bhourly\b/.test(s)) return null;
+
   const recurring = /\b(every|daily|each day|weekday|weekdays|morning|evening|night|afternoon)\b/.test(s);
   if (!recurring) return null;
 
