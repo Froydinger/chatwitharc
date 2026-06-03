@@ -143,6 +143,23 @@ All colors MUST be HSL for perfect glass effects.
       0 0 20px hsl(var(--primary-glow) / 0.1) !important;
   }
 
+  /* Noir in light mode — white message bubbles without primary tint */
+  :root.light[data-accent="noir"] .user-message-bubble {
+    background: hsl(0 0% 98%) !important;
+    border: 1px solid hsl(0 0% 90%) !important;
+    box-shadow:
+      0 8px 24px hsl(0 0% 0% / 0.06),
+      inset 0 0 16px hsl(0 0% 100% / 0.4) !important;
+  }
+  :root.light[data-accent="noir"] .user-message-bubble:hover {
+    background: hsl(0 0% 97%) !important;
+    border-color: hsl(0 0% 85%) !important;
+    box-shadow:
+      0 12px 30px hsl(0 0% 0% / 0.08),
+      inset 0 0 22px hsl(0 0% 100% / 0.5),
+      0 0 20px hsl(0 0% 0% / 0.04) !important;
+  }
+
   /* Light mode glass dock — softer shadows */
   :root.light .glass-dock {
     background:
