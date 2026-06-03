@@ -332,11 +332,17 @@ export function SharedChatRoomPage() {
           )}
         </div>
 
-        {/* Composer — mirrors ChatInput shell exactly */}
-        <div className="mt-3 relative">
+      </div>
+
+      {/* Composer — fixed glass dock at bottom, matches main chat */}
+      <div
+        className="fixed bottom-6 left-0 right-0 z-30 px-4 pointer-events-none"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="max-w-3xl mx-auto pointer-events-auto relative">
           {/* + menu popover */}
           {showPlusMenu && (
-            <div className="absolute bottom-full left-0 mb-3 z-30">
+            <div className="absolute bottom-full left-2 mb-3 z-30">
               <div className="glass-shimmer rounded-full px-3 py-2 ring-[0.5px] ring-border/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,.3)] flex items-center gap-1.5">
                 <button
                   type="button"
@@ -357,64 +363,64 @@ export function SharedChatRoomPage() {
             </div>
           )}
 
-          <div className="chat-input-halo flex items-center gap-3 rounded-full">
-            {/* LEFT BUTTON — + menu or image-mode indicator */}
-            <button
-              type="button"
-              aria-label={imageMode ? "Disable image mode" : showPlusMenu ? "Close menu" : "Quick options"}
-              onClick={() => {
-                if (imageMode) setImageMode(false);
-                else setShowPlusMenu((v) => !v);
-              }}
-              className={cn(
-                "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 relative glass-shimmer",
-                imageMode
-                  ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {imageMode ? (
-                <>
-                  <ImagePlus className="h-5 w-5 text-green-400" />
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">×</span>
-                </>
-              ) : (
-                <Plus className="h-5 w-5" />
-              )}
-            </button>
-
-            {/* Input */}
-            <div className="flex-1">
-              <Textarea
-                ref={textareaRef}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={imageMode ? "Describe an image…" : "Message the group… @arc or /image"}
-                rows={1}
-                className="!border-0 !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 pl-0 pr-2 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none text-[16px]"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
+          <div className="glass-dock">
+            <div className="chat-input-halo flex items-center gap-3 rounded-full">
+              <button
+                type="button"
+                aria-label={imageMode ? "Disable image mode" : showPlusMenu ? "Close menu" : "Quick options"}
+                onClick={() => {
+                  if (imageMode) setImageMode(false);
+                  else setShowPlusMenu((v) => !v);
                 }}
-              />
-            </div>
+                className={cn(
+                  "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 relative glass-shimmer",
+                  imageMode
+                    ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {imageMode ? (
+                  <>
+                    <ImagePlus className="h-5 w-5 text-green-400" />
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">×</span>
+                  </>
+                ) : (
+                  <Plus className="h-5 w-5" />
+                )}
+              </button>
 
-            {/* Send */}
-            <button
-              onClick={send}
-              disabled={sending || !text.trim()}
-              aria-label="Send"
-              className={cn(
-                "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-                text.trim()
-                  ? "bg-primary/10 ring-1 ring-primary/40 text-primary hover:bg-primary/20 !shadow-[0_0_10px_rgba(var(--primary-rgb),0.25)]"
-                  : "text-muted-foreground cursor-not-allowed opacity-30",
-              )}
-            >
-              <ArrowRight className="h-5 w-5" />
-            </button>
+              <div className="flex-1">
+                <Textarea
+                  ref={textareaRef}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder={imageMode ? "Describe an image…" : "Message the group… @arc or /image"}
+                  rows={1}
+                  className="!border-0 !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 pl-0 pr-2 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none text-[16px]"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
+                  }}
+                />
+              </div>
+
+              <button
+                onClick={send}
+                disabled={sending || !text.trim()}
+                aria-label="Send"
+                className={cn(
+                  "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
+                  text.trim()
+                    ? "bg-primary/10 ring-1 ring-primary/40 text-primary hover:bg-primary/20 !shadow-[0_0_10px_rgba(var(--primary-rgb),0.25)]"
+                    : "text-muted-foreground cursor-not-allowed opacity-30",
+                )}
+              >
+                <ArrowRight className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
 
       {/* Chat Settings Dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
