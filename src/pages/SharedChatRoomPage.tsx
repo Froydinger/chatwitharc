@@ -246,7 +246,7 @@ export function SharedChatRoomPage() {
   }
 
   const isOwner = chat?.owner_id === user?.id;
-  const atMemberCap = members.length >= 6;
+  const atMemberCap = members.length + pendingInvites.length >= 6;
   const lastAssistantId = [...messages].reverse().find((m) => m.author_user_id === null)?.id;
 
   if (authLoading || !user) return null;
