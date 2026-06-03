@@ -14,6 +14,41 @@ const supabase = createClient(
 // NOTE: saveResponseToDatabase was removed - frontend now handles all persistence
 // to avoid race conditions and duplicate messages from double-saves.
 
+// ---- Cron helpers (mirror of run-scheduled-tasks/index.ts) ----
+function _cronFieldMatches(value: number, expr: string): boolean {
+  if (expr === '*') return true;
+  for (const part of expr.split(',')) {
+    if (part.startsWith('*/')) {
+      const n = parseInt(part.slice(2), 10);
+      if (n > 0 && value % n === 0) return true;
+    } else if (part.includes('-')) {
+      const [a, b] = part.split('-').map((v) => parseInt(v, 10));
+      if (value >= a && value <= b) return true;
+    } else if (parseInt(part, 10) === value) {
+      return true;
+    }
+  }
+  return false;
+}
+function nextCronRun(expr: string, from: Date): Date {
+  const parts = expr.trim().split(/\s+/);
+  if (parts.length !== 5) return new Date(from.getTime() + 60 * 60 * 1000);
+  const [mins, hours, dom, mon, dow] = parts;
+  const d = new Date(from.getTime() + 60 * 1000);
+  d.setUTCSeconds(0, 0);
+  for (let i = 0; i < 525600; i++) {
+    if (
+      _cronFieldMatches(d.getUTCMinutes(), mins) &&
+      _cronFieldMatches(d.getUTCHours(), hours) &&
+      _cronFieldMatches(d.getUTCDate(), dom) &&
+      _cronFieldMatches(d.getUTCMonth() + 1, mon) &&
+      _cronFieldMatches(d.getUTCDay(), dow)
+    ) return d;
+    d.setUTCMinutes(d.getUTCMinutes() + 1);
+  }
+  return new Date(from.getTime() + 60 * 60 * 1000);
+}
+
 // Sanitize any leaked tool call JSON from AI response text
 function sanitizeLeakedToolCalls(text: string): string {
   if (!text) return text;
