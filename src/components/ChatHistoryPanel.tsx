@@ -8,7 +8,6 @@ import {
   Search,
   LayoutDashboard,
   Share2,
-  ChevronLeft,
   ChevronRight,
   X,
 } from "lucide-react";
