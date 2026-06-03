@@ -435,32 +435,20 @@ export function ChatHistoryPanel() {
               </div>
             ))}
 
-            {/* Compact pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-1 pt-2 pb-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary disabled:opacity-30"
-                  aria-label="Previous page"
+            {/* Infinite scroll sentinel + Load more */}
+            {hasMore && (
+              <div
+                ref={loadMoreRef}
+                className="flex items-center justify-center pt-2 pb-1"
+              >
+                <button
+                  onClick={() =>
+                    setVisibleCount((c) => c + ITEMS_PER_PAGE)
+                  }
+                  className="h-8 px-3 rounded-full text-[11px] font-semibold text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-[11px] font-semibold tabular-nums text-muted-foreground px-2">
-                  {page} / {totalPages}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary disabled:opacity-30"
-                  aria-label="Next page"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                  Load more ({filtered.length - visibleCount} left)
+                </button>
               </div>
             )}
           </div>
