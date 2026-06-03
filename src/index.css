@@ -219,10 +219,30 @@ All colors MUST be HSL for perfect glass effects.
     --button-fg: 0 0% 92%;
   }
 
-  /* Noir in light mode — inherits standard light tokens with airy borders */
+  /* Noir in light mode — crisp white, black text, minimal gray tones */
   :root.light[data-accent="noir"] {
-    --border: 0 0% 88%;
-    --glass-border: 0 0% 90%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+    --surface: 0 0% 99%;
+    --surface-foreground: 0 0% 6%;
+    --muted: 0 0% 98%;
+    --muted-foreground: 0 0% 32%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 8%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
+    --border: 0 0% 92%;
+    --input: 0 0% 98%;
+    --input-dark: 0 0% 96%;
+    --glass-bg: 0 0% 100%;
+    --glass-border: 0 0% 92%;
+    --glass-glow: 0 0% 0%;
+    --ai-message-bg: 0 0% 100%;
+    --ai-message-border: 0 0% 90%;
+    --user-message-bg: 0 0% 0%;
+    --user-message-border: 0 0% 0%;
   }
 
 
