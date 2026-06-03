@@ -1,16 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Plus,
-  Trash2,
-  MessageSquare,
-  RefreshCw,
-  Search,
-  LayoutDashboard,
-  Share2,
-  ChevronRight,
-  X,
-} from "lucide-react";
+import { Plus, Trash2, MessageSquare, RefreshCw, Search, LayoutDashboard, Share2, ChevronRight, X } from "lucide-react";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
 import { useArcStore } from "@/store/useArcStore";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
@@ -36,11 +26,8 @@ const ITEMS_PER_PAGE = 25;
 function groupKey(ts: number): string {
   const now = new Date();
   const d = new Date(ts);
-  const startOfDay = (x: Date) =>
-    new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
-  const diffDays = Math.round(
-    (startOfDay(now) - startOfDay(d)) / 86_400_000
-  );
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.round((startOfDay(now) - startOfDay(d)) / 86_400_000);
   if (diffDays <= 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return "Earlier this week";
@@ -52,10 +39,8 @@ function groupKey(ts: number): string {
 function shortDate(ts: number): string {
   const d = new Date(ts);
   const now = new Date();
-  if (d.toDateString() === now.toDateString())
-    return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-  if (d.getFullYear() === now.getFullYear())
-    return d.toLocaleDateString([], { month: "short", day: "numeric" });
+  if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (d.getFullYear() === now.getFullYear()) return d.toLocaleDateString([], { month: "short", day: "numeric" });
   return d.toLocaleDateString([], {
     month: "short",
     day: "numeric",
@@ -103,10 +88,7 @@ export function ChatHistoryPanel() {
     goToChat();
   };
 
-  const handleDeleteSession = async (
-    sessionId: string,
-    event: React.MouseEvent
-  ) => {
+  const handleDeleteSession = async (sessionId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     setDeletingId(sessionId);
     try {
@@ -164,10 +146,7 @@ export function ChatHistoryPanel() {
   }, [sortedSessions, query]);
 
   const isSearching = query.trim().length > 0;
-  const paginated = useMemo(
-    () => filtered.slice(0, visibleCount),
-    [filtered, visibleCount]
-  );
+  const paginated = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
 
   // Group by date label (only when not searching)
@@ -212,7 +191,7 @@ export function ChatHistoryPanel() {
           setVisibleCount((c) => c + ITEMS_PER_PAGE);
         }
       },
-      { rootMargin: "200px" }
+      { rootMargin: "200px" },
     );
     obs.observe(el);
     return () => obs.disconnect();
@@ -226,7 +205,7 @@ export function ChatHistoryPanel() {
         <div className="flex items-center gap-1 p-1 rounded-full backdrop-blur-2xl bg-background/40 border border-border/40 shadow-[0_0_12px_hsl(var(--primary)/0.12)]">
           <button
             onClick={() => navigate("/dashboard")}
-            className="flex-1 min-w-0 h-8 px-2 rounded-full inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-[0.97] bg-primary text-primary-foreground shadow-[0_0_8px_hsl(var(--primary)/0.4)] relative overflow-hidden"
+            className="flex-1 min-w-0 h-8 px-2 rounded-full inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-[0.97] bg-primary/70 text-primary-foreground shadow-[0_0_8px_hsl(var(--primary)/0.4)] relative overflow-hidden"
             title="Dashboard"
           >
             <span className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
@@ -283,9 +262,7 @@ export function ChatHistoryPanel() {
 
         {/* Header row — title + sync */}
         <div className="flex items-center justify-between pt-0.5">
-          <h2 className="text-lg font-bold text-foreground tracking-tight">
-            {isSearching ? "Search" : "History"}
-          </h2>
+          <h2 className="text-lg font-bold text-foreground tracking-tight">{isSearching ? "Search" : "History"}</h2>
           <div className="flex items-center gap-1">
             <span className="text-[11px] text-muted-foreground tabular-nums">
               {filtered.length}
@@ -300,9 +277,7 @@ export function ChatHistoryPanel() {
                 title="Sync from cloud"
                 className="h-7 w-7 rounded-full hover:bg-primary/10 hover:text-primary"
               >
-                <RefreshCw
-                  className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")}
-                />
+                <RefreshCw className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")} />
               </Button>
             )}
           </div>
@@ -314,10 +289,7 @@ export function ChatHistoryPanel() {
         {!isLoaded ? (
           <div className="space-y-2">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className="p-3 rounded-2xl border border-border/40 bg-muted/10"
-              >
+              <div key={i} className="p-3 rounded-2xl border border-border/40 bg-muted/10">
                 <Skeleton className="h-4 w-3/4 mb-2" />
                 <Skeleton className="h-3 w-1/3" />
               </div>
@@ -348,8 +320,7 @@ export function ChatHistoryPanel() {
         ) : filtered.length === 0 ? (
           <div className="py-10 text-center">
             <p className="text-sm text-muted-foreground">
-              No chats match{" "}
-              <span className="text-foreground font-medium">"{query}"</span>
+              No chats match <span className="text-foreground font-medium">"{query}"</span>
             </p>
           </div>
         ) : (
@@ -383,7 +354,7 @@ export function ChatHistoryPanel() {
                           "group relative px-3 py-2.5 cursor-pointer rounded-xl border transition-all",
                           isActive
                             ? "border-primary/40 bg-primary/10 shadow-[0_0_12px_hsl(var(--primary)/0.18)]"
-                            : "border-transparent hover:border-border/60 hover:bg-muted/30"
+                            : "border-transparent hover:border-border/60 hover:bg-muted/30",
                         )}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -392,7 +363,7 @@ export function ChatHistoryPanel() {
                               "shrink-0 h-7 w-7 rounded-lg inline-flex items-center justify-center transition-colors",
                               isActive
                                 ? "bg-primary/20 text-primary"
-                                : "bg-muted/40 text-muted-foreground group-hover:text-primary"
+                                : "bg-muted/40 text-muted-foreground group-hover:text-primary",
                             )}
                           >
                             <MessageSquare className="h-3.5 w-3.5" />
@@ -401,15 +372,14 @@ export function ChatHistoryPanel() {
                             <h4
                               className={cn(
                                 "text-sm font-medium truncate leading-tight",
-                                isActive ? "text-primary" : "text-foreground"
+                                isActive ? "text-primary" : "text-foreground",
                               )}
                             >
                               {session.title}
                             </h4>
                             <div className="mt-0.5 text-[11px] text-muted-foreground truncate">
                               {session.itemCount} msg
-                              {session.itemCount === 1 ? "" : "s"} ·{" "}
-                              {shortDate(session.timestamp)}
+                              {session.itemCount === 1 ? "" : "s"} · {shortDate(session.timestamp)}
                             </div>
                           </div>
                           <div className="shrink-0 flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
@@ -430,11 +400,9 @@ export function ChatHistoryPanel() {
                               size="icon"
                               className={cn(
                                 "h-7 w-7 rounded-full hover:bg-destructive/15 hover:text-destructive",
-                                deletingId === session.id && "opacity-100"
+                                deletingId === session.id && "opacity-100",
                               )}
-                              onClick={(e) =>
-                                handleDeleteSession(session.id, e)
-                              }
+                              onClick={(e) => handleDeleteSession(session.id, e)}
                               aria-label="Delete chat"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -450,14 +418,9 @@ export function ChatHistoryPanel() {
 
             {/* Infinite scroll sentinel + Load more */}
             {hasMore && (
-              <div
-                ref={loadMoreRef}
-                className="flex items-center justify-center pt-2 pb-1"
-              >
+              <div ref={loadMoreRef} className="flex items-center justify-center pt-2 pb-1">
                 <button
-                  onClick={() =>
-                    setVisibleCount((c) => c + ITEMS_PER_PAGE)
-                  }
+                  onClick={() => setVisibleCount((c) => c + ITEMS_PER_PAGE)}
                   className="h-8 px-3 rounded-full text-[11px] font-semibold text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                 >
                   Load more ({filtered.length - visibleCount} left)
