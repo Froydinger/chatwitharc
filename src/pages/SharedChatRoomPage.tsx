@@ -394,7 +394,7 @@ export function SharedChatRoomPage() {
                   ref={textareaRef}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder={imageMode ? "Describe an image…" : "Message the group… @arc or /image"}
+                  placeholder={imageMode ? "Describe an image…" : "@Arc to chat with Arc!"}
                   rows={1}
                   className="!border-0 !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 pl-0 pr-2 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none text-[16px]"
                   onKeyDown={(e) => {
