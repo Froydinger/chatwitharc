@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { describeCronSchedule } from "@/lib/scheduleLabels";
 
 export interface ScheduledTaskData {
   id: string;
@@ -18,7 +19,7 @@ export interface ScheduledTaskData {
 }
 
 function formatWhen(iso: string, isCron: boolean, cron?: string | null) {
-  if (isCron) return `Recurring · ${cron}`;
+  if (isCron) return describeCronSchedule(cron, iso);
   const d = new Date(iso);
   const now = new Date();
   const diffMin = Math.round((d.getTime() - now.getTime()) / 60000);
