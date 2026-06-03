@@ -354,6 +354,19 @@ export function ChatHistoryPanel() {
           </div>
         ) : (
           <div className="space-y-4">
+            <button
+              onClick={() => {
+                navigate("/dashboard?tab=chats");
+                goToChat();
+              }}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl border border-border/40 bg-muted/20 hover:bg-primary/10 hover:border-primary/40 transition-all text-[11px] font-semibold text-muted-foreground hover:text-primary group"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <LayoutDashboard className="h-3.5 w-3.5" />
+                Full chat history
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </button>
             {grouped.map((group) => (
               <div key={group.label} className="space-y-1">
                 <div className="px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
