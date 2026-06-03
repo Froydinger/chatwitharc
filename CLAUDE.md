@@ -25,6 +25,14 @@ Lovable, SQL via Lovable's SQL editor) rather than editing it here.
 Everything else — frontend components, hooks, stores, styles, client-side logic
 in `src/` — can be changed in this repo as normal.
 
+## Branching & deploys
+
+Commit work to **`main`**. Lovable is the endpoint that builds from `main`, but
+it is **not actually live to the public** — it acts as a staging/buffer
+environment where the user tests changes before promoting them public. So
+pushing to `main` is safe and expected here; it does not put changes in front
+of real users on its own.
+
 ## Common commands
 
 - `npm run dev` — start the Vite dev server
