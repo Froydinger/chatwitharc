@@ -527,7 +527,7 @@ export function LandingScreen() {
           {/* Logo Orb - clickable with snarky messages */}
           <div className="relative">
             <button
-              className="rounded-full backdrop-blur-2xl bg-background/0 hover:bg-background/0 transition-all overflow-hidden shadow-lg p-2 cursor-pointer"
+              className="rounded-full backdrop-blur-2xl bg-background/.10 hover:bg-background/.10 transition-all overflow-hidden shadow-lg p-2 cursor-pointer"
               style={{ border: "none" }}
               onClick={() => {
                 // Clear any existing timeout
