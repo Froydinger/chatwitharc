@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, UserPlus, Settings, Sparkles, Users, Plus, ImagePlus, X, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, UserPlus, Settings, Sparkles, Users, Plus, ImagePlus, X, Loader2, Trash2, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,10 @@ interface Member {
   avatar_url?: string | null;
 }
 
+interface PendingInvite { id: string; email: string }
+
 interface ProfileInfo { display_name: string; avatar_url: string | null }
+
 
 function initials(name?: string) {
   if (!name) return "?";
@@ -61,6 +64,7 @@ export function SharedChatRoomPage() {
   const [chat, setChat] = useState<{ id: string; title: string; owner_id: string } | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [profilesMap, setProfilesMap] = useState<Map<string, ProfileInfo>>(new Map());
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -106,21 +110,23 @@ export function SharedChatRoomPage() {
 
   async function loadAll() {
     if (!chatId || !user) return;
-    const [{ data: c }, { data: msgs }, { data: mems }] = await Promise.all([
+    const [{ data: c }, { data: msgs }, { data: mems }, { data: invs }] = await Promise.all([
       supabase.from("shared_chats").select("id,title,owner_id").eq("id", chatId).maybeSingle(),
       supabase.from("shared_chat_messages").select("*").eq("chat_id", chatId).order("created_at", { ascending: true }).limit(200),
       supabase.from("shared_chat_members").select("user_id,role").eq("chat_id", chatId),
+      supabase.from("shared_chat_invites").select("id,email,accepted_at").eq("chat_id", chatId).is("accepted_at", null),
     ]);
     if (!c) { toast({ title: "Chat not found", variant: "destructive" }); navigate("/shared"); return; }
     setChat(c as any);
     setMessages((msgs as any) ?? []);
+    setPendingInvites(((invs as any[]) ?? []).map((i) => ({ id: i.id, email: i.email })));
     const userIds = Array.from(new Set([
       ...((mems as any[]) ?? []).map((m) => m.user_id),
       ...((msgs as any[]) ?? []).map((m) => m.author_user_id).filter(Boolean),
     ]));
     if (userIds.length) {
       const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
-      const map = new Map<string, ProfileInfo>((profs ?? []).map((p: any) => [p.user_id, { display_name: p.display_name ?? "User", avatar_url: p.avatar_url ?? null }]));
+      const map = new Map<string, ProfileInfo>((profs ?? []).map((p: any) => [p.user_id, { display_name: p.display_name?.trim() || "User", avatar_url: p.avatar_url ?? null }]));
       setProfilesMap(map);
       setMembers((mems as any[] ?? []).map((m) => ({ ...m, display_name: map.get(m.user_id)?.display_name ?? "User", avatar_url: map.get(m.user_id)?.avatar_url ?? null })));
     } else {
@@ -129,6 +135,19 @@ export function SharedChatRoomPage() {
     await supabase.from("shared_chat_members")
       .update({ last_read_at: new Date().toISOString() })
       .eq("chat_id", chatId).eq("user_id", user.id);
+  }
+
+  async function revokeInvite(id: string) {
+    const { error } = await supabase.from("shared_chat_invites").delete().eq("id", id);
+    if (error) { toast({ title: "Couldn't revoke", description: error.message, variant: "destructive" }); return; }
+    setPendingInvites((p) => p.filter((x) => x.id !== id));
+  }
+
+  async function removeMember(uid: string) {
+    if (!chatId) return;
+    const { error } = await supabase.from("shared_chat_members").delete().eq("chat_id", chatId).eq("user_id", uid);
+    if (error) { toast({ title: "Couldn't remove", description: error.message, variant: "destructive" }); return; }
+    setMembers((m) => m.filter((x) => x.user_id !== uid));
   }
 
   async function generateSharedImage(prompt: string) {
@@ -227,7 +246,7 @@ export function SharedChatRoomPage() {
   }
 
   const isOwner = chat?.owner_id === user?.id;
-  const atMemberCap = members.length >= 6;
+  const atMemberCap = members.length + pendingInvites.length >= 6;
   const lastAssistantId = [...messages].reverse().find((m) => m.author_user_id === null)?.id;
 
   if (authLoading || !user) return null;
@@ -249,7 +268,7 @@ export function SharedChatRoomPage() {
         </div>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1 pb-2 space-y-5">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1 pb-40 space-y-5">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-16">
               <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-60" />
@@ -313,11 +332,17 @@ export function SharedChatRoomPage() {
           )}
         </div>
 
-        {/* Composer — mirrors ChatInput shell exactly */}
-        <div className="mt-3 relative">
+      </div>
+
+      {/* Composer — fixed glass dock at bottom, matches main chat */}
+      <div
+        className="fixed bottom-6 left-0 right-0 z-30 px-4 pointer-events-none"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="max-w-3xl mx-auto pointer-events-auto relative">
           {/* + menu popover */}
           {showPlusMenu && (
-            <div className="absolute bottom-full left-0 mb-3 z-30">
+            <div className="absolute bottom-full left-2 mb-3 z-30">
               <div className="glass-shimmer rounded-full px-3 py-2 ring-[0.5px] ring-border/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,.3)] flex items-center gap-1.5">
                 <button
                   type="button"
@@ -338,64 +363,64 @@ export function SharedChatRoomPage() {
             </div>
           )}
 
-          <div className="chat-input-halo flex items-center gap-3 rounded-full">
-            {/* LEFT BUTTON — + menu or image-mode indicator */}
-            <button
-              type="button"
-              aria-label={imageMode ? "Disable image mode" : showPlusMenu ? "Close menu" : "Quick options"}
-              onClick={() => {
-                if (imageMode) setImageMode(false);
-                else setShowPlusMenu((v) => !v);
-              }}
-              className={cn(
-                "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 relative glass-shimmer",
-                imageMode
-                  ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {imageMode ? (
-                <>
-                  <ImagePlus className="h-5 w-5 text-green-400" />
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">×</span>
-                </>
-              ) : (
-                <Plus className="h-5 w-5" />
-              )}
-            </button>
-
-            {/* Input */}
-            <div className="flex-1">
-              <Textarea
-                ref={textareaRef}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={imageMode ? "Describe an image…" : "Message the group… @arc or /image"}
-                rows={1}
-                className="!border-0 !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 pl-0 pr-2 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none text-[16px]"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
+          <div className="glass-dock">
+            <div className="chat-input-halo flex items-center gap-3 rounded-full">
+              <button
+                type="button"
+                aria-label={imageMode ? "Disable image mode" : showPlusMenu ? "Close menu" : "Quick options"}
+                onClick={() => {
+                  if (imageMode) setImageMode(false);
+                  else setShowPlusMenu((v) => !v);
                 }}
-              />
-            </div>
+                className={cn(
+                  "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 relative glass-shimmer",
+                  imageMode
+                    ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {imageMode ? (
+                  <>
+                    <ImagePlus className="h-5 w-5 text-green-400" />
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">×</span>
+                  </>
+                ) : (
+                  <Plus className="h-5 w-5" />
+                )}
+              </button>
 
-            {/* Send */}
-            <button
-              onClick={send}
-              disabled={sending || !text.trim()}
-              aria-label="Send"
-              className={cn(
-                "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-                text.trim()
-                  ? "bg-primary/10 ring-1 ring-primary/40 text-primary hover:bg-primary/20 !shadow-[0_0_10px_rgba(var(--primary-rgb),0.25)]"
-                  : "text-muted-foreground cursor-not-allowed opacity-30",
-              )}
-            >
-              <ArrowRight className="h-5 w-5" />
-            </button>
+              <div className="flex-1">
+                <Textarea
+                  ref={textareaRef}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder={imageMode ? "Describe an image…" : "Message the group… @arc or /image"}
+                  rows={1}
+                  className="!border-0 !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 pl-0 pr-2 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none text-[16px]"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
+                  }}
+                />
+              </div>
+
+              <button
+                onClick={send}
+                disabled={sending || !text.trim()}
+                aria-label="Send"
+                className={cn(
+                  "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
+                  text.trim()
+                    ? "bg-primary/10 ring-1 ring-primary/40 text-primary hover:bg-primary/20 !shadow-[0_0_10px_rgba(var(--primary-rgb),0.25)]"
+                    : "text-muted-foreground cursor-not-allowed opacity-30",
+                )}
+              >
+                <ArrowRight className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
 
       {/* Chat Settings Dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
@@ -406,8 +431,9 @@ export function SharedChatRoomPage() {
           <div className="space-y-5">
             <div>
               <div className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
-                People · {members.length}/6
+                People · {members.length + pendingInvites.length}/6
               </div>
+
               <div className="space-y-1.5">
                 {members.map((m) => (
                   <div key={m.user_id} className="flex items-center gap-2.5 p-2 rounded-lg bg-white/5">
@@ -419,13 +445,40 @@ export function SharedChatRoomPage() {
                     <div className="flex-1 text-sm truncate">
                       {m.display_name}{m.user_id === user.id && " (you)"}
                     </div>
-                    {m.role === "owner" && (
+                    {m.role === "owner" ? (
                       <span className="text-[10px] uppercase tracking-wide text-primary font-medium">Owner</span>
+                    ) : isOwner ? (
+                      <button
+                        onClick={() => removeMember(m.user_id)}
+                        className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
+                        aria-label="Remove member"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+                {pendingInvites.map((inv) => (
+                  <div key={inv.id} className="flex items-center gap-2.5 p-2 rounded-lg bg-white/5 opacity-80">
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback className="text-[10px] bg-white/10"><Mail className="h-3.5 w-3.5" /></AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 text-sm truncate">{inv.email}</div>
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">Pending</span>
+                    {isOwner && (
+                      <button
+                        onClick={() => revokeInvite(inv.id)}
+                        className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
+                        aria-label="Revoke invite"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     )}
                   </div>
                 ))}
               </div>
             </div>
+
 
             {isOwner && (
               <div>

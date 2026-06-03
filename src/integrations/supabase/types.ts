@@ -1142,6 +1142,10 @@ export type Database = {
       }
       user_has_boost: { Args: { check_user_id: string }; Returns: boolean }
       user_has_pro_access: { Args: { check_user_id: string }; Returns: boolean }
+      users_share_shared_chat: {
+        Args: { _a: string; _b: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
