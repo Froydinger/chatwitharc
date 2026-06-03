@@ -229,7 +229,7 @@ export function ChatHistoryPanel() {
             title="Research Mode"
           >
             <Search className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-            <span className="truncate">Research</span>
+            <span className="truncate">Deep</span>
           </button>
         </div>
 
