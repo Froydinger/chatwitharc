@@ -552,9 +552,9 @@ function TeamChatsDemo() {
   const [typedMessage, setTypedMessage] = useState("");
 
   const messages = [
-    { user: "Sarah", avatar: "SA", color: "from-pink-400 to-rose-500", text: "Just pushed the new feature branch" },
-    { user: "You", avatar: "👤", color: "from-emerald-400 to-teal-500", text: "Great! Let me review the PR" },
-    { user: "Marcus", avatar: "MA", color: "from-amber-400 to-orange-500", text: "I've added tests for the edge cases" },
+    { user: "Sarah", avatar: "SA", color: "from-pink-400 to-rose-500", text: "Finished the blog post draft, but need feedback on structure" },
+    { user: "You", avatar: "👤", color: "from-emerald-400 to-teal-500", text: "@arc what's the best way to make this article more readable?" },
+    { user: "Arc", avatar: "⚡", color: "from-blue-400 to-cyan-500", text: "Break it into sections with clear headers, add bullet points for key ideas, and use short paragraphs. Readability improves ~40% with these changes.", highlight: true },
   ];
 
   useEffect(() => {
@@ -650,7 +650,11 @@ function TeamChatsDemo() {
                       <div className="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
                         {msg.user}
                       </div>
-                      <div className="bg-slate-50 dark:bg-slate-800/60 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200">
+                      <div className={`rounded-lg px-3 py-2 text-sm ${
+                        (msg as any).highlight
+                          ? "bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/30 text-slate-700 dark:text-slate-200"
+                          : "bg-slate-50 dark:bg-slate-800/60 text-slate-700 dark:text-slate-200"
+                      }`}>
                         {idx < messagePhase ? msg.text : typedMessage}
                         {idx === messagePhase && (
                           <span className="inline-block w-1 h-4 bg-pink-400 ml-1 align-text-bottom animate-pulse" />
