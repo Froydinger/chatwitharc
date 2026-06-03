@@ -190,7 +190,7 @@ export function TasksPage() {
   if (authLoading || !user) return null;
 
   return (
-    <div className="min-h-screen w-full text-foreground" style={{ paddingTop: "calc(env(safe-area-inset-top) + 30px)" }}>
+    <div className="relative z-10 min-h-screen w-full text-foreground" style={{ paddingTop: "calc(env(safe-area-inset-top) + 30px)" }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex items-center justify-between mb-6">
           <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="gap-2">
