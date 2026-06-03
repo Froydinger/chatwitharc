@@ -376,7 +376,7 @@ const AppMockup = () => {
               <Plus className="h-4 w-4 md:h-4.5 md:w-4.5" />
             </div>
             <div className="flex-1 text-left text-muted-foreground/70 font-light text-sm truncate">Ask anything...</div>
-            <div className="shrink-0 h-8 w-8 md:h-9 md:w-9 rounded-full flex items-center justify-center text-primary/60 hover:text-primary/80 transition-colors">
+            <div className="shrink-0 h-8 w-8 md:h-9 md:w-9 rounded-full flex items-center justify-center bg-primary/80 text-primary-foreground ring-2 ring-primary shadow-[0_0_12px_hsl(var(--primary)/0.3)]">
               <ArrowRight className="h-4 w-4 md:h-4.5 md:w-4.5" />
             </div>
           </motion.div>
@@ -527,7 +527,7 @@ export function LandingScreen() {
           {/* Logo Orb - clickable with snarky messages */}
           <div className="relative">
             <button
-              className="rounded-full backdrop-blur-2xl bg-background/60 hover:bg-background/80 transition-all overflow-hidden shadow-lg p-2 cursor-pointer"
+              className="rounded-full backdrop-blur-2xl bg-background/0 hover:bg-background/0 transition-all overflow-hidden shadow-lg p-2 cursor-pointer"
               style={{ border: "none" }}
               onClick={() => {
                 // Clear any existing timeout
@@ -938,9 +938,7 @@ export function LandingScreen() {
             <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
               Boost
             </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
-              Included with Boost
-            </span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Included with Boost</span>
           </div>
         </motion.div>
 
@@ -982,9 +980,7 @@ export function LandingScreen() {
             <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white">
               Boost
             </span>
-            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">
-              Included with Boost
-            </span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500">Included with Boost</span>
           </div>
         </motion.div>
 
