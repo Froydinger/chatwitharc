@@ -1261,31 +1261,79 @@ Output the complete, finished writing using the update_canvas tool.`;
               finalMode = 'text';
             }
             
-            // Send final complete event (check if controller is still open)
-            try {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                type: 'done',
-                mode: finalMode,
-                content: finalContent,
-                label,
-                language
-              })}\n\n`));
-              controller.close();
-            } catch (closeError) {
-              // Controller may already be closed (e.g., client disconnected)
-              console.warn('Could not send final event, controller may be closed');
+            // Send final complete event (no-op if client already disconnected)
+            safeEnqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'done',
+              mode: finalMode,
+              content: finalContent,
+              label,
+              language
+            })}\n\n`));
+            try { controller.close(); } catch {}
+
+            // If the client abandoned the stream, persist the assistant message
+            // server-side and push-notify so the user sees it on return.
+            if (clientGone && !isGuestMode && user && sessionId && finalContent) {
+              try {
+                const { data: row } = await supabase
+                  .from('chat_sessions')
+                  .select('messages, title')
+                  .eq('id', sessionId)
+                  .eq('user_id', user.id)
+                  .maybeSingle();
+                if (row) {
+                  const existing = Array.isArray(row.messages) ? row.messages : [];
+                  const msgType = finalMode === 'code' ? 'code' : finalMode === 'canvas' ? 'canvas' : 'text';
+                  const assistantMsg: any = {
+                    id: `bg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                    role: 'assistant',
+                    content: finalContent,
+                    type: msgType,
+                    timestamp: new Date().toISOString(),
+                  };
+                  if (msgType === 'canvas') {
+                    assistantMsg.canvasContent = finalContent;
+                    if (label) assistantMsg.canvasLabel = label;
+                  } else if (msgType === 'code') {
+                    assistantMsg.codeContent = finalContent;
+                    assistantMsg.codeLanguage = language || 'html';
+                    if (label) assistantMsg.codeLabel = label;
+                  }
+                  await supabase
+                    .from('chat_sessions')
+                    .update({
+                      messages: [...existing, assistantMsg],
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', sessionId)
+                    .eq('user_id', user.id);
+
+                  // Fire-and-forget push notification
+                  const preview = (finalContent || '').replace(/\s+/g, ' ').slice(0, 140);
+                  await supabase.functions.invoke('send-push-notification', {
+                    body: {
+                      user_id: user.id,
+                      payload: {
+                        title: row.title ? `Arc finished: ${row.title}` : 'Arc finished your reply',
+                        body: preview || 'Tap to read the response.',
+                        url: `/chat/${sessionId}`,
+                        tag: `chat-${sessionId}`,
+                      },
+                    },
+                  });
+                  console.log('📬 Background-saved + push-notified abandoned chat', sessionId);
+                }
+              } catch (bgErr) {
+                console.error('Background save/notify failed:', bgErr);
+              }
             }
           } catch (error) {
             console.error('Stream processing error:', error);
-            try {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
-                type: 'error', 
-                message: error instanceof Error ? error.message : 'Stream error' 
-              })}\n\n`));
-              controller.close();
-            } catch {
-              // Controller already closed
-            }
+            safeEnqueue(encoder.encode(`data: ${JSON.stringify({ 
+              type: 'error', 
+              message: error instanceof Error ? error.message : 'Stream error' 
+            })}\n\n`));
+            try { controller.close(); } catch {}
           }
         }
       });
