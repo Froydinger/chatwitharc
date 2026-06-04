@@ -286,12 +286,21 @@ export async function streamLocalChat(
     else abortSignal.addEventListener('abort', onAbort, { once: true });
   }
 
+  // Tuned sampling to kill the "I'd love to see the before and after. But first..."
+  // loop Llama 3.2 falls into on short prompts. Higher temp + top_p nucleus +
+  // strong frequency/presence penalties break repeated n-grams without
+  // hurting coherence. (WebLLM forwards these to the MLC sampler.)
   const completion = await engine.chat.completions.create({
     messages: messages as any,
     stream: true,
-    temperature: 0.6,
+    temperature: 0.7,
+    top_p: 0.9,
+    frequency_penalty: 0.7,
+    presence_penalty: 0.5,
+    // Non-standard but honoured by MLC's sampler — direct n-gram repeat brake.
+    repetition_penalty: 1.15,
     max_tokens: isMobileLite ? IOS_LITE_MAX_TOKENS : 512,
-  });
+  } as any);
 
   let full = '';
   let deltas = 0;
