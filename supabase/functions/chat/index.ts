@@ -1069,11 +1069,18 @@ Output the complete, finished writing using the update_canvas tool.`;
       let lastSentTextLength = 0;
       let isToolCallMode = isCanvasOrCodeMode; // Start based on mode, but can switch based on response
       
+      let clientGone = false;
       const transformStream = new ReadableStream({
         async start(controller) {
+          const safeEnqueue = (chunk: Uint8Array) => {
+            if (clientGone) return;
+            try { controller.enqueue(chunk); } catch { clientGone = true; }
+          };
+          // Detect client disconnect via request signal — keep generating in background
+          try { req.signal.addEventListener('abort', () => { clientGone = true; }); } catch {}
           // Send initial event to indicate streaming started
           const mode = wantsCode ? 'code' : wantsCanvas ? 'canvas' : 'text';
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'start', mode })}\n\n`));
+          safeEnqueue(encoder.encode(`data: ${JSON.stringify({ type: 'start', mode })}\n\n`));
           
           try {
             let buffer = '';
