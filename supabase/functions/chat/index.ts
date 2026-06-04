@@ -1117,7 +1117,7 @@ Output the complete, finished writing using the update_canvas tool.`;
                       const newContent = textContent.slice(lastSentTextLength);
                       lastSentTextLength = textContent.length;
                       
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+                      safeEnqueue(encoder.encode(`data: ${JSON.stringify({ 
                         type: 'delta', 
                         content: newContent 
                       })}\n\n`));
