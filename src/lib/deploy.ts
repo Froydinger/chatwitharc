@@ -165,9 +165,17 @@ pre{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1.5rem
   const zipBlob = await zip.generateAsync({ type: 'blob' });
   const zipBase64 = await blobToBase64(zipBlob);
 
+  // Authenticate as the logged-in user — the edge function requires the
+  // user's JWT to authorize a publish, not just the anon apikey.
+  const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY };
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
+
   const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY },
+    headers,
     body: JSON.stringify({ zipBase64, subdomain, ...(siteId ? { siteId } : {}) }),
   });
 
@@ -193,12 +201,20 @@ export async function deployToNetlify(
   const zipBlob = await buildStaticZip(projectName, files, siteTitle, faviconSvg);
   const zipBase64 = await blobToBase64(zipBlob);
 
+  // Authenticate as the logged-in user — the edge function requires the
+  // user's JWT to authorize a publish, not just the anon apikey.
+  const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_KEY,
+  };
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
+
   const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'apikey': SUPABASE_KEY,
-    },
+    headers,
     body: JSON.stringify({
       zipBase64,
       subdomain,
