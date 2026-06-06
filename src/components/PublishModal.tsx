@@ -184,6 +184,17 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
             </p>
           </div>
 
+          {/* Permanence notice */}
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3.5 py-3 space-y-1">
+            <p className="text-xs font-medium text-amber-500/90">Before you publish</p>
+            <ul className="text-xs text-muted-foreground space-y-0.5 list-disc list-inside">
+              <li>Your site goes live at a <span className="font-mono">.froydingermedia.online</span> URL</li>
+              <li>It stays live forever — even if you cancel Boost later</li>
+              <li>Publications are <strong>final</strong>: they can't be edited or re-published after launch</li>
+              <li>You can unpublish at any time, but that is also permanent</li>
+            </ul>
+          </div>
+
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
