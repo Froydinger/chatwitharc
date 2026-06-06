@@ -14,6 +14,8 @@ import { isMobileLocalDevice } from '@/utils/mobileLocal';
  */
 export type RouteDestination =
   | 'local'                     // On-device model (label resolved at render)
+  | 'byok-openai'               // User's own OpenAI key
+  | 'byok-gemini'               // User's own Gemini key
   | 'cloud-chat'                // Gemini 3 Flash — default chat
   | 'cloud-chat-pro'            // Gemini 3.5 Flash — heavier reasoning
   | 'cloud-search'              // Perplexity (sonar-pro)
@@ -71,6 +73,10 @@ export function routeRequest(ctx: RouteContext): RouteDestination {
 /** Human-readable label for the source badge — shows the real model name. */
 export function getRouteLabel(route: RouteDestination): { label: string; icon: 'local' | 'cloud'; tooltip: string } {
   switch (route) {
+    case 'byok-openai':
+      return { label: 'Your Key · OpenAI', icon: 'cloud', tooltip: 'Powered by your own OpenAI API key.' };
+    case 'byok-gemini':
+      return { label: 'Your Key · Gemini', icon: 'cloud', tooltip: 'Powered by your own Google Gemini API key.' };
     case 'local': {
       let label = 'Local Model';
       const activeId = getActiveLocalModelId();

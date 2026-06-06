@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask } from "@/store/useModelStore";
 import { getActiveBYOK, byokSendChat } from "@/services/byokChat";
+import { useBYOKStore } from "@/store/useBYOKStore";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext } from "@/lib/userLocation";
 
 // Detect if a user message warrants upgrading to a more powerful model
@@ -176,9 +177,14 @@ export class AIService {
             key: byok.key,
             profile: effectiveProfile as any,
           });
-          return { content };
+          const sourceModel = byok.provider === 'openai' ? 'byok-openai' : 'byok-gemini';
+          return { content, sourceModel: sourceModel as any };
         }
       } catch (e) {
+        const forceMode = useBYOKStore.getState().forceMode;
+        if (forceMode) {
+          throw new Error(`BYOK forced but failed: ${e instanceof Error ? e.message : String(e)}`);
+        }
         console.warn('BYOK call failed — falling back to ArcAI infrastructure:', e);
       }
 

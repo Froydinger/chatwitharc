@@ -11,8 +11,10 @@ export type BYOKProvider = "openai" | "gemini";
 interface BYOKState {
   openaiKey: string;
   geminiKey: string;
+  forceMode: boolean; // When true, errors if BYOK call fails (no fallback to ArcAI)
   setKey: (provider: BYOKProvider, key: string) => void;
   clearKey: (provider: BYOKProvider) => void;
+  setForceMode: (force: boolean) => void;
 }
 
 export const useBYOKStore = create<BYOKState>()(
@@ -20,10 +22,12 @@ export const useBYOKStore = create<BYOKState>()(
     (set) => ({
       openaiKey: "",
       geminiKey: "",
+      forceMode: false,
       setKey: (provider, key) =>
         set(provider === "openai" ? { openaiKey: key.trim() } : { geminiKey: key.trim() }),
       clearKey: (provider) =>
         set(provider === "openai" ? { openaiKey: "" } : { geminiKey: "" }),
+      setForceMode: (force) => set({ forceMode: force }),
     }),
     { name: "arcai-byok" },
   ),

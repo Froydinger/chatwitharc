@@ -294,6 +294,9 @@ function BYOKKeyRow({
 }
 
 function BYOKCard() {
+  const { openaiKey, geminiKey, forceMode, setForceMode } = useBYOKStore();
+  const hasAnyKey = !!(openaiKey.trim() || geminiKey.trim());
+
   return (
     <SectionCard
       icon={Key}
@@ -308,6 +311,19 @@ function BYOKCard() {
       </p>
       <BYOKKeyRow provider="gemini" label="Google Gemini" placeholder="AIza…" />
       <BYOKKeyRow provider="openai" label="OpenAI" placeholder="sk-…" />
+
+      {/* Force mode toggle — only show if a key is set */}
+      {hasAnyKey && (
+        <div className="p-3 rounded-xl border border-border/40 bg-muted/20 flex items-center justify-between">
+          <div>
+            <div className="text-sm font-medium text-foreground">Always use my key</div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Errors if your key fails (no fallback to ArcAI)
+            </p>
+          </div>
+          <Switch checked={forceMode} onCheckedChange={setForceMode} />
+        </div>
+      )}
     </SectionCard>
   );
 }

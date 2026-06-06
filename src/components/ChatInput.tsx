@@ -2208,9 +2208,9 @@ ${safeCode}
           );
         })()}
 
-      {/* Prompt enhancer chip — floats just above the input while typing */}
+      {/* Prompt enhancer chip — floats right above the input while typing */}
       {inputValue.trim().split(/\s+/).filter(Boolean).length >= 2 && (
-        <div className="flex justify-start pl-2">
+        <div className="flex justify-end pr-2">
           <PromptEnhancer text={inputValue} onAccept={(improved) => setInputValue(improved)} />
         </div>
       )}
