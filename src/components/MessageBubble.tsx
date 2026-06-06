@@ -4,6 +4,8 @@ import { Copy, Edit2, Check, MapPin } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import { Message } from "@/store/useArcStore";
 import { useArcStore } from "@/store/useArcStore";
 import { useProfile } from "@/hooks/useProfile";
@@ -30,6 +32,7 @@ import { WeatherCard } from "@/components/WeatherCard";
 import { ScheduledTaskCard } from "@/components/ScheduledTaskCard";
 import { NotificationDispatchCard } from "@/components/NotificationDispatchCard";
 import { SvgArtifact } from "@/components/SvgArtifact";
+import { MermaidDiagram } from "@/components/MermaidDiagram";
 
 // Stable module-level constant — never recreated on re-render, so iframes never remount
 const markdownComponents = {
@@ -94,6 +97,9 @@ const markdownComponents = {
     if (!isInline && match) {
       if (match[1].toLowerCase() === 'svg') {
         return <SvgArtifact svgCode={codeContent} />;
+      }
+      if (match[1].toLowerCase() === 'mermaid') {
+        return <MermaidDiagram chart={codeContent} />;
       }
       return <CodeBlock code={codeContent} language={match[1]} />;
     }
@@ -559,7 +565,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                           return (
                             <div key={idx} className="text-foreground break-words">
                               <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
+                                remarkPlugins={[remarkGfm, remarkMath]}
+                                rehypePlugins={[rehypeKatex]}
                                 components={markdownComponents}
                               >
                                 {part.content}

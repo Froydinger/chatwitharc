@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client'
 import { HelmetProvider } from 'react-helmet-async'
 import App from './App.tsx'
 import './index.css'
+import 'katex/dist/katex.min.css'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 
 // Device detection for iPad PWA

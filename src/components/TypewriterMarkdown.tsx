@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import { CodeBlock } from "@/components/CodeBlock";
+import { MermaidDiagram } from "@/components/MermaidDiagram";
 import { FileAttachment } from "@/components/FileAttachment";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 
@@ -123,7 +126,8 @@ export const TypewriterMarkdown = ({
   return (
     <div className={`relative z-10 text-foreground break-words ${className}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[rehypeKatex]}
         components={{
           p: ({ node, ...props }) => <p className="text-base leading-relaxed mb-3 last:mb-0 text-foreground/90" {...props} />,
           strong: ({ node, ...props }) => <strong className="font-semibold text-foreground" {...props} />,
@@ -216,6 +220,9 @@ export const TypewriterMarkdown = ({
 
             // Block code - use CodeBlock component
             if (!isInline && match) {
+              if (match[1].toLowerCase() === "mermaid") {
+                return <MermaidDiagram chart={codeContent} />;
+              }
               return (
                 <CodeBlock
                   code={codeContent}

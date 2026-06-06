@@ -47,6 +47,7 @@ import { streamLocalChat } from "@/services/localAI";
 import { buildLocalSystemPrompt } from "@/utils/localSystemPrompt";
 import { findFirstToolCall, executeLocalToolCall, stripToolTags, hasPartialOpenTag } from "@/utils/localToolProtocol";
 import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptionsDock";
+import { PromptEnhancer } from "@/components/PromptEnhancer";
 import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore } from "@/store/useImageGenStore";
 
@@ -2206,6 +2207,13 @@ ${safeCode}
             portalRoot,
           );
         })()}
+
+      {/* Prompt enhancer chip — floats just above the input while typing */}
+      {inputValue.trim().split(/\s+/).filter(Boolean).length >= 2 && (
+        <div className="flex justify-start pl-2">
+          <PromptEnhancer text={inputValue} onAccept={(improved) => setInputValue(improved)} />
+        </div>
+      )}
 
       {/* Input Row */}
       <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">

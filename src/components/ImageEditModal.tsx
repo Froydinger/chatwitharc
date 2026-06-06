@@ -16,6 +16,7 @@ import {
   type ImageAspectRatio,
 } from "@/store/useImageGenStore";
 import { useSubscription } from "@/hooks/useSubscription";
+import { PromptEnhancer } from "@/components/PromptEnhancer";
 import { cn } from "@/lib/utils";
 
 interface ImageEditModalProps {
@@ -428,9 +429,16 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
 
             {/* Main Edit Textarea */}
             <div>
-              <label className="text-sm font-medium mb-2 block">
-                Describe your changes {isMultipleImages && '(applies to all images)'}
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium block">
+                  Describe your changes {isMultipleImages && '(applies to all images)'}
+                </label>
+                <PromptEnhancer
+                  text={editInstruction}
+                  kind="image"
+                  onAccept={(improved) => setEditInstruction(improved.slice(0, MAX_CHARS))}
+                />
+              </div>
               <Textarea
                 value={editInstruction}
                 onChange={(e) => setEditInstruction(e.target.value.slice(0, MAX_CHARS))}

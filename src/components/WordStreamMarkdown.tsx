@@ -1,10 +1,13 @@
 import { cloneElement, isValidElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import { CodeBlock } from "@/components/CodeBlock";
 import { FileAttachment } from "@/components/FileAttachment";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 import { SvgArtifact } from "@/components/SvgArtifact";
+import { MermaidDiagram } from "@/components/MermaidDiagram";
 
 interface WordStreamMarkdownProps {
   text: string;
@@ -338,6 +341,9 @@ export const WordStreamMarkdown = ({
           if (match[1].toLowerCase() === "svg") {
             return <SvgArtifact svgCode={codeContent} />;
           }
+          if (match[1].toLowerCase() === "mermaid") {
+            return <MermaidDiagram chart={codeContent} />;
+          }
           return <CodeBlock code={codeContent} language={match[1]} />;
         }
         return (
@@ -351,7 +357,7 @@ export const WordStreamMarkdown = ({
 
   return (
     <div className={`relative z-10 text-foreground break-words ${className}`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={components}>
         {visibleText}
       </ReactMarkdown>
     </div>
