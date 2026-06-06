@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Rocket, Globe, Loader2, X } from 'lucide-react';
+import { Rocket, Globe, Loader2, X, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { checkSubdomainAvailability } from '@/lib/deploy';
 
 const EMOJI_OPTIONS = ['🚀', '⚡', '🌟', '🎯', '🔥', '💎', '🎨', '🌈', '🦋', '🍀', '🎭', '🏆'];
 const BG_OPTIONS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
@@ -32,6 +33,8 @@ function slugify(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50);
 }
 
+type AvailabilityState = 'idle' | 'checking' | 'available' | 'taken';
+
 export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: PublishModalProps) {
   const [title, setTitle] = useState(defaultTitle || 'My Site');
   const [subdomain, setSubdomain] = useState('');
@@ -40,6 +43,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
   const [bg, setBg] = useState('#6366f1');
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState('');
+  const [availability, setAvailability] = useState<AvailabilityState>('idle');
 
   // Auto-derive subdomain from title unless user has manually edited it
   useEffect(() => {
@@ -55,8 +59,25 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
       setSubdomainEdited(false);
       setPublishing(false);
       setError('');
+      setAvailability('idle');
     }
   }, [open, defaultTitle]);
+
+  // Debounced availability check
+  useEffect(() => {
+    if (!open) return;
+    const sub = subdomain.trim();
+    if (!sub || sub.length < 2) {
+      setAvailability('idle');
+      return;
+    }
+    setAvailability('checking');
+    const handle = setTimeout(async () => {
+      const ok = await checkSubdomainAvailability(sub);
+      setAvailability(ok ? 'available' : 'taken');
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [subdomain, open]);
 
   if (!open) return null;
 
@@ -65,27 +86,29 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
 
   const handlePublish = async () => {
     if (!subdomain.trim()) { setError('Site name is required'); return; }
+    if (availability === 'taken') { setError('That address is already taken — pick a different one.'); return; }
     setError('');
     setPublishing(true);
     try {
       await onPublish({ subdomain: subdomain.trim(), title: title.trim() || subdomain, faviconSvg });
       onClose();
-      // Note: ogTitle / ogDescription / ogImageUrl can be set after publishing via the manage modal
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Publish failed');
+      const msg = err instanceof Error ? err.message : 'Publish failed';
+      setError(msg);
+      // If server says taken, mark it
+      if (/already taken|taken — pick/i.test(msg)) setAvailability('taken');
     } finally {
       setPublishing(false);
     }
   };
 
+  const disablePublish = publishing || !subdomain || availability === 'checking' || availability === 'taken';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
       <div className="relative w-full max-w-md rounded-2xl border border-border/30 bg-background shadow-2xl overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border/20">
           <div className="flex items-center gap-2.5">
             <div className="p-1.5 rounded-lg bg-primary/15">
@@ -106,7 +129,6 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
           <div className="space-y-3">
             <Label className="text-sm font-medium">Icon</Label>
             <div className="flex gap-3">
-              {/* Preview */}
               <div
                 className="w-14 h-14 flex-shrink-0 rounded-xl flex items-center justify-center text-2xl shadow-inner"
                 style={{ background: bg }}
@@ -115,7 +137,6 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
               </div>
 
               <div className="flex-1 space-y-2">
-                {/* Emoji grid */}
                 <div className="flex flex-wrap gap-1.5">
                   {EMOJI_OPTIONS.map(e => (
                     <button
@@ -130,7 +151,6 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
                     </button>
                   ))}
                 </div>
-                {/* Color swatches */}
                 <div className="flex gap-1.5">
                   {BG_OPTIONS.map(c => (
                     <button
@@ -178,20 +198,37 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
                 .froydingermedia.online
               </div>
             </div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Globe className="w-3 h-3" />
-              {previewUrl}
-            </p>
+            <div className="flex items-center justify-between gap-2 min-h-[18px]">
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5 truncate">
+                <Globe className="w-3 h-3 flex-shrink-0" />
+                <span className="truncate">{previewUrl}</span>
+              </p>
+              {availability === 'checking' && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1 flex-shrink-0">
+                  <Loader2 className="w-3 h-3 animate-spin" /> checking…
+                </span>
+              )}
+              {availability === 'available' && (
+                <span className="text-xs text-emerald-400 flex items-center gap-1 flex-shrink-0">
+                  <Check className="w-3 h-3" /> available
+                </span>
+              )}
+              {availability === 'taken' && (
+                <span className="text-xs text-destructive flex items-center gap-1 flex-shrink-0">
+                  <AlertCircle className="w-3 h-3" /> taken
+                </span>
+              )}
+            </div>
           </div>
 
-          {/* Permanence notice */}
+          {/* Notice — updates allowed */}
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3.5 py-3 space-y-1">
             <p className="text-xs font-medium text-amber-500/90">Before you publish</p>
             <ul className="text-xs text-muted-foreground space-y-0.5 list-disc list-inside">
               <li>Your site goes live at a <span className="font-mono">.froydingermedia.online</span> URL</li>
-              <li>It stays live forever — even if you cancel Boost later</li>
-              <li>Publications are <strong>final</strong>: they can't be edited or re-published after launch</li>
-              <li>You can unpublish at any time, but that is also permanent</li>
+              <li>You can re-publish to push updates to the same URL anytime</li>
+              <li>It stays live while your Boost subscription is active</li>
+              <li>Unpublishing is the only destructive action — once gone, the URL can't be recovered</li>
             </ul>
           </div>
 
@@ -200,12 +237,11 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
           )}
         </div>
 
-        {/* Footer */}
         <div className="px-6 pb-5 flex gap-3 justify-end">
           <Button variant="ghost" onClick={onClose} disabled={publishing} className="rounded-xl">
             Cancel
           </Button>
-          <Button onClick={handlePublish} disabled={publishing || !subdomain} className="rounded-xl gap-2">
+          <Button onClick={handlePublish} disabled={disablePublish} className="rounded-xl gap-2">
             {publishing
               ? <><Loader2 className="w-4 h-4 animate-spin" />Publishing…</>
               : <><Rocket className="w-4 h-4" />Publish</>}

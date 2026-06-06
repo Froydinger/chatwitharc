@@ -102,37 +102,23 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   };
 
   const handlePublishConfirm = async (opts: { subdomain: string; title: string; faviconSvg: string }) => {
+    // Edge function is authoritative: if this throws, no record is saved and
+    // the PublishModal surfaces the error to the user. NO phantom records.
     const result = await deployCodeBlock(content, codeLanguage, opts);
-    // Persist to DB
-    try {
-      const site = await savePublishedSite({
-        netlify_site_id: result.siteId,
-        subdomain: result.subdomain,
-        url: result.url,
-        title: opts.title,
-        favicon_svg: opts.faviconSvg,
-        favicon_data: null,
-        og_title: null,
-        og_description: null,
-        og_image_url: null,
-        code: content,
-        code_language: codeLanguage,
-      });
-      setPublishedSite(site);
-    } catch {
-      // DB save failed — still show the live button with local state
-      setPublishedSite({
-        id: '', user_id: '', created_at: '', updated_at: '',
-        netlify_site_id: result.siteId,
-        subdomain: result.subdomain,
-        url: result.url,
-        title: opts.title,
-        favicon_svg: opts.faviconSvg,
-        favicon_data: null,
-        og_title: null, og_description: null, og_image_url: null,
-        code: content, code_language: codeLanguage,
-      });
-    }
+    const site = await savePublishedSite({
+      netlify_site_id: result.siteId,
+      subdomain: result.subdomain,
+      url: result.url,
+      title: opts.title,
+      favicon_svg: opts.faviconSvg,
+      favicon_data: null,
+      og_title: null,
+      og_description: null,
+      og_image_url: null,
+      code: content,
+      code_language: codeLanguage,
+    });
+    setPublishedSite(site);
     sonnerToast.success('Published! Your site is live.', {
       action: { label: 'View', onClick: () => window.open(result.url, '_blank') },
     });
@@ -808,6 +794,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           open={showManageModal}
           onClose={() => setShowManageModal(false)}
           site={publishedSite}
+          currentCode={content}
+          currentCodeLanguage={codeLanguage}
           onUpdated={(updated) => setPublishedSite(updated)}
           onUnpublished={() => setPublishedSite(null)}
         />

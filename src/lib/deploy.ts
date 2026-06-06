@@ -42,6 +42,32 @@ async function buildStaticZip(projectName: string, files: VirtualFileSystem, sit
   return zip.generateAsync({ type: 'blob' });
 }
 
+/**
+ * Check whether a `.froydingermedia.online` subdomain is available.
+ * Returns true if free, false if already taken.
+ */
+export async function checkSubdomainAvailability(subdomain: string): Promise<boolean> {
+  if (!subdomain || subdomain.trim().length < 2) return false;
+  try {
+    const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_KEY,
+    };
+    if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ action: 'check', subdomain: subdomain.trim() }),
+    });
+    if (!res.ok) return true; // fail open — let the deploy endpoint be the authoritative gate
+    const data = await res.json();
+    return data.available !== false;
+  } catch {
+    return true; // fail open
+  }
+}
+
 export async function unpublishFromNetlify(siteId: string): Promise<void> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20000);
