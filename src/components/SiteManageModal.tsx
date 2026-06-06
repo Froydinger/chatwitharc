@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import {
-  Check, Copy, ExternalLink, Globe, Loader2, Trash2, X, Lock, AlertTriangle,
+  Check, Copy, ExternalLink, Globe, Loader2, RefreshCw, Trash2, X, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { unpublishFromNetlify } from '@/lib/deploy';
-import { deletePublishedSite, PublishedSite } from '@/lib/publishedSites';
+import { deployCodeBlock, unpublishFromNetlify } from '@/lib/deploy';
+import { deletePublishedSite, updatePublishedSite, PublishedSite } from '@/lib/publishedSites';
 import { toast } from 'sonner';
 
 interface SiteManageModalProps {
   open: boolean;
   onClose: () => void;
   site: PublishedSite;
+  /** Latest code to push on update. Defaults to whatever was saved with the site. */
+  currentCode?: string;
+  currentCodeLanguage?: string;
   onUpdated: (site: PublishedSite) => void;
   onUnpublished: () => void;
 }
@@ -18,21 +21,69 @@ interface SiteManageModalProps {
 /**
  * Published-site management modal.
  *
- * IMPORTANT: Publications are intentionally **immutable** after launch — once
- * a site goes live, the only allowed action is Unpublish (which is permanent
- * and cannot be reversed). No editing, no re-publishing. This holds even for
- * active Boost subscribers. See PricingPage for the user-facing explanation.
- *
- * `onUpdated` is kept on the props for backward compatibility with callers,
- * but is no longer invoked from this modal.
+ * Sites can be re-published (update in place) or unpublished. Re-deploying
+ * reuses the same Netlify site id + subdomain so the live URL stays stable.
+ * Unpublishing is permanent — the URL is released.
  */
-export function SiteManageModal({ open, onClose, site, onUnpublished }: SiteManageModalProps) {
+export function SiteManageModal({
+  open, onClose, site, currentCode, currentCodeLanguage,
+  onUpdated, onUnpublished,
+}: SiteManageModalProps) {
   const [unpublishing, setUnpublishing] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [confirmUnpublish, setConfirmUnpublish] = useState(false);
   const [error, setError] = useState('');
   const [urlCopied, setUrlCopied] = useState(false);
 
   if (!open) return null;
+
+  const codeToDeploy = currentCode ?? site.code ?? '';
+  const langToDeploy = currentCodeLanguage ?? site.code_language ?? 'html';
+
+  const handleUpdate = async () => {
+    if (!codeToDeploy.trim()) {
+      setError('No code to publish');
+      return;
+    }
+    setUpdating(true);
+    setError('');
+    try {
+      const result = await deployCodeBlock(codeToDeploy, langToDeploy, {
+        subdomain: site.subdomain,
+        title: site.title,
+        faviconSvg: site.favicon_svg || undefined,
+        faviconData: site.favicon_data || undefined,
+        ogTitle: site.og_title || undefined,
+        ogDescription: site.og_description || undefined,
+        ogImageUrl: site.og_image_url || undefined,
+        siteId: site.netlify_site_id,
+      });
+      // Persist the updated code snapshot
+      try {
+        if (site.id) {
+          const updated = await updatePublishedSite(site.id, {
+            code: codeToDeploy,
+            code_language: langToDeploy,
+            url: result.url,
+            netlify_site_id: result.siteId,
+            subdomain: result.subdomain,
+          });
+          onUpdated(updated);
+        } else {
+          onUpdated({ ...site, code: codeToDeploy, code_language: langToDeploy });
+        }
+      } catch {
+        onUpdated({ ...site, code: codeToDeploy, code_language: langToDeploy });
+      }
+      toast.success('Site updated — your changes are live.', {
+        action: { label: 'View', onClick: () => window.open(result.url, '_blank') },
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Update failed');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const handleUnpublish = async () => {
     if (!confirmUnpublish) {
@@ -44,7 +95,7 @@ export function SiteManageModal({ open, onClose, site, onUnpublished }: SiteMana
     try {
       await unpublishFromNetlify(site.netlify_site_id);
       if (site.id) await deletePublishedSite(site.id);
-      toast.success('Site unpublished — this is permanent. The URL is gone.');
+      toast.success('Site unpublished — the URL is gone.');
       onUnpublished();
       onClose();
     } catch (err) {
@@ -60,14 +111,13 @@ export function SiteManageModal({ open, onClose, site, onUnpublished }: SiteMana
     setTimeout(() => setUrlCopied(false), 2000);
   };
 
+  const busy = unpublishing || updating;
+
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={busy ? undefined : onClose} />
 
-      {/* Modal */}
       <div className="relative w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border/30 bg-background shadow-2xl overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border/20">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="p-1.5 rounded-lg bg-emerald-500/15">
@@ -80,7 +130,8 @@ export function SiteManageModal({ open, onClose, site, onUnpublished }: SiteMana
           </div>
           <button
             onClick={onClose}
-            className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors flex-shrink-0"
+            disabled={busy}
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors flex-shrink-0 disabled:opacity-50"
           >
             <X className="w-4 h-4" />
           </button>
@@ -99,14 +150,15 @@ export function SiteManageModal({ open, onClose, site, onUnpublished }: SiteMana
             </a>
           </div>
 
-          {/* Immutability notice */}
+          {/* Update notice */}
           <div className="rounded-xl border border-border/40 bg-muted/20 p-3 text-xs text-muted-foreground space-y-1.5">
-            <div className="flex items-center gap-1.5 text-foreground font-medium">
-              <Lock className="h-3.5 w-3.5" />
-              This publication is final
-            </div>
-            <p>Published sites cannot be edited or re-published. If you change the underlying code, the live version will not update.</p>
-            <p>You can unpublish at any time, but unpublished sites are gone for good — you cannot bring them back, and the subdomain cannot be reused for this code.</p>
+            <p>
+              <span className="text-foreground font-medium">Update site</span> pushes the latest code to the same URL.
+              The link, subdomain, and any shared references stay the same.
+            </p>
+            <p>
+              <span className="text-foreground font-medium">Unpublish</span> takes the site offline immediately and releases the URL. This is permanent.
+            </p>
           </div>
 
           {/* Confirm-unpublish warning */}
@@ -124,20 +176,32 @@ export function SiteManageModal({ open, onClose, site, onUnpublished }: SiteMana
         </div>
 
         {/* Footer */}
-        <div className="px-5 pb-5 pt-3 border-t border-border/20 flex items-center justify-between gap-2">
-          <Button variant="ghost" onClick={onClose} disabled={unpublishing} className="rounded-xl">
+        <div className="px-5 pb-5 pt-3 border-t border-border/20 flex flex-wrap items-center justify-between gap-2">
+          <Button variant="ghost" onClick={onClose} disabled={busy} className="rounded-xl">
             Close
           </Button>
-          <Button
-            variant={confirmUnpublish ? 'destructive' : 'outline'}
-            onClick={handleUnpublish}
-            disabled={unpublishing}
-            className="rounded-xl gap-1.5"
-          >
-            {unpublishing
-              ? <><Loader2 className="w-4 h-4 animate-spin" />Unpublishing…</>
-              : <><Trash2 className="w-4 h-4" />{confirmUnpublish ? 'Yes, unpublish permanently' : 'Unpublish'}</>}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleUpdate}
+              disabled={busy || !codeToDeploy.trim()}
+              className="rounded-xl gap-1.5"
+            >
+              {updating
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Updating…</>
+                : <><RefreshCw className="w-4 h-4" />Update site</>}
+            </Button>
+            <Button
+              variant={confirmUnpublish ? 'destructive' : 'ghost'}
+              onClick={handleUnpublish}
+              disabled={busy}
+              className="rounded-xl gap-1.5"
+            >
+              {unpublishing
+                ? <><Loader2 className="w-4 h-4 animate-spin" />Unpublishing…</>
+                : <><Trash2 className="w-4 h-4" />{confirmUnpublish ? 'Yes, unpublish' : 'Unpublish'}</>}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

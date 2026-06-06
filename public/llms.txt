@@ -7,7 +7,7 @@ ArcAI is free forever for everyone. Unlimited chats with every model, 10 image g
 The optional **ArcAi Boost** upgrade is $7/month and unlocks:
 - Unlimited image generations
 - Unlimited voice conversations
-- One-tap web publishing for code creations on the `*.froydingermedia.online` domain (publications are permanent and stay live after you cancel, but cannot be edited or re-published once live)
+- One-tap web publishing for code creations on the `*.froydingermedia.online` domain. You can re-publish to push updates to the same URL anytime, and sites stay live while your Boost subscription is active. Unpublishing is the only destructive action — once a site is unpublished, the URL is released and cannot be recovered.
 
 There is no longer a "Pro" tier. There is only Free and the optional Boost upgrade.
 
