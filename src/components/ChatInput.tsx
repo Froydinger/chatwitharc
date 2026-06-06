@@ -327,9 +327,9 @@ function extractPrefixPrompt(message: string): string {
 
 // Detect @mention context: returns {isActive, searchTerm} if user is typing @personaname
 function detectPersonaMention(text: string): { isActive: boolean; searchTerm: string } {
-  const match = text.match(/@(\w*)$/);
+  const match = text.match(/@([\w\s]*)$/);
   if (match) {
-    return { isActive: true, searchTerm: match[1] };
+    return { isActive: true, searchTerm: match[1].trim() };
   }
   return { isActive: false, searchTerm: "" };
 }
