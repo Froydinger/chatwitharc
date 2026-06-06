@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask } from "@/store/useModelStore";
+import { getActiveBYOK, byokSendChat } from "@/services/byokChat";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext } from "@/lib/userLocation";
 
 // Detect if a user message warrants upgrading to a more powerful model
@@ -161,6 +162,24 @@ export class AIService {
         }
       } catch (e) {
         console.warn('Falling back to provided profile:', e);
+      }
+
+      // BYOK: if the user supplied their own key for the selected provider, route
+      // plain-text chat straight to that provider (offloads cost, stays private).
+      // Anything needing ArcAI tools (search/canvas/code) falls through below.
+      try {
+        const byok = getActiveBYOK();
+        const isPlainText = !forceWebSearch && !forceCanvas && !forceCode && !forceResearch;
+        if (byok && isPlainText) {
+          const content = await byokSendChat(messages as any, {
+            provider: byok.provider,
+            key: byok.key,
+            profile: effectiveProfile as any,
+          });
+          return { content };
+        }
+      } catch (e) {
+        console.warn('BYOK call failed — falling back to ArcAI infrastructure:', e);
       }
 
       // Auto-inject user location when the latest message implies it's relevant.

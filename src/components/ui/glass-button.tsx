@@ -3,6 +3,8 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { triggerHaptic } from "@/lib/haptics";
+import { HapticOverlay } from "@/components/HapticOverlay";
 
 const glassButtonVariants = cva(
   "inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 haptic glass-shimmer",
@@ -60,12 +62,11 @@ const GlassButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>(
 
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
       createRipple(event);
-      
-      // Haptic feedback simulation
-      if (navigator.vibrate) {
-        navigator.vibrate(10);
-      }
-      
+
+      // Android/other haptic. iOS uses the native switch in <HapticOverlay/>
+      // below (a real tap on it buzzes), since iOS has no Web Vibration API.
+      triggerHaptic(10);
+
       onClick?.(event);
     };
 
@@ -97,7 +98,11 @@ const GlassButton = React.forwardRef<HTMLButtonElement, GlassButtonProps>(
           {...props}
         >
           {children}
-          
+
+          {/* iOS haptic: invisible native switch under the tap (no-op elsewhere).
+              Skipped for asChild since Slot requires a single child. */}
+          {!asChild && <HapticOverlay />}
+
           {/* Ripple Effects */}
           {ripples.map((ripple) => (
             <span
