@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, LayoutDashboard, Share2 } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, LayoutDashboard, Share2, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
+import { usePersonasStore } from "@/store/usePersonasStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -999,6 +1000,23 @@ export function MobileChatApp() {
                 <div
                   className="space-y-4 chat-messages w-full max-w-xl" // Messages only, now max-w-xl
                 >
+                  {/* Persona lock indicator */}
+                  {(() => {
+                    const { currentSessionId, chatSessions } = useArcStore.getState();
+                    const { getPersonaById } = usePersonasStore.getState();
+                    const session = chatSessions.find(s => s.id === currentSessionId);
+                    const persona = session?.personaId ? getPersonaById(session.personaId) : null;
+
+                    return persona ? (
+                      <div className="flex justify-center mb-2">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/30 text-xs font-medium text-primary">
+                          <Lock className="h-3 w-3" />
+                          <span>{persona.name}</span>
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
+
                   <AnimatePresence mode="popLayout" initial={false}>
                     {messages.map((message, index) => {
                       const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
