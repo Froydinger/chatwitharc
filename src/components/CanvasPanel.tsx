@@ -425,31 +425,33 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
             <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-sm">
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => setShowCodeEditor(false)}
+                aria-label="Preview"
+                title="Preview"
                 className={cn(
-                  "h-8 px-2 sm:px-3 rounded-lg text-xs font-medium transition-all",
+                  "h-8 w-8 rounded-lg transition-all",
                   !showCodeEditor
                     ? "bg-primary/20 text-primary shadow-sm border border-primary/30"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/10"
                 )}
               >
-                <Eye className="w-3.5 h-3.5 sm:mr-1.5" />
-                <span className="hidden sm:inline">Preview</span>
+                <Play className="w-3.5 h-3.5" />
               </Button>
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => setShowCodeEditor(true)}
+                aria-label="Code"
+                title="Code"
                 className={cn(
-                  "h-8 px-2 sm:px-3 rounded-lg text-xs font-medium transition-all",
+                  "h-8 w-8 rounded-lg transition-all",
                   showCodeEditor
                     ? "bg-primary/20 text-primary shadow-sm border border-primary/30"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/10"
                 )}
               >
-                <Code className="w-3.5 h-3.5 sm:mr-1.5" />
-                <span className="hidden sm:inline">Code</span>
+                <Code className="w-3.5 h-3.5" />
               </Button>
             </div>
           )}
