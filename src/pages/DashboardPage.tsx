@@ -32,7 +32,6 @@ import { ChatInput } from "@/components/ChatInput";
 import { MusicPopup } from "@/components/MusicPopup";
 import { useMusicStore } from "@/store/useMusicStore";
 import { PaymentFailureBanner } from "@/components/PaymentFailureBanner";
-import { FolderManager } from "@/components/FolderManager";
 import { CodePreview } from "@/components/CodePreview";
 import { canPreview, getLanguageDisplay, getLanguageColor } from "@/utils/codeUtils";
 import { useCanvasStore } from "@/store/useCanvasStore";
@@ -901,9 +900,6 @@ useEffect(() => {
                 <Sparkles className="h-4 w-4 text-primary shrink-0" />
                 <p className="text-sm text-foreground/80">{insightTip}</p>
               </div>
-
-              {/* Folders */}
-              <FolderManager />
 
               {/* Recent Chats */}
               <Section title="Recent Chats" icon={MessageSquare} action={() => switchTab("chats")} actionLabel="See all">

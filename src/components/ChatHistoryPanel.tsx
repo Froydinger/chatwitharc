@@ -2,11 +2,9 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, MessageSquare, RefreshCw, Search, LayoutDashboard, Share2, ChevronRight, X } from "lucide-react";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
-import { FoldersSection } from "@/components/FoldersSection";
 import { useArcStore } from "@/store/useArcStore";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useSearchStore } from "@/store/useSearchStore";
-import { useFoldersStore } from "@/store/useFoldersStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +19,6 @@ type UnifiedSession = {
   timestamp: number;
   type: "chat" | "search";
   itemCount: number;
-  folder_id?: string | null;
 };
 
 const ITEMS_PER_PAGE = 25;
@@ -71,10 +68,8 @@ export function ChatHistoryPanel() {
   const [shareSessionId, setShareSessionId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState("");
-  const { fetchFolders } = useFoldersStore();
   const searchRef = useRef<HTMLInputElement | null>(null);
 
   const goToChat = () => {
@@ -140,22 +135,17 @@ export function ChatHistoryPanel() {
         timestamp: new Date(s.lastMessageAt).getTime(),
         type: "chat",
         itemCount: s.messageCount ?? s.messages.length,
-        folder_id: (s as any).folder_id || null,
       }))
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [chatSessions, corporateMode]);
 
   const filtered = useMemo(() => {
-    let result = sortedSessions;
-    // Filter by folder if selected
-    if (selectedFolderId) {
-      result = result.filter((s) => s.folder_id === selectedFolderId);
-    }
+    const result = sortedSessions;
     // Filter by search query
     const q = query.trim().toLowerCase();
     if (!q) return result;
     return result.filter((s) => s.title.toLowerCase().includes(q));
-  }, [sortedSessions, query, selectedFolderId]);
+  }, [sortedSessions, query]);
 
   const isSearching = query.trim().length > 0;
   const paginated = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
@@ -180,11 +170,6 @@ export function ChatHistoryPanel() {
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
   }, [query]);
-
-  // Fetch folders on mount
-  useEffect(() => {
-    fetchFolders();
-  }, []);
 
   // Ensure active session is included in visible window
   useEffect(() => {
@@ -240,11 +225,6 @@ export function ChatHistoryPanel() {
             <span className="truncate">Deep</span>
           </button>
         </div>
-
-        {/* Folders */}
-        {!corporateMode && sortedSessions.length > 0 && (
-          <FoldersSection onFolderSelect={setSelectedFolderId} selectedFolderId={selectedFolderId} compact />
-        )}
 
         {/* Search input */}
         {!corporateMode && sortedSessions.length > 5 && (
