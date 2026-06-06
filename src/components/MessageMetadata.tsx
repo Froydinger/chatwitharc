@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Zap, MapPin } from "lucide-react";
 import { ModelSourceBadge } from "@/components/ModelSourceBadge";
 import { ToolsUsedModal } from "@/components/ToolsUsedModal";
 import { Message } from "@/store/useArcStore";
@@ -38,10 +38,10 @@ export function MessageMetadata({ message }: MessageMetadataProps) {
             </div>
           )}
           {hasTools && (
-            <div className="text-[10px] font-medium text-primary/70 group-hover:text-primary">⚡</div>
+            <Zap className="h-3 w-3 text-primary/70 group-hover:text-primary" />
           )}
           {hasLocation && (
-            <div className="text-[10px] font-medium text-primary/70 group-hover:text-primary">📍</div>
+            <MapPin className="h-3 w-3 text-primary/70 group-hover:text-primary" />
           )}
           <ChevronDown className="h-3 w-3 text-muted-foreground group-hover:text-foreground" />
         </button>
