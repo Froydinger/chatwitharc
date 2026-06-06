@@ -155,6 +155,8 @@ export const usePersonasStore = create<PersonasState>((set, get) => ({
   },
 
   getPersonaByName: (name) => {
-    return get().personas.find(p => p.name.toLowerCase() === name.toLowerCase());
+    const lowerName = name.toLowerCase();
+    return get().personas.find(p => p.name.toLowerCase() === lowerName)
+      || get().personas.find(p => p.name.toLowerCase().startsWith(lowerName));
   },
 }));
