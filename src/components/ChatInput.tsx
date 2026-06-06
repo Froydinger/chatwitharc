@@ -50,6 +50,8 @@ import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptions
 import { PromptEnhancer } from "@/components/PromptEnhancer";
 import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore } from "@/store/useImageGenStore";
+import { usePersonasStore } from "@/store/usePersonasStore";
+import { parsePersonaMentionPrefix, stripPersonaMention } from "@/utils/personaDetection";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -990,12 +992,42 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const userMessage = messageToSend.trim();
     let images = [...selectedImages];
     let documents = [...selectedDocuments];
+
+    // Detect @persona mention at the start of the message
+    let finalMessage = userMessage;
+    const personaMention = parsePersonaMentionPrefix(userMessage);
+    if (personaMention) {
+      const { personaName, remaining } = personaMention;
+      const persona = usePersonasStore.getState().getPersonaByName(personaName);
+      if (persona) {
+        // Lock this conversation to the selected persona
+        const { currentSessionId, chatSessions } = useArcStore.getState();
+        if (currentSessionId) {
+          const sessionIndex = chatSessions.findIndex((s) => s.id === currentSessionId);
+          if (sessionIndex !== -1) {
+            chatSessions[sessionIndex].personaId = persona.id;
+          }
+        }
+        finalMessage = remaining;
+        toast({
+          title: `Switched to ${persona.name}`,
+          description: "This conversation is now locked to this persona.",
+        });
+      } else {
+        toast({
+          title: "Persona not found",
+          description: `"${personaName}" doesn't exist. Type to use it for this chat.`,
+          variant: "destructive",
+        });
+      }
+    }
+
     // Capture mode states BEFORE clearing UI (they're needed in handleSendMessage)
-    let wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(userMessage);
-    let wasCodingMode = shouldShowCodeMode || checkForCodingRequest(userMessage);
-    let wasImageMode = shouldShowBanana || checkForImageRequest(userMessage);
-    let wasSearchMode = shouldShowSearchMode || checkForSearchRequest(userMessage);
-    let wasBuildMode = checkForBuildRequest(userMessage);
+    let wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(finalMessage);
+    let wasCodingMode = shouldShowCodeMode || checkForCodingRequest(finalMessage);
+    let wasImageMode = shouldShowBanana || checkForImageRequest(finalMessage);
+    let wasSearchMode = shouldShowSearchMode || checkForSearchRequest(finalMessage);
+    let wasBuildMode = checkForBuildRequest(finalMessage);
 
     // Clear UI promptly
     setInputValue("");
@@ -1035,7 +1067,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
     // BUILD MODE: /build navigates to the App Builder
     if (wasBuildMode) {
-      const buildPrompt = extractPrefixPrompt(userMessage);
+      const buildPrompt = extractPrefixPrompt(finalMessage);
       // Navigate to App Builder — the prompt will be handled there
       navigate(buildPrompt ? `/apps?prompt=${encodeURIComponent(buildPrompt)}` : "/apps");
       return;
@@ -1064,7 +1096,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         isGuestMode &&
         (images.length > 0 || documents.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode)
       ) {
-        await addMessage({ content: userMessage || "Sent message", role: "user", type: "text" });
+        await addMessage({ content: finalMessage || "Sent message", role: "user", type: "text" });
         await addMessage({
           content:
             "✨ Image generation, canvas, code, and document analysis features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
@@ -1080,7 +1112,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       if (documents.length > 0) {
         await addMessage({
           content:
-            userMessage ||
+            finalMessage ||
             `Analyzing ${documents.length} document${documents.length > 1 ? "s" : ""}: ${documents.map((d) => d.name).join(", ")}`,
           role: "user",
           type: "text",
@@ -1095,7 +1127,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               reader.readAsDataURL(doc);
             });
 
-            const analysisPrompt = userMessage || `Analyze and summarize this document: ${doc.name}`;
+            const analysisPrompt = finalMessage || `Analyze and summarize this document: ${doc.name}`;
             const response = await ai.sendMessageWithDocument(
               [{ role: "user", content: analysisPrompt }],
               fileData,
@@ -1144,18 +1176,18 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         const isEditMode = allImagesEditMode;
 
         if (isEditMode) {
-          await addMessage({ content: userMessage, role: "user", type: "image", imageUrls });
+          await addMessage({ content: finalMessage, role: "user", type: "image", imageUrls });
           await addMessage({
-            content: `Editing image: ${userMessage}`,
+            content: `Editing image: ${finalMessage}`,
             role: "assistant",
             type: "image-generating",
-            imagePrompt: userMessage,
+            imagePrompt: finalMessage,
             sourceModel: "cloud-image-edit",
           });
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(userMessage, imageUrls, imageGenModel, imageGenAspect);
+            const editedUrl = await ai.editImage(finalMessage, imageUrls, imageGenModel, imageGenAspect);
             let finalUrl = editedUrl;
             try {
               const resp = await fetch(editedUrl);
@@ -1176,7 +1208,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               }
             } catch {}
             await replaceLastMessage({
-              content: `Edited image: ${userMessage}`,
+              content: `Edited image: ${finalMessage}`,
               role: "assistant",
               type: "image",
               imageUrl: finalUrl,
@@ -1198,7 +1230,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
         // Analyze
         await addMessage({
-          content: userMessage || "Sent images",
+          content: finalMessage || "Sent images",
           role: "user",
           type: "image",
           imageUrls: imageUrls.length ? imageUrls : undefined,
@@ -1218,11 +1250,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           );
           const isSvgRequest =
             /\bsvg\b|as\s+svg|to\s+svg|make.{0,20}svg|svg.{0,20}version|convert.{0,20}svg|vector\s+graphic/i.test(
-              userMessage,
+              finalMessage,
             );
           const analysisPrompt = isSvgRequest
             ? `You are an SVG artist. Carefully analyze this image and recreate it as a complete, valid SVG. Use shapes (rect, circle, ellipse, path, polygon), gradients, and accurate colors to faithfully represent the image. Set a viewBox and width/height attributes. Output ONLY the SVG markup inside a single \`\`\`svg code block with absolutely no other text, explanation, or commentary outside the code block.`
-            : userMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
+            : finalMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
           const response = await ai.sendMessageWithImage([{ role: "user", content: analysisPrompt }], base64s);
           await addMessage({ content: response, role: "assistant", type: "text", sourceModel: "cloud-vision" });
         } catch {
@@ -1243,8 +1275,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       // No images: Banana => generate; else text
       if (wasImageMode) {
         // Strip the prefix (image/, draw/, create/, /image, etc.) and use the rest as prompt
-        const imagePrompt = extractPrefixPrompt(userMessage || "") || "a beautiful image";
-        await addMessage({ content: userMessage || imagePrompt, role: "user", type: "text" });
+        const imagePrompt = extractPrefixPrompt(finalMessage || "") || "a beautiful image";
+        await addMessage({ content: finalMessage || imagePrompt, role: "user", type: "text" });
         await addMessage({
           content: `Generating image: ${imagePrompt}`,
           role: "assistant",
