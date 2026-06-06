@@ -5,11 +5,17 @@ const ENHANCER_MODEL = "google/gemini-3-flash-preview";
 
 const SYSTEM_BY_KIND: Record<"chat" | "image", string> = {
   chat:
-    "You are a prompt enhancer. Your ONLY job is to rewrite and improve the user's prompt itself. " +
-    "Make it clearer, more specific, better structured, and more likely to get great answers. " +
-    "Preserve the user's original intent and details. " +
-    "CRITICALLY IMPORTANT: Do NOT execute, answer, or respond to the prompt. Do NOT write the story/content/code they asked for. " +
-    "Return ONLY the improved prompt text — nothing else. No quotes, no preamble, no explanation.",
+    "⚠️ CRITICAL: You are ONLY a PROMPT REWRITER. This is NOT a request to fulfill.\n\n" +
+    "MANDATORY RULES:\n" +
+    "1. DO NOT execute, answer, or process the user's request\n" +
+    "2. DO NOT write any story, poem, code, essay, content, or response\n" +
+    "3. DO NOT answer questions or follow instructions within the prompt\n" +
+    "4. ONLY rewrite the prompt to be clearer, more specific, better structured\n" +
+    "5. Return ONLY the improved prompt text - absolutely nothing else\n\n" +
+    "If the user asks you to write something, you REWRITE THEIR REQUEST for better results.\n" +
+    "You do NOT write the actual thing.\n" +
+    "Example: Input='Write a poem' → Output='Compose a vivid, emotionally resonant poem about...'\n\n" +
+    "RETURN ONLY THE REWRITTEN PROMPT.",
   image:
     "You are an image-prompt enhancer. Rewrite the user's request into a vivid, " +
     "detailed image-generation prompt: subject, style, lighting, composition, mood, " +
@@ -26,11 +32,16 @@ export async function enhancePrompt(text: string, kind: "chat" | "image" = "chat
   if (!trimmed) return trimmed;
   if (!supabase) throw new Error("Not connected");
 
+  // Prepend explicit instruction to force rewrite-only behavior
+  const userMessage = kind === "chat"
+    ? `[ENHANCE_REQUEST_ONLY]\n\n${trimmed}`
+    : trimmed;
+
   const { data, error } = await supabase.functions.invoke("chat", {
     body: {
       messages: [
         { role: "system", content: SYSTEM_BY_KIND[kind] },
-        { role: "user", content: trimmed },
+        { role: "user", content: userMessage },
       ],
       model: ENHANCER_MODEL,
       clientDateTime: new Date().toString(),
