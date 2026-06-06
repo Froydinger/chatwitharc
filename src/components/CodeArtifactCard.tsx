@@ -47,33 +47,21 @@ export function CodeArtifactCard({
   };
 
   const handlePublishConfirm = async (opts: { subdomain: string; title: string; faviconSvg: string }) => {
+    // Edge function is authoritative — if it throws, no phantom record is saved
+    // and the PublishModal surfaces the error to the user.
     const result = await deployCodeBlock(codeContent, codeLanguage, opts);
-    try {
-      const site = await savePublishedSite({
-        netlify_site_id: result.siteId,
-        subdomain: result.subdomain,
-        url: result.url,
-        title: opts.title,
-        favicon_svg: opts.faviconSvg,
-        favicon_data: null,
-        og_title: null, og_description: null, og_image_url: null,
-        code: codeContent,
-        code_language: codeLanguage,
-      });
-      setPublishedSite(site);
-    } catch {
-      setPublishedSite({
-        id: '', user_id: '', created_at: '', updated_at: '',
-        netlify_site_id: result.siteId,
-        subdomain: result.subdomain,
-        url: result.url,
-        title: opts.title,
-        favicon_svg: opts.faviconSvg,
-        favicon_data: null,
-        og_title: null, og_description: null, og_image_url: null,
-        code: codeContent, code_language: codeLanguage,
-      });
-    }
+    const site = await savePublishedSite({
+      netlify_site_id: result.siteId,
+      subdomain: result.subdomain,
+      url: result.url,
+      title: opts.title,
+      favicon_svg: opts.faviconSvg,
+      favicon_data: null,
+      og_title: null, og_description: null, og_image_url: null,
+      code: codeContent,
+      code_language: codeLanguage,
+    });
+    setPublishedSite(site);
     toast.success('Published! Your site is live.', {
       action: { label: 'View', onClick: () => window.open(result.url, '_blank') },
     });
@@ -181,6 +169,8 @@ export function CodeArtifactCard({
           open={showManageModal}
           onClose={() => setShowManageModal(false)}
           site={publishedSite}
+          currentCode={codeContent}
+          currentCodeLanguage={codeLanguage}
           onUpdated={(updated) => setPublishedSite(updated)}
           onUnpublished={() => setPublishedSite(null)}
         />
