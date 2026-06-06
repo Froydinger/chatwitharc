@@ -44,6 +44,8 @@ export interface ChatSession {
   messageCount?: number; // Metadata-only count (used before hydration)
   isHydrated?: boolean; // Whether full messages have been fetched
   isLocalOnly?: boolean; // Created during Corporate Mode — never synced to cloud
+  personaId?: string; // Locks conversation to a specific persona
+  folderId?: string; // Folder the conversation belongs to
 }
 
 export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched' | 'web_searched' | 'context_saved';
