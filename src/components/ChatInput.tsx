@@ -325,6 +325,15 @@ function extractPrefixPrompt(message: string): string {
     .trim();
 }
 
+// Detect @mention context: returns {isActive, searchTerm} if user is typing @personaname
+function detectPersonaMention(text: string): { isActive: boolean; searchTerm: string } {
+  const match = text.match(/@(\w*)$/);
+  if (match) {
+    return { isActive: true, searchTerm: match[1] };
+  }
+  return { isActive: false, searchTerm: "" };
+}
+
 function extractImagePrompt(message: string): string {
   let prompt = (message || "").trim();
   prompt = prompt.replace(/^(please\s+)?(?:can|could|would)\s+you\s+/i, "").trim();
@@ -369,6 +378,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const { user } = useAuth();
   const subscription = useSubscription();
   const isGuestMode = !user;
+  const { personas, fetchPersonas } = usePersonasStore();
 
   const {
     messages,
@@ -397,9 +407,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]); // Store object URLs
-  const [allImagesEditMode, setAllImagesEditMode] = useState(true); // Default to Edit when images attached (shows model/aspect dock immediately)
-  const [selectedDocuments, setSelectedDocuments] = useState<File[]>([]); // Document files (PDF, DOCX, etc.)
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const [allImagesEditMode, setAllImagesEditMode] = useState(true);
+  const [selectedDocuments, setSelectedDocuments] = useState<File[]>([]);
   const [isActive, setIsActive] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
@@ -486,6 +496,17 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
   // Voice mode store
   const { activateVoiceMode } = useVoiceModeStore();
+
+  // Fetch personas on mount
+  useEffect(() => {
+    fetchPersonas();
+  }, [fetchPersonas]);
+
+  // Detect @mentions as user types
+  const { isActive: showingPersonaSuggestions, searchTerm } = detectPersonaMention(inputValue);
+  const filteredPersonas = showingPersonaSuggestions
+    ? personas.filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()))
+    : [];
 
   // Navigation (for activating voice from non-chat pages like Dashboard)
   const navigate = useNavigate();
@@ -2240,12 +2261,57 @@ ${safeCode}
           );
         })()}
 
-      {/* Prompt enhancer chip — floats right above the input while typing */}
-      {inputValue.trim().split(/\s+/).filter(Boolean).length >= 2 && (
-        <div className="flex justify-end w-full px-2 mb-2">
-          <PromptEnhancer text={inputValue} onAccept={(improved) => setInputValue(improved)} />
-        </div>
-      )}
+      {/* Prompt enhancer chip — floats above input (portal) */}
+      {inputValue.trim().split(/\s+/).filter(Boolean).length >= 2 &&
+        portalRoot &&
+        (() => {
+          const rect = inputBarRef.current?.getBoundingClientRect();
+          const bottom = rect ? `${Math.max(12, window.innerHeight - rect.top + 8)}px` : `calc(120px + env(safe-area-inset-bottom, 0px))`;
+          return createPortal(
+            <div className="fixed left-1/2 -translate-x-1/2 z-[32] pointer-events-auto" style={{ bottom }}>
+              <PromptEnhancer text={inputValue} onAccept={(improved) => setInputValue(improved)} />
+            </div>,
+            portalRoot,
+          );
+        })()}
+
+      {/* Persona suggestions — shows when typing @ (portal) */}
+      {showingPersonaSuggestions &&
+        filteredPersonas.length > 0 &&
+        portalRoot &&
+        (() => {
+          const rect = inputBarRef.current?.getBoundingClientRect();
+          const bottom = rect ? `${Math.max(12, window.innerHeight - rect.top + 8)}px` : `calc(120px + env(safe-area-inset-bottom, 0px))`;
+          return createPortal(
+            <div className="fixed left-1/2 -translate-x-1/2 z-[32] pointer-events-auto w-[min(320px,90vw)]" style={{ bottom }}>
+              <div className="rounded-lg border border-border/50 bg-background/95 backdrop-blur-sm shadow-lg overflow-hidden">
+                <div className="text-xs font-semibold px-3 py-2 text-muted-foreground border-b border-border/30">
+                  Personas
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {filteredPersonas.map((persona) => (
+                    <button
+                      key={persona.id}
+                      type="button"
+                      onClick={() => {
+                        // Replace @search with @PersonaName
+                        const newValue = inputValue.slice(0, -searchTerm.length - 1) + `@${persona.name} `;
+                        setInputValue(newValue);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors border-b border-border/20 last:border-0"
+                    >
+                      <div className="font-medium text-foreground">{persona.name}</div>
+                      {persona.description && (
+                        <div className="text-xs text-muted-foreground truncate">{persona.description}</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>,
+            portalRoot,
+          );
+        })()}
 
       {/* Input Row */}
       <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">
