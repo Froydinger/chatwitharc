@@ -17,7 +17,6 @@ const RETRY_DELAY_MS = 3_000;
 const DEFAULT_IMAGE_MODEL = "google/gemini-3.1-flash-image-preview";
 const ALLOWED_IMAGE_MODELS = new Set<string>([
   "google/gemini-3.1-flash-image-preview",
-  "google/gemini-2.5-flash-image",
 ]);
 function pickImageModel(requested?: unknown): string {
   return typeof requested === "string" && ALLOWED_IMAGE_MODELS.has(requested)

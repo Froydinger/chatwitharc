@@ -2,19 +2,14 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 /**
- * Image generation supports two Gemini models:
- * - Nano Banana 2 (gemini-3.1-flash-image-preview) — default, highest quality
- * - Nano Banana 1 (gemini-2.5-flash-image) — cheaper & faster, lower quality
+ * Image generation uses Nano Banana 2 (gemini-3.1-flash-image-preview) exclusively.
  */
-export type ImageModelId =
-  | 'google/gemini-3.1-flash-image-preview'
-  | 'google/gemini-2.5-flash-image';
+export type ImageModelId = 'google/gemini-3.1-flash-image-preview';
 
 export const DEFAULT_IMAGE_MODEL: ImageModelId = 'google/gemini-3.1-flash-image-preview';
 
 export const ALLOWED_IMAGE_MODELS: ImageModelId[] = [
   'google/gemini-3.1-flash-image-preview',
-  'google/gemini-2.5-flash-image',
 ];
 
 export type ImageAspectRatio =
@@ -31,12 +26,7 @@ export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb
   {
     id: 'google/gemini-3.1-flash-image-preview',
     label: 'Nano Banana 2',
-    blurb: 'Default — best quality & detail',
-  },
-  {
-    id: 'google/gemini-2.5-flash-image',
-    label: 'Nano Banana 1',
-    blurb: 'Cheaper & faster — lower quality, good for quick drafts',
+    blurb: 'Best quality & detail',
   },
 ];
 

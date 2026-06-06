@@ -509,10 +509,6 @@ serve(async (req) => {
       'openai/gpt-5-nano',               // Quick
       'openai/gpt-5.2',                  // Smarter & Quick
       'openai/gpt-5',                    // Wise & Thoughtful
-      // Legacy support
-      'google/gemini-2.5-flash',
-      'google/gemini-2.5-flash-lite',
-      'openai/gpt-5-mini'
     ];
     const validatedModel = (model && allowedModels.includes(model)) ? model : null;
     if (model && !validatedModel) {
