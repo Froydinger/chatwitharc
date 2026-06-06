@@ -153,8 +153,6 @@ CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No expla
     const ALLOWED_MODELS = new Set([
       'google/gemini-3-flash-preview',
       'google/gemini-3.5-flash',
-      'google/gemini-2.5-flash',
-      'google/gemini-2.5-flash-lite',
       'openai/gpt-5.5-pro',
       'openai/gpt-5.2',
     ]);
