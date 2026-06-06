@@ -28,6 +28,7 @@ import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 import { ModelSourceBadge } from "@/components/ModelSourceBadge";
+import { MessageMetadata } from "@/components/MessageMetadata";
 import { WeatherCard } from "@/components/WeatherCard";
 import { ScheduledTaskCard } from "@/components/ScheduledTaskCard";
 import { NotificationDispatchCard } from "@/components/NotificationDispatchCard";
@@ -630,44 +631,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           </div>
           
           {/* Memory/Search Action Indicator - persistent in chat */}
-          {message.memoryAction && (
-            <MemoryIndicator actions={[message.memoryAction]} messageContent={message.content} />
-          )}
-
-          {/* Source model badge - shows which AI handled this response */}
-          {!isUser && message.sourceModel && message.type !== 'image-generating' && (
-            <div className="mt-2 flex items-center gap-1.5">
-              <ModelSourceBadge source={message.sourceModel} />
-              {message.locationUsed && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      aria-label="Location used for this reply"
-                      className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
-                    >
-                      <MapPin className="h-3.5 w-3.5" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent side="top" align="start" className="w-auto max-w-xs p-3 text-xs">
-                    <div className="flex items-start gap-2">
-                      <MapPin className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
-                      <div>
-                        <div className="font-medium text-foreground mb-0.5">Location used</div>
-                        <div className="text-muted-foreground">
-                          {[message.locationUsed.city, message.locationUsed.region, message.locationUsed.country]
-                            .filter(Boolean).join(', ') ||
-                            `${message.locationUsed.latitude}, ${message.locationUsed.longitude}`}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground/70 mt-1">
-                          {message.locationUsed.latitude.toFixed(3)}, {message.locationUsed.longitude.toFixed(3)}
-                        </div>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
-            </div>
+          {/* Compact metadata tile: icons by default, expands on click */}
+          {!isUser && message.type !== 'image-generating' && (
+            <MessageMetadata message={message} />
           )}
           
           {/* Arc Logo - only show for latest assistant message */}
