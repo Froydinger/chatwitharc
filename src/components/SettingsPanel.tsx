@@ -89,6 +89,7 @@ import { SharedLinksCard } from "@/components/SharedLinksCard";
 import { PushNotificationsCard } from "@/components/PushNotificationsCard";
 import { cn } from "@/lib/utils";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
+import { PersonasManager } from "@/components/PersonasManager";
 
 type SectionId = "account" | "appearance" | "ai" | "privacy" | "plan";
 
@@ -854,6 +855,9 @@ export function SettingsPanel() {
         return (
           <>
             <ModelFamilySelector isSubscribed={isSubscribed} />
+            <SectionCard icon={Stars} title="Custom Personas" subtitle="Create unique conversation styles">
+              <PersonasManager />
+            </SectionCard>
             {VoiceCard}
             <ImageDefaultsCard />
             <LocalAIPanel />
