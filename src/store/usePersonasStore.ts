@@ -61,9 +61,14 @@ export const usePersonasStore = create<PersonasState>((set, get) => ({
 
   createPersona: async (name, systemPrompt, description, starterPrompts) => {
     try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { data, error } = await supabase
         .from('personas')
         .insert({
+          user_id: user.id,
           name,
           system_prompt: systemPrompt,
           description,
