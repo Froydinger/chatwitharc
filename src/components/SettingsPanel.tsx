@@ -80,8 +80,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Shield, Crown, Sparkles, Activity, ExternalLink, Eye, EyeOff } from "lucide-react";
-import { useBYOKStore, type BYOKProvider } from "@/store/useBYOKStore";
+import { Shield, Crown, Sparkles, Activity, ExternalLink } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { LocalAIPanel } from "@/components/LocalAIPanel";
@@ -217,113 +216,6 @@ function ModelFamilySelector({ isSubscribed }: { isSubscribed: boolean }) {
           className={!isSubscribed ? "cursor-not-allowed" : ""}
         />
       ))}
-    </SectionCard>
-  );
-}
-
-function BYOKKeyRow({
-  provider,
-  label,
-  placeholder,
-}: {
-  provider: BYOKProvider;
-  label: string;
-  placeholder: string;
-}) {
-  const { openaiKey, geminiKey, setKey, clearKey } = useBYOKStore();
-  const saved = provider === "openai" ? openaiKey : geminiKey;
-  const [draft, setDraft] = useState(saved);
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    setDraft(saved);
-  }, [saved]);
-
-  const dirty = draft.trim() !== saved;
-
-  return (
-    <div className="p-3 rounded-xl border border-border/40 bg-muted/20 space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-foreground">{label}</span>
-        {saved ? (
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/15 text-primary border border-primary/30">
-            Active
-          </span>
-        ) : (
-          <span className="text-[11px] text-muted-foreground">Not set</span>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Input
-            type={show ? "text" : "password"}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={placeholder}
-            autoComplete="off"
-            className="pr-9 font-mono text-xs"
-          />
-          <button
-            type="button"
-            onClick={() => setShow((s) => !s)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            aria-label={show ? "Hide key" : "Show key"}
-          >
-            {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-        <GlassButton size="sm" disabled={!dirty} onClick={() => setKey(provider, draft)}>
-          Save
-        </GlassButton>
-        {saved && (
-          <GlassButton
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              clearKey(provider);
-              setDraft("");
-            }}
-            aria-label={`Clear ${label}`}
-          >
-            <Trash2 className="h-4 w-4" />
-          </GlassButton>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function BYOKCard() {
-  const { openaiKey, geminiKey, forceMode, setForceMode } = useBYOKStore();
-  const hasAnyKey = !!(openaiKey.trim() || geminiKey.trim());
-
-  return (
-    <SectionCard
-      icon={Key}
-      title="Your API keys (BYOK)"
-      subtitle="Use your own key — unlimited, and never sent to our servers"
-    >
-      <p className="text-xs text-muted-foreground px-1">
-        When a key is set for your selected provider, ArcAI sends your text chats
-        directly to that provider from this device using your key. Keys are stored
-        only in this browser (localStorage) and never reach our servers. Image and
-        voice still use ArcAI.
-      </p>
-      <BYOKKeyRow provider="gemini" label="Google Gemini" placeholder="AIza…" />
-      <BYOKKeyRow provider="openai" label="OpenAI" placeholder="sk-…" />
-
-      {/* Force mode toggle — only show if a key is set */}
-      {hasAnyKey && (
-        <div className="p-3 rounded-xl border border-border/40 bg-muted/20 flex items-center justify-between">
-          <div>
-            <div className="text-sm font-medium text-foreground">Always use my key</div>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Errors if your key fails (no fallback to ArcAI)
-            </p>
-          </div>
-          <Switch checked={forceMode} onCheckedChange={setForceMode} />
-        </div>
-      )}
     </SectionCard>
   );
 }
@@ -962,7 +854,6 @@ export function SettingsPanel() {
         return (
           <>
             <ModelFamilySelector isSubscribed={isSubscribed} />
-            <BYOKCard />
             {VoiceCard}
             <ImageDefaultsCard />
             <LocalAIPanel />

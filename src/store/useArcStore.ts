@@ -93,8 +93,6 @@ export interface Message {
   // badge can show the exact model name (e.g. "Gemini 2.5 Pro" vs "Flash").
   sourceModel?:
     | 'local'
-    | 'byok-openai'
-    | 'byok-gemini'
     | 'cloud-chat'
     | 'cloud-chat-pro'
     | 'cloud-search'
