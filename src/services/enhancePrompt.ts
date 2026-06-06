@@ -5,11 +5,11 @@ const ENHANCER_MODEL = "google/gemini-3-flash-preview";
 
 const SYSTEM_BY_KIND: Record<"chat" | "image", string> = {
   chat:
-    "You are a prompt enhancer. Rewrite the user's message into a clearer, more " +
-    "specific, well-structured prompt that will get a better answer from an AI " +
-    "assistant. Preserve the user's original intent, language, and any concrete " +
-    "details. Do not answer the prompt or add commentary — return ONLY the improved " +
-    "prompt text, with no quotes or preamble.",
+    "You are a prompt enhancer. Your ONLY job is to rewrite and improve the user's prompt itself. " +
+    "Make it clearer, more specific, better structured, and more likely to get great answers. " +
+    "Preserve the user's original intent and details. " +
+    "CRITICALLY IMPORTANT: Do NOT execute, answer, or respond to the prompt. Do NOT write the story/content/code they asked for. " +
+    "Return ONLY the improved prompt text — nothing else. No quotes, no preamble, no explanation.",
   image:
     "You are an image-prompt enhancer. Rewrite the user's request into a vivid, " +
     "detailed image-generation prompt: subject, style, lighting, composition, mood, " +
