@@ -618,6 +618,22 @@ serve(async (req) => {
       '• If you are not sure, ask a short clarifying question instead of guessing.\n' +
       '• Use the "Current date and time" above as the only source of truth for "today" / "now". Never reference a different year or month from memory.';
 
+    // === PERSONA / ENHANCE OVERRIDE ===
+    // The client may send a leading system message starting with [PERSONA_OVERRIDE]
+    // or [ENHANCE_MODE]. When present, REPLACE the admin system prompt entirely
+    // so the persona/enhance directive is the model's sole identity. Also force
+    // the lightweight Gemini 3 Flash model for both modes.
+    const leadingSystem = messages.find((m: any) => m.role === 'system' && typeof m.content === 'string');
+    let isEnhanceMode = false;
+    let isPersonaMode = false;
+    if (leadingSystem && leadingSystem.content.startsWith('[PERSONA_OVERRIDE]')) {
+      enhancedSystemPrompt = leadingSystem.content.replace(/^\[PERSONA_OVERRIDE\]\s*/, '');
+      isPersonaMode = true;
+    } else if (leadingSystem && leadingSystem.content.startsWith('[ENHANCE_MODE]')) {
+      enhancedSystemPrompt = leadingSystem.content.replace(/^\[ENHANCE_MODE\]\s*/, '');
+      isEnhanceMode = true;
+    }
+
     // Prepare messages with enhanced system prompt
     let conversationMessages = [
       { role: 'system', content: enhancedSystemPrompt },
