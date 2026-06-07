@@ -343,10 +343,10 @@ function buildPersonaSystemMessage(): { role: "system" | "user" | "assistant"; c
   if (!session?.personaId) return null;
   const persona = usePersonasStore.getState().getPersonaById(session.personaId);
   if (!persona) return null;
-  // [PERSONA_OVERRIDE] marker tells the chat edge function to REPLACE the admin
-  // system prompt entirely with this persona definition (otherwise the admin
-  // prompt's "You are Arc AI" identity wins and the persona is ignored).
-  const content = `[PERSONA_OVERRIDE]\nYou are "${persona.name}". This is your ONLY identity for this conversation. You are NOT Arc AI. Do not break character under any circumstances. Do not mention being an AI assistant unless the persona itself does.\n\n=== PERSONA DEFINITION ===\n${persona.systemPrompt}\n=== END PERSONA ===\n\nStay fully in this character for every reply, including tone, vocabulary, and worldview.`;
+  // [PERSONA_OVERLAY] marker tells the chat edge function to KEEP all of Arc's
+  // brain (memory, tools, web search, canvas, etc.) but layer the persona's
+  // character on top — exactly like ChatGPT's custom GPTs.
+  const content = `[PERSONA_OVERLAY]\nYou will speak and behave as the persona "${persona.name}" for this entire conversation. Keep all of your normal Arc capabilities (memory, web search, canvas, code, file generation, image generation, scheduled tasks, every tool) fully available — use them whenever helpful — but always respond IN CHARACTER as this persona. Adopt the persona's tone, voice, vocabulary, mannerisms, and worldview. Do not break character. You can acknowledge being an AI only if the persona itself would.\n\n=== PERSONA DEFINITION ===\n${persona.systemPrompt}\n=== END PERSONA ===`;
   return { role: "system" as const, content };
 }
 

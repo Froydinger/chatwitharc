@@ -618,26 +618,47 @@ serve(async (req) => {
       '• If you are not sure, ask a short clarifying question instead of guessing.\n' +
       '• Use the "Current date and time" above as the only source of truth for "today" / "now". Never reference a different year or month from memory.';
 
-    // === PERSONA / ENHANCE OVERRIDE ===
-    // The client may send a leading system message starting with [PERSONA_OVERRIDE]
-    // or [ENHANCE_MODE]. When present, REPLACE the admin system prompt entirely
-    // so the persona/enhance directive is the model's sole identity. Also force
-    // the lightweight Gemini 3 Flash model for both modes.
+    // === PERSONA OVERLAY / ENHANCE OVERRIDE ===
+    // Client may send a leading system message starting with:
+    //   [PERSONA_OVERLAY]   -> append persona character on top of full Arc (keeps tools, memory, web search, canvas, etc.)
+    //   [PERSONA_OVERRIDE]  -> legacy: same as overlay now (kept for backward compatibility)
+    //   [ENHANCE_MODE]      -> REPLACE prompt and short-circuit (rewrite only, no tools)
+    // Enhance is also detected if the last user message starts with [ENHANCE_REQUEST_ONLY].
     const leadingSystem = messages.find((m: any) => m.role === 'system' && typeof m.content === 'string');
+    const lastUserContent = (() => {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const m = messages[i];
+        if (m.role === 'user' && typeof m.content === 'string') return m.content;
+      }
+      return '';
+    })();
     let isEnhanceMode = false;
-    let isPersonaMode = false;
-    if (leadingSystem && leadingSystem.content.startsWith('[PERSONA_OVERRIDE]')) {
-      enhancedSystemPrompt = leadingSystem.content.replace(/^\[PERSONA_OVERRIDE\]\s*/, '');
-      isPersonaMode = true;
-    } else if (leadingSystem && leadingSystem.content.startsWith('[ENHANCE_MODE]')) {
+    let personaOverlay: string | null = null;
+    if (leadingSystem && (leadingSystem.content.startsWith('[ENHANCE_MODE]') || lastUserContent.startsWith('[ENHANCE_REQUEST_ONLY]'))) {
       enhancedSystemPrompt = leadingSystem.content.replace(/^\[ENHANCE_MODE\]\s*/, '');
       isEnhanceMode = true;
+      console.log('🪄 ENHANCE_MODE detected — short-circuiting to rewrite-only flow');
+    } else if (leadingSystem && (leadingSystem.content.startsWith('[PERSONA_OVERLAY]') || leadingSystem.content.startsWith('[PERSONA_OVERRIDE]'))) {
+      personaOverlay = leadingSystem.content.replace(/^\[PERSONA_(OVERLAY|OVERRIDE)\]\s*/, '');
+      // Append persona ON TOP of the full Arc system prompt so tools/memory still work.
+      enhancedSystemPrompt += '\n\n=== ACTIVE PERSONA (CHARACTER OVERLAY) ===\n' +
+        'You retain ALL of your normal capabilities and tools, but you MUST respond in character as the persona defined below. Stay in voice, tone, and worldview at all times while still using tools, memory, and web search whenever helpful.\n' +
+        personaOverlay;
+      console.log('🎭 PERSONA_OVERLAY detected — full Arc + persona character');
     }
 
-    // Prepare messages with enhanced system prompt
+    // Prepare messages with enhanced system prompt — strip ALL client system messages
+    // and the [ENHANCE_REQUEST_ONLY] prefix from user content so it doesn't leak.
     let conversationMessages = [
       { role: 'system', content: enhancedSystemPrompt },
-      ...messages.filter(m => m.role !== 'system') // Remove any existing system messages
+      ...messages
+        .filter((m: any) => m.role !== 'system')
+        .map((m: any) => {
+          if (m.role === 'user' && typeof m.content === 'string' && m.content.startsWith('[ENHANCE_REQUEST_ONLY]')) {
+            return { ...m, content: m.content.replace(/^\[ENHANCE_REQUEST_ONLY\]\s*/, '') };
+          }
+          return m;
+        })
     ];
     
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
@@ -698,11 +719,11 @@ serve(async (req) => {
       );
     }
 
-    // === ENHANCE / PERSONA SHORT-CIRCUIT ===
-    // Skip tools, web search, canvas detection — make a single fast call with
-    // the override system prompt on Gemini 3 Flash. This keeps personas in
-    // character and prevents Enhance Prompt from executing the prompt.
-    if (isEnhanceMode || isPersonaMode) {
+    // === ENHANCE SHORT-CIRCUIT ===
+    // Skip tools, web search, canvas detection — make a single fast call that
+    // ONLY rewrites the prompt and never executes it. Personas do NOT short-
+    // circuit — they go through the full Arc flow with all tools enabled.
+    if (isEnhanceMode) {
       const fastResponse = await fetchWithRetry(
         'https://ai.gateway.lovable.dev/v1/chat/completions',
         {
@@ -714,15 +735,15 @@ serve(async (req) => {
           body: JSON.stringify({
             model: 'google/gemini-3-flash-preview',
             messages: conversationMessages,
-            temperature: isEnhanceMode ? 0.4 : 0.8,
-            max_tokens: 2000,
+            temperature: 0.3,
+            max_tokens: 1200,
           }),
         }
       );
 
       if (!fastResponse.ok) {
         const errorText = await fastResponse.text();
-        console.error('Persona/Enhance AI error:', fastResponse.status, errorText);
+        console.error('Enhance AI error:', fastResponse.status, errorText);
         throw new Error(`AI service error: ${fastResponse.status}`);
       }
 
