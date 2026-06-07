@@ -439,6 +439,82 @@ export function VoiceModeController() {
     }
   }, [setIsFetchingWeather, setWeatherData]);
 
+  // Memory: save
+  const handleSaveMemory = useCallback(async (memory: string, replaces?: string[]): Promise<string> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 'Not signed in.';
+      let deleted = 0;
+      if (replaces && replaces.length > 0) {
+        const { data: existing } = await supabase
+          .from('context_blocks')
+          .select('id, content')
+          .eq('user_id', user.id);
+        const toDelete = (existing || []).filter((row: any) => {
+          const c = (row.content || '').toLowerCase();
+          return replaces.some((r) => c.includes(r.toLowerCase()));
+        }).map((r: any) => r.id);
+        if (toDelete.length > 0) {
+          await supabase.from('context_blocks').delete().in('id', toDelete);
+          deleted = toDelete.length;
+        }
+      }
+      const { error } = await supabase
+        .from('context_blocks')
+        .insert({ user_id: user.id, content: memory, source: 'memory' });
+      if (error) return `Failed to save: ${error.message}`;
+      return `Memory saved${deleted > 0 ? ` (replaced ${deleted} old)` : ''}: "${memory}". Briefly acknowledge you'll remember this, then continue naturally.`;
+    } catch (e: any) {
+      return `Memory save failed: ${e?.message || 'unknown error'}`;
+    }
+  }, []);
+
+  // Memory: recall
+  const handleRecallMemory = useCallback(async (query?: string): Promise<string> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 'Not signed in.';
+      const { data, error } = await supabase
+        .from('context_blocks')
+        .select('content, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) return `Failed to load memories: ${error.message}`;
+      const items = (data || []).map((r: any) => r.content as string);
+      const filtered = query && query.trim()
+        ? items.filter((c) => c.toLowerCase().includes(query.toLowerCase()))
+        : items;
+      if (filtered.length === 0) return query ? `No memories match "${query}".` : 'No memories saved yet.';
+      return filtered.slice(0, 30).map((c, i) => `${i + 1}. ${c}`).join('\n');
+    } catch (e: any) {
+      return `Memory recall failed: ${e?.message || 'unknown error'}`;
+    }
+  }, []);
+
+  // Memory: delete by keyword
+  const handleDeleteMemory = useCallback(async (keywords: string[]): Promise<string> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 'Not signed in.';
+      const { data: existing } = await supabase
+        .from('context_blocks')
+        .select('id, content')
+        .eq('user_id', user.id);
+      const toDelete = (existing || []).filter((row: any) => {
+        const c = (row.content || '').toLowerCase();
+        return keywords.some((k) => c.includes(k.toLowerCase()));
+      }).map((r: any) => r.id);
+      if (toDelete.length === 0) return 'No matching memories found to delete.';
+      const { error } = await supabase.from('context_blocks').delete().in('id', toDelete);
+      if (error) return `Failed to delete: ${error.message}`;
+      return `Deleted ${toDelete.length} memory entr${toDelete.length === 1 ? 'y' : 'ies'}. Briefly confirm to the user.`;
+    } catch (e: any) {
+      return `Memory delete failed: ${e?.message || 'unknown error'}`;
+    }
+  }, []);
+
+
   // Past chats search handler
   const handleSearchPastChats = useCallback(async (query: string): Promise<string> => {
     console.log('VoiceModeController: Searching past chats for:', query);
