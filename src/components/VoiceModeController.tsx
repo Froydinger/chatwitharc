@@ -208,7 +208,8 @@ CRITICAL: Always say something BEFORE using any tool so the user isn't left in s
   - Something they mentioned before
   - Their preferences, interests, or patterns
   - Past topics or discussions
-  This searches ALL past chats dynamically.`;
+  This searches ALL past chats dynamically.
+• MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember. Use delete_memory ("forget that…"). When correcting an old memory, pass \`replaces\` with keywords from the outdated one so it's overwritten cleanly.`;
 
     voicePrompt += `\n\n--- VISION CAPABILITIES ---
 When the user shares their camera or attaches an image:
