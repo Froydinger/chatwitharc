@@ -1321,6 +1321,42 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                   },
                   required: ['location']
                 }
+              },
+              {
+                type: 'function',
+                name: 'save_memory',
+                description: 'Save or UPDATE a long-term personal fact about the user. Use this whenever the user shares info about themselves, asks you to remember something, OR corrects a previous memory. Save a clear third-person statement like "Jake prefers Cedric voice". When correcting/replacing outdated info, pass `replaces` with distinctive keywords from the OLD fact so it gets removed.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    memory: { type: 'string', description: 'Clear, concise third-person fact about the user.' },
+                    replaces: { type: 'array', items: { type: 'string' }, description: 'Optional keywords from any OLD memory this replaces.' }
+                  },
+                  required: ['memory']
+                }
+              },
+              {
+                type: 'function',
+                name: 'recall_memory',
+                description: 'List the user\'s saved long-term memories. Use when the user asks what you remember about them, or when you need to look up a saved fact mid-conversation. Pass an optional query to filter to relevant memories.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    query: { type: 'string', description: 'Optional. Topic or keyword to filter memories.' }
+                  }
+                }
+              },
+              {
+                type: 'function',
+                name: 'delete_memory',
+                description: 'Delete one or more saved memories that match the given keyword phrases. Use when the user says things like "forget that I…", "delete the memory about X", "you can forget X". Pass distinctive keywords from the memory to remove.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    keywords: { type: 'array', items: { type: 'string' }, description: 'Distinctive keywords/phrases from the memory to delete.' }
+                  },
+                  required: ['keywords']
+                }
               }
             ]
           }
