@@ -59,8 +59,17 @@ Deno.serve(async (req) => {
       .from("profiles").select("user_id, display_name").in("user_id", authorIds.length ? authorIds : ["00000000-0000-0000-0000-000000000000"]);
     const nameMap = new Map((profiles ?? []).map((p) => [p.user_id, p.display_name ?? "User"]));
 
-    const messages = [
-      { role: "system", content: "You are Arc, replying inside a shared group chat with multiple humans. Be concise and reference participants by name when useful." },
+    // Build conversation for the main `chat` function so Arc has access to ALL
+    // of its normal tools (web search, image gen, file gen, canvas, memory, etc.)
+    // inside shared chats — not just a bare gateway completion.
+    const convo = [
+      {
+        role: "system",
+        content:
+          "You are Arc, replying inside a shared GROUP chat with multiple humans. " +
+          "Reference participants by name when useful. Keep replies concise unless asked to expand. " +
+          "Use any of your tools (web search, image generation, file generation, canvas, code, etc.) whenever helpful.",
+      },
       ...((msgs ?? []).map((m) => {
         if (m.role === "assistant") return { role: "assistant", content: m.content };
         const name = m.author_user_id ? (nameMap.get(m.author_user_id) ?? "User") : "User";
@@ -68,14 +77,26 @@ Deno.serve(async (req) => {
       })),
     ];
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Route through the main `chat` edge function so tools are available.
+    const chatUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/chat`;
+    const res = await fetch(chatUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
-      body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: authHeader,
+        apikey: Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      },
+      body: JSON.stringify({
+        messages: convo,
+        model: "google/gemini-3-flash-preview",
+        clientDateTime: new Date().toString(),
+        clientTimezone: "UTC",
+        clientTimezoneOffsetMinutes: 0,
+      }),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      return new Response(JSON.stringify({ error: `AI gateway ${res.status}: ${text}` }), {
+      return new Response(JSON.stringify({ error: `Arc chat ${res.status}: ${text}` }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
