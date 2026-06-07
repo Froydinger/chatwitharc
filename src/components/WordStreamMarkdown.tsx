@@ -357,7 +357,7 @@ export const WordStreamMarkdown = ({
 
   return (
     <div className={`relative z-10 text-foreground break-words ${className}`}>
-      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={components}>
+      <ReactMarkdown remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]} rehypePlugins={[rehypeKatex]} components={components}>
         {visibleText}
       </ReactMarkdown>
     </div>

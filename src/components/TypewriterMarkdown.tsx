@@ -126,7 +126,7 @@ export const TypewriterMarkdown = ({
   return (
     <div className={`relative z-10 text-foreground break-words ${className}`}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkMath]}
+        remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
         rehypePlugins={[rehypeKatex]}
         components={{
           p: ({ node, ...props }) => <p className="text-base leading-relaxed mb-3 last:mb-0 text-foreground/90" {...props} />,
