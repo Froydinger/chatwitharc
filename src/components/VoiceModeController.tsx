@@ -648,7 +648,8 @@ CRITICAL: Always say something BEFORE using any tool so the user isn't left in s
 • IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image.
 • WEB SEARCH: Say "Let me look that up" FIRST, then use web_search.
 • WEATHER: Use get_weather (not web_search) for any weather question.
-• SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.`;
+• SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.
+• MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember about them. Use delete_memory when they say "forget that" or want a memory removed. When correcting an old memory, pass \`replaces\` with keywords from the outdated one.`;
 
       prompt += `\n\n--- VISION CAPABILITIES ---
 When the user shares their camera or attaches an image, describe what you see naturally and conversationally.`;
