@@ -566,7 +566,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                           return (
                             <div key={idx} className="text-foreground break-words">
                               <ReactMarkdown
-                                remarkPlugins={[remarkGfm, remarkMath]}
+                                remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
                                 rehypePlugins={[rehypeKatex]}
                                 components={markdownComponents}
                               >
