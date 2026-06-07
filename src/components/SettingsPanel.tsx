@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { useAccentStore } from "@/store/useAccentStore";
+import { AVAILABLE_FONTS, getStoredCustomFont, setStoredCustomFont, type CustomFontId } from "@/hooks/useCustomFont";
 
 import { lovable } from "@/integrations/lovable/index";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
