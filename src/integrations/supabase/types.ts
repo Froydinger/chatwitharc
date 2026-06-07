@@ -71,13 +71,42 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_folders: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_sessions: {
         Row: {
           canvas_content: string | null
           created_at: string | null
+          folder_id: string | null
           id: string
           is_public: boolean
           messages: Json | null
+          persona_id: string | null
           shared_at: string | null
           title: string
           updated_at: string | null
@@ -86,9 +115,11 @@ export type Database = {
         Insert: {
           canvas_content?: string | null
           created_at?: string | null
+          folder_id?: string | null
           id?: string
           is_public?: boolean
           messages?: Json | null
+          persona_id?: string | null
           shared_at?: string | null
           title: string
           updated_at?: string | null
@@ -97,15 +128,32 @@ export type Database = {
         Update: {
           canvas_content?: string | null
           created_at?: string | null
+          folder_id?: string | null
           id?: string
           is_public?: boolean
           messages?: Json | null
+          persona_id?: string | null
           shared_at?: string | null
           title?: string
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chat_sessions_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "chat_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_sessions_persona_id_fkey"
+            columns: ["persona_id"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       comped_users: {
         Row: {
@@ -381,6 +429,48 @@ export type Database = {
           prompt?: string
           result_image_url?: string | null
           status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      personas: {
+        Row: {
+          created_at: string
+          default_model_family: string
+          description: string | null
+          emoji: string | null
+          id: string
+          knowledge: string | null
+          name: string
+          starter_prompts: Json
+          system_prompt: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_model_family?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          knowledge?: string | null
+          name: string
+          starter_prompts?: Json
+          system_prompt?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_model_family?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          knowledge?: string | null
+          name?: string
+          starter_prompts?: Json
+          system_prompt?: string
           updated_at?: string
           user_id?: string
         }
