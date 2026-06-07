@@ -698,6 +698,47 @@ serve(async (req) => {
       );
     }
 
+    // === ENHANCE / PERSONA SHORT-CIRCUIT ===
+    // Skip tools, web search, canvas detection — make a single fast call with
+    // the override system prompt on Gemini 3 Flash. This keeps personas in
+    // character and prevents Enhance Prompt from executing the prompt.
+    if (isEnhanceMode || isPersonaMode) {
+      const fastResponse = await fetchWithRetry(
+        'https://ai.gateway.lovable.dev/v1/chat/completions',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-3-flash-preview',
+            messages: conversationMessages,
+            temperature: isEnhanceMode ? 0.4 : 0.8,
+            max_tokens: 2000,
+          }),
+        }
+      );
+
+      if (!fastResponse.ok) {
+        const errorText = await fastResponse.text();
+        console.error('Persona/Enhance AI error:', fastResponse.status, errorText);
+        throw new Error(`AI service error: ${fastResponse.status}`);
+      }
+
+      const fastData = await fastResponse.json();
+      const fastContent = fastData.choices?.[0]?.message?.content || 'Sorry, I could not generate a response.';
+
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: fastContent } }],
+          tool_calls_used: [],
+          web_sources: [],
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Define tools including web search, chat search, canvas update, and file generation
     const tools = [
       {
