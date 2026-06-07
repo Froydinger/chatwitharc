@@ -84,7 +84,7 @@ export const usePersonasStore = create<PersonasState>((set, get) => ({
         name: data.name,
         description: data.description,
         systemPrompt: data.system_prompt,
-        starterPrompts: data.starter_prompts || [],
+        starterPrompts: (data.starter_prompts as string[]) || [],
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
       };
