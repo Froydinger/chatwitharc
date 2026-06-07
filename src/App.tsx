@@ -67,6 +67,8 @@ const App = () => {
   useCorporateModeEnforcer();
   useLocalModelPersistence();
   useTheme();
+  useCustomFont();
+
 
   // Detect standalone mode on mount
   useEffect(() => {
