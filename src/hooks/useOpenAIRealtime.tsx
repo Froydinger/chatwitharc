@@ -899,6 +899,77 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               }));
               cleanupToolCall();
             }
+          } else if (name === 'save_memory') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const memory = (args.memory || '').trim();
+              const replaces: string[] = Array.isArray(args.replaces) ? args.replaces.filter((s: any) => typeof s === 'string' && s.trim()) : [];
+              if (!memory || !optionsRef.current.onSaveMemory) {
+                sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'No memory provided or handler missing' }));
+                cleanupToolCall();
+              } else {
+                withToolTimeout('save_memory', call_id, optionsRef.current.onSaveMemory(memory, replaces), 12000)
+                  .then((msg) => {
+                    logVoiceDiagnostic({ event_type: 'tool_call_completed', tool_name: name, tool_call_id: call_id });
+                    sendFunctionResult(call_id, JSON.stringify({ success: true, message: msg }));
+                    cleanupToolCall();
+                  })
+                  .catch((error) => {
+                    logVoiceDiagnostic({ event_type: 'tool_call_failed', tool_name: name, tool_call_id: call_id, message: error?.message });
+                    sendFunctionResult(call_id, JSON.stringify({ success: false, error: error?.message || 'Failed to save memory' }));
+                    cleanupToolCall();
+                  });
+              }
+            } catch (e) {
+              sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'Invalid arguments' }));
+              cleanupToolCall();
+            }
+          } else if (name === 'recall_memory') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const query = typeof args.query === 'string' ? args.query : undefined;
+              if (!optionsRef.current.onRecallMemory) {
+                sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'Memory recall not available' }));
+                cleanupToolCall();
+              } else {
+                withToolTimeout('recall_memory', call_id, optionsRef.current.onRecallMemory(query), 10000)
+                  .then((results) => {
+                    logVoiceDiagnostic({ event_type: 'tool_call_completed', tool_name: name, tool_call_id: call_id });
+                    sendFunctionResult(call_id, JSON.stringify({ success: true, memories: results }), 'medium');
+                    cleanupToolCall();
+                  })
+                  .catch((error) => {
+                    sendFunctionResult(call_id, JSON.stringify({ success: false, error: error?.message || 'Failed to recall memory' }));
+                    cleanupToolCall();
+                  });
+              }
+            } catch (e) {
+              sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'Invalid arguments' }));
+              cleanupToolCall();
+            }
+          } else if (name === 'delete_memory') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const keywords: string[] = Array.isArray(args.keywords) ? args.keywords.filter((s: any) => typeof s === 'string' && s.trim()) : [];
+              if (keywords.length === 0 || !optionsRef.current.onDeleteMemory) {
+                sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'No keywords provided' }));
+                cleanupToolCall();
+              } else {
+                withToolTimeout('delete_memory', call_id, optionsRef.current.onDeleteMemory(keywords), 10000)
+                  .then((msg) => {
+                    logVoiceDiagnostic({ event_type: 'tool_call_completed', tool_name: name, tool_call_id: call_id });
+                    sendFunctionResult(call_id, JSON.stringify({ success: true, message: msg }));
+                    cleanupToolCall();
+                  })
+                  .catch((error) => {
+                    sendFunctionResult(call_id, JSON.stringify({ success: false, error: error?.message || 'Failed to delete memory' }));
+                    cleanupToolCall();
+                  });
+              }
+            } catch (e) {
+              sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'Invalid arguments' }));
+              cleanupToolCall();
+            }
           } else {
             cleanupToolCall();
           }
