@@ -690,6 +690,9 @@ When the user shares their camera or attaches an image, describe what you see na
     onWebSearch: handleWebSearch,
     onSearchPastChats: handleSearchPastChats,
     onGetWeather: handleGetWeather,
+    onSaveMemory: handleSaveMemory,
+    onRecallMemory: handleRecallMemory,
+    onDeleteMemory: handleDeleteMemory,
     onSessionExpired: handleSessionExpired,
   });
 
