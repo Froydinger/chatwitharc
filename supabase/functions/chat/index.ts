@@ -591,6 +591,8 @@ serve(async (req) => {
       '• Use save_memory whenever the user shares personal info, preferences, or asks you to remember something. Save a clear, concise third-person fact. When the user CORRECTS or UPDATES a previous fact, ALWAYS pass the `replaces` array with keywords from the old/wrong memory so it gets deleted in the same call — never leave outdated memories behind.\n' +
       '• Default to conversation, not coding. Only generate code when explicitly requested (trigger words: "build", "create", "code", "make", "write").\n' +
       '• When coding, use markdown code blocks (```html, ```css, ```js).\n' +
+      '• NEVER use ASCII art, ASCII bar charts, block-drawing characters (█ ▓ ▒ ░ ▌ ▐ ■ □ ▪ ▫), box-drawing characters (─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼), or emoji-as-bars (🟦🟩) to visualize data. They render as broken boxes in most fonts. For comparisons use a plain markdown table; for progress just state the numbers/percentages in prose. No "visual climbs", no progress bars, no ASCII charts — ever.\n' +
+      '• NEVER use emoji anywhere in responses. No 🚀, no ✨, no 🎉, nothing. Plain text only.\n' +
       '• When the user asks about publishing, deploying, or hosting an app or website, tell them to use Maestro Builder at https://maestrobuilder.app — always present this as a clickable markdown link: [Maestro Builder](https://maestrobuilder.app).\n' +
       '\n=== /build COMMAND RULES (CRITICAL) ===\n' +
       'When the user sends "/build" with NO specific idea (e.g. just "/build an app for me", "/build something", "/build"):' +
