@@ -208,7 +208,8 @@ CRITICAL: Always say something BEFORE using any tool so the user isn't left in s
   - Something they mentioned before
   - Their preferences, interests, or patterns
   - Past topics or discussions
-  This searches ALL past chats dynamically.`;
+  This searches ALL past chats dynamically.
+• MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember. Use delete_memory ("forget that…"). When correcting an old memory, pass \`replaces\` with keywords from the outdated one so it's overwritten cleanly.`;
 
     voicePrompt += `\n\n--- VISION CAPABILITIES ---
 When the user shares their camera or attaches an image:
@@ -439,6 +440,82 @@ export function VoiceModeController() {
     }
   }, [setIsFetchingWeather, setWeatherData]);
 
+  // Memory: save
+  const handleSaveMemory = useCallback(async (memory: string, replaces?: string[]): Promise<string> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 'Not signed in.';
+      let deleted = 0;
+      if (replaces && replaces.length > 0) {
+        const { data: existing } = await supabase
+          .from('context_blocks')
+          .select('id, content')
+          .eq('user_id', user.id);
+        const toDelete = (existing || []).filter((row: any) => {
+          const c = (row.content || '').toLowerCase();
+          return replaces.some((r) => c.includes(r.toLowerCase()));
+        }).map((r: any) => r.id);
+        if (toDelete.length > 0) {
+          await supabase.from('context_blocks').delete().in('id', toDelete);
+          deleted = toDelete.length;
+        }
+      }
+      const { error } = await supabase
+        .from('context_blocks')
+        .insert({ user_id: user.id, content: memory, source: 'memory' });
+      if (error) return `Failed to save: ${error.message}`;
+      return `Memory saved${deleted > 0 ? ` (replaced ${deleted} old)` : ''}: "${memory}". Briefly acknowledge you'll remember this, then continue naturally.`;
+    } catch (e: any) {
+      return `Memory save failed: ${e?.message || 'unknown error'}`;
+    }
+  }, []);
+
+  // Memory: recall
+  const handleRecallMemory = useCallback(async (query?: string): Promise<string> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 'Not signed in.';
+      const { data, error } = await supabase
+        .from('context_blocks')
+        .select('content, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) return `Failed to load memories: ${error.message}`;
+      const items = (data || []).map((r: any) => r.content as string);
+      const filtered = query && query.trim()
+        ? items.filter((c) => c.toLowerCase().includes(query.toLowerCase()))
+        : items;
+      if (filtered.length === 0) return query ? `No memories match "${query}".` : 'No memories saved yet.';
+      return filtered.slice(0, 30).map((c, i) => `${i + 1}. ${c}`).join('\n');
+    } catch (e: any) {
+      return `Memory recall failed: ${e?.message || 'unknown error'}`;
+    }
+  }, []);
+
+  // Memory: delete by keyword
+  const handleDeleteMemory = useCallback(async (keywords: string[]): Promise<string> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 'Not signed in.';
+      const { data: existing } = await supabase
+        .from('context_blocks')
+        .select('id, content')
+        .eq('user_id', user.id);
+      const toDelete = (existing || []).filter((row: any) => {
+        const c = (row.content || '').toLowerCase();
+        return keywords.some((k) => c.includes(k.toLowerCase()));
+      }).map((r: any) => r.id);
+      if (toDelete.length === 0) return 'No matching memories found to delete.';
+      const { error } = await supabase.from('context_blocks').delete().in('id', toDelete);
+      if (error) return `Failed to delete: ${error.message}`;
+      return `Deleted ${toDelete.length} memory entr${toDelete.length === 1 ? 'y' : 'ies'}. Briefly confirm to the user.`;
+    } catch (e: any) {
+      return `Memory delete failed: ${e?.message || 'unknown error'}`;
+    }
+  }, []);
+
+
   // Past chats search handler
   const handleSearchPastChats = useCallback(async (query: string): Promise<string> => {
     console.log('VoiceModeController: Searching past chats for:', query);
@@ -572,7 +649,8 @@ CRITICAL: Always say something BEFORE using any tool so the user isn't left in s
 • IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image.
 • WEB SEARCH: Say "Let me look that up" FIRST, then use web_search.
 • WEATHER: Use get_weather (not web_search) for any weather question.
-• SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.`;
+• SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.
+• MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember about them. Use delete_memory when they say "forget that" or want a memory removed. When correcting an old memory, pass \`replaces\` with keywords from the outdated one.`;
 
       prompt += `\n\n--- VISION CAPABILITIES ---
 When the user shares their camera or attaches an image, describe what you see naturally and conversationally.`;
@@ -614,6 +692,9 @@ When the user shares their camera or attaches an image, describe what you see na
     onWebSearch: handleWebSearch,
     onSearchPastChats: handleSearchPastChats,
     onGetWeather: handleGetWeather,
+    onSaveMemory: handleSaveMemory,
+    onRecallMemory: handleRecallMemory,
+    onDeleteMemory: handleDeleteMemory,
     onSessionExpired: handleSessionExpired,
   });
 

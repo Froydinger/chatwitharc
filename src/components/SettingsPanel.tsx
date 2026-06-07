@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { useAccentStore } from "@/store/useAccentStore";
+import { AVAILABLE_FONTS, getStoredCustomFont, setStoredCustomFont, type CustomFontId } from "@/hooks/useCustomFont";
 
 import { lovable } from "@/integrations/lovable/index";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
@@ -701,6 +702,52 @@ export function SettingsPanel() {
     </SectionCard>
   );
 
+  const [customFont, setCustomFont] = useState<CustomFontId>(() => getStoredCustomFont());
+  const FontCard = (
+    <SectionCard
+      icon={Stars}
+      title="Custom Font"
+      subtitle={hasBoost ? "Pick a font for your whole app" : "Boost perk — pick a custom UI font"}
+      className="lg:col-span-2"
+    >
+      {hasBoost ? (
+        <Tile>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full">
+            {AVAILABLE_FONTS.map((f) => {
+              const isActive = customFont === f.id;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => { setCustomFont(f.id); setStoredCustomFont(f.id); }}
+                  style={{ fontFamily: `'${f.id}', sans-serif` }}
+                  className={`text-sm px-3 py-3 rounded-xl border transition-all text-left ${
+                    isActive
+                      ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary/40"
+                      : "border-border/40 bg-card/40 hover:bg-card/60 text-foreground/90"
+                  }`}
+                >
+                  <div className="font-semibold leading-tight">{f.label}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">The quick brown fox</div>
+                </button>
+              );
+            })}
+          </div>
+        </Tile>
+      ) : (
+        <Tile
+          icon={Lock}
+          title="Unlock Custom Fonts"
+          description="Pick from 8 hand-picked fonts to make Arc feel like yours. Included with ArcAI Boost."
+          right={
+            <GlassButton variant="ghost" size="sm" onClick={openCheckout}>
+              Upgrade
+            </GlassButton>
+          }
+        />
+      )}
+    </SectionCard>
+  );
+
 
 
 
@@ -848,6 +895,7 @@ export function SettingsPanel() {
         return (
           <>
             {AccentColorCard}
+            {FontCard}
           </>
         );
 

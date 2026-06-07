@@ -12,6 +12,9 @@ interface UseOpenAIRealtimeOptions {
   onWebSearch?: (query: string) => Promise<string>;
   onSearchPastChats?: (query: string) => Promise<string>;
   onGetWeather?: (location: string) => Promise<string>;
+  onSaveMemory?: (memory: string, replaces?: string[]) => Promise<string>;
+  onRecallMemory?: (query?: string) => Promise<string>;
+  onDeleteMemory?: (keywords: string[]) => Promise<string>;
   // Called when a session expires so the controller can inject conversation
   // context into the fresh session's system prompt.
   onSessionExpired?: () => Promise<string | undefined>;
@@ -896,6 +899,77 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               }));
               cleanupToolCall();
             }
+          } else if (name === 'save_memory') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const memory = (args.memory || '').trim();
+              const replaces: string[] = Array.isArray(args.replaces) ? args.replaces.filter((s: any) => typeof s === 'string' && s.trim()) : [];
+              if (!memory || !optionsRef.current.onSaveMemory) {
+                sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'No memory provided or handler missing' }));
+                cleanupToolCall();
+              } else {
+                withToolTimeout('save_memory', call_id, optionsRef.current.onSaveMemory(memory, replaces), 12000)
+                  .then((msg) => {
+                    logVoiceDiagnostic({ event_type: 'tool_call_completed', tool_name: name, tool_call_id: call_id });
+                    sendFunctionResult(call_id, JSON.stringify({ success: true, message: msg }));
+                    cleanupToolCall();
+                  })
+                  .catch((error) => {
+                    logVoiceDiagnostic({ event_type: 'tool_call_failed', tool_name: name, tool_call_id: call_id, message: error?.message });
+                    sendFunctionResult(call_id, JSON.stringify({ success: false, error: error?.message || 'Failed to save memory' }));
+                    cleanupToolCall();
+                  });
+              }
+            } catch (e) {
+              sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'Invalid arguments' }));
+              cleanupToolCall();
+            }
+          } else if (name === 'recall_memory') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const query = typeof args.query === 'string' ? args.query : undefined;
+              if (!optionsRef.current.onRecallMemory) {
+                sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'Memory recall not available' }));
+                cleanupToolCall();
+              } else {
+                withToolTimeout('recall_memory', call_id, optionsRef.current.onRecallMemory(query), 10000)
+                  .then((results) => {
+                    logVoiceDiagnostic({ event_type: 'tool_call_completed', tool_name: name, tool_call_id: call_id });
+                    sendFunctionResult(call_id, JSON.stringify({ success: true, memories: results }), 'medium');
+                    cleanupToolCall();
+                  })
+                  .catch((error) => {
+                    sendFunctionResult(call_id, JSON.stringify({ success: false, error: error?.message || 'Failed to recall memory' }));
+                    cleanupToolCall();
+                  });
+              }
+            } catch (e) {
+              sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'Invalid arguments' }));
+              cleanupToolCall();
+            }
+          } else if (name === 'delete_memory') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const keywords: string[] = Array.isArray(args.keywords) ? args.keywords.filter((s: any) => typeof s === 'string' && s.trim()) : [];
+              if (keywords.length === 0 || !optionsRef.current.onDeleteMemory) {
+                sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'No keywords provided' }));
+                cleanupToolCall();
+              } else {
+                withToolTimeout('delete_memory', call_id, optionsRef.current.onDeleteMemory(keywords), 10000)
+                  .then((msg) => {
+                    logVoiceDiagnostic({ event_type: 'tool_call_completed', tool_name: name, tool_call_id: call_id });
+                    sendFunctionResult(call_id, JSON.stringify({ success: true, message: msg }));
+                    cleanupToolCall();
+                  })
+                  .catch((error) => {
+                    sendFunctionResult(call_id, JSON.stringify({ success: false, error: error?.message || 'Failed to delete memory' }));
+                    cleanupToolCall();
+                  });
+              }
+            } catch (e) {
+              sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'Invalid arguments' }));
+              cleanupToolCall();
+            }
           } else {
             cleanupToolCall();
           }
@@ -1317,6 +1391,42 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                     }
                   },
                   required: ['location']
+                }
+              },
+              {
+                type: 'function',
+                name: 'save_memory',
+                description: 'Save or UPDATE a long-term personal fact about the user. Use this whenever the user shares info about themselves, asks you to remember something, OR corrects a previous memory. Save a clear third-person statement like "Jake prefers Cedric voice". When correcting/replacing outdated info, pass `replaces` with distinctive keywords from the OLD fact so it gets removed.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    memory: { type: 'string', description: 'Clear, concise third-person fact about the user.' },
+                    replaces: { type: 'array', items: { type: 'string' }, description: 'Optional keywords from any OLD memory this replaces.' }
+                  },
+                  required: ['memory']
+                }
+              },
+              {
+                type: 'function',
+                name: 'recall_memory',
+                description: 'List the user\'s saved long-term memories. Use when the user asks what you remember about them, or when you need to look up a saved fact mid-conversation. Pass an optional query to filter to relevant memories.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    query: { type: 'string', description: 'Optional. Topic or keyword to filter memories.' }
+                  }
+                }
+              },
+              {
+                type: 'function',
+                name: 'delete_memory',
+                description: 'Delete one or more saved memories that match the given keyword phrases. Use when the user says things like "forget that I…", "delete the memory about X", "you can forget X". Pass distinctive keywords from the memory to remove.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    keywords: { type: 'array', items: { type: 'string' }, description: 'Distinctive keywords/phrases from the memory to delete.' }
+                  },
+                  required: ['keywords']
                 }
               }
             ]
