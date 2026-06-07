@@ -719,11 +719,11 @@ serve(async (req) => {
       );
     }
 
-    // === ENHANCE / PERSONA SHORT-CIRCUIT ===
-    // Skip tools, web search, canvas detection — make a single fast call with
-    // the override system prompt on Gemini 3 Flash. This keeps personas in
-    // character and prevents Enhance Prompt from executing the prompt.
-    if (isEnhanceMode || isPersonaMode) {
+    // === ENHANCE SHORT-CIRCUIT ===
+    // Skip tools, web search, canvas detection — make a single fast call that
+    // ONLY rewrites the prompt and never executes it. Personas do NOT short-
+    // circuit — they go through the full Arc flow with all tools enabled.
+    if (isEnhanceMode) {
       const fastResponse = await fetchWithRetry(
         'https://ai.gateway.lovable.dev/v1/chat/completions',
         {
@@ -735,15 +735,15 @@ serve(async (req) => {
           body: JSON.stringify({
             model: 'google/gemini-3-flash-preview',
             messages: conversationMessages,
-            temperature: isEnhanceMode ? 0.4 : 0.8,
-            max_tokens: 2000,
+            temperature: 0.3,
+            max_tokens: 1200,
           }),
         }
       );
 
       if (!fastResponse.ok) {
         const errorText = await fastResponse.text();
-        console.error('Persona/Enhance AI error:', fastResponse.status, errorText);
+        console.error('Enhance AI error:', fastResponse.status, errorText);
         throw new Error(`AI service error: ${fastResponse.status}`);
       }
 
