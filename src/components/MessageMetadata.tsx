@@ -26,16 +26,14 @@ export function MessageMetadata({ message }: MessageMetadataProps) {
   return (
     <div className="mt-2">
       {!expanded ? (
-        // Collapsed: just icons in a row
+        // Collapsed: compact pill that sits right next to the model badge
         <button
           onClick={() => setExpanded(true)}
-          className="group flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-muted/40 transition-colors"
+          className="group inline-flex items-center gap-1 px-1 py-0.5 rounded-md hover:bg-muted/40 transition-colors"
           aria-label="Show message details"
         >
           {message.sourceModel && (
-            <div className="scale-75 origin-left">
-              <ModelSourceBadge source={message.sourceModel} />
-            </div>
+            <ModelSourceBadge source={message.sourceModel} />
           )}
           {hasTools && (
             <Zap className="h-3 w-3 text-primary/70 group-hover:text-primary" />
@@ -70,9 +68,10 @@ export function MessageMetadata({ message }: MessageMetadataProps) {
               <div className="text-xs text-muted-foreground">Tools Used</div>
               <button
                 onClick={() => setToolsModalOpen(true)}
-                className="text-xs px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
               >
-                ⚡ View tools ({message.memoryAction.type === "web_searched" ? "Search" : "Memory"})
+                <Zap className="h-3 w-3" />
+                View tools ({message.memoryAction.type === "web_searched" ? "Search" : "Memory"})
               </button>
             </div>
           )}
@@ -81,8 +80,9 @@ export function MessageMetadata({ message }: MessageMetadataProps) {
           {hasLocation && (
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">Location Used</div>
-              <div className="text-xs px-2 py-1 rounded bg-primary/10 text-primary">
-                📍 {message.locationUsed?.city}
+              <div className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded bg-primary/10 text-primary">
+                <MapPin className="h-3 w-3" />
+                {message.locationUsed?.city}
                 {message.locationUsed?.region && `, ${message.locationUsed.region}`}
                 {message.locationUsed?.country && ` (${message.locationUsed.country})`}
               </div>

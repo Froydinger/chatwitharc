@@ -337,14 +337,17 @@ function detectPersonaMention(text: string): { isActive: boolean; searchTerm: st
 // Build a system message for the active persona of the current session, if any.
 // Returns null when no persona is locked. Used to prepend to the AI message list
 // so the model actually behaves as the persona (and any tools/reminders run in that voice).
-function buildPersonaSystemMessage(): { role: "system"; content: string } | null {
+function buildPersonaSystemMessage(): { role: "system" | "user" | "assistant"; content: string } | null {
   const { currentSessionId, chatSessions } = useArcStore.getState();
   const session = chatSessions.find((s) => s.id === currentSessionId);
   if (!session?.personaId) return null;
   const persona = usePersonasStore.getState().getPersonaById(session.personaId);
   if (!persona) return null;
-  const content = `You are now acting as the persona "${persona.name}". Stay in character for the entire conversation.\n\n${persona.systemPrompt}`;
-  return { role: "system", content };
+  // [PERSONA_OVERRIDE] marker tells the chat edge function to REPLACE the admin
+  // system prompt entirely with this persona definition (otherwise the admin
+  // prompt's "You are Arc AI" identity wins and the persona is ignored).
+  const content = `[PERSONA_OVERRIDE]\nYou are "${persona.name}". This is your ONLY identity for this conversation. You are NOT Arc AI. Do not break character under any circumstances. Do not mention being an AI assistant unless the persona itself does.\n\n=== PERSONA DEFINITION ===\n${persona.systemPrompt}\n=== END PERSONA ===\n\nStay fully in this character for every reply, including tone, vocabulary, and worldview.`;
+  return { role: "system" as const, content };
 }
 
 function extractImagePrompt(message: string): string {
@@ -778,7 +781,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         const aiMessages = messagesToKeep
           .filter((m) => m.type === "text")
           .map((m) => ({
-            role: m.role,
+            role: m.role as "user" | "assistant" | "system",
             content: m.id === editedMessageId ? newContent : m.content,
           }));
 
@@ -1445,7 +1448,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       // The AI dynamically decides what to remember and saves to context_blocks
 
       try {
-        const aiMessages = messages.filter((m) => m.type === "text").map((m) => ({ role: m.role, content: m.content }));
+        const aiMessages: Array<{ role: "user" | "assistant" | "system"; content: string }> =
+          messages.filter((m) => m.type === "text").map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
         // Prepend persona system prompt so the AI behaves as the locked persona
         const personaMsg = buildPersonaSystemMessage();
