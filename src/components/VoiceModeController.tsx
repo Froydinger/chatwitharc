@@ -209,7 +209,7 @@ CRITICAL: Always say something BEFORE using any tool so the user isn't left in s
   - Their preferences, interests, or patterns
   - Past topics or discussions
   This searches ALL past chats dynamically.
-• MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember. Use delete_memory ("forget that…"). When correcting an old memory, pass \`replaces\` with keywords from the outdated one so it's overwritten cleanly.`;
+• MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember. Use delete_memory ("forget that…"). When correcting an old memory, pass \`replaces\` with keywords from the outdated one so it's overwritten cleanly. CRITICAL: Give exactly ONE short spoken confirmation per memory action — either before calling the tool OR after it returns, never both. Tool results like "OK_SAVED" / "OK_DELETED" are silent acknowledgments; do NOT speak again after seeing them if you already confirmed before the call.`;
 
     voicePrompt += `\n\n--- VISION CAPABILITIES ---
 When the user shares their camera or attaches an image:
@@ -464,7 +464,7 @@ export function VoiceModeController() {
         .from('context_blocks')
         .insert({ user_id: user.id, content: memory, source: 'memory' });
       if (error) return `Failed to save: ${error.message}`;
-      return `Memory saved${deleted > 0 ? ` (replaced ${deleted} old)` : ''}: "${memory}". Briefly acknowledge you'll remember this, then continue naturally.`;
+      return `OK_SAVED${deleted > 0 ? `_REPLACED_${deleted}` : ''}`;
     } catch (e: any) {
       return `Memory save failed: ${e?.message || 'unknown error'}`;
     }
@@ -509,7 +509,7 @@ export function VoiceModeController() {
       if (toDelete.length === 0) return 'No matching memories found to delete.';
       const { error } = await supabase.from('context_blocks').delete().in('id', toDelete);
       if (error) return `Failed to delete: ${error.message}`;
-      return `Deleted ${toDelete.length} memory entr${toDelete.length === 1 ? 'y' : 'ies'}. Briefly confirm to the user.`;
+      return `OK_DELETED_${toDelete.length}`;
     } catch (e: any) {
       return `Memory delete failed: ${e?.message || 'unknown error'}`;
     }
@@ -650,7 +650,7 @@ CRITICAL: Always say something BEFORE using any tool so the user isn't left in s
 • WEB SEARCH: Say "Let me look that up" FIRST, then use web_search.
 • WEATHER: Use get_weather (not web_search) for any weather question.
 • SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.
-• MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember about them. Use delete_memory when they say "forget that" or want a memory removed. When correcting an old memory, pass \`replaces\` with keywords from the outdated one.`;
+• MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember about them. Use delete_memory when they say "forget that" or want a memory removed. When correcting an old memory, pass \`replaces\` with keywords from the outdated one. CRITICAL: Give exactly ONE short spoken confirmation per memory action — either before calling the tool OR after it returns, never both. Tool results like "OK_SAVED" / "OK_DELETED" are silent acknowledgments; do NOT speak again after seeing them if you already confirmed before the call.`;
 
       prompt += `\n\n--- VISION CAPABILITIES ---
 When the user shares their camera or attaches an image, describe what you see naturally and conversationally.`;
