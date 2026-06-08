@@ -464,7 +464,7 @@ export function VoiceModeController() {
         .from('context_blocks')
         .insert({ user_id: user.id, content: memory, source: 'memory' });
       if (error) return `Failed to save: ${error.message}`;
-      return `Memory saved${deleted > 0 ? ` (replaced ${deleted} old)` : ''}: "${memory}". Briefly acknowledge you'll remember this, then continue naturally.`;
+      return `OK_SAVED${deleted > 0 ? `_REPLACED_${deleted}` : ''}`;
     } catch (e: any) {
       return `Memory save failed: ${e?.message || 'unknown error'}`;
     }
@@ -509,7 +509,7 @@ export function VoiceModeController() {
       if (toDelete.length === 0) return 'No matching memories found to delete.';
       const { error } = await supabase.from('context_blocks').delete().in('id', toDelete);
       if (error) return `Failed to delete: ${error.message}`;
-      return `Deleted ${toDelete.length} memory entr${toDelete.length === 1 ? 'y' : 'ies'}. Briefly confirm to the user.`;
+      return `OK_DELETED_${toDelete.length}`;
     } catch (e: any) {
       return `Memory delete failed: ${e?.message || 'unknown error'}`;
     }
