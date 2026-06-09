@@ -428,7 +428,7 @@ export function ChatHistoryPanel() {
                           <MoreVertical className="h-3.5 w-3.5" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-40">
+                      <DropdownMenuContent align="end" className="w-40 bg-background border-border">
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); pinFolder(folder.id, !folder.isPinned); }}>
                           {folder.isPinned ? <PinOff className="h-3.5 w-3.5 mr-2" /> : <Pin className="h-3.5 w-3.5 mr-2" />}
                           {folder.isPinned ? 'Unpin' : 'Pin'}
@@ -554,7 +554,7 @@ function ChatSessionItem({ session, isActive, onLoad, onDelete, onShare, folders
                   <MoreVertical className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-48 bg-background border-border">
                 <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(null); }}>No Folder</DropdownMenuItem>
                 {folders.map((f: any) => (
                   <DropdownMenuItem key={f.id} onClick={(e) => { e.stopPropagation(); onMove(f.id); }}>

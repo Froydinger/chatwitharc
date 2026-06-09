@@ -1190,6 +1190,7 @@ export type Database = {
         Returns: {
           canvas_content: string
           created_at: string
+          folder_id: string
           id: string
           message_count: number
           title: string
