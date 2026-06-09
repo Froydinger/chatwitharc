@@ -1034,7 +1034,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     let images = [...selectedImages];
     let documents = [...selectedDocuments];
 
-    // Detect @persona mention at the start of the message
+    // Detect @mention context: returns {isActive, searchTerm} if user is typing @personaname
     let finalMessage = userMessage;
     const personaMention = parsePersonaMentionPrefix(userMessage);
     if (personaMention) {
@@ -2271,7 +2271,7 @@ ${safeCode}
                       onClick={() => setAllImagesEditMode(!allImagesEditMode)}
                       className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80"
                     >
-                      {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
+                      {allImagesEditMode ? \`Mode: Edit ✏️\` : \`Mode: Analyze 🔍\`}
                     </button>
                   </div>
                 )}
@@ -2291,707 +2291,401 @@ ${safeCode}
         portalRoot &&
         (() => {
           const rect = inputBarRef.current?.getBoundingClientRect();
-          const bottom = rect ? `${Math.max(12, window.innerHeight - rect.top + 8)}px` : `calc(120px + env(safe-area-inset-bottom, 0px))`;
+          const bottom = rect
+            ? \`\${Math.max(12, window.innerHeight - rect.top + 8)}px\`
+            : \`calc(120px + env(safe-area-inset-bottom, 0px))\`;
           return createPortal(
-            <div className="fixed left-1/2 -translate-x-1/2 z-[32] pointer-events-auto" style={{ bottom }}>
-              <PromptEnhancer text={inputValue} onAccept={(improved) => setInputValue(improved)} />
+            <div
+              className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[32] pointer-events-none"
+              style={{ bottom }}
+            >
+              <div className="px-4 flex justify-end">
+                <PromptEnhancer
+                  text={inputValue}
+                  kind={shouldShowBanana ? "image" : "chat"}
+                  onAccept={(improved) => {
+                    setInputValue(improved);
+                    toast({ title: "Prompt enhanced ✨", duration: 2000 });
+                  }}
+                  className="pointer-events-auto"
+                />
+              </div>
             </div>,
             portalRoot,
           );
         })()}
 
-      {/* Persona suggestions — shows when typing @ (portal) */}
-      {showingPersonaSuggestions &&
-        filteredPersonas.length > 0 &&
+      {/* Usage Meter for Voice — anchored above input (portal) when no images/docs previews are active */}
+      {!inline &&
+        !shouldShowBanana &&
+        selectedImages.length === 0 &&
+        selectedDocuments.length === 0 &&
         portalRoot &&
         (() => {
           const rect = inputBarRef.current?.getBoundingClientRect();
-          const bottom = rect ? `${Math.max(12, window.innerHeight - rect.top + 8)}px` : `calc(120px + env(safe-area-inset-bottom, 0px))`;
+          const bottom = rect
+            ? \`\${Math.max(12, window.innerHeight - rect.top + 12)}px\`
+            : \`calc(110px + env(safe-area-inset-bottom, 0px))\`;
           return createPortal(
-            <div className="fixed left-1/2 -translate-x-1/2 z-[32] pointer-events-auto w-[min(320px,90vw)]" style={{ bottom }}>
-              <div className="rounded-lg border border-border/50 bg-background/95 backdrop-blur-sm shadow-lg overflow-hidden">
-                <div className="text-xs font-semibold px-3 py-2 text-muted-foreground border-b border-border/30">
-                  Personas
-                </div>
-                <div className="max-h-48 overflow-y-auto">
-                  {filteredPersonas.map((persona) => (
-                    <button
-                      key={persona.id}
-                      type="button"
-                      onClick={() => {
-                        // Replace @search with @PersonaName
-                        const newValue = inputValue.slice(0, -searchTerm.length - 1) + `@${persona.name} `;
-                        setInputValue(newValue);
-                      }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors border-b border-border/20 last:border-0"
-                    >
-                      <div className="font-medium text-foreground">{persona.name}</div>
-                      {persona.description && (
-                        <div className="text-xs text-muted-foreground truncate">{persona.description}</div>
-                      )}
-                    </button>
-                  ))}
-                </div>
+            <div
+              className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[32] pointer-events-none"
+              style={{ bottom }}
+            >
+              <div className="px-1 flex justify-end">
+                <UsageMeter kind="voice" className="pointer-events-auto" />
               </div>
             </div>,
             portalRoot,
           );
         })()}
 
-      {/* Input Row */}
-      <div ref={inputBarRef} className="chat-input-halo flex items-center gap-3 rounded-full">
-        {/* LEFT BUTTON — Image/Code/Canvas mode indicator or + menu */}
-        <button
-          ref={menuButtonRef}
-          type="button"
-          aria-label={
-            shouldShowBanana
-              ? "Disable image mode"
-              : shouldShowCodeMode
-                ? "Disable code mode"
-                : shouldShowBuildMode
-                  ? "Disable build mode"
-                  : showCanvasIndicator
-                    ? isCanvasAutoMode
-                      ? "Writing to canvas"
-                      : "Disable canvas mode"
-                    : shouldShowSearchMode
-                      ? "Disable search mode"
-                      : showMenu
-                        ? "Close menu"
-                        : "Quick options"
-          }
-          className={[
-            "ci-menu-btn h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 relative glass-shimmer",
-            shouldShowBanana
-              ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
-              : shouldShowCodeMode
-                ? "!bg-blue-500/20 ring-1 ring-blue-400/50 !shadow-[0_0_24px_rgba(59,130,246,0.25)]"
-                : shouldShowBuildMode
-                  ? "!bg-amber-500/20 ring-1 ring-amber-400/50 !shadow-[0_0_24px_rgba(245,158,11,0.25)]"
-                  : showCanvasIndicator
-                    ? "!bg-purple-500/20 ring-1 ring-purple-400/50 !shadow-[0_0_24px_rgba(168,85,247,0.25)]"
-                    : shouldShowSearchMode
-                      ? "!bg-cyan-500/20 ring-1 ring-cyan-400/50 !shadow-[0_0_24px_rgba(34,211,238,0.25)]"
-                      : "text-muted-foreground hover:text-foreground",
-          ].join(" ")}
-          onClick={() => {
-            if (shouldShowBanana) {
-              setForceImageMode(false);
-              // Clear input if it's just the prefix
-              if (/^(image|draw|create)\/\s*$/i.test(inputValue) || /^\/(image|draw|create)\s*$/i.test(inputValue))
-                setInputValue("");
-            } else if (shouldShowCodeMode) {
-              setForceCodingMode(false);
-              if (/^code\/\s*$/i.test(inputValue) || /^\/code\s*$/i.test(inputValue)) setInputValue("");
-            } else if (shouldShowBuildMode) {
-              if (/^build\/\s*$/i.test(inputValue) || /^\/build\s*$/i.test(inputValue)) setInputValue("");
-            } else if (showCanvasIndicator) {
-              if (!isCanvasAutoMode) {
-                // Explicit /write mode - allow dismissing
-                setForceCanvasMode(false);
-                // Clear input if it's just the prefix
-                if (/^write\/\s*$/i.test(inputValue) || /^\/(write|canvas)\s*$/i.test(inputValue)) setInputValue("");
-              }
-              // Auto mode (canvas open) - no-op; close the canvas panel to exit
-            } else if (shouldShowSearchMode) {
-              setForceSearchMode(false);
-              // Clear input if it's just the prefix
-              if (/^search\/\s*$/i.test(inputValue) || /^\/search\s*$/i.test(inputValue)) setInputValue("");
-            } else {
-              setShowMenu((v) => !v);
-            }
-          }}
-        >
-          {shouldShowBanana ? (
-            <>
-              <ImagePlus className="h-5 w-5 text-green-400" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
-                ×
-              </span>
-            </>
-          ) : shouldShowCodeMode ? (
-            <>
-              <Code2 className="h-5 w-5 text-blue-400" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
-                ×
-              </span>
-            </>
-          ) : shouldShowBuildMode ? (
-            <>
-              <Rocket className="h-5 w-5 text-amber-400" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
-                ×
-              </span>
-            </>
-          ) : showCanvasIndicator ? (
-            <>
-              <PenLine className="h-5 w-5 text-purple-400" />
-              {!isCanvasAutoMode && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
-                  ×
-                </span>
-              )}
-            </>
-          ) : shouldShowSearchMode ? (
-            <>
-              <Globe className="h-5 w-5 text-cyan-400" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">
-                ×
-              </span>
-            </>
-          ) : (
-            <Plus className="h-5 w-5" />
-          )}
-        </button>
-
-        {/* Input */}
-        <div className="flex-1">
-          <Textarea
-            ref={textareaRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyPress}
-            onPaste={handlePaste}
-            onFocus={() => {
-              setIsActive(true);
-              handleInputFocus();
-            }}
-            onBlur={() => setIsActive(false)}
-            placeholder=""
-            disabled={false}
-            className="!border-0 !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 pl-0 pr-4 focus:outline-none focus:ring-0 text-[16px]"
-            rows={1}
-          />
-        </div>
-
-        {/* Slash command picker - portaled to escape overflow */}
-        {/* Slash command picker - Unified glassy card design */}
-        {portalRoot &&
-          showSlashPicker &&
-          createPortal(
+      <div
+        ref={inputBarRef}
+        className={cn(
+          "relative flex flex-col gap-2 p-1.5 transition-all duration-300",
+          isActive ? "opacity-100" : "opacity-95",
+        )}
+      >
+        <div className="flex items-end gap-2 relative">
+          {/* Main Input Wrapper */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Context/Mode Indicators (Search, Image, Code, Canvas, Persona) */}
             <AnimatePresence>
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                transition={{ duration: 0.18, ease: [0.25, 0.8, 0.25, 1] }}
-                className={cn(
-                  "fixed z-[9999] flex items-center justify-center px-4",
-                  rightPanelOpen && "lg:mr-80 xl:mr-96",
-                )}
-                style={(() => {
-                  const rect = inputBarRef.current?.getBoundingClientRect();
-                  // If we have the input bar, position relative to it:
-                  // input in upper half → menu below; input near bottom → menu above.
-                  if (rect) {
-                    const inputInUpperHalf = rect.top < window.innerHeight * 0.5;
-                    if (inputInUpperHalf) {
-                      return { top: rect.bottom + 12, left: 0, right: 0 };
-                    }
-                    return { bottom: window.innerHeight - rect.top + 12, left: 0, right: 0 };
-                  }
-                  // Fallback
-                  return isDashboard
-                    ? { top: 120, left: 0, right: 0 }
-                    : { bottom: "calc(100px + env(safe-area-inset-bottom, 0px))", left: 0, right: 0 };
-                })()}
-              >
-                {/* Compact inline pill bar */}
-                <div
-                  className={cn(
-                    "relative flex flex-wrap items-center justify-center gap-1.5 py-2 px-3 rounded-2xl ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[calc(100vw-32px)]",
-                    isDashboard
-                      ? "bg-background/80 border border-border/40 shadow-[0_8px_32px_rgba(0,0,0,.3)] dark:bg-black/80 dark:border-white/10 dark:shadow-[0_8px_32px_rgba(0,0,0,.5)]"
-                      : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]",
-                  )}
+              {(shouldShowBanana ||
+                shouldShowCodeMode ||
+                showCanvasIndicator ||
+                shouldShowSearchMode ||
+                personaMention) && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, y: 5 }}
+                  animate={{ opacity: 1, height: "auto", y: 0 }}
+                  exit={{ opacity: 0, height: 0, y: 5 }}
+                  className="flex flex-wrap items-center gap-1.5 px-3 mb-1.5 overflow-hidden"
                 >
-                  {(
-                    [
-                      {
-                        label: "Image",
-                        icon: <ImagePlus className="h-3.5 w-3.5" />,
-                        color: "text-green-400",
-                        action: () => {
-                          setInputValue("image/");
-                          textareaRef.current?.focus();
-                        },
-                        hideInCorporate: true,
-                      },
-                      {
-                        label: "Search",
-                        icon: <Globe className="h-3.5 w-3.5" />,
-                        color: "text-cyan-400",
-                        action: () => {
-                          setInputValue("search/");
-                          textareaRef.current?.focus();
-                        },
-                        hideInCorporate: true,
-                      },
-                      {
-                        label: "Write",
-                        icon: <PenLine className="h-3.5 w-3.5" />,
-                        color: "text-purple-400",
-                        action: () => {
-                          setForceCanvasMode(true);
-                          setInputValue("write/ ");
-                          textareaRef.current?.focus();
-                        },
-                        hideInCorporate: true,
-                      },
-                      {
-                        label: "Deep",
-                        icon: <Search className="h-3.5 w-3.5" fill="currentColor" strokeWidth={1.5} />,
-                        color: "text-orange-400",
-                        action: () => {
-                          setInputValue("");
-                          openSearchMode();
-                          textareaRef.current?.focus();
-                        },
-                        hideInCorporate: true,
-                      },
-                      {
-                        label: "Code",
-                        icon: <Code2 className="h-3.5 w-3.5" />,
-                        color: "text-blue-400",
-                        action: () => {
-                          setInputValue("code/");
-                          textareaRef.current?.focus();
-                        },
-                        hideInCorporate: true,
-                      },
-                    ] as Array<{
-                      label: string;
-                      icon: JSX.Element;
-                      color: string;
-                      action: () => void;
-                      hideInCorporate?: boolean;
-                    }>
-                  )
-                    .filter((item) => !(useCorporateModeStore.getState().enabled && item.hideInCorporate))
-                    .map((item) => (
-                      <button
-                        key={item.label}
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          item.action();
-                        }}
-                        className={cn(
-                          "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium",
-                          "hover:bg-white/10 active:scale-95 transition-colors duration-150",
-                          item.color,
-                        )}
-                      >
-                        {item.icon}
-                        <span className="text-foreground/80">{item.label}</span>
-                      </button>
-                    ))}
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setInputValue("");
-                      textareaRef.current?.focus();
-                    }}
-                    className="flex items-center justify-center h-7 w-7 rounded-full hover:bg-white/10 active:scale-95 transition-colors duration-150 text-muted-foreground"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </motion.div>
-            </AnimatePresence>,
-            portalRoot,
-          )}
+                  {personaMention && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 text-[10px] font-bold text-primary uppercase tracking-wider border border-primary/30">
+                      <Sparkles className="h-2.5 w-2.5" />
+                      <span>{personaMention.personaName}</span>
+                    </div>
+                  )}
+                  {shouldShowSearchMode && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/20 text-[10px] font-bold text-blue-400 uppercase tracking-wider border border-blue-500/30">
+                      <Search className="h-2.5 w-2.5" />
+                      <span>Web Search</span>
+                    </div>
+                  )}
+                  {shouldShowBanana && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-500 uppercase tracking-wider border border-amber-500/30">
+                      <Sparkles className="h-2.5 w-2.5" />
+                      <span>Generate Image</span>
+                    </div>
+                  )}
+                  {shouldShowCodeMode && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-500 uppercase tracking-wider border border-emerald-500/30">
+                      <Code2 className="h-2.5 w-2.5" />
+                      <span>Coding Mode</span>
+                    </div>
+                  )}
+                  {showCanvasIndicator && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 text-[10px] font-bold text-indigo-400 uppercase tracking-wider border border-indigo-500/30">
+                      <PenLine className="h-2.5 w-2.5" />
+                      <span>Canvas {isCanvasAutoMode ? "(Auto)" : "Mode"}</span>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-        {/* Mic Icon - Voice Mode */}
-        <button
-          onClick={async () => {
-            if (user && !subscription.canUseVoice) {
-              toast({
-                title: "Voice limit reached",
-                description:
-                  "You've used your 10 free voice conversations this month. Upgrade to ArcAI Boost for unlimited voice.",
-              });
-              subscription.openCheckout();
-              return;
-            }
+            <div className="relative flex items-center gap-2">
+              {/* Add/Attachment Menu */}
+              <div className="relative">
+                <button
+                  ref={menuButtonRef}
+                  type="button"
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="ci-menu-btn flex items-center justify-center w-10 h-10 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0"
+                  aria-label="Add content"
+                >
+                  <Plus className={cn("h-5 w-5 transition-transform duration-300", showMenu && "rotate-45")} />
+                </button>
 
-            // Check and request microphone permission before activating voice mode.
-            // This ensures the browser permission dialog appears on all platforms
-            // (Mac, Arc browser, PWA) instead of silently failing.
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-              try {
-                // Check current permission state if the Permissions API is available
-                if (navigator.permissions) {
-                  const permissionStatus = await navigator.permissions.query({ name: "microphone" as PermissionName });
-                  if (permissionStatus.state === "denied") {
-                    toast({
-                      title: "Microphone access blocked",
-                      description:
-                        "Please allow microphone access in your browser settings (and macOS System Settings > Privacy & Security > Microphone), then try again.",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                }
-
-                // If permission is 'prompt' or unknown, explicitly call getUserMedia
-                // so the browser shows the native permission dialog right now,
-                // in this user-gesture context (required by Safari/Arc/PWA).
-                const permissionStatus = navigator.permissions
-                  ? await navigator.permissions.query({ name: "microphone" as PermissionName })
-                  : null;
-
-                if (!permissionStatus || permissionStatus.state === "prompt") {
-                  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                  // Immediately stop the stream — it will be reopened by useAudioCapture
-                  stream.getTracks().forEach((track) => track.stop());
-                }
-              } catch (err: any) {
-                // NotAllowedError = user denied or system blocked
-                if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-                  toast({
-                    title: "Microphone access denied",
-                    description:
-                      "To use voice mode, allow microphone access in your browser settings. On Mac, also check System Settings > Privacy & Security > Microphone.",
-                    variant: "destructive",
-                  });
-                } else if (err.name === "NotFoundError") {
-                  toast({
-                    title: "No microphone found",
-                    description: "Please connect a microphone and try again.",
-                    variant: "destructive",
-                  });
-                } else {
-                  toast({
-                    title: "Microphone error",
-                    description: "Could not access microphone. Please check your settings and try again.",
-                    variant: "destructive",
-                  });
-                }
-                return;
-              }
-            }
-
-            if (user) subscription.recordVoiceSession();
-
-            // If we're not on a chat page, create a session and navigate first
-            const isOnChatPage = location.pathname === "/" || location.pathname.startsWith("/chat/");
-            if (!isOnChatPage) {
-              const newId = useArcStore.getState().createNewSession();
-              navigate(`/chat/${newId}`);
-              // Delay voice activation slightly so the overlay mounts
-              setTimeout(() => activateVoiceMode(), 150);
-            } else {
-              activateVoiceMode();
-            }
-          }}
-          className={[
-            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-            "text-muted-foreground hover:text-foreground hover:!bg-primary/10",
-            // Hide on mobile when typing (isActive), show on desktop always
-            isActive ? "hidden sm:flex" : "flex",
-          ].join(" ")}
-          aria-label="Voice mode"
-          title="Voice mode"
-        >
-          <Mic className="h-5 w-5" />
-        </button>
-
-        {/* Send / Stop / Queue Buttons */}
-        {isLoading ? (
-          <>
-            {/* While loading: show queue send button if there's input, plus stop button */}
-            {inputValue.trim() && (
-              <button
-                onClick={() => handleSend()}
-                className={[
-                  "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-                  accentColor === "noir"
-                    ? "!bg-white/60 text-black ring-1 ring-white/40 hover:!bg-white/80 !shadow-[0_0_8px_rgba(255,255,255,0.2)]"
-                    : "!bg-primary/50 text-primary-foreground ring-1 ring-primary/60 hover:!bg-primary/70 !shadow-[0_0_8px_rgba(var(--primary-rgb),0.2)]",
-                ].join(" ")}
-                aria-label="Queue message"
-                title="Queue message (sent when Arc finishes)"
-              >
-                <ListPlus className="h-4.5 w-4.5" />
-              </button>
-            )}
-            <button
-              onClick={() => {
-                cancelCurrentRequest();
-                toast({ title: "Stopped", description: "Request cancelled" });
-              }}
-              className={[
-                "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-                accentColor === "noir"
-                  ? "!bg-white/20 ring-2 ring-white/40 text-foreground hover:!bg-white/30 !shadow-[0_0_12px_rgba(255,255,255,0.3)]"
-                  : "!bg-primary/20 ring-2 ring-primary/40 text-primary hover:!bg-primary/30 !shadow-[0_0_12px_rgba(var(--primary-rgb),0.3)]",
-              ].join(" ")}
-              aria-label="Stop"
-            >
-              <Square className="h-4 w-4 fill-current" />
-            </button>
-          </>
-        ) : (
-          <>
-            {/* Queue button - only show when there's input */}
-            {inputValue.trim() && (
-              <button
-                onClick={() => {
-                  useMessageQueueStore.getState().addToQueue(inputValue.trim());
-                  setInputValue("");
-                }}
-                className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                aria-label="Add to queue"
-                title="Add to queue (Ctrl+Enter)"
-              >
-                <ListPlus className="h-4.5 w-4.5" />
-              </button>
-            )}
-            <button
-              onClick={() => handleSend()}
-              disabled={!inputValue.trim() && selectedImages.length === 0 && selectedDocuments.length === 0}
-              className={[
-                "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-                inputValue.trim() || selectedImages.length || selectedDocuments.length
-                  ? accentColor === "noir"
-                    ? "bg-white/5 ring-1 ring-white/20 text-foreground hover:bg-white/10"
-                    : "bg-primary/10 ring-1 ring-primary/40 text-primary hover:bg-primary/20 !shadow-[0_0_10px_rgba(var(--primary-rgb),0.25)]"
-                  : "text-muted-foreground cursor-not-allowed opacity-30",
-              ].join(" ")}
-              aria-label="Send"
-            >
-              <ArrowRight className="h-5 w-5" />
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Tiles menu - anchored above star button */}
-      {portalRoot &&
-        createPortal(
-          <AnimatePresence>
-            {showMenu &&
-              (() => {
-                const barRect = inputBarRef.current?.getBoundingClientRect();
-                const btnRect = menuButtonRef.current?.getBoundingClientRect();
-                const left = barRect ? barRect.left : 0;
-                const posStyle = isDashboard
-                  ? { left, top: barRect ? barRect.bottom + 8 : 120 }
-                  : { left, bottom: btnRect ? window.innerHeight - btnRect.top + 8 : 90 };
-                return (
-                  <div className="fixed z-[35] pointer-events-auto ci-tiles" style={posStyle}>
+                {/* Slash/Add Picker Menu */}
+                <AnimatePresence>
+                  {showMenu && (
                     <motion.div
-                      initial={{ opacity: 0, y: isDashboard ? -8 : 8, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: isDashboard ? -8 : 8, scale: 0.95 }}
-                      transition={{ duration: 0.2, ease: [0.25, 0.8, 0.25, 1] }}
-                      className={cn(
-                        "relative grid grid-cols-2 sm:flex sm:flex-nowrap items-center justify-center gap-2 py-3 px-3 sm:px-4 rounded-3xl sm:rounded-full ring-[0.5px] ring-border/40 backdrop-blur-xl max-w-[88vw] sm:max-w-none",
-                        isDashboard
-                          ? "bg-background/80 border border-border/40 shadow-[0_8px_32px_rgba(0,0,0,.3)] dark:bg-black/80 dark:border-white/10 dark:shadow-[0_8px_32px_rgba(0,0,0,.5)]"
-                          : "glass-shimmer !shadow-[0_8px_32px_rgba(0,0,0,.3)]",
-                      )}
+                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                      className="ci-tiles absolute bottom-full left-0 mb-3 w-56 p-2 rounded-2xl glass-card shadow-2xl z-[60] border-white/10"
                     >
-                      {(
-                        [
-                          {
-                            label: "Attach",
-                            icon: <Paperclip className="h-5 w-5" />,
-                            color: "text-blue-400",
-                            hideLabelDesktop: true,
-                            action: () => {
-                              setShowMenu(false);
-                              fileInputRef.current?.click();
-                            },
-                            hideInCorporate: true,
-                          },
-                          {
-                            label: "Image",
-                            icon: <ImagePlus className="h-5 w-5" />,
-                            color: "text-green-400",
-                            action: () => {
-                              setForceImageMode(true);
-                              setShowMenu(false);
-                            },
-                            hideInCorporate: true,
-                          },
-                          {
-                            label: "Deep",
-                            icon: <Search className="h-5 w-5" fill="currentColor" strokeWidth={1.5} />,
-                            color: "text-orange-400",
-                            action: () => {
-                              setShowMenu(false);
-                              openSearchMode();
-                            },
-                            hideInCorporate: true,
-                          },
-                          {
-                            label: "Ideas",
-                            icon: <Lightbulb className="h-5 w-5" />,
-                            color: "text-violet-400",
-                            action: () => {
-                              setShowMenu(false);
-                              setShowPromptLibrary(true);
-                            },
-                          },
-                        ] as Array<{
-                          label: string;
-                          icon: JSX.Element;
-                          color: string;
-                          hideLabelDesktop?: boolean;
-                          hideInCorporate?: boolean;
-                          action: () => void;
-                        }>
-                      )
-                        .filter((item) => !(useCorporateModeStore.getState().enabled && item.hideInCorporate))
-                        .map((item) => (
-                          <button
-                            key={item.label}
-                            onClick={item.action}
-                            className={cn(
-                              "flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium",
-                              "hover:bg-white/10 active:scale-95 transition-colors duration-150",
-                              item.color,
-                            )}
-                          >
-                            {item.icon}
-                            {item.hideLabelDesktop ? (
-                              <span className="sm:hidden text-foreground/80">{item.label}</span>
-                            ) : (
-                              <span className="text-foreground/80">{item.label}</span>
-                            )}
-                          </button>
-                        ))}
-                    </motion.div>
-                  </div>
-                );
-              })()}
-          </AnimatePresence>,
-          portalRoot,
-        )}
-
-      {/* Prompt Library - rendered via portal to escape container */}
-      {portalRoot &&
-        createPortal(
-          <PromptLibrary
-            isOpen={showPromptLibrary}
-            onClose={() => setShowPromptLibrary(false)}
-            prompts={quickPrompts}
-            onSelectPrompt={(prompt) => {
-              setShowPromptLibrary(false);
-
-              // Code prompts auto-send immediately
-              if (prompt.toLowerCase().startsWith("code:")) {
-                handleSend(prompt);
-                return;
-              }
-
-              // Image prompts: set banana mode and populate input
-              if (prompt.toLowerCase().includes("generate image")) {
-                setForceImageMode(true);
-              }
-
-              // All non-code prompts: populate input and focus (user sends manually)
-              setInputValue(prompt);
-              setTimeout(() => {
-                textareaRef.current?.focus();
-              }, 100);
-            }}
-          />,
-          portalRoot,
-        )}
-
-      {/* hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*,.pdf,.docx,.pptx,.xlsx,.txt,.md,.html,.csv,.json,.xml"
-        multiple
-        className="hidden"
-        onChange={handleFileSelect}
-      />
-
-      {/* Inline selected images preview — portaled to inlinePortalRef if provided */}
-      {inline &&
-        selectedImages.length > 0 &&
-        (() => {
-          const content = (
-            <div className="mt-3 w-full">
-              <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/14)</span>
-                  <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">
-                    Clear All
-                  </button>
-                </div>
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {selectedImages.map((f, i) => {
-                    const url = imagePreviewUrls[i];
-                    return (
-                      <div key={i} className="relative group shrink-0">
-                        <img
-                          src={url}
-                          alt={`sel-${i}`}
-                          className="w-10 h-10 sm:w-16 sm:h-16 object-cover rounded-full border border-border/40"
-                        />
+                      <div className="grid grid-cols-1 gap-1">
                         <button
-                          onClick={() => removeImage(i)}
-                          className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Remove"
+                          onClick={() => {
+                            fileInputRef.current?.click();
+                            setShowMenu(false);
+                          }}
+                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors group"
                         >
-                          <X className="w-3 h-3" />
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30">
+                            <Paperclip className="h-4 w-4 text-blue-400" />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span>Attach</span>
+                            <span className="text-[10px] text-muted-foreground font-normal">Files, PDFs, Docs</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setForceImageMode(true);
+                            setInputValue("image/ ");
+                            setShowMenu(false);
+                            textareaRef.current?.focus();
+                          }}
+                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors group"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/30">
+                            <ImagePlus className="h-4 w-4 text-amber-500" />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span>Generate</span>
+                            <span className="text-[10px] text-muted-foreground font-normal">AI Image Creation</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setForceSearchMode(true);
+                            setInputValue("search/ ");
+                            setShowMenu(false);
+                            textareaRef.current?.focus();
+                          }}
+                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors group"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/30">
+                            <Globe className="h-4 w-4 text-indigo-400" />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span>Search</span>
+                            <span className="text-[10px] text-muted-foreground font-normal">Live Web Results</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setForceCodingMode(true);
+                            setInputValue("code/ ");
+                            setShowMenu(false);
+                            textareaRef.current?.focus();
+                          }}
+                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors group"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30">
+                            <Code2 className="h-4 w-4 text-emerald-500" />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span>Code</span>
+                            <span className="text-[10px] text-muted-foreground font-normal">Scripting & logic</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setForceCanvasMode(true);
+                            setInputValue("write/ ");
+                            setShowMenu(false);
+                            textareaRef.current?.focus();
+                          }}
+                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors group"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center group-hover:bg-pink-500/30">
+                            <PenLine className="h-4 w-4 text-pink-400" />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span>Draft</span>
+                            <span className="text-[10px] text-muted-foreground font-normal">Writing & Layouts</span>
+                          </div>
+                        </button>
+                        <div className="h-px bg-white/10 my-1 mx-2" />
+                        <button
+                          onClick={() => {
+                            setShowPromptLibrary(true);
+                            setShowMenu(false);
+                          }}
+                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors group"
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
+                            <ListPlus className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            <span>Prompts</span>
+                            <span className="text-[10px] text-muted-foreground font-normal">Template library</span>
+                          </div>
                         </button>
                       </div>
-                    );
-                  })}
-                </div>
-                {selectedImages.length > 0 && (
-                  <div className="mt-3 pt-2 border-t border-border/30">
-                    <button
-                      type="button"
-                      onClick={() => setAllImagesEditMode(!allImagesEditMode)}
-                      className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80"
-                    >
-                      {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
-                    </button>
-                  </div>
-                )}
-                {(shouldShowBanana || allImagesEditMode) && (
-                  <div className="mt-3 pt-2 border-t border-border/30">
-                    <ImageOptionsContent />
-                  </div>
-                )}
+                    </motion.div>
+                  }
+                </AnimatePresence>
               </div>
+
+              {/* Persona Mentions Suggestions */}
+              <AnimatePresence>
+                {showingPersonaSuggestions && filteredPersonas.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute bottom-full left-0 mb-3 w-64 p-2 rounded-2xl glass-card shadow-2xl z-[60] border-white/10"
+                  >
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-2 mb-1.5">
+                      Summon Persona
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      {filteredPersonas.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            const lastAtIndex = inputValue.lastIndexOf("@");
+                            const newVal = inputValue.slice(0, lastAtIndex) + "@" + p.name + " ";
+                            setInputValue(newVal);
+                            textareaRef.current?.focus();
+                          }}
+                          className="flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm hover:bg-white/10 transition-colors text-left"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden">
+                            {p.imageUrl ? (
+                              <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                            ) : (
+                              p.name[0].toUpperCase()
+                            )}
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-semibold truncate">{p.name}</span>
+                            <span className="text-[10px] text-muted-foreground truncate">{p.role}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Slash Picker (only if user types just '/') */}
+              <AnimatePresence>
+                {showSlashPicker && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute bottom-full left-0 mb-3 w-48 p-2 rounded-2xl glass-card shadow-2xl z-[60] border-white/10"
+                  >
+                    <div className="flex flex-col gap-0.5">
+                      <button
+                        onClick={() => setInputValue("/image ")}
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-colors group"
+                      >
+                        <ImagePlus className="h-4 w-4 text-amber-500" />
+                        <span>/image</span>
+                      </button>
+                      <button
+                        onClick={() => setInputValue("/search ")}
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-colors group"
+                      >
+                        <Globe className="h-4 w-4 text-indigo-400" />
+                        <span>/search</span>
+                      </button>
+                      <button
+                        onClick={() => setInputValue("/code ")}
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-colors group"
+                      >
+                        <Code2 className="h-4 w-4 text-emerald-500" />
+                        <span>/code</span>
+                      </button>
+                      <button
+                        onClick={() => setInputValue("/canvas ")}
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-colors group"
+                      >
+                        <PenLine className="h-4 w-4 text-pink-400" />
+                        <span>/canvas</span>
+                      </button>
+                      <button
+                        onClick={() => setInputValue("/deep ")}
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-colors group"
+                      >
+                        <Search className="h-4 w-4 text-blue-400" />
+                        <span>/research</span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Input Field */}
+              <Textarea
+                ref={textareaRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyPress}
+                onPaste={handlePaste}
+                onFocus={handleInputFocus}
+                placeholder={isLoading ? "Thinking..." : "Message Arc..."}
+                className="flex-1 min-h-[44px] max-h-[200px] border-0 bg-transparent py-3 pr-4 focus-visible:ring-0 resize-none text-base placeholder:text-muted-foreground/60 scrollbar-hide"
+                rows={1}
+              />
             </div>
-          );
-          // Portal to the inline target outside glass-dock if available
-          const inlineTarget = document.getElementById("dashboard-image-preview-target");
-          return inlineTarget ? createPortal(content, inlineTarget) : content;
-        })()}
-      {/* Inline document preview */}
-      {inline && selectedDocuments.length > 0 && (
-        <div className="mt-2 w-full">
-          <div className="rounded-2xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-lg px-3 py-2">
-            {selectedDocuments.map((doc, i) => (
-              <div key={i} className="flex items-center gap-2 py-1 group">
-                <FileText className="h-4 w-4 text-primary shrink-0" />
-                <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
-                <button
-                  onClick={() => removeDocument(i)}
-                  className="w-4 h-4 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
+          </div>
+
+          {/* Action Button - Voice or Send or Stop */}
+          <div className="flex items-center gap-1.5 shrink-0 self-end mb-[2px]">
+            {isLoading || isGeneratingImage ? (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={cancelCurrentRequest}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg transition-all"
+                title="Stop response"
+              >
+                <Square className="h-4 w-4 fill-current" />
+              </motion.button>
+            ) : inputValue.trim() || selectedImages.length > 0 || selectedDocuments.length > 0 ? (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleSend()}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg transition-all"
+                aria-label="Send"
+              >
+                <ArrowRight className="h-5 w-5" />
+              </motion.button>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (isDashboard) {
+                    navigate("/chat");
+                    setTimeout(() => activateVoiceMode(), 100);
+                  } else {
+                    activateVoiceMode();
+                  }
+                }}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-muted/40 hover:bg-primary/15 text-foreground hover:text-primary transition-all"
+                title="Voice mode"
+              >
+                <Mic className="h-5 w-5" />
+              </motion.button>
+            )}
           </div>
         </div>
-      )}
+      </div>
+
+      <input ref={fileInputRef} type="file" multiple hidden onChange={handleFileSelect} />
+
+      <PromptLibrary
+        isOpen={showPromptLibrary}
+        onClose={() => setShowPromptLibrary(false)}
+        prompts={quickPrompts}
+        onSelectPrompt={(p) => {
+          setInputValue(p);
+          textareaRef.current?.focus();
+        }}
+      />
     </div>
   );
 });
-
-ChatInput.displayName = "ChatInput";
