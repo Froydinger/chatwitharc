@@ -367,9 +367,10 @@ export const useArcStore = create<ArcState>()(
             console.warn('⚠️ Metadata RPC failed, falling back to direct query:', rpcError.message);
 
             // Fallback path: direct metadata query so UI is never stuck loading forever
+            // FIX: Added folder_id to the select query to ensure it persists on refresh
             const { data: fallbackRows, error: fallbackError } = await supabase
               .from('chat_sessions')
-              .select('id, title, created_at, updated_at, canvas_content')
+              .select('id, title, created_at, updated_at, canvas_content, folder_id')
               .eq('user_id', user.id)
               .order('updated_at', { ascending: false })
               .limit(500);

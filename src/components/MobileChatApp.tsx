@@ -397,6 +397,8 @@ export function MobileChatApp() {
 
   const schedulePanelClose = () => {
     if (isMobile || rightPanelDocked) return;
+    // FIX: Prevent sidebar from collapsing if a dropdown menu is currently open
+    if (document.querySelector("[data-radix-popper-content-wrapper]")) return;
     if (hoverCloseTimerRef.current) clearTimeout(hoverCloseTimerRef.current);
     hoverCloseTimerRef.current = setTimeout(() => {
       setRightPanelOpen(false);
