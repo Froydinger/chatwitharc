@@ -33,6 +33,16 @@ export interface ChatResource {
   type: 'search_result' | 'saved_link';
 }
 
+export interface ChatFolder {
+  id: string;
+  name: string;
+  color?: string;
+  sortOrder: number;
+  userId: string;
+  createdAt: string;
+  isPinned?: boolean;
+}
+
 export interface ChatSession {
   id: string;
   title: string;
@@ -45,6 +55,7 @@ export interface ChatSession {
   isHydrated?: boolean; // Whether full messages have been fetched
   isLocalOnly?: boolean; // Created during Corporate Mode — never synced to cloud
   personaId?: string; // Locks conversation to a specific persona
+  folderId?: string; // Links to chat_folders
 }
 
 export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched' | 'web_searched' | 'context_saved';
@@ -113,6 +124,14 @@ export interface ArcState {
   // State Management
 
   // Chat Sessions Management
+  // Folders Management
+  folders: ChatFolder[];
+  createFolder: (name: string, color?: string) => Promise<string>;
+  deleteFolder: (folderId: string) => Promise<void>;
+  moveChatToFolder: (sessionId: string, folderId: string | null) => Promise<void>;
+  updateFolder: (folderId: string, updates: Partial<ChatFolder>) => Promise<void>;
+  pinFolder: (folderId: string, isPinned: boolean) => Promise<void>;
+
   currentSessionId: string | null;
   chatSessions: ChatSession[];
   createNewSession: () => string;
@@ -182,6 +201,86 @@ export const useArcStore = create<ArcState>()(
 
       // Chat Sessions
       currentSessionId: null,
+      // Folders State
+      folders: [],
+
+      createFolder: async (name, color) => {
+        if (!supabase || !isSupabaseConfigured) return '';
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return '';
+
+        const newFolder = {
+          id: crypto.randomUUID(),
+          name,
+          color,
+          user_id: user.id,
+          sort_order: get().folders.length,
+        };
+
+        const { error } = await supabase.from('chat_folders').insert(newFolder);
+        if (error) throw error;
+
+        const folder: ChatFolder = {
+          id: newFolder.id,
+          name: newFolder.name,
+          color: newFolder.color,
+          userId: user.id,
+          sortOrder: newFolder.sort_order,
+          createdAt: new Date().toISOString()
+        };
+
+        set(state => ({ folders: [...state.folders, folder] }));
+        return folder.id;
+      },
+
+      deleteFolder: async (folderId) => {
+        if (!supabase || !isSupabaseConfigured) return;
+        const { error } = await supabase.from('chat_folders').delete().eq('id', folderId);
+        if (error) throw error;
+
+        set(state => ({
+          folders: state.folders.filter(f => f.id !== folderId),
+          chatSessions: state.chatSessions.map(s => s.folderId === folderId ? { ...s, folderId: undefined } : s)
+        }));
+      },
+
+      moveChatToFolder: async (sessionId, folderId) => {
+        if (!supabase || !isSupabaseConfigured) return;
+        const { error } = await supabase
+          .from('chat_sessions')
+          .update({ folder_id: folderId })
+          .eq('id', sessionId);
+        
+        if (error) throw error;
+
+        set(state => ({
+          chatSessions: state.chatSessions.map(s => s.id === sessionId ? { ...s, folderId: folderId || undefined } : s)
+        }));
+      },
+
+      updateFolder: async (folderId, updates) => {
+        if (!supabase || !isSupabaseConfigured) return;
+        const { error } = await supabase
+          .from('chat_folders')
+          .update({
+            name: updates.name,
+            color: updates.color,
+            sort_order: updates.sortOrder
+          })
+          .eq('id', folderId);
+
+        if (error) throw error;
+        set(state => ({
+          folders: state.folders.map(f => f.id === folderId ? { ...f, ...updates } : f)
+        }));
+      },
+
+      pinFolder: async (folderId, isPinned) => {
+        set(state => ({
+          folders: state.folders.map(f => f.id === folderId ? { ...f, isPinned } : f)
+        }));
+      },
+
       chatSessions: [],
       isOnline: navigator.onLine,
       lastSyncAt: null,
@@ -239,6 +338,21 @@ export const useArcStore = create<ArcState>()(
           }
 
           currentUserId = user.id;
+          
+          // Load Folders
+          const { data: folderRows } = await supabase
+            .from('chat_folders')
+            .select('*')
+            .order('sort_order', { ascending: true });
+          
+          const loadedFolders: ChatFolder[] = (folderRows || []).map(row => ({
+            id: row.id,
+            name: row.name,
+            color: row.color,
+            userId: row.user_id,
+            sortOrder: row.sort_order,
+            createdAt: row.created_at
+          }));
           console.log('🔄 Starting metadata-first sync from Supabase for user:', user.id);
 
           let sessionsMeta: any[] = [];
@@ -279,6 +393,7 @@ export const useArcStore = create<ArcState>()(
               created_at: row.created_at,
               updated_at: row.updated_at,
               canvas_content: row.canvas_content,
+              folder_id: row.folder_id,
               message_count: 0,
             }));
           } else {
@@ -296,6 +411,7 @@ export const useArcStore = create<ArcState>()(
               lastMessageAt: new Date(meta.updated_at),
               messages: [], // Empty - will be hydrated on demand
               canvasContent: meta.canvas_content || '',
+              folderId: meta.folder_id || undefined,
               messageCount: meta.message_count || 0,
               isHydrated: false
             }));
@@ -313,6 +429,7 @@ export const useArcStore = create<ArcState>()(
             const mergedSessions = [...localOnly, ...loadedSessions];
 
             set({
+              folders: loadedFolders,
               chatSessions: mergedSessions,
               lastSyncAt: new Date(),
               isOnline: true,
@@ -650,6 +767,7 @@ export const useArcStore = create<ArcState>()(
               title: session.title,
               messages: session.messages as any,
               canvas_content: session.canvasContent ?? null,
+              folder_id: session.folderId ?? null,
               updated_at: new Date().toISOString(),
               id: session.id
             });

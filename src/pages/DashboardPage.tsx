@@ -6,7 +6,7 @@ import {
   Plus, Clock, Settings, Search,
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
   Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music, Edit2, Check, X,
-  Layers, PenLine, FileCode, MessageCircle, Upload, Users
+  Layers, PenLine, FileCode, MessageCircle, Upload, Users, FolderPlus, Folder, Pin, PinOff, MoreVertical
 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -36,6 +36,7 @@ import { CodePreview } from "@/components/CodePreview";
 import { canPreview, getLanguageDisplay, getLanguageColor } from "@/utils/codeUtils";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { DeploysPanel } from "@/components/DeploysPanel";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 type DashboardTab = "overview" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -101,7 +102,8 @@ export function DashboardPage() {
   const {
     chatSessions, createNewSession, loadSession, deleteSession,
     hydrateAllSessions, allSessionsHydrated, isHydratingAll,
-    syncFromSupabase, currentSessionId, messages
+    syncFromSupabase, currentSessionId, messages,
+    folders, createFolder, deleteFolder, pinFolder, moveChatToFolder
   } = useArcStore();
   const { blocks: contextBlocks, loading: blocksLoading, deleteBlock, updateBlock, addBlock } = useContextBlocks();
   const isAdminBannerActive = useAdminBanner();
@@ -166,6 +168,25 @@ useEffect(() => {
   const [canvasDetailTab, setCanvasDetailTab] = useState<CanvasDetailTab>("canvas");
   const [tabDirection, setTabDirection] = useState<1 | -1>(1);
   const [isExiting, setIsExiting] = useState(false);
+
+  // Folder states
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
+
+  const toggleFolder = (id: string) => {
+    setExpandedFolders(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    const success = await createFolder(newFolderName);
+    if (success) {
+      setNewFolderName("");
+      setIsCreatingFolder(false);
+    }
+  };
+
   const exitToChat = (path: string = '/') => {
     if (isExiting) return;
     setIsExiting(true);
@@ -308,7 +329,7 @@ useEffect(() => {
     const onTouchStart = (e: TouchEvent) => {
       const t = e.touches[0];
       if (!t) return;
-      // Ignore swipes that begin on the floating nav pill so drag-to-pick still works
+      // Ignore swipes that begin on the horizontal nav pill so drag-to-pick still works
       const target = e.target as HTMLElement | null;
       if (target?.closest('[data-dashboard-nav-pill]')) return;
       startX = t.clientX;
@@ -943,68 +964,152 @@ useEffect(() => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input value={chatSearch} onChange={e => setChatSearch(e.target.value)} placeholder="Search chats..." className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
                 </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => { const id = createNewSession(); navigate(`/chat/${id}`); }}
-                  className="rounded-full glass-shimmer"
-                  title="New chat"
-                >
-                  <Plus className="h-4.5 w-4.5 text-primary" />
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setIsCreatingFolder(!isCreatingFolder)}
+                    className={cn("rounded-full glass-shimmer", isCreatingFolder && "text-primary border-primary/40 bg-primary/10")}
+                    title="New folder"
+                  >
+                    <FolderPlus className="h-4.5 w-4.5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => { const id = createNewSession(); navigate(`/chat/${id}`); }}
+                    className="rounded-full glass-shimmer"
+                    title="New chat"
+                  >
+                    <Plus className="h-4.5 w-4.5 text-primary" />
+                  </Button>
+                </div>
               </div>
+
+              {/* Folder Creation Input */}
+              <AnimatePresence>
+                {isCreatingFolder && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-primary/5 border border-primary/15 mb-2">
+                      <Folder className="h-4 w-4 text-primary shrink-0" />
+                      <Input
+                        value={newFolderName}
+                        onChange={e => setNewFolderName(e.target.value)}
+                        placeholder="Folder name..."
+                        className="h-8 bg-background/50 border-none focus-visible:ring-0 px-1 text-sm"
+                        autoFocus
+                        onKeyDown={e => e.key === 'Enter' && handleCreateFolder()}
+                      />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg shrink-0" onClick={() => setIsCreatingFolder(false)}><X className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-primary shrink-0" onClick={handleCreateFolder}><Check className="h-4 w-4" /></Button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {!isLoaded ? (
                 <div className="space-y-2">{[1,2,3,4,5].map(i => <div key={i} className="p-4 rounded-xl border border-border/30 bg-muted/20"><Skeleton className="h-5 w-3/4 mb-2" /><Skeleton className="h-4 w-1/2" /></div>)}</div>
-              ) : filteredChats.length === 0 ? (
+              ) : filteredChats.length === 0 && folders.length === 0 ? (
                 <EmptyState icon={MessageSquare} text={chatSearch ? "No matching chats" : "No chats yet"} sub="Start a conversation to see history here" />
               ) : (
                 <>
-                <div className="space-y-1.5">
-                  {filteredChats.slice((chatPage - 1) * ITEMS_PER_PAGE, chatPage * ITEMS_PER_PAGE).map((session, i) => (
-                    <div
-                      key={session.id}
-                      className={cn(
-                        "p-4 cursor-pointer group transition-all rounded-xl border",
-                        currentSessionId === session.id
-                          ? "border-primary/40 bg-primary/8 shadow-[0_0_15px_hsl(var(--primary)/0.08)]"
-                          : "border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5"
-                      )}
-                      onClick={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-start gap-3 flex-1 min-w-0">
-                          <div className={cn(
-                            "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
-                            currentSessionId === session.id ? "bg-primary/20" : "bg-muted/30"
-                          )}>
-                            <MessageSquare className={cn("h-5 w-5", currentSessionId === session.id ? "text-primary" : "text-muted-foreground")} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground truncate">{session.title}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-muted-foreground">{timeAgo(session.lastMessageAt)}</span>
-                              <span className="text-muted-foreground/30">·</span>
-                              <span className="text-xs text-muted-foreground">{session.messageCount ?? session.messages.length} messages</span>
+                <div className="space-y-4">
+                  {/* Folders List */}
+                  {folders.length > 0 && (
+                    <div className="space-y-1.5">
+                      {[...folders].sort((a,b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)).map(folder => {
+                        const folderChats = filteredChats.filter(s => s.folderId === folder.id);
+                        const isExpanded = expandedFolders[folder.id];
+                        return (
+                          <div key={folder.id} className="space-y-1">
+                            <div
+                              className="group flex items-center justify-between p-3 rounded-xl border border-primary/15 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer"
+                              onClick={() => toggleFolder(folder.id)}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                                  <Folder className="h-4 w-4 text-primary" fill={isExpanded ? "currentColor" : "none"} />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1.5">
+                                    {folder.name}
+                                    {folder.pinned && <Pin className="h-3 w-3 text-primary fill-primary" />}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{folderChats.length} chats</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-40 rounded-xl glass-card">
+                                    <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => pinFolder(folder.id)}>
+                                      {folder.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                                      {folder.pinned ? "Unpin" : "Pin"}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="gap-2 cursor-pointer text-destructive focus:text-destructive" onClick={() => deleteFolder(folder.id)}>
+                                      <Trash2 className="h-4 w-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                                <ChevronRight className={cn("h-4 w-4 text-muted-foreground transition-transform", isExpanded && "rotate-90")} />
+                              </div>
                             </div>
+
+                            {/* Folder Content */}
+                            <AnimatePresence>
+                              {isExpanded && (
+                                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden pl-4 space-y-1">
+                                  {folderChats.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground py-2 italic">Folder is empty</p>
+                                  ) : (
+                                    folderChats.map((session, i) => (
+                                      <ChatListItem
+                                        key={session.id}
+                                        session={session}
+                                        currentSessionId={currentSessionId}
+                                        timeAgo={timeAgo}
+                                        onLoad={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }}
+                                        onDelete={() => deleteSession(session.id)}
+                                        folders={folders}
+                                        onMove={moveChatToFolder}
+                                      />
+                                    ))
+                                  )}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            onClick={(e) => { e.stopPropagation(); deleteSession(session.id); }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          <ArrowRight className="h-4 w-4 text-muted-foreground/30" />
-                        </div>
-                      </div>
+                        );
+                      })}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Ungrouped Chats */}
+                  <div className="space-y-1.5">
+                    {filteredChats
+                      .filter(s => !s.folderId)
+                      .slice((chatPage - 1) * ITEMS_PER_PAGE, chatPage * ITEMS_PER_PAGE)
+                      .map((session, i) => (
+                        <ChatListItem
+                          key={session.id}
+                          session={session}
+                          currentSessionId={currentSessionId}
+                          timeAgo={timeAgo}
+                          onLoad={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }}
+                          onDelete={() => deleteSession(session.id)}
+                          folders={folders}
+                          onMove={moveChatToFolder}
+                        />
+                      ))}
+                  </div>
                 </div>
-                <PaginationBar current={chatPage} total={Math.ceil(filteredChats.length / ITEMS_PER_PAGE)} onChange={setChatPage} />
+                <PaginationBar current={chatPage} total={Math.ceil(filteredChats.filter(s => !s.folderId).length / ITEMS_PER_PAGE)} onChange={setChatPage} />
                 </>
               )}
             </motion.div>
@@ -1775,6 +1880,78 @@ function PaginationBar({ current, total, onChange }: { current: number; total: n
         <ChevronRight className="h-3.5 w-3.5" />
       </button>
       <span className="ml-2 text-[10px] text-muted-foreground/50">{current}/{total}</span>
+    </div>
+  );
+}
+
+function ChatListItem({ session, currentSessionId, timeAgo, onLoad, onDelete, folders, onMove }: {
+  session: any;
+  currentSessionId: string | null;
+  timeAgo: (d: any) => string;
+  onLoad: () => void;
+  onDelete: () => void;
+  folders: any[];
+  onMove: (chatId: string, folderId: string | null) => void;
+}) {
+  return (
+    <div
+      className={cn(
+        "p-4 cursor-pointer group transition-all rounded-xl border",
+        currentSessionId === session.id
+          ? "border-primary/40 bg-primary/8 shadow-[0_0_15px_hsl(var(--primary)/0.08)]"
+          : "border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5"
+      )}
+      onClick={onLoad}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className={cn(
+            "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
+            currentSessionId === session.id ? "bg-primary/20" : "bg-muted/30"
+          )}>
+            <MessageSquare className={cn("h-5 w-5", currentSessionId === session.id ? "text-primary" : "text-muted-foreground")} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-foreground truncate">{session.title}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-muted-foreground">{timeAgo(session.lastMessageAt)}</span>
+              <span className="text-muted-foreground/30">·</span>
+              <span className="text-xs text-muted-foreground">{session.messageCount ?? session.messages.length} messages</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary">
+                <Folder className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 rounded-xl glass-card">
+              <DropdownMenuItem onClick={() => onMove(session.id, null)} className="gap-2 cursor-pointer">
+                <X className="h-4 w-4" />
+                Remove from folder
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {folders.map(f => (
+                <DropdownMenuItem key={f.id} onClick={() => onMove(session.id, f.id)} className="gap-2 cursor-pointer">
+                  <Folder className="h-4 w-4" />
+                  {f.name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <ArrowRight className="h-4 w-4 text-muted-foreground/30" />
+        </div>
+      </div>
     </div>
   );
 }

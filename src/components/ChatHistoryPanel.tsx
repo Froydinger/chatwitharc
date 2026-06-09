@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Trash2, MessageSquare, RefreshCw, Search, LayoutDashboard, Share2, ChevronRight, X } from "lucide-react";
+import { Plus, Trash2, MessageSquare, RefreshCw, Search, LayoutDashboard, Share2, ChevronRight, X, FolderPlus, Folder, Pin, PinOff, MoreVertical } from "lucide-react";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
 import { useArcStore } from "@/store/useArcStore";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useChatSync } from "@/hooks/useChatSync";
@@ -60,6 +61,11 @@ export function ChatHistoryPanel() {
     deleteSession,
     syncFromSupabase,
     setRightPanelOpen,
+    folders,
+    createFolder,
+    deleteFolder,
+    moveChatToFolder,
+    pinFolder,
   } = useArcStore();
   const { openSearchMode } = useSearchStore();
   const { toast } = useToast();
@@ -71,6 +77,26 @@ export function ChatHistoryPanel() {
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
+
+  const toggleFolder = (folderId: string) => {
+    setExpandedFolders(prev => ({ ...prev, [folderId]: !prev[folderId] }));
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      await createFolder(newFolderName.trim());
+      setNewFolderName("");
+      setIsCreatingFolder(false);
+      toast({ title: "Folder created" });
+    } catch {
+      toast({ title: "Error", description: "Failed to create folder", variant: "destructive" });
+    }
+  };
+
 
   const goToChat = () => {
     if (isMobile || window.innerWidth < 1024) setRightPanelOpen(false);
@@ -151,21 +177,43 @@ export function ChatHistoryPanel() {
   const paginated = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
   const hasMore = visibleCount < filtered.length;
 
-  // Group by date label (only when not searching)
+  
+  // Folder and Grouping Logic
+  const foldersWithItems = useMemo(() => {
+    if (isSearching) return [];
+    const sortedFolders = [...folders].sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return a.sortOrder - b.sortOrder;
+    });
+    return sortedFolders.map(folder => ({
+      ...folder,
+      items: sortedSessions.filter(s => {
+        const session = chatSessions.find(cs => cs.id === s.id);
+        return session?.folderId === folder.id;
+      })
+    }));
+  }, [folders, sortedSessions, chatSessions, isSearching]);
+
+  const sessionsOutsideFolders = useMemo(() => {
+    return paginated.filter(s => {
+      const session = chatSessions.find(cs => cs.id === s.id);
+      return !session?.folderId;
+    });
+  }, [paginated, chatSessions]);
+
   const grouped = useMemo(() => {
     if (isSearching)
       return [{ label: `${filtered.length} match${filtered.length === 1 ? "" : "es"}`, items: paginated }];
     const map = new Map<string, UnifiedSession[]>();
-    for (const s of paginated) {
+    for (const s of sessionsOutsideFolders) {
       const k = groupKey(s.timestamp);
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(s);
     }
-    return Array.from(map.entries()).map(([label, items]) => ({
-      label,
-      items,
-    }));
-  }, [paginated, isSearching, filtered.length]);
+    return Array.from(map.entries()).map(([label, items]) => ({ label, items }));
+  }, [sessionsOutsideFolders, isSearching, paginated, filtered.length]);
+
 
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
@@ -214,6 +262,14 @@ export function ChatHistoryPanel() {
             <span className="truncate">New</span>
           </button>
           <button
+            onClick={() => setIsCreatingFolder(true)}
+            className="flex-1 min-w-0 h-8 px-2 rounded-full inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold text-foreground/90 transition-all hover:scale-[1.02] active:scale-[0.97] hover:bg-primary/10"
+            title="Create folder"
+          >
+            <FolderPlus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+            <span className="truncate">Folder</span>
+          </button>
+          <button
             onClick={() => {
               openSearchMode();
               goToChat();
@@ -253,7 +309,27 @@ export function ChatHistoryPanel() {
           </div>
         )}
 
-        {/* Header row — title + sync */}
+        
+        {isCreatingFolder && (
+          <div className="flex items-center gap-2 p-2 rounded-xl bg-muted/20 border border-border/40 animate-in fade-in slide-in-from-top-2">
+            <input
+              autoFocus
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+              placeholder="Folder name..."
+              className="flex-1 bg-transparent text-xs outline-none"
+            />
+            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setIsCreatingFolder(false)}>
+              <X className="h-3 w-3" />
+            </Button>
+            <Button size="sm" className="h-6 px-2 text-[10px]" onClick={handleCreateFolder}>
+              Save
+            </Button>
+          </div>
+        )}
+{/* Header row — title + sync */}
         <div className="flex items-center justify-between pt-0.5">
           <h2 className="text-lg font-bold text-foreground tracking-tight">{isSearching ? "Search" : "History"}</h2>
           <div className="flex items-center gap-1">
@@ -331,80 +407,82 @@ export function ChatHistoryPanel() {
               </span>
               <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </button>
+            {/* Folders Section */}
+            {!isSearching && foldersWithItems.map((folder) => (
+              <div key={folder.id} className="space-y-1 mb-2">
+                <div 
+                  onClick={() => toggleFolder(folder.id)}
+                  className="group flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-muted/30 rounded-xl transition-all border border-transparent hover:border-border/40"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <ChevronRight className={cn("h-3 w-3 transition-transform text-muted-foreground", expandedFolders[folder.id] && "rotate-90")} />
+                    <Folder className="h-4 w-4 text-primary" style={{ color: folder.color }} />
+                    <span className="text-[11px] font-bold truncate text-foreground/90 tracking-wide uppercase">{folder.name}</span>
+                    {folder.isPinned && <Pin className="h-2.5 w-2.5 text-primary fill-primary" />}
+                  </div>
+                  
+                  <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full">
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); pinFolder(folder.id, !folder.isPinned); }}>
+                          {folder.isPinned ? <PinOff className="h-3.5 w-3.5 mr-2" /> : <Pin className="h-3.5 w-3.5 mr-2" />}
+                          {folder.isPinned ? 'Unpin' : 'Pin'}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={(e) => { e.stopPropagation(); deleteFolder(folder.id); }}>
+                          <Trash2 className="h-3.5 w-3.5 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+
+                {expandedFolders[folder.id] && (
+                  <div className="pl-3 space-y-1 border-l border-border/40 ml-4 py-1">
+                    {folder.items.length === 0 ? (
+                      <div className="py-2 pl-4 text-[10px] text-muted-foreground italic">No chats in folder</div>
+                    ) : (
+                      folder.items.map(session => (
+                        <ChatSessionItem 
+                          key={session.id} 
+                          session={session} 
+                          isActive={currentSessionId === session.id}
+                          onLoad={() => handleLoadSession(session.id)}
+                          onDelete={(e: any) => handleDeleteSession(session.id, e)}
+                          onShare={() => setShareSessionId(session.id)}
+                          folders={folders}
+                          onMove={(fid: any) => moveChatToFolder(session.id, fid)}
+                        />
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+
             {grouped.map((group) => (
               <div key={group.label} className="space-y-1">
                 <div className="px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
                   {group.label}
                 </div>
                 <div className="space-y-1">
-                  {group.items.map((session) => {
-                    const isActive = currentSessionId === session.id;
-                    return (
-                      <div
-                        key={`${session.type}-${session.id}`}
-                        onClick={() => handleLoadSession(session.id)}
-                        className={cn(
-                          "group relative px-3 py-2.5 cursor-pointer rounded-xl border transition-all",
-                          isActive
-                            ? "border-primary/40 bg-primary/10 shadow-[0_0_12px_hsl(var(--primary)/0.18)]"
-                            : "border-transparent hover:border-border/60 hover:bg-muted/30",
-                        )}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div
-                            className={cn(
-                              "shrink-0 h-7 w-7 rounded-lg inline-flex items-center justify-center transition-colors",
-                              isActive
-                                ? "bg-primary/20 text-primary"
-                                : "bg-muted/40 text-muted-foreground group-hover:text-primary",
-                            )}
-                          >
-                            <MessageSquare className="h-3.5 w-3.5" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4
-                              className={cn(
-                                "text-sm font-medium truncate leading-tight",
-                                isActive ? "text-primary" : "text-foreground",
-                              )}
-                            >
-                              {session.title}
-                            </h4>
-                            <div className="mt-0.5 text-[11px] text-muted-foreground truncate">
-                              {session.itemCount} msg
-                              {session.itemCount === 1 ? "" : "s"} · {shortDate(session.timestamp)}
-                            </div>
-                          </div>
-                          <div className="shrink-0 flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 rounded-full hover:bg-primary/15 hover:text-primary"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setShareSessionId(session.id);
-                              }}
-                              aria-label="Share chat"
-                            >
-                              <Share2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className={cn(
-                                "h-7 w-7 rounded-full hover:bg-destructive/15 hover:text-destructive",
-                                deletingId === session.id && "opacity-100",
-                              )}
-                              onClick={(e) => handleDeleteSession(session.id, e)}
-                              aria-label="Delete chat"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {group.items.map((session) => (
+                      <ChatSessionItem 
+                        key={session.id} 
+                        session={session} 
+                        isActive={currentSessionId === session.id}
+                        onLoad={() => handleLoadSession(session.id)}
+                        onDelete={(e: any) => handleDeleteSession(session.id, e)}
+                        onShare={() => setShareSessionId(session.id)}
+                        folders={folders}
+                        onMove={(fid: any) => moveChatToFolder(session.id, fid)}
+                      />
+                    ))}
                 </div>
               </div>
             ))}
@@ -429,6 +507,90 @@ export function ChatHistoryPanel() {
         open={!!shareSessionId}
         onOpenChange={(o) => !o && setShareSessionId(null)}
       />
+    </div>
+  );
+}
+
+function ChatSessionItem({ session, isActive, onLoad, onDelete, onShare, folders, onMove }: any) {
+  return (
+    <div
+      onClick={onLoad}
+      className={cn(
+        "group relative px-3 py-2.5 cursor-pointer rounded-xl border transition-all",
+        isActive
+          ? "border-primary/40 bg-primary/10 shadow-[0_0_12px_hsl(var(--primary)/0.18)]"
+          : "border-transparent hover:border-border/60 hover:bg-muted/30",
+      )}
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div
+          className={cn(
+            "shrink-0 h-7 w-7 rounded-lg inline-flex items-center justify-center transition-colors",
+            isActive
+              ? "bg-primary/20 text-primary"
+              : "bg-muted/40 text-muted-foreground group-hover:text-primary",
+          )}
+        >
+          <MessageSquare className="h-3.5 w-3.5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h4
+            className={cn(
+              "text-sm font-medium truncate leading-tight",
+              isActive ? "text-primary" : "text-foreground",
+            )}
+          >
+            {session.title}
+          </h4>
+          <div className="mt-0.5 text-[11px] text-muted-foreground truncate">
+            {session.itemCount} msg{session.itemCount === 1 ? "" : "s"} · {shortDate(session.timestamp)}
+          </div>
+        </div>
+        <div className="shrink-0 flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          {folders && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full">
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(null); }}>No Folder</DropdownMenuItem>
+                {folders.map((f: any) => (
+                  <DropdownMenuItem key={f.id} onClick={(e) => { e.stopPropagation(); onMove(f.id); }}>
+                    <Folder className="h-3.5 w-3.5 mr-2" style={{ color: f.color }} />
+                    {f.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-full hover:bg-primary/15 hover:text-primary"
+            onClick={(e) => {
+              e.stopPropagation();
+              onShare();
+            }}
+            aria-label="Share chat"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 rounded-full hover:bg-destructive/15 hover:text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(e);
+            }}
+            aria-label="Delete chat"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
