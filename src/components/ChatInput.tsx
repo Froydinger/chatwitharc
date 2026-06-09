@@ -523,6 +523,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const filteredPersonas = showingPersonaSuggestions
     ? personas.filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()))
     : [];
+  const personaMention = parsePersonaMentionPrefix(inputValue);
 
   // Navigation (for activating voice from non-chat pages like Dashboard)
   const navigate = useNavigate();
@@ -2549,15 +2550,11 @@ ${safeCode}
                           className="flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm hover:bg-white/10 transition-colors text-left"
                         >
                           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden">
-                            {p.imageUrl ? (
-                              <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                            ) : (
-                              p.name[0].toUpperCase()
-                            )}
+                            {p.name[0].toUpperCase()}
                           </div>
                           <div className="flex flex-col min-w-0">
                             <span className="font-semibold truncate">{p.name}</span>
-                            <span className="text-[10px] text-muted-foreground truncate">{p.role}</span>
+                            <span className="text-[10px] text-muted-foreground truncate">{p.description || ''}</span>
                           </div>
                         </button>
                       ))}
