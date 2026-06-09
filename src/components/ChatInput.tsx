@@ -511,7 +511,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   }, [inputValue, openSearchMode]);
 
   // Voice mode store
-  const { activateVoiceMode } = useVoiceModeStore();
+  const { activateVoiceMode, isActive: isVoiceActive } = useVoiceModeStore();
 
   // Fetch personas on mount
   useEffect(() => {
@@ -2318,6 +2318,7 @@ ${safeCode}
 
       {/* Usage Meter for Voice — anchored above input (portal) when no images/docs previews are active */}
       {!inline &&
+        isVoiceActive &&
         !shouldShowBanana &&
         selectedImages.length === 0 &&
         selectedDocuments.length === 0 &&
