@@ -2630,7 +2630,7 @@ ${safeCode}
           </div>
 
           {/* Action Button - Voice or Send or Stop */}
-          <div className="flex items-center gap-1.5 shrink-0 self-end mb-[2px]">
+          <div className="flex items-center gap-1.5 shrink-0 self-center">
             {isLoading || isGeneratingImage ? (
               <motion.button
                 whileHover={{ scale: 1.05 }}
