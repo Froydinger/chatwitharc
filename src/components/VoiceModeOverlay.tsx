@@ -521,24 +521,15 @@ export function VoiceModeOverlay() {
             </div>
 
             {/* Voice usage meter — hidden for Boost users.
-                On mobile: stacked below the top button row so it never gets
-                squished between left (mute/swap) and right (attach/cam/close).
-                On sm+: flexes inline within the available top-row space. */}
+                Mobile: centered below the top button row.
+                sm+: inline between the left/right top clusters. */}
             <div
-              className="absolute z-10 flex justify-center pointer-events-none left-0 right-0 sm:left-[9rem] sm:right-[14rem]"
-              style={{
-                top: 'calc(env(safe-area-inset-top, 0px) + 5.25rem)',
-              }}
+              className="absolute z-10 flex justify-center pointer-events-none left-0 right-0 top-[calc(env(safe-area-inset-top,0px)+5.25rem)] sm:left-[9rem] sm:right-[14rem] sm:top-[calc(env(safe-area-inset-top,0px)+1.75rem)]"
             >
-              <div className="pointer-events-auto min-w-0 max-w-full [&>*]:max-w-full [&>*]:truncate sm:!mt-0">
+              <div className="pointer-events-auto min-w-0 max-w-full [&>*]:max-w-full [&>*]:truncate">
                 <UsageMeter kind="voice" />
               </div>
             </div>
-            <style>{`
-              @media (min-width: 640px) {
-                .vm-usage-anchor { top: calc(env(safe-area-inset-top, 0px) + 1.75rem) !important; }
-              }
-            `}</style>
 
             {/* Hidden file input for attachments */}
             <input
