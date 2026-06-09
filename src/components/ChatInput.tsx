@@ -2271,7 +2271,7 @@ ${safeCode}
                       onClick={() => setAllImagesEditMode(!allImagesEditMode)}
                       className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80"
                     >
-                      {allImagesEditMode ? \`Mode: Edit ✏️\` : \`Mode: Analyze 🔍\`}
+                      {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
                     </button>
                   </div>
                 )}
@@ -2292,8 +2292,8 @@ ${safeCode}
         (() => {
           const rect = inputBarRef.current?.getBoundingClientRect();
           const bottom = rect
-            ? \`\${Math.max(12, window.innerHeight - rect.top + 8)}px\`
-            : \`calc(120px + env(safe-area-inset-bottom, 0px))\`;
+            ? `${Math.max(12, window.innerHeight - rect.top + 8)}px`
+            : `calc(120px + env(safe-area-inset-bottom, 0px))`;
           return createPortal(
             <div
               className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[32] pointer-events-none"
@@ -2324,8 +2324,8 @@ ${safeCode}
         (() => {
           const rect = inputBarRef.current?.getBoundingClientRect();
           const bottom = rect
-            ? \`\${Math.max(12, window.innerHeight - rect.top + 12)}px\`
-            : \`calc(110px + env(safe-area-inset-bottom, 0px))\`;
+            ? `${Math.max(12, window.innerHeight - rect.top + 12)}px`
+            : `calc(110px + env(safe-area-inset-bottom, 0px))`;
           return createPortal(
             <div
               className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[32] pointer-events-none"
