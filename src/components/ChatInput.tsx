@@ -2520,7 +2520,7 @@ ${safeCode}
                         </button>
                       </div>
                     </motion.div>
-                  }
+                  )}
                 </AnimatePresence>
               </div>
 
