@@ -1017,7 +1017,7 @@ useEffect(() => {
                   {/* Folders List */}
                   {folders.length > 0 && (
                     <div className="space-y-1.5">
-                      {[...folders].sort((a,b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)).map(folder => {
+                      {[...folders].sort((a,b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0)).map(folder => {
                         const folderChats = filteredChats.filter(s => s.folderId === folder.id);
                         const isExpanded = expandedFolders[folder.id];
                         return (
@@ -1033,7 +1033,7 @@ useEffect(() => {
                                 <div className="min-w-0">
                                   <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1.5">
                                     {folder.name}
-                                    {folder.pinned && <Pin className="h-3 w-3 text-primary fill-primary" />}
+                                    {folder.isPinned && <Pin className="h-3 w-3 text-primary fill-primary" />}
                                   </p>
                                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{folderChats.length} chats</p>
                                 </div>
@@ -1045,10 +1045,10 @@ useEffect(() => {
                                       <MoreVertical className="h-4 w-4 text-muted-foreground" />
                                     </Button>
                                   </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" className="w-40 rounded-xl glass-card">
-                                    <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => pinFolder(folder.id)}>
-                                      {folder.pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
-                                      {folder.pinned ? "Unpin" : "Pin"}
+                                  <DropdownMenuContent align="end" className="w-40 rounded-xl bg-background border-border">
+                                    <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => pinFolder(folder.id, !folder.isPinned)}>
+                                      {folder.isPinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+                                      {folder.isPinned ? "Unpin" : "Pin"}
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem className="gap-2 cursor-pointer text-destructive focus:text-destructive" onClick={() => deleteFolder(folder.id)}>
