@@ -2392,6 +2392,29 @@ ${safeCode}
                   )}
                 </button>
 
+                {/* Clear active tool badge */}
+                {!showMenu && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode) && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setForceImageMode(false);
+                      setForceSearchMode(false);
+                      setForceCodingMode(false);
+                      setForceCanvasMode(false);
+                      setInputValue((v) =>
+                        v.replace(/^\s*(image|search|code|write)\/\s*/i, "")
+                      );
+                      textareaRef.current?.focus();
+                    }}
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-foreground/80 text-background flex items-center justify-center shadow-md hover:bg-foreground transition-colors z-10"
+                    aria-label="Clear active tool"
+                    title="Clear active tool"
+                  >
+                    <X className="w-2.5 h-2.5" strokeWidth={3} />
+                  </button>
+                )}
+
                 {/* Slash/Add Picker Menu */}
                 {createPortal(
                   <AnimatePresence>
