@@ -2361,10 +2361,27 @@ ${safeCode}
                   ref={menuButtonRef}
                   type="button"
                   onClick={() => setShowMenu(!showMenu)}
-                  className="ci-menu-btn flex items-center justify-center w-10 h-10 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0"
+                  className={cn(
+                    "ci-menu-btn flex items-center justify-center w-10 h-10 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0",
+                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || showCanvasIndicator || personaMention) && !showMenu && "text-primary"
+                  )}
                   aria-label="Add content"
                 >
-                  <Plus className={cn("h-5 w-5 transition-transform duration-300", showMenu && "rotate-45")} />
+                  {showMenu ? (
+                    <X className="h-5 w-5 transition-transform duration-300" />
+                  ) : personaMention ? (
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  ) : shouldShowSearchMode ? (
+                    <Globe className="h-5 w-5 text-indigo-400" />
+                  ) : shouldShowBanana ? (
+                    <ImagePlus className="h-5 w-5 text-amber-500" />
+                  ) : shouldShowCodeMode ? (
+                    <Code2 className="h-5 w-5 text-emerald-500" />
+                  ) : showCanvasIndicator ? (
+                    <PenLine className="h-5 w-5 text-pink-400" />
+                  ) : (
+                    <Plus className="h-5 w-5" />
+                  )}
                 </button>
 
                 {/* Slash/Add Picker Menu */}
@@ -2374,8 +2391,15 @@ ${safeCode}
                       initial={{ opacity: 0, scale: 0.9, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                      className="ci-tiles fixed sm:absolute bottom-[5.5rem] sm:bottom-full left-2 sm:left-0 right-2 sm:right-auto mb-0 sm:mb-3 w-auto sm:w-56 max-w-[calc(100vw-1rem)] p-2 rounded-2xl glass-card shadow-2xl z-[60] border-white/10"
+                      style={{
+                        background: "hsl(var(--background) / 0.92)",
+                        backdropFilter: "blur(28px) saturate(160%)",
+                        WebkitBackdropFilter: "blur(28px) saturate(160%)",
+                        border: "1px solid hsl(var(--border) / 0.6)",
+                      }}
+                      className="ci-tiles fixed sm:absolute bottom-[5.5rem] sm:bottom-full left-2 sm:left-0 right-2 sm:right-auto mb-0 sm:mb-3 w-auto sm:w-56 max-w-[calc(100vw-1rem)] p-2 rounded-2xl shadow-2xl z-[200]"
                     >
+
                       <div className="grid grid-cols-1 gap-1">
                         <button
                           onClick={() => {
