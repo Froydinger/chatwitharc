@@ -161,15 +161,28 @@ export function ImageOptionsContent({ showUsage = true }: { showUsage?: boolean 
  * Floating dock above the chat input that lets users pick the image model
  * and aspect ratio while in image-generation mode (e.g. /image, "draw…").
  */
-export function ImageOptionsDock({ portalRoot, bottomOffset }: ImageOptionsDockProps) {
+export function ImageOptionsDock({ portalRoot, bottomOffset, leftPx, widthPx }: ImageOptionsDockProps) {
   if (!portalRoot) return null;
+
+  const useAnchored = typeof leftPx === "number" && typeof widthPx === "number";
+  const style: React.CSSProperties = useAnchored
+    ? {
+        bottom: bottomOffset ?? "calc(110px + env(safe-area-inset-bottom, 0px))",
+        left: `${leftPx}px`,
+        width: `${widthPx}px`,
+      }
+    : { bottom: bottomOffset ?? "calc(110px + env(safe-area-inset-bottom, 0px))" };
 
   return createPortal(
     <div
-      className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
-      style={{ bottom: bottomOffset ?? "calc(110px + env(safe-area-inset-bottom, 0px))" }}
+      className={
+        useAnchored
+          ? "fixed z-[33]"
+          : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
+      }
+      style={style}
     >
-      <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
+      <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3 mx-auto max-w-[760px]">
         <ImageOptionsContent />
       </div>
     </div>,
