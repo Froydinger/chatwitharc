@@ -2172,15 +2172,19 @@ ${safeCode}
         selectedImages.length === 0 &&
         (() => {
           const hasDocs = selectedDocuments.length > 0;
-          // Anchor relative to the input bar so the dock floats just above it
-          // instead of being glued to the viewport bottom. Falls back to the
-          // old bottom-anchored math if the ref isn't measured yet.
           const rect = inputBarRef.current?.getBoundingClientRect();
           const previewStack = hasDocs ? 100 : 0;
           const dockBottom = rect
             ? `${Math.max(12, window.innerHeight - rect.top + 12 + previewStack)}px`
             : `calc(${110 + previewStack}px + env(safe-area-inset-bottom, 0px))`;
-          return <ImageOptionsDock portalRoot={portalRoot} bottomOffset={dockBottom} />;
+          return (
+            <ImageOptionsDock
+              portalRoot={portalRoot}
+              bottomOffset={dockBottom}
+              leftPx={rect?.left}
+              widthPx={rect?.width}
+            />
+          );
         })()}
 
       {/* Selected Documents preview - for non-inline, portal anchored above input */}
