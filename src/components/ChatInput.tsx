@@ -2351,52 +2351,8 @@ ${safeCode}
         <div className="flex items-end gap-2 relative">
           {/* Main Input Wrapper */}
           <div className="flex-1 flex flex-col min-w-0">
-            {/* Context/Mode Indicators (Search, Image, Code, Canvas, Persona) */}
-            <AnimatePresence>
-              {(shouldShowBanana ||
-                shouldShowCodeMode ||
-                showCanvasIndicator ||
-                shouldShowSearchMode ||
-                personaMention) && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0, y: 5 }}
-                  animate={{ opacity: 1, height: "auto", y: 0 }}
-                  exit={{ opacity: 0, height: 0, y: 5 }}
-                  className="flex flex-wrap items-center gap-1.5 px-3 mb-1.5 overflow-hidden"
-                >
-                  {personaMention && (
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/20 text-[10px] font-bold text-primary uppercase tracking-wider border border-primary/30">
-                      <Sparkles className="h-2.5 w-2.5" />
-                      <span>{personaMention.personaName}</span>
-                    </div>
-                  )}
-                  {shouldShowSearchMode && (
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/20 text-[10px] font-bold text-blue-400 uppercase tracking-wider border border-blue-500/30">
-                      <Search className="h-2.5 w-2.5" />
-                      <span>Web Search</span>
-                    </div>
-                  )}
-                  {shouldShowBanana && (
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-500 uppercase tracking-wider border border-amber-500/30">
-                      <Sparkles className="h-2.5 w-2.5" />
-                      <span>Generate Image</span>
-                    </div>
-                  )}
-                  {shouldShowCodeMode && (
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-500 uppercase tracking-wider border border-emerald-500/30">
-                      <Code2 className="h-2.5 w-2.5" />
-                      <span>Coding Mode</span>
-                    </div>
-                  )}
-                  {showCanvasIndicator && (
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/20 text-[10px] font-bold text-indigo-400 uppercase tracking-wider border border-indigo-500/30">
-                      <PenLine className="h-2.5 w-2.5" />
-                      <span>Canvas {isCanvasAutoMode ? "(Auto)" : "Mode"}</span>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Mode indicators removed — single-tool indication is handled inline elsewhere */}
+
 
             <div className="relative flex items-center gap-2">
               {/* Add/Attachment Menu */}
@@ -2418,7 +2374,7 @@ ${safeCode}
                       initial={{ opacity: 0, scale: 0.9, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                      className="ci-tiles absolute bottom-full left-0 mb-3 w-56 p-2 rounded-2xl glass-card shadow-2xl z-[60] border-white/10"
+                      className="ci-tiles absolute bottom-full left-0 mb-3 w-[min(15rem,calc(100vw-2rem))] max-w-[calc(100vw-1rem)] p-2 rounded-2xl glass-card shadow-2xl z-[60] border-white/10"
                     >
                       <div className="grid grid-cols-1 gap-1">
                         <button
@@ -2646,7 +2602,7 @@ ${safeCode}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleSend()}
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg transition-all"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-primary hover:bg-primary/10 transition-all"
                 aria-label="Send"
               >
                 <ArrowRight className="h-5 w-5" />
