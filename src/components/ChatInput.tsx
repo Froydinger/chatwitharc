@@ -2374,7 +2374,7 @@ ${safeCode}
                       initial={{ opacity: 0, scale: 0.9, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                      className="ci-tiles absolute bottom-full left-0 mb-3 w-56 p-2 rounded-2xl glass-card shadow-2xl z-[60] border-white/10"
+                      className="ci-tiles absolute bottom-full left-0 mb-3 w-[min(15rem,calc(100vw-2rem))] max-w-[calc(100vw-1rem)] p-2 rounded-2xl glass-card shadow-2xl z-[60] border-white/10"
                     >
                       <div className="grid grid-cols-1 gap-1">
                         <button
