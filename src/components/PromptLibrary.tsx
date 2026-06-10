@@ -422,6 +422,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
