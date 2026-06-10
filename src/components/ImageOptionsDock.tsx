@@ -19,6 +19,10 @@ interface ImageOptionsDockProps {
   portalRoot: HTMLElement | null;
   /** Bottom offset in CSS — should sit above the input bar. */
   bottomOffset?: string;
+  /** Optional precise horizontal anchor (px from viewport left). */
+  leftPx?: number;
+  /** Optional explicit width in px to match input bar. */
+  widthPx?: number;
 }
 
 /**
