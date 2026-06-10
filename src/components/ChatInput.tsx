@@ -2397,7 +2397,7 @@ ${safeCode}
                         WebkitBackdropFilter: "blur(28px) saturate(160%)",
                         border: "1px solid hsl(var(--border) / 0.6)",
                       }}
-                      className="ci-tiles fixed sm:absolute bottom-[5.5rem] sm:bottom-full left-2 sm:left-0 right-2 sm:right-auto mb-0 sm:mb-3 w-auto sm:w-56 max-w-[calc(100vw-1rem)] p-2 rounded-2xl shadow-2xl z-[200]"
+                      className="ci-tiles absolute top-full sm:top-auto sm:bottom-full left-0 sm:left-0 right-0 sm:right-auto mt-3 sm:mt-0 sm:mb-3 w-auto sm:w-56 max-w-[calc(100vw-1rem)] p-2 rounded-2xl shadow-2xl z-[200]"
                     >
 
                       <div className="grid grid-cols-1 gap-1">
