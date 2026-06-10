@@ -2602,7 +2602,7 @@ ${safeCode}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleSend()}
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg transition-all"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-primary hover:bg-primary/10 transition-all"
                 aria-label="Send"
               >
                 <ArrowRight className="h-5 w-5" />
