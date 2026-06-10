@@ -513,7 +513,7 @@ All colors MUST be HSL for perfect glass effects.
   .glass-dock {
     padding: 1rem;
     border-radius: 9999px !important;
-    overflow: hidden !important;
+    overflow: visible !important;
     background:
       linear-gradient(
         135deg,
