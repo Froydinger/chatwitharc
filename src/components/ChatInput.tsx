@@ -2387,121 +2387,137 @@ ${safeCode}
                 {/* Slash/Add Picker Menu */}
                 <AnimatePresence>
                   {showMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                      style={{
-                        background: "hsl(var(--background))",
-                        backdropFilter: "blur(28px) saturate(160%)",
-                        WebkitBackdropFilter: "blur(28px) saturate(160%)",
-                        border: "1px solid hsl(var(--border))",
-                      }}
-                      className="ci-tiles absolute bottom-full left-0 right-0 sm:right-auto mb-3 w-auto sm:w-56 max-w-[calc(100vw-1rem)] p-2 rounded-2xl shadow-2xl z-[300]"
-                    >
-
-                      <div className="grid grid-cols-1 gap-1">
-                        <button
-                          onClick={() => {
-                            fileInputRef.current?.click();
-                            setShowMenu(false);
-                          }}
-                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors group"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30">
-                            <Paperclip className="h-4 w-4 text-blue-400" />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span>Attach</span>
-                            <span className="text-[10px] text-muted-foreground font-normal">Files, PDFs, Docs</span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setForceImageMode(true);
-                            setInputValue("image/ ");
-                            setShowMenu(false);
-                            textareaRef.current?.focus();
-                          }}
-                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors group"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/30">
-                            <ImagePlus className="h-4 w-4 text-amber-500" />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span>Generate</span>
-                            <span className="text-[10px] text-muted-foreground font-normal">AI Image Creation</span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setForceSearchMode(true);
-                            setInputValue("search/ ");
-                            setShowMenu(false);
-                            textareaRef.current?.focus();
-                          }}
-                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors group"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/30">
-                            <Globe className="h-4 w-4 text-indigo-400" />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span>Search</span>
-                            <span className="text-[10px] text-muted-foreground font-normal">Live Web Results</span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setForceCodingMode(true);
-                            setInputValue("code/ ");
-                            setShowMenu(false);
-                            textareaRef.current?.focus();
-                          }}
-                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors group"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30">
-                            <Code2 className="h-4 w-4 text-emerald-500" />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span>Code</span>
-                            <span className="text-[10px] text-muted-foreground font-normal">Scripting & logic</span>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => {
-                            setForceCanvasMode(true);
-                            setInputValue("write/ ");
-                            setShowMenu(false);
-                            textareaRef.current?.focus();
-                          }}
-                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors group"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-pink-500/20 flex items-center justify-center group-hover:bg-pink-500/30">
-                            <PenLine className="h-4 w-4 text-pink-400" />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span>Draft</span>
-                            <span className="text-[10px] text-muted-foreground font-normal">Writing & Layouts</span>
-                          </div>
-                        </button>
-                        <div className="h-px bg-white/10 my-1 mx-2" />
-                        <button
-                          onClick={() => {
-                            setShowPromptLibrary(true);
-                            setShowMenu(false);
-                          }}
-                          className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors group"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center">
-                            <ListPlus className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            <span>Prompts</span>
-                            <span className="text-[10px] text-muted-foreground font-normal">Template library</span>
-                          </div>
-                        </button>
-                      </div>
-                    </motion.div>
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="ci-tiles fixed inset-0 z-[400] bg-black/50 backdrop-blur-sm"
+                        onClick={() => setShowMenu(false)}
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        style={{
+                          background: "hsl(var(--background))",
+                          border: "1px solid hsl(var(--border))",
+                        }}
+                        className="ci-tiles fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[401] w-[min(92vw,480px)] p-4 rounded-3xl shadow-2xl"
+                      >
+                        <div className="flex items-center justify-between mb-3 px-1">
+                          <span className="text-sm font-semibold">Tools & Actions</span>
+                          <button
+                            onClick={() => setShowMenu(false)}
+                            className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+                            aria-label="Close"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => {
+                              fileInputRef.current?.click();
+                              setShowMenu(false);
+                            }}
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                          >
+                            <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30">
+                              <Paperclip className="h-5 w-5 text-blue-400" />
+                            </div>
+                            <div className="flex flex-col items-center text-center">
+                              <span className="text-sm font-semibold">Attach</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">Files, PDFs, Docs</span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setForceImageMode(true);
+                              setInputValue("image/ ");
+                              setShowMenu(false);
+                              textareaRef.current?.focus();
+                            }}
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                          >
+                            <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/30">
+                              <ImagePlus className="h-5 w-5 text-amber-500" />
+                            </div>
+                            <div className="flex flex-col items-center text-center">
+                              <span className="text-sm font-semibold">Generate</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">AI Image Creation</span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setForceSearchMode(true);
+                              setInputValue("search/ ");
+                              setShowMenu(false);
+                              textareaRef.current?.focus();
+                            }}
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                          >
+                            <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/30">
+                              <Globe className="h-5 w-5 text-indigo-400" />
+                            </div>
+                            <div className="flex flex-col items-center text-center">
+                              <span className="text-sm font-semibold">Search</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">Live Web Results</span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setForceCodingMode(true);
+                              setInputValue("code/ ");
+                              setShowMenu(false);
+                              textareaRef.current?.focus();
+                            }}
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                          >
+                            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30">
+                              <Code2 className="h-5 w-5 text-emerald-500" />
+                            </div>
+                            <div className="flex flex-col items-center text-center">
+                              <span className="text-sm font-semibold">Code</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">Scripting & logic</span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setForceCanvasMode(true);
+                              setInputValue("write/ ");
+                              setShowMenu(false);
+                              textareaRef.current?.focus();
+                            }}
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                          >
+                            <div className="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center group-hover:bg-pink-500/30">
+                              <PenLine className="h-5 w-5 text-pink-400" />
+                            </div>
+                            <div className="flex flex-col items-center text-center">
+                              <span className="text-sm font-semibold">Draft</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">Writing & Layouts</span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowPromptLibrary(true);
+                              setShowMenu(false);
+                            }}
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                          >
+                            <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
+                              <ListPlus className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div className="flex flex-col items-center text-center">
+                              <span className="text-sm font-semibold">Prompts</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">Template library</span>
+                            </div>
+                          </button>
+                        </div>
+                      </motion.div>
+                    </>
                   )}
                 </AnimatePresence>
               </div>
