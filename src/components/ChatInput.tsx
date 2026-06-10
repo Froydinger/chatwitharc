@@ -2301,12 +2301,13 @@ ${safeCode}
           const bottom = rect
             ? `${Math.max(12, window.innerHeight - rect.top + 8)}px`
             : `calc(120px + env(safe-area-inset-bottom, 0px))`;
+          const anchored = rect ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom } : { bottom };
           return createPortal(
             <div
-              className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[32] pointer-events-none"
-              style={{ bottom }}
+              className={rect ? "fixed z-[32] pointer-events-none" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[32] pointer-events-none"}
+              style={anchored}
             >
-              <div className="px-4 flex justify-end">
+              <div className="px-4 flex justify-end mx-auto max-w-[760px]">
                 <PromptEnhancer
                   text={inputValue}
                   kind={shouldShowBanana ? "image" : "chat"}
