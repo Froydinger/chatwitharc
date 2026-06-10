@@ -165,7 +165,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
     { id: 'code' as TabType, label: 'Code', icon: Code },
   ];
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
