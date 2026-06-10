@@ -2519,6 +2519,7 @@ ${safeCode}
                           </button>
                         </div>
                       </motion.div>
+                      </div>
                     </>
                   )}
                 </AnimatePresence>,
