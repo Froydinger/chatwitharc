@@ -2385,7 +2385,8 @@ ${safeCode}
                 </button>
 
                 {/* Slash/Add Picker Menu */}
-                <AnimatePresence>
+                {createPortal(
+                  <AnimatePresence>
                   {showMenu && (
                     <>
                       <motion.div
@@ -2403,8 +2404,9 @@ ${safeCode}
                         style={{
                           background: "hsl(var(--background))",
                           border: "1px solid hsl(var(--border))",
+                          paddingTop: "max(1rem, env(safe-area-inset-top))",
                         }}
-                        className="ci-tiles fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[401] w-[min(92vw,480px)] p-4 rounded-3xl shadow-2xl"
+                        className="ci-tiles fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[401] w-[min(92vw,480px)] max-h-[85vh] overflow-y-auto p-4 rounded-3xl shadow-2xl"
                       >
                         <div className="flex items-center justify-between mb-3 px-1">
                           <span className="text-sm font-semibold">Tools & Actions</span>
@@ -2519,7 +2521,9 @@ ${safeCode}
                       </motion.div>
                     </>
                   )}
-                </AnimatePresence>
+                </AnimatePresence>,
+                  document.body
+                )}
               </div>
 
               {/* Persona Mentions Suggestions */}
