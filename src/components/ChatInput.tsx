@@ -2396,6 +2396,7 @@ ${safeCode}
                         className="ci-tiles fixed inset-0 z-[400] bg-black/50 backdrop-blur-sm"
                         onClick={() => setShowMenu(false)}
                       />
+                      <div className="ci-tiles fixed inset-0 z-[401] flex items-center justify-center p-4 pointer-events-none">
                       <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -2404,9 +2405,8 @@ ${safeCode}
                         style={{
                           background: "hsl(var(--background))",
                           border: "1px solid hsl(var(--border))",
-                          paddingTop: "max(1rem, env(safe-area-inset-top))",
                         }}
-                        className="ci-tiles fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[401] w-[min(92vw,480px)] max-h-[85vh] overflow-y-auto p-4 rounded-3xl shadow-2xl"
+                        className="pointer-events-auto w-[min(92vw,480px)] max-h-[85vh] overflow-y-auto p-4 rounded-3xl shadow-2xl"
                       >
                         <div className="flex items-center justify-between mb-3 px-1">
                           <span className="text-sm font-semibold">Tools & Actions</span>
@@ -2519,6 +2519,7 @@ ${safeCode}
                           </button>
                         </div>
                       </motion.div>
+                      </div>
                     </>
                   )}
                 </AnimatePresence>,
