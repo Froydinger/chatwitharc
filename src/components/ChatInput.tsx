@@ -2197,9 +2197,10 @@ ${safeCode}
           const bottom = rect
             ? `${Math.max(12, window.innerHeight - rect.top + 12 + imgStack)}px`
             : `calc(${110 + imgStack}px + env(safe-area-inset-bottom, 0px))`;
+          const anchored = rect ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom } : { bottom };
           return createPortal(
-            <div className="fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]" style={{ bottom }}>
-              <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3">
+            <div className={rect ? "fixed z-[33]" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"} style={anchored}>
+              <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3 mx-auto max-w-[760px]">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-muted-foreground">Documents ({selectedDocuments.length}/3)</span>
                   <button
