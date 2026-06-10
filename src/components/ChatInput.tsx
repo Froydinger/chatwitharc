@@ -2521,7 +2521,9 @@ ${safeCode}
                       </motion.div>
                     </>
                   )}
-                </AnimatePresence>
+                </AnimatePresence>,
+                  document.body
+                )}
               </div>
 
               {/* Persona Mentions Suggestions */}
