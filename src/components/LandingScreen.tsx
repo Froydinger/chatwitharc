@@ -60,7 +60,6 @@ const isWindows = () => {
   return /Win/i.test(navigator.platform) || /Windows/i.test(navigator.userAgent);
 };
 
-
 // Fake Research Animation for landing page
 function ResearchDemo() {
   const [phase, setPhase] = useState<"typing" | "searching" | "results">("typing");
@@ -225,7 +224,10 @@ function ResearchDemo() {
 }
 
 const PromptPill = ({ icon, text, onClick }: { icon: string; text: string; onClick?: () => void }) => (
-  <div onClick={onClick} className="flex items-center space-x-2 px-4 py-2 rounded-full glass-card cursor-pointer hover:bg-slate-100 dark:bg-slate-700/60 text-sm text-slate-700 dark:text-slate-200">
+  <div
+    onClick={onClick}
+    className="flex items-center space-x-2 px-4 py-2 rounded-full glass-card cursor-pointer hover:bg-slate-100 dark:bg-slate-700/60 text-sm text-slate-700 dark:text-slate-200"
+  >
     <span className="opacity-70">{icon}</span>
     <span>{text}</span>
   </div>
@@ -750,30 +752,6 @@ export function LandingScreen() {
 
       {/* Section 1: Speed & Intelligence */}
       <section className="relative z-10 py-24 px-6 max-w-4xl mx-auto text-center" id="features">
-        <motion.div
-          className="space-y-6 flex flex-col items-center"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-yellow-500/20">
-            <Zap className="w-6 h-6 text-slate-900" />
-          </div>
-          <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-slate-100 leading-tight">
-            Think fast.
-            <br />
-            <span className="bg-gradient-to-r from-yellow-600 to-orange-500 bg-clip-text text-transparent">
-              Type faster.
-            </span>
-          </h2>
-          <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed max-w-lg">
-            Instant responses powered by cutting-edge models. Switch between speed and depth on the fly — your AI, your
-            rules.
-          </p>
-
-        </motion.div>
-
         <motion.div
           className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10 max-w-2xl mx-auto"
           initial={{ opacity: 0, y: 20 }}
