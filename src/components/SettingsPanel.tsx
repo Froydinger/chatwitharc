@@ -53,7 +53,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
 import { VoiceSelector } from "@/components/VoiceSelector";
-import { useModelStore, type ModelFamily } from "@/store/useModelStore";
+
 import {
   useImageGenStore,
   IMAGE_MODEL_OPTIONS,
@@ -182,45 +182,6 @@ function Tile({
   );
 }
 
-function ModelFamilySelector({ isSubscribed }: { isSubscribed: boolean }) {
-  const { modelFamily, setModelFamily } = useModelStore();
-  const { updateProfile } = useProfile();
-  const { toast } = useToast();
-
-  const handleChange = async (family: ModelFamily) => {
-    if (!isSubscribed) return;
-    setModelFamily(family);
-    try {
-      await updateProfile({ preferred_model: family === 'gpt' ? 'openai/gpt-5-mini' : 'google/gemini-3-flash-preview' });
-    } catch {
-      toast({ title: "Failed to save preference", variant: "destructive" });
-    }
-  };
-
-  return (
-    <SectionCard
-      icon={Sparkles}
-      title="AI Model"
-      subtitle={isSubscribed ? "Choose between GPT and Gemini" : "Pro required"}
-      className={!isSubscribed ? "opacity-60" : ""}
-    >
-      {([
-        { id: 'gemini' as ModelFamily, label: 'Gemini', desc: 'Google AI — fast, multimodal' },
-        { id: 'gpt' as ModelFamily, label: 'GPT', desc: 'OpenAI — strong reasoning' },
-      ]).map((opt) => (
-        <Tile
-          key={opt.id}
-          title={opt.label}
-          description={opt.desc}
-          active={modelFamily === opt.id}
-          onClick={isSubscribed ? () => handleChange(opt.id) : undefined}
-          right={modelFamily === opt.id ? <Check className="h-4 w-4 text-primary" /> : null}
-          className={!isSubscribed ? "cursor-not-allowed" : ""}
-        />
-      ))}
-    </SectionCard>
-  );
-}
 
 function ImageDefaultsCard() {
   const { model, aspectRatio, setModel, setAspectRatio } = useImageGenStore();
@@ -902,7 +863,7 @@ export function SettingsPanel() {
       case "ai":
         return (
           <>
-            <ModelFamilySelector isSubscribed={isSubscribed} />
+            
             <SectionCard icon={Stars} title="Custom Personas" subtitle="Create unique conversation styles">
               <PersonasManager />
             </SectionCard>
