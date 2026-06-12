@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ModelFamily = 'gemini' | 'gpt';
+export type ModelFamily = 'gemini';
 export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-analysis' | 'image-edit' | 'file-gen';
 
 const MODEL_MAP: Record<ModelFamily, Record<ModelTask, string>> = {
@@ -14,15 +14,6 @@ const MODEL_MAP: Record<ModelFamily, Record<ModelTask, string>> = {
     'image-edit': 'google/gemini-3.1-flash-image-preview',
     'file-gen': 'google/gemini-3.5-flash',
   },
-  gpt: {
-    'chat': 'openai/gpt-5-nano',
-    'code': 'openai/gpt-5.2',
-    'deep-chat': 'openai/gpt-5.2',
-    'image-gen': 'google/gemini-3.1-flash-image-preview',
-    'image-analysis': 'openai/gpt-5.5',
-    'image-edit': 'google/gemini-3.1-flash-image-preview',
-    'file-gen': 'openai/gpt-5.5-pro',
-  },
 };
 
 interface ModelStore {
@@ -34,14 +25,13 @@ export const useModelStore = create<ModelStore>()(
   persist(
     (set) => ({
       modelFamily: 'gemini',
-      setModelFamily: (family) => set({ modelFamily: family }),
+      setModelFamily: () => set({ modelFamily: 'gemini' }),
     }),
     { name: 'arc-model-family' }
   )
 );
 
-/** Get the correct model string for a given task based on current family selection */
+/** Get the correct model string for a given task. Always Gemini. */
 export function getModelForTask(task: ModelTask): string {
-  const family = useModelStore.getState().modelFamily;
-  return MODEL_MAP[family][task];
+  return MODEL_MAP.gemini[task];
 }

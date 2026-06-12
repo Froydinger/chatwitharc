@@ -60,42 +60,6 @@ const isWindows = () => {
   return /Win/i.test(navigator.platform) || /Windows/i.test(navigator.userAgent);
 };
 
-// Animated GPT/Gemini Toggle for landing page
-function ModelToggleDemo() {
-  const [isGPT, setIsGPT] = useState(false);
-
-  useEffect(() => {
-    const interval = setInterval(() => setIsGPT((prev) => !prev), 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div
-      className="relative inline-flex items-center rounded-full p-1 cursor-pointer glass-card w-[220px] h-[46px]"
-      onClick={() => setIsGPT((prev) => !prev)}
-    >
-      {/* Sliding background pill */}
-      <motion.div
-        className="absolute inset-y-1 h-[calc(100%-8px)] w-[106px] rounded-full"
-        animate={{ x: isGPT ? 3 : 107 }}
-        transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        style={{
-          background: isGPT ? "linear-gradient(135deg, #10a37f, #1a7f5a)" : "linear-gradient(135deg, #4285f4, #34a8eb)",
-        }}
-      />
-      <span
-        className={`relative z-10 flex-1 text-center text-sm font-semibold transition-colors duration-200 ${isGPT ? "text-slate-900 dark:text-slate-100" : "text-slate-600 dark:text-slate-300"}`}
-      >
-        GPT
-      </span>
-      <span
-        className={`relative z-10 flex-1 text-center text-sm font-semibold transition-colors duration-200 ${!isGPT ? "text-slate-900 dark:text-slate-100" : "text-slate-600 dark:text-slate-300"}`}
-      >
-        Gemini
-      </span>
-    </div>
-  );
-}
 
 // Fake Research Animation for landing page
 function ResearchDemo() {
@@ -808,8 +772,6 @@ export function LandingScreen() {
             rules.
           </p>
 
-          {/* GPT / Gemini animated toggle */}
-          <ModelToggleDemo />
         </motion.div>
 
         <motion.div

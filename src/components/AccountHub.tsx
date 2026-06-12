@@ -229,15 +229,6 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     toast({ title: "Chat history cleared" });
   };
 
-  const handleModelChange = async (family: ModelFamily) => {
-    if (!isSubscribed) return;
-    setModelFamily(family);
-    try {
-      await updateProfile({ preferred_model: family === 'gpt' ? 'openai/gpt-5-mini' : 'google/gemini-3-flash-preview' });
-    } catch {
-      toast({ title: "Failed to save preference", variant: "destructive" });
-    }
-  };
 
   const handlePortal = async () => {
     setPortalLoading(true);
@@ -483,37 +474,6 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                   <VoiceSelector />
                 </Section>
 
-                {/* AI Model */}
-                <Section
-                  icon={<Sparkles className="h-4 w-4" />}
-                  title="AI Model"
-                  desc="Choose between GPT and Gemini"
-                  badge={!isSubscribed ? "PRO" : undefined}
-                >
-                  <div className={cn("grid grid-cols-2 gap-3", !isSubscribed && "opacity-60")}>
-                    {([
-                      { id: 'gemini' as ModelFamily, label: 'Gemini', desc: 'Google AI' },
-                      { id: 'gpt' as ModelFamily, label: 'GPT', desc: 'OpenAI' },
-                    ]).map((opt) => (
-                      <button
-                        key={opt.id}
-                        onClick={() => handleModelChange(opt.id)}
-                        disabled={!isSubscribed}
-                        className={cn(
-                          "relative p-4 rounded-xl border transition-all text-left",
-                          modelFamily === opt.id
-                            ? "border-primary bg-primary/10 shadow-[0_0_15px_hsl(var(--primary)/0.15)]"
-                            : "border-border/40 bg-muted/20 hover:border-border/60",
-                          !isSubscribed ? "cursor-not-allowed" : "cursor-pointer"
-                        )}
-                      >
-                        <div className="font-semibold text-foreground">{opt.label}</div>
-                        <div className="text-xs text-muted-foreground">{opt.desc}</div>
-                        {modelFamily === opt.id && <Check className="absolute top-3 right-3 w-4 h-4 text-primary" />}
-                      </button>
-                    ))}
-                  </div>
-                </Section>
               </>
             )}
 
