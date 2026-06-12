@@ -31,7 +31,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { useArcStore } from "@/store/useArcStore";
-import { useModelStore, type ModelFamily } from "@/store/useModelStore";
+
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -73,7 +73,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   const { accentColor, setAccentColor } = useAccentColor();
   const { isAdmin } = useAdminSettings();
   const { clearAllSessions, createNewSession, lastSyncAt } = useArcStore();
-  const { modelFamily, setModelFamily } = useModelStore();
+  
   const subscription = useSubscription();
   const {
     isSubscribed, loading: subLoading,
