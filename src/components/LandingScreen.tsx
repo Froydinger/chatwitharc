@@ -750,42 +750,6 @@ export function LandingScreen() {
         </div>
       </main>
 
-      {/* Section 1: Speed & Intelligence */}
-      <section className="relative z-10 py-24 px-6 max-w-4xl mx-auto text-center" id="features">
-        <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10 max-w-2xl mx-auto"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-        >
-          <div className="glass-card p-6 rounded-2xl space-y-3 group hover:border-purple-500/30 transition-colors text-left">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                <Brain className="w-5 h-5 text-slate-900 dark:text-slate-100" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Personal Memory</h3>
-            </div>
-            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
-              ArcAi remembers your preferences, context, and style. Every conversation picks up right where you left
-              off.
-            </p>
-          </div>
-
-          <div className="glass-card p-6 rounded-2xl space-y-3 group hover:border-blue-500/30 transition-colors text-left">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                <Sparkles className="w-5 h-5 text-slate-900 dark:text-slate-100" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Multimodal Magic</h3>
-            </div>
-            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">
-              Chat, generate images, analyze files, and write code — all in one fluid, beautiful interface.
-            </p>
-          </div>
-        </motion.div>
-      </section>
-
       {/* Section 2: Real Life, Real Talk — Centered */}
       <section className="relative z-10 py-20 px-6 max-w-4xl mx-auto text-center">
         <motion.div
