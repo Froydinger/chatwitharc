@@ -2603,40 +2603,40 @@ ${safeCode}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute bottom-full left-0 mb-3 w-48 p-2 rounded-2xl glass-card shadow-2xl z-[60] border-white/10"
+                    className="absolute bottom-full left-0 mb-3 w-48 p-2 rounded-2xl bg-card/95 backdrop-blur-xl border border-border shadow-2xl z-[60]"
                   >
                     <div className="flex flex-col gap-0.5">
                       <button
                         onClick={() => setInputValue("/image ")}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-colors group"
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-foreground/10 transition-colors group"
                       >
                         <ImagePlus className="h-4 w-4 text-amber-500" />
                         <span>/image</span>
                       </button>
                       <button
                         onClick={() => setInputValue("/search ")}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-colors group"
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-foreground/10 transition-colors group"
                       >
                         <Globe className="h-4 w-4 text-indigo-400" />
                         <span>/search</span>
                       </button>
                       <button
                         onClick={() => setInputValue("/code ")}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-colors group"
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-foreground/10 transition-colors group"
                       >
                         <Code2 className="h-4 w-4 text-emerald-500" />
                         <span>/code</span>
                       </button>
                       <button
                         onClick={() => setInputValue("/canvas ")}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-colors group"
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-foreground/10 transition-colors group"
                       >
                         <PenLine className="h-4 w-4 text-pink-400" />
                         <span>/canvas</span>
                       </button>
                       <button
                         onClick={() => setInputValue("/deep ")}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-colors group"
+                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-foreground/10 transition-colors group"
                       >
                         <Search className="h-4 w-4 text-blue-400" />
                         <span>/research</span>
