@@ -2563,53 +2563,76 @@ ${safeCode}
                 )}
               </div>
 
-              {/* Persona Mentions Suggestions — portaled above input bar */}
-              {portalRoot && createPortal(
+              {/* Persona Mentions Suggestions — centered modal like Tools menu */}
+              {createPortal(
                 <AnimatePresence>
-                  {showingPersonaSuggestions && filteredPersonas.length > 0 && (() => {
-                    const rect = inputBarRef.current?.getBoundingClientRect();
-                    const style = rect
-                      ? { left: `${rect.left}px`, bottom: `${window.innerHeight - rect.top}px` }
-                      : { left: '50%', bottom: '120px', transform: 'translateX(-50%)' };
-                    return (
+                  {showingPersonaSuggestions && filteredPersonas.length > 0 && (
+                    <>
                       <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 8 }}
-                        style={style}
-                        className="fixed w-72 p-2 rounded-xl glass-dock shadow-2xl z-[500]"
-                      >
-                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-2 mb-1.5">
-                          Summon Persona
-                        </div>
-                        <div className="flex flex-col gap-0.5">
-                          {filteredPersonas.map((p) => (
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[400] bg-black/50 backdrop-blur-sm"
+                        onClick={() => {
+                          const lastAtIndex = inputValue.lastIndexOf("@");
+                          if (lastAtIndex >= 0) setInputValue(inputValue.slice(0, lastAtIndex));
+                        }}
+                      />
+                      <div className="fixed inset-0 z-[401] flex items-center justify-center p-4 pointer-events-none">
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                          style={{
+                            background: "hsl(var(--background))",
+                            border: "1px solid hsl(var(--border))",
+                          }}
+                          className="pointer-events-auto w-[min(92vw,480px)] max-h-[85vh] overflow-y-auto p-4 rounded-3xl shadow-2xl"
+                        >
+                          <div className="flex items-center justify-between mb-3 px-1">
+                            <span className="text-sm font-semibold">Summon a Persona</span>
                             <button
-                              key={p.id}
                               onClick={() => {
                                 const lastAtIndex = inputValue.lastIndexOf("@");
-                                const newVal = inputValue.slice(0, lastAtIndex) + "@" + p.name + " ";
-                                setInputValue(newVal);
-                                textareaRef.current?.focus();
+                                if (lastAtIndex >= 0) setInputValue(inputValue.slice(0, lastAtIndex));
                               }}
-                              className="flex items-center gap-3 px-2 py-1.5 rounded-lg text-sm hover:bg-muted transition-colors text-left"
+                              className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+                              aria-label="Close"
                             >
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden">
-                                {p.name[0].toUpperCase()}
-                              </div>
-                              <div className="flex flex-col min-w-0">
-                                <span className="font-semibold truncate">{p.name}</span>
-                                <span className="text-[10px] text-muted-foreground truncate">{p.description || ''}</span>
-                              </div>
+                              <X className="h-4 w-4" />
                             </button>
-                          ))}
-                        </div>
-                      </motion.div>
-                    );
-                  })()}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            {filteredPersonas.map((p) => (
+                              <button
+                                key={p.id}
+                                onClick={() => {
+                                  const lastAtIndex = inputValue.lastIndexOf("@");
+                                  const newVal = inputValue.slice(0, lastAtIndex) + "@" + p.name + " ";
+                                  setInputValue(newVal);
+                                  textareaRef.current?.focus();
+                                }}
+                                className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5 text-center"
+                              >
+                                <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center text-primary font-bold text-lg">
+                                  {p.name[0].toUpperCase()}
+                                </div>
+                                <div className="flex flex-col items-center min-w-0 w-full">
+                                  <span className="text-sm font-semibold truncate w-full">{p.name}</span>
+                                  <span className="text-[10px] text-muted-foreground font-normal line-clamp-2">{p.description || ''}</span>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      </div>
+                    </>
+                  )}
                 </AnimatePresence>,
-                portalRoot,
+                document.body,
               )}
+
 
 
 
