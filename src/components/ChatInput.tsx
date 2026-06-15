@@ -2558,93 +2558,94 @@ ${safeCode}
                 )}
               </div>
 
-              {/* Persona Mentions Suggestions */}
-              <AnimatePresence>
-                {showingPersonaSuggestions && filteredPersonas.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute bottom-full left-0 mb-3 w-64 p-2 rounded-2xl glass-dock shadow-2xl z-[60]"
-                  >
-                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-2 mb-1.5">
-                      Summon Persona
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                      {filteredPersonas.map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() => {
-                            const lastAtIndex = inputValue.lastIndexOf("@");
-                            const newVal = inputValue.slice(0, lastAtIndex) + "@" + p.name + " ";
-                            setInputValue(newVal);
-                            textareaRef.current?.focus();
-                          }}
-                          className="flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm hover:bg-muted transition-colors text-left"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden">
-                            {p.name[0].toUpperCase()}
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-semibold truncate">{p.name}</span>
-                            <span className="text-[10px] text-muted-foreground truncate">{p.description || ''}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Persona Mentions Suggestions — portaled above input bar */}
+              {portalRoot && createPortal(
+                <AnimatePresence>
+                  {showingPersonaSuggestions && filteredPersonas.length > 0 && (() => {
+                    const rect = inputBarRef.current?.getBoundingClientRect();
+                    const style = rect
+                      ? { left: `${rect.left + 8}px`, bottom: `${window.innerHeight - rect.top + 8}px` }
+                      : { left: '50%', bottom: '120px', transform: 'translateX(-50%)' };
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        style={style}
+                        className="fixed w-64 p-2 rounded-2xl glass-dock shadow-2xl z-[500]"
+                      >
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-2 mb-1.5">
+                          Summon Persona
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          {filteredPersonas.map((p) => (
+                            <button
+                              key={p.id}
+                              onClick={() => {
+                                const lastAtIndex = inputValue.lastIndexOf("@");
+                                const newVal = inputValue.slice(0, lastAtIndex) + "@" + p.name + " ";
+                                setInputValue(newVal);
+                                textareaRef.current?.focus();
+                              }}
+                              className="flex items-center gap-3 px-2 py-1.5 rounded-xl text-sm hover:bg-muted transition-colors text-left"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden">
+                                {p.name[0].toUpperCase()}
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span className="font-semibold truncate">{p.name}</span>
+                                <span className="text-[10px] text-muted-foreground truncate">{p.description || ''}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    );
+                  })()}
+                </AnimatePresence>,
+                portalRoot,
+              )}
 
-              {/* Slash Picker (only if user types just '/') */}
-              <AnimatePresence>
-                {showSlashPicker && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="absolute bottom-full left-0 mb-3 w-48 p-2 rounded-2xl glass-dock shadow-2xl z-[60]"
-                  >
-                    <div className="flex flex-col gap-0.5">
-                      <button
-                        onClick={() => setInputValue("/image ")}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-muted transition-colors group"
+              {/* Slash Picker — portaled above input bar */}
+              {portalRoot && createPortal(
+                <AnimatePresence>
+                  {showSlashPicker && (() => {
+                    const rect = inputBarRef.current?.getBoundingClientRect();
+                    const style = rect
+                      ? { left: `${rect.left + 8}px`, bottom: `${window.innerHeight - rect.top + 8}px` }
+                      : { left: '50%', bottom: '120px', transform: 'translateX(-50%)' };
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        style={style}
+                        className="fixed w-48 p-2 rounded-2xl glass-dock shadow-2xl z-[500]"
                       >
-                        <ImagePlus className="h-4 w-4 text-amber-500" />
-                        <span>/image</span>
-                      </button>
-                      <button
-                        onClick={() => setInputValue("/search ")}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-muted transition-colors group"
-                      >
-                        <Globe className="h-4 w-4 text-indigo-400" />
-                        <span>/search</span>
-                      </button>
-                      <button
-                        onClick={() => setInputValue("/code ")}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-muted transition-colors group"
-                      >
-                        <Code2 className="h-4 w-4 text-emerald-500" />
-                        <span>/code</span>
-                      </button>
-                      <button
-                        onClick={() => setInputValue("/canvas ")}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-muted transition-colors group"
-                      >
-                        <PenLine className="h-4 w-4 text-pink-400" />
-                        <span>/canvas</span>
-                      </button>
-                      <button
-                        onClick={() => setInputValue("/deep ")}
-                        className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-muted transition-colors group"
-                      >
-                        <Search className="h-4 w-4 text-blue-400" />
-                        <span>/research</span>
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                        <div className="flex flex-col gap-0.5">
+                          <button onClick={() => setInputValue("/image ")} className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-muted transition-colors">
+                            <ImagePlus className="h-4 w-4 text-amber-500" /><span>/image</span>
+                          </button>
+                          <button onClick={() => setInputValue("/search ")} className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-muted transition-colors">
+                            <Globe className="h-4 w-4 text-indigo-400" /><span>/search</span>
+                          </button>
+                          <button onClick={() => setInputValue("/code ")} className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-muted transition-colors">
+                            <Code2 className="h-4 w-4 text-emerald-500" /><span>/code</span>
+                          </button>
+                          <button onClick={() => setInputValue("/canvas ")} className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-muted transition-colors">
+                            <PenLine className="h-4 w-4 text-pink-400" /><span>/canvas</span>
+                          </button>
+                          <button onClick={() => setInputValue("/deep ")} className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm hover:bg-muted transition-colors">
+                            <Search className="h-4 w-4 text-blue-400" /><span>/research</span>
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })()}
+                </AnimatePresence>,
+                portalRoot,
+              )}
+
 
               {/* Input Field */}
               <Textarea
