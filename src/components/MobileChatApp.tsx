@@ -154,6 +154,7 @@ export function MobileChatApp() {
     refreshSessionFromSupabase,
   } = useArcStore();
   const { profile } = useProfile();
+  const getPersonaById = usePersonasStore(s => s.getPersonaById);
   const isMobile = useIsMobile();
   const isAdminBannerActive = useAdminBanner();
   
