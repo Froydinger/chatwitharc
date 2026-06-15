@@ -135,9 +135,11 @@ export const usePersonasStore = create<PersonasState>((set, get) => ({
         description: p.description,
         systemPrompt: p.system_prompt,
         starterPrompts: p.starter_prompts || [],
+        avatarUrl: p.avatar_url ?? null,
         createdAt: new Date(p.created_at),
         updatedAt: new Date(p.updated_at),
       }));
+
       set({
         personas: [...BUILT_IN_PERSONAS, ...userPersonas],
         loading: false,
@@ -240,6 +242,31 @@ export const usePersonasStore = create<PersonasState>((set, get) => ({
     }
   },
 
+  generateAvatar: async (id) => {
+    const persona = get().personas.find(p => p.id === id);
+    if (!persona) throw new Error('Persona not found');
+    if (id.startsWith('builtin-')) throw new Error('Built-in persona avatars cannot be regenerated');
+
+    const { data, error } = await supabase.functions.invoke('generate-persona-avatar', {
+      body: {
+        personaId: id,
+        name: persona.name,
+        description: persona.description || '',
+        systemPrompt: persona.systemPrompt || '',
+      },
+    });
+    if (error) throw error;
+    const avatarUrl: string | undefined = (data as any)?.avatarUrl;
+    if (!avatarUrl) throw new Error('No avatar returned');
+
+    set(state => ({
+      personas: state.personas.map(p =>
+        p.id === id ? { ...p, avatarUrl, updatedAt: new Date() } : p,
+      ),
+    }));
+    return avatarUrl;
+  },
+
   getPersonaById: (id) => {
     return get().personas.find(p => p.id === id);
   },
@@ -250,3 +277,4 @@ export const usePersonasStore = create<PersonasState>((set, get) => ({
       || get().personas.find(p => p.name.toLowerCase().startsWith(lowerName));
   },
 }));
+
