@@ -531,8 +531,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     fetchPersonas();
   }, [fetchPersonas]);
 
-  // Detect @mentions as user types
-  const { isActive: showingPersonaSuggestions, searchTerm } = detectPersonaMention(inputValue);
+  // Detect @mentions as user types — suppressed when a persona is already active
+  // (multi-persona chats are not supported yet).
+  const rawMention = detectPersonaMention(inputValue);
+  const showingPersonaSuggestions = rawMention.isActive && !activePersona;
+  const searchTerm = rawMention.searchTerm;
   const filteredPersonas = showingPersonaSuggestions
     ? personas
         .filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()))
@@ -545,13 +548,53 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     : [];
   const personaMention = parsePersonaMentionPrefix(inputValue);
 
-  // Insert `@PersonaName ` into the input — sending the message will lock the session
-  // to that persona via the existing send-time mention handler.
+  // If the user types @ in a chat that already has a persona, strip it and warn.
+  useEffect(() => {
+    if (rawMention.isActive && activePersona) {
+      const lastAtIndex = inputValue.lastIndexOf("@");
+      if (lastAtIndex >= 0) {
+        setInputValue(inputValue.slice(0, lastAtIndex));
+      }
+      toast({
+        title: "One persona per chat",
+        description: "Multi-persona chats are not yet available. Start a new chat to switch.",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawMention.isActive, !!activePersona]);
+
+  // Activate a persona on the current (or new) session. Avatar appears over the +
+  // menu as a pending-tool style chip; the X next to it clears the persona.
   const selectPersona = (persona: { id: string; name: string }) => {
+    const arc = useArcStore.getState();
+    let sessionId = arc.currentSessionId;
+    if (!sessionId) {
+      sessionId = arc.createNewSession();
+    }
+    useArcStore.setState((state) => ({
+      chatSessions: state.chatSessions.map((s) =>
+        s.id === sessionId ? { ...s, personaId: persona.id } : s
+      ),
+    }));
+    // Clear the @text that opened the picker so the composer is empty and ready
     const lastAtIndex = inputValue.lastIndexOf("@");
-    const base = lastAtIndex >= 0 ? inputValue.slice(0, lastAtIndex) : inputValue;
-    setInputValue(`${base}@${persona.name} `);
+    if (lastAtIndex >= 0) setInputValue(inputValue.slice(0, lastAtIndex));
+    toast({
+      title: `Chatting with ${persona.name}`,
+      description: "Type your message — this whole chat is now in character.",
+    });
     setTimeout(() => textareaRef.current?.focus(), 0);
+  };
+
+  const clearActivePersona = () => {
+    const arc = useArcStore.getState();
+    const sessionId = arc.currentSessionId;
+    if (!sessionId) return;
+    useArcStore.setState((state) => ({
+      chatSessions: state.chatSessions.map((s) =>
+        s.id === sessionId ? { ...s, personaId: undefined } : s
+      ),
+    }));
   };
 
   // Navigation (for activating voice from non-chat pages like Dashboard)
