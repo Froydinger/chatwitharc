@@ -498,8 +498,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Auto mode = indicator is shown because canvas is open, not from explicit /write prefix
   const isCanvasAutoMode = isWriteCanvasOpen && !shouldShowCanvasMode;
 
-  // Show slash picker when user types just "/"
-  const showSlashPicker = inputValue.trim() === "/";
+  // When user types just "/" open the same tools menu as the + button
+  useEffect(() => {
+    if (inputValue.trim() === "/") {
+      setInputValue("");
+      setShowMenu(true);
+    }
+  }, [inputValue]);
 
   // Handle /deep command to open research mode
   useEffect(() => {
