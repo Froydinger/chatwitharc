@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
-import rhymeyAvatar from '@/assets/personas/rhymey.png';
+import writerAvatar from '@/assets/personas/writer.png';
 import pirateAvatar from '@/assets/personas/pirate.png';
 import coachAvatar from '@/assets/personas/coach.png';
 import scholarAvatar from '@/assets/personas/scholar.png';
