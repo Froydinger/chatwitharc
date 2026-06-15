@@ -645,7 +645,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             <MessageMetadata message={message} />
           )}
           
-          {/* Arc Logo - only show for latest assistant message */}
+          {/* Arc / Persona avatar - latest assistant message */}
           {!isUser && isLatestAssistant && (
             <motion.div
               className="flex items-center justify-start mt-2 ml-2 h-10"
@@ -675,7 +675,16 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     if (e.animationName === "arc-logo-handoff") setLogoPulse(false);
                   }}
                 >
-                  <ThemedLogo className="h-10 w-10" alt="Arc" />
+                  {activePersona?.avatarUrl ? (
+                    <img
+                      src={activePersona.avatarUrl}
+                      alt={activePersona.name}
+                      className="h-10 w-10 rounded-full object-cover bg-white border border-border/50"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <ThemedLogo className="h-10 w-10" alt="Arc" />
+                  )}
                 </div>
                 {isThinking && (
                   <motion.div
@@ -694,6 +703,25 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               </motion.div>
             </motion.div>
           )}
+
+          {/* User avatar - only shown when a persona is active in this chat */}
+          {isUser && activePersona && (
+            <div className="flex items-center justify-end mt-2 mr-1 h-8">
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.display_name || 'You'}
+                  className="h-8 w-8 rounded-full object-cover border border-border/50"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center text-primary text-xs font-semibold">
+                  {(profile?.display_name?.[0] || 'Y').toUpperCase()}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Image Modal */}
