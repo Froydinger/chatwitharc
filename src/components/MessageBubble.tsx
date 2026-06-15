@@ -8,7 +8,9 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { Message } from "@/store/useArcStore";
 import { useArcStore } from "@/store/useArcStore";
+import { usePersonasStore } from "@/store/usePersonasStore";
 import { useProfile } from "@/hooks/useProfile";
+
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -122,7 +124,7 @@ interface MessageBubbleProps {
 
 export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
   ({ message, onEdit, isLatestAssistant, shouldAnimateTypewriter, isThinking }, ref) => {
-    const { editMessage } = useArcStore();
+    const { editMessage, currentSessionId, chatSessions } = useArcStore();
     const { profile } = useProfile();
     const { toast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
@@ -131,6 +133,13 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
     const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
     const isUser = message.role === "user";
+
+    // Active persona for this conversation (if any)
+    const activePersonaId = chatSessions.find(s => s.id === currentSessionId)?.personaId;
+    const activePersona = usePersonasStore(state =>
+      activePersonaId ? state.personas.find(p => p.id === activePersonaId) : undefined,
+    );
+
 
     // Magical arrival state - one-shot animations for the latest assistant message
     const [haloed, setHaloed] = useState(false);
