@@ -2565,7 +2565,7 @@ ${safeCode}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute bottom-full left-0 mb-3 w-64 p-2 rounded-2xl bg-card backdrop-blur-xl border border-border shadow-2xl z-[60]"
+                    className="absolute bottom-full left-0 mb-3 w-64 p-2 rounded-2xl glass-dock shadow-2xl z-[60]"
                   >
                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-2 mb-1.5">
                       Summon Persona
@@ -2603,7 +2603,7 @@ ${safeCode}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
-                    className="absolute bottom-full left-0 mb-3 w-48 p-2 rounded-2xl bg-card backdrop-blur-xl border border-border shadow-2xl z-[60]"
+                    className="absolute bottom-full left-0 mb-3 w-48 p-2 rounded-2xl glass-dock shadow-2xl z-[60]"
                   >
                     <div className="flex flex-col gap-0.5">
                       <button
