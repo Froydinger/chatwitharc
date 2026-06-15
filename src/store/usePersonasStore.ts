@@ -187,6 +187,7 @@ export const usePersonasStore = create<PersonasState>((set, get) => ({
   },
 
   deletePersona: async (id) => {
+    if (id.startsWith('builtin-')) throw new Error('Built-in personas cannot be deleted');
     try {
       const { error } = await supabase
         .from('personas')
