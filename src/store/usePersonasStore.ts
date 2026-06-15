@@ -94,16 +94,17 @@ export const usePersonasStore = create<PersonasState>((set, get) => ({
 
       if (error) throw error;
 
+      const userPersonas = (data || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        description: p.description,
+        systemPrompt: p.system_prompt,
+        starterPrompts: p.starter_prompts || [],
+        createdAt: new Date(p.created_at),
+        updatedAt: new Date(p.updated_at),
+      }));
       set({
-        personas: (data || []).map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          description: p.description,
-          systemPrompt: p.system_prompt,
-          starterPrompts: p.starter_prompts || [],
-          createdAt: new Date(p.created_at),
-          updatedAt: new Date(p.updated_at),
-        })),
+        personas: [...BUILT_IN_PERSONAS, ...userPersonas],
         loading: false,
       });
     } catch (err: any) {
