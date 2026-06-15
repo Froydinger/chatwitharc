@@ -2442,13 +2442,27 @@ ${safeCode}
                   type="button"
                   onClick={() => setShowMenu(!showMenu)}
                   className={cn(
-                    "ci-menu-btn flex items-center justify-center w-10 h-10 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0",
-                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || showCanvasIndicator || personaMention) && !showMenu && "text-primary"
+                    "ci-menu-btn flex items-center justify-center w-10 h-10 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
+                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || showCanvasIndicator || personaMention || activePersona) && !showMenu && "text-primary"
                   )}
-                  aria-label="Add content"
+                  aria-label={activePersona ? `Chatting with ${activePersona.name}` : "Add content"}
+                  title={activePersona ? `Chatting with ${activePersona.name}` : undefined}
                 >
                   {showMenu ? (
                     <X className="h-5 w-5 transition-transform duration-300" />
+                  ) : activePersona ? (
+                    activePersona.avatarUrl ? (
+                      <img
+                        src={activePersona.avatarUrl}
+                        alt={activePersona.name}
+                        loading="lazy"
+                        className="w-9 h-9 rounded-full object-cover bg-white ring-2 ring-primary/60"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold ring-2 ring-primary/60">
+                        {activePersona.name[0].toUpperCase()}
+                      </div>
+                    )
                   ) : personaMention ? (
                     <Sparkles className="h-5 w-5 text-primary" />
                   ) : shouldShowSearchMode ? (
@@ -2464,8 +2478,25 @@ ${safeCode}
                   )}
                 </button>
 
+                {/* Clear active persona badge */}
+                {!showMenu && activePersona && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearActivePersona();
+                      toast({ title: "Persona cleared", description: "Back to a normal chat." });
+                    }}
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-foreground/80 text-background flex items-center justify-center shadow-md hover:bg-foreground transition-colors z-10"
+                    aria-label="Clear persona"
+                    title="Clear persona"
+                  >
+                    <X className="w-2.5 h-2.5" strokeWidth={3} />
+                  </button>
+                )}
+
                 {/* Clear active tool badge */}
-                {!showMenu && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode) && (
+                {!showMenu && !activePersona && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode) && (
                   <button
                     type="button"
                     onClick={(e) => {
