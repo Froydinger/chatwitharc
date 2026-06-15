@@ -2615,14 +2615,24 @@ ${safeCode}
                                 }}
                                 className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5 text-center"
                               >
-                                <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center text-primary font-bold text-lg">
-                                  {p.name[0].toUpperCase()}
-                                </div>
+                                {p.avatarUrl ? (
+                                  <img
+                                    src={p.avatarUrl}
+                                    alt={p.name}
+                                    loading="lazy"
+                                    className="w-12 h-12 rounded-xl object-cover bg-white"
+                                  />
+                                ) : (
+                                  <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center text-primary font-bold text-lg">
+                                    {p.name[0].toUpperCase()}
+                                  </div>
+                                )}
                                 <div className="flex flex-col items-center min-w-0 w-full">
                                   <span className="text-sm font-semibold truncate w-full">{p.name}</span>
                                   <span className="text-[10px] text-muted-foreground font-normal line-clamp-2">{p.description || ''}</span>
                                 </div>
                               </button>
+
                             ))}
                           </div>
                         </motion.div>

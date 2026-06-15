@@ -8,7 +8,9 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { Message } from "@/store/useArcStore";
 import { useArcStore } from "@/store/useArcStore";
+import { usePersonasStore } from "@/store/usePersonasStore";
 import { useProfile } from "@/hooks/useProfile";
+
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -122,7 +124,7 @@ interface MessageBubbleProps {
 
 export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
   ({ message, onEdit, isLatestAssistant, shouldAnimateTypewriter, isThinking }, ref) => {
-    const { editMessage } = useArcStore();
+    const { editMessage, currentSessionId, chatSessions } = useArcStore();
     const { profile } = useProfile();
     const { toast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
@@ -131,6 +133,13 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
     const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
     const isUser = message.role === "user";
+
+    // Active persona for this conversation (if any)
+    const activePersonaId = chatSessions.find(s => s.id === currentSessionId)?.personaId;
+    const activePersona = usePersonasStore(state =>
+      activePersonaId ? state.personas.find(p => p.id === activePersonaId) : undefined,
+    );
+
 
     // Magical arrival state - one-shot animations for the latest assistant message
     const [haloed, setHaloed] = useState(false);
@@ -636,7 +645,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             <MessageMetadata message={message} />
           )}
           
-          {/* Arc Logo - only show for latest assistant message */}
+          {/* Arc / Persona avatar - latest assistant message */}
           {!isUser && isLatestAssistant && (
             <motion.div
               className="flex items-center justify-start mt-2 ml-2 h-10"
@@ -666,7 +675,16 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     if (e.animationName === "arc-logo-handoff") setLogoPulse(false);
                   }}
                 >
-                  <ThemedLogo className="h-10 w-10" alt="Arc" />
+                  {activePersona?.avatarUrl ? (
+                    <img
+                      src={activePersona.avatarUrl}
+                      alt={activePersona.name}
+                      className="h-10 w-10 rounded-full object-cover bg-white border border-border/50"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <ThemedLogo className="h-10 w-10" alt="Arc" />
+                  )}
                 </div>
                 {isThinking && (
                   <motion.div
@@ -685,6 +703,25 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               </motion.div>
             </motion.div>
           )}
+
+          {/* User avatar - only shown when a persona is active in this chat */}
+          {isUser && activePersona && (
+            <div className="flex items-center justify-end mt-2 mr-1 h-8">
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.display_name || 'You'}
+                  className="h-8 w-8 rounded-full object-cover border border-border/50"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center text-primary text-xs font-semibold">
+                  {(profile?.display_name?.[0] || 'Y').toUpperCase()}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Image Modal */}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Edit2, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Edit2, ChevronDown, ChevronUp, Sparkles, Loader2 } from "lucide-react";
+
 import { usePersonasStore, type Persona } from "@/store/usePersonasStore";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -9,7 +10,9 @@ interface PersonasManagerProps {
 }
 
 export function PersonasManager({ onSelectPersona }: PersonasManagerProps) {
-  const { personas, loading, fetchPersonas, createPersona, updatePersona, deletePersona } = usePersonasStore();
+  const { personas, loading, fetchPersonas, createPersona, updatePersona, deletePersona, generateAvatar } = usePersonasStore();
+  const [generatingAvatarId, setGeneratingAvatarId] = useState<string | null>(null);
+
   const { toast } = useToast();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
@@ -145,7 +148,19 @@ export function PersonasManager({ onSelectPersona }: PersonasManagerProps) {
                 onClick={() => setExpanded(expanded === persona.id ? null : persona.id)}
                 className="w-full flex items-center justify-between p-3 hover:bg-muted/40 transition-colors"
               >
-                <div className="flex items-center gap-3 flex-1 text-left">
+                <div className="flex items-center gap-3 flex-1 text-left min-w-0">
+                  {persona.avatarUrl ? (
+                    <img
+                      src={persona.avatarUrl}
+                      alt={persona.name}
+                      className="h-10 w-10 rounded-full object-cover bg-white shrink-0 border border-border/50"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold shrink-0">
+                      {persona.name[0].toUpperCase()}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-foreground truncate">
                       {persona.name}
@@ -179,15 +194,43 @@ export function PersonasManager({ onSelectPersona }: PersonasManagerProps) {
                     >
                       Use in chat
                     </button>
-                    <button
-                      onClick={() => handleDelete(persona.id, persona.name)}
-                      className="p-1.5 rounded-md text-xs text-destructive hover:bg-destructive/10 transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    {!persona.id.startsWith('builtin-') && (
+                      <button
+                        onClick={async () => {
+                          setGeneratingAvatarId(persona.id);
+                          try {
+                            await generateAvatar(persona.id);
+                            toast({ title: 'Avatar generated', description: `New avatar for "${persona.name}".` });
+                          } catch (err: any) {
+                            toast({ title: 'Avatar failed', description: err?.message || 'Try again', variant: 'destructive' });
+                          } finally {
+                            setGeneratingAvatarId(null);
+                          }
+                        }}
+                        disabled={generatingAvatarId === persona.id}
+                        className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
+                        title="Generate avatar with AI"
+                      >
+                        {generatingAvatarId === persona.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3.5 w-3.5" />
+                        )}
+                        {persona.avatarUrl ? 'Regenerate' : 'Avatar'}
+                      </button>
+                    )}
+                    {!persona.id.startsWith('builtin-') && (
+                      <button
+                        onClick={() => handleDelete(persona.id, persona.name)}
+                        className="p-1.5 rounded-md text-xs text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
+
             </div>
           ))}
         </div>

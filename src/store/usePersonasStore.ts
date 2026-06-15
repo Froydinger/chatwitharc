@@ -1,5 +1,13 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
+import rhymeyAvatar from '@/assets/personas/rhymey.png';
+import pirateAvatar from '@/assets/personas/pirate.png';
+import coachAvatar from '@/assets/personas/coach.png';
+import scholarAvatar from '@/assets/personas/scholar.png';
+import chefAvatar from '@/assets/personas/chef.png';
+import noirAvatar from '@/assets/personas/noir.png';
+import tutorAvatar from '@/assets/personas/tutor.png';
+import counselorAvatar from '@/assets/personas/counselor.png';
 
 export interface Persona {
   id: string;
@@ -7,6 +15,7 @@ export interface Persona {
   description?: string;
   systemPrompt: string;
   starterPrompts?: string[]; // Quick-start prompts for the persona
+  avatarUrl?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,6 +30,7 @@ interface PersonasState {
   createPersona: (name: string, systemPrompt: string, description?: string, starterPrompts?: string[]) => Promise<string>;
   updatePersona: (id: string, updates: Partial<Persona>) => Promise<void>;
   deletePersona: (id: string) => Promise<void>;
+  generateAvatar: (id: string) => Promise<string>;
 
   // Getters
   getPersonaById: (id: string) => Persona | undefined;
@@ -34,6 +44,7 @@ export const BUILT_IN_PERSONAS: Persona[] = [
     name: 'Dr Rhymey',
     description: 'Rhymes in every response.',
     systemPrompt: 'You are Dr Rhymey. Every reply must rhyme and have a playful sing-song rhythm. Keep answers accurate but always in rhyme.',
+    avatarUrl: rhymeyAvatar,
     createdAt: now,
     updatedAt: now,
   },
@@ -42,6 +53,7 @@ export const BUILT_IN_PERSONAS: Persona[] = [
     name: 'Pirate',
     description: 'Salty sea-dog talk, arrr.',
     systemPrompt: 'You are a swashbuckling pirate. Speak in pirate dialect (arrr, matey, ye, aye) while still being helpful and accurate.',
+    avatarUrl: pirateAvatar,
     createdAt: now,
     updatedAt: now,
   },
@@ -50,6 +62,7 @@ export const BUILT_IN_PERSONAS: Persona[] = [
     name: 'Coach',
     description: 'High-energy motivator.',
     systemPrompt: 'You are an upbeat life coach. Be encouraging, action-oriented, and end with a concrete next step.',
+    avatarUrl: coachAvatar,
     createdAt: now,
     updatedAt: now,
   },
@@ -58,6 +71,7 @@ export const BUILT_IN_PERSONAS: Persona[] = [
     name: 'Scholar',
     description: 'Precise academic tone.',
     systemPrompt: 'You are a meticulous scholar. Use precise language, cite reasoning, and structure answers like a brief academic note.',
+    avatarUrl: scholarAvatar,
     createdAt: now,
     updatedAt: now,
   },
@@ -66,6 +80,7 @@ export const BUILT_IN_PERSONAS: Persona[] = [
     name: 'Chef',
     description: 'Culinary flair in every reply.',
     systemPrompt: 'You are a passionate chef. Use culinary metaphors and warmth. When relevant, suggest food tips.',
+    avatarUrl: chefAvatar,
     createdAt: now,
     updatedAt: now,
   },
@@ -74,6 +89,7 @@ export const BUILT_IN_PERSONAS: Persona[] = [
     name: 'Noir',
     description: '1940s detective monologue.',
     systemPrompt: 'You are a 1940s noir detective narrating in first person. Short, smoky, atmospheric sentences. Still answer clearly.',
+    avatarUrl: noirAvatar,
     createdAt: now,
     updatedAt: now,
   },
@@ -82,6 +98,7 @@ export const BUILT_IN_PERSONAS: Persona[] = [
     name: 'Tutor',
     description: 'Patient step-by-step teacher.',
     systemPrompt: 'You are a patient tutor. Break complex topics into small steps. Ask guiding questions to check understanding. Use analogies and encourage the learner. Never assume prior knowledge.',
+    avatarUrl: tutorAvatar,
     createdAt: now,
     updatedAt: now,
   },
@@ -90,10 +107,12 @@ export const BUILT_IN_PERSONAS: Persona[] = [
     name: 'Counselor',
     description: 'Thoughtful, empathetic guide for working through thoughts and feelings.',
     systemPrompt: 'You are Counselor — a thoughtful, empathetic guide for reflection and emotional clarity. You listen deeply, ask insightful questions, and help the user untangle their thoughts and feelings. You draw from therapeutic frameworks like CBT, ACT, and reflective listening — but you are NOT a licensed therapist, psychologist, or medical professional. You do not diagnose, prescribe, or provide clinical treatment. If the user shows signs of crisis, self-harm, or severe distress, gently encourage them to contact a qualified professional or crisis line (988 in the US). Keep responses warm, nuanced, and human. Use the user\'s name if you know it. Ask "What\'s on your mind?" often.',
+    avatarUrl: counselorAvatar,
     createdAt: now,
     updatedAt: now,
   },
 ];
+
 
 export const usePersonasStore = create<PersonasState>((set, get) => ({
   personas: [...BUILT_IN_PERSONAS],
@@ -116,9 +135,11 @@ export const usePersonasStore = create<PersonasState>((set, get) => ({
         description: p.description,
         systemPrompt: p.system_prompt,
         starterPrompts: p.starter_prompts || [],
+        avatarUrl: p.avatar_url ?? null,
         createdAt: new Date(p.created_at),
         updatedAt: new Date(p.updated_at),
       }));
+
       set({
         personas: [...BUILT_IN_PERSONAS, ...userPersonas],
         loading: false,
@@ -221,6 +242,31 @@ export const usePersonasStore = create<PersonasState>((set, get) => ({
     }
   },
 
+  generateAvatar: async (id) => {
+    const persona = get().personas.find(p => p.id === id);
+    if (!persona) throw new Error('Persona not found');
+    if (id.startsWith('builtin-')) throw new Error('Built-in persona avatars cannot be regenerated');
+
+    const { data, error } = await supabase.functions.invoke('generate-persona-avatar', {
+      body: {
+        personaId: id,
+        name: persona.name,
+        description: persona.description || '',
+        systemPrompt: persona.systemPrompt || '',
+      },
+    });
+    if (error) throw error;
+    const avatarUrl: string | undefined = (data as any)?.avatarUrl;
+    if (!avatarUrl) throw new Error('No avatar returned');
+
+    set(state => ({
+      personas: state.personas.map(p =>
+        p.id === id ? { ...p, avatarUrl, updatedAt: new Date() } : p,
+      ),
+    }));
+    return avatarUrl;
+  },
+
   getPersonaById: (id) => {
     return get().personas.find(p => p.id === id);
   },
@@ -231,3 +277,4 @@ export const usePersonasStore = create<PersonasState>((set, get) => ({
       || get().personas.find(p => p.name.toLowerCase().startsWith(lowerName));
   },
 }));
+
