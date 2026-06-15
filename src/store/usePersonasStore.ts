@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
-import rhymeyAvatar from '@/assets/personas/rhymey.png';
+import writerAvatar from '@/assets/personas/writer.png';
 import pirateAvatar from '@/assets/personas/pirate.png';
 import coachAvatar from '@/assets/personas/coach.png';
 import scholarAvatar from '@/assets/personas/scholar.png';
@@ -40,11 +40,11 @@ interface PersonasState {
 const now = new Date();
 export const BUILT_IN_PERSONAS: Persona[] = [
   {
-    id: 'builtin-rhymey',
-    name: 'Dr Rhymey',
-    description: 'Rhymes in every response.',
-    systemPrompt: 'You are Dr Rhymey. Every reply must rhyme and have a playful sing-song rhythm. Keep answers accurate but always in rhyme.',
-    avatarUrl: rhymeyAvatar,
+    id: 'builtin-writer',
+    name: 'Writer',
+    description: 'Creative writing partner for drafting, editing, and brainstorming.',
+    systemPrompt: 'You are Writer — a thoughtful creative writing partner. Help the user brainstorm, draft, edit, and polish prose, poetry, scripts, essays, fiction, and copywriting. Offer concrete suggestions on voice, pacing, structure, imagery, and word choice. Ask clarifying questions when intent is unclear (genre, audience, tone, length). When editing, preserve the user\'s voice — suggest changes rather than rewriting wholesale unless asked. Be encouraging but honest about what is and isn\'t working.',
+    avatarUrl: writerAvatar,
     createdAt: now,
     updatedAt: now,
   },
