@@ -412,6 +412,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     upsertCanvasMessage,
     upsertCodeMessage,
   } = useArcStore();
+  // Reactive subscription so the input bar updates when a persona is locked/cleared
+  const activeSessionPersonaId = useArcStore((s) => {
+    const sid = s.currentSessionId;
+    return sid ? s.chatSessions.find((x) => x.id === sid)?.personaId ?? null : null;
+  });
+  const activePersona = activeSessionPersonaId
+    ? usePersonasStore.getState().getPersonaById(activeSessionPersonaId) ?? null
+    : null;
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
   const { openSearchMode } = useSearchStore();
