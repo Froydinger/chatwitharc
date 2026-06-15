@@ -101,7 +101,7 @@ export function PWAInstallPrompt() {
                     size="sm"
                     onClick={handleEnable}
                     disabled={loading}
-                    className="flex-1"
+                    className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     <Bell className="h-4 w-4 mr-2" />
                     {loading ? "Enabling…" : "Enable"}
