@@ -334,10 +334,16 @@ function detectPersonaMention(text: string): { isActive: boolean; searchTerm: st
   return { isActive: false, searchTerm: "" };
 }
 
+// Feature flag: personas are temporarily hidden/disabled in the UI while the
+// persona send flow is being fixed. All persona logic and the store remain
+// intact — flip this to `true` to re-enable the entire feature.
+const PERSONAS_ENABLED = false;
+
 // Build a system message for the active persona of the current session, if any.
 // Returns null when no persona is locked. Used to prepend to the AI message list
 // so the model actually behaves as the persona (and any tools/reminders run in that voice).
 function buildPersonaSystemMessage(): { role: "system" | "user" | "assistant"; content: string } | null {
+  if (!PERSONAS_ENABLED) return null;
   const { currentSessionId, chatSessions } = useArcStore.getState();
   const session = chatSessions.find((s) => s.id === currentSessionId);
   if (!session?.personaId) return null;
@@ -417,7 +423,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const sid = s.currentSessionId;
     return sid ? s.chatSessions.find((x) => x.id === sid)?.personaId ?? null : null;
   });
-  const activePersona = activeSessionPersonaId
+  // Personas are temporarily disabled in the UI (logic/store kept intact).
+  // Force-null the active persona so no persona UI/indicators render and no
+  // persona system prompt is applied. Re-enable by restoring the lookup below.
+  const activePersona = PERSONAS_ENABLED && activeSessionPersonaId
     ? usePersonasStore.getState().getPersonaById(activeSessionPersonaId) ?? null
     : null;
   const { profile, updateProfile } = useProfile();
@@ -534,7 +543,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Detect @mentions as user types — suppressed when a persona is already active
   // (multi-persona chats are not supported yet).
   const rawMention = detectPersonaMention(inputValue);
-  const showingPersonaSuggestions = rawMention.isActive && !activePersona;
+  const showingPersonaSuggestions = PERSONAS_ENABLED && rawMention.isActive && !activePersona;
   const searchTerm = rawMention.searchTerm;
   const filteredPersonas = showingPersonaSuggestions
     ? personas
@@ -546,7 +555,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           return a.name.localeCompare(b.name);
         })
     : [];
-  const personaMention = parsePersonaMentionPrefix(inputValue);
+  const personaMention = PERSONAS_ENABLED ? parsePersonaMentionPrefix(inputValue) : null;
 
   // If the user types @ in a chat that already has a persona, strip it and warn.
   useEffect(() => {
@@ -1109,7 +1118,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
     // Detect @mention context: returns {isActive, searchTerm} if user is typing @personaname
     let finalMessage = userMessage;
-    const personaMention = parsePersonaMentionPrefix(userMessage);
+    const personaMention = PERSONAS_ENABLED ? parsePersonaMentionPrefix(userMessage) : null;
     if (personaMention) {
       const { personaName, remaining } = personaMention;
       const persona = usePersonasStore.getState().getPersonaByName(personaName);
