@@ -154,6 +154,7 @@ export const usePersonasStore = create<PersonasState>((set, get) => ({
   },
 
   updatePersona: async (id, updates) => {
+    if (id.startsWith('builtin-')) throw new Error('Built-in personas cannot be edited');
     try {
       const updateData: any = {};
       if (updates.name) updateData.name = updates.name;
