@@ -526,9 +526,37 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Detect @mentions as user types
   const { isActive: showingPersonaSuggestions, searchTerm } = detectPersonaMention(inputValue);
   const filteredPersonas = showingPersonaSuggestions
-    ? personas.filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()))
+    ? personas
+        .filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()))
+        .sort((a, b) => {
+          const aCustom = !a.id.startsWith('builtin-');
+          const bCustom = !b.id.startsWith('builtin-');
+          if (aCustom !== bCustom) return aCustom ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        })
     : [];
   const personaMention = parsePersonaMentionPrefix(inputValue);
+
+  // Lock the current (or a new) session to a persona and clear the @mention text
+  const selectPersona = (persona: { id: string; name: string }) => {
+    const arc = useArcStore.getState();
+    let sessionId = arc.currentSessionId;
+    if (!sessionId) {
+      sessionId = arc.createNewSession();
+    }
+    useArcStore.setState((state) => ({
+      chatSessions: state.chatSessions.map((s) =>
+        s.id === sessionId ? { ...s, personaId: persona.id } : s
+      ),
+    }));
+    const lastAtIndex = inputValue.lastIndexOf("@");
+    setInputValue(lastAtIndex >= 0 ? inputValue.slice(0, lastAtIndex) : inputValue);
+    toast({
+      title: `Switched to ${persona.name}`,
+      description: "This conversation is now locked to this persona.",
+    });
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  };
 
   // Navigation (for activating voice from non-chat pages like Dashboard)
   const navigate = useNavigate();
