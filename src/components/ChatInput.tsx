@@ -412,6 +412,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     upsertCanvasMessage,
     upsertCodeMessage,
   } = useArcStore();
+  // Reactive subscription so the input bar updates when a persona is locked/cleared
+  const activeSessionPersonaId = useArcStore((s) => {
+    const sid = s.currentSessionId;
+    return sid ? s.chatSessions.find((x) => x.id === sid)?.personaId ?? null : null;
+  });
+  const activePersona = activeSessionPersonaId
+    ? usePersonasStore.getState().getPersonaById(activeSessionPersonaId) ?? null
+    : null;
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
   const { openSearchMode } = useSearchStore();
@@ -523,8 +531,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     fetchPersonas();
   }, [fetchPersonas]);
 
-  // Detect @mentions as user types
-  const { isActive: showingPersonaSuggestions, searchTerm } = detectPersonaMention(inputValue);
+  // Detect @mentions as user types — suppressed when a persona is already active
+  // (multi-persona chats are not supported yet).
+  const rawMention = detectPersonaMention(inputValue);
+  const showingPersonaSuggestions = rawMention.isActive && !activePersona;
+  const searchTerm = rawMention.searchTerm;
   const filteredPersonas = showingPersonaSuggestions
     ? personas
         .filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()))
@@ -537,13 +548,53 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     : [];
   const personaMention = parsePersonaMentionPrefix(inputValue);
 
-  // Insert `@PersonaName ` into the input — sending the message will lock the session
-  // to that persona via the existing send-time mention handler.
+  // If the user types @ in a chat that already has a persona, strip it and warn.
+  useEffect(() => {
+    if (rawMention.isActive && activePersona) {
+      const lastAtIndex = inputValue.lastIndexOf("@");
+      if (lastAtIndex >= 0) {
+        setInputValue(inputValue.slice(0, lastAtIndex));
+      }
+      toast({
+        title: "One persona per chat",
+        description: "Multi-persona chats are not yet available. Start a new chat to switch.",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawMention.isActive, !!activePersona]);
+
+  // Activate a persona on the current (or new) session. Avatar appears over the +
+  // menu as a pending-tool style chip; the X next to it clears the persona.
   const selectPersona = (persona: { id: string; name: string }) => {
+    const arc = useArcStore.getState();
+    let sessionId = arc.currentSessionId;
+    if (!sessionId) {
+      sessionId = arc.createNewSession();
+    }
+    useArcStore.setState((state) => ({
+      chatSessions: state.chatSessions.map((s) =>
+        s.id === sessionId ? { ...s, personaId: persona.id } : s
+      ),
+    }));
+    // Clear the @text that opened the picker so the composer is empty and ready
     const lastAtIndex = inputValue.lastIndexOf("@");
-    const base = lastAtIndex >= 0 ? inputValue.slice(0, lastAtIndex) : inputValue;
-    setInputValue(`${base}@${persona.name} `);
+    if (lastAtIndex >= 0) setInputValue(inputValue.slice(0, lastAtIndex));
+    toast({
+      title: `Chatting with ${persona.name}`,
+      description: "Type your message — this whole chat is now in character.",
+    });
     setTimeout(() => textareaRef.current?.focus(), 0);
+  };
+
+  const clearActivePersona = () => {
+    const arc = useArcStore.getState();
+    const sessionId = arc.currentSessionId;
+    if (!sessionId) return;
+    useArcStore.setState((state) => ({
+      chatSessions: state.chatSessions.map((s) =>
+        s.id === sessionId ? { ...s, personaId: undefined } : s
+      ),
+    }));
   };
 
   // Navigation (for activating voice from non-chat pages like Dashboard)
@@ -2391,13 +2442,27 @@ ${safeCode}
                   type="button"
                   onClick={() => setShowMenu(!showMenu)}
                   className={cn(
-                    "ci-menu-btn flex items-center justify-center w-10 h-10 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0",
-                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || showCanvasIndicator || personaMention) && !showMenu && "text-primary"
+                    "ci-menu-btn flex items-center justify-center w-10 h-10 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
+                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || showCanvasIndicator || personaMention || activePersona) && !showMenu && "text-primary"
                   )}
-                  aria-label="Add content"
+                  aria-label={activePersona ? `Chatting with ${activePersona.name}` : "Add content"}
+                  title={activePersona ? `Chatting with ${activePersona.name}` : undefined}
                 >
                   {showMenu ? (
                     <X className="h-5 w-5 transition-transform duration-300" />
+                  ) : activePersona ? (
+                    activePersona.avatarUrl ? (
+                      <img
+                        src={activePersona.avatarUrl}
+                        alt={activePersona.name}
+                        loading="lazy"
+                        className="w-9 h-9 rounded-full object-cover bg-white ring-2 ring-primary/60"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold ring-2 ring-primary/60">
+                        {activePersona.name[0].toUpperCase()}
+                      </div>
+                    )
                   ) : personaMention ? (
                     <Sparkles className="h-5 w-5 text-primary" />
                   ) : shouldShowSearchMode ? (
@@ -2413,8 +2478,25 @@ ${safeCode}
                   )}
                 </button>
 
+                {/* Clear active persona badge */}
+                {!showMenu && activePersona && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      clearActivePersona();
+                      toast({ title: "Persona cleared", description: "Back to a normal chat." });
+                    }}
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-foreground/80 text-background flex items-center justify-center shadow-md hover:bg-foreground transition-colors z-10"
+                    aria-label="Clear persona"
+                    title="Clear persona"
+                  >
+                    <X className="w-2.5 h-2.5" strokeWidth={3} />
+                  </button>
+                )}
+
                 {/* Clear active tool badge */}
-                {!showMenu && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode) && (
+                {!showMenu && !activePersona && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode) && (
                   <button
                     type="button"
                     onClick={(e) => {

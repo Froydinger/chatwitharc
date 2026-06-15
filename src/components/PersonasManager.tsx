@@ -187,47 +187,113 @@ export function PersonasManager({ onSelectPersona }: PersonasManagerProps) {
                       {persona.systemPrompt}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleSelect(persona)}
-                      className="flex-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                    >
-                      Use in chat
-                    </button>
-                    {!persona.id.startsWith('builtin-') && (
+                  {editingId === persona.id ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        placeholder="Name"
+                        className="w-full px-2.5 py-1.5 rounded-md bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <input
+                        type="text"
+                        value={newDescription}
+                        onChange={(e) => setNewDescription(e.target.value)}
+                        placeholder="Description"
+                        className="w-full px-2.5 py-1.5 rounded-md bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <textarea
+                        value={newSystemPrompt}
+                        onChange={(e) => setNewSystemPrompt(e.target.value)}
+                        placeholder="System prompt"
+                        className="w-full px-2.5 py-1.5 rounded-md bg-background border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-24 resize-none"
+                      />
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => setEditingId(null)}
+                          className="px-3 py-1.5 rounded-md text-xs text-muted-foreground hover:bg-muted/50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await updatePersona(persona.id, {
+                                name: newName,
+                                description: newDescription,
+                                systemPrompt: newSystemPrompt,
+                              });
+                              setEditingId(null);
+                              toast({ title: "Persona updated", description: `"${newName}" saved.` });
+                            } catch (err: any) {
+                              toast({ title: "Update failed", description: err?.message || "Try again", variant: "destructive" });
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 flex-wrap">
                       <button
-                        onClick={async () => {
-                          setGeneratingAvatarId(persona.id);
-                          try {
-                            await generateAvatar(persona.id);
-                            toast({ title: 'Avatar generated', description: `New avatar for "${persona.name}".` });
-                          } catch (err: any) {
-                            toast({ title: 'Avatar failed', description: err?.message || 'Try again', variant: 'destructive' });
-                          } finally {
-                            setGeneratingAvatarId(null);
-                          }
-                        }}
-                        disabled={generatingAvatarId === persona.id}
-                        className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
-                        title="Generate avatar with AI"
+                        onClick={() => handleSelect(persona)}
+                        className="flex-1 min-w-[6rem] px-2.5 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                       >
-                        {generatingAvatarId === persona.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-3.5 w-3.5" />
-                        )}
-                        {persona.avatarUrl ? 'Regenerate' : 'Avatar'}
+                        Use in chat
                       </button>
-                    )}
-                    {!persona.id.startsWith('builtin-') && (
-                      <button
-                        onClick={() => handleDelete(persona.id, persona.name)}
-                        className="p-1.5 rounded-md text-xs text-destructive hover:bg-destructive/10 transition-colors"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
+                      {!persona.id.startsWith('builtin-') && (
+                        <button
+                          onClick={() => {
+                            setEditingId(persona.id);
+                            setNewName(persona.name);
+                            setNewDescription(persona.description || "");
+                            setNewSystemPrompt(persona.systemPrompt);
+                          }}
+                          className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors inline-flex items-center gap-1.5"
+                          title="Edit persona"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" /> Edit
+                        </button>
+                      )}
+                      {!persona.id.startsWith('builtin-') && (
+                        <button
+                          onClick={async () => {
+                            setGeneratingAvatarId(persona.id);
+                            try {
+                              await generateAvatar(persona.id);
+                              toast({ title: 'Avatar generated', description: `New avatar for "${persona.name}".` });
+                            } catch (err: any) {
+                              toast({ title: 'Avatar failed', description: err?.message || 'Try again', variant: 'destructive' });
+                            } finally {
+                              setGeneratingAvatarId(null);
+                            }
+                          }}
+                          disabled={generatingAvatarId === persona.id}
+                          className="px-2.5 py-1.5 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors inline-flex items-center gap-1.5 disabled:opacity-50"
+                          title="Generate avatar with AI"
+                        >
+                          {generatingAvatarId === persona.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Sparkles className="h-3.5 w-3.5" />
+                          )}
+                          {persona.avatarUrl ? 'Regenerate' : 'Avatar'}
+                        </button>
+                      )}
+                      {!persona.id.startsWith('builtin-') && (
+                        <button
+                          onClick={() => handleDelete(persona.id, persona.name)}
+                          className="p-1.5 rounded-md text-xs text-destructive hover:bg-destructive/10 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
