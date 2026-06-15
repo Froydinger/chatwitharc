@@ -1115,12 +1115,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       const persona = usePersonasStore.getState().getPersonaByName(personaName);
       if (persona) {
         // Lock this conversation to the selected persona
-        const { currentSessionId, chatSessions } = useArcStore.getState();
+        const { currentSessionId } = useArcStore.getState();
         if (currentSessionId) {
-          const sessionIndex = chatSessions.findIndex((s) => s.id === currentSessionId);
-          if (sessionIndex !== -1) {
-            chatSessions[sessionIndex].personaId = persona.id;
-          }
+          useArcStore.setState((state) => ({
+            chatSessions: state.chatSessions.map((s) =>
+              s.id === currentSessionId ? { ...s, personaId: persona.id } : s
+            ),
+          }));
         }
         finalMessage = remaining;
         toast({
