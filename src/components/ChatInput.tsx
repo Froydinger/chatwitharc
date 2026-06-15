@@ -526,9 +526,37 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Detect @mentions as user types
   const { isActive: showingPersonaSuggestions, searchTerm } = detectPersonaMention(inputValue);
   const filteredPersonas = showingPersonaSuggestions
-    ? personas.filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()))
+    ? personas
+        .filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()))
+        .sort((a, b) => {
+          const aCustom = !a.id.startsWith('builtin-');
+          const bCustom = !b.id.startsWith('builtin-');
+          if (aCustom !== bCustom) return aCustom ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        })
     : [];
   const personaMention = parsePersonaMentionPrefix(inputValue);
+
+  // Lock the current (or a new) session to a persona and clear the @mention text
+  const selectPersona = (persona: { id: string; name: string }) => {
+    const arc = useArcStore.getState();
+    let sessionId = arc.currentSessionId;
+    if (!sessionId) {
+      sessionId = arc.createNewSession();
+    }
+    useArcStore.setState((state) => ({
+      chatSessions: state.chatSessions.map((s) =>
+        s.id === sessionId ? { ...s, personaId: persona.id } : s
+      ),
+    }));
+    const lastAtIndex = inputValue.lastIndexOf("@");
+    setInputValue(lastAtIndex >= 0 ? inputValue.slice(0, lastAtIndex) : inputValue);
+    toast({
+      title: `Switched to ${persona.name}`,
+      description: "This conversation is now locked to this persona.",
+    });
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  };
 
   // Navigation (for activating voice from non-chat pages like Dashboard)
   const navigate = useNavigate();
@@ -2604,36 +2632,38 @@ ${safeCode}
                             </button>
                           </div>
                           <div className="grid grid-cols-2 gap-2">
-                            {filteredPersonas.map((p) => (
-                              <button
-                                key={p.id}
-                                onClick={() => {
-                                  const lastAtIndex = inputValue.lastIndexOf("@");
-                                  const newVal = inputValue.slice(0, lastAtIndex) + "@" + p.name + " ";
-                                  setInputValue(newVal);
-                                  textareaRef.current?.focus();
-                                }}
-                                className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5 text-center"
-                              >
-                                {p.avatarUrl ? (
-                                  <img
-                                    src={p.avatarUrl}
-                                    alt={p.name}
-                                    loading="lazy"
-                                    className="w-12 h-12 rounded-xl object-cover bg-white"
-                                  />
-                                ) : (
-                                  <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center text-primary font-bold text-lg">
-                                    {p.name[0].toUpperCase()}
+                            {filteredPersonas.map((p) => {
+                              const isCustom = !p.id.startsWith('builtin-');
+                              return (
+                                <button
+                                  key={p.id}
+                                  onClick={() => selectPersona(p)}
+                                  className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5 text-center relative"
+                                >
+                                  {isCustom && (
+                                    <span className="absolute top-1.5 right-1.5 text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-semibold">
+                                      Custom
+                                    </span>
+                                  )}
+                                  {p.avatarUrl ? (
+                                    <img
+                                      src={p.avatarUrl}
+                                      alt={p.name}
+                                      loading="lazy"
+                                      className="w-12 h-12 rounded-xl object-cover bg-white"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center text-primary font-bold text-lg">
+                                      {p.name[0].toUpperCase()}
+                                    </div>
+                                  )}
+                                  <div className="flex flex-col items-center min-w-0 w-full">
+                                    <span className="text-sm font-semibold truncate w-full">{p.name}</span>
+                                    <span className="text-[10px] text-muted-foreground font-normal line-clamp-2">{p.description || ''}</span>
                                   </div>
-                                )}
-                                <div className="flex flex-col items-center min-w-0 w-full">
-                                  <span className="text-sm font-semibold truncate w-full">{p.name}</span>
-                                  <span className="text-[10px] text-muted-foreground font-normal line-clamp-2">{p.description || ''}</span>
-                                </div>
-                              </button>
-
-                            ))}
+                                </button>
+                              );
+                            })}
                           </div>
                         </motion.div>
                       </div>
