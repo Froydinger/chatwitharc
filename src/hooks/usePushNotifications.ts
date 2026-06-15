@@ -161,13 +161,14 @@ export function usePushNotifications() {
     const hasPush = "PushManager" in window;
     const hasNotif = "Notification" in window;
     if (!hasSW || !hasPush || !hasNotif) return "unsupported-browser";
+    // iOS still requires installing to Home Screen before push works (Apple constraint).
     if (platform.isIOS && !platform.isStandalone) return "ios-needs-install";
-    // macOS Safari requires the app installed to the Dock for push (Safari 16.4+).
-    if (platform.isMacSafari && !platform.isStandalone) return "macos-needs-install";
+    // macOS Safari 16.4+ and all desktop browsers (Chrome/Edge/Firefox/Safari)
+    // support web push on regular websites — no install-to-Dock required.
     if (typeof Notification !== "undefined" && Notification.permission === "denied")
       return "permission-denied";
     return "ready";
-  }, [platform.isIOS, platform.isMacSafari, platform.isStandalone]);
+  }, [platform.isIOS, platform.isStandalone]);
 
   const refresh = useCallback(async () => {
     if (typeof window === "undefined") return;
