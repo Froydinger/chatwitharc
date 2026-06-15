@@ -48,11 +48,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const imagePrompt = `Fun cartoon line-art avatar portrait sticker of "${name}". ${
-      description ? `Persona: ${description}. ` : ""
+    const imagePrompt = `Avatar sticker, HEAD AND HAT ONLY (no neck, no shoulders, no torso, no hands, no held objects). Centered circular composition, head fills ~75% of frame. Consistent cartoon line-art style: uniform 4px bold black ink outlines, flat pastel fill colors, soft pink cheek circles, simple dot eyes with small white highlight, friendly closed-mouth smile. Solid white background. Subject: "${name}"${
+      description ? ` — ${description}` : ""
     }${
-      systemPrompt ? `Vibe: ${systemPrompt.slice(0, 200)}. ` : ""
-    }Bold black ink outlines, flat pastel fill colors, centered head-and-shoulders, friendly expressive face, white background, sticker style, single subject, no text.`;
+      systemPrompt ? `. Vibe hint: ${systemPrompt.slice(0, 160)}` : ""
+    }. Pick ONE distinctive hat or hairstyle and one small head-area accessory that fits this persona. No text, no logos, no props held in hands.`;
+
 
     // Call Lovable AI Gateway (Gemini 3.1 Flash Image Preview) — non-streaming
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
