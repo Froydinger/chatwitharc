@@ -537,24 +537,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     : [];
   const personaMention = parsePersonaMentionPrefix(inputValue);
 
-  // Lock the current (or a new) session to a persona and clear the @mention text
+  // Insert `@PersonaName ` into the input — sending the message will lock the session
+  // to that persona via the existing send-time mention handler.
   const selectPersona = (persona: { id: string; name: string }) => {
-    const arc = useArcStore.getState();
-    let sessionId = arc.currentSessionId;
-    if (!sessionId) {
-      sessionId = arc.createNewSession();
-    }
-    useArcStore.setState((state) => ({
-      chatSessions: state.chatSessions.map((s) =>
-        s.id === sessionId ? { ...s, personaId: persona.id } : s
-      ),
-    }));
     const lastAtIndex = inputValue.lastIndexOf("@");
-    setInputValue(lastAtIndex >= 0 ? inputValue.slice(0, lastAtIndex) : inputValue);
-    toast({
-      title: `Switched to ${persona.name}`,
-      description: "This conversation is now locked to this persona.",
-    });
+    const base = lastAtIndex >= 0 ? inputValue.slice(0, lastAtIndex) : inputValue;
+    setInputValue(`${base}@${persona.name} `);
     setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
