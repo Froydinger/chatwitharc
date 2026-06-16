@@ -371,7 +371,7 @@ export const useArcStore = create<ArcState>()(
             // FIX: Added folder_id to the select query to ensure it persists on refresh
             const { data: fallbackRows, error: fallbackError } = await supabase
               .from('chat_sessions')
-              .select('id, title, created_at, updated_at, canvas_content, folder_id')
+              .select('id, title, created_at, updated_at, canvas_content, folder_id, persona_id')
               .eq('user_id', user.id)
               .order('updated_at', { ascending: false })
               .limit(500);
@@ -425,6 +425,7 @@ export const useArcStore = create<ArcState>()(
               messages: [], // Empty - will be hydrated on demand
               canvasContent: meta.canvas_content || '',
               folderId: meta.folder_id || undefined,
+              personaId: meta.persona_id || undefined,
               messageCount: meta.message_count || 0,
               isHydrated: false
             }));
@@ -1085,7 +1086,13 @@ export const useArcStore = create<ArcState>()(
         
         // Normal message handling if not a memory command
         set((state) => {
-          const updatedMessages = [...state.messages, newMessage];
+          const activePersonaId = state.currentSessionId
+            ? state.chatSessions.find(s => s.id === state.currentSessionId)?.personaId
+            : undefined;
+          const messageForSession = activePersonaId && !newMessage.personaId
+            ? { ...newMessage, personaId: activePersonaId }
+            : newMessage;
+          const updatedMessages = [...state.messages, messageForSession];
           
           // Update current session
           let updatedSessions = state.chatSessions;
