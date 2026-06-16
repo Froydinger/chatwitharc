@@ -1263,6 +1263,7 @@ export const useArcStore = create<ArcState>()(
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
           sessionToSave = {
+            ...existingSession,
             id: sessionId,
             title: existingSession?.title || 'New Chat',
             createdAt: existingSession?.createdAt || new Date(),
@@ -1333,6 +1334,7 @@ export const useArcStore = create<ArcState>()(
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
           sessionToSave = {
+            ...existingSession,
             id: sessionId,
             title: existingSession?.title || 'New Chat',
             createdAt: existingSession?.createdAt || new Date(),
