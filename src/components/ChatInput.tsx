@@ -573,11 +573,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           return a.name.localeCompare(b.name);
         })
     : [];
-  const personaMention = PERSONAS_ENABLED ? parsePersonaMentionPrefix(inputValue) : null;
+  const personaMention = PERSONAS_ENABLED ? parsePersonaPrefixFromList(inputValue, personas) : null;
 
   // If the user types @ in a chat that already has a persona, strip it and warn.
   useEffect(() => {
     if (rawMention.isActive && activePersona) {
+      const activePrefix = new RegExp(`^@${escapeRegExp(activePersona.name)}\\s*$`, "i");
+      if (activePrefix.test(inputValue.trimStart())) return;
       const lastAtIndex = inputValue.lastIndexOf("@");
       if (lastAtIndex >= 0) {
         setInputValue(inputValue.slice(0, lastAtIndex));
@@ -603,9 +605,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         s.id === sessionId ? { ...s, personaId: persona.id } : s
       ),
     }));
-    // Clear the @text that opened the picker so the composer is empty and ready
-    const lastAtIndex = inputValue.lastIndexOf("@");
-    if (lastAtIndex >= 0) setInputValue(inputValue.slice(0, lastAtIndex));
+    setInputValue(`@${persona.name} `);
+    setShowMenu(false);
     toast({
       title: `Chatting with ${persona.name}`,
       description: "Type your message — this whole chat is now in character.",
@@ -622,6 +623,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         s.id === sessionId ? { ...s, personaId: undefined } : s
       ),
     }));
+    if (activePersona) {
+      setInputValue((v) => v.replace(new RegExp(`^@${escapeRegExp(activePersona.name)}\\s+`, "i"), ""));
+    }
   };
 
   // Navigation (for activating voice from non-chat pages like Dashboard)
