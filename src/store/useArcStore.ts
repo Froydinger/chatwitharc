@@ -101,6 +101,7 @@ export interface Message {
   scheduledTask?: import('@/components/ScheduledTaskCard').ScheduledTaskData;
   notificationDispatch?: import('@/components/NotificationDispatchCard').NotificationDispatchData;
   locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number }; // Shown as pin badge when AI used user location
+  personaId?: string; // Persona active when this message was sent; persisted in message JSON for built-in personas too
   // Which model produced this response. Mirrors RouteDestination so the
   // badge can show the exact model name (e.g. "Gemini 2.5 Pro" vs "Flash").
   sourceModel?:
@@ -395,10 +396,21 @@ export const useArcStore = create<ArcState>()(
               updated_at: row.updated_at,
               canvas_content: row.canvas_content,
               folder_id: row.folder_id,
+              persona_id: row.persona_id,
               message_count: 0,
             }));
           } else {
             sessionsMeta = rpcSessions ?? [];
+            const ids = sessionsMeta.map((meta: any) => meta.id).filter(Boolean);
+            if (ids.length > 0) {
+              const { data: personaRows } = await supabase
+                .from('chat_sessions')
+                .select('id, persona_id')
+                .eq('user_id', user.id)
+                .in('id', ids);
+              const personaBySession = new Map((personaRows || []).map((row: any) => [row.id, row.persona_id]));
+              sessionsMeta = sessionsMeta.map((meta: any) => ({ ...meta, persona_id: personaBySession.get(meta.id) ?? meta.persona_id ?? null }));
+            }
           }
 
           if (sessionsMeta.length > 0) {
