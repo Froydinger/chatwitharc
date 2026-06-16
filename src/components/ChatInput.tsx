@@ -356,6 +356,10 @@ function parsePersonaPrefixFromList(text: string, personaList: Array<{ id: strin
   };
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // Build a system message for the active persona of the current session, if any.
 // Returns null when no persona is locked. Used to prepend to the AI message list
 // so the model actually behaves as the persona (and any tools/reminders run in that voice).
@@ -440,11 +444,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const sid = s.currentSessionId;
     return sid ? s.chatSessions.find((x) => x.id === sid)?.personaId ?? null : null;
   });
-  // Personas are temporarily disabled in the UI (logic/store kept intact).
-  // Force-null the active persona so no persona UI/indicators render and no
-  // persona system prompt is applied. Re-enable by restoring the lookup below.
   const activePersona = PERSONAS_ENABLED && activeSessionPersonaId
-    ? usePersonasStore.getState().getPersonaById(activeSessionPersonaId) ?? null
+    ? personas.find((p) => p.id === activeSessionPersonaId) ?? null
     : null;
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
