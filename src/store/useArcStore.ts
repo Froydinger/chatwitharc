@@ -503,7 +503,7 @@ export const useArcStore = create<ArcState>()(
 
           const { data, error } = await supabase
             .from('chat_sessions')
-            .select('messages, canvas_content')
+            .select('messages, canvas_content, persona_id')
             .eq('id', sessionId)
             .eq('user_id', user.id)
             .single();
@@ -515,6 +515,7 @@ export const useArcStore = create<ArcState>()(
 
           const remoteMessages: Message[] = Array.isArray(data?.messages) ? (data.messages as any) : [];
           const remoteCanvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
+          const remotePersonaId = data?.persona_id || remoteMessages.find((m: any) => typeof m?.personaId === 'string')?.personaId;
           const canvasContent = remoteCanvasContent;
 
           console.log(`✅ Hydrated session with ${remoteMessages.length} messages`);
@@ -543,6 +544,7 @@ export const useArcStore = create<ArcState>()(
                         )
                       : remoteMessages,
                     canvasContent,
+                    personaId: remotePersonaId || cs.personaId,
                     isHydrated: true,
                     messageCount: remoteMessages.length
                   } 
@@ -572,7 +574,7 @@ export const useArcStore = create<ArcState>()(
 
           const { data, error } = await supabase
             .from('chat_sessions')
-            .select('messages, canvas_content, updated_at')
+              .select('messages, canvas_content, updated_at, persona_id')
             .eq('id', sessionId)
             .eq('user_id', user.id)
             .single();
@@ -584,6 +586,7 @@ export const useArcStore = create<ArcState>()(
 
           const remoteMessages: Message[] = Array.isArray(data?.messages) ? (data.messages as any) : [];
           const remoteCanvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
+          const remotePersonaId = data?.persona_id || remoteMessages.find((m: any) => typeof m?.personaId === 'string')?.personaId;
 
           set(s => {
             const localSession = s.chatSessions.find(cs => cs.id === sessionId);
@@ -596,6 +599,7 @@ export const useArcStore = create<ArcState>()(
                     ...cs,
                     messages: remoteMessages,
                     canvasContent: remoteCanvasContent,
+                    personaId: remotePersonaId || cs.personaId,
                     lastMessageAt: data?.updated_at ? new Date(data.updated_at) : new Date(),
                     isHydrated: true,
                     messageCount: remoteMessages.length,
