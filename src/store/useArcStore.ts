@@ -769,6 +769,7 @@ export const useArcStore = create<ArcState>()(
               messages: session.messages as any,
               canvas_content: session.canvasContent ?? null,
               folder_id: session.folderId ?? null,
+              persona_id: session.personaId && !session.personaId.startsWith('builtin-') ? session.personaId : null,
               updated_at: new Date().toISOString(),
               id: session.id
             });
@@ -1113,6 +1114,9 @@ export const useArcStore = create<ArcState>()(
               lastMessageAt: new Date(),
               messages: updatedMessages,
               canvasContent: existingSession?.canvasContent,
+              resources: existingSession?.resources,
+              personaId: existingSession?.personaId,
+              folderId: existingSession?.folderId,
               isLocalOnly: existingSession?.isLocalOnly,
               // Preserve hydration so local-only sessions don't get wiped by a
               // cloud fetch on next load (the cloud row never exists for them).
