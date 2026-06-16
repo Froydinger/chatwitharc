@@ -1527,7 +1527,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               }
             } catch {}
             await replaceLastMessage({
-              content: `Edited image: ${userMessage}`,
+              content: `Edited image: ${finalMessage}`,
               role: "assistant",
               type: "image",
               imageUrl: finalUrl,
@@ -1646,7 +1646,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           // Code canvas is open and user wants to modify existing code
           const existingCode = freshCanvasState.content;
           const language = freshCanvasState.codeLanguage || "html";
-          const userReq = cleanedMessage || userMessage;
+          const userReq = cleanedMessage || finalMessage;
           // Budget: 15000 total - instructions (~500) - user request - safety margin
           const codeBudget = Math.max(4000, 14000 - userReq.length - 500);
           const safeCode = truncateForContext(existingCode, codeBudget);
@@ -1663,7 +1663,7 @@ MANDATORY: Output the COMPLETE updated code. Never stop mid-sentence or mid-func
         } else if (shouldRouteToCanvas && freshCanvasState.isOpen && freshCanvasState.content) {
           // Writing canvas is open with existing content - include it for modification
           const existingContent = freshCanvasState.content;
-          const userReq = cleanedMessage || userMessage;
+          const userReq = cleanedMessage || finalMessage;
           const canvasBudget = Math.max(4000, 14000 - userReq.length - 500);
           const safeContent = truncateForContext(existingContent, canvasBudget);
           messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: The user has existing writing in the canvas. Modify it based on their request using the update_canvas tool. You MUST output the COMPLETE, FULL modified markdown content - do NOT truncate, summarize, or cut off mid-way. Write EVERY paragraph.
@@ -1676,15 +1676,15 @@ USER'S REQUEST: ${userReq}
 MANDATORY: Output the COMPLETE updated content. Never stop mid-sentence or mid-paragraph. Include ALL content from start to finish.`;
         } else if (shouldRouteToCanvas) {
           // New canvas request (no existing content)
-          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: Use the update_canvas tool to write COMPLETE, FULL markdown content for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE piece from beginning to end - every paragraph, every section, complete thoughts. Never stop mid-sentence:\n\n${cleanedMessage || userMessage}`;
+          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: Use the update_canvas tool to write COMPLETE, FULL markdown content for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE piece from beginning to end - every paragraph, every section, complete thoughts. Never stop mid-sentence:\n\n${cleanedMessage || finalMessage}`;
         } else if (wasSearchMode) {
-          messageToSend = `Search the web for: ${cleanedMessage || userMessage}`;
-        } else if (isCodeCanvasOpen && freshCanvasState.content && !isConversationalMessage(userMessage)) {
+          messageToSend = `Search the web for: ${cleanedMessage || finalMessage}`;
+        } else if (isCodeCanvasOpen && freshCanvasState.content && !isConversationalMessage(finalMessage)) {
           // Code canvas is open and user isn't explicitly asking to edit, but also not conversational
           // Only provide code context for messages that might be related to the code
           const existingCode = freshCanvasState.content;
           const language = freshCanvasState.codeLanguage || "html";
-          const userReq = cleanedMessage || userMessage;
+          const userReq = cleanedMessage || finalMessage;
           const contextBudget = Math.max(4000, 14000 - userReq.length - 500);
           const safeCode = truncateForContext(existingCode, contextBudget);
           messageToSend = `${userReq}
@@ -1697,7 +1697,7 @@ ${safeCode}
 \`\`\``;
         } else {
           // Conversational message or no canvas - just send as-is
-          messageToSend = cleanedMessage || userMessage;
+          messageToSend = cleanedMessage || finalMessage;
         }
 
         aiMessages.push({ role: "user", content: messageToSend });
