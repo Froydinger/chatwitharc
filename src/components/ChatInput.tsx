@@ -51,7 +51,6 @@ import { PromptEnhancer } from "@/components/PromptEnhancer";
 import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore } from "@/store/useImageGenStore";
 import { usePersonasStore } from "@/store/usePersonasStore";
-import { parsePersonaMentionPrefix, stripPersonaMention } from "@/utils/personaDetection";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -337,7 +336,25 @@ function detectPersonaMention(text: string): { isActive: boolean; searchTerm: st
 // Feature flag: personas are temporarily hidden/disabled in the UI while the
 // persona send flow is being fixed. All persona logic and the store remain
 // intact — flip this to `true` to re-enable the entire feature.
-const PERSONAS_ENABLED = false;
+const PERSONAS_ENABLED = true;
+
+function parsePersonaPrefixFromList(text: string, personaList: Array<{ id: string; name: string }>) {
+  const trimmed = text.trimStart();
+  if (!trimmed.startsWith("@")) return null;
+  const afterAt = trimmed.slice(1);
+  const match = [...personaList]
+    .sort((a, b) => b.name.length - a.name.length)
+    .find((p) => {
+      const lowerName = p.name.toLowerCase();
+      const lowerAfter = afterAt.toLowerCase();
+      return lowerAfter === lowerName || lowerAfter.startsWith(`${lowerName} `);
+    });
+  if (!match) return null;
+  return {
+    persona: match,
+    remaining: afterAt.slice(match.name.length).trimStart(),
+  };
+}
 
 // Build a system message for the active persona of the current session, if any.
 // Returns null when no persona is locked. Used to prepend to the AI message list
