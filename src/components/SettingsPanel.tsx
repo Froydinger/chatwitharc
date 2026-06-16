@@ -863,11 +863,9 @@ export function SettingsPanel() {
       case "ai":
         return (
           <>
-            
-            {/* Personas temporarily disabled in the UI (logic/store kept intact). Re-enable when persona send flow is fixed. */}
-            {/* <SectionCard icon={Stars} title="Custom Personas" subtitle="Create unique conversation styles">
+            <SectionCard icon={Stars} title="Custom Personas" subtitle="Create unique conversation styles">
               <PersonasManager />
-            </SectionCard> */}
+            </SectionCard>
             {VoiceCard}
             <ImageDefaultsCard />
             <LocalAIPanel />

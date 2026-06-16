@@ -134,13 +134,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
     const isUser = message.role === "user";
 
-    // Active persona for this conversation (if any).
-    // Personas are temporarily disabled in the UI, so force-null this to avoid
-    // rendering persona avatars (incl. on legacy locked sessions). Restore by
-    // removing the `false &&` to re-enable.
-    const activePersonaId = chatSessions.find(s => s.id === currentSessionId)?.personaId;
+    const activePersonaId = message.personaId || chatSessions.find(s => s.id === currentSessionId)?.personaId;
     const activePersona = usePersonasStore(state =>
-      false && activePersonaId ? state.personas.find(p => p.id === activePersonaId) : undefined,
+      activePersonaId ? state.personas.find(p => p.id === activePersonaId) : undefined,
     );
 
 

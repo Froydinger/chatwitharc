@@ -1492,21 +1492,21 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           lastMsg?.role === "assistant" &&
           lastMsg.type === "image" &&
           lastMsg.imageUrl &&
-          isImageEditRequest(userMessage)
+          isImageEditRequest(finalMessage)
         ) {
           // Route as image edit against the last generated/edited image
-          await addMessage({ content: userMessage, role: "user", type: "text" });
+          await addMessage({ content: finalMessage, role: "user", type: "text" });
           await addMessage({
-            content: `Editing image: ${userMessage}`,
+            content: `Editing image: ${finalMessage}`,
             role: "assistant",
             type: "image-generating",
-            imagePrompt: userMessage,
+            imagePrompt: finalMessage,
             sourceModel: "cloud-image-edit",
           });
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(userMessage, [lastMsg.imageUrl], imageGenModel, imageGenAspect);
+            const editedUrl = await ai.editImage(finalMessage, [lastMsg.imageUrl], imageGenModel, imageGenAspect);
             let finalUrl = editedUrl;
             try {
               const resp = await fetch(editedUrl);
@@ -1553,7 +1553,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
       // Add user message RIGHT AWAY for instant feedback
       const userMessageId = await addMessage({
-        content: userMessage,
+        content: finalMessage,
         role: "user",
         type: "text",
       });
@@ -1582,13 +1582,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         // is clearly conversational (e.g. "nice!", "thanks", "how does this work?")
         const shouldRouteToCanvas =
           wasCanvasMode ||
-          (canvasState.isOpen && canvasState.canvasType === "writing" && !isConversationalMessage(userMessage));
+          (canvasState.isOpen && canvasState.canvasType === "writing" && !isConversationalMessage(finalMessage));
 
         // Check if code canvas is open and user is asking to edit it.
         // Also auto-open the canvas from the last code message in chat if it isn't open yet,
         // so follow-up messages work without requiring the user to click the code card first.
         let isCodeCanvasOpen = canvasState.isOpen && canvasState.canvasType === "code";
-        if (!isCodeCanvasOpen && looksLikeCodeEditRequest(userMessage)) {
+        if (!isCodeCanvasOpen && looksLikeCodeEditRequest(finalMessage)) {
           const recentMsgs = useArcStore.getState().messages;
           // First: look for a dedicated code tile message (type === 'code')
           const lastCodeMsg = [...recentMsgs].reverse().find((m) => (m as any).type === "code");
@@ -1617,12 +1617,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             }
           }
         }
-        const shouldRouteToCodeCanvas = isCodeCanvasOpen && looksLikeCodeEditRequest(userMessage);
+        const shouldRouteToCodeCanvas = isCodeCanvasOpen && looksLikeCodeEditRequest(finalMessage);
 
         // Re-read canvas state after potential openWithContent call above
         const freshCanvasState = useCanvasStore.getState();
 
-        const cleanedMessage = extractPrefixPrompt(userMessage);
+        const cleanedMessage = extractPrefixPrompt(finalMessage);
 
         // Build the message to send to AI
         // Helper: truncate large content to stay within the 15k server message limit

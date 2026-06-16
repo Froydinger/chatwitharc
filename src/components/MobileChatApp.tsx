@@ -1003,8 +1003,7 @@ export function MobileChatApp() {
                 <div
                   className="space-y-4 chat-messages w-full max-w-xl" // Messages only, now max-w-xl
                 >
-                  {/* Persona lock indicator — temporarily disabled in the UI (personas hidden). */}
-                  {/* {(() => {
+                  {(() => {
                     const session = chatSessions.find(s => s.id === currentSessionId);
                     const persona = session?.personaId ? getPersonaById(session.personaId) : null;
 
@@ -1025,7 +1024,7 @@ export function MobileChatApp() {
                         </div>
                       </div>
                     ) : null;
-                  })()} */}
+                  })()}
 
                   <AnimatePresence mode="popLayout" initial={false}>
                     {messages.map((message, index) => {
