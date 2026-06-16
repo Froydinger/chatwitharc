@@ -101,6 +101,7 @@ export interface Message {
   scheduledTask?: import('@/components/ScheduledTaskCard').ScheduledTaskData;
   notificationDispatch?: import('@/components/NotificationDispatchCard').NotificationDispatchData;
   locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number }; // Shown as pin badge when AI used user location
+  personaId?: string; // Persona active when this message was sent; persisted in message JSON for built-in personas too
   // Which model produced this response. Mirrors RouteDestination so the
   // badge can show the exact model name (e.g. "Gemini 2.5 Pro" vs "Flash").
   sourceModel?:
@@ -370,7 +371,7 @@ export const useArcStore = create<ArcState>()(
             // FIX: Added folder_id to the select query to ensure it persists on refresh
             const { data: fallbackRows, error: fallbackError } = await supabase
               .from('chat_sessions')
-              .select('id, title, created_at, updated_at, canvas_content, folder_id')
+              .select('id, title, created_at, updated_at, canvas_content, folder_id, persona_id')
               .eq('user_id', user.id)
               .order('updated_at', { ascending: false })
               .limit(500);
@@ -395,10 +396,21 @@ export const useArcStore = create<ArcState>()(
               updated_at: row.updated_at,
               canvas_content: row.canvas_content,
               folder_id: row.folder_id,
+              persona_id: row.persona_id,
               message_count: 0,
             }));
           } else {
             sessionsMeta = rpcSessions ?? [];
+            const ids = sessionsMeta.map((meta: any) => meta.id).filter(Boolean);
+            if (ids.length > 0) {
+              const { data: personaRows } = await supabase
+                .from('chat_sessions')
+                .select('id, persona_id')
+                .eq('user_id', user.id)
+                .in('id', ids);
+              const personaBySession = new Map((personaRows || []).map((row: any) => [row.id, row.persona_id]));
+              sessionsMeta = sessionsMeta.map((meta: any) => ({ ...meta, persona_id: personaBySession.get(meta.id) ?? meta.persona_id ?? null }));
+            }
           }
 
           if (sessionsMeta.length > 0) {
@@ -413,6 +425,7 @@ export const useArcStore = create<ArcState>()(
               messages: [], // Empty - will be hydrated on demand
               canvasContent: meta.canvas_content || '',
               folderId: meta.folder_id || undefined,
+              personaId: meta.persona_id || undefined,
               messageCount: meta.message_count || 0,
               isHydrated: false
             }));
@@ -490,7 +503,7 @@ export const useArcStore = create<ArcState>()(
 
           const { data, error } = await supabase
             .from('chat_sessions')
-            .select('messages, canvas_content')
+            .select('messages, canvas_content, persona_id')
             .eq('id', sessionId)
             .eq('user_id', user.id)
             .single();
@@ -502,6 +515,7 @@ export const useArcStore = create<ArcState>()(
 
           const remoteMessages: Message[] = Array.isArray(data?.messages) ? (data.messages as any) : [];
           const remoteCanvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
+          const remotePersonaId = data?.persona_id || remoteMessages.find((m: any) => typeof m?.personaId === 'string')?.personaId;
           const canvasContent = remoteCanvasContent;
 
           console.log(`✅ Hydrated session with ${remoteMessages.length} messages`);
@@ -530,6 +544,7 @@ export const useArcStore = create<ArcState>()(
                         )
                       : remoteMessages,
                     canvasContent,
+                    personaId: remotePersonaId || cs.personaId,
                     isHydrated: true,
                     messageCount: remoteMessages.length
                   } 
@@ -559,7 +574,7 @@ export const useArcStore = create<ArcState>()(
 
           const { data, error } = await supabase
             .from('chat_sessions')
-            .select('messages, canvas_content, updated_at')
+              .select('messages, canvas_content, updated_at, persona_id')
             .eq('id', sessionId)
             .eq('user_id', user.id)
             .single();
@@ -571,6 +586,7 @@ export const useArcStore = create<ArcState>()(
 
           const remoteMessages: Message[] = Array.isArray(data?.messages) ? (data.messages as any) : [];
           const remoteCanvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
+          const remotePersonaId = data?.persona_id || remoteMessages.find((m: any) => typeof m?.personaId === 'string')?.personaId;
 
           set(s => {
             const localSession = s.chatSessions.find(cs => cs.id === sessionId);
@@ -583,6 +599,7 @@ export const useArcStore = create<ArcState>()(
                     ...cs,
                     messages: remoteMessages,
                     canvasContent: remoteCanvasContent,
+                    personaId: remotePersonaId || cs.personaId,
                     lastMessageAt: data?.updated_at ? new Date(data.updated_at) : new Date(),
                     isHydrated: true,
                     messageCount: remoteMessages.length,
@@ -676,10 +693,12 @@ export const useArcStore = create<ArcState>()(
               if ((cs.messages?.length ?? 0) > fetched.messages.length) {
                 return { ...cs, isHydrated: true };
               }
+              const messagePersonaId = fetched.messages.find((m: any) => typeof m?.personaId === 'string')?.personaId;
               return {
                 ...cs,
                 messages: fetched.messages,
                 canvasContent: fetched.canvasContent,
+                personaId: cs.personaId || messagePersonaId,
                 isHydrated: true,
                 messageCount: fetched.messages.length
               };
@@ -769,6 +788,7 @@ export const useArcStore = create<ArcState>()(
               messages: session.messages as any,
               canvas_content: session.canvasContent ?? null,
               folder_id: session.folderId ?? null,
+              persona_id: session.personaId && !session.personaId.startsWith('builtin-') ? session.personaId : null,
               updated_at: new Date().toISOString(),
               id: session.id
             });
@@ -1072,7 +1092,13 @@ export const useArcStore = create<ArcState>()(
         
         // Normal message handling if not a memory command
         set((state) => {
-          const updatedMessages = [...state.messages, newMessage];
+          const activePersonaId = state.currentSessionId
+            ? state.chatSessions.find(s => s.id === state.currentSessionId)?.personaId
+            : undefined;
+          const messageForSession = activePersonaId && !newMessage.personaId
+            ? { ...newMessage, personaId: activePersonaId }
+            : newMessage;
+          const updatedMessages = [...state.messages, messageForSession];
           
           // Update current session
           let updatedSessions = state.chatSessions;
@@ -1113,6 +1139,9 @@ export const useArcStore = create<ArcState>()(
               lastMessageAt: new Date(),
               messages: updatedMessages,
               canvasContent: existingSession?.canvasContent,
+              resources: existingSession?.resources,
+              personaId: existingSession?.personaId,
+              folderId: existingSession?.folderId,
               isLocalOnly: existingSession?.isLocalOnly,
               // Preserve hydration so local-only sessions don't get wiped by a
               // cloud fetch on next load (the cloud row never exists for them).
@@ -1240,6 +1269,7 @@ export const useArcStore = create<ArcState>()(
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
           sessionToSave = {
+            ...existingSession,
             id: sessionId,
             title: existingSession?.title || 'New Chat',
             createdAt: existingSession?.createdAt || new Date(),
@@ -1310,6 +1340,7 @@ export const useArcStore = create<ArcState>()(
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
           sessionToSave = {
+            ...existingSession,
             id: sessionId,
             title: existingSession?.title || 'New Chat',
             createdAt: existingSession?.createdAt || new Date(),

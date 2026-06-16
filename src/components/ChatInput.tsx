@@ -51,7 +51,6 @@ import { PromptEnhancer } from "@/components/PromptEnhancer";
 import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore } from "@/store/useImageGenStore";
 import { usePersonasStore } from "@/store/usePersonasStore";
-import { parsePersonaMentionPrefix, stripPersonaMention } from "@/utils/personaDetection";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -337,7 +336,29 @@ function detectPersonaMention(text: string): { isActive: boolean; searchTerm: st
 // Feature flag: personas are temporarily hidden/disabled in the UI while the
 // persona send flow is being fixed. All persona logic and the store remain
 // intact — flip this to `true` to re-enable the entire feature.
-const PERSONAS_ENABLED = false;
+const PERSONAS_ENABLED = true;
+
+function parsePersonaPrefixFromList(text: string, personaList: Array<{ id: string; name: string }>) {
+  const trimmed = text.trimStart();
+  if (!trimmed.startsWith("@")) return null;
+  const afterAt = trimmed.slice(1);
+  const match = [...personaList]
+    .sort((a, b) => b.name.length - a.name.length)
+    .find((p) => {
+      const lowerName = p.name.toLowerCase();
+      const lowerAfter = afterAt.toLowerCase();
+      return lowerAfter === lowerName || lowerAfter.startsWith(`${lowerName} `);
+    });
+  if (!match) return null;
+  return {
+    persona: match,
+    remaining: afterAt.slice(match.name.length).trimStart(),
+  };
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 // Build a system message for the active persona of the current session, if any.
 // Returns null when no persona is locked. Used to prepend to the AI message list
@@ -423,11 +444,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const sid = s.currentSessionId;
     return sid ? s.chatSessions.find((x) => x.id === sid)?.personaId ?? null : null;
   });
-  // Personas are temporarily disabled in the UI (logic/store kept intact).
-  // Force-null the active persona so no persona UI/indicators render and no
-  // persona system prompt is applied. Re-enable by restoring the lookup below.
   const activePersona = PERSONAS_ENABLED && activeSessionPersonaId
-    ? usePersonasStore.getState().getPersonaById(activeSessionPersonaId) ?? null
+    ? personas.find((p) => p.id === activeSessionPersonaId) ?? null
     : null;
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
@@ -545,21 +563,23 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const rawMention = detectPersonaMention(inputValue);
   const showingPersonaSuggestions = PERSONAS_ENABLED && rawMention.isActive && !activePersona;
   const searchTerm = rawMention.searchTerm;
+  const sortedPersonas = [...personas].sort((a, b) => {
+    const aCustom = !a.id.startsWith('builtin-');
+    const bCustom = !b.id.startsWith('builtin-');
+    if (aCustom !== bCustom) return aCustom ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
   const filteredPersonas = showingPersonaSuggestions
-    ? personas
+    ? sortedPersonas
         .filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()))
-        .sort((a, b) => {
-          const aCustom = !a.id.startsWith('builtin-');
-          const bCustom = !b.id.startsWith('builtin-');
-          if (aCustom !== bCustom) return aCustom ? -1 : 1;
-          return a.name.localeCompare(b.name);
-        })
     : [];
-  const personaMention = PERSONAS_ENABLED ? parsePersonaMentionPrefix(inputValue) : null;
+  const personaMention = PERSONAS_ENABLED ? parsePersonaPrefixFromList(inputValue, personas) : null;
 
   // If the user types @ in a chat that already has a persona, strip it and warn.
   useEffect(() => {
     if (rawMention.isActive && activePersona) {
+      const activePrefix = new RegExp(`^@${escapeRegExp(activePersona.name)}(?:\\s|$)`, "i");
+      if (activePrefix.test(inputValue.trimStart())) return;
       const lastAtIndex = inputValue.lastIndexOf("@");
       if (lastAtIndex >= 0) {
         setInputValue(inputValue.slice(0, lastAtIndex));
@@ -585,9 +605,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         s.id === sessionId ? { ...s, personaId: persona.id } : s
       ),
     }));
-    // Clear the @text that opened the picker so the composer is empty and ready
-    const lastAtIndex = inputValue.lastIndexOf("@");
-    if (lastAtIndex >= 0) setInputValue(inputValue.slice(0, lastAtIndex));
+    setInputValue(`@${persona.name} `);
+    setShowMenu(false);
     toast({
       title: `Chatting with ${persona.name}`,
       description: "Type your message — this whole chat is now in character.",
@@ -604,6 +623,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         s.id === sessionId ? { ...s, personaId: undefined } : s
       ),
     }));
+    if (activePersona) {
+      setInputValue((v) => v.replace(new RegExp(`^@${escapeRegExp(activePersona.name)}\\s+`, "i"), ""));
+    }
   };
 
   // Navigation (for activating voice from non-chat pages like Dashboard)
@@ -1118,13 +1140,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
     // Detect @mention context: returns {isActive, searchTerm} if user is typing @personaname
     let finalMessage = userMessage;
-    const personaMention = PERSONAS_ENABLED ? parsePersonaMentionPrefix(userMessage) : null;
+    const personaMention = PERSONAS_ENABLED ? parsePersonaPrefixFromList(userMessage, personas) : null;
     if (personaMention) {
-      const { personaName, remaining } = personaMention;
-      const persona = usePersonasStore.getState().getPersonaByName(personaName);
+      const { persona, remaining } = personaMention;
       if (persona) {
         // Lock this conversation to the selected persona
-        const { currentSessionId } = useArcStore.getState();
+        let { currentSessionId } = useArcStore.getState();
+        if (!currentSessionId) currentSessionId = useArcStore.getState().createNewSession();
         if (currentSessionId) {
           useArcStore.setState((state) => ({
             chatSessions: state.chatSessions.map((s) =>
@@ -1137,10 +1159,19 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           title: `Switched to ${persona.name}`,
           description: "This conversation is now locked to this persona.",
         });
+        if (!finalMessage.trim() && images.length === 0 && documents.length === 0) {
+          toast({
+            title: `Chatting with ${persona.name}`,
+            description: "Type your message after the persona name, then send.",
+          });
+          setInputValue(`@${persona.name} `);
+          setTimeout(() => textareaRef.current?.focus(), 0);
+          return;
+        }
       } else {
         toast({
           title: "Persona not found",
-          description: `"${personaName}" doesn't exist. Type to use it for this chat.`,
+          description: "That persona doesn't exist. Pick one from the persona menu.",
           variant: "destructive",
         });
       }
@@ -1252,8 +1283,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             });
 
             const analysisPrompt = finalMessage || `Analyze and summarize this document: ${doc.name}`;
+            const personaMsg = buildPersonaSystemMessage();
             const response = await ai.sendMessageWithDocument(
-              [{ role: "user", content: analysisPrompt }],
+              [...(personaMsg ? [personaMsg] : []), { role: "user", content: analysisPrompt }],
               fileData,
               doc.name,
               doc.type || "application/octet-stream",
@@ -1379,7 +1411,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           const analysisPrompt = isSvgRequest
             ? `You are an SVG artist. Carefully analyze this image and recreate it as a complete, valid SVG. Use shapes (rect, circle, ellipse, path, polygon), gradients, and accurate colors to faithfully represent the image. Set a viewBox and width/height attributes. Output ONLY the SVG markup inside a single \`\`\`svg code block with absolutely no other text, explanation, or commentary outside the code block.`
             : finalMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
-          const response = await ai.sendMessageWithImage([{ role: "user", content: analysisPrompt }], base64s);
+          const personaMsg = buildPersonaSystemMessage();
+          const response = await ai.sendMessageWithImage([...(personaMsg ? [personaMsg] : []), { role: "user", content: analysisPrompt }], base64s);
           await addMessage({ content: response, role: "assistant", type: "text", sourceModel: "cloud-vision" });
         } catch {
           toast({ title: "Error", description: "Failed to analyze images", variant: "destructive" });
@@ -1461,21 +1494,21 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           lastMsg?.role === "assistant" &&
           lastMsg.type === "image" &&
           lastMsg.imageUrl &&
-          isImageEditRequest(userMessage)
+          isImageEditRequest(finalMessage)
         ) {
           // Route as image edit against the last generated/edited image
-          await addMessage({ content: userMessage, role: "user", type: "text" });
+          await addMessage({ content: finalMessage, role: "user", type: "text" });
           await addMessage({
-            content: `Editing image: ${userMessage}`,
+            content: `Editing image: ${finalMessage}`,
             role: "assistant",
             type: "image-generating",
-            imagePrompt: userMessage,
+            imagePrompt: finalMessage,
             sourceModel: "cloud-image-edit",
           });
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(userMessage, [lastMsg.imageUrl], imageGenModel, imageGenAspect);
+            const editedUrl = await ai.editImage(finalMessage, [lastMsg.imageUrl], imageGenModel, imageGenAspect);
             let finalUrl = editedUrl;
             try {
               const resp = await fetch(editedUrl);
@@ -1496,7 +1529,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               }
             } catch {}
             await replaceLastMessage({
-              content: `Edited image: ${userMessage}`,
+              content: `Edited image: ${finalMessage}`,
               role: "assistant",
               type: "image",
               imageUrl: finalUrl,
@@ -1522,7 +1555,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
       // Add user message RIGHT AWAY for instant feedback
       const userMessageId = await addMessage({
-        content: userMessage,
+        content: finalMessage,
         role: "user",
         type: "text",
       });
@@ -1551,13 +1584,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         // is clearly conversational (e.g. "nice!", "thanks", "how does this work?")
         const shouldRouteToCanvas =
           wasCanvasMode ||
-          (canvasState.isOpen && canvasState.canvasType === "writing" && !isConversationalMessage(userMessage));
+          (canvasState.isOpen && canvasState.canvasType === "writing" && !isConversationalMessage(finalMessage));
 
         // Check if code canvas is open and user is asking to edit it.
         // Also auto-open the canvas from the last code message in chat if it isn't open yet,
         // so follow-up messages work without requiring the user to click the code card first.
         let isCodeCanvasOpen = canvasState.isOpen && canvasState.canvasType === "code";
-        if (!isCodeCanvasOpen && looksLikeCodeEditRequest(userMessage)) {
+        if (!isCodeCanvasOpen && looksLikeCodeEditRequest(finalMessage)) {
           const recentMsgs = useArcStore.getState().messages;
           // First: look for a dedicated code tile message (type === 'code')
           const lastCodeMsg = [...recentMsgs].reverse().find((m) => (m as any).type === "code");
@@ -1586,12 +1619,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             }
           }
         }
-        const shouldRouteToCodeCanvas = isCodeCanvasOpen && looksLikeCodeEditRequest(userMessage);
+        const shouldRouteToCodeCanvas = isCodeCanvasOpen && looksLikeCodeEditRequest(finalMessage);
 
         // Re-read canvas state after potential openWithContent call above
         const freshCanvasState = useCanvasStore.getState();
 
-        const cleanedMessage = extractPrefixPrompt(userMessage);
+        const cleanedMessage = extractPrefixPrompt(finalMessage);
 
         // Build the message to send to AI
         // Helper: truncate large content to stay within the 15k server message limit
@@ -1615,7 +1648,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           // Code canvas is open and user wants to modify existing code
           const existingCode = freshCanvasState.content;
           const language = freshCanvasState.codeLanguage || "html";
-          const userReq = cleanedMessage || userMessage;
+          const userReq = cleanedMessage || finalMessage;
           // Budget: 15000 total - instructions (~500) - user request - safety margin
           const codeBudget = Math.max(4000, 14000 - userReq.length - 500);
           const safeCode = truncateForContext(existingCode, codeBudget);
@@ -1632,7 +1665,7 @@ MANDATORY: Output the COMPLETE updated code. Never stop mid-sentence or mid-func
         } else if (shouldRouteToCanvas && freshCanvasState.isOpen && freshCanvasState.content) {
           // Writing canvas is open with existing content - include it for modification
           const existingContent = freshCanvasState.content;
-          const userReq = cleanedMessage || userMessage;
+          const userReq = cleanedMessage || finalMessage;
           const canvasBudget = Math.max(4000, 14000 - userReq.length - 500);
           const safeContent = truncateForContext(existingContent, canvasBudget);
           messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: The user has existing writing in the canvas. Modify it based on their request using the update_canvas tool. You MUST output the COMPLETE, FULL modified markdown content - do NOT truncate, summarize, or cut off mid-way. Write EVERY paragraph.
@@ -1645,15 +1678,15 @@ USER'S REQUEST: ${userReq}
 MANDATORY: Output the COMPLETE updated content. Never stop mid-sentence or mid-paragraph. Include ALL content from start to finish.`;
         } else if (shouldRouteToCanvas) {
           // New canvas request (no existing content)
-          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: Use the update_canvas tool to write COMPLETE, FULL markdown content for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE piece from beginning to end - every paragraph, every section, complete thoughts. Never stop mid-sentence:\n\n${cleanedMessage || userMessage}`;
+          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: Use the update_canvas tool to write COMPLETE, FULL markdown content for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE piece from beginning to end - every paragraph, every section, complete thoughts. Never stop mid-sentence:\n\n${cleanedMessage || finalMessage}`;
         } else if (wasSearchMode) {
-          messageToSend = `Search the web for: ${cleanedMessage || userMessage}`;
-        } else if (isCodeCanvasOpen && freshCanvasState.content && !isConversationalMessage(userMessage)) {
+          messageToSend = `Search the web for: ${cleanedMessage || finalMessage}`;
+        } else if (isCodeCanvasOpen && freshCanvasState.content && !isConversationalMessage(finalMessage)) {
           // Code canvas is open and user isn't explicitly asking to edit, but also not conversational
           // Only provide code context for messages that might be related to the code
           const existingCode = freshCanvasState.content;
           const language = freshCanvasState.codeLanguage || "html";
-          const userReq = cleanedMessage || userMessage;
+          const userReq = cleanedMessage || finalMessage;
           const contextBudget = Math.max(4000, 14000 - userReq.length - 500);
           const safeCode = truncateForContext(existingCode, contextBudget);
           messageToSend = `${userReq}
@@ -1666,7 +1699,7 @@ ${safeCode}
 \`\`\``;
         } else {
           // Conversational message or no canvas - just send as-is
-          messageToSend = cleanedMessage || userMessage;
+          messageToSend = cleanedMessage || finalMessage;
         }
 
         aiMessages.push({ role: "user", content: messageToSend });
@@ -1836,7 +1869,7 @@ ${safeCode}
 
           try {
             // SMART ROUTING: decide if this can run on local Gemma
-            const route = routeRequest({
+            const route = activePersona ? "cloud-chat" : routeRequest({
               forceWebSearch: wasSearchMode,
               forceCanvas: false,
               forceCode: false,
@@ -2662,6 +2695,36 @@ ${safeCode}
                             </div>
                           </button>
                         </div>
+                        {PERSONAS_ENABLED && !activePersona && sortedPersonas.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-white/10">
+                            <div className="px-1 mb-2 text-xs font-semibold text-muted-foreground">Personas</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {sortedPersonas.map((p) => {
+                                const isCustom = !p.id.startsWith('builtin-');
+                                return (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => selectPersona(p)}
+                                    className="flex items-center gap-2 p-2 rounded-2xl hover:bg-white/10 transition-colors border border-white/5 text-left min-w-0"
+                                  >
+                                    {p.avatarUrl ? (
+                                      <img src={p.avatarUrl} alt={p.name} loading="lazy" className="w-9 h-9 rounded-full object-cover bg-white shrink-0" />
+                                    ) : (
+                                      <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                                        {p.name[0].toUpperCase()}
+                                      </div>
+                                    )}
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block text-sm font-semibold truncate">{p.name}</span>
+                                      {isCustom && <span className="block text-[10px] text-primary font-semibold">Custom</span>}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </motion.div>
                       </div>
                     </>
