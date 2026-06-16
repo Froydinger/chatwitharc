@@ -12,6 +12,7 @@ interface PersonasManagerProps {
 export function PersonasManager({ onSelectPersona }: PersonasManagerProps) {
   const { personas, loading, fetchPersonas, createPersona, updatePersona, deletePersona, generateAvatar } = usePersonasStore();
   const [generatingAvatarId, setGeneratingAvatarId] = useState<string | null>(null);
+  const customPersonas = personas.filter((p) => !p.id.startsWith('builtin-'));
 
   const { toast } = useToast();
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -133,13 +134,13 @@ export function PersonasManager({ onSelectPersona }: PersonasManagerProps) {
       )}
 
       {/* List of personas */}
-      {personas.length === 0 && !showNewForm ? (
+      {customPersonas.length === 0 && !showNewForm ? (
         <div className="text-xs text-muted-foreground text-center py-4">
           No personas yet. Create one to get started.
         </div>
       ) : (
         <div className="space-y-2">
-          {personas.map((persona) => (
+          {customPersonas.map((persona) => (
             <div
               key={persona.id}
               className="border border-border/50 rounded-lg bg-muted/20 overflow-hidden"
