@@ -563,15 +563,15 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const rawMention = detectPersonaMention(inputValue);
   const showingPersonaSuggestions = PERSONAS_ENABLED && rawMention.isActive && !activePersona;
   const searchTerm = rawMention.searchTerm;
+  const sortedPersonas = [...personas].sort((a, b) => {
+    const aCustom = !a.id.startsWith('builtin-');
+    const bCustom = !b.id.startsWith('builtin-');
+    if (aCustom !== bCustom) return aCustom ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
   const filteredPersonas = showingPersonaSuggestions
-    ? personas
+    ? sortedPersonas
         .filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()))
-        .sort((a, b) => {
-          const aCustom = !a.id.startsWith('builtin-');
-          const bCustom = !b.id.startsWith('builtin-');
-          if (aCustom !== bCustom) return aCustom ? -1 : 1;
-          return a.name.localeCompare(b.name);
-        })
     : [];
   const personaMention = PERSONAS_ENABLED ? parsePersonaPrefixFromList(inputValue, personas) : null;
 
@@ -2693,6 +2693,36 @@ ${safeCode}
                             </div>
                           </button>
                         </div>
+                        {PERSONAS_ENABLED && !activePersona && sortedPersonas.length > 0 && (
+                          <div className="mt-4 pt-4 border-t border-white/10">
+                            <div className="px-1 mb-2 text-xs font-semibold text-muted-foreground">Personas</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {sortedPersonas.map((p) => {
+                                const isCustom = !p.id.startsWith('builtin-');
+                                return (
+                                  <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => selectPersona(p)}
+                                    className="flex items-center gap-2 p-2 rounded-2xl hover:bg-white/10 transition-colors border border-white/5 text-left min-w-0"
+                                  >
+                                    {p.avatarUrl ? (
+                                      <img src={p.avatarUrl} alt={p.name} loading="lazy" className="w-9 h-9 rounded-full object-cover bg-white shrink-0" />
+                                    ) : (
+                                      <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                                        {p.name[0].toUpperCase()}
+                                      </div>
+                                    )}
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block text-sm font-semibold truncate">{p.name}</span>
+                                      {isCustom && <span className="block text-[10px] text-primary font-semibold">Custom</span>}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </motion.div>
                       </div>
                     </>
