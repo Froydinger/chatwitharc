@@ -578,7 +578,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // If the user types @ in a chat that already has a persona, strip it and warn.
   useEffect(() => {
     if (rawMention.isActive && activePersona) {
-      const activePrefix = new RegExp(`^@${escapeRegExp(activePersona.name)}\\s*$`, "i");
+      const activePrefix = new RegExp(`^@${escapeRegExp(activePersona.name)}(?:\\s|$)`, "i");
       if (activePrefix.test(inputValue.trimStart())) return;
       const lastAtIndex = inputValue.lastIndexOf("@");
       if (lastAtIndex >= 0) {
@@ -1140,13 +1140,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
     // Detect @mention context: returns {isActive, searchTerm} if user is typing @personaname
     let finalMessage = userMessage;
-    const personaMention = PERSONAS_ENABLED ? parsePersonaMentionPrefix(userMessage) : null;
+    const personaMention = PERSONAS_ENABLED ? parsePersonaPrefixFromList(userMessage, personas) : null;
     if (personaMention) {
-      const { personaName, remaining } = personaMention;
-      const persona = usePersonasStore.getState().getPersonaByName(personaName);
+      const { persona, remaining } = personaMention;
       if (persona) {
         // Lock this conversation to the selected persona
-        const { currentSessionId } = useArcStore.getState();
+        let { currentSessionId } = useArcStore.getState();
+        if (!currentSessionId) currentSessionId = useArcStore.getState().createNewSession();
         if (currentSessionId) {
           useArcStore.setState((state) => ({
             chatSessions: state.chatSessions.map((s) =>
@@ -1159,10 +1159,19 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           title: `Switched to ${persona.name}`,
           description: "This conversation is now locked to this persona.",
         });
+        if (!finalMessage.trim() && images.length === 0 && documents.length === 0) {
+          toast({
+            title: `Chatting with ${persona.name}`,
+            description: "Type your message after the persona name, then send.",
+          });
+          setInputValue(`@${persona.name} `);
+          setTimeout(() => textareaRef.current?.focus(), 0);
+          return;
+        }
       } else {
         toast({
           title: "Persona not found",
-          description: `"${personaName}" doesn't exist. Type to use it for this chat.`,
+          description: "That persona doesn't exist. Pick one from the persona menu.",
           variant: "destructive",
         });
       }
