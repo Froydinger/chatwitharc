@@ -693,10 +693,12 @@ export const useArcStore = create<ArcState>()(
               if ((cs.messages?.length ?? 0) > fetched.messages.length) {
                 return { ...cs, isHydrated: true };
               }
+              const messagePersonaId = fetched.messages.find((m: any) => typeof m?.personaId === 'string')?.personaId;
               return {
                 ...cs,
                 messages: fetched.messages,
                 canvasContent: fetched.canvasContent,
+                personaId: cs.personaId || messagePersonaId,
                 isHydrated: true,
                 messageCount: fetched.messages.length
               };
