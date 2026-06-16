@@ -1867,7 +1867,7 @@ ${safeCode}
 
           try {
             // SMART ROUTING: decide if this can run on local Gemma
-            const route = routeRequest({
+            const route = activePersona ? "cloud-chat" : routeRequest({
               forceWebSearch: wasSearchMode,
               forceCanvas: false,
               forceCode: false,
