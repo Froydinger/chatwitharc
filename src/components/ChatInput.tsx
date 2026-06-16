@@ -1283,8 +1283,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             });
 
             const analysisPrompt = finalMessage || `Analyze and summarize this document: ${doc.name}`;
+            const personaMsg = buildPersonaSystemMessage();
             const response = await ai.sendMessageWithDocument(
-              [{ role: "user", content: analysisPrompt }],
+              [...(personaMsg ? [personaMsg] : []), { role: "user", content: analysisPrompt }],
               fileData,
               doc.name,
               doc.type || "application/octet-stream",
@@ -1410,7 +1411,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           const analysisPrompt = isSvgRequest
             ? `You are an SVG artist. Carefully analyze this image and recreate it as a complete, valid SVG. Use shapes (rect, circle, ellipse, path, polygon), gradients, and accurate colors to faithfully represent the image. Set a viewBox and width/height attributes. Output ONLY the SVG markup inside a single \`\`\`svg code block with absolutely no other text, explanation, or commentary outside the code block.`
             : finalMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
-          const response = await ai.sendMessageWithImage([{ role: "user", content: analysisPrompt }], base64s);
+          const personaMsg = buildPersonaSystemMessage();
+          const response = await ai.sendMessageWithImage([...(personaMsg ? [personaMsg] : []), { role: "user", content: analysisPrompt }], base64s);
           await addMessage({ content: response, role: "assistant", type: "text", sourceModel: "cloud-vision" });
         } catch {
           toast({ title: "Error", description: "Failed to analyze images", variant: "destructive" });
