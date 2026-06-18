@@ -145,7 +145,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  useEffect(() => {
+  const migrateAnonChat = async (userId: string) => {
+    if (!supabase) return;
+    const pending = getPendingAnonMigration();
+    if (!pending) return;
+    try {
+      const first = pending.messages.find((m) => m.role === 'user');
+      const title = (first?.content || 'Anonymous chat').slice(0, 50);
+      const dbMessages = pending.messages.map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        type: 'text',
+        timestamp: new Date(m.timestamp).toISOString(),
+      }));
+      const { error } = await supabase.from('chat_sessions').insert({
+        user_id: userId,
+        title,
+        messages: dbMessages,
+      });
+      if (error) {
+        console.error('Anon chat migration failed:', error);
+        return;
+      }
+      clearPendingAnonMigration();
+      console.log('✅ Migrated anonymous chat to user history');
+    } catch (e) {
+      console.error('Anon chat migration error:', e);
+    }
+  };
+
+
     let mounted = true;
     let subscription: any = null;
 
