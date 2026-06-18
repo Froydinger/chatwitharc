@@ -8,6 +8,7 @@ import { NamePrompt } from "@/components/NamePrompt";
 import { MobileChatApp } from "@/components/MobileChatApp";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { LandingScreen } from "@/components/LandingScreen";
+import { AnonChat } from "@/components/AnonChat";
 
 export function Index() {
   const { sessionId } = useParams();
