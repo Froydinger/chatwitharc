@@ -472,7 +472,7 @@ export function MobileChatApp() {
 
   // Fixed input dock measurement
   const inputDockRef = useRef<HTMLDivElement>(null);
-  const [inputHeight, setInputHeight] = useState<number>(96);
+  const [inputHeight, setInputHeight] = useState<number>(64);
   const lastLoadedMessageIdRef = useRef<string | null>(null);
   const { toast } = useToast();
 
