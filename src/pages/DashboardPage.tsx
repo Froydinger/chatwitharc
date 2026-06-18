@@ -744,11 +744,12 @@ useEffect(() => {
     const cx = bubbleCX.get() - trackStart;
     const idx = Math.min(tabs.length - 1, Math.max(0, Math.floor(cx / tabW)));
     const target = tabs[idx]?.key || activeTab;
-    animate(bubbleCX, trackStart + idx * tabW + tabW / 2, { type: 'spring', stiffness: 420, damping: 20, mass: 0.7 });
-    // Scale back down on putdown + landing jiggle
+    animate(bubbleCX, trackStart + idx * tabW + tabW / 2, { type: 'spring', stiffness: 380, damping: 26, mass: 0.6 });
+    // Scale back down on putdown — let the spring settle smoothly from
+    // whatever stretch the move ended on, no keyframe jump.
     rawBase.set(1.0);
-    animate(rawSX, [1.15, 0.86, 1.08, 0.96, 1], { duration: 0.5 });
-    animate(rawSY, [0.88, 1.16, 0.93, 1.04, 1], { duration: 0.5 });
+    animate(rawSX, 1, { type: 'spring', stiffness: 260, damping: 18, mass: 0.45 });
+    animate(rawSY, 1, { type: 'spring', stiffness: 260, damping: 18, mass: 0.45 });
     switchTab(target);
   };
 
