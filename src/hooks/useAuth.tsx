@@ -175,7 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-
+  useEffect(() => {
     let mounted = true;
     let subscription: any = null;
 
