@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { getPendingAnonMigration, clearPendingAnonMigration } from "@/store/useAnonChatStore";
 
 interface Profile {
   id: string;
@@ -180,6 +181,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   fetchProfile(session.user.id);
                 }
               }, 0);
+
+              // Migrate any pending anonymous chat into this user's history
+              if (event === 'SIGNED_IN') {
+                setTimeout(() => {
+                  if (mounted) migrateAnonChat(session.user.id);
+                }, 0);
+              }
             } else {
               setProfile(null);
               setNeedsOnboarding(false);
