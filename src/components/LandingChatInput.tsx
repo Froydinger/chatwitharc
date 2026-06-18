@@ -93,9 +93,9 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
         <button
           type="button"
           aria-label="Options"
-          className="shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer text-muted-foreground hover:text-foreground ml-1"
+          className="shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer text-muted-foreground hover:text-foreground ml-1"
         >
-          <Plus className="h-5 w-5" />
+          <Plus className="h-4 w-4" />
 
         </button>
 
@@ -109,7 +109,7 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
             onFocus={() => setIsActive(true)}
             onBlur={() => setIsActive(false)}
             placeholder="Message ArcAI..."
-            className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[52px] max-h-[144px] leading-6 py-3 pl-0 pr-4 focus:outline-none focus:ring-0 text-[16px]"
+            className="border-none !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[40px] max-h-[144px] leading-6 py-2 pl-0 pr-4 focus:outline-none focus:ring-0 text-[16px]"
             rows={1}
           />
         </div>
@@ -119,14 +119,14 @@ export function LandingChatInput({ onSendAttempt }: LandingChatInputProps) {
           onClick={handleSend}
           disabled={!inputValue.trim()}
           className={[
-            "shrink-0 h-12 w-12 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer mr-1",
+            "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer mr-1",
             inputValue.trim()
               ? "!bg-[hsl(205,100%,48%)]/80 text-white ring-2 ring-[hsl(205,100%,48%)] !shadow-[0_0_12px_rgba(0,140,245,0.3)]"
               : "text-muted-foreground cursor-not-allowed opacity-30",
           ].join(" ")}
           aria-label="Send"
         >
-          <ArrowRight className="h-5 w-5" />
+          <ArrowRight className="h-4 w-4" />
         </button>
       </div>
     </div>

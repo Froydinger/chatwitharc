@@ -511,7 +511,7 @@ All colors MUST be HSL for perfect glass effects.
 
   /* Free-floating glass dock for chat input — accent-tinted glass */
   .glass-dock {
-    padding: 1rem;
+    padding: 0.5rem;
     border-radius: 9999px !important;
     overflow: visible !important;
     background:

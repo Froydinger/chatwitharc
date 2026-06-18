@@ -2485,39 +2485,39 @@ ${safeCode}
                   type="button"
                   onClick={() => setShowMenu(!showMenu)}
                   className={cn(
-                    "ci-menu-btn flex items-center justify-center w-10 h-10 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
+                    "ci-menu-btn flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
                     (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || showCanvasIndicator || personaMention || activePersona) && !showMenu && "text-primary"
                   )}
                   aria-label={activePersona ? `Chatting with ${activePersona.name}` : "Add content"}
                   title={activePersona ? `Chatting with ${activePersona.name}` : undefined}
                 >
                   {showMenu ? (
-                    <X className="h-5 w-5 transition-transform duration-300" />
+                    <X className="h-4 w-4 transition-transform duration-300" />
                   ) : activePersona ? (
                     activePersona.avatarUrl ? (
                       <img
                         src={activePersona.avatarUrl}
                         alt={activePersona.name}
                         loading="lazy"
-                        className="w-9 h-9 rounded-full object-cover bg-white ring-2 ring-primary/60"
+                        className="w-8 h-8 rounded-full object-cover bg-white ring-2 ring-primary/60"
                       />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold ring-2 ring-primary/60">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold ring-2 ring-primary/60">
                         {activePersona.name[0].toUpperCase()}
                       </div>
                     )
                   ) : personaMention ? (
-                    <Sparkles className="h-5 w-5 text-primary" />
+                    <Sparkles className="h-4 w-4 text-primary" />
                   ) : shouldShowSearchMode ? (
-                    <Globe className="h-5 w-5 text-indigo-400" />
+                    <Globe className="h-4 w-4 text-indigo-400" />
                   ) : shouldShowBanana ? (
-                    <ImagePlus className="h-5 w-5 text-amber-500" />
+                    <ImagePlus className="h-4 w-4 text-amber-500" />
                   ) : shouldShowCodeMode ? (
-                    <Code2 className="h-5 w-5 text-emerald-500" />
+                    <Code2 className="h-4 w-4 text-emerald-500" />
                   ) : showCanvasIndicator ? (
-                    <PenLine className="h-5 w-5 text-pink-400" />
+                    <PenLine className="h-4 w-4 text-pink-400" />
                   ) : (
-                    <Plus className="h-5 w-5" />
+                    <Plus className="h-4 w-4" />
                   )}
                 </button>
 
@@ -2829,7 +2829,7 @@ ${safeCode}
                 onPaste={handlePaste}
                 onFocus={handleInputFocus}
                 placeholder={isLoading ? "Thinking..." : "Message Arc..."}
-                className="flex-1 min-h-[44px] max-h-[200px] border-0 bg-transparent py-3 pr-4 focus-visible:ring-0 resize-none text-base placeholder:text-muted-foreground/60 scrollbar-hide"
+                className="flex-1 min-h-[36px] max-h-[200px] border-0 bg-transparent py-2 pr-4 focus-visible:ring-0 resize-none text-base placeholder:text-muted-foreground/60 scrollbar-hide"
                 rows={1}
               />
             </div>
@@ -2842,20 +2842,20 @@ ${safeCode}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={cancelCurrentRequest}
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg transition-all"
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground shadow-lg transition-all"
                 title="Stop response"
               >
-                <Square className="h-4 w-4 fill-current" />
+                <Square className="h-3.5 w-3.5 fill-current" />
               </motion.button>
             ) : inputValue.trim() || selectedImages.length > 0 || selectedDocuments.length > 0 ? (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleSend()}
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-transparent text-primary hover:bg-primary/10 transition-all"
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-transparent text-primary hover:bg-primary/10 transition-all"
                 aria-label="Send"
               >
-                <ArrowRight className="h-5 w-5" />
+                <ArrowRight className="h-4 w-4" />
               </motion.button>
             ) : (
               <motion.button
@@ -2869,10 +2869,10 @@ ${safeCode}
                     activateVoiceMode();
                   }
                 }}
-                className="flex items-center justify-center w-10 h-10 rounded-full bg-muted/40 hover:bg-primary/15 text-foreground hover:text-primary transition-all"
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-muted/40 hover:bg-primary/15 text-foreground hover:text-primary transition-all"
                 title="Voice mode"
               >
-                <Mic className="h-5 w-5" />
+                <Mic className="h-4 w-4" />
               </motion.button>
             )}
           </div>
