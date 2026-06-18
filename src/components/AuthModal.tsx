@@ -336,7 +336,18 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         </div>
 
                         <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                          <GlassButton variant="glow" type="submit" disabled={loading} className="w-full h-12 rounded-xl text-base font-medium">
+                          <GlassButton
+                            variant="glow"
+                            type="submit"
+                            disabled={loading}
+                            onClick={(e) => {
+                              // iOS HapticOverlay (native checkbox) can swallow the
+                              // submit default action, so trigger handleAuth directly.
+                              e.preventDefault();
+                              if (!loading) handleAuth();
+                            }}
+                            className="w-full h-12 rounded-xl text-base font-medium"
+                          >
                             {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
                           </GlassButton>
                         </motion.div>
