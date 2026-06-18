@@ -78,7 +78,7 @@ export function Index() {
 
   // Show landing screen if user is not authenticated
   if (!user) {
-    return <LandingScreen />;
+    return <AnonChat />;
   }
 
   // Show onboarding if user needs it and hasn't completed it
