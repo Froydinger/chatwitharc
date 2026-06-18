@@ -1523,13 +1523,8 @@ useEffect(() => {
           transition={isExiting
             ? { duration: 0.24, ease: [0.4, 0, 0.2, 1] as const }
             : { type: 'spring' as const, stiffness: 280, damping: 24, mass: 0.8, delay: 0.08 }}
-          className="flex items-center px-2 gap-1 py-3 rounded-full pointer-events-auto relative mx-5 sm:mx-8 w-[calc(100%-40px)] sm:w-[420px] md:w-[480px]"
+          className="dashboard-nav-pill flex items-center px-2 gap-1 py-3 rounded-full pointer-events-auto relative mx-5 sm:mx-8 w-[calc(100%-40px)] sm:w-[420px] md:w-[480px]"
           style={{
-            background: 'linear-gradient(135deg, hsl(var(--primary) / 0.14) 0%, hsl(var(--primary) / 0.08) 50%, hsl(var(--primary) / 0.14) 100%), hsl(var(--background) / 0.55)',
-            backdropFilter: 'blur(24px) saturate(140%)',
-            WebkitBackdropFilter: 'blur(24px) saturate(140%)',
-            border: '1px solid hsl(var(--primary) / 0.28)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.3), 0 0 18px hsl(var(--primary) / 0.12), inset 0 1px 0 hsl(var(--foreground) / 0.08)',
             willChange: 'transform, opacity, filter',
           }}
         >
