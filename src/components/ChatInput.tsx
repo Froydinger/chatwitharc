@@ -2829,7 +2829,7 @@ ${safeCode}
                 onPaste={handlePaste}
                 onFocus={handleInputFocus}
                 placeholder={isLoading ? "Thinking..." : "Message Arc..."}
-                className="flex-1 min-h-[18px] max-h-[200px] border-0 bg-transparent py-0 pr-4 focus-visible:ring-0 resize-none text-base placeholder:text-muted-foreground/60 scrollbar-hide"
+                className="flex-1 min-h-[28px] max-h-[200px] border-0 bg-transparent py-1 pr-4 focus-visible:ring-0 resize-none text-base placeholder:text-muted-foreground/60 scrollbar-hide"
                 rows={1}
               />
             </div>
