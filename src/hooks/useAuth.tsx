@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { getPendingAnonMigration, clearPendingAnonMigration } from "@/store/useAnonChatStore";
 
 interface Profile {
   id: string;
@@ -144,6 +145,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const migrateAnonChat = async (userId: string) => {
+    if (!supabase) return;
+    const pending = getPendingAnonMigration();
+    if (!pending) return;
+    try {
+      const first = pending.messages.find((m) => m.role === 'user');
+      const title = (first?.content || 'Anonymous chat').slice(0, 50);
+      const dbMessages = pending.messages.map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        type: 'text',
+        timestamp: new Date(m.timestamp).toISOString(),
+      }));
+      const { error } = await supabase.from('chat_sessions').insert({
+        user_id: userId,
+        title,
+        messages: dbMessages,
+      });
+      if (error) {
+        console.error('Anon chat migration failed:', error);
+        return;
+      }
+      clearPendingAnonMigration();
+      console.log('✅ Migrated anonymous chat to user history');
+    } catch (e) {
+      console.error('Anon chat migration error:', e);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     let subscription: any = null;
@@ -180,6 +211,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   fetchProfile(session.user.id);
                 }
               }, 0);
+
+              // Migrate any pending anonymous chat into this user's history
+              if (event === 'SIGNED_IN') {
+                setTimeout(() => {
+                  if (mounted) migrateAnonChat(session.user.id);
+                }, 0);
+              }
             } else {
               setProfile(null);
               setNeedsOnboarding(false);
