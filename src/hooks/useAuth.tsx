@@ -248,13 +248,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const isAnonymous = !!user?.is_anonymous;
+
   return (
     <AuthContext.Provider value={{
       user,
       session,
       profile,
       loading,
-      needsOnboarding
+      needsOnboarding,
+      isAnonymous,
     }}>
       {children}
     </AuthContext.Provider>
