@@ -208,7 +208,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
   };
 
   return (
-    <div className="dark">
+    <div className={isLight ? "light" : "dark"}>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent 
           className="sm:max-w-md p-0 bg-transparent border-0 shadow-none overflow-visible" 
@@ -224,21 +224,21 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
           >
             {/* Animated Liquid Blobs */}
             <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
-              <motion.div animate={{ x: [0, 30, 0], y: [0, -20, 0], scale: [1, 1.1, 1] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-blue-500/30 blur-[80px]" />
-              <motion.div animate={{ x: [0, -20, 0], y: [0, 30, 0], scale: [1, 1.15, 1] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }} className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-purple-500/25 blur-[80px]" />
-              <motion.div animate={{ x: [0, 15, 0], y: [0, -15, 0], scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }} className="absolute top-1/2 right-0 w-48 h-48 rounded-full bg-cyan-400/20 blur-[70px]" />
+              <motion.div animate={{ x: [0, 30, 0], y: [0, -20, 0], scale: [1, 1.1, 1] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className={cn("absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[80px]", t.blob1)} />
+              <motion.div animate={{ x: [0, -20, 0], y: [0, 30, 0], scale: [1, 1.15, 1] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }} className={cn("absolute -bottom-20 -left-20 w-64 h-64 rounded-full blur-[80px]", t.blob2)} />
+              <motion.div animate={{ x: [0, 15, 0], y: [0, -15, 0], scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }} className={cn("absolute top-1/2 right-0 w-48 h-48 rounded-full blur-[70px]", t.blob3)} />
             </div>
 
             {/* Main Glass Card */}
-            <div className="relative backdrop-blur-[40px] bg-gradient-to-br from-black/85 via-black/80 to-black/85 rounded-3xl border-0 shadow-2xl shadow-black/50 p-8">
+            <div className={cn("relative backdrop-blur-[40px] bg-gradient-to-br rounded-3xl border-0 shadow-2xl p-8", t.card, isLight ? "shadow-zinc-900/15" : "shadow-black/50")}>
               <motion.button
-                whileHover={{ scale: 1.1, backgroundColor: "rgba(255, 255, 255, 0.15)" }}
+                whileHover={{ scale: 1.1, backgroundColor: isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.15)" }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onClose}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors backdrop-blur-sm"
+                className={cn("absolute top-4 right-4 w-8 h-8 rounded-full border flex items-center justify-center transition-colors backdrop-blur-sm", t.surface, t.border, t.surfaceHover)}
                 aria-label="Close"
               >
-                <X className="h-4 w-4 text-white/70" />
+                <X className={cn("h-4 w-4", t.closeIcon)} />
               </motion.button>
 
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-6">
@@ -256,13 +256,13 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                       </div>
                     </motion.div>
                     <div>
-                      <h2 className="text-xl font-bold text-white mb-2">Check your email</h2>
-                      <p className="text-white/60 text-sm leading-relaxed">
+                      <h2 className={cn("text-xl font-bold mb-2", t.textStrong)}>Check your email</h2>
+                      <p className={cn("text-sm leading-relaxed", t.textMuted)}>
                         We sent a confirmation link to<br />
-                        <span className="text-white font-medium">{email}</span>
+                        <span className={cn("font-medium", t.textStrong)}>{email}</span>
                       </p>
                     </div>
-                    <p className="text-white/40 text-xs">
+                    <p className={cn("text-xs", t.textSubtle)}>
                       Click the link in your email to activate your account, then come back here to sign in.
                     </p>
                     <button
@@ -287,18 +287,19 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                     className="flex justify-center mb-4"
                   >
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center backdrop-blur-sm relative">
+                    <div className={cn("w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border flex items-center justify-center backdrop-blur-sm relative", t.border)}>
                       <img src="/arc-logo-ui.png" alt="ArcAI" className="h-10 w-10" />
                       {feature !== "generic" && (
-                        <div className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary/90 border-2 border-black flex items-center justify-center">
+                        <div className={cn("absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary/90 border-2 flex items-center justify-center", t.badgeRing)}>
                           <FeatureIcon className="h-3.5 w-3.5 text-primary-foreground" />
                         </div>
                       )}
                     </div>
                   </motion.div>
-                  <h1 className="text-2xl font-bold text-white mb-2">{copy.title}</h1>
-                  <p className="text-white/60 text-sm">{copy.subtitle}</p>
+                  <h1 className={cn("text-2xl font-bold mb-2", t.textStrong)}>{copy.title}</h1>
+                  <p className={cn("text-sm", t.textMuted)}>{copy.subtitle}</p>
                 </div>
+
 
                 {/* Boost CTA card */}
                 <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-4">
