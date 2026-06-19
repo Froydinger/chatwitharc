@@ -309,10 +309,10 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-bold text-white">Unlock everything with Boost</span>
+                        <span className={cn("text-sm font-bold", t.textStrong)}>Unlock everything with Boost</span>
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary text-primary-foreground">$7/mo</span>
                       </div>
-                      <p className="text-[11px] text-white/70 leading-snug">
+                      <p className={cn("text-[11px] leading-snug", isLight ? "text-zinc-700" : "text-white/70")}>
                         Personas · Voice mode · Image gen · Research · Code & Canvas · Music · File uploads · Memory · Chat history search
                       </p>
                     </div>
@@ -321,13 +321,13 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
 
 
                 {/* Tab Switcher */}
-                <div className="flex p-1 rounded-full bg-white/5 border border-white/10">
+                <div className={cn("flex p-1 rounded-full border", t.surface, t.border)}>
                   <button
                     type="button"
                     onClick={() => { setIsLogin(true); setShowEmailForm(false); }}
                     className={cn(
                       "flex-1 py-2 px-4 rounded-full text-sm font-medium transition-all duration-200",
-                      isLogin ? "bg-white/10 text-white shadow-[0_0_12px_rgba(255,255,255,0.06)]" : "text-white/50 hover:text-white/70"
+                      isLogin ? t.tabActive : t.tabIdle,
                     )}
                     disabled={loading}
                   >
@@ -338,7 +338,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                     onClick={() => { setIsLogin(false); setShowEmailForm(false); }}
                     className={cn(
                       "flex-1 py-2 px-4 rounded-full text-sm font-medium transition-all duration-200",
-                      !isLogin ? "bg-white/10 text-white shadow-[0_0_12px_rgba(255,255,255,0.06)]" : "text-white/50 hover:text-white/70"
+                      !isLogin ? t.tabActive : t.tabIdle,
                     )}
                     disabled={loading}
                   >
@@ -353,7 +353,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                       variant="ghost"
                       onClick={handleGoogleAuth}
                       disabled={loading}
-                      className="w-full h-12 rounded-xl border border-white/10 hover:border-white/20 text-base !text-white"
+                      className={cn("w-full h-12 rounded-xl border text-base", t.border, t.borderHover, t.socialText)}
                       type="button"
                     >
                       <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
@@ -371,7 +371,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                       variant="ghost"
                       onClick={handleAppleAuth}
                       disabled={loading}
-                      className="w-full h-12 rounded-xl border border-white/10 hover:border-white/20 text-base !text-white"
+                      className={cn("w-full h-12 rounded-xl border text-base", t.border, t.borderHover, t.socialText)}
                       type="button"
                     >
                       <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
@@ -384,16 +384,17 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
 
                 {/* Divider & Email Toggle */}
                 <div className="flex items-center gap-4">
-                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                  <div className={cn("flex-1 h-px bg-gradient-to-r from-transparent to-transparent", t.divider)} />
                   <button
                     type="button"
                     onClick={() => setShowEmailForm(!showEmailForm)}
-                    className="text-xs text-white/40 hover:text-white/70 font-medium transition-colors whitespace-nowrap"
+                    className={cn("text-xs font-medium transition-colors whitespace-nowrap", t.textSubtle, isLight ? "hover:text-zinc-800" : "hover:text-white/70")}
                   >
                     {showEmailForm ? "Hide email form" : "Use email instead"}
                   </button>
-                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                  <div className={cn("flex-1 h-px bg-gradient-to-r from-transparent to-transparent", t.divider)} />
                 </div>
+
 
                 {/* Email Form (collapsed by default) */}
                 <AnimatePresence>
