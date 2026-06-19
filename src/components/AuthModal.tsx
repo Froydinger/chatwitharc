@@ -210,22 +210,44 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                   </div>
                 ) : (
                 <>
-                {/* Logo */}
+                {/* Logo / contextual headline */}
                 <div className="text-center">
                   <motion.div
                     animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                     className="flex justify-center mb-4"
                   >
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center backdrop-blur-sm">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center backdrop-blur-sm relative">
                       <img src="/arc-logo-ui.png" alt="ArcAI" className="h-10 w-10" />
+                      {feature !== "generic" && (
+                        <div className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary/90 border-2 border-black flex items-center justify-center">
+                          <FeatureIcon className="h-3.5 w-3.5 text-primary-foreground" />
+                        </div>
+                      )}
                     </div>
                   </motion.div>
-                  <h1 className="text-2xl font-bold text-white mb-2">Welcome to ArcAI</h1>
-                  <p className="text-white/60 text-sm">
-                    {isLogin ? "Sign in to continue" : "Create your account"}
-                  </p>
+                  <h1 className="text-2xl font-bold text-white mb-2">{copy.title}</h1>
+                  <p className="text-white/60 text-sm">{copy.subtitle}</p>
                 </div>
+
+                {/* Boost CTA card */}
+                <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-primary/25 border border-primary/40 flex items-center justify-center shrink-0">
+                      <Crown className="h-4 w-4 text-primary-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-bold text-white">Unlock everything with Boost</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary text-primary-foreground">$7/mo</span>
+                      </div>
+                      <p className="text-[11px] text-white/70 leading-snug">
+                        Personas · Voice mode · Image gen · Research · Code & Canvas · Music · File uploads · Memory
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
 
                 {/* Tab Switcher */}
                 <div className="flex p-1 rounded-full bg-white/5 border border-white/10">
