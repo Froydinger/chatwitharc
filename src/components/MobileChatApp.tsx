@@ -358,6 +358,10 @@ export function MobileChatApp() {
 
       if (finalMode === 'dashboard') {
         if (dashboardSwipeOpeningRef.current) return;
+        if (isAnonymous) {
+          requireAuth("menu");
+          return;
+        }
         dashboardSwipeOpeningRef.current = true;
         sessionStorage.setItem('arc_dashboard_entry', 'swipe');
         navigate('/dashboard');
@@ -721,7 +725,25 @@ export function MobileChatApp() {
   }, []);
 
   const handleNewChat = () => {
+    // Anonymous users get no chat history — wipe local sessions before
+    // creating the new one so they always start from a blank slate.
+    if (isAnonymous) {
+      useArcStore.setState({
+        chatSessions: [],
+        currentSessionId: null,
+        messages: [],
+      });
+    }
+
     const newSessionId = createNewSession();
+
+    if (isAnonymous) {
+      // Ensure only the freshly created session exists for anon users.
+      useArcStore.setState((s) => ({
+        chatSessions: s.chatSessions.filter((sess) => sess.id === newSessionId),
+      }));
+    }
+
     navigate(`/chat/${newSessionId}`);
 
     // Close panel only on mobile or when undocked on desktop. Keep docked sidebar open.
@@ -926,7 +948,13 @@ export function MobileChatApp() {
                     variant="outline"
                     size="icon"
                     className="rounded-full glass-shimmer transition-all overflow-hidden"
-                    onClick={() => navigate('/dashboard')}
+                    onClick={() => {
+                      if (isAnonymous) {
+                        requireAuth("menu");
+                        return;
+                      }
+                      navigate('/dashboard');
+                    }}
                     title="Dashboard"
                   >
                     <LayoutDashboard className="h-6 w-6 text-primary" />
