@@ -31,7 +31,7 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
   generic: { title: "Welcome to ArcAI", subtitle: "Sign in to unlock everything.", icon: Sparkles },
 };
 
-export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
@@ -40,6 +40,36 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  const feature = gatedFeature ?? "generic";
+  const copy = FEATURE_COPY[feature];
+  const FeatureIcon = copy.icon;
+
+  // If user opens via the "Boost" CTA, queue the upgrade modal to open
+  // automatically right after auth completes.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (feature === "boost") {
+      sessionStorage.setItem("arcai-post-auth-action", "open-upgrade");
+    }
+  }, [isOpen, feature]);
+
+  // After auth state flips to a real user, fire the queued post-auth action.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => {
+      const queued = sessionStorage.getItem("arcai-post-auth-action");
+      if (queued === "open-upgrade") {
+        sessionStorage.removeItem("arcai-post-auth-action");
+        setTimeout(
+          () => window.dispatchEvent(new CustomEvent("open-upgrade-modal")),
+          400,
+        );
+      }
+    };
+    window.addEventListener("arcai-auth-completed", handler);
+    return () => window.removeEventListener("arcai-auth-completed", handler);
+  }, []);
 
   const handleAuth = async () => {
     if (!supabase || !isSupabaseConfigured) {
