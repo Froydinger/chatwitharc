@@ -512,9 +512,9 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
         input:-webkit-autofill:hover,
         input:-webkit-autofill:focus,
         input:-webkit-autofill:active {
-          -webkit-box-shadow: 0 0 0 30px rgb(0, 0, 0) inset !important;
-          -webkit-text-fill-color: white !important;
-          caret-color: white !important;
+          -webkit-box-shadow: 0 0 0 30px ${t.autofillBg} inset !important;
+          -webkit-text-fill-color: ${t.autofillText} !important;
+          caret-color: ${t.autofillText} !important;
         }
       `}</style>
     </div>
