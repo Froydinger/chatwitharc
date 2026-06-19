@@ -2467,7 +2467,7 @@ ${safeCode}
       <div
         ref={inputBarRef}
         className={cn(
-          "relative flex flex-col gap-2 p-1.5 transition-all duration-300",
+          "relative flex flex-col gap-2 p-0.5 transition-all duration-300",
           isActive ? "opacity-100" : "opacity-95",
         )}
       >
