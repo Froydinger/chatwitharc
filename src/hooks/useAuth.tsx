@@ -176,7 +176,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSession(session);
             setUser(session?.user ?? null);
 
-            if (session?.user) {
+            // Skip profile/onboarding for anonymous (guest) users
+            if (session?.user && !session.user.is_anonymous) {
               // Defer profile fetch to avoid deadlock
               setTimeout(() => {
                 if (mounted) {
