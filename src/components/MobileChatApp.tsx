@@ -881,6 +881,10 @@ export function MobileChatApp() {
                       isMusicPlaying && "ring-2 ring-primary/50"
                     )}
                     onClick={() => {
+                      if (isAnonymous) {
+                        requireAuth("music");
+                        return;
+                      }
                       setIsMusicPopupOpen(!isMusicPopupOpen);
                     }}
                     title="Music Player"
