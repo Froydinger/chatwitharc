@@ -408,9 +408,9 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                     >
                       <form onSubmit={onSubmit} className="space-y-4 px-1 pt-1 pb-1">
                         <div className="space-y-2">
-                          <label htmlFor="email" className="text-sm font-medium text-white/80">Email</label>
+                          <label htmlFor="email" className={cn("text-sm font-medium", isLight ? "text-zinc-700" : "text-white/80")}>Email</label>
                           <div className="relative group">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 transition-colors group-focus-within:text-blue-400" />
+                            <Mail className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors group-focus-within:text-blue-400", t.textFaint)} />
                             <input
                               id="email"
                               name="email"
@@ -425,14 +425,15 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                               onChange={(e) => setEmail(e.target.value)}
                               className={cn(
                                 "w-full h-12 pl-10 pr-4 rounded-xl",
-                                "bg-white/5 border border-white/10",
-                                "backdrop-blur-sm placeholder:text-white/40",
+                                t.inputBg,
+                                "backdrop-blur-sm",
+                                t.inputPlaceholder,
                                 "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50",
                                 "transition-all duration-200",
-                                "hover:bg-white/[0.07] hover:border-white/20",
-                                "text-white"
+                                t.inputHover,
+                                t.textStrong,
                               )}
-                              style={{ color: "#fff", caretColor: "#fff", WebkitTextFillColor: "#fff" }}
+                              style={{ color: t.inputColor, caretColor: t.inputColor, WebkitTextFillColor: t.inputColor }}
                               disabled={loading}
                               required
                             />
@@ -440,9 +441,9 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                         </div>
 
                         <div className="space-y-2">
-                          <label htmlFor="password" className="text-sm font-medium text-white/80">Password</label>
+                          <label htmlFor="password" className={cn("text-sm font-medium", isLight ? "text-zinc-700" : "text-white/80")}>Password</label>
                           <div className="relative group">
-                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40 transition-colors group-focus-within:text-blue-400" />
+                            <Lock className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors group-focus-within:text-blue-400", t.textFaint)} />
                             <input
                               id="password"
                               name="password"
@@ -452,14 +453,15 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                               onChange={(e) => setPassword(e.target.value)}
                             className={cn(
                               "w-full h-12 pl-10 pr-10 rounded-xl",
-                              "bg-white/5 border border-white/10",
-                              "backdrop-blur-sm placeholder:text-white/40",
+                              t.inputBg,
+                              "backdrop-blur-sm",
+                              t.inputPlaceholder,
                               "focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50",
                               "transition-all duration-200",
-                              "hover:bg-white/[0.07] hover:border-white/20",
-                              "text-white"
+                              t.inputHover,
+                              t.textStrong,
                             )}
-                            style={{ color: "#fff", caretColor: "#fff", WebkitTextFillColor: "#fff" }}
+                            style={{ color: t.inputColor, caretColor: t.inputColor, WebkitTextFillColor: t.inputColor }}
                               disabled={loading}
                               autoComplete={isLogin ? "current-password" : "new-password"}
                               required
@@ -469,13 +471,14 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                               whileTap={{ scale: 0.95 }}
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                              className={cn("absolute right-3 top-1/2 -translate-y-1/2 transition-colors", t.textFaint, isLight ? "hover:text-zinc-700" : "hover:text-white/70")}
                               tabIndex={-1}
                             >
                               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </motion.button>
                           </div>
                         </div>
+
 
                         <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                           <GlassButton
