@@ -418,9 +418,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
-  const { user } = useAuth();
+  const { user, isAnonymous } = useAuth();
   const subscription = useSubscription();
-  const isGuestMode = !user;
+  // Guest mode = no user OR anonymous (auto-issued) Supabase session.
+  const isGuestMode = !user || isAnonymous;
+  const requireAuth = useRequireAuth();
   const { personas, fetchPersonas } = usePersonasStore();
 
   const {
