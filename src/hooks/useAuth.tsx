@@ -18,6 +18,8 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   needsOnboarding: boolean;
+  /** True when the active session is an anonymous Supabase user (guest mode). */
+  isAnonymous: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -25,7 +27,8 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   profile: null,
   loading: true,
-  needsOnboarding: false
+  needsOnboarding: false,
+  isAnonymous: false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
