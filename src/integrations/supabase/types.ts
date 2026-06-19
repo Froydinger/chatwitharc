@@ -71,6 +71,27 @@ export type Database = {
         }
         Relationships: []
       }
+      anon_usage: {
+        Row: {
+          ip_hash: string
+          replies_count: number
+          updated_at: string
+          usage_date: string
+        }
+        Insert: {
+          ip_hash: string
+          replies_count?: number
+          updated_at?: string
+          usage_date: string
+        }
+        Update: {
+          ip_hash?: string
+          replies_count?: number
+          updated_at?: string
+          usage_date?: string
+        }
+        Relationships: []
+      }
       chat_folders: {
         Row: {
           color: string | null
