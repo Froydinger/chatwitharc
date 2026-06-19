@@ -253,8 +253,8 @@ export function MobileChatApp() {
     if (isLargeScreen) {
       // Restore docked preference; default to undocked (hover-only) for new users
       const dockedPref = localStorage.getItem("arc_rightPanelDocked") === "true";
-      setRightPanelDocked(dockedPref);
-      if (dockedPref && !rightPanelOpen) {
+      setRightPanelDocked(isAnonymous ? false : dockedPref);
+      if (dockedPref && !rightPanelOpen && !isAnonymous) {
         setRightPanelOpen(true);
       }
     } else if (isMobile) {
