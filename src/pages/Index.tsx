@@ -7,12 +7,11 @@ import { useArcStore } from "@/store/useArcStore";
 import { NamePrompt } from "@/components/NamePrompt";
 import { MobileChatApp } from "@/components/MobileChatApp";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
-import { LandingScreen } from "@/components/LandingScreen";
 
 export function Index() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
-  const { user, profile, loading, needsOnboarding } = useAuth();
+  const { user, profile, loading, needsOnboarding, isAnonymous } = useAuth();
   const { isLoaded } = useChatSync();
   const { currentSessionId, loadSession, chatSessions } = useArcStore();
 
@@ -24,9 +23,6 @@ export function Index() {
       document.documentElement.classList.add('theme-ready');
     }
   }, [loading]);
-
-  // Landing/lander now follows system theme via useTheme (no force-light)
-
 
   // Load session from URL if present (priority: URL takes precedence)
   useEffect(() => {
@@ -43,10 +39,7 @@ export function Index() {
     }
   }, [sessionId, user, chatSessions, currentSessionId, isLoaded]);
 
-  // Initialize theme on app load
-  useEffect(() => {}, []);
-
-  // Handle pending prompt from landing screen after authentication
+  // Handle pending prompt from previous flows after authentication
   useEffect(() => {
     if (user && !loading && !needsOnboarding) {
       const pendingPrompt = sessionStorage.getItem('pending-prompt');
@@ -57,7 +50,7 @@ export function Index() {
     }
   }, [user, loading, needsOnboarding]);
 
-  // Only show loading screen during auth, never during chat switches
+  // Only show loading screen during initial auth bootstrap
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -75,13 +68,8 @@ export function Index() {
     );
   }
 
-  // Show landing screen if user is not authenticated
-  if (!user) {
-    return <LandingScreen />;
-  }
-
-  // Show onboarding if user needs it and hasn't completed it
-  if (needsOnboarding && !onboardingComplete) {
+  // Show onboarding only for real (non-anonymous) users who need it.
+  if (user && !isAnonymous && needsOnboarding && !onboardingComplete) {
     return (
       <OnboardingScreen
         onComplete={() => {
@@ -97,6 +85,8 @@ export function Index() {
     );
   }
 
-  // Authenticated user - show chat
+  // Everyone — including anonymous guests — sees the chat screen.
+  // Premium actions are gated client-side via useRequireAuth and
+  // server-side via the chat edge function's guest mode.
   return <MobileChatApp />;
 }
