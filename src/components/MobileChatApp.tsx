@@ -394,7 +394,13 @@ export function MobileChatApp() {
   // Hover edge handlers (desktop only)
   const openPanelPreview = () => {
     if (isMobile) return;
+    if (isAnonymous) return; // Hover preview disabled for guests
     if (hoverCloseTimerRef.current) {
+      clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+    }
+    if (!rightPanelOpen) setRightPanelOpen(true);
+  };
       clearTimeout(hoverCloseTimerRef.current);
       hoverCloseTimerRef.current = null;
     }
