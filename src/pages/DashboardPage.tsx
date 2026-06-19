@@ -95,7 +95,23 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as DashboardTab) || "overview";
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isAnonymous } = useAuth();
+
+  // Anonymous users are not allowed to view the dashboard at all.
+  // Bounce them back to the chat and open the sign-in modal immediately.
+  useEffect(() => {
+    if (!authLoading && (isAnonymous || !user)) {
+      navigate("/", { replace: true });
+      window.dispatchEvent(
+        new CustomEvent("auth-gate-feature", { detail: { feature: "menu" } }),
+      );
+    }
+  }, [authLoading, isAnonymous, user, navigate]);
+
+  if (!authLoading && (isAnonymous || !user)) {
+    return null;
+  }
+
   const { isSubscribed, subscriptionEnd, openCheckout, hasBoost } = useSubscription();
   const { profile } = useProfile();
   const { isLoaded } = useChatSync();
