@@ -420,12 +420,14 @@ export function MobileChatApp() {
   };
 
   const toggleDock = () => {
+    if (isAnonymous) {
+      requireAuth("menu");
+      return;
+    }
     if (rightPanelDocked) {
-      // Undock: unpin and close
       setRightPanelDocked(false);
       setRightPanelOpen(false);
     } else {
-      // Dock: pin open
       setRightPanelDocked(true);
       setRightPanelOpen(true);
     }
