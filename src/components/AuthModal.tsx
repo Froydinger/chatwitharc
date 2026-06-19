@@ -1,17 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
-import { Mail, Lock, Eye, EyeOff, X } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, X, Crown, Sparkles, Mic, ImagePlus, Globe, Code2, PenLine, Music, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { GatedFeature, AuthGateDetail } from "@/hooks/useRequireAuth";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Optional contextual feature that triggered the modal */
+  gatedFeature?: GatedFeature;
 }
+
+const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon: React.ComponentType<{ className?: string }> }> = {
+  menu: { title: "Sign in to open this", subtitle: "Your chat history, canvases & settings live behind a free account.", icon: Sparkles },
+  music: { title: "Sign in to play music", subtitle: "Vibe with Arc's built-in lofi and YouTube player after signing in.", icon: Music },
+  tools: { title: "Sign in to use tools", subtitle: "Web search, image gen, code, canvas and more.", icon: Sparkles },
+  personas: { title: "Sign in to chat with personas", subtitle: "Talk to custom AI personalities once you're signed in.", icon: Sparkles },
+  voice: { title: "Sign in for voice mode", subtitle: "Real-time speech-to-speech with Arc.", icon: Mic },
+  "image-gen": { title: "Sign in to generate images", subtitle: "Create and edit images with Nano Banana 2.", icon: ImagePlus },
+  files: { title: "Sign in to attach files", subtitle: "PDFs, docs, images and more.", icon: Paperclip },
+  research: { title: "Sign in for live research", subtitle: "Cited sources from across the web.", icon: Globe },
+  code: { title: "Sign in to write code", subtitle: "Pro-tier code & app generation.", icon: Code2 },
+  canvas: { title: "Sign in to open the canvas", subtitle: "Long-form writing & layouts.", icon: PenLine },
+  boost: { title: "Sign in, then go Boost", subtitle: "Create your account in one tap — we'll take you straight to Boost.", icon: Crown },
+  generic: { title: "Welcome to ArcAI", subtitle: "Sign in to unlock everything.", icon: Sparkles },
+};
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
