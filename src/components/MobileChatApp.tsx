@@ -823,6 +823,10 @@ export function MobileChatApp() {
                     size="icon"
                     className="rounded-full glass-shimmer transition-all"
                     onClick={() => {
+                      if (isAnonymous) {
+                        requireAuth("menu");
+                        return;
+                      }
                       if (isMobile) {
                         setRightPanelOpen(!rightPanelOpen);
                       } else {
