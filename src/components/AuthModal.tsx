@@ -17,7 +17,7 @@ interface AuthModalProps {
 }
 
 const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon: React.ComponentType<{ className?: string }> }> = {
-  menu: { title: "Sign in to open this", subtitle: "Your chat history, canvases & settings live behind a free account.", icon: Sparkles },
+  menu: { title: "Sign in to open this", subtitle: "Your chats and settings live behind a free account.", icon: Sparkles },
   music: { title: "Sign in to play music", subtitle: "Vibe with Arc's built-in lofi and YouTube player after signing in.", icon: Music },
   tools: { title: "Sign in to use tools", subtitle: "Web search, image gen, code, canvas and more.", icon: Sparkles },
   personas: { title: "Sign in to chat with personas", subtitle: "Talk to custom AI personalities once you're signed in.", icon: Sparkles },
