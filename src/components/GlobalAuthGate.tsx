@@ -21,7 +21,18 @@ export function GlobalAuthGate() {
       setIsOpen(true);
     };
     window.addEventListener("auth-gate-feature", handler);
-    return () => window.removeEventListener("auth-gate-feature", handler);
+
+    // Legacy event: existing guest message limit hits this.
+    const guestLimitHandler = () => {
+      setFeature("generic");
+      setIsOpen(true);
+    };
+    window.addEventListener("arcai:guestMessageSent", guestLimitHandler);
+
+    return () => {
+      window.removeEventListener("auth-gate-feature", handler);
+      window.removeEventListener("arcai:guestMessageSent", guestLimitHandler);
+    };
   }, []);
 
   // When user upgrades from anonymous to a real account, close the modal
