@@ -40,6 +40,9 @@ import { SmartSuggestions } from "@/components/SmartSuggestions";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { GENERAL_QUICK_PROMPTS, pickRandomPrompts } from "@/components/WelcomeSection";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { BoostCtaBanner } from "@/components/BoostCtaBanner";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
