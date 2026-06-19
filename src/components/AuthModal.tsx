@@ -45,6 +45,76 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
   const copy = FEATURE_COPY[feature];
   const FeatureIcon = copy.icon;
 
+  // Reactive light/dark detection so the modal can render a true light-mode
+  // variant instead of always wrapping itself in `.dark`.
+  const [isLight, setIsLight] = useState(() =>
+    typeof document !== "undefined" && document.documentElement.classList.contains("light"),
+  );
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    const update = () => setIsLight(root.classList.contains("light"));
+    update();
+    const obs = new MutationObserver(update);
+    obs.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+
+  // Themed class tokens for the modal surface.
+  const t = isLight
+    ? {
+        card: "from-white/95 via-white/92 to-white/95",
+        textStrong: "text-zinc-900",
+        textMuted: "text-zinc-600",
+        textSubtle: "text-zinc-500",
+        textFaint: "text-zinc-400",
+        surface: "bg-zinc-900/[0.04]",
+        surfaceHover: "hover:bg-zinc-900/[0.08]",
+        border: "border-zinc-900/10",
+        borderHover: "hover:border-zinc-900/20",
+        divider: "via-zinc-900/15",
+        closeIcon: "text-zinc-700",
+        badgeRing: "border-white",
+        tabActive: "bg-zinc-900/[0.08] text-zinc-900 shadow-[0_0_12px_rgba(0,0,0,0.04)]",
+        tabIdle: "text-zinc-500 hover:text-zinc-800",
+        socialText: "!text-zinc-900",
+        inputBg: "bg-zinc-900/[0.04] border border-zinc-900/10",
+        inputHover: "hover:bg-zinc-900/[0.07] hover:border-zinc-900/20",
+        inputPlaceholder: "placeholder:text-zinc-400",
+        inputColor: "#18181b",
+        autofillBg: "rgb(255, 255, 255)",
+        autofillText: "#18181b",
+        blob1: "bg-blue-500/15",
+        blob2: "bg-purple-500/15",
+        blob3: "bg-cyan-400/10",
+      }
+    : {
+        card: "from-black/85 via-black/80 to-black/85",
+        textStrong: "text-white",
+        textMuted: "text-white/60",
+        textSubtle: "text-white/40",
+        textFaint: "text-white/40",
+        surface: "bg-white/5",
+        surfaceHover: "hover:bg-white/10",
+        border: "border-white/10",
+        borderHover: "hover:border-white/20",
+        divider: "via-white/20",
+        closeIcon: "text-white/70",
+        badgeRing: "border-black",
+        tabActive: "bg-white/10 text-white shadow-[0_0_12px_rgba(255,255,255,0.06)]",
+        tabIdle: "text-white/50 hover:text-white/70",
+        socialText: "!text-white",
+        inputBg: "bg-white/5 border border-white/10",
+        inputHover: "hover:bg-white/[0.07] hover:border-white/20",
+        inputPlaceholder: "placeholder:text-white/40",
+        inputColor: "#fff",
+        autofillBg: "rgb(0, 0, 0)",
+        autofillText: "#fff",
+        blob1: "bg-blue-500/30",
+        blob2: "bg-purple-500/25",
+        blob3: "bg-cyan-400/20",
+      };
+
   // If user opens via the "Boost" CTA, queue the upgrade modal to open
   // automatically right after auth completes.
   useEffect(() => {
