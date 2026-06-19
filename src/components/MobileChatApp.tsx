@@ -358,6 +358,10 @@ export function MobileChatApp() {
 
       if (finalMode === 'dashboard') {
         if (dashboardSwipeOpeningRef.current) return;
+        if (isAnonymous) {
+          requireAuth("menu");
+          return;
+        }
         dashboardSwipeOpeningRef.current = true;
         sessionStorage.setItem('arc_dashboard_entry', 'swipe');
         navigate('/dashboard');
