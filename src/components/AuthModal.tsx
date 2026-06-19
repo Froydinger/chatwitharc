@@ -242,7 +242,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary text-primary-foreground">$7/mo</span>
                       </div>
                       <p className="text-[11px] text-white/70 leading-snug">
-                        Personas · Voice mode · Image gen · Research · Code & Canvas · Music · File uploads · Memory
+                        Personas · Voice mode · Image gen · Research · Code & Canvas · Music · File uploads · Memory · Chat history search
                       </p>
                     </div>
                   </div>
