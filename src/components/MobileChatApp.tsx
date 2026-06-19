@@ -1185,6 +1185,12 @@ export function MobileChatApp() {
                 </motion.div>
               )}
 
+              {isAnonymous && (
+                <div className="pointer-events-auto mb-2">
+                  <BoostCtaBanner />
+                </div>
+              )}
+
               <motion.div
                 className="pointer-events-auto glass-dock"
                 data-has-images={hasSelectedImages}
