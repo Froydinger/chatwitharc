@@ -199,10 +199,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (!mounted) return;
 
+        // Auto sign-in as anonymous guest if there is no session at all.
+        // This gives unauthenticated visitors a JWT so they can use the
+        // chat edge function (with guest restrictions enforced server-side).
+        if (!session) {
+          try {
+            await supabase.auth.signInAnonymously();
+            // onAuthStateChange will fire with the new anon session.
+          } catch (err) {
+            console.warn('Anonymous sign-in failed:', err);
+            setLoading(false);
+            clearTimeout(timeout);
+          }
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
 
-        if (session?.user) {
+        if (session?.user && !session.user.is_anonymous) {
           setTimeout(() => {
             if (mounted) {
               fetchProfile(session.user.id);
