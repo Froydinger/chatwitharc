@@ -725,7 +725,25 @@ export function MobileChatApp() {
   }, []);
 
   const handleNewChat = () => {
+    // Anonymous users get no chat history — wipe local sessions before
+    // creating the new one so they always start from a blank slate.
+    if (isAnonymous) {
+      useArcStore.setState({
+        chatSessions: [],
+        currentSessionId: null,
+        messages: [],
+      });
+    }
+
     const newSessionId = createNewSession();
+
+    if (isAnonymous) {
+      // Ensure only the freshly created session exists for anon users.
+      useArcStore.setState((s) => ({
+        chatSessions: s.chatSessions.filter((sess) => sess.id === newSessionId),
+      }));
+    }
+
     navigate(`/chat/${newSessionId}`);
 
     // Close panel only on mobile or when undocked on desktop. Keep docked sidebar open.
