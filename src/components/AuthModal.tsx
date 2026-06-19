@@ -1,19 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
-import { Mail, Lock, Eye, EyeOff, X } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, X, Crown, Sparkles, Mic, ImagePlus, Globe, Code2, PenLine, Music, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { GatedFeature, AuthGateDetail } from "@/hooks/useRequireAuth";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Optional contextual feature that triggered the modal */
+  gatedFeature?: GatedFeature;
 }
 
-export function AuthModal({ isOpen, onClose }: AuthModalProps) {
+const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon: React.ComponentType<{ className?: string }> }> = {
+  menu: { title: "Sign in to open this", subtitle: "Your chat history, canvases & settings live behind a free account.", icon: Sparkles },
+  music: { title: "Sign in to play music", subtitle: "Vibe with Arc's built-in lofi and YouTube player after signing in.", icon: Music },
+  tools: { title: "Sign in to use tools", subtitle: "Web search, image gen, code, canvas and more.", icon: Sparkles },
+  personas: { title: "Sign in to chat with personas", subtitle: "Talk to custom AI personalities once you're signed in.", icon: Sparkles },
+  voice: { title: "Sign in for voice mode", subtitle: "Real-time speech-to-speech with Arc.", icon: Mic },
+  "image-gen": { title: "Sign in to generate images", subtitle: "Create and edit images with Nano Banana 2.", icon: ImagePlus },
+  files: { title: "Sign in to attach files", subtitle: "PDFs, docs, images and more.", icon: Paperclip },
+  research: { title: "Sign in for live research", subtitle: "Cited sources from across the web.", icon: Globe },
+  code: { title: "Sign in to write code", subtitle: "Pro-tier code & app generation.", icon: Code2 },
+  canvas: { title: "Sign in to open the canvas", subtitle: "Long-form writing & layouts.", icon: PenLine },
+  boost: { title: "Sign in, then go Boost", subtitle: "Create your account in one tap — we'll take you straight to Boost.", icon: Crown },
+  generic: { title: "Welcome to ArcAI", subtitle: "Sign in to unlock everything.", icon: Sparkles },
+};
+
+export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
@@ -22,6 +40,36 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  const feature = gatedFeature ?? "generic";
+  const copy = FEATURE_COPY[feature];
+  const FeatureIcon = copy.icon;
+
+  // If user opens via the "Boost" CTA, queue the upgrade modal to open
+  // automatically right after auth completes.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (feature === "boost") {
+      sessionStorage.setItem("arcai-post-auth-action", "open-upgrade");
+    }
+  }, [isOpen, feature]);
+
+  // After auth state flips to a real user, fire the queued post-auth action.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => {
+      const queued = sessionStorage.getItem("arcai-post-auth-action");
+      if (queued === "open-upgrade") {
+        sessionStorage.removeItem("arcai-post-auth-action");
+        setTimeout(
+          () => window.dispatchEvent(new CustomEvent("open-upgrade-modal")),
+          400,
+        );
+      }
+    };
+    window.addEventListener("arcai-auth-completed", handler);
+    return () => window.removeEventListener("arcai-auth-completed", handler);
+  }, []);
 
   const handleAuth = async () => {
     if (!supabase || !isSupabaseConfigured) {
@@ -162,22 +210,44 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   </div>
                 ) : (
                 <>
-                {/* Logo */}
+                {/* Logo / contextual headline */}
                 <div className="text-center">
                   <motion.div
                     animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                     className="flex justify-center mb-4"
                   >
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center backdrop-blur-sm">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/10 flex items-center justify-center backdrop-blur-sm relative">
                       <img src="/arc-logo-ui.png" alt="ArcAI" className="h-10 w-10" />
+                      {feature !== "generic" && (
+                        <div className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary/90 border-2 border-black flex items-center justify-center">
+                          <FeatureIcon className="h-3.5 w-3.5 text-primary-foreground" />
+                        </div>
+                      )}
                     </div>
                   </motion.div>
-                  <h1 className="text-2xl font-bold text-white mb-2">Welcome to ArcAI</h1>
-                  <p className="text-white/60 text-sm">
-                    {isLogin ? "Sign in to continue" : "Create your account"}
-                  </p>
+                  <h1 className="text-2xl font-bold text-white mb-2">{copy.title}</h1>
+                  <p className="text-white/60 text-sm">{copy.subtitle}</p>
                 </div>
+
+                {/* Boost CTA card */}
+                <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-primary/25 border border-primary/40 flex items-center justify-center shrink-0">
+                      <Crown className="h-4 w-4 text-primary-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-bold text-white">Unlock everything with Boost</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary text-primary-foreground">$7/mo</span>
+                      </div>
+                      <p className="text-[11px] text-white/70 leading-snug">
+                        Personas · Voice mode · Image gen · Research · Code & Canvas · Music · File uploads · Memory
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
 
                 {/* Tab Switcher */}
                 <div className="flex p-1 rounded-full bg-white/5 border border-white/10">

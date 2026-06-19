@@ -388,42 +388,42 @@ serve(async (req) => {
   try {
     // Check for guest mode first
     const body = await req.json();
-    const isGuestMode = body.guest_mode === true;
+    let isGuestMode = body.guest_mode === true;
 
-    // Verify authentication (skip for guest mode)
+    // Verify authentication
     const authHeader = req.headers.get('Authorization');
     let user = null;
 
-    if (isGuestMode) {
-      console.log('👤 Guest mode request');
-    } else {
-      if (!authHeader) {
-        return new Response(
-          JSON.stringify({ error: 'Missing authorization header' }),
-          {
-            status: 401,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-
+    if (authHeader) {
       // Verify user token
       const token = authHeader.replace('Bearer ', '');
       const { data: userData, error: authError } = await supabase.auth.getUser(token);
       user = userData?.user;
 
-      if (authError || !user) {
-        console.error('Authentication failed:', authError);
-        return new Response(
-          JSON.stringify({ error: 'Invalid or expired token' }),
-          {
-            status: 401,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
+      if (authError) {
+        console.warn('Auth header present but token verification failed:', authError);
       }
 
-      console.log('Authenticated user:', user.id);
+      // Anonymous Supabase users are always treated as guests, no matter what
+      // the client claimed.
+      if (user?.is_anonymous) {
+        isGuestMode = true;
+        console.log('👤 Anonymous (auto-issued) user — forcing guest mode');
+      } else if (user) {
+        console.log('Authenticated user:', user.id);
+      }
+    } else if (!isGuestMode) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    if (isGuestMode && !user) {
+      console.log('👤 Guest mode request (no auth)');
     }
 
     const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;

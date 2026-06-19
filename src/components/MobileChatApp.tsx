@@ -40,6 +40,9 @@ import { SmartSuggestions } from "@/components/SmartSuggestions";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { GENERAL_QUICK_PROMPTS, pickRandomPrompts } from "@/components/WelcomeSection";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { BoostCtaBanner } from "@/components/BoostCtaBanner";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
@@ -154,6 +157,8 @@ export function MobileChatApp() {
     refreshSessionFromSupabase,
   } = useArcStore();
   const { profile } = useProfile();
+  const { isAnonymous } = useAuth();
+  const requireAuth = useRequireAuth();
   const getPersonaById = usePersonasStore(s => s.getPersonaById);
   const isMobile = useIsMobile();
   const isAdminBannerActive = useAdminBanner();
@@ -248,8 +253,8 @@ export function MobileChatApp() {
     if (isLargeScreen) {
       // Restore docked preference; default to undocked (hover-only) for new users
       const dockedPref = localStorage.getItem("arc_rightPanelDocked") === "true";
-      setRightPanelDocked(dockedPref);
-      if (dockedPref && !rightPanelOpen) {
+      setRightPanelDocked(isAnonymous ? false : dockedPref);
+      if (dockedPref && !rightPanelOpen && !isAnonymous) {
         setRightPanelOpen(true);
       }
     } else if (isMobile) {
@@ -389,6 +394,7 @@ export function MobileChatApp() {
   // Hover edge handlers (desktop only)
   const openPanelPreview = () => {
     if (isMobile) return;
+    if (isAnonymous) return; // Hover preview disabled for guests
     if (hoverCloseTimerRef.current) {
       clearTimeout(hoverCloseTimerRef.current);
       hoverCloseTimerRef.current = null;
@@ -414,12 +420,14 @@ export function MobileChatApp() {
   };
 
   const toggleDock = () => {
+    if (isAnonymous) {
+      requireAuth("menu");
+      return;
+    }
     if (rightPanelDocked) {
-      // Undock: unpin and close
       setRightPanelDocked(false);
       setRightPanelOpen(false);
     } else {
-      // Dock: pin open
       setRightPanelDocked(true);
       setRightPanelOpen(true);
     }
@@ -434,6 +442,10 @@ export function MobileChatApp() {
       const tag = el?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable) return;
       e.preventDefault();
+      if (isAnonymous) {
+        requireAuth("menu");
+        return;
+      }
       setRightPanelOpen(!rightPanelOpen);
     };
     window.addEventListener("keydown", onKeyDown);
@@ -811,6 +823,10 @@ export function MobileChatApp() {
                     size="icon"
                     className="rounded-full glass-shimmer transition-all"
                     onClick={() => {
+                      if (isAnonymous) {
+                        requireAuth("menu");
+                        return;
+                      }
                       if (isMobile) {
                         setRightPanelOpen(!rightPanelOpen);
                       } else {
@@ -865,6 +881,10 @@ export function MobileChatApp() {
                       isMusicPlaying && "ring-2 ring-primary/50"
                     )}
                     onClick={() => {
+                      if (isAnonymous) {
+                        requireAuth("music");
+                        return;
+                      }
                       setIsMusicPopupOpen(!isMusicPopupOpen);
                     }}
                     title="Music Player"
@@ -1163,6 +1183,12 @@ export function MobileChatApp() {
                     </span>
                   </div>
                 </motion.div>
+              )}
+
+              {isAnonymous && (
+                <div className="pointer-events-auto mb-2">
+                  <BoostCtaBanner />
+                </div>
               )}
 
               <motion.div

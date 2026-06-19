@@ -18,6 +18,8 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   needsOnboarding: boolean;
+  /** True when the active session is an anonymous Supabase user (guest mode). */
+  isAnonymous: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -25,7 +27,8 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   profile: null,
   loading: true,
-  needsOnboarding: false
+  needsOnboarding: false,
+  isAnonymous: false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -173,7 +176,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSession(session);
             setUser(session?.user ?? null);
 
-            if (session?.user) {
+            // Skip profile/onboarding for anonymous (guest) users
+            if (session?.user && !session.user.is_anonymous) {
               // Defer profile fetch to avoid deadlock
               setTimeout(() => {
                 if (mounted) {
@@ -196,10 +200,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (!mounted) return;
 
+        // Auto sign-in as anonymous guest if there is no session at all.
+        // This gives unauthenticated visitors a JWT so they can use the
+        // chat edge function (with guest restrictions enforced server-side).
+        if (!session) {
+          try {
+            await supabase.auth.signInAnonymously();
+            // onAuthStateChange will fire with the new anon session.
+          } catch (err) {
+            console.warn('Anonymous sign-in failed:', err);
+            setLoading(false);
+            clearTimeout(timeout);
+          }
+          return;
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
 
-        if (session?.user) {
+        if (session?.user && !session.user.is_anonymous) {
           setTimeout(() => {
             if (mounted) {
               fetchProfile(session.user.id);
@@ -229,13 +248,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const isAnonymous = !!user?.is_anonymous;
+
   return (
     <AuthContext.Provider value={{
       user,
       session,
       profile,
       loading,
-      needsOnboarding
+      needsOnboarding,
+      isAnonymous,
     }}>
       {children}
     </AuthContext.Provider>

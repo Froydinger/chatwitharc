@@ -29,6 +29,7 @@ import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { useAuth } from "@/hooks/useAuth";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
@@ -418,9 +419,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
-  const { user } = useAuth();
+  const { user, isAnonymous } = useAuth();
   const subscription = useSubscription();
-  const isGuestMode = !user;
+  // Guest mode = no user OR anonymous (auto-issued) Supabase session.
+  const isGuestMode = !user || isAnonymous;
+  const requireAuth = useRequireAuth();
   const { personas, fetchPersonas } = usePersonasStore();
 
   const {
@@ -537,9 +540,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   useEffect(() => {
     if (inputValue.trim() === "/") {
       setInputValue("");
+      if (isGuestMode) {
+        requireAuth("tools");
+        return;
+      }
       setShowMenu(true);
     }
-  }, [inputValue]);
+  }, [inputValue, isGuestMode, requireAuth]);
 
   // Handle /deep command to open research mode
   useEffect(() => {
@@ -2483,7 +2490,13 @@ ${safeCode}
                 <button
                   ref={menuButtonRef}
                   type="button"
-                  onClick={() => setShowMenu(!showMenu)}
+                  onClick={() => {
+                    if (isGuestMode) {
+                      requireAuth("tools");
+                      return;
+                    }
+                    setShowMenu(!showMenu);
+                  }}
                   className={cn(
                     "ci-menu-btn flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
                     (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || showCanvasIndicator || personaMention || activePersona) && !showMenu && "text-primary"
@@ -2862,6 +2875,10 @@ ${safeCode}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
+                  if (isGuestMode) {
+                    requireAuth("voice");
+                    return;
+                  }
                   if (isDashboard) {
                     navigate("/chat");
                     setTimeout(() => activateVoiceMode(), 100);

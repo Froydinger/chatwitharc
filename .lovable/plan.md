@@ -1,40 +1,86 @@
-# Slimmer Input Bar Plan
-
 ## Goal
-Make the chat input bar approximately half its current **thickness** (height) across all contexts — main chat, dashboard, and landing page — without breaking layout, touch targets, or portal positioning.
 
-## Current State
-- The input bar currently renders at roughly ~76–88px total thickness (glass-dock padding + inner textarea + buttons).
-- The main levers are: `.glass-dock` padding (`1rem`), textarea `min-h-[44px]`, and `w-10 h-10` action buttons.
+Anonymous visitors land directly on the chat screen (no more `LandingScreen`). They can send plain-text chat messages immediately. Any premium action (menus, music, tool use, personas, voice, image gen, file upload, research, code, canvas, etc.) opens the sign-in modal — which also pitches Boost ($7/mo). A dismissible Boost CTA banner sits above the chat input.
 
-## Target
-Reduce to ~40–48px total thickness (roughly 50–60% of current).
+## Backend changes
 
-## Files & Changes
+1. **Enable anonymous sign-ins** in Supabase auth (`external_anonymous_users_enabled: true`).
+2. **`useAuth` hook**: on app boot, if no session, call `supabase.auth.signInAnonymously()` so anon users have a JWT for the chat edge function. Expose `isAnonymous = !!user?.is_anonymous`.
+3. **`chat` edge function**: read `data.claims.is_anonymous`. If true, hard-strip premium request flags before processing:
+   - Force model to default Gemini Flash
+   - Reject `forceCode`, `forceCanvas`, `personaId`, `tools`, `research`, `images`, `attachments`, `voice`
+   - Cap message length / count even tighter (e.g. 10 msgs/session)
+   - Return 200 with a friendly inline "sign in to unlock" assistant message if any premium flag was sent
+4. **No DB writes for anonymous chats**: `useChatSync` skips inserts/upserts when `isAnonymous`. Sessions live in `localStorage` only (existing store already persists locally).
+5. **On real sign-in**: discard the anon session (don't migrate messages — fresh slate, matches GPT behavior).
 
-### 1. `src/index.css`
-- **`.glass-dock`**: Change `padding: 1rem` to `padding: 0.5rem` (16px → 8px). This is the single biggest driver of thickness reduction and applies globally to every instance.
+## Frontend changes
 
-### 2. `src/components/ChatInput.tsx`
-- **Textarea**: Reduce `min-h-[44px]` → `min-h-[36px]` and `py-3` → `py-2`.
-- **Menu button**: Reduce `w-10 h-10` → `w-9 h-9`.
-- **Send / Stop / Voice buttons**: Reduce `w-10 h-10` → `w-9 h-9`.
-- **Icons inside buttons**: Reduce from `h-5 w-5` to `h-4 w-4` to stay proportional.
+### `src/pages/Index.tsx`
+- Delete the `if (!user) return <LandingScreen />` branch.
+- All users (anon + real) go through `MobileChatApp`.
+- Keep `pending-prompt` migration logic for the rare race.
 
-### 3. `src/components/LandingChatInput.tsx`
-- **Buttons**: Reduce `h-12 w-12` → `h-10 w-10`.
-- **Textarea**: Reduce `min-h-[52px]` → `min-h-[40px]`.
-- **Textarea padding**: Reduce `py-3` → `py-2`.
+### New hook `src/hooks/useRequireAuth.ts`
+```ts
+const requireAuth = useRequireAuth();
+requireAuth("music", () => openMusic());   // calls callback if real user, else opens AuthModal with feature label
+```
+Sets a global `auth-gate-feature` event picked up by `AuthModal`.
 
-### 4. `src/components/MobileChatApp.tsx`
-- **Initial `inputHeight`**: Reduce from `96` → `64` so the scroll-bottom padding reserve matches the new thinner bar.
+### `src/components/AuthModal.tsx`
+- Accept optional `gatedFeature` prop ("music", "personas", "tools", "voice", "image-gen", "menu", "research", "code", "files").
+- Show a contextual headline: *"Sign in to use {feature}"*.
+- Add a **Boost CTA card** beneath the sign-in buttons:
+  > **Unlock everything with Boost — $7/mo**
+  > Personas · Voice mode · Image gen · Research · Code & Canvas · Music · File uploads
+  > [Start free trial]
+- Listen for the `auth-gate-feature` event so any gated click anywhere opens the modal pre-themed.
 
-## Why This Won't Break Anything
-- All portaled elements (prompt enhancer, usage meter, image/doc previews) anchor to the input bar's live bounding rect, so their `bottom` offsets automatically adjust.
-- The `inputHeight` is dynamically measured via ResizeObserver in MobileChatApp, so scroll padding self-corrects after first render.
-- Mobile touch targets remain at 36px (buttons), which is acceptable. The main reduction comes from outer padding and textarea height, not from crushing buttons to an unusable size.
+### `src/components/MobileChatApp.tsx` & `src/components/RightPanel.tsx`
+- Wrap sidebar tabs (history, canvases, ideas, quote, dashboard, account, settings, etc.) with `requireAuth("menu", …)` for anon users.
+- The accent/theme overflow stays open (low-risk UX).
 
-## Estimated Result
-- Main chat: ~76px → ~48px
-- Dashboard: same (shared `.glass-dock` class)
-- Landing: ~88px → ~56px
+### `src/components/ChatInput.tsx`
+- Tool/slash menu, persona picker, mic button, image, file upload, research, code, canvas — each gated with `requireAuth(featureKey, …)` when anon.
+- `handleSend`: allow plain text only when anon; if any attachment/tool/persona state is set, route to `requireAuth` instead.
+- Add a small inline pill above the input for anon users:
+  > *"Free chat · Sign in to unlock everything →"* (dismissible per-session)
+
+### `src/components/MusicPopup.tsx` (and GlobalMusicPlayer trigger)
+- Opening the popup as anon → `requireAuth("music", …)`.
+
+### New `src/components/BoostCtaBanner.tsx`
+- Pinned above the chat input area for anon users only.
+- Dismissible (`sessionStorage` key `arcai-anon-boost-dismissed`).
+- Text: *"You're chatting as a guest. Sign in free — or go Boost ($7/mo) to unlock personas, image gen, voice, research & more."*
+- Two buttons: `Sign in` (opens AuthModal) · `Get Boost` (opens AuthModal with gatedFeature="boost", post-signup auto-fires `open-upgrade-modal`).
+
+### Cleanup
+- `LandingScreen.tsx`, `LandingChatInput.tsx`, `LandingVoiceDemo.tsx`, `LandingCanvasDemo.tsx` stay in repo (in case we want them back) but no longer imported. Index.tsx no longer references them.
+
+## Files touched
+
+- `supabase/functions/chat/index.ts` — anon flag gating
+- Auth config (`external_anonymous_users_enabled: true`)
+- `src/pages/Index.tsx`
+- `src/hooks/useAuth.tsx` — auto anon sign-in, `isAnonymous`
+- `src/hooks/useRequireAuth.ts` *(new)*
+- `src/components/AuthModal.tsx` — gated-feature mode + Boost CTA card
+- `src/components/BoostCtaBanner.tsx` *(new)*
+- `src/components/MobileChatApp.tsx` — banner + sidebar gates
+- `src/components/RightPanel.tsx` — tab gates
+- `src/components/ChatInput.tsx` — per-feature gates, anon send path
+- `src/components/MusicPopup.tsx` / music trigger — gate
+- `src/hooks/useChatSync.ts` — skip DB writes for anon
+
+## Memory updates after build
+
+- New memory: `mem://features/anonymous-guest-mode` documenting anon flow & gating matrix.
+- Update `mem://features/guest-mode-removal` (currently says guest disabled) — replace with the new guest model.
+- Update core: landing-page constraint memory is now obsolete; remove landing-only logic note.
+
+## Out of scope
+
+- Migrating anon chat history to a real account after sign-in (intentionally not done — matches the user's GPT-like behavior request).
+- Changes to onboarding flow for real users.

@@ -4,59 +4,41 @@ import { useAuth } from './useAuth';
 import { useCorporateModeStore } from '@/store/useCorporateModeStore';
 
 export function useChatSync() {
-  const { user } = useAuth();
+  const { user, isAnonymous } = useAuth();
   const syncFromSupabase = useArcStore((state) => state.syncFromSupabase);
   const isSyncing = useArcStore((state) => state.isSyncing);
   const syncedUserId = useArcStore((state) => state.syncedUserId);
   const prevUserIdRef = useRef<string | null>(null);
 
-  // Reset syncedUserId when user logs out (so re-login triggers sync)
-  useEffect(() => {
-    const currentUserId = user?.id ?? null;
+  // Treat anonymous (guest) sessions as "no user" for sync purposes —
+  // their messages live in localStorage only.
+  const effectiveUserId = user && !isAnonymous ? user.id : null;
 
-    // User logged out (was logged in before, now not)
-    if (prevUserIdRef.current && !currentUserId) {
+  // Reset syncedUserId when user logs out (or downgrades to anon)
+  useEffect(() => {
+    if (prevUserIdRef.current && !effectiveUserId) {
       console.log('🔄 useChatSync: User logged out, resetting sync state');
       useArcStore.setState({ syncedUserId: null, chatSessions: [] });
     }
 
-    prevUserIdRef.current = currentUserId;
-  }, [user?.id]);
+    prevUserIdRef.current = effectiveUserId;
+  }, [effectiveUserId]);
 
-  // Sync when user authenticates or user ID changes
   const corporateMode = useCorporateModeStore((s) => s.enabled);
   useEffect(() => {
-    const currentUserId = user?.id ?? null;
+    if (!effectiveUserId) return;
+    if (corporateMode) return;
+    if (syncedUserId === effectiveUserId) return;
+    if (isSyncing) return;
 
-    // Skip if no user
-    if (!currentUserId) {
-      return;
-    }
-
-    // Corporate Mode: don't pull cloud history at all (privacy lockdown).
-    if (corporateMode) {
-      return;
-    }
-
-    // Skip if already synced for this user
-    if (syncedUserId === currentUserId) {
-      return;
-    }
-
-    // Skip if currently syncing (store handles this too, but good to check)
-    if (isSyncing) {
-      return;
-    }
-
-    // New user or different user - trigger sync
-    console.log('🔄 useChatSync: Triggering sync for user:', currentUserId);
+    console.log('🔄 useChatSync: Triggering sync for user:', effectiveUserId);
     syncFromSupabase();
-  }, [user?.id, syncFromSupabase, syncedUserId, isSyncing, corporateMode]);
+  }, [effectiveUserId, syncFromSupabase, syncedUserId, isSyncing, corporateMode]);
 
-  // Calculate isLoaded: true if no user, in corporate mode, or sync completed for current user
-  const isLoaded = !user || corporateMode || (syncedUserId === user.id && !isSyncing);
+  const isLoaded =
+    !effectiveUserId || corporateMode || (syncedUserId === effectiveUserId && !isSyncing);
 
   return {
-    isLoaded
+    isLoaded,
   };
 }
