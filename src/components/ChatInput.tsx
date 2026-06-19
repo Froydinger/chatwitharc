@@ -2871,6 +2871,10 @@ ${safeCode}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
+                  if (isGuestMode) {
+                    requireAuth("voice");
+                    return;
+                  }
                   if (isDashboard) {
                     navigate("/chat");
                     setTimeout(() => activateVoiceMode(), 100);
