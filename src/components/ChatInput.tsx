@@ -540,9 +540,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   useEffect(() => {
     if (inputValue.trim() === "/") {
       setInputValue("");
+      if (isGuestMode) {
+        requireAuth("tools");
+        return;
+      }
       setShowMenu(true);
     }
-  }, [inputValue]);
+  }, [inputValue, isGuestMode, requireAuth]);
 
   // Handle /deep command to open research mode
   useEffect(() => {
