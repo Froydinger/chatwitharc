@@ -442,6 +442,10 @@ export function MobileChatApp() {
       const tag = el?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable) return;
       e.preventDefault();
+      if (isAnonymous) {
+        requireAuth("menu");
+        return;
+      }
       setRightPanelOpen(!rightPanelOpen);
     };
     window.addEventListener("keydown", onKeyDown);
