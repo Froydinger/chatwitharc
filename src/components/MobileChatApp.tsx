@@ -401,11 +401,6 @@ export function MobileChatApp() {
     }
     if (!rightPanelOpen) setRightPanelOpen(true);
   };
-      clearTimeout(hoverCloseTimerRef.current);
-      hoverCloseTimerRef.current = null;
-    }
-    if (!rightPanelOpen) setRightPanelOpen(true);
-  };
 
   const schedulePanelClose = () => {
     if (isMobile || rightPanelDocked) return;
