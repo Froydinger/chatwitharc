@@ -2486,7 +2486,13 @@ ${safeCode}
                 <button
                   ref={menuButtonRef}
                   type="button"
-                  onClick={() => setShowMenu(!showMenu)}
+                  onClick={() => {
+                    if (isGuestMode) {
+                      requireAuth("tools");
+                      return;
+                    }
+                    setShowMenu(!showMenu);
+                  }}
                   className={cn(
                     "ci-menu-btn flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
                     (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || showCanvasIndicator || personaMention || activePersona) && !showMenu && "text-primary"
