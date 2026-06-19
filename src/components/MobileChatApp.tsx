@@ -930,7 +930,13 @@ export function MobileChatApp() {
                     variant="outline"
                     size="icon"
                     className="rounded-full glass-shimmer transition-all overflow-hidden"
-                    onClick={() => navigate('/dashboard')}
+                    onClick={() => {
+                      if (isAnonymous) {
+                        requireAuth("menu");
+                        return;
+                      }
+                      navigate('/dashboard');
+                    }}
                     title="Dashboard"
                   >
                     <LayoutDashboard className="h-6 w-6 text-primary" />
