@@ -17,17 +17,17 @@ interface AuthModalProps {
 }
 
 const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon: React.ComponentType<{ className?: string }> }> = {
-  menu: { title: "Sign in to open this", subtitle: "Your chats and settings live behind a free account.", icon: Sparkles },
-  music: { title: "Sign in to play music", subtitle: "Vibe with Arc's built-in lofi and YouTube player after signing in.", icon: Music },
-  tools: { title: "Sign in to use tools", subtitle: "Web search, image gen, code, canvas and more.", icon: Sparkles },
-  personas: { title: "Sign in to chat with personas", subtitle: "Talk to custom AI personalities once you're signed in.", icon: Sparkles },
-  voice: { title: "Sign in for voice mode", subtitle: "Real-time speech-to-speech with Arc.", icon: Mic },
-  "image-gen": { title: "Sign in to generate images", subtitle: "Create and edit images with Nano Banana 2.", icon: ImagePlus },
-  files: { title: "Sign in to attach files", subtitle: "PDFs, docs, images and more.", icon: Paperclip },
-  research: { title: "Sign in for live research", subtitle: "Cited sources from across the web.", icon: Globe },
-  code: { title: "Sign in to write code", subtitle: "Pro-tier code & app generation.", icon: Code2 },
-  canvas: { title: "Sign in to open the canvas", subtitle: "Long-form writing & layouts.", icon: PenLine },
-  boost: { title: "Sign in, then go Boost", subtitle: "Create your account in one tap — we'll take you straight to Boost.", icon: Crown },
+  menu: { title: "Sign in to continue", subtitle: "Chats and settings need an account.", icon: Sparkles },
+  music: { title: "Sign in for music", subtitle: "Lofi & YouTube, free with an account.", icon: Music },
+  tools: { title: "Sign in to use tools", subtitle: "Search, images, code, canvas.", icon: Sparkles },
+  personas: { title: "Sign in for personas", subtitle: "Chat with custom AI personalities.", icon: Sparkles },
+  voice: { title: "Sign in for voice mode", subtitle: "Real-time speech with Arc.", icon: Mic },
+  "image-gen": { title: "Sign in to make images", subtitle: "Generate & edit with Nano Banana 2.", icon: ImagePlus },
+  files: { title: "Sign in to attach files", subtitle: "PDFs, docs, images.", icon: Paperclip },
+  research: { title: "Sign in for research", subtitle: "Cited sources from the web.", icon: Globe },
+  code: { title: "Sign in to write code", subtitle: "Pro code & app generation.", icon: Code2 },
+  canvas: { title: "Sign in for canvas", subtitle: "Long-form writing & layouts.", icon: PenLine },
+  boost: { title: "Sign in to go Boost", subtitle: "One tap — straight to checkout.", icon: Crown },
   generic: { title: "Welcome to ArcAI", subtitle: "Sign in to unlock everything.", icon: Sparkles },
 };
 
@@ -309,11 +309,11 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={cn("text-sm font-bold", t.textStrong)}>Unlock everything with Boost</span>
+                        <span className={cn("text-sm font-bold", t.textStrong)}>Go Boost</span>
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary text-primary-foreground">$7/mo</span>
                       </div>
                       <p className={cn("text-[11px] leading-snug", isLight ? "text-zinc-700" : "text-white/70")}>
-                        Personas · Voice mode · Image gen · Research · Code & Canvas · Music · File uploads · Memory · Chat history search
+                        Everything unlocked. Voice, images, code, canvas, memory & more.
                       </p>
                     </div>
                   </div>

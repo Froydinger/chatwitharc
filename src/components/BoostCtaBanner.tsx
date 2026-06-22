@@ -54,10 +54,8 @@ export function BoostCtaBanner({ className }: { className?: string }) {
             <Crown className="h-3.5 w-3.5 text-primary" />
           </div>
           <p className="flex-1 min-w-0 text-[12px] leading-snug text-foreground/85">
-            <span className="font-semibold text-foreground">You're chatting as a guest.</span>{" "}
-            <span className="text-muted-foreground">
-              Sign in free — or go Boost ($7/mo) to unlock personas, voice, images, research & more.
-            </span>
+            <span className="font-semibold text-foreground">Chatting as a guest.</span>{" "}
+            <span className="text-muted-foreground">Sign in free, or Boost for everything.</span>
           </p>
           <button
             onClick={() => openAuth("generic")}
