@@ -22,16 +22,12 @@ export function GlobalAuthGate() {
     };
     window.addEventListener("auth-gate-feature", handler);
 
-    // Legacy event: existing guest message limit hits this.
-    const guestLimitHandler = () => {
-      setFeature("generic");
-      setIsOpen(true);
-    };
-    window.addEventListener("arcai:guestMessageSent", guestLimitHandler);
+    // Note: we deliberately do NOT listen for `arcai:guestMessageSent` here.
+    // Anonymous users can chat freely; the modal only appears for gated
+    // features via `auth-gate-feature`.
 
     return () => {
       window.removeEventListener("auth-gate-feature", handler);
-      window.removeEventListener("arcai:guestMessageSent", guestLimitHandler);
     };
   }, []);
 
