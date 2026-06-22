@@ -300,23 +300,12 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                   <p className={cn("text-sm", t.textMuted)}>{copy.subtitle}</p>
                 </div>
 
-
-                {/* Boost CTA card */}
-                <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="h-9 w-9 rounded-xl bg-primary/25 border border-primary/40 flex items-center justify-center shrink-0">
-                      <Crown className="h-4 w-4 text-primary-foreground" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={cn("text-sm font-bold", t.textStrong)}>Go Boost</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary text-primary-foreground">$7/mo</span>
-                      </div>
-                      <p className={cn("text-[11px] leading-snug", isLight ? "text-zinc-700" : "text-white/70")}>
-                        Everything unlocked. Voice, images, code, canvas, memory & more.
-                      </p>
-                    </div>
-                  </div>
+                {/* Free-account emphasis */}
+                <div className={cn("flex items-center justify-center gap-2 text-[12px]", t.textMuted)}>
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <span>
+                    <span className={cn("font-semibold", t.textStrong)}>Free forever</span> — no card, no trial.
+                  </span>
                 </div>
 
 
