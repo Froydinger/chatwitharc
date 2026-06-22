@@ -309,11 +309,11 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={cn("text-sm font-bold", t.textStrong)}>Unlock everything with Boost</span>
+                        <span className={cn("text-sm font-bold", t.textStrong)}>Go Boost</span>
                         <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-primary text-primary-foreground">$7/mo</span>
                       </div>
                       <p className={cn("text-[11px] leading-snug", isLight ? "text-zinc-700" : "text-white/70")}>
-                        Personas · Voice mode · Image gen · Research · Code & Canvas · Music · File uploads · Memory · Chat history search
+                        Everything unlocked. Voice, images, code, canvas, memory & more.
                       </p>
                     </div>
                   </div>
