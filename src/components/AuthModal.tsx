@@ -489,6 +489,23 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {/* Subtle Boost mention */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    sessionStorage.setItem("arcai-post-auth-action", "open-upgrade");
+                    window.dispatchEvent(new CustomEvent("open-upgrade-modal"));
+                  }}
+                  className={cn(
+                    "w-full text-center text-[11px] transition-colors inline-flex items-center justify-center gap-1.5",
+                    t.textSubtle,
+                    isLight ? "hover:text-zinc-800" : "hover:text-white/70",
+                  )}
+                >
+                  <Crown className="h-3 w-3" />
+                  Want everything unlocked? <span className="underline underline-offset-2">Go Boost · $7/mo</span>
+                </button>
                 </>
                 )}
               </motion.div>
