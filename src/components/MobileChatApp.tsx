@@ -759,10 +759,14 @@ export function MobileChatApp() {
 
   const triggerPrompt = useCallback(
     (prompt: string) => {
+      if (isAnonymous) {
+        requireAuth("tools");
+        return;
+      }
       startChatWithMessage(prompt);
       // When triggering a prompt, respecting existing sidebar visibility seems appropriate
     },
-    [startChatWithMessage],
+    [startChatWithMessage, isAnonymous, requireAuth],
   );
 
   /** AI avatar progressive fade in after load */
