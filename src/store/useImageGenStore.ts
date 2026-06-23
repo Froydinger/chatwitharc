@@ -13,7 +13,7 @@ export const ALLOWED_IMAGE_MODELS: ImageModelId[] = [
   'openai/gpt-image-2',
 ];
 
-export type ImageAspectRatio = '1:1' | '3:2' | '2:3';
+export type ImageAspectRatio = '1:1' | '3:2' | '2:3' | '16:9';
 
 export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb: string; pro?: boolean }> = [
   {
@@ -27,6 +27,7 @@ export const IMAGE_ASPECT_OPTIONS: Array<{ id: ImageAspectRatio; label: string }
   { id: '1:1', label: 'Square' },
   { id: '3:2', label: 'Landscape' },
   { id: '2:3', label: 'Portrait' },
+  { id: '16:9', label: '16:9 (YouTube)' },
 ];
 
 interface ImageGenState {
@@ -53,16 +54,19 @@ export const useImageGenStore = create<ImageGenState>()(
         if (!ALLOWED_IMAGE_MODELS.includes(state.model)) {
           state.model = DEFAULT_IMAGE_MODEL;
         }
-        const validAspects: ImageAspectRatio[] = ['1:1', '3:2', '2:3'];
+        const validAspects: ImageAspectRatio[] = ['1:1', '3:2', '2:3', '16:9'];
         if (!validAspects.includes(state.aspectRatio)) {
           // Remap legacy ratios to the closest supported bucket.
-          const landscape = ['4:3', '16:9', '21:9'];
           const portrait = ['3:4', '9:16'];
-          state.aspectRatio = landscape.includes(state.aspectRatio as string)
-            ? '3:2'
-            : portrait.includes(state.aspectRatio as string)
+          const widescreen = ['21:9'];
+          const legacy = state.aspectRatio as string;
+          state.aspectRatio = widescreen.includes(legacy)
+            ? '16:9'
+            : portrait.includes(legacy)
               ? '2:3'
-              : '1:1';
+              : legacy === '4:3'
+                ? '3:2'
+                : '1:1';
         }
       },
     }

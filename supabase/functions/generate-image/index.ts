@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { Image, decode } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -174,6 +175,41 @@ function extractImageUrl(parsed: any): string | null {
   return null;
 }
 
+
+// Crop a 3:2 (1536x1024) image to true 16:9 (1536x864) by removing equal
+// horizontal slices from top and bottom. Accepts a data URL or http URL,
+// returns a data URL of the cropped PNG.
+async function cropTo16x9(imageUrl: string): Promise<string> {
+  let bytes: Uint8Array;
+  if (imageUrl.startsWith("data:")) {
+    const commaIdx = imageUrl.indexOf(",");
+    const b64 = imageUrl.slice(commaIdx + 1);
+    const bin = atob(b64);
+    bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  } else {
+    const res = await fetch(imageUrl);
+    bytes = new Uint8Array(await res.arrayBuffer());
+  }
+
+  const decoded = await decode(bytes);
+  const img = decoded as Image;
+  const w = img.width;
+  const h = img.height;
+  const targetH = Math.round((w * 9) / 16);
+  if (targetH >= h) return imageUrl; // already 16:9 or wider
+  const yOffset = Math.floor((h - targetH) / 2);
+  const cropped = img.crop(0, yOffset, w, targetH);
+  const out = await cropped.encode();
+  // Encode to base64
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < out.length; i += chunk) {
+    binary += String.fromCharCode(...out.subarray(i, i + chunk));
+  }
+  return `data:image/png;base64,${btoa(binary)}`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -195,12 +231,20 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
+    const rawPrompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = normalizeAspectRatio(body?.aspectRatio);
     const selectedModel = pickImageModel(body?.preferredModel);
     const size = aspectToSize(aspectRatio);
+    const isYouTube = aspectRatio === "16:9";
 
-    if (!prompt) {
+    // For 16:9 we render at 3:2 landscape (1536x1024) with explicit black
+    // letterbox bars at top and bottom so the safe content area is exactly
+    // 1536x864 (true 16:9). We then crop those bars off server-side.
+    const prompt = isYouTube
+      ? `${rawPrompt}\n\nIMPORTANT COMPOSITION RULE: Render this as a 16:9 widescreen image. The full canvas is 1536x1024, but place ALL meaningful content within the centered 1536x864 region. Add solid pure black (#000000) letterbox bars exactly 80 pixels tall at the very top and very bottom of the image. The black bars must be uniformly solid black, edge-to-edge, with no gradients, textures, or content. Treat them as off-screen padding.`
+      : rawPrompt;
+
+    if (!rawPrompt) {
       return jsonResponse({ success: false, error: "Prompt is required.", errorType: "invalid_request" }, 400);
     }
 
@@ -209,7 +253,7 @@ serve(async (req) => {
       .insert({
         user_id: user.id,
         job_type: "generate",
-        prompt,
+        prompt: rawPrompt,
         aspect_ratio: aspectRatio,
         preferred_model: selectedModel,
         status: "processing",
@@ -227,7 +271,7 @@ serve(async (req) => {
     jobId = jobData.id;
     const currentJobId = jobData.id;
 
-    console.log(`Generating image with ${selectedModel} (${size}, medium) for job ${currentJobId}`);
+    console.log(`Generating image with ${selectedModel} (${size}, medium${isYouTube ? ", 16:9 crop" : ""}) for job ${currentJobId}`);
     const result = await callImageGateway(prompt, selectedModel, size);
 
     if (!result.ok) {
@@ -253,10 +297,19 @@ serve(async (req) => {
       return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: "Failed to parse model response", errorType: "parse_error", debugDetail: result.rawText.slice(0, 200) });
     }
 
-    const imageUrl = extractImageUrl(parsed);
+    let imageUrl = extractImageUrl(parsed);
     if (!imageUrl) {
       await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "No image returned from model", error_type: "no_image_returned" });
       return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: "No image returned from model", errorType: "no_image_returned", debugDetail: result.rawText.slice(0, 500) });
+    }
+
+    // For YouTube/16:9, crop center to true 16:9 ratio.
+    if (isYouTube) {
+      try {
+        imageUrl = await cropTo16x9(imageUrl);
+      } catch (cropErr) {
+        console.error("16:9 crop failed, returning uncropped image:", cropErr);
+      }
     }
 
     console.log(`Image generated successfully for job ${currentJobId}`);
