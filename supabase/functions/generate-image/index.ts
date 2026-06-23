@@ -120,13 +120,13 @@ async function updateJob(supabase: any, jobId: string, values: Record<string, un
   if (error) console.error("Failed to update image job:", jobId, error);
 }
 
-async function callImageGateway(prompt: string, model: string, size: string) {
+async function callImageGateway(prompt: string, model: string, size: string, count: number) {
   const requestBody = JSON.stringify({
     model,
     prompt,
     size,
     quality: "medium",
-    n: 1,
+    n: count,
   });
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -165,14 +165,16 @@ async function callImageGateway(prompt: string, model: string, size: string) {
   return { ok: false, status: 429, rawText: "Rate limit retry failed" };
 }
 
-function extractImageUrl(parsed: any): string | null {
-  const item = parsed?.data?.[0];
-  if (!item) return null;
-  if (typeof item.url === "string" && item.url) return item.url;
-  if (typeof item.b64_json === "string" && item.b64_json) {
-    return `data:image/png;base64,${item.b64_json}`;
+function extractImageUrls(parsed: any): string[] {
+  const items = Array.isArray(parsed?.data) ? parsed.data : [];
+  const urls: string[] = [];
+  for (const item of items) {
+    if (typeof item?.url === "string" && item.url) urls.push(item.url);
+    else if (typeof item?.b64_json === "string" && item.b64_json) {
+      urls.push(`data:image/png;base64,${item.b64_json}`);
+    }
   }
-  return null;
+  return urls;
 }
 
 
