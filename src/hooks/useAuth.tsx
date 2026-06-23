@@ -265,3 +265,27 @@ export const useAuth = () => {
   }
   return context;
 };
+
+/**
+ * Lazily mint an anonymous Supabase session if the visitor has no session yet.
+ * Call this right before any action that needs a JWT (e.g. sending a chat
+ * message). Safe to call repeatedly — no-op when a session already exists.
+ */
+let anonSignInPromise: Promise<void> | null = null;
+export async function ensureAnonSession(): Promise<void> {
+  if (!supabase) return;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) return;
+  if (!anonSignInPromise) {
+    anonSignInPromise = (async () => {
+      try {
+        await supabase.auth.signInAnonymously();
+      } catch (err) {
+        console.warn('Anonymous sign-in failed:', err);
+      } finally {
+        anonSignInPromise = null;
+      }
+    })();
+  }
+  await anonSignInPromise;
+}
