@@ -13,15 +13,7 @@ export const ALLOWED_IMAGE_MODELS: ImageModelId[] = [
   'openai/gpt-image-2',
 ];
 
-export type ImageAspectRatio =
-  | '1:1'
-  | '3:2'
-  | '2:3'
-  | '4:3'
-  | '3:4'
-  | '16:9'
-  | '9:16'
-  | '21:9';
+export type ImageAspectRatio = '1:1' | '3:2' | '2:3';
 
 export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb: string; pro?: boolean }> = [
   {
@@ -32,14 +24,9 @@ export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb
 ];
 
 export const IMAGE_ASPECT_OPTIONS: Array<{ id: ImageAspectRatio; label: string }> = [
-  { id: '1:1',  label: 'Square 1:1' },
-  { id: '3:2',  label: 'Landscape 3:2' },
-  { id: '2:3',  label: 'Portrait 2:3' },
-  { id: '4:3',  label: 'Landscape 4:3' },
-  { id: '3:4',  label: 'Portrait 3:4' },
-  { id: '16:9', label: 'Wide 16:9' },
-  { id: '9:16', label: 'Tall 9:16' },
-  { id: '21:9', label: 'Ultrawide 21:9' },
+  { id: '1:1', label: 'Square' },
+  { id: '3:2', label: 'Landscape' },
+  { id: '2:3', label: 'Portrait' },
 ];
 
 interface ImageGenState {
