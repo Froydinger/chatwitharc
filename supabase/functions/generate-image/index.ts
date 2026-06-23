@@ -175,6 +175,41 @@ function extractImageUrl(parsed: any): string | null {
   return null;
 }
 
+
+// Crop a 3:2 (1536x1024) image to true 16:9 (1536x864) by removing equal
+// horizontal slices from top and bottom. Accepts a data URL or http URL,
+// returns a data URL of the cropped PNG.
+async function cropTo16x9(imageUrl: string): Promise<string> {
+  let bytes: Uint8Array;
+  if (imageUrl.startsWith("data:")) {
+    const commaIdx = imageUrl.indexOf(",");
+    const b64 = imageUrl.slice(commaIdx + 1);
+    const bin = atob(b64);
+    bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  } else {
+    const res = await fetch(imageUrl);
+    bytes = new Uint8Array(await res.arrayBuffer());
+  }
+
+  const decoded = await decode(bytes);
+  const img = decoded as Image;
+  const w = img.width;
+  const h = img.height;
+  const targetH = Math.round((w * 9) / 16);
+  if (targetH >= h) return imageUrl; // already 16:9 or wider
+  const yOffset = Math.floor((h - targetH) / 2);
+  const cropped = img.crop(0, yOffset, w, targetH);
+  const out = await cropped.encode();
+  // Encode to base64
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < out.length; i += chunk) {
+    binary += String.fromCharCode(...out.subarray(i, i + chunk));
+  }
+  return `data:image/png;base64,${btoa(binary)}`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
