@@ -1453,33 +1453,51 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
-          const genUrl = await ai.generateImage(apiPrompt, imageGenModel, imageGenAspect);
-          let finalUrl = genUrl;
-          try {
-            const resp = await fetch(genUrl);
-            const blob = await resp.blob();
-            const {
-              data: { user },
-            } = await supabase.auth.getUser();
-            if (user) {
-              const name = `${user.id}/generated-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-              const { error } = await supabase.storage.from("avatars").upload(name, blob, {
-                contentType: "image/png",
-                upsert: false,
-              });
-              if (!error) {
+          const requestedCount = hasBoost ? Math.max(1, Math.min(3, imageGenCount || 1)) : 1;
+          const genUrls = await ai.generateImage(apiPrompt, imageGenModel, imageGenAspect, requestedCount);
+
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+
+          const uploaded = await Promise.all(
+            genUrls.map(async (genUrl) => {
+              try {
+                const resp = await fetch(genUrl);
+                const blob = await resp.blob();
+                if (!user) return genUrl;
+                const name = `${user.id}/generated-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+                const { error } = await supabase.storage.from("avatars").upload(name, blob, {
+                  contentType: "image/png",
+                  upsert: false,
+                });
+                if (error) return genUrl;
                 const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-                finalUrl = pub.publicUrl;
+                return pub.publicUrl || genUrl;
+              } catch {
+                return genUrl;
               }
-            }
-          } catch {}
+            })
+          );
+
+          // Replace placeholder with the first image…
           await replaceLastMessage({
             content: `Generated image: ${imagePrompt}`,
             role: "assistant",
             type: "image",
-            imageUrl: finalUrl,
+            imageUrl: uploaded[0],
             sourceModel: "cloud-image",
           });
+          // …and append the additional images as their own messages
+          for (let i = 1; i < uploaded.length; i++) {
+            await addMessage({
+              content: `Generated image: ${imagePrompt}`,
+              role: "assistant",
+              type: "image",
+              imageUrl: uploaded[i],
+              sourceModel: "cloud-image",
+            });
+          }
         } catch (err: any) {
           const errMsg = err?.message || "Image generation failed. Please try again.";
           await replaceLastMessage({
