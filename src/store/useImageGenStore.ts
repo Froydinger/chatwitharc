@@ -13,15 +13,7 @@ export const ALLOWED_IMAGE_MODELS: ImageModelId[] = [
   'openai/gpt-image-2',
 ];
 
-export type ImageAspectRatio =
-  | '1:1'
-  | '3:2'
-  | '2:3'
-  | '4:3'
-  | '3:4'
-  | '16:9'
-  | '9:16'
-  | '21:9';
+export type ImageAspectRatio = '1:1' | '3:2' | '2:3';
 
 export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb: string; pro?: boolean }> = [
   {
@@ -32,14 +24,9 @@ export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb
 ];
 
 export const IMAGE_ASPECT_OPTIONS: Array<{ id: ImageAspectRatio; label: string }> = [
-  { id: '1:1',  label: 'Square 1:1' },
-  { id: '3:2',  label: 'Landscape 3:2' },
-  { id: '2:3',  label: 'Portrait 2:3' },
-  { id: '4:3',  label: 'Landscape 4:3' },
-  { id: '3:4',  label: 'Portrait 3:4' },
-  { id: '16:9', label: 'Wide 16:9' },
-  { id: '9:16', label: 'Tall 9:16' },
-  { id: '21:9', label: 'Ultrawide 21:9' },
+  { id: '1:1', label: 'Square' },
+  { id: '3:2', label: 'Landscape' },
+  { id: '2:3', label: 'Portrait' },
 ];
 
 interface ImageGenState {
@@ -60,10 +47,22 @@ export const useImageGenStore = create<ImageGenState>()(
     }),
     {
       name: 'arc-image-gen-prefs',
-      // Migrate any unknown persisted model back to the default.
+      // Migrate any unknown persisted model or aspect ratio back to defaults.
       onRehydrateStorage: () => (state) => {
-        if (state && !ALLOWED_IMAGE_MODELS.includes(state.model)) {
+        if (!state) return;
+        if (!ALLOWED_IMAGE_MODELS.includes(state.model)) {
           state.model = DEFAULT_IMAGE_MODEL;
+        }
+        const validAspects: ImageAspectRatio[] = ['1:1', '3:2', '2:3'];
+        if (!validAspects.includes(state.aspectRatio)) {
+          // Remap legacy ratios to the closest supported bucket.
+          const landscape = ['4:3', '16:9', '21:9'];
+          const portrait = ['3:4', '9:16'];
+          state.aspectRatio = landscape.includes(state.aspectRatio as string)
+            ? '3:2'
+            : portrait.includes(state.aspectRatio as string)
+              ? '2:3'
+              : '1:1';
         }
       },
     }
