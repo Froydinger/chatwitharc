@@ -92,7 +92,7 @@ serve(async (req) => {
     const ALLOWED_MODELS = new Set([
       'openai/gpt-5.4-mini',
       'openai/gpt-5.4-mini',
-      'openai/gpt-5.5',
+      'openai/gpt-5.4-mini',
       'openai/gpt-5.4-mini',
     ]);
     const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
