@@ -529,7 +529,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
   // Persisted user-chosen image model + aspect ratio (for /image, "draw…", etc.)
   const { model: imageGenModel, aspectRatio: imageGenAspect, count: imageGenCount } = useImageGenStore();
-  const { hasBoost } = useSubscription();
+  const hasBoost = subscription.hasBoost;
 
   // When a /write canvas is open, auto-show canvas mode indicator so user knows
   // their messages will modify the canvas (not go to chat)
