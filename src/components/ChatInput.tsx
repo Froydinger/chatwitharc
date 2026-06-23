@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
 import { useAccentColor } from "@/hooks/useAccentColor";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, ensureAnonSession } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { AIService } from "@/services/ai";
