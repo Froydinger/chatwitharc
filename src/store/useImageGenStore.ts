@@ -2,14 +2,15 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 /**
- * Image generation uses Nano Banana 2 (gemini-3.1-flash-image-preview) exclusively.
+ * Image generation uses OpenAI GPT-Image-2 exclusively at medium quality.
+ * Aspect ratio is chosen by the user and mapped to a supported size server-side.
  */
-export type ImageModelId = 'google/gemini-3.1-flash-image-preview';
+export type ImageModelId = 'openai/gpt-image-2';
 
-export const DEFAULT_IMAGE_MODEL: ImageModelId = 'google/gemini-3.1-flash-image-preview';
+export const DEFAULT_IMAGE_MODEL: ImageModelId = 'openai/gpt-image-2';
 
 export const ALLOWED_IMAGE_MODELS: ImageModelId[] = [
-  'google/gemini-3.1-flash-image-preview',
+  'openai/gpt-image-2',
 ];
 
 export type ImageAspectRatio =
@@ -24,8 +25,8 @@ export type ImageAspectRatio =
 
 export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb: string; pro?: boolean }> = [
   {
-    id: 'google/gemini-3.1-flash-image-preview',
-    label: 'Nano Banana 2',
+    id: 'openai/gpt-image-2',
+    label: 'GPT Image 2',
     blurb: 'Best quality & detail',
   },
 ];

@@ -1,5 +1,5 @@
 // Generates a fun cartoon line-art persona avatar via Lovable AI Gateway
-// (google/gemini-3.1-flash-image-preview) and uploads it to the public
+// (openai/gpt-image-2, medium quality) and uploads it to the public
 // `avatars` bucket. Returns the public URL.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     }. Pick ONE distinctive hat or hairstyle and one small head-area accessory that fits this persona. No text, no logos, no props held in hands.`;
 
 
-    // Call Lovable AI Gateway (Gemini 3.1 Flash Image Preview) — non-streaming
+    // Call Lovable AI Gateway → OpenAI GPT-Image-2 (medium quality, square)
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
       method: "POST",
       headers: {
@@ -63,9 +63,11 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3.1-flash-image-preview",
-        messages: [{ role: "user", content: imagePrompt }],
-        modalities: ["image", "text"],
+        model: "openai/gpt-image-2",
+        prompt: imagePrompt,
+        size: "1024x1024",
+        quality: "medium",
+        n: 1,
       }),
     });
 

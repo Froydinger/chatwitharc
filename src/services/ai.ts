@@ -577,10 +577,9 @@ export class AIService {
     }
 
     try {
-      // ALWAYS use Gemini 3 Pro for image generation (highest quality)
-      // Voice mode and all image gen should use Pro, not session model
-      const modelToUse = preferredModel || 'google/gemini-3.1-flash-image-preview';
-      
+      // All image generation goes through OpenAI GPT-Image-2 (medium quality).
+      const modelToUse = preferredModel || 'openai/gpt-image-2';
+
       console.log('generateImage called with:', { prompt, preferredModel, aspectRatio, modelToUse });
 
       const { data, error } = await supabase.functions.invoke('generate-image', {

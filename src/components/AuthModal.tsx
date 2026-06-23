@@ -22,7 +22,7 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
   tools: { title: "Sign in to use tools", subtitle: "Search, images, code, canvas.", icon: Sparkles },
   personas: { title: "Sign in for personas", subtitle: "Chat with custom AI personalities.", icon: Sparkles },
   voice: { title: "Sign in for voice mode", subtitle: "Real-time speech with Arc.", icon: Mic },
-  "image-gen": { title: "Sign in to make images", subtitle: "Generate & edit with Nano Banana 2.", icon: ImagePlus },
+  "image-gen": { title: "Sign in to make images", subtitle: "Generate & edit with GPT Image 2.", icon: ImagePlus },
   files: { title: "Sign in to attach files", subtitle: "PDFs, docs, images.", icon: Paperclip },
   research: { title: "Sign in for research", subtitle: "Cited sources from the web.", icon: Globe },
   code: { title: "Sign in to write code", subtitle: "Pro code & app generation.", icon: Code2 },
