@@ -87,23 +87,24 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
       };
     }
     case 'cloud-chat':
-      return { label: 'Cloud · Gemini 3 Flash', icon: 'cloud', tooltip: 'Default chat model — Google Gemini 3 Flash.' };
+      return { label: 'Cloud · GPT-5.4 Mini', icon: 'cloud', tooltip: 'Default chat model — OpenAI GPT-5.4 Mini.' };
     case 'cloud-chat-pro':
-      return { label: 'Cloud · Gemini 3.5 Flash', icon: 'cloud', tooltip: 'Heavier reasoning — Google Gemini 3.5 Flash.' };
+      return { label: 'Cloud · GPT-5.4 Mini', icon: 'cloud', tooltip: 'Heavier reasoning — OpenAI GPT-5.4 Mini.' };
     case 'cloud-search':
       return { label: 'Cloud · Web Search', icon: 'cloud', tooltip: 'Web Search with cited sources.' };
     case 'cloud-search-tavily':
       return { label: 'Cloud · Web Search', icon: 'cloud', tooltip: 'Web Search with cited sources.' };
     case 'cloud-vision':
-      return { label: 'Cloud · Gemini 3 Flash (Vision)', icon: 'cloud', tooltip: 'Image understanding — Google Gemini 3 Flash.' };
+      return { label: 'Cloud · GPT-5.4 Mini (Vision)', icon: 'cloud', tooltip: 'Image understanding — OpenAI GPT-5.4 Mini.' };
     case 'cloud-document':
-      return { label: 'Cloud · Gemini 3 Flash (Docs)', icon: 'cloud', tooltip: 'Document analysis — Google Gemini 3 Flash.' };
+      return { label: 'Cloud · GPT-5.4 Mini (Docs)', icon: 'cloud', tooltip: 'Document analysis — OpenAI GPT-5.4 Mini.' };
     case 'cloud-voice':
       return { label: 'Cloud · OpenAI Realtime', icon: 'cloud', tooltip: 'Voice mode — OpenAI Realtime API.' };
     case 'cloud-code':
-      return { label: 'Cloud · Gemini 3.5 Flash (Code)', icon: 'cloud', tooltip: 'Code generation — Google Gemini 3.5 Flash.' };
+      return { label: 'Cloud · GPT-5.4 Mini (Code)', icon: 'cloud', tooltip: 'Code generation — OpenAI GPT-5.4 Mini.' };
     case 'cloud-canvas':
-      return { label: 'Cloud · Gemini 3.5 Flash (Canvas)', icon: 'cloud', tooltip: 'Long-form writing canvas — Google Gemini 3.5 Flash.' };
+      return { label: 'Cloud · GPT-5.4 Mini (Canvas)', icon: 'cloud', tooltip: 'Long-form writing canvas — OpenAI GPT-5.4 Mini.' };
+
     case 'cloud-image':
     case 'cloud-image-pro':
       return { label: 'Cloud · Nano Banana 2', icon: 'cloud', tooltip: 'Image generation — Google Gemini 3.1 Flash Image (Nano Banana 2).' };
