@@ -6,13 +6,13 @@ export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-ana
 
 const MODEL_MAP: Record<ModelFamily, Record<ModelTask, string>> = {
   gemini: {
-    'chat': 'google/gemini-3-flash-preview',
-    'code': 'google/gemini-3.5-flash',
-    'deep-chat': 'google/gemini-3.5-flash',
+    'chat': 'openai/gpt-5.4-mini',
+    'code': 'openai/gpt-5.4-mini',
+    'deep-chat': 'openai/gpt-5.4-mini',
     'image-gen': 'google/gemini-3.1-flash-image-preview',
-    'image-analysis': 'google/gemini-3.5-flash',
+    'image-analysis': 'openai/gpt-5.4-mini',
     'image-edit': 'google/gemini-3.1-flash-image-preview',
-    'file-gen': 'google/gemini-3.5-flash',
+    'file-gen': 'openai/gpt-5.4-mini',
   },
 };
 
