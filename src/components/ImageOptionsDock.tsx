@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Crown, Ratio, Sparkles, Check } from "lucide-react";
+import { ChevronDown, Crown, Ratio, Sparkles, Check, Images } from "lucide-react";
 import {
   useImageGenStore,
   IMAGE_MODEL_OPTIONS,
   IMAGE_ASPECT_OPTIONS,
   type ImageModelId,
   type ImageAspectRatio,
+  type ImageCount,
 } from "@/store/useImageGenStore";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
