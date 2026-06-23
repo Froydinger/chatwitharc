@@ -47,10 +47,22 @@ export const useImageGenStore = create<ImageGenState>()(
     }),
     {
       name: 'arc-image-gen-prefs',
-      // Migrate any unknown persisted model back to the default.
+      // Migrate any unknown persisted model or aspect ratio back to defaults.
       onRehydrateStorage: () => (state) => {
-        if (state && !ALLOWED_IMAGE_MODELS.includes(state.model)) {
+        if (!state) return;
+        if (!ALLOWED_IMAGE_MODELS.includes(state.model)) {
           state.model = DEFAULT_IMAGE_MODEL;
+        }
+        const validAspects: ImageAspectRatio[] = ['1:1', '3:2', '2:3'];
+        if (!validAspects.includes(state.aspectRatio)) {
+          // Remap legacy ratios to the closest supported bucket.
+          const landscape = ['4:3', '16:9', '21:9'];
+          const portrait = ['3:4', '9:16'];
+          state.aspectRatio = landscape.includes(state.aspectRatio as string)
+            ? '3:2'
+            : portrait.includes(state.aspectRatio as string)
+              ? '2:3'
+              : '1:1';
         }
       },
     }
