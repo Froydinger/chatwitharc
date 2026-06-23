@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const DEFAULT_AGENT_MODEL = "google/gemini-3-flash-preview";
+const DEFAULT_AGENT_MODEL = "openai/gpt-5.4-mini";
 const MAX_ITERATIONS = 8;
 const MAX_NO_PROGRESS_ITERATIONS = 2;
 const MAX_JSON_RETRIES = 2;

@@ -429,7 +429,7 @@ serve(async (req) => {
     const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
 
     console.log('📊 Request details:', {
-      model: model || 'google/gemini-3-flash-preview (default)',
+      model: model || 'openai/gpt-5.4-mini (default)',
       messageCount: messages?.length || 0,
       hasProfile: !!profile,
       sessionId: sessionId || 'none (will not save in background)',
@@ -503,12 +503,12 @@ serve(async (req) => {
     // Validate model if provided
     const allowedModels = [
       // Gemini models (2 tiers)
-      'google/gemini-3-flash-preview',   // Quick
-      'google/gemini-3.5-flash',   // Wise & Thoughtful
+      'openai/gpt-5.4-mini',   // Quick
+      'openai/gpt-5.4-mini',   // Wise & Thoughtful
       // GPT models (3 tiers)
-      'openai/gpt-5-nano',               // Quick
-      'openai/gpt-5.2',                  // Smarter & Quick
-      'openai/gpt-5',                    // Wise & Thoughtful
+      'openai/gpt-5.4-mini',               // Quick
+      'openai/gpt-5.4-mini',                  // Smarter & Quick
+      'openai/gpt-5.4-mini',                    // Wise & Thoughtful
     ];
     const validatedModel = (model && allowedModels.includes(model)) ? model : null;
     if (model && !validatedModel) {
@@ -694,7 +694,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-3-flash-preview',
+            model: 'openai/gpt-5.4-mini',
             messages: conversationMessages,
             temperature: 0.6,
             max_tokens: 2000,
@@ -735,7 +735,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-3-flash-preview',
+            model: 'openai/gpt-5.4-mini',
             messages: conversationMessages,
             temperature: 0.3,
             max_tokens: 1200,
@@ -1049,24 +1049,24 @@ Output the complete, finished writing using the update_canvas tool.`;
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
-    let selectedModel = validatedModel || 'google/gemini-3-flash-preview';
-    const fallbackModel = 'google/gemini-3-flash-preview'; // Fallback for canvas/code if Pro times out
+    let selectedModel = validatedModel || 'openai/gpt-5.4-mini';
+    const fallbackModel = 'openai/gpt-5.4-mini'; // Fallback for canvas/code if Pro times out
 
     // For code mode, upgrade to the best model for each provider
     // Gemini: use gemini-3.5-flash, GPT: use gpt-5.2
     if (wantsCode) {
       if (selectedModel.startsWith('google/')) {
-        selectedModel = 'google/gemini-3.5-flash';
+        selectedModel = 'openai/gpt-5.4-mini';
         console.log('🔧 Code mode: using gemini-3.5-flash');
       } else if (selectedModel.startsWith('openai/')) {
-        selectedModel = 'openai/gpt-5.2';
+        selectedModel = 'openai/gpt-5.4-mini';
         console.log('🔧 Code mode: upgraded GPT model to gpt-5.2');
       }
     }
 
     // Dynamic upgrade: if client detected complex query, use Pro model
     if (useProModel && !wantsCode && selectedModel.startsWith('google/')) {
-      selectedModel = 'google/gemini-3.5-flash';
+      selectedModel = 'openai/gpt-5.4-mini';
       console.log('🧠 Complex query detected: upgraded to gemini-3.5-flash');
     }
     
@@ -1446,10 +1446,10 @@ Output the complete, finished writing using the update_canvas tool.`;
       });
     } catch (primaryError) {
       // If canvas/code mode with upgraded model fails, try fallback
-      const isUpgradedModel = selectedModel === 'google/gemini-3.5-flash' || selectedModel === 'openai/gpt-5.2';
+      const isUpgradedModel = selectedModel === 'openai/gpt-5.4-mini' || selectedModel === 'openai/gpt-5.4-mini';
       if (isCanvasOrCodeMode && isUpgradedModel) {
         // For GPT fallback, use gpt-5-nano; for Gemini fallback, use gemini-3-flash-preview
-        const actualFallback = selectedModel.startsWith('openai/') ? 'openai/gpt-5-nano' : fallbackModel;
+        const actualFallback = selectedModel.startsWith('openai/') ? 'openai/gpt-5.4-mini' : fallbackModel;
         const fallbackTokenParam = actualFallback.startsWith('openai/') 
           ? { max_completion_tokens: 65536 }
           : { max_tokens: 65536 };
@@ -1888,7 +1888,7 @@ Output the complete, finished writing using the update_canvas tool.`;
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: model || 'google/gemini-3-flash-preview',
+            model: model || 'openai/gpt-5.4-mini',
             messages: synthesisMessages,
             temperature: 0.6,
             ...tokenParam,

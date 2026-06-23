@@ -90,14 +90,14 @@ serve(async (req) => {
 
     // Allowlist supported vision models — fall back to default if unknown
     const ALLOWED_MODELS = new Set([
-      'google/gemini-3-flash-preview',
-      'google/gemini-3.5-flash',
-      'openai/gpt-5.5',
-      'openai/gpt-5-mini',
+      'openai/gpt-5.4-mini',
+      'openai/gpt-5.4-mini',
+      'openai/gpt-5.4-mini',
+      'openai/gpt-5.4-mini',
     ]);
     const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
       ? model
-      : 'google/gemini-3-flash-preview';
+      : 'openai/gpt-5.4-mini';
     console.log('Using model for image analysis:', selectedModel);
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

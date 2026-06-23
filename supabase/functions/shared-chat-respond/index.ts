@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         messages: convo,
-        model: "google/gemini-3-flash-preview",
+        model: "openai/gpt-5.4-mini",
         clientDateTime: new Date().toString(),
         clientTimezone: "UTC",
         clientTimezoneOffsetMinutes: 0,

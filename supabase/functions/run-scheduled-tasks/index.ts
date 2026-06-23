@@ -227,7 +227,7 @@ async function processTask(task: any): Promise<void> {
     .single();
 
   try {
-    const output = await callAi(task.prompt, task.model || "google/gemini-3-flash-preview", task.title);
+    const output = await callAi(task.prompt, task.model || "openai/gpt-5.4-mini", task.title);
 
     // Build messages payload for chat_sessions
     const now = new Date().toISOString();

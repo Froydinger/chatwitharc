@@ -93,7 +93,7 @@ serve(async (req) => {
       ];
     }
 
-    const selectedModel = 'google/gemini-3-flash-preview';
+    const selectedModel = 'openai/gpt-5.4-mini';
     console.log('Using model:', selectedModel);
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

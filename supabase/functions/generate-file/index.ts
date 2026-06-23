@@ -151,14 +151,14 @@ CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No expla
 
     // Allowlist supported models — fall back to default if unknown
     const ALLOWED_MODELS = new Set([
-      'google/gemini-3-flash-preview',
-      'google/gemini-3.5-flash',
-      'openai/gpt-5.5-pro',
-      'openai/gpt-5.2',
+      'openai/gpt-5.4-mini',
+      'openai/gpt-5.4-mini',
+      'openai/gpt-5.4-mini',
+      'openai/gpt-5.4-mini',
     ]);
     const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
       ? model
-      : 'google/gemini-3-flash-preview';
+      : 'openai/gpt-5.4-mini';
     console.log('Using model for file generation:', selectedModel);
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

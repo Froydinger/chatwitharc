@@ -752,7 +752,7 @@ export function MobileChatApp() {
     }
 
     // Reset model to Quick for new chat (session only)
-    sessionStorage.setItem("arc_session_model", "google/gemini-3-flash-preview");
+    sessionStorage.setItem("arc_session_model", "openai/gpt-5.4-mini");
   };
 
 
