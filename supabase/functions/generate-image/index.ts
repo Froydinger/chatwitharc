@@ -13,15 +13,32 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 const REQUEST_TIMEOUT_MS = 55_000;
 const RETRY_DELAY_MS = 3_000;
 
-// Allowed image models — client may pick between these. No fallback chain.
-const DEFAULT_IMAGE_MODEL = "google/gemini-3.1-flash-image-preview";
-const ALLOWED_IMAGE_MODELS = new Set<string>([
-  "google/gemini-3.1-flash-image-preview",
-]);
+// All image generation is locked to OpenAI GPT-Image-2 at medium quality.
+const DEFAULT_IMAGE_MODEL = "openai/gpt-image-2";
+const ALLOWED_IMAGE_MODELS = new Set<string>(["openai/gpt-image-2"]);
 function pickImageModel(requested?: unknown): string {
   return typeof requested === "string" && ALLOWED_IMAGE_MODELS.has(requested)
     ? requested
     : DEFAULT_IMAGE_MODEL;
+}
+
+// GPT-Image-2 only supports a fixed set of sizes. Map the user's aspect ratio
+// to the closest supported size.
+function aspectToSize(aspectRatio: string): string {
+  const ratios: Record<string, "square" | "landscape" | "portrait"> = {
+    "1:1": "square",
+    "3:2": "landscape",
+    "4:3": "landscape",
+    "16:9": "landscape",
+    "21:9": "landscape",
+    "2:3": "portrait",
+    "3:4": "portrait",
+    "9:16": "portrait",
+  };
+  const kind = ratios[aspectRatio] || "square";
+  if (kind === "square") return "1024x1024";
+  if (kind === "portrait") return "1024x1536";
+  return "1536x1024";
 }
 
 type ErrorInfo = {
@@ -93,14 +110,8 @@ function classifyError(status: number, rawText: string): ErrorInfo {
   return { errorType, errorMessage, debugDetail };
 }
 
-
 function normalizeAspectRatio(aspectRatio?: unknown) {
   return typeof aspectRatio === "string" && aspectRatio.trim() ? aspectRatio.trim() : "1:1";
-}
-
-function buildImagePrompt(prompt: string, aspectRatio: string) {
-  const cleanedPrompt = prompt.replace(/^generate an image:\s*/i, "").trim();
-  return `Generate an image in ${aspectRatio} aspect ratio: ${cleanedPrompt}`;
 }
 
 async function updateJob(supabase: any, jobId: string, values: Record<string, unknown>) {
@@ -108,11 +119,13 @@ async function updateJob(supabase: any, jobId: string, values: Record<string, un
   if (error) console.error("Failed to update image job:", jobId, error);
 }
 
-async function callImageGateway(prompt: string, model: string) {
+async function callImageGateway(prompt: string, model: string, size: string) {
   const requestBody = JSON.stringify({
     model,
-    messages: [{ role: "user", content: prompt }],
-    modalities: ["image", "text"],
+    prompt,
+    size,
+    quality: "medium",
+    n: 1,
   });
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -120,7 +133,7 @@ async function callImageGateway(prompt: string, model: string) {
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -151,6 +164,15 @@ async function callImageGateway(prompt: string, model: string) {
   return { ok: false, status: 429, rawText: "Rate limit retry failed" };
 }
 
+function extractImageUrl(parsed: any): string | null {
+  const item = parsed?.data?.[0];
+  if (!item) return null;
+  if (typeof item.url === "string" && item.url) return item.url;
+  if (typeof item.b64_json === "string" && item.b64_json) {
+    return `data:image/png;base64,${item.b64_json}`;
+  }
+  return null;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -176,6 +198,7 @@ serve(async (req) => {
     const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = normalizeAspectRatio(body?.aspectRatio);
     const selectedModel = pickImageModel(body?.preferredModel);
+    const size = aspectToSize(aspectRatio);
 
     if (!prompt) {
       return jsonResponse({ success: false, error: "Prompt is required.", errorType: "invalid_request" }, 400);
@@ -203,10 +226,9 @@ serve(async (req) => {
 
     jobId = jobData.id;
     const currentJobId = jobData.id;
-    const imagePrompt = buildImagePrompt(prompt, aspectRatio);
 
-    console.log(`Generating image with ${selectedModel} for job ${currentJobId}`);
-    const result = await callImageGateway(imagePrompt, selectedModel);
+    console.log(`Generating image with ${selectedModel} (${size}, medium) for job ${currentJobId}`);
+    const result = await callImageGateway(prompt, selectedModel, size);
 
     if (!result.ok) {
       const errorInfo = classifyError(result.status, result.rawText);
@@ -231,7 +253,7 @@ serve(async (req) => {
       return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: "Failed to parse model response", errorType: "parse_error", debugDetail: result.rawText.slice(0, 200) });
     }
 
-    const imageUrl = parsed?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const imageUrl = extractImageUrl(parsed);
     if (!imageUrl) {
       await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "No image returned from model", error_type: "no_image_returned" });
       return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: "No image returned from model", errorType: "no_image_returned", debugDetail: result.rawText.slice(0, 500) });

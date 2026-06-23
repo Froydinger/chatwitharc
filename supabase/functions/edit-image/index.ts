@@ -13,13 +13,28 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '
 const REQUEST_TIMEOUT_MS = 55_000;
 const RETRY_DELAY_MS = 3_000;
 
-// Allowed image models — client may pick between these. No fallback chain.
-const DEFAULT_IMAGE_MODEL = 'google/gemini-3.1-flash-image-preview';
-const ALLOWED_IMAGE_MODELS = new Set<string>([
-  'google/gemini-3.1-flash-image-preview',
-]);
+// All image editing is locked to OpenAI GPT-Image-2 at medium quality.
+const DEFAULT_IMAGE_MODEL = 'openai/gpt-image-2';
+const ALLOWED_IMAGE_MODELS = new Set<string>(['openai/gpt-image-2']);
 function pickModel(requested?: string): string {
   return requested && ALLOWED_IMAGE_MODELS.has(requested) ? requested : DEFAULT_IMAGE_MODEL;
+}
+
+function aspectToSize(aspectRatio: string): string {
+  const ratios: Record<string, 'square' | 'landscape' | 'portrait'> = {
+    '1:1': 'square',
+    '3:2': 'landscape',
+    '4:3': 'landscape',
+    '16:9': 'landscape',
+    '21:9': 'landscape',
+    '2:3': 'portrait',
+    '3:4': 'portrait',
+    '9:16': 'portrait',
+  };
+  const kind = ratios[aspectRatio] || 'square';
+  if (kind === 'square') return '1024x1024';
+  if (kind === 'portrait') return '1024x1536';
+  return '1536x1024';
 }
 
 function jsonResponse(body: unknown, status = 200) {
@@ -57,7 +72,6 @@ function classifyError(status: number, rawText: string) {
   return { errorType, errorMessage, debugDetail };
 }
 
-
 function buildEditPrompt(userPrompt: string, imageCount: number): string {
   let finalPrompt = '';
   if (imageCount > 1) finalPrompt += "Combine or merge the provided images based on the instruction. ";
@@ -75,15 +89,33 @@ async function updateJob(supabase: any, jobId: string, values: Record<string, un
   if (error) console.error('Failed to update job:', jobId, error);
 }
 
-async function callEditGateway(prompt: string, imageUrls: string[], model: string, aspectRatio: string) {
-  const aspectPrompt = `Output the image in ${aspectRatio} aspect ratio. ${prompt}`;
-  const contentArray: any[] = [{ type: 'text', text: aspectPrompt }];
-  imageUrls.forEach(url => contentArray.push({ type: 'image_url', image_url: { url } }));
+async function fetchImageAsBlob(url: string): Promise<Blob> {
+  if (url.startsWith('data:')) {
+    const match = url.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) throw new Error('Invalid data URL');
+    const mime = match[1] || 'image/png';
+    const bin = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
+    return new Blob([bin], { type: mime });
+  }
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch source image: ${res.status}`);
+  const buf = await res.arrayBuffer();
+  const type = res.headers.get('content-type') || 'image/png';
+  return new Blob([buf], { type });
+}
 
-  const requestBody = JSON.stringify({
-    model,
-    messages: [{ role: 'user', content: contentArray }],
-    modalities: ['image', 'text'],
+async function callEditGateway(prompt: string, imageUrls: string[], model: string, size: string) {
+  // Fetch all source images and build a multipart form for /v1/images/edits.
+  const blobs = await Promise.all(imageUrls.map(fetchImageAsBlob));
+  const form = new FormData();
+  form.append('model', model);
+  form.append('prompt', prompt);
+  form.append('size', size);
+  form.append('quality', 'medium');
+  form.append('n', '1');
+  blobs.forEach((blob, idx) => {
+    const ext = (blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+    form.append('image[]', blob, `source_${idx}.${ext}`);
   });
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -91,10 +123,10 @@ async function callEditGateway(prompt: string, imageUrls: string[], model: strin
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/images/edits', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
-        body: requestBody,
+        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}` },
+        body: form,
         signal: controller.signal,
       });
       const rawText = await response.text();
@@ -116,6 +148,15 @@ async function callEditGateway(prompt: string, imageUrls: string[], model: strin
   return { ok: false, status: 429, rawText: 'Rate limit retry failed' };
 }
 
+function extractImageUrl(parsed: any): string | null {
+  const item = parsed?.data?.[0];
+  if (!item) return null;
+  if (typeof item.url === 'string' && item.url) return item.url;
+  if (typeof item.b64_json === 'string' && item.b64_json) {
+    return `data:image/png;base64,${item.b64_json}`;
+  }
+  return null;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -137,12 +178,15 @@ serve(async (req) => {
   try {
     const { prompt, baseImageUrl, baseImageUrls, aspectRatio, imageModel } = await req.json();
     const selectedModel = pickModel(imageModel);
+    const aspect = (typeof aspectRatio === 'string' && aspectRatio.trim()) ? aspectRatio.trim() : '1:1';
+    const size = aspectToSize(aspect);
 
     if (!prompt) return jsonResponse({ error: 'Prompt is required', errorType: 'invalid_request', success: false });
 
     const imageArray: string[] = baseImageUrls || (baseImageUrl ? [baseImageUrl] : []);
     if (imageArray.length === 0) return jsonResponse({ error: 'At least one image is required', errorType: 'invalid_request', success: false });
-    if (imageArray.length > 14) return jsonResponse({ error: 'Maximum 14 images allowed', errorType: 'invalid_request', success: false });
+    // GPT-Image-2 image inputs are limited; cap at 10 for safety.
+    if (imageArray.length > 10) return jsonResponse({ error: 'Maximum 10 images allowed', errorType: 'invalid_request', success: false });
 
     const blobUrls = imageArray.filter((url: string) => url.startsWith('blob:'));
     if (blobUrls.length > 0) {
@@ -156,7 +200,7 @@ serve(async (req) => {
         job_type: 'edit',
         prompt,
         base_image_urls: imageArray,
-        aspect_ratio: aspectRatio || '16:9',
+        aspect_ratio: aspect,
         preferred_model: selectedModel,
         status: 'processing',
         last_attempt_at: new Date().toISOString(),
@@ -174,8 +218,8 @@ serve(async (req) => {
     const currentJobId = jobData.id;
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
 
-    console.log(`Editing image with ${selectedModel} for job ${currentJobId}`);
-    const result = await callEditGateway(editPrompt, imageArray, selectedModel, aspectRatio || '16:9');
+    console.log(`Editing image with ${selectedModel} (${size}, medium) for job ${currentJobId}`);
+    const result = await callEditGateway(editPrompt, imageArray, selectedModel, size);
 
     if (!result.ok) {
       const err = classifyError(result.status, result.rawText);
@@ -192,7 +236,7 @@ serve(async (req) => {
       return jsonResponse({ jobId: currentJobId, status: 'failed', success: false, error: 'Failed to parse response', errorType: 'parse_error', debugDetail: result.rawText.slice(0, 200) });
     }
 
-    const imageUrl = parsed?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const imageUrl = extractImageUrl(parsed);
     if (!imageUrl) {
       await updateJob(supabase, currentJobId, { status: 'failed', error_message: 'No image returned', error_type: 'no_image_returned' });
       return jsonResponse({ jobId: currentJobId, status: 'failed', success: false, error: 'No image returned', errorType: 'no_image_returned', debugDetail: result.rawText.slice(0, 500) });
