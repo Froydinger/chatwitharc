@@ -196,12 +196,20 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const prompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
+    const rawPrompt = typeof body?.prompt === "string" ? body.prompt.trim() : "";
     const aspectRatio = normalizeAspectRatio(body?.aspectRatio);
     const selectedModel = pickImageModel(body?.preferredModel);
     const size = aspectToSize(aspectRatio);
+    const isYouTube = aspectRatio === "16:9";
 
-    if (!prompt) {
+    // For 16:9 we render at 3:2 landscape (1536x1024) with explicit black
+    // letterbox bars at top and bottom so the safe content area is exactly
+    // 1536x864 (true 16:9). We then crop those bars off server-side.
+    const prompt = isYouTube
+      ? `${rawPrompt}\n\nIMPORTANT COMPOSITION RULE: Render this as a 16:9 widescreen image. The full canvas is 1536x1024, but place ALL meaningful content within the centered 1536x864 region. Add solid pure black (#000000) letterbox bars exactly 80 pixels tall at the very top and very bottom of the image. The black bars must be uniformly solid black, edge-to-edge, with no gradients, textures, or content. Treat them as off-screen padding.`
+      : rawPrompt;
+
+    if (!rawPrompt) {
       return jsonResponse({ success: false, error: "Prompt is required.", errorType: "invalid_request" }, 400);
     }
 
@@ -210,7 +218,7 @@ serve(async (req) => {
       .insert({
         user_id: user.id,
         job_type: "generate",
-        prompt,
+        prompt: rawPrompt,
         aspect_ratio: aspectRatio,
         preferred_model: selectedModel,
         status: "processing",
@@ -228,7 +236,7 @@ serve(async (req) => {
     jobId = jobData.id;
     const currentJobId = jobData.id;
 
-    console.log(`Generating image with ${selectedModel} (${size}, medium) for job ${currentJobId}`);
+    console.log(`Generating image with ${selectedModel} (${size}, medium${isYouTube ? ", 16:9 crop" : ""}) for job ${currentJobId}`);
     const result = await callImageGateway(prompt, selectedModel, size);
 
     if (!result.ok) {
@@ -254,10 +262,19 @@ serve(async (req) => {
       return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: "Failed to parse model response", errorType: "parse_error", debugDetail: result.rawText.slice(0, 200) });
     }
 
-    const imageUrl = extractImageUrl(parsed);
+    let imageUrl = extractImageUrl(parsed);
     if (!imageUrl) {
       await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "No image returned from model", error_type: "no_image_returned" });
       return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: "No image returned from model", errorType: "no_image_returned", debugDetail: result.rawText.slice(0, 500) });
+    }
+
+    // For YouTube/16:9, crop center to true 16:9 ratio.
+    if (isYouTube) {
+      try {
+        imageUrl = await cropTo16x9(imageUrl);
+      } catch (cropErr) {
+        console.error("16:9 crop failed, returning uncropped image:", cropErr);
+      }
     }
 
     console.log(`Image generated successfully for job ${currentJobId}`);
