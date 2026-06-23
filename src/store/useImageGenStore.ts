@@ -59,11 +59,12 @@ export const useImageGenStore = create<ImageGenState>()(
           // Remap legacy ratios to the closest supported bucket.
           const portrait = ['3:4', '9:16'];
           const widescreen = ['21:9'];
-          state.aspectRatio = widescreen.includes(state.aspectRatio as string)
+          const legacy = state.aspectRatio as string;
+          state.aspectRatio = widescreen.includes(legacy)
             ? '16:9'
-            : portrait.includes(state.aspectRatio as string)
+            : portrait.includes(legacy)
               ? '2:3'
-              : state.aspectRatio === '4:3'
+              : legacy === '4:3'
                 ? '3:2'
                 : '1:1';
         }
