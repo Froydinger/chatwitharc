@@ -32,14 +32,15 @@ interface ImageOptionsDockProps {
  * <ImageOptionsDock /> for its own floating dock.
  */
 export function ImageOptionsContent({ showUsage = true }: { showUsage?: boolean }) {
-  const { model, aspectRatio, setModel, setAspectRatio } = useImageGenStore();
-  const { isSubscribed } = useSubscription();
+  const { model, aspectRatio, count, setModel, setAspectRatio, setCount } = useImageGenStore();
+  const { isSubscribed, hasBoost } = useSubscription();
   const { toast } = useToast();
 
-  const [openMenu, setOpenMenu] = useState<null | "model" | "aspect">(null);
+  const [openMenu, setOpenMenu] = useState<null | "model" | "aspect" | "count">(null);
 
   const activeModel = IMAGE_MODEL_OPTIONS.find((m) => m.id === model) ?? IMAGE_MODEL_OPTIONS[0];
   const activeAspect = IMAGE_ASPECT_OPTIONS.find((a) => a.id === aspectRatio) ?? IMAGE_ASPECT_OPTIONS[0];
+  const effectiveCount: ImageCount = hasBoost ? (count || 1) : 1;
 
   const handlePickModel = (m: ImageModelId) => {
     const target = IMAGE_MODEL_OPTIONS.find((o) => o.id === m);
