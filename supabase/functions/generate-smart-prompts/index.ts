@@ -22,7 +22,7 @@ serve(async (req) => {
     const context = body?.context || 'general';
 
     // Always use Gemini 3 Flash for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'google/gemini-3-flash-preview';
+    const PROMPT_MODEL = 'openai/gpt-5.4-mini';
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

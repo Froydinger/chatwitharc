@@ -64,7 +64,7 @@ serve(async (req) => {
     }
 
     // Always use Gemini 3 Flash for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'google/gemini-3-flash-preview';
+    const PROMPT_MODEL = 'openai/gpt-5.4-mini';
     console.log('Using model for personalized prompts:', PROMPT_MODEL);
 
     const requestBody = {
