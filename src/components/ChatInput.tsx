@@ -1110,6 +1110,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const messageToSend = messageOverride ?? inputValue;
     if (!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) return;
 
+    // Lazily mint an anonymous Supabase session for unauthenticated visitors
+    // the moment they actually try to send something. Avoids ghost guest
+    // accounts piling up from page loads, crawlers and bots.
+    if (!user) {
+      await ensureAnonSession();
+    }
+
     // If Arc is currently thinking, queue the message instead of blocking
     // Check both React state AND direct store state to avoid stale closure races
     const storeIsLoading = useArcStore.getState().isLoading;
