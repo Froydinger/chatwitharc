@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Crown, Ratio, Sparkles, Check } from "lucide-react";
+import { ChevronDown, Crown, Ratio, Sparkles, Check, Images } from "lucide-react";
 import {
   useImageGenStore,
   IMAGE_MODEL_OPTIONS,
   IMAGE_ASPECT_OPTIONS,
   type ImageModelId,
   type ImageAspectRatio,
+  type ImageCount,
 } from "@/store/useImageGenStore";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
@@ -31,14 +32,15 @@ interface ImageOptionsDockProps {
  * <ImageOptionsDock /> for its own floating dock.
  */
 export function ImageOptionsContent({ showUsage = true }: { showUsage?: boolean }) {
-  const { model, aspectRatio, setModel, setAspectRatio } = useImageGenStore();
-  const { isSubscribed } = useSubscription();
+  const { model, aspectRatio, count, setModel, setAspectRatio, setCount } = useImageGenStore();
+  const { isSubscribed, hasBoost } = useSubscription();
   const { toast } = useToast();
 
-  const [openMenu, setOpenMenu] = useState<null | "model" | "aspect">(null);
+  const [openMenu, setOpenMenu] = useState<null | "model" | "aspect" | "count">(null);
 
   const activeModel = IMAGE_MODEL_OPTIONS.find((m) => m.id === model) ?? IMAGE_MODEL_OPTIONS[0];
   const activeAspect = IMAGE_ASPECT_OPTIONS.find((a) => a.id === aspectRatio) ?? IMAGE_ASPECT_OPTIONS[0];
+  const effectiveCount: ImageCount = hasBoost ? (count || 1) : 1;
 
   const handlePickModel = (m: ImageModelId) => {
     const target = IMAGE_MODEL_OPTIONS.find((o) => o.id === m);
@@ -152,10 +154,49 @@ export function ImageOptionsContent({ showUsage = true }: { showUsage?: boolean 
             </div>
           )}
         </div>
+
+        {/* Count picker — Boost only */}
+        {hasBoost && (
+          <div className="relative flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Count</span>
+            <button
+              type="button"
+              onClick={() => setOpenMenu(openMenu === "count" ? null : "count")}
+              className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
+            >
+              <Images className="h-3.5 w-3.5 text-primary" />
+              <span className="font-medium">{effectiveCount}x</span>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+
+            {openMenu === "count" && (
+              <div className="absolute bottom-full mb-2 left-0 w-40 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
+                {([1, 2, 3] as ImageCount[]).map((c) => {
+                  const isActive = c === effectiveCount;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => { setCount(c); setOpenMenu(null); }}
+                      className={cn(
+                        "w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-sm transition-colors",
+                        isActive ? "bg-primary/10 text-foreground" : "hover:bg-muted/40 text-foreground"
+                      )}
+                    >
+                      <span>{c} {c === 1 ? "image" : "images"}</span>
+                      {isActive && <Check className="h-4 w-4 text-primary" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </>
   );
 }
+
 
 /**
  * Floating dock above the chat input that lets users pick the image model

@@ -571,22 +571,23 @@ export class AIService {
     }
   }
 
-  async generateImage(prompt: string, preferredModel?: string, aspectRatio?: string): Promise<string> {
+  async generateImage(prompt: string, preferredModel?: string, aspectRatio?: string, count: number = 1): Promise<string[]> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Image generation service is not available. Please configure Supabase.');
     }
 
     try {
-      // All image generation goes through OpenAI GPT-Image-2 (medium quality).
       const modelToUse = preferredModel || 'openai/gpt-image-2';
+      const safeCount = Math.max(1, Math.min(3, Math.floor(count) || 1));
 
-      console.log('generateImage called with:', { prompt, preferredModel, aspectRatio, modelToUse });
+      console.log('generateImage called with:', { prompt, preferredModel, aspectRatio, modelToUse, count: safeCount });
 
       const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: { 
+        body: {
           prompt,
           preferredModel: modelToUse,
-          aspectRatio: aspectRatio || '1:1'
+          aspectRatio: aspectRatio || '1:1',
+          count: safeCount,
         }
       });
 
@@ -605,11 +606,15 @@ export class AIService {
         throw errorObj;
       }
 
-      if (!data.success || !data.imageUrl) {
+      const urls: string[] = Array.isArray(data.imageUrls) && data.imageUrls.length > 0
+        ? data.imageUrls
+        : (data.imageUrl ? [data.imageUrl] : []);
+
+      if (!data.success || urls.length === 0) {
         throw new Error('Failed to generate image');
       }
 
-      return data.imageUrl;
+      return urls;
     } catch (error) {
       console.error('Image generation error:', error);
       throw error;

@@ -120,13 +120,13 @@ async function updateJob(supabase: any, jobId: string, values: Record<string, un
   if (error) console.error("Failed to update image job:", jobId, error);
 }
 
-async function callImageGateway(prompt: string, model: string, size: string) {
+async function callImageGateway(prompt: string, model: string, size: string, count: number) {
   const requestBody = JSON.stringify({
     model,
     prompt,
     size,
     quality: "medium",
-    n: 1,
+    n: count,
   });
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -165,14 +165,16 @@ async function callImageGateway(prompt: string, model: string, size: string) {
   return { ok: false, status: 429, rawText: "Rate limit retry failed" };
 }
 
-function extractImageUrl(parsed: any): string | null {
-  const item = parsed?.data?.[0];
-  if (!item) return null;
-  if (typeof item.url === "string" && item.url) return item.url;
-  if (typeof item.b64_json === "string" && item.b64_json) {
-    return `data:image/png;base64,${item.b64_json}`;
+function extractImageUrls(parsed: any): string[] {
+  const items = Array.isArray(parsed?.data) ? parsed.data : [];
+  const urls: string[] = [];
+  for (const item of items) {
+    if (typeof item?.url === "string" && item.url) urls.push(item.url);
+    else if (typeof item?.b64_json === "string" && item.b64_json) {
+      urls.push(`data:image/png;base64,${item.b64_json}`);
+    }
   }
-  return null;
+  return urls;
 }
 
 
@@ -236,10 +238,11 @@ serve(async (req) => {
     const selectedModel = pickImageModel(body?.preferredModel);
     const size = aspectToSize(aspectRatio);
     const isYouTube = aspectRatio === "16:9";
+    const requestedCount = Number(body?.count);
+    const count = Number.isFinite(requestedCount)
+      ? Math.max(1, Math.min(3, Math.floor(requestedCount)))
+      : 1;
 
-    // For 16:9 we render at 3:2 landscape (1536x1024) with explicit black
-    // letterbox bars at top and bottom so the safe content area is exactly
-    // 1536x864 (true 16:9). We then crop those bars off server-side.
     const prompt = isYouTube
       ? `${rawPrompt}\n\nIMPORTANT COMPOSITION RULE: Render this as a 16:9 widescreen image. The full canvas is 1536x1024, but place ALL meaningful content within the centered 1536x864 region. Add solid pure black (#000000) letterbox bars exactly 80 pixels tall at the very top and very bottom of the image. The black bars must be uniformly solid black, edge-to-edge, with no gradients, textures, or content. Treat them as off-screen padding.`
       : rawPrompt;
@@ -271,8 +274,8 @@ serve(async (req) => {
     jobId = jobData.id;
     const currentJobId = jobData.id;
 
-    console.log(`Generating image with ${selectedModel} (${size}, medium${isYouTube ? ", 16:9 crop" : ""}) for job ${currentJobId}`);
-    const result = await callImageGateway(prompt, selectedModel, size);
+    console.log(`Generating ${count} image(s) with ${selectedModel} (${size}, medium${isYouTube ? ", 16:9 crop" : ""}) for job ${currentJobId}`);
+    const result = await callImageGateway(prompt, selectedModel, size, count);
 
     if (!result.ok) {
       const errorInfo = classifyError(result.status, result.rawText);
@@ -297,24 +300,23 @@ serve(async (req) => {
       return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: "Failed to parse model response", errorType: "parse_error", debugDetail: result.rawText.slice(0, 200) });
     }
 
-    let imageUrl = extractImageUrl(parsed);
-    if (!imageUrl) {
+    let imageUrls = extractImageUrls(parsed);
+    if (imageUrls.length === 0) {
       await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "No image returned from model", error_type: "no_image_returned" });
       return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: "No image returned from model", errorType: "no_image_returned", debugDetail: result.rawText.slice(0, 500) });
     }
 
-    // For YouTube/16:9, crop center to true 16:9 ratio.
     if (isYouTube) {
-      try {
-        imageUrl = await cropTo16x9(imageUrl);
-      } catch (cropErr) {
-        console.error("16:9 crop failed, returning uncropped image:", cropErr);
-      }
+      imageUrls = await Promise.all(
+        imageUrls.map(async (u) => {
+          try { return await cropTo16x9(u); } catch (e) { console.error("16:9 crop failed:", e); return u; }
+        })
+      );
     }
 
-    console.log(`Image generated successfully for job ${currentJobId}`);
-    await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: imageUrl, error_message: null, error_type: null });
-    return jsonResponse({ jobId: currentJobId, status: "completed", success: true, imageUrl });
+    console.log(`Image generated successfully (${imageUrls.length}) for job ${currentJobId}`);
+    await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: imageUrls[0], error_message: null, error_type: null });
+    return jsonResponse({ jobId: currentJobId, status: "completed", success: true, imageUrl: imageUrls[0], imageUrls });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Error in generate-image function:", error);

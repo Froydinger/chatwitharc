@@ -325,7 +325,8 @@ export function VoiceModeController() {
     setIsGeneratingImage(true);
     
     try {
-      const imageUrl = await aiService.generateImage(prompt, undefined, aspectRatio);
+      const urls = await aiService.generateImage(prompt, undefined, aspectRatio);
+      const imageUrl = urls[0];
       console.log('VoiceModeController: Image generated:', imageUrl);
       setGeneratedImage(imageUrl);
       setLastGeneratedImageUrl(imageUrl);

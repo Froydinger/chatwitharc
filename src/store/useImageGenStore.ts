@@ -30,11 +30,16 @@ export const IMAGE_ASPECT_OPTIONS: Array<{ id: ImageAspectRatio; label: string }
   { id: '16:9', label: '16:9 (YouTube)' },
 ];
 
+export type ImageCount = 1 | 2 | 3;
+export const MAX_BOOST_IMAGE_COUNT: ImageCount = 3;
+
 interface ImageGenState {
   model: ImageModelId;
   aspectRatio: ImageAspectRatio;
+  count: ImageCount;
   setModel: (m: ImageModelId) => void;
   setAspectRatio: (a: ImageAspectRatio) => void;
+  setCount: (c: ImageCount) => void;
 }
 
 export const useImageGenStore = create<ImageGenState>()(
@@ -42,13 +47,14 @@ export const useImageGenStore = create<ImageGenState>()(
     (set) => ({
       model: DEFAULT_IMAGE_MODEL,
       aspectRatio: '1:1',
+      count: 1,
       setModel: (m) =>
         set({ model: ALLOWED_IMAGE_MODELS.includes(m) ? m : DEFAULT_IMAGE_MODEL }),
       setAspectRatio: (a) => set({ aspectRatio: a }),
+      setCount: (c) => set({ count: (c >= 1 && c <= 3 ? c : 1) as ImageCount }),
     }),
     {
       name: 'arc-image-gen-prefs',
-      // Migrate any unknown persisted model or aspect ratio back to defaults.
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         if (!ALLOWED_IMAGE_MODELS.includes(state.model)) {
@@ -56,7 +62,6 @@ export const useImageGenStore = create<ImageGenState>()(
         }
         const validAspects: ImageAspectRatio[] = ['1:1', '3:2', '2:3', '16:9'];
         if (!validAspects.includes(state.aspectRatio)) {
-          // Remap legacy ratios to the closest supported bucket.
           const portrait = ['3:4', '9:16'];
           const widescreen = ['21:9'];
           const legacy = state.aspectRatio as string;
@@ -67,6 +72,9 @@ export const useImageGenStore = create<ImageGenState>()(
               : legacy === '4:3'
                 ? '3:2'
                 : '1:1';
+        }
+        if (!state.count || state.count < 1 || state.count > 3) {
+          state.count = 1;
         }
       },
     }
