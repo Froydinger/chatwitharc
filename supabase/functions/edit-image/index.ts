@@ -89,44 +89,46 @@ async function updateJob(supabase: any, jobId: string, values: Record<string, un
   if (error) console.error('Failed to update job:', jobId, error);
 }
 
-async function fetchImageAsBlob(url: string): Promise<Blob> {
-  if (url.startsWith('data:')) {
-    const match = url.match(/^data:([^;]+);base64,(.+)$/);
-    if (!match) throw new Error('Invalid data URL');
-    const mime = match[1] || 'image/png';
-    const bin = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
-    return new Blob([bin], { type: mime });
-  }
+async function fetchImageAsDataUrl(url: string): Promise<string> {
+  if (url.startsWith('data:')) return url;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch source image: ${res.status}`);
-  const buf = await res.arrayBuffer();
+  const buf = new Uint8Array(await res.arrayBuffer());
   const type = res.headers.get('content-type') || 'image/png';
-  return new Blob([buf], { type });
+  // Base64 encode in chunks to avoid stack overflow
+  let binary = '';
+  const chunk = 0x8000;
+  for (let i = 0; i < buf.length; i += chunk) {
+    binary += String.fromCharCode(...buf.subarray(i, i + chunk));
+  }
+  return `data:${type};base64,${btoa(binary)}`;
 }
 
-async function callEditGateway(prompt: string, imageUrls: string[], model: string, size: string) {
-  // Fetch all source images and build a multipart form for /v1/images/edits.
-  const blobs = await Promise.all(imageUrls.map(fetchImageAsBlob));
-  const form = new FormData();
-  form.append('model', model);
-  form.append('prompt', prompt);
-  form.append('size', size);
-  form.append('quality', 'medium');
-  form.append('n', '1');
-  blobs.forEach((blob, idx) => {
-    const ext = (blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
-    form.append('image[]', blob, `source_${idx}.${ext}`);
-  });
+async function callEditGateway(prompt: string, imageUrls: string[], model: string, _size: string) {
+  // Lovable AI Gateway does not expose /v1/images/edits — use chat completions
+  // with modalities:["image","text"] and inline base64 image inputs.
+  const dataUrls = await Promise.all(imageUrls.map(fetchImageAsDataUrl));
+  const content: any[] = [{ type: 'text', text: prompt }];
+  for (const url of dataUrls) {
+    content.push({ type: 'image_url', image_url: { url } });
+  }
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/images/edits', {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}` },
-        body: form,
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content }],
+          modalities: ['image', 'text'],
+        }),
         signal: controller.signal,
       });
       const rawText = await response.text();
@@ -149,11 +151,19 @@ async function callEditGateway(prompt: string, imageUrls: string[], model: strin
 }
 
 function extractImageUrl(parsed: any): string | null {
+  // Chat completions image response shape
+  const msg = parsed?.choices?.[0]?.message;
+  const images = msg?.images;
+  if (Array.isArray(images) && images[0]?.image_url?.url) {
+    return images[0].image_url.url;
+  }
+  // Fallback: legacy /v1/images/* shape
   const item = parsed?.data?.[0];
-  if (!item) return null;
-  if (typeof item.url === 'string' && item.url) return item.url;
-  if (typeof item.b64_json === 'string' && item.b64_json) {
-    return `data:image/png;base64,${item.b64_json}`;
+  if (item) {
+    if (typeof item.url === 'string' && item.url) return item.url;
+    if (typeof item.b64_json === 'string' && item.b64_json) {
+      return `data:image/png;base64,${item.b64_json}`;
+    }
   }
   return null;
 }
