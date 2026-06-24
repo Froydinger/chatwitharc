@@ -57,7 +57,10 @@ export function ChatModelPicker({ className, compact, placement = 'up' }: Props)
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.96 }}
               transition={{ type: 'spring', stiffness: 380, damping: 26 }}
-              className="absolute left-0 bottom-[calc(100%+6px)] z-[70] w-60 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-2xl shadow-2xl p-1.5"
+              className={cn(
+                "absolute left-1/2 -translate-x-1/2 z-[70] w-60 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-2xl shadow-2xl p-1.5",
+                placement === 'down' ? 'top-[calc(100%+6px)]' : 'bottom-[calc(100%+6px)]'
+              )}
             >
               <Row
                 icon={<Zap className="h-4 w-4 text-primary" />}
