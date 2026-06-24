@@ -873,7 +873,9 @@ export function MobileChatApp() {
                     <Plus className="h-4 w-4" />
                   </Button>
                 </motion.div>
+                <ChatModelPicker placement="down" />
               </div>
+
 
               {/* Right side buttons - Context + Share + Music + Logo */}
               <div className="flex items-center gap-2 pointer-events-auto">
