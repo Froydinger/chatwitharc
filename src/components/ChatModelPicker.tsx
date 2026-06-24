@@ -36,8 +36,8 @@ export function ChatModelPicker({ className, compact, placement = 'up' }: Props)
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-muted/40 backdrop-blur-xl hover:bg-primary/15 hover:text-primary transition-colors',
-          compact ? 'h-7 px-2.5 text-[11px]' : 'h-8 px-3 text-xs',
+          'inline-flex items-center gap-1.5 rounded-full border border-input bg-background backdrop-blur-xl hover:bg-primary/15 hover:text-primary transition-all glass-shimmer',
+          compact ? 'h-10 px-3.5 text-xs' : 'h-10 px-4 text-sm',
           'font-semibold text-foreground/85'
         )}
         aria-label={`Model: ${current}`}
