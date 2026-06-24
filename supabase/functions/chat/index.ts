@@ -1065,10 +1065,7 @@ Output the complete, finished writing using the update_canvas tool.`;
     }
     
     // OpenAI models use max_completion_tokens.
-    const isOpenAIModel = selectedModel.startsWith('openai/');
-    const tokenParam = isOpenAIModel 
-      ? { max_completion_tokens: 65536 }
-      : { max_tokens: 65536 };
+    const tokenParam = { max_completion_tokens: 65536 };
     
     console.log('🤖 Making AI request with model:', selectedModel);
     console.log('📋 Tools provided to AI:', toolsToUse.map(t => t.function.name));
@@ -1443,10 +1440,8 @@ Output the complete, finished writing using the update_canvas tool.`;
       const isUpgradedModel = selectedModel === 'openai/gpt-5.4-mini' || selectedModel === 'openai/gpt-5.4-mini';
       if (isCanvasOrCodeMode && isUpgradedModel) {
         // Fallback remains GPT-5.4 Mini; no Gemini fallback.
-        const actualFallback = selectedModel.startsWith('openai/') ? 'openai/gpt-5.4-mini' : fallbackModel;
-        const fallbackTokenParam = actualFallback.startsWith('openai/') 
-          ? { max_completion_tokens: 65536 }
-          : { max_tokens: 65536 };
+        const actualFallback = 'openai/gpt-5.4-mini';
+        const fallbackTokenParam = { max_completion_tokens: 65536 };
         
         console.log('⚠️ Primary model failed, trying fallback:', actualFallback);
         usedFallback = true;
@@ -1875,10 +1870,8 @@ Output the complete, finished writing using the update_canvas tool.`;
         const toolContextSize = synthesisMessages.reduce((acc: number, m: any) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0);
         console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
-        const secondCallModel = model || 'openai/gpt-5.4-mini';
-        const secondTokenParam = secondCallModel.startsWith('openai/')
-          ? { max_completion_tokens: 65536 }
-          : { max_tokens: 65536 };
+        const secondCallModel = validatedModel || 'openai/gpt-5.4-mini';
+        const secondTokenParam = { max_completion_tokens: 65536 };
         response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
