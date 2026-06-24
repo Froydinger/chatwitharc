@@ -24,6 +24,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useCustomFont } from "@/hooks/useCustomFont";
 import { GlobalMusicPlayer } from "@/components/GlobalMusicPlayer";
 import { GlobalAuthGate } from "@/components/GlobalAuthGate";
+import { BoostSync } from "@/components/BoostSync";
 import { LiquidFilter } from "@/components/ui/liquid-filter";
 import { useCorporateModeEnforcer } from "@/hooks/useCorporateMode";
 import { useLocalModelPersistence } from "@/hooks/useLocalModelPersistence";
@@ -135,6 +136,7 @@ const App = () => {
             <GlobalMusicPlayer />
             <CorporateMemoryConsentGate />
             <GlobalAuthGate />
+            <BoostSync />
             <UpgradeModal
               isOpen={showUpgradeModal}
               onClose={() => setShowUpgradeModal(false)}

@@ -4,21 +4,20 @@ import { persist } from 'zustand/middleware';
 export type ModelFamily = 'openai';
 export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-analysis' | 'image-edit' | 'file-gen';
 
-const MODEL_MAP: Record<ModelFamily, Record<ModelTask, string>> = {
-  openai: {
-    'chat': 'openai/gpt-5.4-mini',
-    'code': 'openai/gpt-5.4-mini',
-    'deep-chat': 'openai/gpt-5.4-mini',
-    'image-gen': 'openai/gpt-image-2',
-    'image-analysis': 'openai/gpt-5.4-mini',
-    'image-edit': 'openai/gpt-image-2',
-    'file-gen': 'openai/gpt-5.4-mini',
-  },
-};
+/** User-pickable chat models. */
+export const FASTER_MODEL = 'openai/gpt-5.4-nano';
+export const SMARTER_MODEL = 'openai/gpt-5.4-mini';
+export type ChatModel = typeof FASTER_MODEL | typeof SMARTER_MODEL;
 
 interface ModelStore {
   modelFamily: ModelFamily;
   setModelFamily: (family: ModelFamily) => void;
+  /** Active chat model. Defaults to Faster (nano). */
+  chatModel: ChatModel;
+  setChatModel: (model: ChatModel) => void;
+  /** Synced from useSubscription; gates Smarter pick + tool model tier. */
+  isBoost: boolean;
+  setIsBoost: (v: boolean) => void;
 }
 
 export const useModelStore = create<ModelStore>()(
@@ -26,12 +25,37 @@ export const useModelStore = create<ModelStore>()(
     (set) => ({
       modelFamily: 'openai',
       setModelFamily: () => set({ modelFamily: 'openai' }),
+      chatModel: FASTER_MODEL,
+      setChatModel: (model) => set({ chatModel: model }),
+      isBoost: false,
+      setIsBoost: (v) => set({ isBoost: v }),
     }),
-    { name: 'arc-model-family' }
+    {
+      name: 'arc-model-family',
+      partialize: (s) => ({ modelFamily: s.modelFamily, chatModel: s.chatModel }),
+    }
   )
 );
 
-/** Get the correct model string for a given task. Always OpenAI. */
+/**
+ * Get the correct model string for a given task.
+ * - Chat tasks follow the user's chosen chatModel (Faster/Smarter).
+ * - Tool tasks are tier-gated: Boost → mini, Free/Anon → nano.
+ * - Image gen/edit are pinned to gpt-image-2.
+ */
 export function getModelForTask(task: ModelTask): string {
-  return MODEL_MAP.openai[task];
+  const { chatModel, isBoost } = useModelStore.getState();
+  switch (task) {
+    case 'chat':
+    case 'deep-chat':
+      return chatModel;
+    case 'image-gen':
+    case 'image-edit':
+      return 'openai/gpt-image-2';
+    case 'code':
+    case 'image-analysis':
+    case 'file-gen':
+    default:
+      return isBoost ? SMARTER_MODEL : FASTER_MODEL;
+  }
 }

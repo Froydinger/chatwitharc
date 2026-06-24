@@ -49,6 +49,7 @@ import { buildLocalSystemPrompt } from "@/utils/localSystemPrompt";
 import { findFirstToolCall, executeLocalToolCall, stripToolTags, hasPartialOpenTag } from "@/utils/localToolProtocol";
 import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptionsDock";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
+import { ChatModelPicker } from "@/components/ChatModelPicker";
 import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore } from "@/store/useImageGenStore";
 import { usePersonasStore } from "@/store/usePersonasStore";
@@ -2525,6 +2526,9 @@ ${safeCode}
           <div className="flex-1 flex flex-col min-w-0">
             {/* Mode indicators removed — single-tool indication is handled inline elsewhere */}
 
+            <div className="flex items-center justify-start mb-1 px-0.5">
+              <ChatModelPicker compact />
+            </div>
 
             <div className="relative flex items-center gap-2">
               {/* Add/Attachment Menu */}

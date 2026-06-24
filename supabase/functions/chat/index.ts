@@ -500,15 +500,10 @@ serve(async (req) => {
       );
     }
 
-    // Validate model if provided
+    // Validate model if provided — only the two user-pickable chat models are allowed.
     const allowedModels = [
-      // OpenAI GPT models
-      'openai/gpt-5.4-mini',   // Quick
-      'openai/gpt-5.4-mini',   // Wise & Thoughtful
-      // GPT models (3 tiers)
-      'openai/gpt-5.4-mini',               // Quick
-      'openai/gpt-5.4-mini',                  // Smarter & Quick
-      'openai/gpt-5.4-mini',                    // Wise & Thoughtful
+      'openai/gpt-5.4-nano',   // Faster (default for free/anon)
+      'openai/gpt-5.4-mini',   // Smarter (Boost)
     ];
     const validatedModel = (model && allowedModels.includes(model)) ? model : null;
     if (model && !validatedModel) {
@@ -1049,7 +1044,7 @@ Output the complete, finished writing using the update_canvas tool.`;
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
-    let selectedModel = validatedModel || 'openai/gpt-5.4-mini';
+    let selectedModel = validatedModel || 'openai/gpt-5.4-nano';
     const fallbackModel = 'openai/gpt-5.4-mini'; // Fallback for canvas/code if Pro times out
 
     // Code/canvas stays locked to GPT-5.4 Mini.
@@ -1870,7 +1865,7 @@ Output the complete, finished writing using the update_canvas tool.`;
         const toolContextSize = synthesisMessages.reduce((acc: number, m: any) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0);
         console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
-        const secondCallModel = validatedModel || 'openai/gpt-5.4-mini';
+        const secondCallModel = validatedModel || 'openai/gpt-5.4-nano';
         const secondTokenParam = { max_completion_tokens: 65536 };
         response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',

@@ -5,6 +5,7 @@
  */
 import { useLocalAIStore } from '@/store/useLocalAIStore';
 import { useCorporateModeStore } from '@/store/useCorporateModeStore';
+import { useModelStore, FASTER_MODEL, SMARTER_MODEL } from '@/store/useModelStore';
 import { FAST_MODEL, QUALITY_MODEL, FAST_FALLBACK, IOS_LITE_MODEL, getActiveLocalModelId } from '@/services/localAI';
 import { isMobileLocalDevice } from '@/utils/mobileLocal';
 
@@ -87,23 +88,39 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
       };
     }
     case 'cloud-chat':
-      return { label: 'Cloud · GPT-5.4 Mini', icon: 'cloud', tooltip: 'Default chat model — OpenAI GPT-5.4 Mini.' };
-    case 'cloud-chat-pro':
-      return { label: 'Cloud · GPT-5.4 Mini', icon: 'cloud', tooltip: 'Heavier reasoning — OpenAI GPT-5.4 Mini.' };
+    case 'cloud-chat-pro': {
+      const m = useModelStore.getState().chatModel;
+      const isSmart = m === SMARTER_MODEL;
+      const name = isSmart ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
+      const tier = isSmart ? 'Smarter' : 'Faster';
+      return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `${tier} mode — OpenAI ${name}.` };
+    }
     case 'cloud-search':
       return { label: 'Cloud · Web Search', icon: 'cloud', tooltip: 'Web Search with cited sources.' };
     case 'cloud-search-tavily':
       return { label: 'Cloud · Web Search', icon: 'cloud', tooltip: 'Web Search with cited sources.' };
-    case 'cloud-vision':
-      return { label: 'Cloud · GPT-5.4 Mini (Vision)', icon: 'cloud', tooltip: 'Image understanding — OpenAI GPT-5.4 Mini.' };
-    case 'cloud-document':
-      return { label: 'Cloud · GPT-5.4 Mini (Docs)', icon: 'cloud', tooltip: 'Document analysis — OpenAI GPT-5.4 Mini.' };
+    case 'cloud-vision': {
+      const isBoost = useModelStore.getState().isBoost;
+      const name = isBoost ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
+      return { label: `Cloud · ${name} (Vision)`, icon: 'cloud', tooltip: `Image understanding — OpenAI ${name}.` };
+    }
+    case 'cloud-document': {
+      const isBoost = useModelStore.getState().isBoost;
+      const name = isBoost ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
+      return { label: `Cloud · ${name} (Docs)`, icon: 'cloud', tooltip: `Document analysis — OpenAI ${name}.` };
+    }
     case 'cloud-voice':
       return { label: 'Cloud · OpenAI Realtime', icon: 'cloud', tooltip: 'Voice mode — OpenAI Realtime API.' };
-    case 'cloud-code':
-      return { label: 'Cloud · GPT-5.4 Mini (Code)', icon: 'cloud', tooltip: 'Code generation — OpenAI GPT-5.4 Mini.' };
-    case 'cloud-canvas':
-      return { label: 'Cloud · GPT-5.4 Mini (Canvas)', icon: 'cloud', tooltip: 'Long-form writing canvas — OpenAI GPT-5.4 Mini.' };
+    case 'cloud-code': {
+      const isBoost = useModelStore.getState().isBoost;
+      const name = isBoost ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
+      return { label: `Cloud · ${name} (Code)`, icon: 'cloud', tooltip: `Code generation — OpenAI ${name}.` };
+    }
+    case 'cloud-canvas': {
+      const m = useModelStore.getState().chatModel;
+      const name = m === SMARTER_MODEL ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
+      return { label: `Cloud · ${name} (Canvas)`, icon: 'cloud', tooltip: `Long-form writing canvas — OpenAI ${name}.` };
+    }
 
     case 'cloud-image':
     case 'cloud-image-pro':
