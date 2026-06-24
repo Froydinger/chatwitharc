@@ -1340,7 +1340,20 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           });
           imageUrls = await Promise.all(uploadPromises);
         } catch {
-          imageUrls = images.map((f) => URL.createObjectURL(f));
+          // If storage upload fails (common with pasted clipboard blobs), keep the
+          // images editable by sending data URLs to the edit function. Never send
+          // browser-only blob: URLs to the backend.
+          imageUrls = await Promise.all(
+            images.map(
+              (file) =>
+                new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.onerror = () => reject(new Error("Failed to read image"));
+                  reader.readAsDataURL(file);
+                })
+            )
+          );
         }
 
         // Check if images are in edit mode
