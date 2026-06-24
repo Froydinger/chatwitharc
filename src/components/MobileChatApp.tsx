@@ -15,6 +15,7 @@ import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
 
 import { MusicPopup } from "@/components/MusicPopup";
+import { ChatModelPicker } from "@/components/ChatModelPicker";
 import { CanvasPanel } from "@/components/CanvasPanel";
 
 import { SearchCanvas } from "@/components/SearchCanvas";
