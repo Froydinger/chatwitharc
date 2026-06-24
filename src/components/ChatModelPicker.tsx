@@ -7,10 +7,11 @@ import { cn } from '@/lib/utils';
 interface Props {
   className?: string;
   compact?: boolean;
+  placement?: 'up' | 'down';
 }
 
 /** Faster (5.4-nano) vs Smarter (5.4-mini) picker. Smarter is Boost-only. */
-export function ChatModelPicker({ className, compact }: Props) {
+export function ChatModelPicker({ className, compact, placement = 'up' }: Props) {
   const chatModel = useModelStore((s) => s.chatModel);
   const setChatModel = useModelStore((s) => s.setChatModel);
   const isBoost = useModelStore((s) => s.isBoost);
