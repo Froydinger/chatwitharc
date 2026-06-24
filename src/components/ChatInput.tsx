@@ -1356,8 +1356,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           );
         }
 
-        // Check if images are in edit mode
-        const isEditMode = allImagesEditMode;
+        // Edit mode triggers if: explicit toggle, the user typed an edit-style
+        // instruction along with the attached images, or multiple images were
+        // attached (combine/merge intent). This matches the prior Gemini UX
+        // where pasting + asking to change something Just Worked.
+        const isEditMode =
+          allImagesEditMode ||
+          (finalMessage && isImageEditRequest(finalMessage)) ||
+          images.length > 1;
 
         if (isEditMode) {
           await addMessage({ content: finalMessage, role: "user", type: "image", imageUrls });
