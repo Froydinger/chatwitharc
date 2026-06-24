@@ -130,7 +130,7 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    // Always use Gemini 3 Flash for prompt generation - fast, efficient, reliable
+    // Always use GPT-5.4 Mini for prompt generation - fast, efficient, reliable
     const PROMPT_MODEL = 'openai/gpt-5.4-mini';
     console.log('Using model for category prompts:', PROMPT_MODEL);
 
@@ -142,7 +142,7 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
       ],
       temperature: 1.0,
       top_p: 0.95,
-      max_tokens: 2000,
+      max_completion_tokens: 2000,
     };
 
     // Call AI to generate prompts

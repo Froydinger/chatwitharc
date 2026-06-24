@@ -49,12 +49,11 @@ serve(async (req) => {
 
     console.log('Analyzing document:', fileName, 'type:', mimeType);
 
-    // Build multimodal content for Gemini
+    // Build multimodal content for GPT-5.4 Mini
     const lastMessage = messages[messages.length - 1];
     const userPrompt = lastMessage?.content || `Analyze and summarize this document: ${fileName}`;
 
-    // For Gemini, we send the file as inline_data in the content array
-    // Gemini 3 Flash supports PDF, DOCX (as application/pdf, application/vnd.openxmlformats-officedocument.wordprocessingml.document)
+    // Send natively supported files as data URLs in OpenAI-compatible content blocks.
     // For unsupported types, we extract text client-side and send as text
     
     const isNativelySupported = [

@@ -21,7 +21,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const context = body?.context || 'general';
 
-    // Always use Gemini 3 Flash for prompt generation - fast, efficient, reliable
+    // Always use GPT-5.4 Mini for prompt generation - fast, efficient, reliable
     const PROMPT_MODEL = 'openai/gpt-5.4-mini';
 
     const supabase = createClient(
@@ -162,7 +162,7 @@ Example format:
           }
         ],
         temperature: 0.8,
-        max_tokens: 1000,
+        max_completion_tokens: 1000,
       }),
     });
 
