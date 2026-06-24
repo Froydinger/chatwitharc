@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type ModelFamily = 'gemini';
+export type ModelFamily = 'openai';
 export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-analysis' | 'image-edit' | 'file-gen';
 
 const MODEL_MAP: Record<ModelFamily, Record<ModelTask, string>> = {
-  gemini: {
+  openai: {
     'chat': 'openai/gpt-5.4-mini',
     'code': 'openai/gpt-5.4-mini',
     'deep-chat': 'openai/gpt-5.4-mini',
@@ -25,13 +25,14 @@ export const useModelStore = create<ModelStore>()(
   persist(
     (set) => ({
       modelFamily: 'gemini',
-      setModelFamily: () => set({ modelFamily: 'gemini' }),
+      modelFamily: 'openai',
+      setModelFamily: () => set({ modelFamily: 'openai' }),
     }),
     { name: 'arc-model-family' }
   )
 );
 
-/** Get the correct model string for a given task. Always Gemini. */
+/** Get the correct model string for a given task. Always OpenAI. */
 export function getModelForTask(task: ModelTask): string {
-  return MODEL_MAP.gemini[task];
+  return MODEL_MAP.openai[task];
 }

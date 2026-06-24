@@ -279,7 +279,7 @@ const AppMockup = ({ onOpenAuth }: { onOpenAuth?: () => void }) => {
 
   const cardMessages = {
     prompts: "Generate fresh prompts to get the convo going",
-    image: "Generate images with Gemini 3 Pro",
+    image: "Generate images with GPT Image 2",
     attach: "Attach images to analyze and dig deeper or edit",
   };
 

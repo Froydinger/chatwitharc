@@ -84,7 +84,7 @@ export interface SendMessageResult {
 export class AIService {
   private maxRetries = 2;
   private defaultTimeoutMs = 120000; // 120 second timeout for regular requests
-  private canvasTimeoutMs = 180000; // 180 second timeout for canvas/code generation (Gemini 3 Pro is slower)
+  private canvasTimeoutMs = 180000; // 180 second timeout for canvas/code generation
 
   constructor() {
     // No API key needed - using secure edge function with Lovable Cloud
@@ -627,15 +627,15 @@ export class AIService {
     }
 
     try {
-      // Support both single image and array of images (max 14 for combining with Gemini 3 Pro)
+      // Support both single image and array of images (max 14 for combining/reference edits)
       const images = Array.isArray(baseImageUrls) ? baseImageUrls : [baseImageUrls];
 
       if (images.length > 14) {
         throw new Error('Maximum 14 images allowed for combining');
       }
 
-      // Always use Gemini for image editing (no GPT equivalent)
-      const modelToUse = imageModel || getModelForTask('image-edit');
+      // Image edits are locked to GPT Image 2. Never route edits through chat models.
+      const modelToUse = imageModel || 'openai/gpt-image-2';
 
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { 

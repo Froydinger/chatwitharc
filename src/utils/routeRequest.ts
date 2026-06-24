@@ -14,15 +14,15 @@ import { isMobileLocalDevice } from '@/utils/mobileLocal';
  */
 export type RouteDestination =
   | 'local'                     // On-device model (label resolved at render)
-  | 'cloud-chat'                // Gemini 3 Flash — default chat
-  | 'cloud-chat-pro'            // Gemini 3.5 Flash — heavier reasoning
+  | 'cloud-chat'                // GPT-5.4 Mini — default chat
+  | 'cloud-chat-pro'            // GPT-5.4 Mini — heavier reasoning
   | 'cloud-search'              // Perplexity (sonar-pro)
   | 'cloud-search-tavily'       // Tavily fallback
-  | 'cloud-vision'              // Gemini 3 Flash (image understanding)
-  | 'cloud-document'            // Gemini 3 Flash (document analysis)
+  | 'cloud-vision'              // GPT-5.4 Mini (image understanding)
+  | 'cloud-document'            // GPT-5.4 Mini (document analysis)
   | 'cloud-voice'               // OpenAI Realtime
-  | 'cloud-code'                // Gemini 3.5 Flash — /code, canvas code edits
-  | 'cloud-canvas'              // Gemini 3.5 Flash — writing canvas
+  | 'cloud-code'                // GPT-5.4 Mini — /code, canvas code edits
+  | 'cloud-canvas'              // GPT-5.4 Mini — writing canvas
   | 'cloud-image'               // GPT-Image-2 — locked image model
   | 'cloud-image-pro'           // Deprecated alias — also maps to GPT-Image-2
   | 'cloud-image-edit'          // GPT-Image-2 — edit pass
@@ -111,7 +111,7 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
     case 'cloud-image-edit':
       return { label: 'Cloud · GPT Image 2 (Edit)', icon: 'cloud', tooltip: 'Image editing — OpenAI GPT-Image-2 (medium quality).' };
     case 'cloud-ide':
-      return { label: 'Cloud · Gemini 3.5 Flash (App Builder)', icon: 'cloud', tooltip: 'App Builder agent — Google Gemini 3.5 Flash.' };
+      return { label: 'Cloud · GPT-5.4 Mini (App Builder)', icon: 'cloud', tooltip: 'App Builder agent — OpenAI GPT-5.4 Mini.' };
   }
 
 }
