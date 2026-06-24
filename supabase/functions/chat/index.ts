@@ -500,15 +500,10 @@ serve(async (req) => {
       );
     }
 
-    // Validate model if provided
+    // Validate model if provided — only the two user-pickable chat models are allowed.
     const allowedModels = [
-      // OpenAI GPT models
-      'openai/gpt-5.4-mini',   // Quick
-      'openai/gpt-5.4-mini',   // Wise & Thoughtful
-      // GPT models (3 tiers)
-      'openai/gpt-5.4-mini',               // Quick
-      'openai/gpt-5.4-mini',                  // Smarter & Quick
-      'openai/gpt-5.4-mini',                    // Wise & Thoughtful
+      'openai/gpt-5.4-nano',   // Faster (default for free/anon)
+      'openai/gpt-5.4-mini',   // Smarter (Boost)
     ];
     const validatedModel = (model && allowedModels.includes(model)) ? model : null;
     if (model && !validatedModel) {
