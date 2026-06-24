@@ -2525,10 +2525,9 @@ ${safeCode}
           {/* Main Input Wrapper */}
           <div className="flex-1 flex flex-col min-w-0">
             {/* Mode indicators removed — single-tool indication is handled inline elsewhere */}
+            {/* Model picker moved to header (see MobileChatApp header buttons) */}
 
-            <div className="flex items-center justify-start mb-1 px-0.5">
-              <ChatModelPicker compact />
-            </div>
+
 
             <div className="relative flex items-center gap-2">
               {/* Add/Attachment Menu */}
