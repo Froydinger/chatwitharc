@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const REQUEST_TIMEOUT_MS = 55_000;
@@ -18,6 +19,10 @@ const DEFAULT_IMAGE_MODEL = 'openai/gpt-image-2';
 const ALLOWED_IMAGE_MODELS = new Set<string>(['openai/gpt-image-2']);
 function pickModel(requested?: string): string {
   return requested && ALLOWED_IMAGE_MODELS.has(requested) ? requested : DEFAULT_IMAGE_MODEL;
+}
+
+function toOpenAIModel(model: string): string {
+  return model.startsWith('openai/') ? model.slice('openai/'.length) : model;
 }
 
 function aspectToSize(aspectRatio: string): string {
@@ -110,8 +115,17 @@ async function fetchImageAsBlob(url: string): Promise<{ blob: Blob; filename: st
 }
 
 async function callEditGateway(prompt: string, imageUrls: string[], model: string, size: string, count: number) {
-  // OpenAI gpt-image-2 editing uses the multipart /v1/images/edits endpoint.
-  // The Lovable AI Gateway forwards this through for OpenAI image models.
+  // OpenAI GPT image editing uses multipart /v1/images/edits. The Lovable AI
+  // Gateway currently exposes generation but not edits (it returns 404), so edits
+  // call the configured OpenAI connector directly while keeping the same locked
+  // GPT model path and never falling back to Gemini.
+  const endpoint = OPENAI_API_KEY
+    ? 'https://api.openai.com/v1/images/edits'
+    : 'https://ai.gateway.lovable.dev/v1/images/edits';
+  const headers = OPENAI_API_KEY
+    ? { 'Authorization': `Bearer ${OPENAI_API_KEY}` }
+    : { 'Authorization': `Bearer ${LOVABLE_API_KEY}` };
+  const modelName = OPENAI_API_KEY ? toOpenAIModel(model) : model;
   const blobs = await Promise.all(imageUrls.map(fetchImageAsBlob));
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -120,7 +134,7 @@ async function callEditGateway(prompt: string, imageUrls: string[], model: strin
 
     try {
       const form = new FormData();
-      form.append('model', model);
+      form.append('model', modelName);
       form.append('prompt', prompt);
       form.append('size', size);
       form.append('quality', 'medium');
@@ -134,9 +148,9 @@ async function callEditGateway(prompt: string, imageUrls: string[], model: strin
         }
       }
 
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/images/edits', {
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}` },
+        headers,
         body: form,
         signal: controller.signal,
       });
@@ -183,7 +197,7 @@ function extractImageUrls(parsed: any): string[] {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-  if (!LOVABLE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if ((!OPENAI_API_KEY && !LOVABLE_API_KEY) || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return jsonResponse({ success: false, error: 'Image editing backend not configured.', errorType: 'configuration_error' });
   }
 
@@ -240,7 +254,7 @@ serve(async (req) => {
     const currentJobId = jobData.id;
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
 
-    console.log(`Editing image with ${selectedModel} (${size}, medium) for job ${currentJobId}`);
+    console.log(`Editing image with ${selectedModel} (${size}, medium, ${OPENAI_API_KEY ? 'OpenAI direct edits endpoint' : 'Lovable AI Gateway edits endpoint'}) for job ${currentJobId}`);
     const result = await callEditGateway(editPrompt, imageArray, selectedModel, size, 1);
 
     if (!result.ok) {

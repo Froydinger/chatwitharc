@@ -14,7 +14,7 @@ export function InfoPanel() {
     {
       icon: MessageSquare,
       title: "Smart Text Chat",
-      description: "Powered by Google Gemini 3 Flash for lightning-fast, intelligent conversations"
+      description: "Powered by GPT-5.4 Mini for lightning-fast, intelligent conversations"
     },
     {
       icon: ImagePlus,
@@ -80,7 +80,7 @@ export function InfoPanel() {
           and magical interactions.
         </p>
         <p className="text-sm text-muted-foreground/70">
-          Built by <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-foreground transition-colors underline">Win The Night</a> • Powered by Google Gemini &amp; OpenAI
+          Built by <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-foreground transition-colors underline">Win The Night</a> • Powered by OpenAI
         </p>
       </motion.div>
 
@@ -175,7 +175,7 @@ export function InfoPanel() {
             </h3>
             
             <div className="flex flex-wrap justify-center gap-3">
-              {["React", "TypeScript", "Framer Motion", "Tailwind CSS", "Lovable AI (Gemini)", "Zustand"].map((tech) => (
+              {["React", "TypeScript", "Framer Motion", "Tailwind CSS", "Lovable AI", "Zustand"].map((tech) => (
                 <motion.div
                   key={tech}
                   whileHover={{ scale: 1.05 }}

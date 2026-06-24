@@ -1340,7 +1340,20 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           });
           imageUrls = await Promise.all(uploadPromises);
         } catch {
-          imageUrls = images.map((f) => URL.createObjectURL(f));
+          // If storage upload fails (common with pasted clipboard blobs), keep the
+          // images editable by sending data URLs to the edit function. Never send
+          // browser-only blob: URLs to the backend.
+          imageUrls = await Promise.all(
+            images.map(
+              (file) =>
+                new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.onerror = () => reject(new Error("Failed to read image"));
+                  reader.readAsDataURL(file);
+                })
+            )
+          );
         }
 
         // Check if images are in edit mode
@@ -1520,9 +1533,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         if (
           lastMsg?.role === "assistant" &&
           lastMsg.type === "image" &&
-          lastMsg.imageUrl &&
+          (lastMsg.imageUrl || (lastMsg.imageUrls && lastMsg.imageUrls.length > 0)) &&
           isImageEditRequest(finalMessage)
         ) {
+          const sourceImageUrls = lastMsg.imageUrls && lastMsg.imageUrls.length > 0
+            ? lastMsg.imageUrls
+            : [lastMsg.imageUrl!];
           // Route as image edit against the last generated/edited image
           await addMessage({ content: finalMessage, role: "user", type: "text" });
           await addMessage({
@@ -1535,7 +1551,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(finalMessage, [lastMsg.imageUrl], imageGenModel, imageGenAspect);
+            const editedUrl = await ai.editImage(finalMessage, sourceImageUrls, imageGenModel, imageGenAspect);
             let finalUrl = editedUrl;
             try {
               const resp = await fetch(editedUrl);

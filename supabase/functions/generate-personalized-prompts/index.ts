@@ -63,7 +63,7 @@ serve(async (req) => {
       });
     }
 
-    // Always use Gemini 3 Flash for prompt generation - fast, efficient, reliable
+    // Always use GPT-5.4 Mini for prompt generation - fast, efficient, reliable
     const PROMPT_MODEL = 'openai/gpt-5.4-mini';
     console.log('Using model for personalized prompts:', PROMPT_MODEL);
 
@@ -115,7 +115,7 @@ Keep "text" short (25-35 chars), put full context in "fullPrompt".`
         }
       ],
       temperature: 0.8,
-      max_tokens: 500,
+      max_completion_tokens: 500,
     };
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

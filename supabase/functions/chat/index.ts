@@ -502,7 +502,7 @@ serve(async (req) => {
 
     // Validate model if provided
     const allowedModels = [
-      // Gemini models (2 tiers)
+      // OpenAI GPT models
       'openai/gpt-5.4-mini',   // Quick
       'openai/gpt-5.4-mini',   // Wise & Thoughtful
       // GPT models (3 tiers)
@@ -697,7 +697,7 @@ serve(async (req) => {
             model: 'openai/gpt-5.4-mini',
             messages: conversationMessages,
             temperature: 0.6,
-            max_tokens: 2000,
+            max_completion_tokens: 2000,
           }),
         }
       );
@@ -738,7 +738,7 @@ serve(async (req) => {
             model: 'openai/gpt-5.4-mini',
             messages: conversationMessages,
             temperature: 0.3,
-            max_tokens: 1200,
+            max_completion_tokens: 1200,
           }),
         }
       );
@@ -1052,29 +1052,20 @@ Output the complete, finished writing using the update_canvas tool.`;
     let selectedModel = validatedModel || 'openai/gpt-5.4-mini';
     const fallbackModel = 'openai/gpt-5.4-mini'; // Fallback for canvas/code if Pro times out
 
-    // For code mode, upgrade to the best model for each provider
-    // Gemini: use gemini-3.5-flash, GPT: use gpt-5.2
+    // Code/canvas stays locked to GPT-5.4 Mini.
     if (wantsCode) {
-      if (selectedModel.startsWith('google/')) {
-        selectedModel = 'openai/gpt-5.4-mini';
-        console.log('🔧 Code mode: using gemini-3.5-flash');
-      } else if (selectedModel.startsWith('openai/')) {
-        selectedModel = 'openai/gpt-5.4-mini';
-        console.log('🔧 Code mode: upgraded GPT model to gpt-5.2');
-      }
+      selectedModel = 'openai/gpt-5.4-mini';
+      console.log('🔧 Code mode: using GPT-5.4 Mini');
     }
 
     // Dynamic upgrade: if client detected complex query, use Pro model
-    if (useProModel && !wantsCode && selectedModel.startsWith('google/')) {
+    if (useProModel && !wantsCode) {
       selectedModel = 'openai/gpt-5.4-mini';
-      console.log('🧠 Complex query detected: upgraded to gemini-3.5-flash');
+      console.log('🧠 Complex query detected: using GPT-5.4 Mini');
     }
     
-    // OpenAI models use max_completion_tokens, Gemini uses max_tokens
-    const isOpenAIModel = selectedModel.startsWith('openai/');
-    const tokenParam = isOpenAIModel 
-      ? { max_completion_tokens: 65536 }
-      : { max_tokens: 65536 };
+    // OpenAI models use max_completion_tokens.
+    const tokenParam = { max_completion_tokens: 65536 };
     
     console.log('🤖 Making AI request with model:', selectedModel);
     console.log('📋 Tools provided to AI:', toolsToUse.map(t => t.function.name));
@@ -1214,7 +1205,7 @@ Output the complete, finished writing using the update_canvas tool.`;
                         // - update_code tool streams "code"
                         const streamKey = wantsCode || toolName === 'update_code' ? 'code' : 'content';
 
-                        // Robust extraction for both Gemini + GPT streaming:
+                        // Robust extraction for GPT streaming:
                         // Models may send tool arguments in many chunks or big chunks. Regex-only approaches
                         // often fail when the JSON contains additional fields after the streamed string.
                         const extractLatestStringValue = (bufferStr: string, key: string): string | null => {
@@ -1448,11 +1439,9 @@ Output the complete, finished writing using the update_canvas tool.`;
       // If canvas/code mode with upgraded model fails, try fallback
       const isUpgradedModel = selectedModel === 'openai/gpt-5.4-mini' || selectedModel === 'openai/gpt-5.4-mini';
       if (isCanvasOrCodeMode && isUpgradedModel) {
-        // For GPT fallback, use gpt-5-nano; for Gemini fallback, use gemini-3-flash-preview
-        const actualFallback = selectedModel.startsWith('openai/') ? 'openai/gpt-5.4-mini' : fallbackModel;
-        const fallbackTokenParam = actualFallback.startsWith('openai/') 
-          ? { max_completion_tokens: 65536 }
-          : { max_tokens: 65536 };
+        // Fallback remains GPT-5.4 Mini; no Gemini fallback.
+        const actualFallback = 'openai/gpt-5.4-mini';
+        const fallbackTokenParam = { max_completion_tokens: 65536 };
         
         console.log('⚠️ Primary model failed, trying fallback:', actualFallback);
         usedFallback = true;
@@ -1499,7 +1488,7 @@ Output the complete, finished writing using the update_canvas tool.`;
     // Log if response was truncated due to token limit
     const finishReason = data.choices[0]?.finish_reason;
     if (finishReason === 'length') {
-      console.warn('⚠️ AI response was TRUNCATED due to max_tokens limit!');
+      console.warn('⚠️ AI response was TRUNCATED due to token limit!');
     }
     console.log('📊 Response finish_reason:', finishReason);
 
@@ -1860,7 +1849,7 @@ Output the complete, finished writing using the update_canvas tool.`;
         console.log('🤖 Making second AI call to synthesize results (no forced tool)');
         
         // Flatten tool call/response into simple messages to avoid the model
-        // trying to re-invoke tools (Gemini returns finish_reason=tool_calls otherwise)
+        // trying to re-invoke tools during synthesis.
         const synthesisMessages: any[] = [];
         for (const msg of conversationMessages) {
           if (msg.role === 'tool') {
@@ -1881,10 +1870,8 @@ Output the complete, finished writing using the update_canvas tool.`;
         const toolContextSize = synthesisMessages.reduce((acc: number, m: any) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0);
         console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
-        const secondCallModel = model || 'openai/gpt-5.4-mini';
-        const secondTokenParam = secondCallModel.startsWith('openai/')
-          ? { max_completion_tokens: 65536 }
-          : { max_tokens: 65536 };
+        const secondCallModel = validatedModel || 'openai/gpt-5.4-mini';
+        const secondTokenParam = { max_completion_tokens: 65536 };
         response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
