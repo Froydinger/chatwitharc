@@ -89,46 +89,55 @@ async function updateJob(supabase: any, jobId: string, values: Record<string, un
   if (error) console.error('Failed to update job:', jobId, error);
 }
 
-async function fetchImageAsDataUrl(url: string): Promise<string> {
-  if (url.startsWith('data:')) return url;
+async function fetchImageAsBlob(url: string): Promise<{ blob: Blob; filename: string }> {
+  if (url.startsWith('data:')) {
+    const commaIdx = url.indexOf(',');
+    const meta = url.slice(5, commaIdx); // e.g. image/png;base64
+    const mime = meta.split(';')[0] || 'image/png';
+    const b64 = url.slice(commaIdx + 1);
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    const ext = mime.split('/')[1] || 'png';
+    return { blob: new Blob([bytes], { type: mime }), filename: `input.${ext}` };
+  }
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch source image: ${res.status}`);
-  const buf = new Uint8Array(await res.arrayBuffer());
+  const buf = await res.arrayBuffer();
   const type = res.headers.get('content-type') || 'image/png';
-  // Base64 encode in chunks to avoid stack overflow
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < buf.length; i += chunk) {
-    binary += String.fromCharCode(...buf.subarray(i, i + chunk));
-  }
-  return `data:${type};base64,${btoa(binary)}`;
+  const ext = type.split('/')[1]?.split(';')[0] || 'png';
+  return { blob: new Blob([buf], { type }), filename: `input.${ext}` };
 }
 
-async function callEditGateway(prompt: string, imageUrls: string[], model: string, _size: string) {
-  // Lovable AI Gateway does not expose /v1/images/edits — use chat completions
-  // with modalities:["image","text"] and inline base64 image inputs.
-  const dataUrls = await Promise.all(imageUrls.map(fetchImageAsDataUrl));
-  const content: any[] = [{ type: 'text', text: prompt }];
-  for (const url of dataUrls) {
-    content.push({ type: 'image_url', image_url: { url } });
-  }
+async function callEditGateway(prompt: string, imageUrls: string[], model: string, size: string, count: number) {
+  // OpenAI gpt-image-2 editing uses the multipart /v1/images/edits endpoint.
+  // The Lovable AI Gateway forwards this through for OpenAI image models.
+  const blobs = await Promise.all(imageUrls.map(fetchImageAsBlob));
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const form = new FormData();
+      form.append('model', model);
+      form.append('prompt', prompt);
+      form.append('size', size);
+      form.append('quality', 'medium');
+      form.append('n', String(count));
+      // Multiple images: OpenAI accepts repeated `image[]` field for gpt-image
+      if (blobs.length === 1) {
+        form.append('image', blobs[0].blob, blobs[0].filename);
+      } else {
+        for (const { blob, filename } of blobs) {
+          form.append('image[]', blob, filename);
+        }
+      }
+
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/images/edits', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'user', content }],
-          modalities: ['image', 'text'],
-        }),
+        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}` },
+        body: form,
         signal: controller.signal,
       });
       const rawText = await response.text();
@@ -150,22 +159,25 @@ async function callEditGateway(prompt: string, imageUrls: string[], model: strin
   return { ok: false, status: 429, rawText: 'Rate limit retry failed' };
 }
 
-function extractImageUrl(parsed: any): string | null {
-  // Chat completions image response shape
-  const msg = parsed?.choices?.[0]?.message;
-  const images = msg?.images;
-  if (Array.isArray(images) && images[0]?.image_url?.url) {
-    return images[0].image_url.url;
-  }
-  // Fallback: legacy /v1/images/* shape
-  const item = parsed?.data?.[0];
-  if (item) {
-    if (typeof item.url === 'string' && item.url) return item.url;
-    if (typeof item.b64_json === 'string' && item.b64_json) {
-      return `data:image/png;base64,${item.b64_json}`;
+function extractImageUrls(parsed: any): string[] {
+  const out: string[] = [];
+  const items = Array.isArray(parsed?.data) ? parsed.data : [];
+  for (const item of items) {
+    if (typeof item?.url === 'string' && item.url) out.push(item.url);
+    else if (typeof item?.b64_json === 'string' && item.b64_json) {
+      out.push(`data:image/png;base64,${item.b64_json}`);
     }
   }
-  return null;
+  // Fallback for chat-completions-shaped responses (shouldn't happen here)
+  if (out.length === 0) {
+    const images = parsed?.choices?.[0]?.message?.images;
+    if (Array.isArray(images)) {
+      for (const im of images) {
+        if (im?.image_url?.url) out.push(im.image_url.url);
+      }
+    }
+  }
+  return out;
 }
 
 serve(async (req) => {
@@ -229,7 +241,7 @@ serve(async (req) => {
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
 
     console.log(`Editing image with ${selectedModel} (${size}, medium) for job ${currentJobId}`);
-    const result = await callEditGateway(editPrompt, imageArray, selectedModel, size);
+    const result = await callEditGateway(editPrompt, imageArray, selectedModel, size, 1);
 
     if (!result.ok) {
       const err = classifyError(result.status, result.rawText);
@@ -246,15 +258,16 @@ serve(async (req) => {
       return jsonResponse({ jobId: currentJobId, status: 'failed', success: false, error: 'Failed to parse response', errorType: 'parse_error', debugDetail: result.rawText.slice(0, 200) });
     }
 
-    const imageUrl = extractImageUrl(parsed);
-    if (!imageUrl) {
+    const imageUrls = extractImageUrls(parsed);
+    if (imageUrls.length === 0) {
       await updateJob(supabase, currentJobId, { status: 'failed', error_message: 'No image returned', error_type: 'no_image_returned' });
       return jsonResponse({ jobId: currentJobId, status: 'failed', success: false, error: 'No image returned', errorType: 'no_image_returned', debugDetail: result.rawText.slice(0, 500) });
     }
 
-    console.log(`Edit succeeded for job ${currentJobId}`);
+    const imageUrl = imageUrls[0];
+    console.log(`Edit succeeded for job ${currentJobId} (${imageUrls.length} image${imageUrls.length === 1 ? '' : 's'})`);
     await updateJob(supabase, currentJobId, { status: 'completed', result_image_url: imageUrl, error_message: null, error_type: null });
-    return jsonResponse({ jobId: currentJobId, status: 'completed', success: true, imageUrl });
+    return jsonResponse({ jobId: currentJobId, status: 'completed', success: true, imageUrl, imageUrls });
 
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

@@ -1487,24 +1487,18 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             })
           );
 
-          // Replace placeholder with the first image…
+          // Replace placeholder with a single message containing all generated images
+          // (renders as an inline grid via MessageBubble's imageUrls path)
           await replaceLastMessage({
-            content: `Generated image: ${imagePrompt}`,
+            content: uploaded.length > 1
+              ? `Generated ${uploaded.length} images: ${imagePrompt}`
+              : `Generated image: ${imagePrompt}`,
             role: "assistant",
             type: "image",
             imageUrl: uploaded[0],
+            imageUrls: uploaded,
             sourceModel: "cloud-image",
           });
-          // …and append the additional images as their own messages
-          for (let i = 1; i < uploaded.length; i++) {
-            await addMessage({
-              content: `Generated image: ${imagePrompt}`,
-              role: "assistant",
-              type: "image",
-              imageUrl: uploaded[i],
-              sourceModel: "cloud-image",
-            });
-          }
         } catch (err: any) {
           const errMsg = err?.message || "Image generation failed. Please try again.";
           await replaceLastMessage({
