@@ -58,8 +58,11 @@ export function ChatModelPicker({ className, compact, placement = 'up' }: Props)
               exit={{ opacity: 0, y: -6, scale: 0.96 }}
               transition={{ type: 'spring', stiffness: 380, damping: 26 }}
               className={cn(
-                "absolute left-1/2 -translate-x-1/2 z-[70] w-60 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-2xl shadow-2xl p-1.5",
-                placement === 'down' ? 'top-[calc(100%+6px)]' : 'bottom-[calc(100%+6px)]'
+                "z-[70] w-60 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-2xl shadow-2xl p-1.5",
+                // Mobile: fixed center of viewport. Desktop: anchored to button.
+                "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
+                "sm:absolute sm:left-1/2 sm:top-auto sm:-translate-x-1/2 sm:translate-y-0",
+                placement === 'down' ? 'sm:top-[calc(100%+6px)]' : 'sm:bottom-[calc(100%+6px)]'
               )}
             >
               <Row
