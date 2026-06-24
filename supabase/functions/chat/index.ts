@@ -1044,7 +1044,7 @@ Output the complete, finished writing using the update_canvas tool.`;
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
-    let selectedModel = validatedModel || 'openai/gpt-5.4-mini';
+    let selectedModel = validatedModel || 'openai/gpt-5.4-nano';
     const fallbackModel = 'openai/gpt-5.4-mini'; // Fallback for canvas/code if Pro times out
 
     // Code/canvas stays locked to GPT-5.4 Mini.
