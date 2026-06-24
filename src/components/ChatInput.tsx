@@ -1520,9 +1520,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         if (
           lastMsg?.role === "assistant" &&
           lastMsg.type === "image" &&
-          lastMsg.imageUrl &&
+          (lastMsg.imageUrl || (lastMsg.imageUrls && lastMsg.imageUrls.length > 0)) &&
           isImageEditRequest(finalMessage)
         ) {
+          const sourceImageUrls = lastMsg.imageUrls && lastMsg.imageUrls.length > 0
+            ? lastMsg.imageUrls
+            : [lastMsg.imageUrl!];
           // Route as image edit against the last generated/edited image
           await addMessage({ content: finalMessage, role: "user", type: "text" });
           await addMessage({
@@ -1535,7 +1538,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(finalMessage, [lastMsg.imageUrl], imageGenModel, imageGenAspect);
+            const editedUrl = await ai.editImage(finalMessage, sourceImageUrls, imageGenModel, imageGenAspect);
             let finalUrl = editedUrl;
             try {
               const resp = await fetch(editedUrl);
