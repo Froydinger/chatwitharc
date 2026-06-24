@@ -49,6 +49,7 @@ import { buildLocalSystemPrompt } from "@/utils/localSystemPrompt";
 import { findFirstToolCall, executeLocalToolCall, stripToolTags, hasPartialOpenTag } from "@/utils/localToolProtocol";
 import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptionsDock";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
+import { ChatModelPicker } from "@/components/ChatModelPicker";
 import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore } from "@/store/useImageGenStore";
 import { usePersonasStore } from "@/store/usePersonasStore";
