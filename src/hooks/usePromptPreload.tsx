@@ -78,24 +78,32 @@ export function usePromptPreload() {
 
     // Wait a bit to ensure app is fully loaded
     const timer = setTimeout(async () => {
+      // Skip if user is not authenticated (or only anonymous) — edge function requires real JWT
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user || (session.user as any).is_anonymous) {
+          return;
+        }
+      } catch {
+        return;
+      }
+
       hasPreloaded.current = true;
 
       console.log('🔮 Pre-generating prompts in background...');
 
       try {
-        // Generate all categories in parallel
         await Promise.all([
           generateAIPrompts('chat'),
           generateAIPrompts('create'),
           generateAIPrompts('write'),
           generateAIPrompts('code'),
         ]);
-
         console.log('✨ Prompts pre-generated and cached in sessionStorage!');
       } catch (error) {
         console.error('Failed to preload prompts:', error);
       }
-    }, 2000); // Wait 2 seconds after mount to avoid slowing down initial load
+    }, 2000);
 
     return () => clearTimeout(timer);
   }, []);
