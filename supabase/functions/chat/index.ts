@@ -1054,22 +1054,17 @@ Output the complete, finished writing using the update_canvas tool.`;
 
     // Code/canvas stays locked to GPT-5.4 Mini.
     if (wantsCode) {
-      if (selectedModel.startsWith('google/')) {
-        selectedModel = 'openai/gpt-5.4-mini';
-        console.log('🔧 Code mode: remapped legacy Google model to GPT-5.4 Mini');
-      } else if (selectedModel.startsWith('openai/')) {
-        selectedModel = 'openai/gpt-5.4-mini';
-        console.log('🔧 Code mode: using GPT-5.4 Mini');
-      }
+      selectedModel = 'openai/gpt-5.4-mini';
+      console.log('🔧 Code mode: using GPT-5.4 Mini');
     }
 
     // Dynamic upgrade: if client detected complex query, use Pro model
-    if (useProModel && !wantsCode && selectedModel.startsWith('google/')) {
+    if (useProModel && !wantsCode) {
       selectedModel = 'openai/gpt-5.4-mini';
-      console.log('🧠 Complex query detected: remapped legacy Google model to GPT-5.4 Mini');
+      console.log('🧠 Complex query detected: using GPT-5.4 Mini');
     }
     
-    // OpenAI models use max_completion_tokens; legacy non-OpenAI keeps max_tokens.
+    // OpenAI models use max_completion_tokens.
     const isOpenAIModel = selectedModel.startsWith('openai/');
     const tokenParam = isOpenAIModel 
       ? { max_completion_tokens: 65536 }
@@ -1213,7 +1208,7 @@ Output the complete, finished writing using the update_canvas tool.`;
                         // - update_code tool streams "code"
                         const streamKey = wantsCode || toolName === 'update_code' ? 'code' : 'content';
 
-                        // Robust extraction for both Gemini + GPT streaming:
+                        // Robust extraction for GPT streaming:
                         // Models may send tool arguments in many chunks or big chunks. Regex-only approaches
                         // often fail when the JSON contains additional fields after the streamed string.
                         const extractLatestStringValue = (bufferStr: string, key: string): string | null => {
@@ -1498,7 +1493,7 @@ Output the complete, finished writing using the update_canvas tool.`;
     // Log if response was truncated due to token limit
     const finishReason = data.choices[0]?.finish_reason;
     if (finishReason === 'length') {
-      console.warn('⚠️ AI response was TRUNCATED due to max_tokens limit!');
+      console.warn('⚠️ AI response was TRUNCATED due to token limit!');
     }
     console.log('📊 Response finish_reason:', finishReason);
 
@@ -1859,7 +1854,7 @@ Output the complete, finished writing using the update_canvas tool.`;
         console.log('🤖 Making second AI call to synthesize results (no forced tool)');
         
         // Flatten tool call/response into simple messages to avoid the model
-        // trying to re-invoke tools (Gemini returns finish_reason=tool_calls otherwise)
+        // trying to re-invoke tools during synthesis.
         const synthesisMessages: any[] = [];
         for (const msg of conversationMessages) {
           if (msg.role === 'tool') {
