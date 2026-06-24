@@ -136,6 +136,7 @@ const App = () => {
             <GlobalMusicPlayer />
             <CorporateMemoryConsentGate />
             <GlobalAuthGate />
+            <BoostSync />
             <UpgradeModal
               isOpen={showUpgradeModal}
               onClose={() => setShowUpgradeModal(false)}
