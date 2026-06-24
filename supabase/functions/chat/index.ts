@@ -1865,7 +1865,7 @@ Output the complete, finished writing using the update_canvas tool.`;
         const toolContextSize = synthesisMessages.reduce((acc: number, m: any) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0);
         console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
-        const secondCallModel = validatedModel || 'openai/gpt-5.4-mini';
+        const secondCallModel = validatedModel || 'openai/gpt-5.4-nano';
         const secondTokenParam = { max_completion_tokens: 65536 };
         response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
