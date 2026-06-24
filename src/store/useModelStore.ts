@@ -24,7 +24,6 @@ interface ModelStore {
 export const useModelStore = create<ModelStore>()(
   persist(
     (set) => ({
-      modelFamily: 'gemini',
       modelFamily: 'openai',
       setModelFamily: () => set({ modelFamily: 'openai' }),
     }),
