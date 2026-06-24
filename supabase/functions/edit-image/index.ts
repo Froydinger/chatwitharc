@@ -241,7 +241,7 @@ serve(async (req) => {
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
 
     console.log(`Editing image with ${selectedModel} (${size}, medium) for job ${currentJobId}`);
-    const result = await callEditGateway(editPrompt, imageArray, selectedModel, size);
+    const result = await callEditGateway(editPrompt, imageArray, selectedModel, size, 1);
 
     if (!result.ok) {
       const err = classifyError(result.status, result.rawText);
@@ -258,15 +258,16 @@ serve(async (req) => {
       return jsonResponse({ jobId: currentJobId, status: 'failed', success: false, error: 'Failed to parse response', errorType: 'parse_error', debugDetail: result.rawText.slice(0, 200) });
     }
 
-    const imageUrl = extractImageUrl(parsed);
-    if (!imageUrl) {
+    const imageUrls = extractImageUrls(parsed);
+    if (imageUrls.length === 0) {
       await updateJob(supabase, currentJobId, { status: 'failed', error_message: 'No image returned', error_type: 'no_image_returned' });
       return jsonResponse({ jobId: currentJobId, status: 'failed', success: false, error: 'No image returned', errorType: 'no_image_returned', debugDetail: result.rawText.slice(0, 500) });
     }
 
-    console.log(`Edit succeeded for job ${currentJobId}`);
+    const imageUrl = imageUrls[0];
+    console.log(`Edit succeeded for job ${currentJobId} (${imageUrls.length} image${imageUrls.length === 1 ? '' : 's'})`);
     await updateJob(supabase, currentJobId, { status: 'completed', result_image_url: imageUrl, error_message: null, error_type: null });
-    return jsonResponse({ jobId: currentJobId, status: 'completed', success: true, imageUrl });
+    return jsonResponse({ jobId: currentJobId, status: 'completed', success: true, imageUrl, imageUrls });
 
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
