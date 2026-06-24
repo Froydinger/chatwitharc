@@ -254,7 +254,7 @@ serve(async (req) => {
     const currentJobId = jobData.id;
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
 
-    console.log(`Editing image with ${selectedModel} (${size}, medium) for job ${currentJobId}`);
+    console.log(`Editing image with ${selectedModel} (${size}, medium, ${OPENAI_API_KEY ? 'OpenAI direct edits endpoint' : 'Lovable AI Gateway edits endpoint'}) for job ${currentJobId}`);
     const result = await callEditGateway(editPrompt, imageArray, selectedModel, size, 1);
 
     if (!result.ok) {
