@@ -5,6 +5,7 @@
  */
 import { useLocalAIStore } from '@/store/useLocalAIStore';
 import { useCorporateModeStore } from '@/store/useCorporateModeStore';
+import { useModelStore, FASTER_MODEL, SMARTER_MODEL } from '@/store/useModelStore';
 import { FAST_MODEL, QUALITY_MODEL, FAST_FALLBACK, IOS_LITE_MODEL, getActiveLocalModelId } from '@/services/localAI';
 import { isMobileLocalDevice } from '@/utils/mobileLocal';
 
