@@ -51,7 +51,7 @@ export const useImageGenStore = create<ImageGenState>()(
       setModel: (m) =>
         set({ model: ALLOWED_IMAGE_MODELS.includes(m) ? m : DEFAULT_IMAGE_MODEL }),
       setAspectRatio: (a) => set({ aspectRatio: a }),
-      setCount: (c) => set({ count: (c >= 1 && c <= 6 ? c : 1) as ImageCount }),
+      setCount: (c) => set({ count: (c >= 1 && c <= 3 ? c : 1) as ImageCount }),
     }),
     {
       name: 'arc-image-gen-prefs',
