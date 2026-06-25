@@ -1661,13 +1661,17 @@ Output the complete, finished writing using the update_canvas tool.`;
         } else if (toolCall.function.name === 'get_weather') {
           const args = JSON.parse(toolCall.function.arguments);
           try {
-            const wxResp = await supabase.functions.invoke('get-weather', {
-              body: {
-                location: args.location,
-                latitude: typeof args.latitude === 'number' ? args.latitude : undefined,
-                longitude: typeof args.longitude === 'number' ? args.longitude : undefined,
-              },
+            const wxBody = JSON.stringify({
+              location: args.location,
+              latitude: typeof args.latitude === 'number' ? args.latitude : undefined,
+              longitude: typeof args.longitude === 'number' ? args.longitude : undefined,
             });
+            const wxRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/get-weather`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': authHeader, 'apikey': Deno.env.get('SUPABASE_ANON_KEY') ?? '' },
+              body: wxBody,
+            });
+            const wxResp = wxRes.ok ? { data: await wxRes.json(), error: null } : { data: null, error: { message: `HTTP ${wxRes.status}` } };
             if (wxResp.error || wxResp.data?.error) {
               conversationMessages.push({
                 role: 'tool',

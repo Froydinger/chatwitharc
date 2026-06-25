@@ -11,7 +11,7 @@ const corsHeaders = {
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const REQUEST_TIMEOUT_MS = 55_000;
+const REQUEST_TIMEOUT_MS = 180_000;
 const RETRY_DELAY_MS = 3_000;
 
 // All image generation is locked to OpenAI GPT-Image-2 at medium quality.
@@ -240,7 +240,7 @@ serve(async (req) => {
     const isYouTube = aspectRatio === "16:9";
     const requestedCount = Number(body?.count);
     const count = Number.isFinite(requestedCount)
-      ? Math.max(1, Math.min(3, Math.floor(requestedCount)))
+      ? Math.max(1, Math.min(6, Math.floor(requestedCount)))
       : 1;
 
     const prompt = isYouTube
@@ -315,7 +315,7 @@ serve(async (req) => {
     }
 
     console.log(`Image generated successfully (${imageUrls.length}) for job ${currentJobId}`);
-    await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: imageUrls[0], error_message: null, error_type: null });
+    await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: imageUrls[0], result_image_urls: imageUrls, error_message: null, error_type: null });
     return jsonResponse({ jobId: currentJobId, status: "completed", success: true, imageUrl: imageUrls[0], imageUrls });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
