@@ -30,8 +30,8 @@ export const IMAGE_ASPECT_OPTIONS: Array<{ id: ImageAspectRatio; label: string }
   { id: '16:9', label: '16:9 (YouTube)' },
 ];
 
-export type ImageCount = 1 | 2 | 3 | 4 | 5 | 6;
-export const MAX_BOOST_IMAGE_COUNT: ImageCount = 6;
+export type ImageCount = 1 | 2 | 3;
+export const MAX_BOOST_IMAGE_COUNT: ImageCount = 3;
 
 interface ImageGenState {
   model: ImageModelId;
