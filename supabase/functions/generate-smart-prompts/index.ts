@@ -62,6 +62,14 @@ serve(async (req) => {
       });
     }
 
+    // Skip AI call if there's no meaningful context
+    const hasContext = chatContext.trim().length > 0 || profile?.display_name || profile?.memory_info || profile?.context_info;
+    if (!hasContext) {
+      return new Response(JSON.stringify({ prompts: [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Build prompt for AI based on context type
     const isResearch = context === 'research';
     
