@@ -362,47 +362,40 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     className="mb-2 relative z-10"
                   >
                     {message.imageUrls && message.imageUrls.length > 0 ? (
-                      <div className="space-y-4">
-                        <div
-                          className={`grid gap-4 justify-center ${
-                            message.imageUrls.length === 1
-                              ? "grid-cols-1"
-                              : "grid-cols-1 sm:grid-cols-2"
-                          }`}
-                        >
-                          {message.imageUrls.map((url, index) => (
-                            <div key={index} className="flex flex-col items-center">
-                              <div 
-                                className="rounded-2xl border border-white/10 bg-white/10 overflow-hidden cursor-pointer hover:border-white/20 transition-colors max-w-sm mx-auto"
-                                onClick={() => setSelectedImageUrl(url)}
-                              >
-                                <SmoothImage
-                                  src={url}
-                                  alt={`Image ${index + 1}`}
-                                  className="w-full h-auto object-contain rounded-2xl"
-                                  loadingClassName="w-full h-48"
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        {/* Single edit button for all images - only for AI-generated images */}
-                        {!isUser && (
-                          <div className="flex justify-center mt-4">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="bg-foreground/85 hover:bg-foreground text-background border border-border/40"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditImageUrls(message.imageUrls!);
-                              }}
+                      <div
+                        className={`grid gap-4 justify-center ${
+                          message.imageUrls.length === 1
+                            ? "grid-cols-1"
+                            : "grid-cols-1 sm:grid-cols-2"
+                        }`}
+                      >
+                        {message.imageUrls.map((url, index) => (
+                          <div key={index} className="flex flex-col items-center gap-2">
+                            <div
+                              className="rounded-2xl border border-white/10 bg-white/10 overflow-hidden cursor-pointer hover:border-white/20 transition-colors max-w-sm mx-auto"
+                              onClick={() => setSelectedImageUrl(url)}
                             >
-                              {message.imageUrls.length > 1 ? 'Edit All Images' : 'Edit Image'}
-                            </Button>
+                              <SmoothImage
+                                src={url}
+                                alt={`Image ${index + 1}`}
+                                className="w-full h-auto object-contain rounded-2xl"
+                                loadingClassName="w-full h-48"
+                              />
+                            </div>
+                            {!isUser && (
+                              <Button
+                                size="sm"
+                                className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shadow-sm h-8 px-4"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditImageUrls([url]);
+                                }}
+                              >
+                                Edit Image
+                              </Button>
+                            )}
                           </div>
-                        )}
+                        ))}
                       </div>
                     ) : (
                       message.imageUrl && (
