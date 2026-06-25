@@ -433,11 +433,12 @@ serve(async (req) => {
     }
 
     const jobId = jobData.id;
-    const editPrompt = buildEditPrompt(prompt, imageArray.length);
+    const isYouTube = aspect === '16:9';
+    const editPrompt = buildEditPrompt(prompt, imageArray.length, isYouTube);
 
     // Kick off processing in background; respond immediately so we never get killed
     // by the platform's per-request wall timeout.
-    const task = processEditJob(jobId, user.id, editPrompt, imageArray, size, requestedCount, selectedModel);
+    const task = processEditJob(jobId, user.id, editPrompt, imageArray, size, requestedCount, selectedModel, isYouTube);
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
       EdgeRuntime.waitUntil(task);
     } else {
