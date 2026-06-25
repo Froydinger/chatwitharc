@@ -11,7 +11,7 @@ const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-const REQUEST_TIMEOUT_MS = 55_000;
+const REQUEST_TIMEOUT_MS = 150_000;
 const RETRY_DELAY_MS = 3_000;
 
 // All image editing is locked to OpenAI GPT-Image-2 at medium quality.
