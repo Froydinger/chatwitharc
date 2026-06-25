@@ -11,7 +11,7 @@ const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-const REQUEST_TIMEOUT_MS = 55_000;
+const REQUEST_TIMEOUT_MS = 150_000;
 const RETRY_DELAY_MS = 3_000;
 
 // All image editing is locked to OpenAI GPT-Image-2 at medium quality.
@@ -137,7 +137,7 @@ async function callEditGateway(prompt: string, imageUrls: string[], model: strin
       form.append('model', modelName);
       form.append('prompt', prompt);
       form.append('size', size);
-      form.append('quality', 'medium');
+      form.append('quality', 'low');
       form.append('n', String(count));
       // Multiple images: OpenAI accepts repeated `image[]` field for gpt-image
       if (blobs.length === 1) {
@@ -254,7 +254,7 @@ serve(async (req) => {
     const currentJobId = jobData.id;
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
 
-    console.log(`Editing image with ${selectedModel} (${size}, medium, ${OPENAI_API_KEY ? 'OpenAI direct edits endpoint' : 'Lovable AI Gateway edits endpoint'}) for job ${currentJobId}`);
+    console.log(`Editing image with ${selectedModel} (${size}, low, ${OPENAI_API_KEY ? 'OpenAI direct edits endpoint' : 'Lovable AI Gateway edits endpoint'}) for job ${currentJobId}`);
     const result = await callEditGateway(editPrompt, imageArray, selectedModel, size, 1);
 
     if (!result.ok) {
