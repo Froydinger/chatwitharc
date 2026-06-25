@@ -307,15 +307,16 @@ async function uploadDataUrlsToStorage(supabase: any, userId: string, urls: stri
   return out;
 }
 
-async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], size: string, count: number, selectedModel: string) {
+async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], size: string, count: number, selectedModel: string, isYouTube: boolean) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   try {
-    const sources = await Promise.all(imageArray.map(fetchImageAsBlob));
-    console.log(`[job ${jobId}] OpenAI edit attempt (${size}, n=${count})`);
+    const sources = await Promise.all(imageArray.map((url, i) => fetchImageAsBlob(url, i)));
+    console.log(`[job ${jobId}] OpenAI edit attempt (${size}, n=${count}${isYouTube ? ', youtube' : ''})`);
     const primary = await callOpenAIEdits(prompt, sources, selectedModel, size, count);
 
     let urls: string[] = [];
     let fallbackUsed: string | null = null;
+    let primaryErr: ReturnType<typeof classifyError> | null = null;
 
     if (primary.ok) {
       try {
@@ -325,20 +326,44 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
         console.warn(`[job ${jobId}] OpenAI response parse failed`);
       }
     } else {
-      console.warn(`[job ${jobId}] OpenAI failed (${primary.status}); attempting Gemini fallback`);
+      primaryErr = classifyError(primary.status, primary.rawText);
+      console.warn(`[job ${jobId}] OpenAI failed (${primary.status} / ${primaryErr.errorType}): ${primaryErr.debugDetail.slice(0, 240)}`);
     }
 
-    if (urls.length === 0) {
+    // Only fall back to Gemini on transient errors. Deterministic 4xx (content
+    // policy, invalid input image, bad request) will fail Gemini too and just
+    // double latency — surface the real OpenAI error to the user instead.
+    const shouldFallback = urls.length === 0 && (
+      primary.ok || // OpenAI returned OK but we got no images
+      primary.status >= 500 ||
+      primary.status === 408 ||
+      primary.status === 429
+    );
+
+    if (urls.length === 0 && shouldFallback) {
+      console.log(`[job ${jobId}] attempting Gemini fallback`);
       const fb = await callGeminiEdit(prompt, sources.map(s => ({ b64: s.b64, mime: s.mime })), count);
       if (fb.ok && fb.urls.length > 0) {
         urls = fb.urls;
         fallbackUsed = FALLBACK_MODEL;
       } else {
-        const err = classifyError(primary.ok ? fb.status : primary.status, primary.ok ? fb.rawText : primary.rawText);
+        const err = primaryErr ?? classifyError(fb.status, fb.rawText);
         await updateJob(supabase, jobId, { status: 'failed', error_message: err.errorMessage, error_type: err.errorType });
         console.error(`[job ${jobId}] both models failed`);
         return;
       }
+    } else if (urls.length === 0 && primaryErr) {
+      // Hard failure from OpenAI — pass the real message through.
+      await updateJob(supabase, jobId, { status: 'failed', error_message: primaryErr.errorMessage, error_type: primaryErr.errorType });
+      console.error(`[job ${jobId}] OpenAI hard failure, no fallback attempted`);
+      return;
+    }
+
+    // YouTube 16:9: crop every output (OpenAI or Gemini) before upload.
+    if (isYouTube) {
+      urls = await Promise.all(urls.map(async (u) => {
+        try { return await cropTo16x9(u); } catch (e) { console.error(`[job ${jobId}] 16:9 crop failed:`, e); return u; }
+      }));
     }
 
     const finalUrls = await uploadDataUrlsToStorage(supabase, userId, urls);
