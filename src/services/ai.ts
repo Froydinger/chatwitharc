@@ -621,28 +621,27 @@ export class AIService {
     }
   }
 
-  async editImage(prompt: string, baseImageUrls: string | string[], imageModel?: string, aspectRatio?: string): Promise<string> {
+  async editImage(prompt: string, baseImageUrls: string | string[], imageModel?: string, aspectRatio?: string, count: number = 1): Promise<string[]> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Image editing service is not available. Please configure Supabase.');
     }
 
     try {
-      // Support both single image and array of images (max 14 for combining/reference edits)
       const images = Array.isArray(baseImageUrls) ? baseImageUrls : [baseImageUrls];
-
       if (images.length > 14) {
         throw new Error('Maximum 14 images allowed for combining');
       }
 
-      // Image edits are locked to GPT Image 2. Never route edits through chat models.
       const modelToUse = imageModel || 'openai/gpt-image-2';
+      const safeCount = Math.max(1, Math.min(3, Math.floor(count) || 1));
 
       const { data, error } = await supabase.functions.invoke('edit-image', {
-        body: { 
-          prompt, 
+        body: {
+          prompt,
           baseImageUrls: images,
           imageModel: modelToUse,
           aspectRatio,
+          count: safeCount,
         }
       });
 
@@ -661,11 +660,13 @@ export class AIService {
         throw errorObj;
       }
 
-      if (!data.success || !data.imageUrl) {
+      const urls: string[] = Array.isArray(data.imageUrls) && data.imageUrls.length > 0
+        ? data.imageUrls
+        : (data.imageUrl ? [data.imageUrl] : []);
+      if (!data.success || urls.length === 0) {
         throw new Error('Failed to edit image');
       }
-
-      return data.imageUrl;
+      return urls;
     } catch (error) {
       console.error('Image editing error:', error);
       throw error;
