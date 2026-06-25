@@ -315,7 +315,7 @@ serve(async (req) => {
     }
 
     console.log(`Image generated successfully (${imageUrls.length}) for job ${currentJobId}`);
-    await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: imageUrls[0], error_message: null, error_type: null });
+    await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: imageUrls[0], result_image_urls: imageUrls, error_message: null, error_type: null });
     return jsonResponse({ jobId: currentJobId, status: "completed", success: true, imageUrl: imageUrls[0], imageUrls });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
