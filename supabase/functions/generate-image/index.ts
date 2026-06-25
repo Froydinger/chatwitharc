@@ -240,7 +240,7 @@ serve(async (req) => {
     const isYouTube = aspectRatio === "16:9";
     const requestedCount = Number(body?.count);
     const count = Number.isFinite(requestedCount)
-      ? Math.max(1, Math.min(6, Math.floor(requestedCount)))
+      ? Math.max(1, Math.min(3, Math.floor(requestedCount)))
       : 1;
 
     const prompt = isYouTube

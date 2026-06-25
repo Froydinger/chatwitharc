@@ -171,7 +171,7 @@ export function ImageOptionsContent({ showUsage = true }: { showUsage?: boolean 
 
             {openMenu === "count" && (
               <div className="absolute bottom-full mb-2 left-0 w-40 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
-                {([1, 2, 3, 4, 5, 6] as ImageCount[]).map((c) => {
+                {([1, 2, 3] as ImageCount[]).map((c) => {
                   const isActive = c === effectiveCount;
                   return (
                     <button

@@ -578,7 +578,7 @@ export class AIService {
 
     try {
       const modelToUse = preferredModel || 'openai/gpt-image-2';
-      const safeCount = Math.max(1, Math.min(6, Math.floor(count) || 1));
+      const safeCount = Math.max(1, Math.min(3, Math.floor(count) || 1));
 
       console.log('generateImage called with:', { prompt, preferredModel, aspectRatio, modelToUse, count: safeCount });
 
@@ -631,7 +631,7 @@ export class AIService {
       if (images.length > 14) throw new Error('Maximum 14 images allowed for combining');
 
       const modelToUse = imageModel || 'openai/gpt-image-2';
-      const safeCount = Math.max(1, Math.min(6, Math.floor(count) || 1));
+      const safeCount = Math.max(1, Math.min(3, Math.floor(count) || 1));
 
       const { data, error } = await supabase.functions.invoke('edit-image', {
         body: { prompt, baseImageUrls: images, imageModel: modelToUse, aspectRatio, count: safeCount },
