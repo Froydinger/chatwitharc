@@ -772,7 +772,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const docs = files.filter((f) => !f.type.startsWith("image/") && isDocumentFile(f));
 
     if (images.length > 0) {
-      const max = 14;
+      const max = 6;
       setSelectedImages((prev) => {
         const merged = [...prev, ...images].slice(0, max);
         if (merged.length >= max && images.length > 0 && merged.length > prev.length) {
@@ -2419,7 +2419,7 @@ ${safeCode}
             <div className={rect ? "fixed z-[33]" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"} style={anchored}>
               <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3 mx-auto max-w-[760px]">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/14)</span>
+                  <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/6)</span>
                   <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">
                     Clear All
                   </button>
