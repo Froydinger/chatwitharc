@@ -628,50 +628,52 @@ export class AIService {
 
     try {
       const images = Array.isArray(baseImageUrls) ? baseImageUrls : [baseImageUrls];
-      if (images.length > 14) {
-        throw new Error('Maximum 14 images allowed for combining');
-      }
+      if (images.length > 14) throw new Error('Maximum 14 images allowed for combining');
 
       const modelToUse = imageModel || 'openai/gpt-image-2';
       const safeCount = Math.max(1, Math.min(3, Math.floor(count) || 1));
 
       const { data, error } = await supabase.functions.invoke('edit-image', {
-        body: {
-          prompt,
-          baseImageUrls: images,
-          imageModel: modelToUse,
-          aspectRatio,
-          count: safeCount,
-        }
+        body: { prompt, baseImageUrls: images, imageModel: modelToUse, aspectRatio, count: safeCount },
       });
 
       if (error) {
         console.error('Supabase function error:', error);
         throw new Error(`Image editing error: ${error.message}`);
       }
-
-      if (data.error) {
+      if (data?.error) {
         const errorObj: any = new Error(data.error);
         errorObj.errorType = data.errorType || 'unknown';
-        if (data.debugDetail) {
-          errorObj.debugDetail = data.debugDetail;
-          console.warn('🖼️ Image edit debug:', data.debugDetail);
-        }
         throw errorObj;
       }
 
-      const urls: string[] = Array.isArray(data.imageUrls) && data.imageUrls.length > 0
-        ? data.imageUrls
-        : (data.imageUrl ? [data.imageUrl] : []);
-      if (!data.success || urls.length === 0) {
-        throw new Error('Failed to edit image');
+      // Async path: enqueue returns { jobId, status: 'pending' }
+      if (data?.jobId && data?.status !== 'completed') {
+        const { pollImageJob } = await import('@/lib/pollImageJob');
+        const result = await pollImageJob(data.jobId);
+        if (result.fallbackModel) {
+          console.info(`🖼️ Edit fell back to ${result.fallbackModel}`);
+          // Stash on a global so UI can read it for the in-progress edit
+          try {
+            (window as any).__lastImageFallback = result.fallbackModel;
+            window.dispatchEvent(new CustomEvent('imageFallbackUsed', { detail: { model: result.fallbackModel } }));
+          } catch {}
+        }
+        return result.imageUrls;
       }
+
+      // Legacy synchronous path (still supported)
+      const urls: string[] = Array.isArray(data?.imageUrls) && data.imageUrls.length > 0
+        ? data.imageUrls
+        : (data?.imageUrl ? [data.imageUrl] : []);
+      if (!data?.success || urls.length === 0) throw new Error('Failed to edit image');
       return urls;
     } catch (error) {
       console.error('Image editing error:', error);
       throw error;
     }
   }
+
 
   async generateFile(fileType: string, prompt: string): Promise<{ fileUrl: string; fileName: string; mimeType: string; fileSize?: number }> {
     if (!supabase || !isSupabaseConfigured) {

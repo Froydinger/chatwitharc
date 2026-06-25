@@ -1092,12 +1092,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         })
       );
 
+      const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
       await replaceLastMessage({
         content: finalUrls.length > 1 ? `Edited ${finalUrls.length} images: ${editInstruction}` : `Edited image: ${editInstruction}`,
         role: "assistant",
         type: "image",
         imageUrl: finalUrls[0],
         imageUrls: finalUrls,
+        sourceModel: fallbackModel ? "cloud-image-edit-fallback" : "cloud-image-edit",
       });
     } catch (err: any) {
       const errMsg = err?.message || "Image editing failed. Please try again.";
@@ -1403,13 +1405,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
                 } catch { return url; }
               })
             );
+            const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
             await replaceLastMessage({
               content: finalUrls.length > 1 ? `Edited ${finalUrls.length} images: ${finalMessage}` : `Edited image: ${finalMessage}`,
               role: "assistant",
               type: "image",
               imageUrl: finalUrls[0],
               imageUrls: finalUrls,
-              sourceModel: "cloud-image-edit",
+              sourceModel: fallbackModel ? "cloud-image-edit-fallback" : "cloud-image-edit",
             });
           } catch (err: any) {
             const errMsg = err?.message || "Image editing failed. Please try again.";
@@ -1582,13 +1585,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
                 } catch { return url; }
               })
             );
+            const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
             await replaceLastMessage({
               content: finalUrls.length > 1 ? `Edited ${finalUrls.length} images: ${finalMessage}` : `Edited image: ${finalMessage}`,
               role: "assistant",
               type: "image",
               imageUrl: finalUrls[0],
               imageUrls: finalUrls,
-              sourceModel: "cloud-image-edit",
+              sourceModel: fallbackModel ? "cloud-image-edit-fallback" : "cloud-image-edit",
             });
           } catch (err: any) {
             const errMsg = err?.message || "Image editing failed. Please try again.";

@@ -409,12 +409,14 @@ export type Database = {
           created_at: string
           error_message: string | null
           error_type: string | null
+          fallback_model: string | null
           id: string
           job_type: string
           last_attempt_at: string | null
           preferred_model: string | null
           prompt: string
           result_image_url: string | null
+          result_image_urls: string[] | null
           status: string
           updated_at: string
           user_id: string
@@ -426,12 +428,14 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           error_type?: string | null
+          fallback_model?: string | null
           id?: string
           job_type: string
           last_attempt_at?: string | null
           preferred_model?: string | null
           prompt: string
           result_image_url?: string | null
+          result_image_urls?: string[] | null
           status?: string
           updated_at?: string
           user_id: string
@@ -443,12 +447,14 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           error_type?: string | null
+          fallback_model?: string | null
           id?: string
           job_type?: string
           last_attempt_at?: string | null
           preferred_model?: string | null
           prompt?: string
           result_image_url?: string | null
+          result_image_urls?: string[] | null
           status?: string
           updated_at?: string
           user_id?: string

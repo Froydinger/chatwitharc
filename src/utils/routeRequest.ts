@@ -27,6 +27,7 @@ export type RouteDestination =
   | 'cloud-image'               // GPT-Image-2 — locked image model
   | 'cloud-image-pro'           // Deprecated alias — also maps to GPT-Image-2
   | 'cloud-image-edit'          // GPT-Image-2 — edit pass
+  | 'cloud-image-edit-fallback' // Edit served by Gemini fallback when GPT-Image-2 failed
   | 'cloud-ide';                // App Builder / IDE agent
 
 
@@ -127,6 +128,8 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
       return { label: 'Cloud · GPT Image 2', icon: 'cloud', tooltip: 'Image generation — OpenAI GPT-Image-2 (medium quality).' };
     case 'cloud-image-edit':
       return { label: 'Cloud · GPT Image 2 (Edit)', icon: 'cloud', tooltip: 'Image editing — OpenAI GPT-Image-2 (medium quality).' };
+    case 'cloud-image-edit-fallback':
+      return { label: 'Cloud · Nano Banana 2 (Edit, fallback)', icon: 'cloud', tooltip: 'GPT-Image-2 was unavailable, so this edit was served by Google Gemini Nano Banana 2 as a fallback.' };
     case 'cloud-ide':
       return { label: 'Cloud · GPT-5.4 Mini (App Builder)', icon: 'cloud', tooltip: 'App Builder agent — OpenAI GPT-5.4 Mini.' };
   }

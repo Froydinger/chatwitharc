@@ -1,0 +1,1 @@
+ALTER TABLE public.image_generation_jobs ADD COLUMN IF NOT EXISTS fallback_model text; ALTER TABLE public.image_generation_jobs ADD COLUMN IF NOT EXISTS result_image_urls text[];

@@ -118,6 +118,7 @@ export interface Message {
     | 'cloud-image'
     | 'cloud-image-pro'
     | 'cloud-image-edit'
+    | 'cloud-image-edit-fallback'
     | 'cloud-ide';
 }
 
