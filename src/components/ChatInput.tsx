@@ -1001,6 +1001,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         editInstruction: string;
         imageModel?: string;
         aspectRatio?: string;
+        count?: number;
       }>;
       if (!e?.detail) return;
       handleExternalImageEditRef.current(
@@ -1010,6 +1011,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         e.detail.imageModel,
         e.detail.additionalImages,
         e.detail.aspectRatio,
+        e.detail.count,
       );
     };
     const editedMessageHandler = (ev: Event) => {
@@ -1037,6 +1039,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     imageModel?: string,
     additionalImages?: string[],
     aspectRatio?: string,
+    countOverride?: number,
   ) => {
     // Read fresh from store to avoid stale closure issues
     if (useArcStore.getState().isGeneratingImage) return;
@@ -1063,34 +1066,38 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         imagePrompt: editInstruction,
       });
 
-      const url = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio);
+      const effectiveCount = hasBoost ? Math.max(1, Math.min(3, Math.floor(Number(countOverride ?? imageGenCount) || 1))) : 1;
+      const editedUrls = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio, effectiveCount);
 
-      // persist best-effort
-      let finalUrl = url;
-      try {
-        const resp = await fetch(url);
-        const blob = await resp.blob();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-          const { error } = await supabase.storage.from("avatars").upload(name, blob, {
-            contentType: "image/png",
-            upsert: false,
-          });
-          if (!error) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      const finalUrls = await Promise.all(
+        editedUrls.map(async (url) => {
+          try {
+            const resp = await fetch(url);
+            const blob = await resp.blob();
+            if (!user) return url;
+            const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+            const { error } = await supabase.storage.from("avatars").upload(name, blob, {
+              contentType: "image/png",
+              upsert: false,
+            });
+            if (error) return url;
             const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-            finalUrl = pub.publicUrl;
+            return pub.publicUrl || url;
+          } catch {
+            return url;
           }
-        }
-      } catch {}
+        })
+      );
 
       await replaceLastMessage({
-        content: `Edited image: ${editInstruction}`,
+        content: finalUrls.length > 1 ? `Edited ${finalUrls.length} images: ${editInstruction}` : `Edited image: ${editInstruction}`,
         role: "assistant",
         type: "image",
-        imageUrl: finalUrl,
+        imageUrl: finalUrls[0],
+        imageUrls: finalUrls,
       });
     } catch (err: any) {
       const errMsg = err?.message || "Image editing failed. Please try again.";
@@ -1378,31 +1385,30 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(finalMessage, imageUrls, imageGenModel, imageGenAspect);
-            let finalUrl = editedUrl;
-            try {
-              const resp = await fetch(editedUrl);
-              const blob = await resp.blob();
-              const {
-                data: { user },
-              } = await supabase.auth.getUser();
-              if (user) {
-                const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-                const { error } = await supabase.storage.from("avatars").upload(name, blob, {
-                  contentType: "image/png",
-                  upsert: false,
-                });
-                if (!error) {
+            const editedUrls = await ai.editImage(finalMessage, imageUrls, imageGenModel, imageGenAspect, hasBoost ? Math.max(1, Math.min(3, imageGenCount || 1)) : 1);
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const finalUrls = await Promise.all(
+              editedUrls.map(async (url) => {
+                try {
+                  const resp = await fetch(url);
+                  const blob = await resp.blob();
+                  if (!user) return url;
+                  const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+                  const { error } = await supabase.storage.from("avatars").upload(name, blob, { contentType: "image/png", upsert: false });
+                  if (error) return url;
                   const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-                  finalUrl = pub.publicUrl;
-                }
-              }
-            } catch {}
+                  return pub.publicUrl || url;
+                } catch { return url; }
+              })
+            );
             await replaceLastMessage({
-              content: `Edited image: ${finalMessage}`,
+              content: finalUrls.length > 1 ? `Edited ${finalUrls.length} images: ${finalMessage}` : `Edited image: ${finalMessage}`,
               role: "assistant",
               type: "image",
-              imageUrl: finalUrl,
+              imageUrl: finalUrls[0],
+              imageUrls: finalUrls,
               sourceModel: "cloud-image-edit",
             });
           } catch (err: any) {
@@ -1558,31 +1564,30 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrl = await ai.editImage(finalMessage, sourceImageUrls, imageGenModel, imageGenAspect);
-            let finalUrl = editedUrl;
-            try {
-              const resp = await fetch(editedUrl);
-              const blob = await resp.blob();
-              const {
-                data: { user },
-              } = await supabase.auth.getUser();
-              if (user) {
-                const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-                const { error } = await supabase.storage.from("avatars").upload(name, blob, {
-                  contentType: "image/png",
-                  upsert: false,
-                });
-                if (!error) {
+            const editedUrls = await ai.editImage(finalMessage, sourceImageUrls, imageGenModel, imageGenAspect, hasBoost ? Math.max(1, Math.min(3, imageGenCount || 1)) : 1);
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+            const finalUrls = await Promise.all(
+              editedUrls.map(async (url) => {
+                try {
+                  const resp = await fetch(url);
+                  const blob = await resp.blob();
+                  if (!user) return url;
+                  const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
+                  const { error } = await supabase.storage.from("avatars").upload(name, blob, { contentType: "image/png", upsert: false });
+                  if (error) return url;
                   const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-                  finalUrl = pub.publicUrl;
-                }
-              }
-            } catch {}
+                  return pub.publicUrl || url;
+                } catch { return url; }
+              })
+            );
             await replaceLastMessage({
-              content: `Edited image: ${finalMessage}`,
+              content: finalUrls.length > 1 ? `Edited ${finalUrls.length} images: ${finalMessage}` : `Edited image: ${finalMessage}`,
               role: "assistant",
               type: "image",
-              imageUrl: finalUrl,
+              imageUrl: finalUrls[0],
+              imageUrls: finalUrls,
               sourceModel: "cloud-image-edit",
             });
           } catch (err: any) {

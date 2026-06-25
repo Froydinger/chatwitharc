@@ -212,22 +212,17 @@ serve(async (req) => {
   let jobId: string | null = null;
 
   try {
-    const { prompt, baseImageUrl, baseImageUrls, aspectRatio, imageModel } = await req.json();
+    const { prompt, baseImageUrl, baseImageUrls, aspectRatio, imageModel, count } = await req.json();
     const selectedModel = pickModel(imageModel);
     const aspect = (typeof aspectRatio === 'string' && aspectRatio.trim()) ? aspectRatio.trim() : '1:1';
     const size = aspectToSize(aspect);
+    const requestedCount = Math.max(1, Math.min(3, Math.floor(Number(count) || 1)));
 
     if (!prompt) return jsonResponse({ error: 'Prompt is required', errorType: 'invalid_request', success: false });
 
     const imageArray: string[] = baseImageUrls || (baseImageUrl ? [baseImageUrl] : []);
     if (imageArray.length === 0) return jsonResponse({ error: 'At least one image is required', errorType: 'invalid_request', success: false });
-    // GPT-Image-2 image inputs are limited; cap at 10 for safety.
-    if (imageArray.length > 10) return jsonResponse({ error: 'Maximum 10 images allowed', errorType: 'invalid_request', success: false });
-
-    const blobUrls = imageArray.filter((url: string) => url.startsWith('blob:'));
-    if (blobUrls.length > 0) {
-      return jsonResponse({ error: "Source image couldn't be processed. Try re-uploading.", errorType: 'invalid_input_image', success: false });
-    }
+    if (imageArray.length > 10) return jsonResponse({ error: 'Maximum 10 source images allowed', errorType: 'invalid_request', success: false });
 
     const { data: jobData, error: jobError } = await supabase
       .from('image_generation_jobs')
@@ -254,8 +249,8 @@ serve(async (req) => {
     const currentJobId = jobData.id;
     const editPrompt = buildEditPrompt(prompt, imageArray.length);
 
-    console.log(`Editing image with ${selectedModel} (${size}, low, ${OPENAI_API_KEY ? 'OpenAI direct edits endpoint' : 'Lovable AI Gateway edits endpoint'}) for job ${currentJobId}`);
-    const result = await callEditGateway(editPrompt, imageArray, selectedModel, size, 1);
+    console.log(`Editing image with ${selectedModel} (${size}, low, n=${requestedCount}, ${OPENAI_API_KEY ? 'OpenAI direct edits endpoint' : 'Lovable AI Gateway edits endpoint'}) for job ${currentJobId}`);
+    const result = await callEditGateway(editPrompt, imageArray, selectedModel, size, requestedCount);
 
     if (!result.ok) {
       const err = classifyError(result.status, result.rawText);

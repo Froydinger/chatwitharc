@@ -51,7 +51,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { toast } = useToast();
   
   const { isSubscribed } = useSubscription();
-  const { model: selectedModel, aspectRatio: selectedAspect, setModel, setAspectRatio } = useImageGenStore();
+  const { model: selectedModel, aspectRatio: selectedAspect, count: selectedCount, setModel, setAspectRatio } = useImageGenStore();
   const [openMenu, setOpenMenu] = useState<null | "model" | "aspect">(null);
 
   // If a lastUsedModel was passed and it differs from the current store, prime the store once on open.
@@ -173,11 +173,12 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
       const editEvent = new CustomEvent("processImageEdit", {
         detail: {
           content: editPrompt,
-          baseImageUrl: imageUrls, // Pass all original image URLs
-          additionalImages: additionalBase64s, // Pass additional images as base64
+          baseImageUrl: imageUrls,
+          additionalImages: additionalBase64s,
           editInstruction: textWithChips,
-          imageModel: selectedModel, // Pass selected model
-          aspectRatio: selectedAspect, // Pass selected aspect ratio
+          imageModel: selectedModel,
+          aspectRatio: selectedAspect,
+          count: selectedCount,
         },
       });
       window.dispatchEvent(editEvent);
