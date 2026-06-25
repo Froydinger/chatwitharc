@@ -51,7 +51,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { toast } = useToast();
   
   const { isSubscribed } = useSubscription();
-  const { model: selectedModel, aspectRatio: selectedAspect, setModel, setAspectRatio } = useImageGenStore();
+  const { model: selectedModel, aspectRatio: selectedAspect, count: selectedCount, setModel, setAspectRatio } = useImageGenStore();
   const [openMenu, setOpenMenu] = useState<null | "model" | "aspect">(null);
 
   // If a lastUsedModel was passed and it differs from the current store, prime the store once on open.
