@@ -30,8 +30,8 @@ export const IMAGE_ASPECT_OPTIONS: Array<{ id: ImageAspectRatio; label: string }
   { id: '16:9', label: '16:9 (YouTube)' },
 ];
 
-export type ImageCount = 1 | 2 | 3;
-export const MAX_BOOST_IMAGE_COUNT: ImageCount = 3;
+export type ImageCount = 1 | 2 | 3 | 4 | 5 | 6;
+export const MAX_BOOST_IMAGE_COUNT: ImageCount = 6;
 
 interface ImageGenState {
   model: ImageModelId;
@@ -51,7 +51,7 @@ export const useImageGenStore = create<ImageGenState>()(
       setModel: (m) =>
         set({ model: ALLOWED_IMAGE_MODELS.includes(m) ? m : DEFAULT_IMAGE_MODEL }),
       setAspectRatio: (a) => set({ aspectRatio: a }),
-      setCount: (c) => set({ count: (c >= 1 && c <= 3 ? c : 1) as ImageCount }),
+      setCount: (c) => set({ count: (c >= 1 && c <= 6 ? c : 1) as ImageCount }),
     }),
     {
       name: 'arc-image-gen-prefs',
@@ -73,7 +73,7 @@ export const useImageGenStore = create<ImageGenState>()(
                 ? '3:2'
                 : '1:1';
         }
-        if (!state.count || state.count < 1 || state.count > 3) {
+        if (!state.count || state.count < 1 || state.count > 6) {
           state.count = 1;
         }
       },
