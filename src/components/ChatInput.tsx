@@ -1039,6 +1039,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     imageModel?: string,
     additionalImages?: string[],
     aspectRatio?: string,
+    countOverride?: number,
   ) => {
     // Read fresh from store to avoid stale closure issues
     if (useArcStore.getState().isGeneratingImage) return;
