@@ -1001,6 +1001,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         editInstruction: string;
         imageModel?: string;
         aspectRatio?: string;
+        count?: number;
       }>;
       if (!e?.detail) return;
       handleExternalImageEditRef.current(
@@ -1010,6 +1011,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         e.detail.imageModel,
         e.detail.additionalImages,
         e.detail.aspectRatio,
+        e.detail.count,
       );
     };
     const editedMessageHandler = (ev: Event) => {
