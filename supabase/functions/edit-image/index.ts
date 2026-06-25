@@ -189,8 +189,7 @@ async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: st
     form.append('model', modelName);
     form.append('prompt', prompt);
     form.append('size', size);
-    form.append('quality', 'medium');
-    form.append('input_fidelity', 'high');
+    form.append('quality', 'low');
     form.append('n', String(count));
     // OpenAI's /v1/images/edits takes the `image` field repeated for multi-source.
     for (const { blob, filename } of blobs) {
