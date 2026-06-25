@@ -5,6 +5,7 @@ import { Zap, Brain, Lock, Check, ChevronDown } from 'lucide-react';
 import { useModelStore, FASTER_MODEL, SMARTER_MODEL, type ChatModel } from '@/store/useModelStore';
 import { cn } from '@/lib/utils';
 
+// Restore point marker — safe rebuild checkpoint
 interface Props {
   className?: string;
   compact?: boolean;
