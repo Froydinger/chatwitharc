@@ -1066,7 +1066,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         imagePrompt: editInstruction,
       });
 
-      const effectiveCount = hasBoost ? Math.max(1, Math.min(3, Math.floor(Number(countOverride ?? imageGenCount) || 1))) : 1;
+      const effectiveCount = hasBoost ? Math.max(1, Math.min(6, Math.floor(Number(countOverride ?? imageGenCount) || 1))) : 1;
       const editedUrls = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio, effectiveCount);
 
       const {
@@ -1387,7 +1387,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrls = await ai.editImage(finalMessage, imageUrls, imageGenModel, imageGenAspect, hasBoost ? Math.max(1, Math.min(3, imageGenCount || 1)) : 1);
+            const editedUrls = await ai.editImage(finalMessage, imageUrls, imageGenModel, imageGenAspect, hasBoost ? Math.max(1, Math.min(6, imageGenCount || 1)) : 1);
             const {
               data: { user },
             } = await supabase.auth.getUser();
@@ -1489,7 +1489,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
-          const requestedCount = hasBoost ? Math.max(1, Math.min(3, imageGenCount || 1)) : 1;
+          const requestedCount = hasBoost ? Math.max(1, Math.min(6, imageGenCount || 1)) : 1;
           const genUrls = await ai.generateImage(apiPrompt, imageGenModel, imageGenAspect, requestedCount);
 
           const {
@@ -1567,7 +1567,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrls = await ai.editImage(finalMessage, sourceImageUrls, imageGenModel, imageGenAspect, hasBoost ? Math.max(1, Math.min(3, imageGenCount || 1)) : 1);
+            const editedUrls = await ai.editImage(finalMessage, sourceImageUrls, imageGenModel, imageGenAspect, hasBoost ? Math.max(1, Math.min(6, imageGenCount || 1)) : 1);
             const {
               data: { user },
             } = await supabase.auth.getUser();
