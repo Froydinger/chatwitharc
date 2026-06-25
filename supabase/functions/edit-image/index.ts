@@ -137,7 +137,7 @@ async function callEditGateway(prompt: string, imageUrls: string[], model: strin
       form.append('model', modelName);
       form.append('prompt', prompt);
       form.append('size', size);
-      form.append('quality', 'medium');
+      form.append('quality', 'low');
       form.append('n', String(count));
       // Multiple images: OpenAI accepts repeated `image[]` field for gpt-image
       if (blobs.length === 1) {
