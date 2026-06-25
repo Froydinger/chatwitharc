@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { Image, decode } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 
@@ -68,7 +69,7 @@ function classifyError(status: number, rawText: string) {
   return { errorType, errorMessage, debugDetail };
 }
 
-function buildEditPrompt(userPrompt: string, imageCount: number): string {
+function buildEditPrompt(userPrompt: string, imageCount: number, isYouTube: boolean): string {
   let finalPrompt = '';
   if (imageCount > 1) finalPrompt += "Combine or merge the provided images based on the instruction. ";
   const lower = userPrompt.toLowerCase();
@@ -76,6 +77,9 @@ function buildEditPrompt(userPrompt: string, imageCount: number): string {
     finalPrompt += "Keep the same person and preserve facial identity.\n\n";
   }
   finalPrompt += userPrompt;
+  if (isYouTube) {
+    finalPrompt += `\n\nIMPORTANT COMPOSITION RULE: Render this as a 16:9 widescreen image. The full canvas is 1536x1024, but place ALL meaningful content within the centered 1536x864 region. Add solid pure black (#000000) letterbox bars exactly 80 pixels tall at the very top and very bottom of the image. The black bars must be uniformly solid black, edge-to-edge, with no gradients, textures, or content. Treat them as off-screen padding.`;
+  }
   return finalPrompt;
 }
 
@@ -84,32 +88,89 @@ async function updateJob(supabase: any, jobId: string, values: Record<string, un
   if (error) console.error('Failed to update job:', jobId, error);
 }
 
-async function fetchImageAsBlob(url: string): Promise<{ blob: Blob; filename: string; b64: string; mime: string }> {
-  if (url.startsWith('data:')) {
-    const commaIdx = url.indexOf(',');
-    const meta = url.slice(5, commaIdx);
-    const mime = meta.split(';')[0] || 'image/png';
-    const b64 = url.slice(commaIdx + 1);
-    const bin = atob(b64);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    const ext = mime.split('/')[1] || 'png';
-    return { blob: new Blob([bytes], { type: mime }), filename: `input.${ext}`, b64, mime };
+// Sniff magic bytes and return a MIME OpenAI's edits endpoint accepts.
+function sniffImageMime(bytes: Uint8Array): { mime: string; ext: string } | null {
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return { mime: 'image/png', ext: 'png' };
   }
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch source image: ${res.status}`);
-  const buf = await res.arrayBuffer();
-  const type = res.headers.get('content-type') || 'image/png';
-  const ext = type.split('/')[1]?.split(';')[0] || 'png';
-  // base64 encode
-  const bytes = new Uint8Array(buf);
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return { mime: 'image/jpeg', ext: 'jpg' };
+  }
+  if (bytes.length >= 12 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+      && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+    return { mime: 'image/webp', ext: 'webp' };
+  }
+  return null;
+}
+
+function bytesToB64(bytes: Uint8Array): string {
   let binary = '';
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
-  const b64 = btoa(binary);
-  return { blob: new Blob([buf], { type }), filename: `input.${ext}`, b64, mime: type };
+  return btoa(binary);
+}
+
+async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob; filename: string; b64: string; mime: string }> {
+  let bytes: Uint8Array;
+  if (url.startsWith('data:')) {
+    const commaIdx = url.indexOf(',');
+    const b64 = url.slice(commaIdx + 1);
+    const bin = atob(b64);
+    bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  } else {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to fetch source image: ${res.status}`);
+    bytes = new Uint8Array(await res.arrayBuffer());
+  }
+
+  // Sniff actual format; if unrecognized, re-encode through imagescript to PNG so OpenAI accepts it.
+  let sniffed = sniffImageMime(bytes);
+  if (!sniffed) {
+    try {
+      const decoded = await decode(bytes) as Image;
+      const out = await decoded.encode();
+      bytes = out;
+      sniffed = { mime: 'image/png', ext: 'png' };
+    } catch (e) {
+      throw new Error(`Unsupported source image format (not PNG/JPEG/WebP and could not be re-encoded): ${e instanceof Error ? e.message : 'decode failed'}`);
+    }
+  }
+
+  const b64 = bytesToB64(bytes);
+  return {
+    blob: new Blob([bytes], { type: sniffed.mime }),
+    filename: `input-${idx}.${sniffed.ext}`,
+    b64,
+    mime: sniffed.mime,
+  };
+}
+
+// Crop a 3:2 (1536x1024) image to true 16:9 (1536x864) by removing equal
+// horizontal slices from top and bottom. Returns a data URL of the cropped PNG.
+async function cropTo16x9(imageUrl: string): Promise<string> {
+  let bytes: Uint8Array;
+  if (imageUrl.startsWith("data:")) {
+    const commaIdx = imageUrl.indexOf(",");
+    const b64 = imageUrl.slice(commaIdx + 1);
+    const bin = atob(b64);
+    bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  } else {
+    const res = await fetch(imageUrl);
+    bytes = new Uint8Array(await res.arrayBuffer());
+  }
+  const decoded = await decode(bytes) as Image;
+  const w = decoded.width;
+  const h = decoded.height;
+  const targetH = Math.round((w * 9) / 16);
+  if (targetH >= h) return imageUrl;
+  const yOffset = Math.floor((h - targetH) / 2);
+  const cropped = decoded.crop(0, yOffset, w, targetH);
+  const out = await cropped.encode();
+  return `data:image/png;base64,${bytesToB64(out)}`;
 }
 
 async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, size: string, count: number) {
@@ -128,12 +189,12 @@ async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: st
     form.append('model', modelName);
     form.append('prompt', prompt);
     form.append('size', size);
-    form.append('quality', 'low');
+    form.append('quality', 'medium');
+    form.append('input_fidelity', 'high');
     form.append('n', String(count));
-    if (blobs.length === 1) {
-      form.append('image', blobs[0].blob, blobs[0].filename);
-    } else {
-      for (const { blob, filename } of blobs) form.append('image[]', blob, filename);
+    // OpenAI's /v1/images/edits takes the `image` field repeated for multi-source.
+    for (const { blob, filename } of blobs) {
+      form.append('image', blob, filename);
     }
     const response = await fetch(endpoint, { method: 'POST', headers, body: form, signal: controller.signal });
     const rawText = await response.text();
@@ -246,15 +307,16 @@ async function uploadDataUrlsToStorage(supabase: any, userId: string, urls: stri
   return out;
 }
 
-async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], size: string, count: number, selectedModel: string) {
+async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], size: string, count: number, selectedModel: string, isYouTube: boolean) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   try {
-    const sources = await Promise.all(imageArray.map(fetchImageAsBlob));
-    console.log(`[job ${jobId}] OpenAI edit attempt (${size}, n=${count})`);
+    const sources = await Promise.all(imageArray.map((url, i) => fetchImageAsBlob(url, i)));
+    console.log(`[job ${jobId}] OpenAI edit attempt (${size}, n=${count}${isYouTube ? ', youtube' : ''})`);
     const primary = await callOpenAIEdits(prompt, sources, selectedModel, size, count);
 
     let urls: string[] = [];
     let fallbackUsed: string | null = null;
+    let primaryErr: ReturnType<typeof classifyError> | null = null;
 
     if (primary.ok) {
       try {
@@ -264,20 +326,44 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
         console.warn(`[job ${jobId}] OpenAI response parse failed`);
       }
     } else {
-      console.warn(`[job ${jobId}] OpenAI failed (${primary.status}); attempting Gemini fallback`);
+      primaryErr = classifyError(primary.status, primary.rawText);
+      console.warn(`[job ${jobId}] OpenAI failed (${primary.status} / ${primaryErr.errorType}): ${primaryErr.debugDetail.slice(0, 240)}`);
     }
 
-    if (urls.length === 0) {
+    // Only fall back to Gemini on transient errors. Deterministic 4xx (content
+    // policy, invalid input image, bad request) will fail Gemini too and just
+    // double latency — surface the real OpenAI error to the user instead.
+    const shouldFallback = urls.length === 0 && (
+      primary.ok || // OpenAI returned OK but we got no images
+      primary.status >= 500 ||
+      primary.status === 408 ||
+      primary.status === 429
+    );
+
+    if (urls.length === 0 && shouldFallback) {
+      console.log(`[job ${jobId}] attempting Gemini fallback`);
       const fb = await callGeminiEdit(prompt, sources.map(s => ({ b64: s.b64, mime: s.mime })), count);
       if (fb.ok && fb.urls.length > 0) {
         urls = fb.urls;
         fallbackUsed = FALLBACK_MODEL;
       } else {
-        const err = classifyError(primary.ok ? fb.status : primary.status, primary.ok ? fb.rawText : primary.rawText);
+        const err = primaryErr ?? classifyError(fb.status, fb.rawText);
         await updateJob(supabase, jobId, { status: 'failed', error_message: err.errorMessage, error_type: err.errorType });
         console.error(`[job ${jobId}] both models failed`);
         return;
       }
+    } else if (urls.length === 0 && primaryErr) {
+      // Hard failure from OpenAI — pass the real message through.
+      await updateJob(supabase, jobId, { status: 'failed', error_message: primaryErr.errorMessage, error_type: primaryErr.errorType });
+      console.error(`[job ${jobId}] OpenAI hard failure, no fallback attempted`);
+      return;
+    }
+
+    // YouTube 16:9: crop every output (OpenAI or Gemini) before upload.
+    if (isYouTube) {
+      urls = await Promise.all(urls.map(async (u) => {
+        try { return await cropTo16x9(u); } catch (e) { console.error(`[job ${jobId}] 16:9 crop failed:`, e); return u; }
+      }));
     }
 
     const finalUrls = await uploadDataUrlsToStorage(supabase, userId, urls);
@@ -347,11 +433,12 @@ serve(async (req) => {
     }
 
     const jobId = jobData.id;
-    const editPrompt = buildEditPrompt(prompt, imageArray.length);
+    const isYouTube = aspect === '16:9';
+    const editPrompt = buildEditPrompt(prompt, imageArray.length, isYouTube);
 
     // Kick off processing in background; respond immediately so we never get killed
     // by the platform's per-request wall timeout.
-    const task = processEditJob(jobId, user.id, editPrompt, imageArray, size, requestedCount, selectedModel);
+    const task = processEditJob(jobId, user.id, editPrompt, imageArray, size, requestedCount, selectedModel, isYouTube);
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
       EdgeRuntime.waitUntil(task);
     } else {
