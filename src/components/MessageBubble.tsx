@@ -415,9 +415,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                           {/* Edit button below image for AI-generated images */}
                           {!isUser && (
                             <Button
-                              variant="secondary"
                               size="sm"
-                              className="bg-background/90 hover:bg-background text-foreground border border-border/60"
+                              className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shadow-sm h-8 px-4"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setEditImageUrls([message.imageUrl!]);
