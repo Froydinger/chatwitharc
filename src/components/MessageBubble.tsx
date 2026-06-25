@@ -382,18 +382,16 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                 loadingClassName="w-full h-48"
                               />
                             </div>
-                            {!isUser && (
-                              <Button
-                                size="sm"
-                                className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shadow-sm h-8 px-4"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditImageUrls([url]);
-                                }}
-                              >
-                                Edit Image
-                              </Button>
-                            )}
+                            <Button
+                              size="sm"
+                              className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shadow-sm h-8 px-4"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditImageUrls([url]);
+                              }}
+                            >
+                              Edit Image
+                            </Button>
                           </div>
                         ))}
                       </div>
