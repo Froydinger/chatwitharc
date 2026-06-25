@@ -1066,7 +1066,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         imagePrompt: editInstruction,
       });
 
-      const editedUrls = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio, hasBoost ? Math.max(1, Math.min(3, imageGenCount || 1)) : 1);
+      const effectiveCount = hasBoost ? Math.max(1, Math.min(3, Math.floor(Number(countOverride ?? imageGenCount) || 1))) : 1;
+      const editedUrls = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio, effectiveCount);
 
       const {
         data: { user },
