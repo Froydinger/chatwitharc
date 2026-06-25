@@ -403,7 +403,7 @@ serve(async (req) => {
     const selectedModel = pickModel(imageModel);
     const aspect = (typeof aspectRatio === 'string' && aspectRatio.trim()) ? aspectRatio.trim() : '1:1';
     const size = aspectToSize(aspect);
-    const requestedCount = Math.max(1, Math.min(3, Math.floor(Number(count) || 1)));
+    const requestedCount = Math.max(1, Math.min(6, Math.floor(Number(count) || 1)));
 
     if (!prompt) return jsonResponse({ error: 'Prompt is required', errorType: 'invalid_request', success: false });
 
