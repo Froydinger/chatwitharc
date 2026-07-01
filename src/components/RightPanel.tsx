@@ -83,6 +83,8 @@ export function RightPanel({
   const setCorporate = useCorporateModeStore((s) => s.setEnabled);
   const accent = useAccentStore((s) => s.accentColor);
   const { setAccentColor } = useAccentColor();
+  const { isAdmin } = useAdminSettings();
+  const accentSwatches = ACCENT_SWATCHES.filter((s) => !s.adminOnly || isAdmin);
   const themeMode = useAccentStore((s) => s.themeMode);
   const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
   const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
