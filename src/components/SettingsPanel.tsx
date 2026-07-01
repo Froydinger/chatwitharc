@@ -412,7 +412,7 @@ export function SettingsPanel() {
 
   const { icon: SyncIcon, color: syncColor, text: syncText } = getSyncStatus();
 
-  const colorOptions: { id: AccentColor; label: string; gradient: string }[] = [
+  const allColorOptions: { id: AccentColor; label: string; gradient: string; adminOnly?: boolean }[] = [
     { id: "red",    label: "Red",    gradient: "linear-gradient(135deg, hsl(0,90%,48%), hsl(0,90%,58%))" },
     { id: "blue",   label: "Blue",   gradient: "linear-gradient(135deg, hsl(205,100%,48%), hsl(205,95%,58%))" },
     { id: "green",  label: "Green",  gradient: "linear-gradient(135deg, hsl(145,82%,35%), hsl(145,80%,45%))" },
@@ -420,7 +420,9 @@ export function SettingsPanel() {
     { id: "purple", label: "Purple", gradient: "linear-gradient(135deg, hsl(268,85%,52%), hsl(268,82%,62%))" },
     { id: "orange", label: "Orange", gradient: "linear-gradient(135deg, hsl(22,100%,50%), hsl(22,98%,60%))" },
     { id: "noir",   label: "Noir",   gradient: "linear-gradient(135deg, hsl(0,0%,4%), hsl(0,0%,18%))" },
+    { id: "gold",   label: "Gold",   gradient: "linear-gradient(135deg, hsl(40,78%,42%), hsl(46,92%,64%) 50%, hsl(43,82%,48%))", adminOnly: true },
   ];
+  const colorOptions = allColorOptions.filter((opt) => !opt.adminOnly || isAdmin);
 
 
   // ----- Section renderers -----
@@ -913,7 +915,7 @@ export function SettingsPanel() {
   const Footer = (
     <div className="pt-6 border-t border-border/30">
       <div className="text-center space-y-2 text-sm text-muted-foreground">
-        <p className="text-xs opacity-60">Web Version v4.1.4</p>
+        <p className="text-xs opacity-60">Web Version v4.2.0</p>
         <div className="flex items-center justify-center gap-4">
           <a href="/support" className="hover:text-primary-glow transition-colors underline">Support</a>
           <span>•</span>
@@ -1036,7 +1038,7 @@ export function SettingsPanel() {
             })}
           </nav>
           <div className="mt-4 text-xs text-muted-foreground/80 px-2 space-y-2">
-            <div className="opacity-60">Web Version v4.1.4</div>
+            <div className="opacity-60">Web Version v4.2.0</div>
             <div className="flex flex-wrap items-center gap-2">
               <a href="/support" className="hover:text-primary-glow underline">Support</a>
               <span>•</span>
