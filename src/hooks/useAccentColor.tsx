@@ -97,6 +97,19 @@ const accentColorConfigs = {
     lightPrimary: "0 0% 0%",
     lightPrimaryGlow: "0 0% 0%",
   },
+  gold: {
+    primary: "43 82% 52%",
+    primaryGlow: "46 92% 64%",
+    darkBackground: "42 30% 2%",
+    aiMessageBg: "42 22% 14%",
+    aiMessageBorder: "43 45% 28%",
+    userMessageBg: "43 82% 52%",
+    userMessageBorder: "43 82% 52%",
+    lightAiMessageBg: "46 40% 96%",
+    lightAiMessageBorder: "43 40% 88%",
+    lightPrimary: "40 78% 44%",
+    lightPrimaryGlow: "43 85% 55%",
+  },
 
 
 };
