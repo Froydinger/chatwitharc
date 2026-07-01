@@ -36,6 +36,7 @@ import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { QuotePanel } from "@/components/QuotePanel";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
+import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { useSubscription } from "@/hooks/useSubscription";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
