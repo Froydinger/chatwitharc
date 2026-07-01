@@ -1038,7 +1038,7 @@ export function SettingsPanel() {
             })}
           </nav>
           <div className="mt-4 text-xs text-muted-foreground/80 px-2 space-y-2">
-            <div className="opacity-60">Web Version v4.1.4</div>
+            <div className="opacity-60">Web Version v4.2.0</div>
             <div className="flex flex-wrap items-center gap-2">
               <a href="/support" className="hover:text-primary-glow underline">Support</a>
               <span>•</span>
