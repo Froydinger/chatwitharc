@@ -412,7 +412,7 @@ export function SettingsPanel() {
 
   const { icon: SyncIcon, color: syncColor, text: syncText } = getSyncStatus();
 
-  const colorOptions: { id: AccentColor; label: string; gradient: string; adminOnly?: boolean }[] = [
+  const allColorOptions: { id: AccentColor; label: string; gradient: string; adminOnly?: boolean }[] = [
     { id: "red",    label: "Red",    gradient: "linear-gradient(135deg, hsl(0,90%,48%), hsl(0,90%,58%))" },
     { id: "blue",   label: "Blue",   gradient: "linear-gradient(135deg, hsl(205,100%,48%), hsl(205,95%,58%))" },
     { id: "green",  label: "Green",  gradient: "linear-gradient(135deg, hsl(145,82%,35%), hsl(145,80%,45%))" },
@@ -421,7 +421,8 @@ export function SettingsPanel() {
     { id: "orange", label: "Orange", gradient: "linear-gradient(135deg, hsl(22,100%,50%), hsl(22,98%,60%))" },
     { id: "noir",   label: "Noir",   gradient: "linear-gradient(135deg, hsl(0,0%,4%), hsl(0,0%,18%))" },
     { id: "gold",   label: "Gold",   gradient: "linear-gradient(135deg, hsl(40,78%,42%), hsl(46,92%,64%) 50%, hsl(43,82%,48%))", adminOnly: true },
-  ].filter((opt) => !opt.adminOnly || isAdmin);
+  ];
+  const colorOptions = allColorOptions.filter((opt) => !opt.adminOnly || isAdmin);
 
 
   // ----- Section renderers -----
