@@ -915,7 +915,7 @@ export function SettingsPanel() {
   const Footer = (
     <div className="pt-6 border-t border-border/30">
       <div className="text-center space-y-2 text-sm text-muted-foreground">
-        <p className="text-xs opacity-60">Web Version v4.1.4</p>
+        <p className="text-xs opacity-60">Web Version v4.2.0</p>
         <div className="flex items-center justify-center gap-4">
           <a href="/support" className="hover:text-primary-glow transition-colors underline">Support</a>
           <span>•</span>
