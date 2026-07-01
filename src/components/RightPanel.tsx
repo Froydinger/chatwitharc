@@ -302,7 +302,7 @@ export function RightPanel({
                   <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-xs text-muted-foreground">Accent color</DropdownMenuLabel>
                   <div className="flex items-center justify-between gap-1 px-2 py-1.5">
-                    {ACCENT_SWATCHES.map((opt) => {
+                    {accentSwatches.map((opt) => {
                       const isActive = accent === opt.id;
                       return (
                         <button
