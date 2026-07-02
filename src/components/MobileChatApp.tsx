@@ -160,6 +160,7 @@ export function MobileChatApp() {
   const { profile } = useProfile();
   const { isAnonymous } = useAuth();
   const requireAuth = useRequireAuth();
+  const canUseSidebar = !isAnonymous;
   const getPersonaById = usePersonasStore(s => s.getPersonaById);
   const isMobile = useIsMobile();
   const isAdminBannerActive = useAdminBanner();
@@ -247,6 +248,14 @@ export function MobileChatApp() {
   const [rightPanelDocked, setRightPanelDocked] = useState(false);
   const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Anonymous visitors should never be able to keep/open the sidebar, even from
+  // restored state, keyboard shortcuts, hover, or swipe gestures.
+  useEffect(() => {
+    if (!isAnonymous) return;
+    if (rightPanelDocked) setRightPanelDocked(false);
+    if (rightPanelOpen) setRightPanelOpen(false);
+  }, [isAnonymous, rightPanelDocked, rightPanelOpen, setRightPanelOpen]);
+
   // Initialize rightPanelOpen + docked state based on device type and user's last preference
   useEffect(() => {
     const isLargeScreen = window.innerWidth >= 1024;
@@ -254,8 +263,8 @@ export function MobileChatApp() {
     if (isLargeScreen) {
       // Restore docked preference; default to undocked (hover-only) for new users
       const dockedPref = localStorage.getItem("arc_rightPanelDocked") === "true";
-      setRightPanelDocked(isAnonymous ? false : dockedPref);
-      if (dockedPref && !rightPanelOpen && !isAnonymous) {
+      setRightPanelDocked(canUseSidebar ? dockedPref : false);
+      if (dockedPref && !rightPanelOpen && canUseSidebar) {
         setRightPanelOpen(true);
       }
     } else if (isMobile) {
@@ -265,7 +274,7 @@ export function MobileChatApp() {
         setRightPanelOpen(false);
       }
     }
-  }, [isMobile]); // Only run on mount and when isMobile changes
+  }, [isMobile, canUseSidebar, rightPanelOpen, setRightPanelOpen]);
 
   const dashboardSwipeOpeningRef = useRef(false);
 
@@ -359,7 +368,7 @@ export function MobileChatApp() {
 
       if (finalMode === 'dashboard') {
         if (dashboardSwipeOpeningRef.current) return;
-        if (isAnonymous) {
+        if (!canUseSidebar) {
           requireAuth("menu");
           return;
         }
@@ -369,7 +378,7 @@ export function MobileChatApp() {
         return;
       }
       if (finalMode === 'panel-open') {
-        if (isAnonymous) {
+        if (!canUseSidebar) {
           requireAuth("menu");
           return;
         }
@@ -392,7 +401,7 @@ export function MobileChatApp() {
       body.style.overscrollBehaviorX = prevBodyOverscroll;
       body.style.touchAction = prevBodyTouchAction;
     };
-  }, [isMobile, rightPanelOpen, setRightPanelOpen, navigate, isCanvasOverlayActive, isSearchOpen]);
+  }, [isMobile, rightPanelOpen, setRightPanelOpen, navigate, isCanvasOverlayActive, isSearchOpen, canUseSidebar, requireAuth]);
 
 
   // Persist docked preference
@@ -403,7 +412,7 @@ export function MobileChatApp() {
   // Hover edge handlers (desktop only)
   const openPanelPreview = () => {
     if (isMobile) return;
-    if (isAnonymous) return; // Hover preview disabled for guests
+    if (!canUseSidebar) return; // Hover preview disabled for guests
     if (hoverCloseTimerRef.current) {
       clearTimeout(hoverCloseTimerRef.current);
       hoverCloseTimerRef.current = null;
@@ -429,7 +438,7 @@ export function MobileChatApp() {
   };
 
   const toggleDock = () => {
-    if (isAnonymous) {
+    if (!canUseSidebar) {
       requireAuth("menu");
       return;
     }
@@ -451,7 +460,7 @@ export function MobileChatApp() {
       const tag = el?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable) return;
       e.preventDefault();
-      if (isAnonymous) {
+      if (!canUseSidebar) {
         requireAuth("menu");
         return;
       }
@@ -459,7 +468,7 @@ export function MobileChatApp() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [rightPanelOpen, setRightPanelOpen]);
+  }, [rightPanelOpen, setRightPanelOpen, canUseSidebar, requireAuth]);
 
 
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
