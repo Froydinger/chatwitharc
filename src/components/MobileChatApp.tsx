@@ -1516,7 +1516,7 @@ export function MobileChatApp() {
             inset 0 1px 0 rgba(255,255,255,0.04) !important;
         }
 
-        /* —— Minimal Luxe Input Bar —— */
+        /* —— Flat Luxe Input Bar —— */
         .glass-dock{
           position: relative;
           margin: 0 auto;
@@ -1524,32 +1524,20 @@ export function MobileChatApp() {
           padding: 10px;
           border-radius: 9999px;
           overflow: visible;
-          background: linear-gradient(135deg, hsl(var(--background) / 0.7) 0%, hsl(var(--background) / 0.65) 50%, hsl(var(--primary) / 0.15) 100%);
-          backdrop-filter: blur(24px) saturate(115%);
-          -webkit-backdrop-filter: blur(24px) saturate(115%);
-          border: 1px solid hsl(var(--primary) / 0.3);
-          box-shadow:
-            0 8px 32px rgba(0, 0, 0, 0.3),
-            inset 0 0 20px hsl(var(--primary-glow) / 0.12);
-          transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          background: hsl(var(--card));
+          border: 1px solid hsl(var(--border) / 0.4);
+          box-shadow: none;
+          transition: border-color 0.2s ease;
           cursor: text;
         }
         .glass-dock::before{ display: none; }
         .glass-dock:hover{
-          transform: scale(1.02);
-          background: linear-gradient(135deg, hsl(var(--background) / 0.68) 0%, hsl(var(--background) / 0.62) 50%, hsl(var(--primary) / 0.18) 100%);
-          border-color: hsl(var(--primary) / 0.35);
-          box-shadow:
-            0 8px 32px rgba(0, 0, 0, 0.4),
-            inset 0 0 24px hsl(var(--primary-glow) / 0.15);
+          border-color: hsl(var(--border) / 0.6);
+          box-shadow: none;
         }
         .glass-dock:focus-within{
-          background: linear-gradient(135deg, hsl(var(--background) / 0.65) 0%, hsl(var(--background) / 0.6) 50%, hsl(var(--primary) / 0.22) 100%);
           border-color: hsl(var(--primary) / 0.4);
-          box-shadow:
-            0 8px 32px rgba(0, 0, 0, 0.4),
-            inset 0 0 24px hsl(var(--primary-glow) / 0.2),
-            0 0 32px hsl(var(--primary-glow) / 0.25);
+          box-shadow: none;
         }
 
         /* Hide button borders inside input bar for unified appearance */
