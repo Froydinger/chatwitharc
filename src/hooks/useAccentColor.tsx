@@ -154,7 +154,7 @@ export function useAccentColor() {
   useEffect(() => {
     const applyAccentColors = () => {
       // Fallback to blue if accent color is invalid
-      const validAccentColor = accentColorConfigs[accentColor] ? accentColor : "blue";
+      const validAccentColor = accentColorConfigs[accentColor] ? accentColor : "noir";
       const config = accentColorConfigs[validAccentColor];
       const root = document.documentElement;
       const isLight = root.classList.contains("light");
