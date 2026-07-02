@@ -369,6 +369,10 @@ export function MobileChatApp() {
         return;
       }
       if (finalMode === 'panel-open') {
+        if (isAnonymous) {
+          requireAuth("menu");
+          return;
+        }
         setRightPanelOpen(true);
       } else if (finalMode === 'panel-close') {
         setRightPanelOpen(false);
