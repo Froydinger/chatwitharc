@@ -91,6 +91,7 @@ import { PushNotificationsCard } from "@/components/PushNotificationsCard";
 import { cn } from "@/lib/utils";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
 import { PersonasManager } from "@/components/PersonasManager";
+import { useStarfieldStore } from "@/store/useStarfieldStore";
 
 type SectionId = "account" | "appearance" | "ai" | "privacy" | "plan";
 
