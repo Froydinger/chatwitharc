@@ -874,6 +874,7 @@ export function SettingsPanel() {
         return (
           <>
             {AccentColorCard}
+            {StarfieldCard}
             {FontCard}
           </>
         );
