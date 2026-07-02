@@ -9,9 +9,10 @@ export const useStarfieldStore = create<StarfieldStore>((set) => ({
   showStarfield: (() => {
     try {
       const saved = localStorage.getItem("showStarfield");
-      return saved === null ? true : saved === "true";
+      // Default OFF — users opt-in via Appearance settings
+      return saved === null ? false : saved === "true";
     } catch {
-      return true;
+      return false;
     }
   })(),
   setShowStarfield: (show) => {
