@@ -524,40 +524,30 @@ All colors MUST be HSL for perfect glass effects.
     color: white !important;
   }
 
-  /* Free-floating glass dock for chat input — flat glass, no gradient */
+  /* Free-floating glass dock for chat input — flat solid pill, no gradient/ring */
   .glass-dock {
     padding: 0 0.375rem;
     border-radius: 9999px !important;
     overflow: visible !important;
     background: hsl(var(--card));
-    backdrop-filter: blur(24px) saturate(140%);
-    -webkit-backdrop-filter: blur(24px) saturate(140%);
-    border: 1px solid hsl(var(--border) / 0.6);
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 hsl(var(--foreground) / 0.06);
+    border: 1px solid hsl(var(--border) / 0.4);
+    box-shadow: none;
     transition:
-      background 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-      border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
     cursor: text;
   }
 
   .glass-dock:hover {
     background: hsl(var(--card));
-    border-color: hsl(var(--border));
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.32),
-      inset 0 1px 0 hsl(var(--foreground) / 0.08);
+    border-color: hsl(var(--border) / 0.6);
+    box-shadow: none;
   }
 
   .glass-dock:focus-within {
     background: hsl(var(--card));
-    border-color: hsl(var(--primary) / 0.35);
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.34),
-      0 0 0 1px hsl(var(--primary) / 0.15),
-      inset 0 1px 0 hsl(var(--foreground) / 0.08);
+    border-color: hsl(var(--primary) / 0.4);
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15);
   }
 
   .glass-dock > * {
