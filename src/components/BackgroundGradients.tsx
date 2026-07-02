@@ -47,6 +47,9 @@ export const BackgroundGradients = () => {
     return isIpad && isStandalone;
   };
 
+  // Noir dark mode = pure sleek black, no gradient overlay
+  if (isNoir && !isLight) return null;
+
   const shouldSimplify = isIpadPWA();
 
   // Light mode halves the glow intensity; noir light mode = pure white gradient

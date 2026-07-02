@@ -91,6 +91,7 @@ import { PushNotificationsCard } from "@/components/PushNotificationsCard";
 import { cn } from "@/lib/utils";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
 import { PersonasManager } from "@/components/PersonasManager";
+import { useStarfieldStore } from "@/store/useStarfieldStore";
 
 type SectionId = "account" | "appearance" | "ai" | "privacy" | "plan";
 
@@ -666,6 +667,21 @@ export function SettingsPanel() {
   );
 
   const [customFont, setCustomFont] = useState<CustomFontId>(() => getStoredCustomFont());
+  const showStarfield = useStarfieldStore((s) => s.showStarfield);
+  const setShowStarfield = useStarfieldStore((s) => s.setShowStarfield);
+
+  const StarfieldCard = (
+    <SectionCard icon={Stars} title="Starfield" subtitle="Twinkling background stars" className="lg:col-span-2">
+      <Tile
+        icon={Stars}
+        title="Show starfield"
+        description="Off by default for a cleaner look and lower memory use."
+        right={
+          <Switch checked={showStarfield} onCheckedChange={setShowStarfield} aria-label="Toggle starfield" />
+        }
+      />
+    </SectionCard>
+  );
   const FontCard = (
     <SectionCard
       icon={Stars}
@@ -858,6 +874,7 @@ export function SettingsPanel() {
         return (
           <>
             {AccentColorCard}
+            {StarfieldCard}
             {FontCard}
           </>
         );
