@@ -160,45 +160,17 @@ All colors MUST be HSL for perfect glass effects.
       0 0 20px hsl(0 0% 0% / 0.04) !important;
   }
 
-  /* Light mode glass dock — softer shadows */
+  /* Light mode glass dock — flat, no gradient */
   :root.light .glass-dock {
-    background:
-      linear-gradient(
-        135deg,
-        hsl(var(--primary) / 0.1) 0%,
-        hsl(var(--primary) / 0.06) 50%,
-        hsl(var(--primary) / 0.1) 100%
-      ),
-      hsl(var(--background) / 0.7);
+    background: hsl(var(--background) / 0.75);
     box-shadow:
-      0 8px 24px hsl(var(--primary) / 0.1),
-      0 0 18px hsl(var(--primary) / 0.08),
+      0 8px 24px hsl(0 0% 0% / 0.06),
       inset 0 1px 0 hsl(var(--foreground) / 0.04);
   }
   :root.light .glass-dock[data-has-images="true"] {
     box-shadow:
-      0 12px 32px hsl(var(--primary) / 0.14),
-      0 4px 12px hsl(var(--primary) / 0.08),
+      0 12px 32px hsl(0 0% 0% / 0.1),
       inset 0 1px 0 hsl(var(--foreground) / 0.06);
-  }
-
-  /* Noir in light mode — make glass dock nearly pure white (~2% gray max) */
-  :root.light[data-accent="noir"] .glass-dock {
-    background:
-      linear-gradient(135deg, hsl(0 0% 0% / 0.015) 0%, hsl(0 0% 0% / 0.01) 50%, hsl(0 0% 0% / 0.015) 100%),
-      hsl(0 0% 100%);
-    border-color: hsl(0 0% 90%);
-    box-shadow:
-      0 8px 24px hsl(0 0% 0% / 0.06),
-      0 0 18px hsl(0 0% 0% / 0.04),
-      inset 0 1px 0 hsl(0 0% 100% / 0.8);
-  }
-  :root.light[data-accent="noir"] .glass-dock:hover,
-  :root.light[data-accent="noir"] .glass-dock:focus-within {
-    background:
-      linear-gradient(135deg, hsl(0 0% 0% / 0.02) 0%, hsl(0 0% 0% / 0.015) 50%, hsl(0 0% 0% / 0.02) 100%),
-      hsl(0 0% 100%);
-    border-color: hsl(0 0% 85%);
   }
 
   /* Dashboard bottom nav pill — mirrors glass-dock so it matches the input bar */
