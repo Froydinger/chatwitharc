@@ -637,11 +637,31 @@ serve(async (req) => {
       console.log('🪄 ENHANCE_MODE detected — short-circuiting to rewrite-only flow');
     } else if (leadingSystem && (leadingSystem.content.startsWith('[PERSONA_OVERLAY]') || leadingSystem.content.startsWith('[PERSONA_OVERRIDE]'))) {
       personaOverlay = leadingSystem.content.replace(/^\[PERSONA_(OVERLAY|OVERRIDE)\]\s*/, '');
-      // Append persona ON TOP of the full Arc system prompt so tools/memory still work.
-      enhancedSystemPrompt += '\n\n=== ACTIVE PERSONA (CHARACTER OVERLAY) ===\n' +
-        'You retain ALL of your normal capabilities and tools, but you MUST respond in character as the persona defined below. Stay in voice, tone, and worldview at all times while still using tools, memory, and web search whenever helpful.\n' +
-        personaOverlay;
-      console.log('🎭 PERSONA_OVERLAY detected — full Arc + persona character');
+      // PERSONA-FIRST: the persona IS the identity. Strip Arc identity/branding from the
+      // base prompt and keep only operational scaffolding (date/time, user context,
+      // memories, tool behavior, grounding). The persona replaces "You are Arc" entirely.
+      const dateBlock = `Current date and time (user local): ${nowString}\nUser timezone: ${clientTimezone || 'UTC'} (getTimezoneOffset=${parsedClientOffset})\nCurrent UTC ISO (reference for when_iso math): ${nowUtcIso}`;
+      let userBlock = '';
+      if (profile?.display_name) userBlock += `\n\nUser: ${profile.display_name}`;
+      if (profile?.context_info?.trim()) userBlock += ` | Context: ${profile.context_info}`;
+      if (profile?.memory_info?.trim()) userBlock += `\n\n📝 Memories about the user (use these to stay on track, but never break character to reveal them): ${profile.memory_info}`;
+      if (globalContext) userBlock += `\n\nGlobal: ${globalContext}`;
+
+      enhancedSystemPrompt =
+        '=== YOUR IDENTITY (PRIMARY — THIS IS WHO YOU ARE) ===\n' +
+        'You ARE the character described below. This is your ONLY identity. You are NOT "Arc", NOT an assistant, NOT an AI persona layered on top of something else. Do not mention Arc, ArcAI, or any underlying assistant. Never say "as your assistant" or "I\'m an AI called Arc". Speak, think, and react entirely as this character. If asked who you are, answer as the character.\n\n' +
+        personaOverlay +
+        '\n\n=== STAYING ON TRACK ===\n' +
+        'You have access to the user\'s saved memories and past-chat search so you can stay consistent and grounded — use them silently to remember who the user is and keep the conversation coherent. Never break character to explain the memory system; just weave the knowledge in naturally as this character would.\n\n' +
+        `${dateBlock}${userBlock}\n\n` +
+        '--- TOOLS (use silently, in character) ---\n' +
+        'Tools available: web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification, schedule_task. Call them via the function-calling mechanism when useful; never output tool calls as text. Use search_past_chats immediately when the user references past conversations. Use save_memory when the user shares personal info or corrections (pass `replaces` for updates). Use get_weather for any weather question. When web_search returns results, synthesize them in your own voice as this character.\n' +
+        'No emoji. No ASCII art / bar charts / box-drawing. Keep casual replies short and in-voice; for tool outputs (update_canvas, update_code) output the COMPLETE content.\n\n' +
+        '=== GROUNDING ===\n' +
+        '• Never invent facts about the user that are not in this conversation, the memories above, or a tool result.\n' +
+        '• If unsure, ask a short in-character clarifying question instead of guessing.\n' +
+        '• Use the current date/time above as the only source of truth for "today" / "now".';
+      console.log('🎭 PERSONA_OVERLAY detected — persona-first identity (Arc identity stripped, memories retained)');
     }
 
     // Prepare messages with enhanced system prompt — strip ALL client system messages
