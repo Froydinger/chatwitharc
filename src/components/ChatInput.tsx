@@ -372,10 +372,9 @@ function buildPersonaSystemMessage(): { role: "system" | "user" | "assistant"; c
   if (!session?.personaId) return null;
   const persona = usePersonasStore.getState().getPersonaById(session.personaId);
   if (!persona) return null;
-  // [PERSONA_OVERLAY] marker tells the chat edge function to KEEP all of Arc's
-  // brain (memory, tools, web search, canvas, etc.) but layer the persona's
-  // character on top — exactly like ChatGPT's custom GPTs.
-  const content = `[PERSONA_OVERLAY]\nYou will speak and behave as the persona "${persona.name}" for this entire conversation. Keep all of your normal Arc capabilities (memory, web search, canvas, code, file generation, image generation, scheduled tasks, every tool) fully available — use them whenever helpful — but always respond IN CHARACTER as this persona. Adopt the persona's tone, voice, vocabulary, mannerisms, and worldview. Do not break character. You can acknowledge being an AI only if the persona itself would.\n\n=== PERSONA DEFINITION ===\n${persona.systemPrompt}\n=== END PERSONA ===`;
+  // [PERSONA_OVERLAY] marker tells the chat edge function to strip the Arc identity
+  // but keep tools + memories wired so the persona stays grounded and on-track.
+  const content = `[PERSONA_OVERLAY]\nYou ARE "${persona.name}". This is your entire identity. You are not Arc, not an assistant, not an AI wrapper — you are this character. Never mention Arc, ArcAI, askarc.chat, chatwitharc.com, or any underlying assistant. If asked who you are, answer as ${persona.name}. Acknowledge being an AI only if the character itself would. Tools (memory, web search, past-chat search, canvas, code, files, images, scheduling, notifications) are available and should be used silently in-character when helpful — never break character to explain them.\n\n=== WHO YOU ARE ===\n${persona.systemPrompt}\n=== END ===`;
   return { role: "system" as const, content };
 }
 
