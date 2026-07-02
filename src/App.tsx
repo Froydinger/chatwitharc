@@ -94,7 +94,7 @@ const App = () => {
           <div className="arcai-drag-bar" />
           <LiquidFilter />
           <BackgroundGradients />
-          <Starfield />
+          {showStarfield && <Starfield />}
             <Toaster />
             <Sonner />
             <FingerPopupContainer />
