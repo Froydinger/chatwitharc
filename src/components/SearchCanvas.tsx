@@ -198,31 +198,8 @@ export function SearchCanvas() {
     syncFromSupabase().catch(console.error);
   }, []);
 
-  // Load smart suggestions on mount
-  useEffect(() => {
-    const loadSmartSuggestions = async () => {
-      setIsLoadingSuggestions(true);
-      try {
-        const { data, error } = await supabase.functions.invoke("generate-smart-prompts", {
-          body: { context: "research" },
-        });
+  // Smart-prompts edge function was removed; keep static defaults only.
 
-        if (error) throw error;
-
-        if (data?.prompts && Array.isArray(data.prompts)) {
-          // Take first 4 for research mode
-          setSmartSuggestions(data.prompts.slice(0, 4));
-        }
-      } catch (err) {
-        console.error("Failed to load smart suggestions:", err);
-        // Will fallback to default suggestions
-      } finally {
-        setIsLoadingSuggestions(false);
-      }
-    };
-
-    loadSmartSuggestions();
-  }, []);
 
   // Auto-search if there's a pending query
   useEffect(() => {
