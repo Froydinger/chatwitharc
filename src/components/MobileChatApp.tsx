@@ -158,9 +158,9 @@ export function MobileChatApp() {
     refreshSessionFromSupabase,
   } = useArcStore();
   const { profile } = useProfile();
-  const { isAnonymous } = useAuth();
+  const { user, isAnonymous } = useAuth();
   const requireAuth = useRequireAuth();
-  const canUseSidebar = !isAnonymous;
+  const canUseSidebar = !!user && !isAnonymous;
   const getPersonaById = usePersonasStore(s => s.getPersonaById);
   const isMobile = useIsMobile();
   const isAdminBannerActive = useAdminBanner();
