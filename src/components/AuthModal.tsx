@@ -289,11 +289,6 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                   >
                     <div className={cn("w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border flex items-center justify-center backdrop-blur-sm relative", t.border)}>
                       <img src="/arc-logo-ui.png" alt="ArcAI" className="h-10 w-10" />
-                      {feature !== "generic" && (
-                        <div className={cn("absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary/90 border-2 flex items-center justify-center", t.badgeRing)}>
-                          <FeatureIcon className="h-3.5 w-3.5 text-primary-foreground" />
-                        </div>
-                      )}
                     </div>
                   </motion.div>
                   <h1 className={cn("text-2xl font-bold mb-2", t.textStrong)}>{copy.title}</h1>
