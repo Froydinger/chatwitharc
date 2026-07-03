@@ -204,7 +204,7 @@ export function LandingPage() {
           </Link>
           <button
             onClick={openBoost}
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.04] px-3 py-1.5 text-white/85 hover:bg-white/[0.08] transition-colors"
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/[0.15] bg-white/[0.04] px-3 py-1.5 text-white/[0.85] hover:bg-white/[0.08] transition-colors"
           >
             <Zap className="h-3.5 w-3.5" /> Boost
           </button>
@@ -231,7 +231,7 @@ export function LandingPage() {
         >
           Chat, real-time voice, image generation, code and long-term memory — all in one browser
           app. A generous free tier that replaces ChatGPT, Gemini and Claude for most people, plus a
-          $7 <span className="text-white/85 font-medium">Boost</span> upgrade when you want to go unlimited.
+          $7 <span className="text-white/[0.85] font-medium">Boost</span> upgrade when you want to go unlimited.
         </p>
         <div
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"
@@ -246,7 +246,7 @@ export function LandingPage() {
           </button>
           <button
             onClick={openBoost}
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.03] px-6 py-3 text-base font-medium text-white/90 hover:bg-white/[0.07] transition-colors"
+            className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.03] px-6 py-3 text-base font-medium text-white/90 hover:bg-white/[0.07] transition-colors"
           >
             <Zap className="h-4 w-4" /> See Boost — $7/mo
           </button>
@@ -272,12 +272,12 @@ export function LandingPage() {
           ].map((f, i) => (
             <div
               key={f.title}
-              className="rounded-2xl border border-white/8 bg-white/[0.03] p-6 transition-all hover:bg-white/[0.06] hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-2 duration-500"
+              className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 transition-all hover:bg-white/[0.06] hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-2 duration-500"
               style={{ animationDelay: `${i * 60}ms`, animationFillMode: "backwards" }}
             >
               <f.icon className="mb-4 h-5 w-5 text-white/70" />
               <div className="text-base font-medium">{f.title}</div>
-              <div className="mt-1 text-sm text-white/55">{f.body}</div>
+              <div className="mt-1 text-sm text-white/[0.55]">{f.body}</div>
             </div>
           ))}
         </div>
@@ -285,14 +285,14 @@ export function LandingPage() {
 
       {/* Boost highlight */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 py-16">
-        <div className="relative overflow-hidden rounded-3xl border border-white/12 bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-8 md:p-12">
+        <div className="relative overflow-hidden rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-8 md:p-12">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-white/[0.06] blur-3xl animate-float"
             style={{ animationDuration: "9s" }}
           />
           <div className="relative">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.05] px-3 py-1 text-xs text-white/80">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.05] px-3 py-1 text-xs text-white/80">
               <Zap className="h-3.5 w-3.5" /> ArcAI Boost · $7 / month
             </div>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">
@@ -314,11 +314,11 @@ export function LandingPage() {
                   className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4"
                 >
                   <div className="mt-0.5 rounded-lg bg-white/10 p-2">
-                    <b.icon className="h-4 w-4 text-white/85" />
+                    <b.icon className="h-4 w-4 text-white/[0.85]" />
                   </div>
                   <div>
                     <div className="text-sm font-medium">{b.title}</div>
-                    <div className="text-xs text-white/55">{b.body}</div>
+                    <div className="text-xs text-white/[0.55]">{b.body}</div>
                   </div>
                 </div>
               ))}
@@ -347,7 +347,7 @@ export function LandingPage() {
         <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
           A free alternative to the big ones.
         </h2>
-        <p className="mx-auto mt-4 max-w-xl text-white/55">
+        <p className="mx-auto mt-4 max-w-xl text-white/[0.55]">
           Free access to features ChatGPT, Gemini and Claude gate behind subscriptions.
         </p>
         <div className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -374,7 +374,7 @@ export function LandingPage() {
         <h2 className="text-center text-3xl font-semibold tracking-tight md:text-4xl">
           Common questions
         </h2>
-        <div className="mt-10 divide-y divide-white/8 rounded-2xl border border-white/10 bg-white/[0.02]">
+        <div className="mt-10 divide-y divide-white/[0.08] rounded-2xl border border-white/10 bg-white/[0.02]">
           {LANDING_FAQ.map((f) => (
             <details key={f.q} className="group px-6 py-5">
               <summary className="cursor-pointer list-none text-base font-medium text-white/90 marker:hidden">
@@ -403,7 +403,7 @@ export function LandingPage() {
               style={{ animationDelay: `${i * 60}ms`, animationFillMode: "backwards" }}
             >
               <div className="text-base font-medium leading-tight">{p.title}</div>
-              <div className="mt-2 text-sm text-white/55 line-clamp-2">{p.description}</div>
+              <div className="mt-2 text-sm text-white/[0.55] line-clamp-2">{p.description}</div>
               <div className="mt-4 text-xs text-white/40 transition-colors group-hover:text-white/70">
                 Read →
               </div>
@@ -417,7 +417,7 @@ export function LandingPage() {
         <h2 className="text-4xl font-semibold tracking-tight md:text-5xl">
           Try it. It's really free.
         </h2>
-        <p className="mx-auto mt-4 max-w-md text-white/55">
+        <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
           And when you're ready for more, Boost is $7 a month.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -430,14 +430,14 @@ export function LandingPage() {
           </button>
           <button
             onClick={openBoost}
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 px-7 py-3.5 text-base font-medium text-white/90 hover:bg-white/[0.06] transition-colors"
+            className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] px-7 py-3.5 text-base font-medium text-white/90 hover:bg-white/[0.06] transition-colors"
           >
             <Zap className="h-4 w-4" /> Get Boost
           </button>
         </div>
       </section>
 
-      <footer className="relative z-10 border-t border-white/8 px-6 py-10 text-center text-xs text-white/40">
+      <footer className="relative z-10 border-t border-white/[0.08] px-6 py-10 text-center text-xs text-white/40">
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Link to="/blog" className="hover:text-white">Guides</Link>
           <span>·</span>

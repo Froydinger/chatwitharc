@@ -141,7 +141,7 @@ export function BlogPostPage() {
                 <ul className="mt-4 space-y-2 text-sm text-white/62">
                   {f.bullets.map((bullet) => (
                     <li key={bullet} className="flex gap-2">
-                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-white/45" />
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-white/[0.45]" />
                       <span>{bullet}</span>
                     </li>
                   ))}
@@ -154,7 +154,7 @@ export function BlogPostPage() {
         {/* Mid-post glorified CTA */}
         <div className="mt-16 rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center">
           <div className="text-2xl font-semibold tracking-tight">Ready to try Arc?</div>
-          <p className="mt-2 text-sm text-white/55">
+          <p className="mt-2 text-sm text-white/[0.55]">
             Free forever. Voice, images, code and memory included.
           </p>
           <button
