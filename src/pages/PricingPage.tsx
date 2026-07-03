@@ -236,9 +236,11 @@ export function PricingPage() {
               />
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <p className="text-[11px] text-muted-foreground">
-                  Sends to <span className="font-mono">arc@froydinger.com</span> via your email app.
+                  Sent straight to the ArcAI team — no email app needed.
                 </p>
-                <GlassButton type="submit">Send message</GlassButton>
+                <GlassButton type="submit" disabled={submitting}>
+                  {submitting ? "Sending…" : "Send message"}
+                </GlassButton>
               </div>
             </form>
           </GlassCard>
