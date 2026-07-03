@@ -106,11 +106,15 @@ export function LandingPage() {
         <div className="absolute bottom-[-20%] left-[10%] w-[50%] h-[50%] rounded-full bg-white/[0.01] blur-[100px] animate-float" style={{ animationDuration: "10s", animationDelay: "1s" }} />
       </div>
 
-      {/* Header */}
-      <header className="relative z-10 flex items-center justify-between px-6 py-5 mx-auto max-w-6xl border-b border-white/[0.06]">
+      <header 
+        className="relative z-10 flex items-center justify-between px-6 pb-5 mx-auto max-w-6xl border-b border-white/[0.06]"
+        style={{
+          paddingTop: `calc(env(safe-area-inset-top, 0px) + 1.25rem)`
+        }}
+      >
         <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-          <span className="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
-            <img src="/arc-logo-ui.png" alt="ArcAI" className="w-5 h-5 object-contain" />
+          <span className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <img src="/arc-logo-ui.png" alt="ArcAI" className="w-10 h-10 object-contain" />
             ArcAI
           </span>
         </Link>
