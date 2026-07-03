@@ -46,6 +46,17 @@ import { SharedChatPage } from "./pages/SharedChatPage";
 import { TasksPage } from "./pages/TasksPage";
 import { SharedChatsPage } from "./pages/SharedChatsPage";
 import { SharedChatRoomPage } from "./pages/SharedChatRoomPage";
+import { LandingPage } from "./pages/LandingPage";
+import { BlogIndexPage } from "./pages/BlogIndexPage";
+import { BlogPostPage } from "./pages/BlogPostPage";
+import { useAuth } from "@/hooks/useAuth";
+
+/** Show marketing lander to signed-out visitors, chat to everyone else. */
+const RootGate = () => {
+  const { user, loading } = useAuth();
+  if (loading) return <Index />;
+  return user ? <Index /> : <LandingPage />;
+};
 
 const queryClient = new QueryClient();
 
@@ -112,7 +123,10 @@ const App = () => {
               <RouteSEO />
               <PageTransition>
                 <Routes>
-                  <Route path="/" element={<Index />} />
+                  <Route path="/" element={<RootGate />} />
+                  <Route path="/welcome" element={<LandingPage />} />
+                  <Route path="/blog" element={<BlogIndexPage />} />
+                  <Route path="/blog/:slug" element={<BlogPostPage />} />
                   <Route path="/chat/:sessionId" element={<Index />} />
                   <Route path="/share/:sessionId" element={<SharedChatPage />} />
                   <Route path="/downloads" element={<DownloadPage />} />

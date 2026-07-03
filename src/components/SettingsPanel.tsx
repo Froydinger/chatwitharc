@@ -1059,6 +1059,8 @@ export function SettingsPanel() {
             <div className="flex flex-wrap items-center gap-2">
               <a href="/support" className="hover:text-primary-glow underline">Support</a>
               <span>•</span>
+              <a href="/blog" className="hover:text-primary-glow underline">Guides & FAQs</a>
+              <span>•</span>
               <a
                 href="https://winthenight.productions"
                 target="_blank"
