@@ -18,7 +18,7 @@ const FREE_FEATURES = [
 const BOOST_FEATURES = [
   "Unlimited Smarter (GPT-5.4 Mini) reasoning chats",
   "Generate up to 30 images a day (10 on free)",
-  "Publish your code creations and custom sites to the web",
+  "Publish your code online at a custom arc link",
   "Unlimited voice conversations",
   "Unlimited shared chats (up to 6 people each)",
   "Priority features and server access",

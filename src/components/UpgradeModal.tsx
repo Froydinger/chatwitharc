@@ -28,7 +28,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-lg glass-card border-white/10 p-0 overflow-hidden">
+      <DialogContent className="max-w-lg border-white/10 p-0 overflow-hidden bg-background/95 backdrop-blur-xl">
         <button
           onClick={handleClose}
           className="absolute top-3 right-3 z-10 p-1.5 rounded-full hover:bg-white/10 transition-colors"
@@ -53,7 +53,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
               {[
                 "Unlimited Smarter (GPT-5.4 Mini) reasoning chats",
                 "Generate up to 30 images a day (10 on free)",
-                "Publish your code creations and custom sites to the web",
+                "Publish your code online at a custom arc link",
                 "Unlimited voice conversations",
                 "Unlimited shared chats (up to 6 people each)",
                 "Cancel anytime",

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { BLOG_POSTS } from "@/content/blog/posts";
 import { SUPPORT_URL } from "@/lib/support";
+import { useAuth } from "@/hooks/useAuth";
 
 const SITE = "https://askarc.chat";
 
@@ -22,7 +23,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Every core feature is free, including 20 Smarter chats/day, unlimited Fast chats, unlimited voice, and 10 images/day. Upgrade to Boost for unlimited Smarter chats, 30 images/day, and custom subdomain site publishing.",
+    a: "Yes. Every core feature is free, including 20 Smarter chats/day, unlimited Fast chats, unlimited voice, and 10 images/day. Upgrade to Boost for unlimited Smarter chats, 30 images/day, and publishing your code online at a custom arc link.",
   },
   {
     q: "Is there a paid tier?",
@@ -58,11 +59,14 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI write code?",
-    a: "Yes. The code canvas generates functional web apps with a live preview, which you can publish to the web with an optional Boost upgrade.",
+    a: "Yes. The code canvas generates functional web apps with a live preview, which you can publish online at a custom arc link with an optional Boost upgrade.",
   },
 ];
 
 export function LandingPage() {
+  const { user, isAnonymous } = useAuth();
+  const navigate = useNavigate();
+
   // Force pure-dark theme regardless of user preference on the lander.
   useEffect(() => {
     const root = document.documentElement;
@@ -80,11 +84,16 @@ export function LandingPage() {
     };
   }, []);
 
-  const navigate = useNavigate();
-
   const handleTry = () => {
-    // Navigating to "/" will trigger AuthGate, showing signup/login
-    navigate("/");
+    if (user && !isAnonymous) {
+      navigate("/");
+    } else {
+      window.dispatchEvent(
+        new CustomEvent("auth-gate-feature", {
+          detail: { feature: "generic" },
+        })
+      );
+    }
   };
 
   return (
@@ -135,7 +144,7 @@ export function LandingPage() {
           className="mx-auto mt-6 max-w-2xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
         >
-          Get 20 Smarter chats/day, unlimited Fast chats, and 10 images/day free. Or upgrade to Boost for custom web publishing and higher quotas — no pressure.
+          Get 20 Smarter chats/day, unlimited Fast chats, and 10 images/day free. Or upgrade to Boost to publish your code online at a custom arc link and get higher quotas — no pressure.
         </p>
         <div
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"
@@ -165,7 +174,7 @@ export function LandingPage() {
           Everything you need. Free.
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-sm text-white/50">
-          Our free plan is fully featured to handle your day-to-day. If you need custom web publishing and higher quotas, Boost is waiting.
+          Our free plan is fully featured to handle your day-to-day. If you want to publish your code online at a custom arc link and get higher quotas, Boost is waiting.
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
@@ -205,7 +214,7 @@ export function LandingPage() {
               Free is powerful. <span className="text-white/70">Upgrade only when you need it.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              ArcAI's free plan includes everything you need to get started. Upgrade to Boost for $7/month to publish your sites to custom URLs, get unlimited Smarter reasoning chats, and generate up to 30 images a day.
+              ArcAI's free plan includes everything you need to get started. Upgrade to Boost for $7/month to publish your code online at a custom arc link, get unlimited Smarter reasoning chats, and generate up to 30 images a day.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -213,7 +222,7 @@ export function LandingPage() {
                 { icon: ImageIcon, title: "10 free images a day", body: "Generations and edits. Boost extends this to 30." },
                 { icon: Mic, title: "Unlimited voice", body: "Real-time spoken chats, free for everyone." },
                 { icon: Sparkles, title: "20 Smarter chats a day", body: "Boost lifts this to unlimited Smarter reasoning." },
-                { icon: Code2, title: "Web domain publishing", body: "Deploy canvas creations to custom subdomains with Boost." },
+                { icon: Code2, title: "Publish code online", body: "Publish your creations at a custom arc link with Boost." },
               ].map((b) => (
                 <div
                   key={b.title}
@@ -326,7 +335,7 @@ export function LandingPage() {
           Free tier is fully loaded.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-          20 daily Smarter reasoning chats, 10 images, and unlimited Fast chats forever. Upgrade only if you need custom domains or higher quotas.
+          20 daily Smarter reasoning chats, 10 images, and unlimited Fast chats forever. Upgrade only if you want to publish your creations at a custom arc link or need higher quotas.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button
