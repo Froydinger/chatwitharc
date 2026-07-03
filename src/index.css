@@ -526,6 +526,7 @@ All colors MUST be HSL for perfect glass effects.
     box-shadow: none;
     transition:
       border-color 0.2s ease,
+      background-color 0.2s ease,
       box-shadow 0.2s ease;
     cursor: text;
   }
@@ -540,6 +541,25 @@ All colors MUST be HSL for perfect glass effects.
     background: hsl(var(--card));
     border-color: hsl(var(--primary) / 0.4);
     box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15);
+  }
+
+  /* When any accent color other than "noir" is active, tint the input bar (glass-dock) with that color */
+  :root:not([data-accent="noir"]) .glass-dock {
+    background: hsl(var(--primary) / 0.08) !important;
+    border-color: hsl(var(--primary) / 0.25) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  :root:not([data-accent="noir"]) .glass-dock:hover {
+    background: hsl(var(--primary) / 0.12) !important;
+    border-color: hsl(var(--primary) / 0.45) !important;
+  }
+
+  :root:not([data-accent="noir"]) .glass-dock:focus-within {
+    background: hsl(var(--primary) / 0.15) !important;
+    border-color: hsl(var(--primary) / 0.6) !important;
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25) !important;
   }
 
   .glass-dock > * {
