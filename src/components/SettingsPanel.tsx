@@ -83,7 +83,7 @@ import {
 } from "@/components/ui/dialog";
 import { Shield, Crown, Sparkles, Activity, ExternalLink } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useImageQuota } from "@/hooks/useImageQuota";
+import { useSubscription } from "@/hooks/useSubscription";
 import { LocalAIPanel } from "@/components/LocalAIPanel";
 import { CorporateModePanel } from "@/components/CorporateModePanel";
 import { SharedLinksCard } from "@/components/SharedLinksCard";
@@ -100,7 +100,7 @@ const SECTIONS: { id: SectionId; label: string; icon: LucideIcon; subtitle: stri
   { id: "appearance", label: "Appearance",    icon: Palette,     subtitle: "Look & feel" },
   { id: "ai",         label: "AI & Models",   icon: Sparkles,    subtitle: "Models, voice, images" },
   { id: "privacy",    label: "Privacy, Sharing, & Data",icon: Lock,        subtitle: "Memory, sharing, exports" },
-  { id: "plan",       label: "Free & Usage",  icon: Stars,  subtitle: "20 image outputs per day" },
+  { id: "plan",       label: "Plan & Usage",  icon: Stars,  subtitle: "Quota details & billing" },
 ];
 
 // ---------- Shared tile primitives (matches Arc Local look) ----------
@@ -242,10 +242,15 @@ export function SettingsPanel() {
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
   const {
+    hasBoost,
     isAdmin: quotaAdmin,
     dailyImagesUsed,
-    FREE_DAILY_IMAGE_LIMIT,
-  } = useImageQuota();
+    imageLimit: FREE_DAILY_IMAGE_LIMIT,
+    dailySmarterChatsUsed,
+    smarterChatLimit,
+    openCheckout,
+    openCustomerPortal,
+  } = useSubscription();
   const { toast } = useToast();
   const { accentColor, setAccentColor } = useAccentColor();
   const themeMode = useAccentStore((s) => s.themeMode);
@@ -765,24 +770,78 @@ export function SettingsPanel() {
   const PlanCard = (
     <SectionCard
       icon={Crown}
-      title="Your Plan"
-      subtitle="Everything is free"
+      title="Your Subscription"
+      subtitle="Manage your ArcAI billing tier"
     >
-      <Tile
-        icon={Sparkles}
-        title={quotaAdmin ? "ArcAI Admin" : "Free forever"}
-        description={quotaAdmin ? "Unlimited everything, including images and edits." : "Unlimited chat, voice, search, models and publishing. 20 image outputs per UTC day."}
-        right={<span className="text-xs font-semibold text-primary">ACTIVE</span>}
-      />
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between p-3 bg-muted/20 rounded-xl">
+          <div>
+            <div className="text-sm font-semibold flex items-center gap-1.5">
+              {quotaAdmin ? (
+                <>
+                  <Shield className="h-3.5 w-3.5 text-primary" />
+                  <span>ArcAI Admin</span>
+                </>
+              ) : hasBoost ? (
+                <>
+                  <Crown className="h-3.5 w-3.5 text-primary fill-primary" />
+                  <span>ArcAI Boost</span>
+                </>
+              ) : (
+                <span>ArcAI Free Tier</span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+              {quotaAdmin 
+                ? "Unlimited reasoning chats and image outputs." 
+                : hasBoost 
+                ? "Unlimited Smarter chats, 30 images/day, and publishing creations online at custom arc links." 
+                : "20 Smarter chats/day, 10 images/day, and unlimited Fast chats."
+              }
+            </p>
+          </div>
+          <div>
+            {quotaAdmin ? null : hasBoost ? (
+              <GlassButton
+                size="sm"
+                className="text-xs border-primary/40 text-primary bg-primary/10 hover:bg-primary/20"
+                onClick={openCustomerPortal}
+              >
+                Billing Portal
+              </GlassButton>
+            ) : (
+              <GlassButton
+                size="sm"
+                className="text-xs bg-primary text-primary-foreground hover:bg-primary/95"
+                onClick={openCheckout}
+              >
+                Upgrade to Boost ($7)
+              </GlassButton>
+            )}
+          </div>
+        </div>
+      </div>
     </SectionCard>
   );
 
   const UsageCard = (
-    <SectionCard icon={Stars} title="Today's Usage" subtitle="Image allowance resets at 00:00 UTC">
+    <SectionCard icon={Stars} title="Usage & Quotas" subtitle="Quota allowances reset at 00:00 UTC">
       <Tile
-        title="Image Generations"
+        title="Smarter Reasoning Chats (GPT-5.4 Mini)"
+        description="Reasoning chat quota"
         right={
-          quotaAdmin ? (
+          quotaAdmin || smarterChatLimit === Infinity ? (
+            <span className="font-mono text-primary text-sm">Unlimited</span>
+          ) : (
+            <span className="font-mono text-foreground text-sm">{dailySmarterChatsUsed} / {smarterChatLimit}</span>
+          )
+        }
+      />
+      <Tile
+        title="Image Generations & Edits"
+        description="Creative image output quota"
+        right={
+          quotaAdmin || FREE_DAILY_IMAGE_LIMIT === Infinity ? (
             <span className="font-mono text-primary text-sm">Unlimited</span>
           ) : (
             <span className="font-mono text-foreground text-sm">{dailyImagesUsed} / {FREE_DAILY_IMAGE_LIMIT}</span>
