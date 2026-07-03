@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { checkSubdomainAvailability } from '@/lib/deploy';
+import { checkSubdomainAvailability, PUBLISH_DOMAIN } from '@/lib/deploy';
 
 const EMOJI_OPTIONS = ['🚀', '⚡', '🌟', '🎯', '🔥', '💎', '🎨', '🌈', '🦋', '🍀', '🎭', '🏆'];
 const BG_OPTIONS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
@@ -81,7 +81,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
 
   if (!open) return null;
 
-  const previewUrl = `${subdomain || 'my-site'}.froydingermedia.online`;
+  const previewUrl = `${subdomain || 'my-site'}.${PUBLISH_DOMAIN}`;
   const faviconSvg = makeFaviconSvg(emoji, bg);
 
   const handlePublish = async () => {
@@ -195,7 +195,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
                 className="bg-muted/30 border-border/30 rounded-r-none border-r-0 font-mono text-sm"
               />
               <div className="h-10 px-3 flex items-center bg-muted/50 border border-border/30 rounded-r-lg text-xs text-muted-foreground font-mono whitespace-nowrap">
-                .froydingermedia.online
+                .{PUBLISH_DOMAIN}
               </div>
             </div>
             <div className="flex items-center justify-between gap-2 min-h-[18px]">
@@ -225,7 +225,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3.5 py-3 space-y-1">
             <p className="text-xs font-medium text-amber-500/90">Before you publish</p>
             <ul className="text-xs text-muted-foreground space-y-0.5 list-disc list-inside">
-              <li>Your site goes live at a <span className="font-mono">.froydingermedia.online</span> URL</li>
+              <li>Your site goes live at a <span className="font-mono">.{PUBLISH_DOMAIN}</span> URL</li>
               <li>You can re-publish to push updates to the same URL anytime</li>
               <li>It stays live until you choose to unpublish it</li>
               <li>Unpublishing is the only destructive action — once gone, the URL can't be recovered</li>

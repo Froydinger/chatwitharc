@@ -6,7 +6,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const CUSTOM_DOMAIN = 'froydingermedia.online';
+const CUSTOM_DOMAIN = 'askarc.chat';
+
+// Names that would collide with (or squat on) ArcAI's own infrastructure.
+const RESERVED_SUBDOMAINS = new Set([
+  'www', 'app', 'api', 'mail', 'email', 'admin', 'blog', 'docs', 'status',
+  'support', 'help', 'dashboard', 'chat', 'cdn', 'static', 'assets',
+  'dev', 'staging', 'test', 'arc', 'arcai', 'askarc',
+]);
 
 function normalizeSubdomain(s: string | undefined | null): string {
   return (s || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '').slice(0, 50);
@@ -139,6 +146,9 @@ serve(async (req) => {
       if (!sub || sub.length < 2) {
         return jsonRes({ available: false, reason: 'invalid' });
       }
+      if (RESERVED_SUBDOMAINS.has(sub)) {
+        return jsonRes({ available: false, reason: 'reserved' });
+      }
       // 1. DB check
       const { data: existing } = await serviceClient
         .from('published_sites')
@@ -173,6 +183,9 @@ serve(async (req) => {
 
     // --- Pre-flight collision check for NEW publishes only ---
     if (!isRedeploy) {
+      if (RESERVED_SUBDOMAINS.has(userSubdomain)) {
+        return jsonRes({ error: 'That address is reserved — pick a different one.' }, 409);
+      }
       const { data: existing } = await serviceClient
         .from('published_sites')
         .select('id')

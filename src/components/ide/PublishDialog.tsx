@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, Rocket, CheckCircle2, ExternalLink, AlertCircle, XCircle, Trash2, Pencil } from 'lucide-react';
+import { PUBLISH_DOMAIN } from '@/lib/deploy';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
 import { FAVICON_OPTIONS, type FaviconOption } from '@/constants/faviconOptions';
@@ -83,8 +84,8 @@ function PublishedStatusView({
         <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />
         <div className="space-y-1">
           <p className="font-semibold text-sm">Your site is live</p>
-          {currentSubdomain && (
-            <p className="text-xs text-muted-foreground">{currentSubdomain}.froydingermedia.online</p>
+          {deployedUrl && (
+            <p className="text-xs text-muted-foreground">{deployedUrl.replace(/^https?:\/\//, '')}</p>
           )}
         </div>
         <a
@@ -170,7 +171,7 @@ function PublishForm({
     try {
       const faviconSvg = optionToSvg(FAVICON_OPTIONS[selectedIndex]);
       await onPublish(slugify(subdomain), siteTitle, faviconSvg);
-      setPublishedUrl(`https://${slugify(subdomain)}.froydingermedia.online`);
+      setPublishedUrl(`https://${slugify(subdomain)}.${PUBLISH_DOMAIN}`);
     } catch (err: any) {
       const msg = err?.message || 'Publish failed';
       setPublishError(msg.includes('already taken') ? `Subdomain "${slugify(subdomain)}" is already taken. Try a different name.` : msg);
@@ -200,7 +201,7 @@ function PublishForm({
   return (
     <>
       <DialogDescription>
-        Configure your site before {isUpdate ? 'updating' : 'publishing'} to <strong>{cleanSubdomain || '...'}.froydingermedia.online</strong>
+        Configure your site before {isUpdate ? 'updating' : 'publishing'} to <strong>{cleanSubdomain || '...'}.{PUBLISH_DOMAIN}</strong>
       </DialogDescription>
 
       <div className="space-y-4 py-2">
@@ -245,7 +246,7 @@ function PublishForm({
           <Label htmlFor="subdomain">Subdomain</Label>
           <div className="flex items-center gap-1">
             <Input id="subdomain" value={subdomain} onChange={(e) => { setSubdomain(e.target.value); setPublishError(null); }} placeholder="my-cool-app" className="font-mono text-sm" disabled={isPublishing} />
-            <span className="text-xs text-muted-foreground whitespace-nowrap">.froydingermedia.online</span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">.{PUBLISH_DOMAIN}</span>
           </div>
           <div className="h-5 flex items-center gap-1.5">
             {!publishError && isAvailable === true && cleanSubdomain.length >= 3 && <span className="text-xs text-primary flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Available</span>}

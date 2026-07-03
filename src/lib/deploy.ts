@@ -9,6 +9,11 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
   throw new Error('Supabase environment variables are not configured');
 }
 
+/** Domain that published sites live under — must match CUSTOM_DOMAIN in the
+    deploy-netlify edge function. Sites published before the askarc.chat
+    switch keep their original URL (always display the stored site.url). */
+export const PUBLISH_DOMAIN = 'askarc.chat';
+
 async function blobToBase64(blob: Blob): Promise<string> {
   const buffer = await blob.arrayBuffer();
   const bytes = new Uint8Array(buffer);
@@ -46,8 +51,8 @@ async function buildStaticZip(projectName: string, files: VirtualFileSystem, sit
 }
 
 /**
- * Check whether a `.froydingermedia.online` subdomain is available.
- * Returns true if free, false if already taken.
+ * Check whether a `.askarc.chat` subdomain is available.
+ * Returns true if free, false if already taken (or reserved).
  */
 export async function checkSubdomainAvailability(subdomain: string): Promise<boolean> {
   if (!subdomain || subdomain.trim().length < 2) return false;

@@ -10,13 +10,13 @@ function isThemeMode(value: unknown): value is ThemeMode {
 export function useTheme() {
   const themeMode = useAccentStore((s) => s.themeMode);
   const setThemeMode = useAccentStore((s) => s.setThemeMode);
-  const { user } = useAuth();
+  const { user, isAnonymous } = useAuth();
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
+    if (!user || isAnonymous) {
       setLoadedUserId(null);
-      setThemeMode("system");
+      setThemeMode("dark");
       return;
     }
     if (loadedUserId === user.id) return;

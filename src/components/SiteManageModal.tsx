@@ -125,7 +125,7 @@ export function SiteManageModal({
             </div>
             <div className="min-w-0">
               <h2 className="text-base font-semibold leading-tight">Live site</h2>
-              <p className="text-xs text-muted-foreground truncate">{site.subdomain}.froydingermedia.online</p>
+              <p className="text-xs text-muted-foreground truncate">{site.url.replace(/^https?:\/\//, '')}</p>
             </div>
           </div>
           <button
