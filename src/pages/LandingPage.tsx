@@ -109,7 +109,7 @@ export function LandingPage() {
       <header className="relative z-10 flex items-center justify-between px-6 py-5 mx-auto max-w-6xl border-b border-white/[0.06]">
         <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
           <span className="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
-            <span className="w-5 h-5 rounded-md bg-white text-black flex items-center justify-center font-black text-xs">A</span>
+            <img src="/arc-logo-ui.png" alt="ArcAI" className="w-5 h-5 object-contain" />
             ArcAI
           </span>
         </Link>
