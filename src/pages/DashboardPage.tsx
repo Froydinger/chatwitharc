@@ -750,8 +750,7 @@ useEffect(() => {
   };
   const onBubblePtrUp = (e: React.PointerEvent) => {
     if (!isBubbleDragging || !navPillRef.current) return;
-    setIsBubbleDragging(false);
-    setBubbleHoverIdx(-1);
+    
     const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
     const trackStart = PILL_PAD + NAV_EDGE_INSET;
     const trackW = Math.max(0, contentW - NAV_EDGE_INSET * 2);
@@ -759,13 +758,38 @@ useEffect(() => {
     const cx = bubbleCX.get() - trackStart;
     const idx = Math.min(tabs.length - 1, Math.max(0, Math.floor(cx / tabW)));
     const target = tabs[idx]?.key || activeTab;
-    animate(bubbleCX, trackStart + idx * tabW + tabW / 2, { type: 'spring', stiffness: 380, damping: 26, mass: 0.6 });
-    // Scale back down on putdown — let the spring settle smoothly from
-    // whatever stretch the move ended on, no keyframe jump.
+
+    // 1. Keep the hover index set to the destination index so the target icon stays hidden
+    setBubbleHoverIdx(idx);
+
+    // 2. Animate lens scale down to 1
+    animate(lensScale, 1, { type: 'spring', stiffness: 320, damping: 20, mass: 0.4 });
+
+    // 3. Settle bubble shape / base scale down
     rawBase.set(1.0);
     animate(rawSX, 1, { type: 'spring', stiffness: 260, damping: 18, mass: 0.45 });
     animate(rawSY, 1, { type: 'spring', stiffness: 260, damping: 18, mass: 0.45 });
-    switchTab(target);
+
+    // 4. Animate bubble position to target slot and clean up once arrived
+    animate(bubbleCX, trackStart + idx * tabW + tabW / 2, { 
+      type: 'spring', 
+      stiffness: 380, 
+      damping: 26, 
+      mass: 0.6,
+      onComplete: () => {
+        setIsBubbleDragging(false);
+        setBubbleHoverIdx(-1);
+      }
+    });
+
+    // 5. Update active tabs and state
+    setActiveTab(target);
+    setSearchParams(target === "overview" ? {} : { tab: target });
+    setViewingImageIndex(null);
+    setSelectedAppId(null);
+    setSelectedCanvas(null);
+    setChatPage(1); setImagePage(1); setAppPage(1); setMemoryPage(1); setCanvasPage(1);
+    window.scrollTo({ top: 0 });
   };
 
   const downloadImage = async (image: GeneratedImage) => {

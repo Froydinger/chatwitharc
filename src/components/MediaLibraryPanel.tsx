@@ -5,7 +5,7 @@ import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -328,6 +328,7 @@ export function MediaLibraryPanel() {
       {/* Image Modal */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
         <DialogContent className="max-w-4xl w-full p-0 bg-black/90 border-0">
+          <DialogTitle className="sr-only">Image Preview</DialogTitle>
           {selectedImage && (
             <div className="relative">
               <button

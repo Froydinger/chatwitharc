@@ -8,7 +8,7 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { CodePreview } from "@/components/CodePreview";
@@ -435,6 +435,7 @@ export function CanvasesPanel() {
       {/* Canvas Modal */}
       <Dialog open={!!selectedItem} onOpenChange={() => setSelectedItem(null)}>
         <DialogContent className="max-w-5xl w-full max-h-[90vh] overflow-hidden p-0">
+          <DialogTitle className="sr-only">Canvas Preview</DialogTitle>
           {selectedItem && (
             <div className="flex flex-col h-full max-h-[90vh]">
               {/* Header */}

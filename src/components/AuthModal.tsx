@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassButton } from "@/components/ui/glass-button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { signInWithGoogle } from "@/integrations/auth";
@@ -214,8 +214,8 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                       <img src="/arc-logo-ui.png" alt="ArcAI" className="h-10 w-10" />
                     </div>
                   </motion.div>
-                  <h1 className={cn("text-2xl font-bold mb-2", t.textStrong)}>{copy.title}</h1>
-                  <p className={cn("text-sm", t.textMuted)}>{copy.subtitle}</p>
+                  <DialogTitle className={cn("text-2xl font-bold mb-2", t.textStrong)}>{copy.title}</DialogTitle>
+                  <DialogDescription className={cn("text-sm", t.textMuted)}>{copy.subtitle}</DialogDescription>
                 </div>
 
                 {/* Free-account emphasis */}
