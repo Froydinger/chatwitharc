@@ -4,7 +4,7 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { getAuthRedirectUrl, signInWithGoogle } from "@/integrations/auth";
+import { signInWithGoogle } from "@/integrations/auth";
 import { Mail, Lock, Eye, EyeOff, X, Sparkles, Mic, ImagePlus, Globe, Code2, PenLine, Music, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GatedFeature, AuthGateDetail } from "@/hooks/useRequireAuth";
@@ -25,7 +25,7 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
   "image-gen": { title: "Sign in to make images", subtitle: "Generate & edit with GPT Image 2.", icon: ImagePlus },
   files: { title: "Sign in to attach files", subtitle: "PDFs, docs, images.", icon: Paperclip },
   research: { title: "Sign in for research", subtitle: "Cited sources from the web.", icon: Globe },
-  code: { title: "Sign in to write code", subtitle: "Pro code & app generation.", icon: Code2 },
+  code: { title: "Sign in to write code", subtitle: "Code and app generation.", icon: Code2 },
   canvas: { title: "Sign in for canvas", subtitle: "Long-form writing & layouts.", icon: PenLine },
   generic: { title: "Welcome to ArcAI", subtitle: "Sign in to unlock everything.", icon: Sparkles },
 };
@@ -33,7 +33,6 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
 export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [showEmailForm, setShowEmailForm] = useState(false);
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -132,17 +131,20 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
         toast({ title: "Welcome back!", description: "You've been signed in successfully" });
         onClose();
       } else {
-        const redirectUrl = getAuthRedirectUrl();
-        const { error } = await supabase.auth.signUp({
-          email, password,
-          options: { emailRedirectTo: redirectUrl },
-        });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        // Don't close modal — show email confirmation state
-        setShowEmailConfirmation(true);
+        if (!data.session) {
+          toast({
+            title: "Email sign-up is coming soon",
+            description: "Use Google for now, or try again shortly.",
+          });
+          return;
+        }
+        toast({ title: "Account created!", description: "Welcome to ArcAI." });
+        onClose();
       }
-    } catch (error: any) {
-      toast({ title: "Error", description: error?.message || "An error occurred", variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "An error occurred", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -153,8 +155,8 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
     try {
       const { error } = await signInWithGoogle();
       if (error) throw error;
-    } catch (error: any) {
-      toast({ title: "Error", description: error?.message || "An error occurred with Google sign in", variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "An error occurred with Google sign in", variant: "destructive" });
       setLoading(false);
     }
   };
@@ -200,43 +202,6 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
               </motion.button>
 
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-6">
-                {showEmailConfirmation ? (
-                  /* Email Confirmation Screen */
-                  <div className="text-center py-4 space-y-5">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", duration: 0.5 }}
-                      className="flex justify-center"
-                    >
-                      <div className="w-20 h-20 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
-                        <Mail className="w-10 h-10 text-primary" />
-                      </div>
-                    </motion.div>
-                    <div>
-                      <h2 className={cn("text-xl font-bold mb-2", t.textStrong)}>Check your email</h2>
-                      <p className={cn("text-sm leading-relaxed", t.textMuted)}>
-                        We sent a confirmation link to<br />
-                        <span className={cn("font-medium", t.textStrong)}>{email}</span>
-                      </p>
-                    </div>
-                    <p className={cn("text-xs", t.textSubtle)}>
-                      Click the link in your email to activate your account, then come back here to sign in.
-                    </p>
-                    <button
-                      onClick={() => {
-                        setShowEmailConfirmation(false);
-                        setIsLogin(true);
-                        setEmail("");
-                        setPassword("");
-                        onClose();
-                      }}
-                      className="w-full py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium transition-colors"
-                    >
-                      Got it
-                    </button>
-                  </div>
-                ) : (
                 <>
                 {/* Logo / contextual headline */}
                 <div className="text-center">
@@ -430,7 +395,6 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                 </AnimatePresence>
 
                 </>
-                )}
               </motion.div>
             </div>
           </motion.div>
