@@ -24,6 +24,20 @@ export function PricingPage() {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Force pure-dark theme on the pricing page regardless of user preference.
+  useEffect(() => {
+    const root = document.documentElement;
+    const hadLight = root.classList.contains("light");
+    root.classList.remove("light");
+    root.classList.add("dark");
+    return () => {
+      if (hadLight) {
+        root.classList.remove("dark");
+        root.classList.add("light");
+      }
+    };
+  }, []);
+
   const openBoost = () => {
     window.dispatchEvent(new CustomEvent("open-upgrade-modal"));
   };
