@@ -114,7 +114,7 @@ export function BlogPostPage() {
             {post.cta}
             <ArrowRight className="h-4 w-4" />
           </button>
-          <span className="text-xs text-white/40">Free · No signup required</span>
+          <span className="text-xs text-white/40">Free account · No credit card</span>
         </div>
 
         <div className="mt-14 space-y-10">

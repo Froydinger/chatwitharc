@@ -36,7 +36,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Do I need to sign up?",
-    a: "No signup required to chat. Sign in to save history and unlock voice, memory, and canvases.",
+    a: "Yes. A free account is required to chat so your history, memory, voice, files, canvases and settings stay tied to you from the first message.",
   },
   {
     q: "Which AI models power ArcAI?",
@@ -168,8 +168,8 @@ export function LandingPage() {
           It combines chat with GPT-class models, real-time voice conversations, AI image generation
           with GPT-Image-2, a code canvas, document analysis, web search with citations, and
           persistent long-term memory. ArcAI is a free alternative to ChatGPT, Google Gemini,
-          Anthropic Claude, Microsoft Copilot and Perplexity. No credit card, no signup required to
-          start chatting. Optional ArcAI Boost upgrade is $7 per month for unlimited images,
+          Anthropic Claude, Microsoft Copilot and Perplexity. No credit card required to
+          start chatting with a free account. Optional ArcAI Boost upgrade is $7 per month for unlimited images,
           unlimited voice, Deep Search web research, and one-tap web publishing.
         </p>
         <h2>Frequently asked questions about ArcAI</h2>
