@@ -140,16 +140,16 @@ export function LandingPage() {
       {/* Hero */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 pt-20 pb-24 text-center md:pt-32 md:pb-32">
         <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 animate-in fade-in zoom-in-95 duration-500">
-          <Sparkles className="h-3.5 w-3.5" /> Ask, Reflect, Create · The ARC of reasoning.
+          <Sparkles className="h-3.5 w-3.5" /> Introducing Arc, Ask, Reflect, Create
         </div>
         <h1 className="mx-auto max-w-4xl text-5xl font-semibold tracking-tight md:text-7xl lg:text-8xl animate-in fade-in slide-in-from-bottom-3 duration-700">
-          Ask. Reflect. Create.
+          A gentler space to think, reflect, and create.
         </h1>
         <p
           className="mx-auto mt-6 max-w-2xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
         >
-          Ask questions, let Arc reflect with memory and Deep Search, and create live web creations instantly.
+          Arc is a safe, personal sanctuary for your ideas. With background music, custom accent colors, and deep real-time reasoning, it is built to help you focus, understand your thoughts, and bring creations to life.
         </p>
         <div
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"
@@ -176,19 +176,19 @@ export function LandingPage() {
       {/* Features */}
       <section className="relative z-10 mx-auto max-w-6xl px-6 py-16">
         <h2 className="text-center text-3xl font-semibold tracking-tight md:text-4xl">
-          The ARC Workflow
+          A Sanctuary for Your Thoughts and Creations
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-sm text-white/50">
-          Every step of your creative journey covered on our free plan.
+          Simple on the outside, deeply capable on the inside, and completely free.
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { category: "Ask", icon: MessageSquare, title: "Smarter Reasoning", body: "Ask complex queries. Get 20 daily reasoning responses from GPT-5.4 Mini." },
-            { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web with AI summaries and real-time citations." },
-            { category: "Reflect", icon: Brain, title: "Memory Bank", body: "Arc reflects on your context and history to personalize answers." },
-            { category: "Reflect", icon: Mic, title: "Live Voice", body: "Reflect out loud with zero-latency spoken conversation." },
-            { category: "Create", icon: Code2, title: "Code Canvas", body: "Instantly build, run, and preview complete web creations." },
-            { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create stunning custom image outputs with GPT-Image-2." },
+            { category: "Ask", icon: MessageSquare, title: "Smarter Reasoning", body: "Ask your most complex questions. Get deep, real-time responses from GPT-5.4 Mini without limits on your curiosity." },
+            { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
+            { category: "Reflect", icon: Brain, title: "Memory Bank", body: "Arc remembers your context and goals over time, reflecting on past conversations to personalize every answer." },
+            { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },
+            { category: "Create", icon: Code2, title: "Code Canvas", body: "Turn thoughts into running web apps instantly, with a visual canvas to preview, build, and publish your creations." },
+            { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create custom images and art with state-of-the-art vision models, bringing visual ideas to life in seconds." },
           ].map((f, i) => (
             <div
               key={f.title}
@@ -226,18 +226,18 @@ export function LandingPage() {
               <Sparkles className="h-3.5 w-3.5" /> Optional Boost Tier
             </div>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">
-              Free is powerful. <span className="text-white/70">Upgrade only when you need it.</span>
+              Free is powerful. <span className="text-white/70">Boost is optional.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              ArcAI's free plan includes everything you need to get started. Upgrade to Boost for $7/month to publish your code online at a custom arc link, get unlimited Smarter reasoning chats, and generate up to 30 images a day.
+              Arc is built to be a safe, helpful hub for everyone. The free plan has no catch, you get memory, real-time voice, search, and coding out of the box. Upgrade to Boost for $7/month only if you want to publish creations to public custom links or need higher quotas.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
-                { icon: ImageIcon, title: "10 free images a day", body: "Generations and edits. Boost extends this to 30." },
-                { icon: Mic, title: "Unlimited voice", body: "Real-time spoken chats, free for everyone." },
-                { icon: Sparkles, title: "20 Smarter chats a day", body: "Boost lifts this to unlimited Smarter reasoning." },
-                { icon: Code2, title: "Publish code online", body: "Publish your creations at a custom arc link with Boost." },
+                { icon: ImageIcon, title: "10 free images a day", body: "Generate and edit up to 10 images daily for free, or 30 with Boost." },
+                { icon: Mic, title: "Unlimited voice & audio", body: "Speak naturally with instant spoken audio, free and open to everyone." },
+                { icon: Sparkles, title: "20 Smarter chats a day", body: "Get 20 complex reasoning chats per day on free, or go unlimited with Boost." },
+                { icon: Code2, title: "Publish code online", body: "Share your canvases and running web creations with custom Arc links on Boost." },
               ].map((b) => (
                 <div
                   key={b.title}
@@ -277,10 +277,10 @@ export function LandingPage() {
       {/* Comparison */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 py-16 text-center">
         <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
-          A free alternative to the big ones.
+          A companion, not just a chatbot.
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-white/[0.55]">
-          Free access to features ChatGPT, Gemini and Claude gate behind subscriptions.
+          Arc gives you the premium features other platforms hide behind paywalls, in a space that feels like home.
         </p>
         <div className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-3">
           {[
@@ -347,10 +347,10 @@ export function LandingPage() {
       {/* Bottom CTA */}
       <section className="relative z-10 mx-auto max-w-4xl px-6 pt-16 pb-24 text-center">
         <h2 className="text-4xl font-semibold tracking-tight md:text-5xl">
-          Free tier is fully loaded.
+          Find your creative center.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-          20 daily Smarter reasoning chats, 10 images, and unlimited Fast chats forever. Upgrade only if you want to publish your creations at a custom arc link or need higher quotas.
+          Enjoy 20 daily reasoning chats, 10 images, and unlimited voice conversations forever. Your safe hub for thinking is just one click away.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button
