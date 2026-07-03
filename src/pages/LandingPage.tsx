@@ -144,7 +144,7 @@ export function LandingPage() {
           className="mx-auto mt-6 max-w-2xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
         >
-          Ask questions, let Arc reflect with memory and Deep Search, and create live web apps instantly. Get 20 daily reasoning chats and 10 images free, or upgrade to Boost for custom link publishing.
+          Ask questions, let Arc reflect with memory and Deep Search, and create live web creations instantly.
         </p>
         <div
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"
