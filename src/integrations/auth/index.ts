@@ -20,16 +20,42 @@ export function signInWithGoogle(redirectTo = getAuthRedirectUrl()) {
  * reference an Auth record that has already been consolidated.
  */
 export async function signOutCurrentSession() {
-  const { error: globalError } = await supabase.auth.signOut();
-
-  if (globalError) {
-    const { error: localError } = await supabase.auth.signOut({ scope: "local" });
-    if (localError) throw localError;
+  try {
+    await supabase.auth.signOut();
+  } catch (e) {
+    // Ignore global sign out error and fallback to local
   }
 
-  const { data } = await supabase.auth.getSession();
-  if (data.session) {
-    const { error } = await supabase.auth.signOut({ scope: "local" });
-    if (error) throw error;
+  try {
+    await supabase.auth.signOut({ scope: "local" });
+  } catch (e) {
+    // Ignore
+  }
+
+  // Robust manual cleanup of localStorage Supabase auth keys
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith("sb-") || key.includes("supabase"))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch (e) {
+    // Ignore storage issues
+  }
+
+  // Clear any auth cookies if present
+  try {
+    document.cookie.split(";").forEach((c) => {
+      const eqPos = c.indexOf("=");
+      const name = eqPos > -1 ? c.substring(0, eqPos).trim() : c.trim();
+      if (name.startsWith("sb-") || name.includes("supabase") || name.includes("auth")) {
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      }
+    });
+  } catch (e) {
+    // Ignore cookie issues
   }
 }

@@ -30,7 +30,7 @@ export function DashboardSettingsPage() {
 
   return (
     <div
-      className="min-h-screen overflow-y-auto scrollbar-hide relative z-10"
+      className="min-h-screen overflow-y-auto relative z-10 touch-pan-y"
       style={{
         paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
       }}

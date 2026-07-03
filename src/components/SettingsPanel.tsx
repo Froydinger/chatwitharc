@@ -944,7 +944,7 @@ export function SettingsPanel() {
   );
 
   return (
-    <div className="w-full max-w-7xl mx-auto pb-20 pt-2 h-full overflow-y-auto scrollbar-hide">
+    <div className="w-full max-w-7xl mx-auto pb-20 pt-2">
       {/* Mobile dropdown */}
       <div className="lg:hidden sticky top-0 z-20 -mx-1 px-1 pt-1 pb-3 bg-background/60 backdrop-blur-md">
         {(() => {
