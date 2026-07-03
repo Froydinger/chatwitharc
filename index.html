@@ -197,7 +197,122 @@
 </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!--
+        AEO / crawler pre-render. React (createRoot) replaces these children
+        on mount, so real users never see this. AI answer engines, LLM
+        scrapers, and non-JS crawlers read the raw HTML and index this block.
+        Keep in sync with the visible landing page copy.
+      -->
+      <div id="aeo-static" style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;">
+        <header>
+          <h1>ArcAI — Ask, Reflect, Create</h1>
+          <p>
+            ArcAI is a free multi-modal AI assistant by Win The Night Productions.
+            Chat with every major model, generate images, run real-time voice
+            conversations, write code with a live preview canvas, draft prose,
+            and search the web — all in one app at
+            <a href="https://askarc.chat/">askarc.chat</a>.
+          </p>
+        </header>
+
+        <section>
+          <h2>What ArcAI does</h2>
+          <ul>
+            <li>Unlimited chats with GPT, Claude, Gemini, and Grok models.</li>
+            <li>Real-time voice mode — talk to Arc like a phone call.</li>
+            <li>AI image generation with GPT-Image-2.</li>
+            <li>Code canvas that builds working web apps with a live preview.</li>
+            <li>Writing canvas for long-form prose, briefs, and email.</li>
+            <li>Deep Search — web research with cited AI summaries.</li>
+            <li>Document analysis for PDF, DOCX, and images.</li>
+            <li>Persistent memory and searchable chat history.</li>
+            <li>Shared chats for collaborating with up to 6 people.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Pricing</h2>
+          <p>
+            ArcAI is free forever. The Free plan includes unlimited chats with
+            every model, unlimited reminders and scheduled tasks, 10 image
+            generations per day, 10 voice conversations every 30 days,
+            document analysis, memory, canvases, and code generation.
+          </p>
+          <p>
+            <strong>ArcAI Boost</strong> is an optional $7/month upgrade that
+            adds unlimited image generation, unlimited voice conversations,
+            Deep Search web research with citations, unlimited shared chats,
+            and one-tap publishing of code creations to a live
+            <em>yourname.froydingermedia.online</em> URL. Cancel anytime — no
+            contracts. See <a href="https://askarc.chat/pricing">pricing</a>.
+          </p>
+        </section>
+
+        <section>
+          <h2>How ArcAI compares</h2>
+          <p>
+            ArcAI is a free alternative to ChatGPT, Claude, Gemini, and
+            Perplexity. Features that those services put behind paid
+            subscriptions — voice mode, image generation, web search, code
+            execution, document uploads — are included in the free tier of
+            ArcAI. Boost only adds volume and publishing.
+          </p>
+        </section>
+
+        <section>
+          <h2>Frequently asked questions</h2>
+          <dl>
+            <dt>Is ArcAI really free?</dt>
+            <dd>
+              Yes. ArcAI is free forever with generous daily limits. Boost is
+              a $7/month optional upgrade for unlimited image and voice usage
+              plus one-tap web publishing.
+            </dd>
+            <dt>Do I need an account?</dt>
+            <dd>
+              Yes — sign in with Google, Apple, or email. Accounts let ArcAI
+              save your chats, memories, canvases, and settings across
+              devices.
+            </dd>
+            <dt>Which AI models does ArcAI use?</dt>
+            <dd>
+              ArcAI routes across GPT, Claude, Gemini, and Grok families
+              depending on the task, plus GPT-Image-2 for images and
+              Perplexity Sonar for web search.
+            </dd>
+            <dt>Can ArcAI write and run code?</dt>
+            <dd>
+              Yes. The code canvas generates functional web apps with a live
+              preview, and Boost adds one-tap publishing to a live URL.
+            </dd>
+            <dt>Can ArcAI talk out loud?</dt>
+            <dd>
+              Yes. Voice mode is a real-time conversation with Arc using
+              OpenAI's Realtime API — 10 conversations every 30 days on Free,
+              unlimited on Boost.
+            </dd>
+            <dt>Where can I get support?</dt>
+            <dd>
+              Visit <a href="https://askarc.chat/support">askarc.chat/support</a>.
+              Signed-in users get an in-app ticket portal; anyone else can
+              submit a ticket that we reply to by email.
+            </dd>
+          </dl>
+        </section>
+
+        <nav>
+          <h2>Site links</h2>
+          <ul>
+            <li><a href="https://askarc.chat/">Home</a></li>
+            <li><a href="https://askarc.chat/pricing">Pricing</a></li>
+            <li><a href="https://askarc.chat/support">Support</a></li>
+            <li><a href="https://askarc.chat/blog">Blog</a></li>
+            <li><a href="https://askarc.chat/download">Download</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
     
     <!-- Register service worker (push notifications, no caching) -->
