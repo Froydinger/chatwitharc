@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { ImageGenerationPlaceholder } from "@/components/ImageGenerationPlaceholder";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { TypewriterMarkdown } from "@/components/TypewriterMarkdown";
-import { WordStreamMarkdown } from "@/components/WordStreamMarkdown";
 import { ImageModal } from "@/components/ImageModal";
 import { ImageEditModal } from "@/components/ImageEditModal";
 import { CodeBlock } from "@/components/CodeBlock";
@@ -520,16 +519,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                             );
                           }
 
-                          if (shouldAnimateTypewriter && hasAssistantContent) {
-                            return (
-                              <WordStreamMarkdown
-                                key={idx}
-                                text={part.content}
-                                shouldAnimate={true}
-                                onTyping={handleTypewriterTyping}
-                              />
-                            );
-                          }
+
 
                           return (
                             <div key={idx} className="text-foreground break-words">

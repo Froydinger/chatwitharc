@@ -267,77 +267,81 @@ export function RightPanel({
               </motion.span>
             </Button>
 
-            {/* Overflow menu — Corporate Mode + future toggles */}
-            {!isMobileLocal && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title="More"
-                    aria-label="More options"
-                    className="h-9 w-9 rounded-full bg-muted/40 hover:bg-primary/15 hover:text-primary"
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 panel-solid border-border/60">
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">Modes</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={handleToggleCorporate} className="gap-2 cursor-pointer">
-                    {corporateMode ? <Lock className="h-4 w-4 text-primary" /> : <Unlock className="h-4 w-4" />}
-                    <div className="flex flex-col flex-1">
-                      <span className="text-sm">{corporateMode ? "Corporate Mode: On" : "Corporate Mode"}</span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {corporateMode ? "On-device only" : "Lock to on-device model"}
-                      </span>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={cycleThemeMode} className="gap-2 cursor-pointer">
-                    <ThemeIcon className="h-4 w-4" />
-                    <span className="text-sm">Theme: {themeLabel}</span>
-                  </DropdownMenuItem>
+            {/* Overflow menu — Corporate Mode + theme + accent colors */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title="More"
+                  aria-label="More options"
+                  className="h-9 w-9 rounded-full bg-muted/40 hover:bg-primary/15 hover:text-primary"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 panel-solid border-border/60">
+                {!isMobileLocal && (
+                  <>
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">Modes</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={handleToggleCorporate} className="gap-2 cursor-pointer">
+                      {corporateMode ? <Lock className="h-4 w-4 text-primary" /> : <Unlock className="h-4 w-4" />}
+                      <div className="flex flex-col flex-1">
+                        <span className="text-sm">{corporateMode ? "Corporate Mode: On" : "Corporate Mode"}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {corporateMode ? "On-device only" : "Lock to on-device model"}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
 
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">Accent color</DropdownMenuLabel>
-                  <div className="flex items-center justify-between gap-1 px-2 py-1.5">
-                    {accentSwatches.map((opt) => {
-                      const isActive = accent === opt.id;
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setAccentColor(opt.id);
-                          }}
-                          title={opt.label}
-                          aria-label={`Select ${opt.label} accent color`}
-                          className={cn(
-                            "relative h-6 w-6 rounded-full transition-transform",
-                            opt.id === "noir" && "accent-swatch-noir",
-                            isActive ? "ring-2 ring-offset-1 ring-offset-popover ring-primary scale-110" : "hover:scale-110",
-                          )}
-                          style={opt.id === "noir" ? undefined : { background: opt.gradient }}
-                        >
-                          {isActive && (
-                            <Check className="absolute inset-0 m-auto h-3.5 w-3.5 text-white drop-shadow" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Theme</DropdownMenuLabel>
+                <DropdownMenuItem onClick={cycleThemeMode} className="gap-2 cursor-pointer">
+                  <ThemeIcon className="h-4 w-4" />
+                  <span className="text-sm">Theme: {themeLabel}</span>
+                </DropdownMenuItem>
 
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => navigate("/dashboard/settings?section=appearance")}
-                    className="gap-2 cursor-pointer"
-                  >
-                    <Palette className="h-4 w-4" />
-                    <span className="text-sm">Appearance settings</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Accent color</DropdownMenuLabel>
+                <div className="flex items-center justify-between gap-1 px-2 py-1.5">
+                  {accentSwatches.map((opt) => {
+                    const isActive = accent === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setAccentColor(opt.id);
+                        }}
+                        title={opt.label}
+                        aria-label={`Select ${opt.label} accent color`}
+                        className={cn(
+                          "relative h-6 w-6 rounded-full transition-transform",
+                          opt.id === "noir" && "accent-swatch-noir",
+                          isActive ? "ring-2 ring-offset-1 ring-offset-popover ring-primary scale-110" : "hover:scale-110",
+                        )}
+                        style={opt.id === "noir" ? undefined : { background: opt.gradient }}
+                      >
+                        {isActive && (
+                          <Check className="absolute inset-0 m-auto h-3.5 w-3.5 text-white drop-shadow" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => navigate("/dashboard/settings?section=appearance")}
+                  className="gap-2 cursor-pointer"
+                >
+                  <Palette className="h-4 w-4" />
+                  <span className="text-sm">Appearance settings</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Content */}

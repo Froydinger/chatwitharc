@@ -954,65 +954,7 @@ export function MobileChatApp() {
                 </motion.div>
               )}
 
-              {/* Mobile Overflow Theme Menu */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <motion.button 
-                    whileHover={{ scale: 1.1, y: -2 }} 
-                    whileTap={{ scale: 0.95 }} 
-                    transition={{ type: "spring", damping: 15, stiffness: 300 }}
-                    className="rounded-full h-9 w-9 border border-input glass-shimmer flex items-center justify-center cursor-pointer transition-all focus:outline-none"
-                    title="Appearance Options"
-                  >
-                    <MoreHorizontal className="h-4 w-4 text-foreground/80" />
-                  </motion.button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 panel-solid border-border/60 z-[300]">
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">Theme</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={cycleThemeMode} className="gap-2 cursor-pointer">
-                    <ThemeIcon className="h-4 w-4" />
-                    <span className="text-sm">Theme: {themeLabel}</span>
-                  </DropdownMenuItem>
 
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">Accent color</DropdownMenuLabel>
-                  <div className="flex items-center justify-between gap-1 px-2 py-1.5">
-                    {accentSwatches.map((opt) => {
-                      const isActive = accent === opt.id;
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setAccentColor(opt.id);
-                          }}
-                          title={opt.label}
-                          aria-label={`Select ${opt.label} accent color`}
-                          className={cn(
-                            "relative h-6 w-6 rounded-full transition-transform",
-                            opt.id === "noir" && "accent-swatch-noir",
-                            isActive ? "ring-2 ring-offset-1 ring-offset-popover ring-primary scale-110" : "hover:scale-110",
-                          )}
-                          style={opt.id === "noir" ? undefined : { background: opt.gradient }}
-                        >
-                          {isActive && (
-                            <Check className="absolute inset-0 m-auto h-3.5 w-3.5 text-white drop-shadow" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => navigate("/dashboard/settings?section=appearance")}
-                    className="gap-2 cursor-pointer"
-                  >
-                    <Palette className="h-4 w-4" />
-                    <span className="text-sm">Appearance settings</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
 
               {/* Music Player Button */}
               <motion.div 

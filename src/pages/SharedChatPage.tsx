@@ -166,11 +166,11 @@ export function SharedChatPage() {
           <Button
             asChild
             size="lg"
-            className="w-full gap-2 rounded-2xl py-6 text-base font-medium shadow-lg shadow-primary/20"
+            className="w-full rounded-2xl py-6 bg-primary text-white hover:bg-primary/90 hover:text-white shadow-lg shadow-primary/20 border-0"
           >
-            <Link to="/">
+            <Link to="/" className="flex w-full items-center justify-center gap-2 text-white hover:text-white">
               Have your own conversation with Arc
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-4 w-4 text-white" />
             </Link>
           </Button>
           {isSignedIn && (
