@@ -47,8 +47,8 @@ const LANDING_FAQ = [
     a: "Yes. Your chats sync to your private account and you can wipe everything from settings in one click.",
   },
   {
-    q: "Does ArcAI remember conversations?",
-    a: "Yes. Signed-in users get a persistent Memory Bank that Arc reads before every reply to reflect on past context.",
+    q: "Does Arc remember me across devices?",
+    a: "Yes. With a secure unified profile, your custom memory, files, and preferred settings follow you everywhere, ensuring Arc reflects on your exact context no matter where you sign in.",
   },
   {
     q: "Can ArcAI generate images?",
@@ -140,16 +140,16 @@ export function LandingPage() {
       {/* Hero */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 pt-20 pb-24 text-center md:pt-32 md:pb-32">
         <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 animate-in fade-in zoom-in-95 duration-500">
-          <Sparkles className="h-3.5 w-3.5" /> Introducing Arc, Ask, Reflect, Create
+          <Sparkles className="h-3.5 w-3.5" /> Ask, Reflect, Create
         </div>
         <h1 className="mx-auto max-w-4xl text-5xl font-semibold tracking-tight md:text-7xl lg:text-8xl animate-in fade-in slide-in-from-bottom-3 duration-700">
-          A gentler space to think, reflect, and create.
+          Ask. Reflect. Create.
         </h1>
         <p
           className="mx-auto mt-6 max-w-2xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
         >
-          Arc is a safe, personal sanctuary for your ideas. With background music, custom accent colors, and deep real-time reasoning, it is built to help you focus, understand your thoughts, and bring creations to life.
+          Arc is a safe, personal sanctuary for your ideas. With background music, custom accent colors, and persistent memory context that remembers you everywhere you go, it is built to help you focus, collaborate, and bring creations to life.
         </p>
         <div
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"
@@ -185,7 +185,7 @@ export function LandingPage() {
           {[
             { category: "Ask", icon: MessageSquare, title: "Smarter Reasoning", body: "Ask your most complex questions. Get deep, real-time responses from GPT-5.4 Mini without limits on your curiosity." },
             { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
-            { category: "Reflect", icon: Brain, title: "Memory Bank", body: "Arc remembers your context and goals over time, reflecting on past conversations to personalize every answer." },
+            { category: "Reflect", icon: Brain, title: "Memory That Follows You", body: "Arc remembers your background, preferences, and goals across every device, reflecting on past chats to grow with you over time." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },
             { category: "Create", icon: Code2, title: "Code Canvas", body: "Turn thoughts into running web apps instantly, with a visual canvas to preview, build, and publish your creations." },
             { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create custom images and art with state-of-the-art vision models, bringing visual ideas to life in seconds." },
