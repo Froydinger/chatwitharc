@@ -449,7 +449,7 @@ export function LandingPage() {
           <span>·</span>
           <Link to="/terms" className="hover:text-white">Terms</Link>
         </div>
-        <div className="mt-3 opacity-60">© {new Date().getFullYear()} ArcAI by Win The Night Productions</div>
+        <div className="mt-3 opacity-60">© {new Date().getFullYear()} ArcAI by Win The Night™ Foundation</div>
       </footer>
     </div>
   );
