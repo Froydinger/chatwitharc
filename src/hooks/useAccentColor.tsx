@@ -171,7 +171,7 @@ export function useAccentColor() {
       // Set data attribute for CSS targeting
       root.setAttribute("data-accent", validAccentColor);
 
-      // Update CSS variables for dark mode
+      // Update basic CSS variables
       root.style.setProperty("--primary", config.primary);
       root.style.setProperty("--primary-glow", config.primaryGlow);
       root.style.setProperty("--ring", config.primary);
@@ -180,11 +180,6 @@ export function useAccentColor() {
       root.style.setProperty("--user-message-bg", config.userMessageBg);
       root.style.setProperty("--user-message-border", config.userMessageBorder);
 
-      // Apply accent-tinted dark background (cleared in light mode below)
-      if (config.darkBackground) {
-        root.style.setProperty("--background", config.darkBackground);
-      }
-
       // Noir theme: black text on white buttons for contrast
       if (isNoir) {
         root.style.setProperty("--primary-foreground", "0 0% 5%");
@@ -192,11 +187,7 @@ export function useAccentColor() {
         root.style.setProperty("--primary-foreground", "240 10% 98%");
       }
 
-
-
-      // Update light mode CSS variables dynamically when in light mode
       if (isLight) {
-        root.style.removeProperty("--background");
         root.style.setProperty("--primary", config.lightPrimary);
         root.style.setProperty("--primary-glow", config.lightPrimaryGlow);
         root.style.setProperty("--ring", config.lightPrimary);
@@ -204,6 +195,63 @@ export function useAccentColor() {
         root.style.setProperty("--ai-message-border", config.lightAiMessageBorder);
         // In light mode, primary buttons need dark text for legibility on lighter accent fills
         root.style.setProperty("--primary-foreground", "0 0% 5%");
+
+        if (!isNoir) {
+          const [hue] = config.primary.split(" ");
+          // Apply dynamic color tinting to light mode layout
+          root.style.setProperty("--background", `${hue} 20% 99%`);
+          root.style.setProperty("--card", `${hue} 20% 100%`);
+          root.style.setProperty("--surface", `${hue} 20% 96%`);
+          root.style.setProperty("--muted", `${hue} 15% 94%`);
+          root.style.setProperty("--secondary", `${hue} 15% 92%`);
+          root.style.setProperty("--border", `${hue} 20% 88%`);
+          root.style.setProperty("--accent", `${hue} 20% 90%`);
+          root.style.setProperty("--input", `${hue} 15% 96%`);
+          root.style.setProperty("--glass-bg", `${hue} 20% 99%`);
+          root.style.setProperty("--glass-border", `${hue} 20% 88%`);
+        } else {
+          // Let CSS values take over for noir
+          root.style.removeProperty("--background");
+          root.style.removeProperty("--card");
+          root.style.removeProperty("--surface");
+          root.style.removeProperty("--muted");
+          root.style.removeProperty("--secondary");
+          root.style.removeProperty("--border");
+          root.style.removeProperty("--accent");
+          root.style.removeProperty("--input");
+          root.style.removeProperty("--glass-bg");
+          root.style.removeProperty("--glass-border");
+        }
+      } else {
+        // Dark Mode
+        if (!isNoir) {
+          const [hue] = config.primary.split(" ");
+          // Apply dynamic color tinting to dark mode layout
+          root.style.setProperty("--background", config.darkBackground || `${hue} 15% 1%`);
+          root.style.setProperty("--card", `${hue} 15% 12%`);
+          root.style.setProperty("--surface", `${hue} 12% 10%`);
+          root.style.setProperty("--muted", `${hue} 10% 10%`);
+          root.style.setProperty("--secondary", `${hue} 12% 28%`);
+          root.style.setProperty("--border", `${hue} 16% 20%`);
+          root.style.setProperty("--accent", `${hue} 16% 22%`);
+          root.style.setProperty("--input", `${hue} 14% 12%`);
+          root.style.setProperty("--input-dark", `${hue} 15% 15%`);
+          root.style.setProperty("--glass-bg", `${hue} 12% 8%`);
+          root.style.setProperty("--glass-border", `${hue} 16% 22%`);
+        } else {
+          // Let CSS values take over for noir
+          root.style.removeProperty("--background");
+          root.style.removeProperty("--card");
+          root.style.removeProperty("--surface");
+          root.style.removeProperty("--muted");
+          root.style.removeProperty("--secondary");
+          root.style.removeProperty("--border");
+          root.style.removeProperty("--accent");
+          root.style.removeProperty("--input");
+          root.style.removeProperty("--input-dark");
+          root.style.removeProperty("--glass-bg");
+          root.style.removeProperty("--glass-border");
+        }
       }
 
       // Update selection color - noir uses inverted colors

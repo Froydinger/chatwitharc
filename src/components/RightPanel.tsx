@@ -201,6 +201,7 @@ export function RightPanel({
           "fixed left-0 z-50 panel-solid border-r border-border/60 shadow-2xl",
           "w-full sm:w-[22rem] lg:w-[20rem] xl:w-[22rem]",
           "flex flex-col overflow-hidden",
+          isOpen ? "pointer-events-auto" : "pointer-events-none"
         )}
         style={{
           top: `calc(env(safe-area-inset-top, 0px) + ${

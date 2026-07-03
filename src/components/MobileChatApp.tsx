@@ -841,145 +841,150 @@ export function MobileChatApp() {
       >
         {/* Floating header buttons - no bar, hide when canvas is open on desktop */}
         {!isCanvasOverlayActive && !isDesktopCanvasMode && (
-          <div
-            className={cn(
-              "fixed left-0 right-0 z-40 transition-transform duration-300 ease-out pointer-events-none",
-              isMobile && !headerVisible && "-translate-y-full",
-            )}
-            style={{
-              top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
-            }}
-          >
-            <div className="flex h-16 items-center justify-between px-4 pt-2 pointer-events-none">
-              {/* Left-side buttons */}
-              <div className="flex items-center gap-2 pointer-events-auto">
-                <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full glass-shimmer transition-all"
-                    onClick={() => {
-                      if (!canUseSidebar) {
-                        requireAuth("menu");
-                        return;
-                      }
-                      if (isMobile) {
-                        setRightPanelOpen(!rightPanelOpen);
-                      } else {
-                        toggleDock();
-                      }
-                    }}
-                  >
-                    <Menu className="h-4 w-4" />
-                  </Button>
-                </motion.div>
-
-                <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full glass-shimmer transition-all"
-                    onClick={handleNewChat}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </motion.div>
-                <ChatModelPicker placement="down" />
-              </div>
-
-
-              {/* Right side buttons - Context + Share + Music + Logo */}
-              <div className="flex items-center gap-2 pointer-events-auto">
-                {/* Share Button */}
-                {currentSessionId && messages.length > 0 && (
-                  <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full glass-shimmer transition-all"
-                      onClick={() => setIsShareDialogOpen(true)}
-                      title="Share chat"
-                    >
-                      <Share2 className="h-4 w-4" />
-                    </Button>
-                  </motion.div>
-                )}
-
-                {/* Music Player Button */}
-                <motion.div 
-                  whileHover={{ scale: 1.1, y: -2 }} 
-                  whileTap={{ scale: 0.95 }} 
-                  transition={{ type: "spring", damping: 15, stiffness: 300 }}
-                  className="relative"
+          <>
+            {/* Left Header Buttons */}
+            <div
+              className={cn(
+                "fixed left-4 z-40 transition-transform duration-300 ease-out flex h-16 items-center gap-2 pointer-events-auto",
+                isMobile && !headerVisible && "-translate-y-24",
+              )}
+              style={{
+                top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'} + 8px)`,
+              }}
+            >
+              <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full glass-shimmer transition-all"
+                  onClick={() => {
+                    if (!canUseSidebar) {
+                      requireAuth("menu");
+                      return;
+                    }
+                    if (isMobile) {
+                      setRightPanelOpen(!rightPanelOpen);
+                    } else {
+                      toggleDock();
+                    }
+                  }}
                 >
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      "rounded-full glass-shimmer transition-all",
-                      isMusicPlaying && "ring-2 ring-primary/50"
-                    )}
-                    onClick={() => {
-                      if (isAnonymous) {
-                        requireAuth("music");
-                        return;
-                      }
-                      setIsMusicPopupOpen(!isMusicPopupOpen);
-                    }}
-                    title="Music Player"
-                  >
-                    {/* Show waveform when playing, music note when not */}
-                    {isMusicPlaying ? (
-                      <div className="flex items-end justify-center gap-[3px] h-4 w-4">
-                        <motion.div 
-                          className="w-[3px] bg-primary rounded-full"
-                          animate={{ height: ["40%", "100%", "60%", "90%", "40%"] }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
-                        />
-                        <motion.div 
-                          className="w-[3px] bg-primary rounded-full"
-                          animate={{ height: ["100%", "50%", "80%", "40%", "100%"] }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
-                        />
-                        <motion.div 
-                          className="w-[3px] bg-primary rounded-full"
-                          animate={{ height: ["60%", "90%", "40%", "100%", "60%"] }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
-                        />
-                      </div>
-                    ) : (
-                      <Music className="h-4 w-4" />
-                    )}
-                  </Button>
-                </motion.div>
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </motion.div>
 
-                {/* Logo Orb - clickable and opens support popup */}
-                <motion.div
-                  className="relative"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  whileTap={{ scale: 0.95 }}
-                  animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
-                  transition={isLogoSpinning ? { duration: 0.6, ease: "easeOut" } : { type: "spring", damping: 15, stiffness: 300 }}
+              <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full glass-shimmer transition-all"
+                  onClick={handleNewChat}
                 >
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full glass-shimmer transition-all overflow-hidden"
-                    onClick={() => {
-                      if (isAnonymous) {
-                        requireAuth("menu");
-                        return;
-                      }
-                      navigate('/dashboard');
-                    }}
-                    title="Dashboard"
-                  >
-                    <LayoutDashboard className="h-6 w-6 text-primary" />
-                  </Button>
-                </motion.div>
-              </div>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </motion.div>
+              <ChatModelPicker placement="down" />
             </div>
-          </div>
+
+            {/* Right Header Buttons */}
+            <div
+              className={cn(
+                "fixed right-4 z-40 transition-transform duration-300 ease-out flex h-16 items-center gap-2 pointer-events-auto",
+                isMobile && !headerVisible && "-translate-y-24",
+              )}
+              style={{
+                top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'} + 8px)`,
+              }}
+            >
+              {/* Share Button */}
+              {currentSessionId && messages.length > 0 && (
+                <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full glass-shimmer transition-all"
+                    onClick={() => setIsShareDialogOpen(true)}
+                    title="Share chat"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+              )}
+
+              {/* Music Player Button */}
+              <motion.div 
+                whileHover={{ scale: 1.1, y: -2 }} 
+                whileTap={{ scale: 0.95 }} 
+                transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                className="relative"
+              >
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={cn(
+                    "rounded-full glass-shimmer transition-all",
+                    isMusicPlaying && "ring-2 ring-primary/50"
+                  )}
+                  onClick={() => {
+                    if (isAnonymous) {
+                      requireAuth("music");
+                      return;
+                    }
+                    setIsMusicPopupOpen(!isMusicPopupOpen);
+                  }}
+                  title="Music Player"
+                >
+                  {/* Show waveform when playing, music note when not */}
+                  {isMusicPlaying ? (
+                    <div className="flex items-end justify-center gap-[3px] h-4 w-4">
+                      <motion.div 
+                        className="w-[3px] bg-primary rounded-full"
+                        animate={{ height: ["40%", "100%", "60%", "90%", "40%"] }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
+                      />
+                      <motion.div 
+                        className="w-[3px] bg-primary rounded-full"
+                        animate={{ height: ["100%", "50%", "80%", "40%", "100%"] }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
+                      />
+                      <motion.div 
+                        className="w-[3px] bg-primary rounded-full"
+                        animate={{ height: ["60%", "90%", "40%", "100%", "60%"] }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+                      />
+                    </div>
+                  ) : (
+                    <Music className="h-4 w-4" />
+                  )}
+                </Button>
+              </motion.div>
+
+              {/* Logo Orb - clickable and opens support popup */}
+              <motion.div
+                className="relative"
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                whileTap={{ scale: 0.95 }}
+                animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
+                transition={isLogoSpinning ? { duration: 0.6, ease: "easeOut" } : { type: "spring", damping: 15, stiffness: 300 }}
+              >
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full glass-shimmer transition-all overflow-hidden"
+                  onClick={() => {
+                    if (isAnonymous) {
+                      requireAuth("menu");
+                      return;
+                    }
+                    navigate('/dashboard');
+                  }}
+                  title="Dashboard"
+                >
+                  <LayoutDashboard className="h-6 w-6 text-primary" />
+                </Button>
+              </motion.div>
+            </div>
+          </>
         )}
 
         {/* Mobile Canvas Panel (full takeover) */}
