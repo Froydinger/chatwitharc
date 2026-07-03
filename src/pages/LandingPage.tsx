@@ -1,14 +1,13 @@
-import { useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowRight,
+  Sparkles,
+  MessageSquare,
   Mic,
   Image as ImageIcon,
   Code2,
   Brain,
-  MessageSquare,
-  Sparkles,
   Coffee,
 } from "lucide-react";
 import { BLOG_POSTS } from "@/content/blog/posts";
@@ -23,11 +22,11 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Every ArcAI feature is free, including all chat models, unlimited voice, Deep Search, shared chats, and web publishing. Image generation and editing are limited to 20 outputs per account per UTC day.",
+    a: "Yes. Every core feature is free, including 20 Smarter chats/day, unlimited Fast chats, unlimited voice, and 10 images/day. Upgrade to Boost for unlimited Smarter chats, 30 images/day, and custom subdomain site publishing.",
   },
   {
-    q: "Is there a paid plan?",
-    a: "No. ArcAI has no paid tier, checkout, or feature paywall. People who want to help can support Win The Night voluntarily.",
+    q: "Is there a paid tier?",
+    a: "Yes. We offer an optional Boost upgrade for $7/month that increases your daily image quota to 30 and unlocks unlimited Smarter chats and web publishing. No pressure — the free plan does it all.",
   },
   {
     q: "Is ArcAI a free ChatGPT alternative?",
@@ -51,7 +50,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI generate images?",
-    a: "Yes — each permanent account can generate or edit up to 20 image outputs per UTC day using GPT-Image-2.",
+    a: "Yes. Free accounts can generate 10 images a day, and Boost accounts can generate up to 30 images a day.",
   },
   {
     q: "Does ArcAI have voice mode?",
@@ -59,7 +58,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI write code?",
-    a: "Yes. The code canvas generates functional web apps with a live preview and free one-tap publishing to a live URL.",
+    a: "Yes. The code canvas generates functional web apps with a live preview, which you can publish to the web with an optional Boost upgrade.",
   },
 ];
 
@@ -68,9 +67,12 @@ export function LandingPage() {
   useEffect(() => {
     const root = document.documentElement;
     const hadLight = root.classList.contains("light");
-    root.classList.remove("light");
-    root.classList.add("dark");
+    if (hadLight) {
+      root.classList.remove("light");
+      root.classList.add("dark");
+    }
     return () => {
+      // Revert if user had light mode
       if (hadLight) {
         root.classList.remove("dark");
         root.classList.add("light");
@@ -78,133 +80,43 @@ export function LandingPage() {
     };
   }, []);
 
+  const navigate = useNavigate();
+
   const handleTry = () => {
-    window.dispatchEvent(new CustomEvent("auth-gate-feature", { detail: { feature: "generic" } }));
-  };
-
-  const faqJsonLd = useMemo(
-    () => ({
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      mainEntity: LANDING_FAQ.map((f) => ({
-        "@type": "Question",
-        name: f.q,
-        acceptedAnswer: { "@type": "Answer", text: f.a },
-      })),
-    }),
-    [],
-  );
-
-  const softwareJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    name: "ArcAI",
-    alternateName: ["Ask Arc", "Arc AI"],
-    url: SITE,
-    applicationCategory: "ProductivityApplication",
-    operatingSystem: "Web, iOS, Android, macOS, Windows",
-    description:
-      "Free multimodal AI assistant with voice, image generation, Deep Search, code canvas, web publishing, and persistent memory.",
-    offers: [{ "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" }],
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.8",
-      ratingCount: "150",
-      bestRating: "5",
-    },
+    // Navigating to "/" will trigger AuthGate, showing signup/login
+    navigate("/");
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[hsl(0_0%_4%)] text-white">
-      <Helmet>
-        <title>ArcAI — Free AI Assistant with Voice, Images & Memory | Ask Arc</title>
-        <meta
-          name="description"
-          content="ArcAI is a genuinely free AI assistant with unlimited voice, Deep Search, image generation, code, publishing and long-term memory. Images and edits are limited to 20 outputs per account per day."
-        />
-        <link rel="canonical" href={`${SITE}/`} />
-        <meta property="og:title" content="ArcAI — Free AI Assistant with Voice, Images & Memory" />
-        <meta
-          property="og:description"
-          content="Everything is free: voice, images, Deep Search, code, publishing and memory. Try ArcAI at askarc.chat."
-        />
-        <meta property="og:url" content={`${SITE}/`} />
-        <meta property="og:type" content="website" />
-        <script type="application/ld+json">{JSON.stringify(faqJsonLd)}</script>
-        <script type="application/ld+json">{JSON.stringify(softwareJsonLd)}</script>
-      </Helmet>
-
-      {/* Ambient floating orbs — pure dark, no blue starfield */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div
-          className="absolute -top-32 -left-32 h-[420px] w-[420px] rounded-full bg-white/[0.04] blur-3xl animate-float"
-          style={{ animationDuration: "8s" }}
-        />
-        <div
-          className="absolute top-1/3 -right-40 h-[520px] w-[520px] rounded-full bg-white/[0.03] blur-3xl animate-float"
-          style={{ animationDuration: "11s", animationDelay: "1.5s" }}
-        />
-        <div
-          className="absolute bottom-0 left-1/4 h-[360px] w-[360px] rounded-full bg-white/[0.025] blur-3xl animate-float"
-          style={{ animationDuration: "13s", animationDelay: "0.8s" }}
-        />
+    <div className="min-h-screen bg-black text-white font-sans overflow-x-hidden relative selection:bg-white/20 selection:text-white">
+      {/* Structural visual grid / blobs */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-[40%] left-[-20%] w-[80%] h-[80%] rounded-full bg-white/[0.02] blur-[140px] animate-float" style={{ animationDuration: "12s" }} />
+        <div className="absolute top-[20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-white/[0.015] blur-[120px] animate-float" style={{ animationDuration: "16s", animationDelay: "2s" }} />
+        <div className="absolute bottom-[-20%] left-[10%] w-[50%] h-[50%] rounded-full bg-white/[0.01] blur-[100px] animate-float" style={{ animationDuration: "10s", animationDelay: "1s" }} />
       </div>
 
-      {/* Hidden AEO block */}
-      <div className="sr-only" aria-hidden="false">
-        <h1>ArcAI — the free AI assistant that remembers you</h1>
-        <p>
-          ArcAI (also known as Ask Arc) is a free multimodal AI assistant available at askarc.chat.
-          It combines chat with GPT-class models, real-time voice conversations, AI image generation
-          with GPT-Image-2, a code canvas, document analysis, web search with citations, and
-          persistent long-term memory. ArcAI is a free alternative to ChatGPT, Google Gemini,
-          Anthropic Claude, Microsoft Copilot and Perplexity. No credit card required to
-          start chatting with a free account. Every feature is free; image generation and editing are limited to
-          20 outputs per permanent account per UTC day.
-        </p>
-        <h2>Frequently asked questions about ArcAI</h2>
-        <dl>
-          {LANDING_FAQ.map((f) => (
-            <div key={f.q}>
-              <dt>{f.q}</dt>
-              <dd>{f.a}</dd>
-            </div>
-          ))}
-        </dl>
-        <h2>ArcAI guides and articles</h2>
-        <ul>
-          {BLOG_POSTS.map((p) => (
-            <li key={p.slug}>
-              <Link to={`/blog/${p.slug}`}>{p.title}</Link> — {p.description}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Nav */}
-      <header className="relative z-10 flex items-center justify-between px-6 pb-5 safe-area-top-nav md:px-12 animate-in fade-in slide-in-from-top-2 duration-500">
-        <div className="flex items-center gap-2.5">
-          <img src="/arc-logo-ui.png" alt="ArcAI logo" className="h-8 w-8 animate-float" />
-          <span className="text-lg font-semibold tracking-tight">ArcAI</span>
-        </div>
-        <nav className="flex items-center gap-1 text-sm sm:gap-2">
-          <Link to="/blog" className="rounded-full px-3 py-1.5 text-white/70 hover:text-white transition-colors">
-            Guides
+      {/* Header */}
+      <header className="relative z-10 flex items-center justify-between px-6 py-5 mx-auto max-w-6xl border-b border-white/[0.06]">
+        <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+          <span className="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
+            <span className="w-5 h-5 rounded-md bg-white text-black flex items-center justify-center font-black text-xs">A</span>
+            ArcAI
+          </span>
+        </Link>
+        <nav className="flex items-center gap-4">
+          <Link to="/blog" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
+            Blog
           </Link>
-          <Link to="/pricing" className="rounded-full px-3 py-1.5 text-white/70 hover:text-white transition-colors">
+          <Link to="/pricing" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
             Pricing
           </Link>
-          <a
-            href={SUPPORT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/[0.15] bg-white/[0.04] px-3 py-1.5 text-white/[0.85] hover:bg-white/[0.08] transition-colors"
-          >
-            <Coffee className="h-3.5 w-3.5" /> Support us
-          </a>
+          <Link to="/support" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
+            Support
+          </Link>
           <button
             onClick={handleTry}
-            className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-black hover:bg-white/90 transition-colors"
+            className="rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-black transition-transform hover:scale-[1.03] active:scale-[0.98]"
           >
             Try free
           </button>
@@ -214,7 +126,7 @@ export function LandingPage() {
       {/* Hero */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 pt-20 pb-24 text-center md:pt-32 md:pb-32">
         <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 animate-in fade-in zoom-in-95 duration-500">
-          <Sparkles className="h-3.5 w-3.5" /> Free forever · No credit card · No paid tier
+          <Sparkles className="h-3.5 w-3.5" /> Free plan covers it all · Boost upgrade optional
         </div>
         <h1 className="mx-auto max-w-3xl text-5xl font-semibold tracking-tight md:text-7xl animate-in fade-in slide-in-from-bottom-3 duration-700">
           The free AI assistant that actually remembers you.
@@ -223,8 +135,7 @@ export function LandingPage() {
           className="mx-auto mt-6 max-w-2xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
         >
-          Chat, real-time voice, image generation, code and long-term memory — all in one browser
-          app. Every feature is available free; image generation and editing include 20 outputs per account each day.
+          Get 20 Smarter chats/day, unlimited Fast chats, and 10 images/day free. Or upgrade to Boost for custom web publishing and higher quotas — no pressure.
         </p>
         <div
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"
@@ -251,17 +162,17 @@ export function LandingPage() {
       {/* Features */}
       <section className="relative z-10 mx-auto max-w-6xl px-6 py-16">
         <h2 className="text-center text-3xl font-semibold tracking-tight md:text-4xl">
-          Everything paid AI has. Free.
+          Everything you need. Free.
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-sm text-white/50">
-          Our free tier is generous enough to replace paid ChatGPT, Gemini or Claude for most people.
+          Our free plan is fully featured to handle your day-to-day. If you need custom web publishing and higher quotas, Boost is waiting.
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { icon: MessageSquare, title: "Unlimited chat", body: "Ask anything. GPT-class models, no message wall." },
+            { icon: MessageSquare, title: "Smarter reasoning", body: "20 daily reasoning chats with GPT-5.4 Mini." },
             { icon: Mic, title: "Unlimited real-time voice", body: "Natural spoken conversations with interruptions, free." },
-            { icon: ImageIcon, title: "AI image generation", body: "20 generated or edited outputs a day with GPT-Image-2." },
-            { icon: Code2, title: "Code canvas", body: "Generate and preview working web apps in-browser." },
+            { icon: ImageIcon, title: "AI image generation", body: "10 free generated or edited outputs a day with GPT-Image-2." },
+            { icon: Code2, title: "Code canvas", body: "Generate, preview, and build functional web apps in-browser." },
             { icon: Brain, title: "Long-term memory", body: "Arc actually remembers what you told it." },
             { icon: Sparkles, title: "Web search with sources", body: "Live answers with citations, powered by Perplexity." },
           ].map((f, i) => (
@@ -278,7 +189,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Voluntary support */}
+      {/* Voluntary support / Optional Upgrade */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 py-16">
         <div className="relative overflow-hidden rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-8 md:p-12">
           <div
@@ -288,21 +199,21 @@ export function LandingPage() {
           />
           <div className="relative">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.05] px-3 py-1 text-xs text-white/80">
-              <Coffee className="h-3.5 w-3.5" /> Free means free
+              <Sparkles className="h-3.5 w-3.5" /> Optional Boost Tier
             </div>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">
-              No upgrades. <span className="text-white/70">No feature paywalls.</span>
+              Free is powerful. <span className="text-white/70">Upgrade only when you need it.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              Unlimited voice, Deep Search, every model, shared chats, custom fonts and web publishing are available to everyone.
+              ArcAI's free plan includes everything you need to get started. Upgrade to Boost for $7/month to publish your sites to custom URLs, get unlimited Smarter reasoning chats, and generate up to 30 images a day.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
-                { icon: ImageIcon, title: "20 images per day", body: "Generations and edits count per output." },
-                { icon: Mic, title: "Unlimited voice", body: "Talk to Arc as long as you want, free." },
-                { icon: Sparkles, title: "Deep Search™", body: "Web research with AI summaries & citations." },
-                { icon: Code2, title: "One-tap publishing", body: "Ship code creations to a live URL for free." },
+                { icon: ImageIcon, title: "10 free images a day", body: "Generations and edits. Boost extends this to 30." },
+                { icon: Mic, title: "Unlimited voice", body: "Real-time spoken chats, free for everyone." },
+                { icon: Sparkles, title: "20 Smarter chats a day", body: "Boost lifts this to unlimited Smarter reasoning." },
+                { icon: Code2, title: "Web domain publishing", body: "Deploy canvas creations to custom subdomains with Boost." },
               ].map((b) => (
                 <div
                   key={b.title}
@@ -320,20 +231,20 @@ export function LandingPage() {
             </div>
 
             <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              <Link
+                to="/pricing"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-black hover:scale-[1.02] transition-transform"
+              >
+                View pricing plans
+              </Link>
               <a
                 href={SUPPORT_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-black hover:scale-[1.02] transition-transform"
-              >
-                <Coffee className="h-4 w-4" /> Support Win The Night
-              </a>
-              <Link
-                to="/pricing"
                 className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
               >
-                See everything included →
-              </Link>
+                Support Win The Night voluntarily →
+              </a>
             </div>
           </div>
         </div>
@@ -412,10 +323,10 @@ export function LandingPage() {
       {/* Bottom CTA */}
       <section className="relative z-10 mx-auto max-w-4xl px-6 pt-16 pb-24 text-center">
         <h2 className="text-4xl font-semibold tracking-tight md:text-5xl">
-          Try it. It's really free.
+          Free tier is fully loaded.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-          No trial clock and no upgrade waiting behind the next click.
+          20 daily Smarter reasoning chats, 10 images, and unlimited Fast chats forever. Upgrade only if you need custom domains or higher quotas.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button
@@ -431,7 +342,7 @@ export function LandingPage() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] px-7 py-3.5 text-base font-medium text-white/90 hover:bg-white/[0.06] transition-colors"
           >
-            <Coffee className="h-4 w-4" /> Support us
+            <Coffee className="h-4 w-4" /> Support Win The Night
           </a>
         </div>
       </section>
