@@ -38,7 +38,6 @@ import { CanvasCodeEditor } from "@/components/CanvasCodeEditor";
 import { CodePreview } from "@/components/CodePreview";
 import { getLanguageDisplay, getFileExtension, canPreview } from "@/utils/codeUtils";
 import { deployCodeBlock } from "@/lib/deploy";
-import { useSubscription } from "@/hooks/useSubscription";
 import { toast as sonnerToast } from "sonner";
 import { PublishModal } from "@/components/PublishModal";
 import { SiteManageModal } from "@/components/SiteManageModal";
@@ -82,7 +81,6 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const { toast } = useToast();
   const currentSessionId = useArcStore((state) => state.currentSessionId);
   const updateSessionCanvasContent = useArcStore((state) => state.updateSessionCanvasContent);
-  const { isSubscribed } = useSubscription();
   const [isStandaloneApp, setIsStandaloneApp] = useState(false); // Mac PWA / Electron (traffic lights)
   const [isIOS, setIsIOS] = useState(false);
   const [isIOSPWA, setIsIOSPWA] = useState(false);
@@ -92,12 +90,6 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const [showManageModal, setShowManageModal] = useState(false);
 
   const handlePublish = () => {
-    // Publishing is Boost-only. Free users go through the upgrade flow.
-    if (!isSubscribed) {
-      window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
-      sonnerToast.info('Publishing is a Boost feature ($7/mo)');
-      return;
-    }
     // Open the publish modal. The permanence warning lives inside the modal.
     setShowPublishModal(true);
   };

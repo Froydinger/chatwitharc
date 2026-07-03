@@ -5,19 +5,19 @@ import { persist } from 'zustand/middleware';
  * Image generation uses OpenAI GPT-Image-2 exclusively at medium quality.
  * Aspect ratio is chosen by the user and mapped to a supported size server-side.
  */
-export type ImageModelId = 'openai/gpt-image-2';
+export type ImageModelId = 'gpt-image-2';
 
-export const DEFAULT_IMAGE_MODEL: ImageModelId = 'openai/gpt-image-2';
+export const DEFAULT_IMAGE_MODEL: ImageModelId = 'gpt-image-2';
 
 export const ALLOWED_IMAGE_MODELS: ImageModelId[] = [
-  'openai/gpt-image-2',
+  'gpt-image-2',
 ];
 
 export type ImageAspectRatio = '1:1' | '3:2' | '2:3' | '16:9';
 
 export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb: string; pro?: boolean }> = [
   {
-    id: 'openai/gpt-image-2',
+    id: 'gpt-image-2',
     label: 'GPT Image 2',
     blurb: 'Best quality & detail',
   },
@@ -31,7 +31,7 @@ export const IMAGE_ASPECT_OPTIONS: Array<{ id: ImageAspectRatio; label: string }
 ];
 
 export type ImageCount = 1 | 2 | 3;
-export const MAX_BOOST_IMAGE_COUNT: ImageCount = 3;
+export const MAX_IMAGE_COUNT: ImageCount = 3;
 
 interface ImageGenState {
   model: ImageModelId;

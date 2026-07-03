@@ -8,15 +8,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const REQUEST_TIMEOUT_MS = 180_000;
 const RETRY_DELAY_MS = 3_000;
 
 // All image generation is locked to OpenAI GPT-Image-2 at medium quality.
-const DEFAULT_IMAGE_MODEL = "openai/gpt-image-2";
-const ALLOWED_IMAGE_MODELS = new Set<string>(["openai/gpt-image-2"]);
+const DEFAULT_IMAGE_MODEL = "gpt-image-2";
+const ALLOWED_IMAGE_MODELS = new Set<string>(["gpt-image-2"]);
 function pickImageModel(requested?: unknown): string {
   return typeof requested === "string" && ALLOWED_IMAGE_MODELS.has(requested)
     ? requested
@@ -134,10 +134,10 @@ async function callImageGateway(prompt: string, model: string, size: string, cou
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
+      const response = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: requestBody,
@@ -217,7 +217,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (!LOVABLE_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!OPENAI_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return jsonResponse({ success: false, error: "Image generation backend is not configured.", errorType: "configuration_error" });
   }
 
@@ -228,6 +228,13 @@ serve(async (req) => {
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) return jsonResponse({ error: "Invalid or expired token" }, 401);
+  if (user.is_anonymous) {
+    return jsonResponse({
+      success: false,
+      error: "Create a free account to generate images.",
+      errorType: "account_required",
+    }, 403);
+  }
 
   let jobId: string | null = null;
 
@@ -274,6 +281,25 @@ serve(async (req) => {
     jobId = jobData.id;
     const currentJobId = jobData.id;
 
+    const { data: quota, error: quotaError } = await supabaseAdmin.rpc("reserve_image_quota", {
+      target_user_id: user.id,
+      target_job_id: currentJobId,
+      requested_count: count,
+    });
+    if (quotaError) {
+      await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "Could not reserve image quota", error_type: "quota_error" });
+      return jsonResponse({ success: false, error: "Could not check today's image allowance.", errorType: "quota_error" }, 500);
+    }
+    if (!quota?.allowed) {
+      await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "Daily image limit reached", error_type: "daily_limit" });
+      return jsonResponse({
+        success: false,
+        error: `Daily image limit reached. ${quota?.remaining ?? 0} of 20 remaining.`,
+        errorType: "daily_limit",
+        quota,
+      }, 429);
+    }
+
     console.log(`Generating ${count} image(s) with ${selectedModel} (${size}, medium${isYouTube ? ", 16:9 crop" : ""}) for job ${currentJobId}`);
     const result = await callImageGateway(prompt, selectedModel, size, count);
 
@@ -281,6 +307,7 @@ serve(async (req) => {
       const errorInfo = classifyError(result.status, result.rawText);
       console.log(`Image gen failed: ${errorInfo.errorType} (${result.status})`);
       await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: errorInfo.errorMessage, error_type: errorInfo.errorType });
+      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: currentJobId, successful_count: 0 });
       return jsonResponse({
         jobId: currentJobId,
         status: "failed",
@@ -297,12 +324,14 @@ serve(async (req) => {
       parsed = JSON.parse(result.rawText);
     } catch {
       await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "Failed to parse model response", error_type: "parse_error" });
+      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: currentJobId, successful_count: 0 });
       return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: "Failed to parse model response", errorType: "parse_error", debugDetail: result.rawText.slice(0, 200) });
     }
 
     let imageUrls = extractImageUrls(parsed);
     if (imageUrls.length === 0) {
       await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "No image returned from model", error_type: "no_image_returned" });
+      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: currentJobId, successful_count: 0 });
       return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: "No image returned from model", errorType: "no_image_returned", debugDetail: result.rawText.slice(0, 500) });
     }
 
@@ -316,11 +345,28 @@ serve(async (req) => {
 
     console.log(`Image generated successfully (${imageUrls.length}) for job ${currentJobId}`);
     await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: imageUrls[0], result_image_urls: imageUrls, error_message: null, error_type: null });
-    return jsonResponse({ jobId: currentJobId, status: "completed", success: true, imageUrl: imageUrls[0], imageUrls });
+    await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: currentJobId, successful_count: imageUrls.length });
+    const { data: finalQuota } = await supabaseAdmin
+      .from("daily_image_usage")
+      .select("used_count")
+      .eq("user_id", user.id)
+      .eq("usage_date", new Date().toISOString().slice(0, 10))
+      .maybeSingle();
+    return jsonResponse({
+      jobId: currentJobId,
+      status: "completed",
+      success: true,
+      imageUrl: imageUrls[0],
+      imageUrls,
+      quota: quota?.isAdmin ? quota : { ...quota, used: finalQuota?.used_count ?? quota?.used, remaining: Math.max(0, 20 - (finalQuota?.used_count ?? quota?.used ?? 0)) },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Error in generate-image function:", error);
-    if (jobId) await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: message, error_type: "processing_error" });
+    if (jobId) {
+      await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: message, error_type: "processing_error" });
+      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
+    }
     return jsonResponse({ success: false, error: message, errorType: "processing_error", fallback: true });
   }
 });

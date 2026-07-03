@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
-import { UpgradeModal } from "@/components/UpgradeModal";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import { SubscriptionProvider } from "@/hooks/useSubscription";
+import { ImageQuotaProvider } from "@/hooks/useImageQuota";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { UpdateNotification } from "@/components/UpdateNotification";
 import { AdminBanner } from "@/components/AdminBanner";
@@ -25,7 +24,6 @@ import { useTheme } from "@/hooks/useTheme";
 import { useCustomFont } from "@/hooks/useCustomFont";
 import { GlobalMusicPlayer } from "@/components/GlobalMusicPlayer";
 import { GlobalAuthGate } from "@/components/GlobalAuthGate";
-import { BoostSync } from "@/components/BoostSync";
 import { LiquidFilter } from "@/components/ui/liquid-filter";
 import { useCorporateModeEnforcer } from "@/hooks/useCorporateMode";
 import { useLocalModelPersistence } from "@/hooks/useLocalModelPersistence";
@@ -77,7 +75,6 @@ const App = () => {
   const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
   
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   useVisibilityHandler();
   useCorporateModeEnforcer();
   useLocalModelPersistence();
@@ -90,17 +87,10 @@ const App = () => {
     detectStandaloneMode();
   }, []);
 
-  // Global listener for upgrade modal events
-  useEffect(() => {
-    const handler = () => setShowUpgradeModal(true);
-    window.addEventListener('open-upgrade-modal', handler);
-    return () => window.removeEventListener('open-upgrade-modal', handler);
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <SubscriptionProvider>
+        <ImageQuotaProvider>
         <TooltipProvider>
           <div className="arcai-drag-bar" />
           <LiquidFilter />
@@ -152,13 +142,8 @@ const App = () => {
             <GlobalMusicPlayer />
             <CorporateMemoryConsentGate />
             <GlobalAuthGate />
-            <BoostSync />
-            <UpgradeModal
-              isOpen={showUpgradeModal}
-              onClose={() => setShowUpgradeModal(false)}
-            />
         </TooltipProvider>
-        </SubscriptionProvider>
+        </ImageQuotaProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

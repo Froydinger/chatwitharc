@@ -1,5 +1,5 @@
 // Research search endpoint.
-// Uses Tavily for live web results and Lovable AI to synthesize a
+// Uses Tavily for live web results and OpenAI to synthesize a
 // Perplexity-style cited answer. Response shape preserved for the frontend.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -53,7 +53,7 @@ serve(async (req) => {
     }
 
     const TAVILY_API_KEY = Deno.env.get('TAVILY_API_KEY');
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!TAVILY_API_KEY) {
       return new Response(
         JSON.stringify({ error: 'Search is not configured' }),
@@ -122,9 +122,9 @@ serve(async (req) => {
       snippet: r.content || '',
     }));
 
-    // 2. Synthesize a cited answer with Lovable AI — use Gemini 2.5 Pro for research-grade reasoning
+    // 2. Synthesize a cited answer with OpenAI — use Gemini 2.5 Pro for research-grade reasoning
     let content = '';
-    if (LOVABLE_API_KEY) {
+    if (OPENAI_API_KEY) {
       const sourceBlock = picked.map((r, i) => {
         const body = (r.raw_content || r.content || '').slice(0, 3000);
         return `[${i + 1}] ${r.title}\nURL: ${r.url}\nExcerpt: ${body}`;
@@ -137,14 +137,14 @@ serve(async (req) => {
       const synthUser = `Query: ${userQuery}\n\nSources:\n${sourceBlock}${tavilyAnswer}\n\nWrite the comprehensive cited research answer now.`;
 
       try {
-        const aiResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        const aiResp = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'openai/gpt-5.4-mini',
+            model: 'gpt-5.4-mini',
             messages: [
               { role: 'system', content: synthSystem },
               { role: 'user', content: synthUser },

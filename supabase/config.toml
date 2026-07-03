@@ -1,4 +1,4 @@
-project_id = "jxywhodnndagbsmnbnnw"
+project_id = "cgvixgyjzswebosfqyll"
 
 [functions]
   [functions.auth-email-hook]
@@ -12,12 +12,6 @@ project_id = "jxywhodnndagbsmnbnnw"
   [functions.handle-email-unsubscribe]
     verify_jwt = false
   [functions.handle-email-suppression]
-    verify_jwt = false
-  [functions.create-checkout]
-    verify_jwt = false
-  [functions.payments-webhook]
-    verify_jwt = false
-  [functions.payments-portal]
     verify_jwt = false
   [functions.run-scheduled-tasks]
     verify_jwt = false

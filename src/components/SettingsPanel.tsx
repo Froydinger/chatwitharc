@@ -37,7 +37,7 @@ import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { useAccentStore } from "@/store/useAccentStore";
 import { AVAILABLE_FONTS, getStoredCustomFont, setStoredCustomFont, type CustomFontId } from "@/hooks/useCustomFont";
 
-import { lovable } from "@/integrations/lovable/index";
+import { getAuthRedirectUrl, signInWithGoogle } from "@/integrations/auth";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
@@ -83,7 +83,7 @@ import {
 } from "@/components/ui/dialog";
 import { Shield, Crown, Sparkles, Activity, ExternalLink } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useImageQuota } from "@/hooks/useImageQuota";
 import { LocalAIPanel } from "@/components/LocalAIPanel";
 import { CorporateModePanel } from "@/components/CorporateModePanel";
 import { SharedLinksCard } from "@/components/SharedLinksCard";
@@ -100,7 +100,7 @@ const SECTIONS: { id: SectionId; label: string; icon: LucideIcon; subtitle: stri
   { id: "appearance", label: "Appearance",    icon: Palette,     subtitle: "Look & feel" },
   { id: "ai",         label: "AI & Models",   icon: Sparkles,    subtitle: "Models, voice, images" },
   { id: "privacy",    label: "Privacy, Sharing, & Data",icon: Lock,        subtitle: "Memory, sharing, exports" },
-  { id: "plan",       label: "Plan & Usage",  icon: CreditCard,  subtitle: "Subscription" },
+  { id: "plan",       label: "Free & Usage",  icon: Stars,  subtitle: "20 image outputs per day" },
 ];
 
 // ---------- Shared tile primitives (matches Arc Local look) ----------
@@ -242,18 +242,10 @@ export function SettingsPanel() {
   const { user } = useAuth();
   const { profile, updateProfile, updating } = useProfile();
   const {
-    isSubscribed,
-    hasBoost,
-    subscriptionEnd,
-    openCheckout,
-    openCustomerPortal,
-    dailyMessagesUsed,
-    dailyVoiceSessionsUsed,
+    isAdmin: quotaAdmin,
     dailyImagesUsed,
-    FREE_DAILY_MESSAGE_LIMIT,
-    FREE_DAILY_VOICE_LIMIT,
     FREE_DAILY_IMAGE_LIMIT,
-  } = useSubscription();
+  } = useImageQuota();
   const { toast } = useToast();
   const { accentColor, setAccentColor } = useAccentColor();
   const themeMode = useAccentStore((s) => s.themeMode);
@@ -515,10 +507,7 @@ export function SettingsPanel() {
               variant="ghost"
               size="sm"
               onClick={async () => {
-                const result = await lovable.auth.signInWithOAuth("google", {
-                  redirect_uri: window.location.origin + "/dashboard/settings",
-                  extraParams: { prompt: "select_account" },
-                });
+                const result = await signInWithGoogle(getAuthRedirectUrl("/dashboard/settings"));
                 if (result.error) {
                   toast({ title: "Failed to connect Google", description: String(result.error), variant: "destructive" });
                 }
@@ -686,11 +675,10 @@ export function SettingsPanel() {
     <SectionCard
       icon={Stars}
       title="Custom Font"
-      subtitle={hasBoost ? "Pick a font for your whole app" : "Boost perk — pick a custom UI font"}
+      subtitle="Pick a font for your whole app"
       className="lg:col-span-2"
     >
-      {hasBoost ? (
-        <Tile>
+      <Tile>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full">
             {AVAILABLE_FONTS.map((f) => {
               const isActive = customFont === f.id;
@@ -711,19 +699,7 @@ export function SettingsPanel() {
               );
             })}
           </div>
-        </Tile>
-      ) : (
-        <Tile
-          icon={Lock}
-          title="Unlock Custom Fonts"
-          description="Pick from 8 hand-picked fonts to make Arc feel like yours. Included with ArcAI Boost."
-          right={
-            <GlassButton variant="ghost" size="sm" onClick={openCheckout}>
-              Upgrade
-            </GlassButton>
-          }
-        />
-      )}
+      </Tile>
     </SectionCard>
   );
 
@@ -790,64 +766,23 @@ export function SettingsPanel() {
     <SectionCard
       icon={Crown}
       title="Your Plan"
-      subtitle={hasBoost ? "ArcAI Boost — unlimited everything" : "Upgrade to unlock unlimited access"}
+      subtitle="Everything is free"
     >
-      {hasBoost ? (
-        <>
-          <Tile
-            icon={Sparkles}
-            title="ArcAI Boost"
-            description="Unlimited chats, voice, and image generations. Access to all premium models."
-            right={<span className="text-xs font-semibold text-primary">ACTIVE</span>}
-          />
-          <Tile
-            icon={CreditCard}
-            title="Manage Billing"
-            description="Update payment method, view invoices, or cancel"
-            onClick={openCustomerPortal}
-            right={<span className="text-xs text-primary">Open →</span>}
-          />
-        </>
-      ) : (
-        <>
-          <Tile
-            icon={Crown}
-            title="Free Plan"
-            description="Unlimited chats. 10 voice conversations per 30 days. 10 image generations per day."
-          />
-          <button
-            onClick={openCheckout}
-            className="w-full text-left rounded-2xl p-4 border border-primary/40 bg-gradient-to-br from-primary/20 to-primary/5 hover:from-primary/30 hover:to-primary/10 transition-all group"
-          >
-            <div className="flex items-start gap-3">
-              <div className="h-10 w-10 rounded-xl bg-primary/25 text-primary flex items-center justify-center shrink-0">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-semibold text-foreground">Upgrade to ArcAI Boost</span>
-                  <span className="text-xs font-bold text-primary">$7/month</span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Unlimited images, voice, premium models, Maestro's Studio & Arcana
-                </p>
-              </div>
-              <span className="text-primary text-sm font-semibold group-hover:translate-x-0.5 transition-transform shrink-0">
-                Upgrade →
-              </span>
-            </div>
-          </button>
-        </>
-      )}
+      <Tile
+        icon={Sparkles}
+        title={quotaAdmin ? "ArcAI Admin" : "Free forever"}
+        description={quotaAdmin ? "Unlimited everything, including images and edits." : "Unlimited chat, voice, search, models and publishing. 20 image outputs per UTC day."}
+        right={<span className="text-xs font-semibold text-primary">ACTIVE</span>}
+      />
     </SectionCard>
   );
 
   const UsageCard = (
-    <SectionCard icon={Stars} title="Today's Usage" subtitle={hasBoost ? "Unlimited with Boost" : "Image limit resets daily"}>
+    <SectionCard icon={Stars} title="Today's Usage" subtitle="Image allowance resets at 00:00 UTC">
       <Tile
         title="Image Generations"
         right={
-          hasBoost ? (
+          quotaAdmin ? (
             <span className="font-mono text-primary text-sm">Unlimited</span>
           ) : (
             <span className="font-mono text-foreground text-sm">{dailyImagesUsed} / {FREE_DAILY_IMAGE_LIMIT}</span>

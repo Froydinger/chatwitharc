@@ -9,11 +9,10 @@ import {
   Brain,
   MessageSquare,
   Sparkles,
-  Zap,
-  Infinity as InfinityIcon,
-  Rocket,
+  Coffee,
 } from "lucide-react";
 import { BLOG_POSTS } from "@/content/blog/posts";
+import { SUPPORT_URL } from "@/lib/support";
 
 const SITE = "https://askarc.chat";
 
@@ -24,11 +23,11 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes, ArcAI is free forever. Unlimited chat, 10 image generations per day, 10 voice conversations per month, web search, document analysis, memory and code generation are included. ArcAI Boost ($7/month) unlocks unlimited images, unlimited voice, Deep Search, and one-tap publishing.",
+    a: "Yes. Every ArcAI feature is free, including all chat models, unlimited voice, Deep Search, shared chats, and web publishing. Image generation and editing are limited to 20 outputs per account per UTC day.",
   },
   {
-    q: "What does ArcAI Boost add?",
-    a: "Boost is a $7/month upgrade for power users: unlimited image generation, unlimited real-time voice, Deep Search web research, and one-tap publishing of your code creations to a live URL. Cancel anytime.",
+    q: "Is there a paid plan?",
+    a: "No. ArcAI has no paid tier, checkout, or feature paywall. People who want to help can support Win The Night voluntarily.",
   },
   {
     q: "Is ArcAI a free ChatGPT alternative?",
@@ -52,15 +51,15 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI generate images?",
-    a: "Yes — 10 free images per day using GPT-Image-2, unlimited on Boost.",
+    a: "Yes — each permanent account can generate or edit up to 20 image outputs per UTC day using GPT-Image-2.",
   },
   {
     q: "Does ArcAI have voice mode?",
-    a: "Yes. Real-time voice conversations powered by OpenAI Realtime, free for 10 conversations per month and unlimited on Boost.",
+    a: "Yes. Real-time voice conversations powered by OpenAI Realtime are free and unlimited.",
   },
   {
     q: "Can ArcAI write code?",
-    a: "Yes. The code canvas generates functional web apps with a live preview, and Boost adds one-tap publishing to a live URL.",
+    a: "Yes. The code canvas generates functional web apps with a live preview and free one-tap publishing to a live URL.",
   },
 ];
 
@@ -81,10 +80,6 @@ export function LandingPage() {
 
   const handleTry = () => {
     window.dispatchEvent(new CustomEvent("auth-gate-feature", { detail: { feature: "generic" } }));
-  };
-
-  const openBoost = () => {
-    window.dispatchEvent(new CustomEvent("open-upgrade-modal"));
   };
 
   const faqJsonLd = useMemo(
@@ -109,11 +104,8 @@ export function LandingPage() {
     applicationCategory: "ProductivityApplication",
     operatingSystem: "Web, iOS, Android, macOS, Windows",
     description:
-      "Free multimodal AI assistant with real-time voice, image generation, code canvas and persistent memory. Boost upgrade unlocks unlimited voice, images and web publishing.",
-    offers: [
-      { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" },
-      { "@type": "Offer", name: "ArcAI Boost", price: "7", priceCurrency: "USD" },
-    ],
+      "Free multimodal AI assistant with voice, image generation, Deep Search, code canvas, web publishing, and persistent memory.",
+    offers: [{ "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD" }],
     aggregateRating: {
       "@type": "AggregateRating",
       ratingValue: "4.8",
@@ -128,13 +120,13 @@ export function LandingPage() {
         <title>ArcAI — Free AI Assistant with Voice, Images & Memory | Ask Arc</title>
         <meta
           name="description"
-          content="ArcAI is a free AI assistant with real-time voice, image generation, code canvas and long-term memory. A free ChatGPT, Gemini and Claude alternative — with an optional $7 Boost upgrade for unlimited use."
+          content="ArcAI is a genuinely free AI assistant with unlimited voice, Deep Search, image generation, code, publishing and long-term memory. Images and edits are limited to 20 outputs per account per day."
         />
         <link rel="canonical" href={`${SITE}/`} />
         <meta property="og:title" content="ArcAI — Free AI Assistant with Voice, Images & Memory" />
         <meta
           property="og:description"
-          content="Free multimodal AI assistant. Voice, images, code, memory. Boost upgrade for unlimited use. Try Arc free at askarc.chat."
+          content="Everything is free: voice, images, Deep Search, code, publishing and memory. Try ArcAI at askarc.chat."
         />
         <meta property="og:url" content={`${SITE}/`} />
         <meta property="og:type" content="website" />
@@ -167,8 +159,8 @@ export function LandingPage() {
           with GPT-Image-2, a code canvas, document analysis, web search with citations, and
           persistent long-term memory. ArcAI is a free alternative to ChatGPT, Google Gemini,
           Anthropic Claude, Microsoft Copilot and Perplexity. No credit card required to
-          start chatting with a free account. Optional ArcAI Boost upgrade is $7 per month for unlimited images,
-          unlimited voice, Deep Search web research, and one-tap web publishing.
+          start chatting with a free account. Every feature is free; image generation and editing are limited to
+          20 outputs per permanent account per UTC day.
         </p>
         <h2>Frequently asked questions about ArcAI</h2>
         <dl>
@@ -202,12 +194,14 @@ export function LandingPage() {
           <Link to="/pricing" className="rounded-full px-3 py-1.5 text-white/70 hover:text-white transition-colors">
             Pricing
           </Link>
-          <button
-            onClick={openBoost}
+          <a
+            href={SUPPORT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-white/[0.15] bg-white/[0.04] px-3 py-1.5 text-white/[0.85] hover:bg-white/[0.08] transition-colors"
           >
-            <Zap className="h-3.5 w-3.5" /> Boost
-          </button>
+            <Coffee className="h-3.5 w-3.5" /> Support us
+          </a>
           <button
             onClick={handleTry}
             className="rounded-full bg-white px-4 py-1.5 text-sm font-medium text-black hover:bg-white/90 transition-colors"
@@ -220,7 +214,7 @@ export function LandingPage() {
       {/* Hero */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 pt-20 pb-24 text-center md:pt-32 md:pb-32">
         <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 animate-in fade-in zoom-in-95 duration-500">
-          <Sparkles className="h-3.5 w-3.5" /> Free forever · No credit card · Boost for power users
+          <Sparkles className="h-3.5 w-3.5" /> Free forever · No credit card · No paid tier
         </div>
         <h1 className="mx-auto max-w-3xl text-5xl font-semibold tracking-tight md:text-7xl animate-in fade-in slide-in-from-bottom-3 duration-700">
           The free AI assistant that actually remembers you.
@@ -230,8 +224,7 @@ export function LandingPage() {
           style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
         >
           Chat, real-time voice, image generation, code and long-term memory — all in one browser
-          app. A generous free tier that replaces ChatGPT, Gemini and Claude for most people, plus a
-          $7 <span className="text-white/[0.85] font-medium">Boost</span> upgrade when you want to go unlimited.
+          app. Every feature is available free; image generation and editing include 20 outputs per account each day.
         </p>
         <div
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"
@@ -244,12 +237,14 @@ export function LandingPage() {
             Try Arc free
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
-          <button
-            onClick={openBoost}
+          <a
+            href={SUPPORT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.03] px-6 py-3 text-base font-medium text-white/90 hover:bg-white/[0.07] transition-colors"
           >
-            <Zap className="h-4 w-4" /> See Boost — $7/mo
-          </button>
+            <Coffee className="h-4 w-4" /> Support ArcAI
+          </a>
         </div>
       </section>
 
@@ -264,8 +259,8 @@ export function LandingPage() {
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
             { icon: MessageSquare, title: "Unlimited chat", body: "Ask anything. GPT-class models, no message wall." },
-            { icon: Mic, title: "Real-time voice", body: "Natural spoken conversations with interruptions. 10 free / month." },
-            { icon: ImageIcon, title: "AI image generation", body: "10 free images a day with GPT-Image-2." },
+            { icon: Mic, title: "Unlimited real-time voice", body: "Natural spoken conversations with interruptions, free." },
+            { icon: ImageIcon, title: "AI image generation", body: "20 generated or edited outputs a day with GPT-Image-2." },
             { icon: Code2, title: "Code canvas", body: "Generate and preview working web apps in-browser." },
             { icon: Brain, title: "Long-term memory", body: "Arc actually remembers what you told it." },
             { icon: Sparkles, title: "Web search with sources", body: "Live answers with citations, powered by Perplexity." },
@@ -283,7 +278,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Boost highlight */}
+      {/* Voluntary support */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 py-16">
         <div className="relative overflow-hidden rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-8 md:p-12">
           <div
@@ -293,21 +288,21 @@ export function LandingPage() {
           />
           <div className="relative">
             <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.05] px-3 py-1 text-xs text-white/80">
-              <Zap className="h-3.5 w-3.5" /> ArcAI Boost · $7 / month
+              <Coffee className="h-3.5 w-3.5" /> Free means free
             </div>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight md:text-4xl">
-              When free isn't enough, <span className="text-white/70">go Boost.</span>
+              No upgrades. <span className="text-white/70">No feature paywalls.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              Same generous free core, dialed up for power users. Cancel anytime.
+              Unlimited voice, Deep Search, every model, shared chats, custom fonts and web publishing are available to everyone.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
-                { icon: InfinityIcon, title: "Unlimited images", body: "No daily cap on GPT-Image-2." },
-                { icon: Mic, title: "Unlimited voice", body: "Talk to Arc as long as you want." },
+                { icon: ImageIcon, title: "20 images per day", body: "Generations and edits count per output." },
+                { icon: Mic, title: "Unlimited voice", body: "Talk to Arc as long as you want, free." },
                 { icon: Sparkles, title: "Deep Search™", body: "Web research with AI summaries & citations." },
-                { icon: Rocket, title: "One-tap publishing", body: "Ship code creations to a live URL." },
+                { icon: Code2, title: "One-tap publishing", body: "Ship code creations to a live URL for free." },
               ].map((b) => (
                 <div
                   key={b.title}
@@ -325,17 +320,19 @@ export function LandingPage() {
             </div>
 
             <div className="mt-8 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-              <button
-                onClick={openBoost}
+              <a
+                href={SUPPORT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-black hover:scale-[1.02] transition-transform"
               >
-                <Zap className="h-4 w-4" /> Get Boost — $7/mo
-              </button>
+                <Coffee className="h-4 w-4" /> Support Win The Night
+              </a>
               <Link
                 to="/pricing"
                 className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
               >
-                Compare Free vs Boost →
+                See everything included →
               </Link>
             </div>
           </div>
@@ -418,7 +415,7 @@ export function LandingPage() {
           Try it. It's really free.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-          And when you're ready for more, Boost is $7 a month.
+          No trial clock and no upgrade waiting behind the next click.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button
@@ -428,12 +425,14 @@ export function LandingPage() {
             Try Arc free
             <ArrowRight className="h-4 w-4" />
           </button>
-          <button
-            onClick={openBoost}
+          <a
+            href={SUPPORT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] px-7 py-3.5 text-base font-medium text-white/90 hover:bg-white/[0.06] transition-colors"
           >
-            <Zap className="h-4 w-4" /> Get Boost
-          </button>
+            <Coffee className="h-4 w-4" /> Support us
+          </a>
         </div>
       </section>
 

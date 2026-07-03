@@ -1,5 +1,5 @@
-// Generates a fun cartoon line-art persona avatar via Lovable AI Gateway
-// (openai/gpt-image-2, medium quality) and uploads it to the public
+// Generates a fun cartoon line-art persona avatar via OpenAI Gateway
+// (gpt-image-2, medium quality) and uploads it to the public
 // `avatars` bucket. Returns the public URL.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
@@ -13,9 +13,9 @@ Deno.serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "Missing LOVABLE_API_KEY" }), {
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      return new Response(JSON.stringify({ error: "Missing OPENAI_API_KEY" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -55,15 +55,15 @@ Deno.serve(async (req) => {
     }. Pick ONE distinctive hat or hairstyle and one small head-area accessory that fits this persona. No text, no logos, no props held in hands.`;
 
 
-    // Call Lovable AI Gateway → OpenAI GPT-Image-2 (medium quality, square)
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
+    // Call OpenAI OpenAI → OpenAI GPT-Image-2 (medium quality, square)
+    const aiRes = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-image-2",
+        model: "gpt-image-2",
         prompt: imagePrompt,
         size: "1024x1024",
         quality: "medium",

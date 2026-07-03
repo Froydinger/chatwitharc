@@ -66,8 +66,8 @@ export function PrivacyTermsModal({ trigger }: PrivacyTermsModalProps) {
                 <div>
                   <h3 className="font-medium mb-2">Third-Party Services</h3>
                   <p className="text-muted-foreground">
-                    We use Lovable AI's services (powered by Google Gemini) to provide AI responses. Lovable AI may retain 
-                    data according to their own policies. Please review Lovable's privacy policy for more information.
+                    We use OpenAI to provide AI responses and Supabase for authentication, database, file storage, and
+                    server-side functions. Those providers process data under their respective privacy policies.
                   </p>
                 </div>
 

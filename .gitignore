@@ -16,6 +16,9 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+.migration/
+.netlify/
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*

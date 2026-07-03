@@ -1,5 +1,5 @@
-import { Zap, Sparkles, Mic } from "lucide-react";
-import { useSubscription } from "@/hooks/useSubscription";
+import { Sparkles, Mic } from "lucide-react";
+import { useImageQuota } from "@/hooks/useImageQuota";
 import { cn } from "@/lib/utils";
 
 interface UsageMeterProps {
@@ -8,24 +8,18 @@ interface UsageMeterProps {
 }
 
 /**
- * Tiny floating pill that shows remaining Free quota for image gen or voice.
- * Hidden entirely for Boost users (unlimited). Clicking opens the upgrade modal.
+ * Tiny floating pill for the daily image allowance. Voice is unlimited.
  */
 export function UsageMeter({ kind, className }: UsageMeterProps) {
   const {
-    hasBoost,
+    isAdmin,
     dailyImagesUsed,
-    voiceConversations30d,
     FREE_DAILY_IMAGE_LIMIT,
-    FREE_VOICE_LIMIT_30D,
-    openCheckout,
-  } = useSubscription();
+  } = useImageQuota();
 
   const isImage = kind === "image";
 
-  // Boost users get an unlimited pill (still visible so users can confirm
-  // their entitlement at a glance — never hidden).
-  if (hasBoost) {
+  if (!isImage || isAdmin) {
     const Icon = isImage ? Sparkles : Mic;
     return (
       <div
@@ -35,34 +29,31 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           "text-xs font-medium text-primary",
           className,
         )}
-        aria-label={`Unlimited ${kind} with ArcAI Boost`}
+        aria-label={`Unlimited ${kind}`}
       >
         <Icon className="h-3.5 w-3.5 shrink-0" />
-        <span className="hidden sm:inline">Unlimited {isImage ? "images" : "voice"} · Boost</span>
+        <span className="hidden sm:inline">Unlimited {isImage ? "images" : "voice"}</span>
         <span className="sm:hidden">{isImage ? "Unltd." : "Unltd."}</span>
-        <Zap className="h-3 w-3 opacity-80" />
       </div>
     );
   }
 
-  const used = isImage ? dailyImagesUsed : voiceConversations30d;
-  const limit = isImage ? FREE_DAILY_IMAGE_LIMIT : FREE_VOICE_LIMIT_30D;
+  const used = dailyImagesUsed;
+  const limit = FREE_DAILY_IMAGE_LIMIT;
   const remaining = Math.max(0, limit - used);
   const pct = Math.min(100, (used / limit) * 100);
   const isExhausted = remaining === 0;
   const isLow = remaining > 0 && remaining <= Math.max(1, Math.floor(limit * 0.3));
 
   const Icon = isImage ? Sparkles : Mic;
-  const periodLabel = isImage ? "today" : "this month";
+  const periodLabel = "today";
 
   return (
-    <button
-      type="button"
-      onClick={openCheckout}
+    <div
       className={cn(
         "group flex items-center gap-2 px-3 py-1.5 rounded-full",
         "border bg-background/70 backdrop-blur-xl shadow-lg",
-        "text-xs font-medium transition-all hover:scale-105",
+        "text-xs font-medium",
         isExhausted
           ? "border-destructive/60 text-destructive hover:bg-destructive/10"
           : isLow
@@ -70,12 +61,12 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50",
         className,
       )}
-      aria-label={`${remaining} ${kind} ${remaining === 1 ? "generation" : "generations"} remaining ${periodLabel}. Upgrade to Boost for unlimited.`}
+      aria-label={`${remaining} image ${remaining === 1 ? "output" : "outputs"} remaining today.`}
     >
       <Icon className="h-3.5 w-3.5 shrink-0" />
       <span className="tabular-nums hidden sm:inline">
         {isExhausted
-          ? `Out of free ${isImage ? "images" : "voice"} ${periodLabel}`
+          ? `Daily image limit reached`
           : `${remaining} / ${limit} ${isImage ? "images" : "voice"} left ${periodLabel}`}
       </span>
       <span className="tabular-nums sm:hidden">
@@ -91,7 +82,6 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           style={{ width: `${pct}%` }}
         />
       </span>
-      <Zap className="h-3 w-3 opacity-60 group-hover:opacity-100" />
-    </button>
+    </div>
   );
 }

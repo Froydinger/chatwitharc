@@ -39,7 +39,7 @@ export default function PrivacyPolicyPage() {
               <h2 className="text-xl font-semibold mb-2">ArcAI is free for everyone</h2>
               <p className="text-muted-foreground">
                 There is no subscription, no checkout, and no billing system. We do not collect payment information,
-                billing addresses, or anything tied to a paid plan — because there isn't one. The only soft limit is 10
+                billing addresses, or anything tied to a paid plan — because there isn't one. The only usage limit is 20
                 image generations per day for non-admin accounts.
               </p>
             </section>
@@ -48,8 +48,7 @@ export default function PrivacyPolicyPage() {
               <h2 className="text-xl font-semibold mb-2">What we store</h2>
               <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                 <li>
-                  <strong>Account data:</strong> name, email, profile photo, and the OAuth identifier from Google or
-                  Apple.
+                  <strong>Account data:</strong> name, email, profile photo, and authentication identifiers.
                 </li>
                 <li>
                   <strong>Content:</strong> chats, prompts, uploads, generated images and files, voice transcripts, and
@@ -83,15 +82,13 @@ export default function PrivacyPolicyPage() {
               </p>
               <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                 <li>
-                  <strong>Lovable Cloud</strong> — hosting, database, authentication, and file storage.
+                  <strong>Supabase</strong> — database, authentication, server-side functions, and file storage.
                 </li>
                 <li>
-                  <strong>AI model providers</strong> (Google, OpenAI, and others routed through the Lovable AI Gateway)
-                  — to generate responses to your prompts.
+                  <strong>AI model providers</strong> such as OpenAI — to generate responses to your prompts.
                 </li>
                 <li>
-                  <strong>Lovable Emails</strong> — transactional emails sent from{" "}
-                  <code className="text-xs">notify.askarc.chat</code> (account, support, and system messages).
+                  <strong>Email delivery providers</strong> — for account, support, and system messages.
                 </li>
                 <li>
                   <strong>Web Search, image, and audio providers</strong> — only when you explicitly trigger web search,
@@ -104,8 +101,8 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">Authentication</h2>
               <p className="text-muted-foreground">
-                ArcAI supports <strong>Google and Apple Sign-In only</strong>. We do not store passwords, magic-link
-                tokens, or any other credential — authentication is handled entirely by your identity provider.
+                ArcAI supports <strong>Google Sign-In and email authentication</strong> through Supabase Auth. Passwords
+                are handled by Supabase and are not stored in ArcAI's application tables.
               </p>
             </section>
 

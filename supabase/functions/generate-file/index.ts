@@ -76,11 +76,11 @@ serve(async (req) => {
 
     console.log('Generating file:', { fileType, promptLength: prompt?.length });
 
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!lovableApiKey || !supabaseUrl || !supabaseKey) {
+    if (!openaiApiKey || !supabaseUrl || !supabaseKey) {
       throw new Error('Server configuration error - missing environment variables');
     }
 
@@ -151,20 +151,20 @@ CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No expla
 
     // Allowlist supported models — fall back to default if unknown
     const ALLOWED_MODELS = new Set([
-      'openai/gpt-5.4-mini',
-      'openai/gpt-5.4-mini',
-      'openai/gpt-5.4-mini',
-      'openai/gpt-5.4-mini',
+      'gpt-5.4-mini',
+      'gpt-5.4-mini',
+      'gpt-5.4-mini',
+      'gpt-5.4-mini',
     ]);
     const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
       ? model
-      : 'openai/gpt-5.4-mini';
+      : 'gpt-5.4-mini';
     console.log('Using model for file generation:', selectedModel);
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

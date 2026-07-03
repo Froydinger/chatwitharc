@@ -12,7 +12,6 @@ export type GatedFeature =
   | "research"
   | "code"
   | "canvas"
-  | "boost"
   | "generic";
 
 export interface AuthGateDetail {
@@ -30,7 +29,7 @@ export interface AuthGateDetail {
  *
  * If the user is signed in (and not anonymous), the callback runs immediately.
  * Otherwise the global `auth-gate-feature` event fires and AuthModal opens with
- * the matching context + Boost CTA.
+ * the matching context.
  */
 export function useRequireAuth() {
   const { user, isAnonymous } = useAuth();

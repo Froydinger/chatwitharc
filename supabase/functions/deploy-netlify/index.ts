@@ -29,6 +29,7 @@ serve(async (req) => {
   if (!authHeader?.startsWith('Bearer ')) {
     return jsonRes({ error: 'Unauthorized' }, 401);
   }
+  let authenticatedUserId = '';
   try {
     const authClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -37,6 +38,7 @@ serve(async (req) => {
     );
     const { data: { user }, error: authErr } = await authClient.auth.getUser();
     if (authErr || !user) return jsonRes({ error: 'Unauthorized' }, 401);
+    authenticatedUserId = user.id;
   } catch {
     return jsonRes({ error: 'Unauthorized' }, 401);
   }
@@ -51,6 +53,24 @@ serve(async (req) => {
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
+
+  async function userOwnsSite(siteId: string): Promise<boolean> {
+    const [{ data: publishedSite }, { data: ideProject }] = await Promise.all([
+      serviceClient
+        .from('published_sites')
+        .select('id')
+        .eq('user_id', authenticatedUserId)
+        .eq('netlify_site_id', siteId)
+        .maybeSingle(),
+      serviceClient
+        .from('ide_projects')
+        .select('id')
+        .eq('user_id', authenticatedUserId)
+        .eq('netlify_site_id', siteId)
+        .maybeSingle(),
+    ]);
+    return Boolean(publishedSite || ideProject);
+  }
 
   // Find a Netlify site already serving a given custom domain. Returns site_id or null.
   async function findNetlifySiteByDomain(domain: string): Promise<string | null> {
@@ -83,6 +103,9 @@ serve(async (req) => {
     if (body.action === 'delete') {
       const { siteId } = body;
       if (!siteId) return jsonRes({ error: 'Missing siteId' }, 400);
+      if (!(await userOwnsSite(siteId))) {
+        return jsonRes({ error: 'Published site not found' }, 404);
+      }
       console.log('[DEPLOY] Deleting site:', siteId);
       const deleteController = new AbortController();
       const deleteTimeout = setTimeout(() => deleteController.abort(), 15000);
@@ -143,6 +166,10 @@ serve(async (req) => {
 
     const customDomainUrl = `${userSubdomain}.${CUSTOM_DOMAIN}`;
     const isRedeploy = !!siteId;
+
+    if (isRedeploy && !(await userOwnsSite(siteId))) {
+      return jsonRes({ error: 'Published site not found' }, 404);
+    }
 
     // --- Pre-flight collision check for NEW publishes only ---
     if (!isRedeploy) {
@@ -244,7 +271,7 @@ serve(async (req) => {
     return jsonRes({
       success: true,
       url: `https://${customDomainUrl}`,
-      netlifyUrl: `https://${siteName}.netlify.app`,
+      netlifyUrl: deployData.ssl_url || deployData.deploy_ssl_url || `https://${siteName}.netlify.app`,
       siteId: targetSiteId,
       deployId: deployData.id,
       subdomain: userSubdomain,

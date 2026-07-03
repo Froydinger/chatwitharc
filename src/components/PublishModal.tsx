@@ -227,7 +227,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
             <ul className="text-xs text-muted-foreground space-y-0.5 list-disc list-inside">
               <li>Your site goes live at a <span className="font-mono">.froydingermedia.online</span> URL</li>
               <li>You can re-publish to push updates to the same URL anytime</li>
-              <li>It stays live while your Boost subscription is active</li>
+              <li>It stays live until you choose to unpublish it</li>
               <li>Unpublishing is the only destructive action — once gone, the URL can't be recovered</li>
             </ul>
           </div>

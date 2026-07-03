@@ -101,20 +101,17 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
     case 'cloud-search-tavily':
       return { label: 'Cloud · Web Search', icon: 'cloud', tooltip: 'Web Search with cited sources.' };
     case 'cloud-vision': {
-      const isBoost = useModelStore.getState().isBoost;
-      const name = isBoost ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
+      const name = useModelStore.getState().chatModel === SMARTER_MODEL ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
       return { label: `Cloud · ${name} (Vision)`, icon: 'cloud', tooltip: `Image understanding — OpenAI ${name}.` };
     }
     case 'cloud-document': {
-      const isBoost = useModelStore.getState().isBoost;
-      const name = isBoost ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
+      const name = useModelStore.getState().chatModel === SMARTER_MODEL ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
       return { label: `Cloud · ${name} (Docs)`, icon: 'cloud', tooltip: `Document analysis — OpenAI ${name}.` };
     }
     case 'cloud-voice':
       return { label: 'Cloud · OpenAI Realtime', icon: 'cloud', tooltip: 'Voice mode — OpenAI Realtime API.' };
     case 'cloud-code': {
-      const isBoost = useModelStore.getState().isBoost;
-      const name = isBoost ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
+      const name = useModelStore.getState().chatModel === SMARTER_MODEL ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
       return { label: `Cloud · ${name} (Code)`, icon: 'cloud', tooltip: `Code generation — OpenAI ${name}.` };
     }
     case 'cloud-canvas': {

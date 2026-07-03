@@ -7,8 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const DEFAULT_AGENT_MODEL = "openai/gpt-5.4-mini";
+const AI_GATEWAY = "https://api.openai.com/v1/chat/completions";
+const DEFAULT_AGENT_MODEL = "gpt-5.4-mini";
 const MAX_ITERATIONS = 8;
 const MAX_NO_PROGRESS_ITERATIONS = 2;
 const MAX_JSON_RETRIES = 2;
@@ -205,8 +205,8 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
 
     let systemPrompt = AGENT_SYSTEM_PROMPT;
     if (currentFiles && typeof currentFiles === "object" && Object.keys(currentFiles).length > 0) {
@@ -259,7 +259,7 @@ serve(async (req) => {
             try {
               aiResp = await fetch(AI_GATEWAY, {
                 method: "POST",
-                headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
                 body: JSON.stringify({
                   model: model || DEFAULT_AGENT_MODEL,
                   messages: conversationMessages,

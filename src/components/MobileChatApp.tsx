@@ -30,11 +30,9 @@ import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { usePromptPreload } from "@/hooks/usePromptPreload";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
-import { PaymentFailureBanner } from "@/components/PaymentFailureBanner";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { VoiceModeController } from "@/components/VoiceModeController";
 import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
-import { useSubscription } from "@/hooks/useSubscription";
 import { MessageQueue } from "@/components/MessageQueue";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { SmartSuggestions } from "@/components/SmartSuggestions";
@@ -43,7 +41,6 @@ import { GENERAL_QUICK_PROMPTS, pickRandomPrompts } from "@/components/WelcomeSe
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { BoostCtaBanner } from "@/components/BoostCtaBanner";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
@@ -181,7 +178,6 @@ export function MobileChatApp() {
 
   // Search mode state
   const { isOpen: isSearchOpen, closeSearch } = useSearchStore();
-  const { isSubscribed } = useSubscription();
 
   // Auto-close sidebar when canvas opens on desktop
   // Reset inline styles when canvas closes (from drag-resize)
@@ -766,7 +762,7 @@ export function MobileChatApp() {
     }
 
     // Reset model to Quick for new chat (session only)
-    sessionStorage.setItem("arc_session_model", "openai/gpt-5.4-mini");
+    sessionStorage.setItem("arc_session_model", "gpt-5.4-mini");
   };
 
 
@@ -1047,7 +1043,6 @@ export function MobileChatApp() {
           >
             {/* Spacer for header */}
             <div style={{ paddingTop: "5rem" }} />
-            <PaymentFailureBanner />
 
             {/* Empty state or hydrating state */}
             {messages.length === 0 ? (
@@ -1232,12 +1227,6 @@ export function MobileChatApp() {
                     </span>
                   </div>
                 </motion.div>
-              )}
-
-              {isAnonymous && (
-                <div className="pointer-events-auto mb-2">
-                  <BoostCtaBanner />
-                </div>
               )}
 
               <motion.div

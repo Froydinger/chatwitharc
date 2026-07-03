@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-// Fallback public VAPID key — safe to ship in the client. The subscribe flow
-// prefers the backend-configured key so browser subscriptions always match the
-// key used to send notifications.
-const FALLBACK_VAPID_PUBLIC_KEY =
-  "BB_eg9kxkjqOLLkwKDQhiuNPXtdHRbcQEQXvkROOxHDWFla5mhghTc59na3wIbs43WMsMqkQPxBQ6RSTO_BMx2o";
-
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
@@ -25,10 +19,11 @@ async function getVapidPublicKey() {
     vapidPublicKeyPromise = supabase.functions
       .invoke<{ publicKey?: string }>("get-vapid-public-key", { body: {} })
       .then(({ data, error }) => {
-        if (error || !data?.publicKey) return FALLBACK_VAPID_PUBLIC_KEY;
+        if (error || !data?.publicKey) {
+          throw new Error("Push configuration is temporarily unavailable.");
+        }
         return data.publicKey;
-      })
-      .catch(() => FALLBACK_VAPID_PUBLIC_KEY);
+      });
   }
   return vapidPublicKeyPromise;
 }
@@ -185,7 +180,12 @@ export function usePushNotifications() {
       // Make sure we read from the active SW, not a stale registration.
       const reg = await navigator.serviceWorker.getRegistration();
       const sub = await reg?.pushManager.getSubscription();
-      setSubscribed(!!sub);
+      if (!sub) {
+        setSubscribed(false);
+      } else {
+        const publicKey = await getVapidPublicKey();
+        setSubscribed(subscriptionUsesKey(sub, urlBase64ToUint8Array(publicKey)));
+      }
     } catch {
       setSubscribed(false);
     }

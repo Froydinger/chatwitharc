@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-const STORAGE_BASE = 'https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/download-files';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+if (!SUPABASE_URL) {
+  throw new Error('VITE_SUPABASE_URL is not configured');
+}
+const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/download-files`;
 
 interface PlatformDownload {
   version: string;

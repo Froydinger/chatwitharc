@@ -10,7 +10,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -224,6 +249,27 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_image_usage: {
+        Row: {
+          updated_at: string
+          usage_date: string
+          used_count: number
+          user_id: string
+        }
+        Insert: {
+          updated_at?: string
+          usage_date: string
+          used_count?: number
+          user_id: string
+        }
+        Update: {
+          updated_at?: string
+          usage_date?: string
+          used_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -415,6 +461,9 @@ export type Database = {
           last_attempt_at: string | null
           preferred_model: string | null
           prompt: string
+          quota_finalized_at: string | null
+          quota_reserved_count: number
+          quota_usage_date: string | null
           result_image_url: string | null
           result_image_urls: string[] | null
           status: string
@@ -434,6 +483,9 @@ export type Database = {
           last_attempt_at?: string | null
           preferred_model?: string | null
           prompt: string
+          quota_finalized_at?: string | null
+          quota_reserved_count?: number
+          quota_usage_date?: string | null
           result_image_url?: string | null
           result_image_urls?: string[] | null
           status?: string
@@ -453,6 +505,9 @@ export type Database = {
           last_attempt_at?: string | null
           preferred_model?: string | null
           prompt?: string
+          quota_finalized_at?: string | null
+          quota_reserved_count?: number
+          quota_usage_date?: string | null
           result_image_url?: string | null
           result_image_urls?: string[] | null
           status?: string
@@ -486,7 +541,7 @@ export type Database = {
           knowledge?: string | null
           name: string
           starter_prompts?: Json
-          system_prompt?: string
+          system_prompt: string
           updated_at?: string
           user_id: string
         }
@@ -976,69 +1031,6 @@ export type Database = {
         }
         Relationships: []
       }
-      subscriptions: {
-        Row: {
-          cancel_at_period_end: boolean
-          canceled_at: string | null
-          created_at: string
-          current_period_end: string | null
-          current_period_start: string | null
-          environment: string
-          id: string
-          paddle_customer_id: string | null
-          paddle_price_id: string | null
-          paddle_product_id: string | null
-          paddle_subscription_id: string | null
-          price_id: string | null
-          product_id: string | null
-          status: string
-          stripe_customer_id: string | null
-          stripe_subscription_id: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          cancel_at_period_end?: boolean
-          canceled_at?: string | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          environment?: string
-          id?: string
-          paddle_customer_id?: string | null
-          paddle_price_id?: string | null
-          paddle_product_id?: string | null
-          paddle_subscription_id?: string | null
-          price_id?: string | null
-          product_id?: string | null
-          status?: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          cancel_at_period_end?: boolean
-          canceled_at?: string | null
-          created_at?: string
-          current_period_end?: string | null
-          current_period_start?: string | null
-          environment?: string
-          id?: string
-          paddle_customer_id?: string | null
-          paddle_price_id?: string | null
-          paddle_product_id?: string | null
-          paddle_subscription_id?: string | null
-          price_id?: string | null
-          product_id?: string | null
-          status?: string
-          stripe_customer_id?: string | null
-          stripe_subscription_id?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       support_tickets: {
         Row: {
           created_at: string
@@ -1131,24 +1123,6 @@ export type Database = {
           },
         ]
       }
-      voice_conversations: {
-        Row: {
-          created_at: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       voice_diagnostics: {
         Row: {
           connection_state: string | null
@@ -1193,20 +1167,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      count_user_images: { Args: { target_user_id: string }; Returns: number }
-      count_voice_conversations_30d: {
-        Args: { target_user_id: string }
-        Returns: number
-      }
+      count_user_images:
+        | { Args: never; Returns: number }
+        | { Args: { target_user_id: string }; Returns: number }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
-      email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      finalize_image_quota: {
+        Args: { successful_count: number; target_job_id: string }
+        Returns: undefined
+      }
+      get_my_image_quota: { Args: never; Returns: Json }
       is_admin_user: { Args: never; Returns: boolean }
       is_shared_chat_member: {
         Args: { _chat_id: string; _user_id: string }
@@ -1245,9 +1221,14 @@ export type Database = {
           read_ct: number
         }[]
       }
-      record_voice_conversation: {
-        Args: { target_user_id: string }
-        Returns: undefined
+      refund_stale_image_quota: { Args: never; Returns: number }
+      reserve_image_quota: {
+        Args: {
+          requested_count: number
+          target_job_id: string
+          target_user_id: string
+        }
+        Returns: Json
       }
       search_chat_sessions: {
         Args: {
@@ -1262,7 +1243,6 @@ export type Database = {
           updated_at: string
         }[]
       }
-      user_has_boost: { Args: { check_user_id: string }; Returns: boolean }
       user_has_pro_access: { Args: { check_user_id: string }; Returns: boolean }
       users_share_shared_chat: {
         Args: { _a: string; _b: string }
@@ -1396,6 +1376,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

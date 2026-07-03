@@ -2,24 +2,21 @@
 
 > ArcAI (Ask, Reflect, Create) is a free multimodal AI assistant by Win The Night Productions. Realtime voice conversations, image generation, code canvas, writing tools, music player and persistent memory in one app.
 
-ArcAI is free forever for everyone. Unlimited chats with every model, 10 image generations per day, 10 voice conversations every 30 days, web search, file uploads, document analysis, memory, canvases and code generation are all included with no account upgrade required.
+ArcAI is free forever for everyone. Unlimited chats with every model, unlimited realtime voice, Deep Search, web search, file uploads, document analysis, memory, canvases, shared chats, code generation and one-tap publishing are included with no paid tier.
 
-The optional **ArcAi Boost** upgrade is $7/month and unlocks:
-- Unlimited image generations
-- Unlimited voice conversations
-- One-tap web publishing for code creations on the `*.froydingermedia.online` domain. You can re-publish to push updates to the same URL anytime, and sites stay live while your Boost subscription is active. Unpublishing is the only destructive action — once a site is unpublished, the URL is released and cannot be recovered.
+Permanent accounts can generate or edit up to 20 image outputs per UTC day. Multi-image requests count once per returned output. Administrators have unlimited image generation and editing.
 
-There is no longer a "Pro" tier. There is only Free and the optional Boost upgrade.
+Published code creations use the `*.froydingermedia.online` domain and stay live until their owner unpublishes them.
 
 ## Pages
 
 - [Home](/): Chat with Arc — voice, images, code and writing in one place.
-- [Pricing](/pricing): Free forever plus the optional $7/mo ArcAi Boost upgrade.
+- [Pricing](/pricing): Everything included free, with an optional support link.
 - [Downloads](/downloads): Native apps for macOS, Windows (beta), iOS and Android.
 - [Dashboard](/dashboard): Central hub for chats, canvases, images, deploys, music and memory.
 - [Support](/support): Open a support ticket or get help.
 
 ## Optional
 
-- [Settings](/dashboard/settings): Account, accent color, voice and subscription settings.
+- [Settings](/dashboard/settings): Account, accent color, voice and usage settings.
 - [Unsubscribe](/unsubscribe): Manage email preferences.

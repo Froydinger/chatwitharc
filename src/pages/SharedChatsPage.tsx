@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, Users, MessageSquare, Trash2, Lock } from "lucide-react";
+import { ArrowLeft, Plus, Users, MessageSquare, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -17,12 +16,9 @@ interface ChatRow {
   updated_at: string;
 }
 
-const FREE_SHARED_CHAT_LIMIT = 2;
-
 export function SharedChatsPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { hasBoost, openCheckout } = useSubscription();
   const { toast } = useToast();
   const [chats, setChats] = useState<ChatRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,19 +55,8 @@ export function SharedChatsPage() {
     setLoading(false);
   }
 
-  const ownedCount = chats.filter((c) => c.owner_id === user?.id).length;
-  const atLimit = !hasBoost && ownedCount >= FREE_SHARED_CHAT_LIMIT;
-
   async function create() {
     if (!user || !newTitle.trim()) return;
-    if (atLimit) {
-      toast({
-        title: "Free limit reached",
-        description: `Free accounts can create up to ${FREE_SHARED_CHAT_LIMIT} shared chats. Upgrade to Boost for unlimited.`,
-      });
-      openCheckout();
-      return;
-    }
     setCreating(true);
     const { data, error } = await supabase
       .from("shared_chats")
@@ -119,9 +104,6 @@ export function SharedChatsPage() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Group conversations with Arc and the people you invite. Each chat fits the owner plus up to 5 others (6 total).
-            {!hasBoost && (
-              <> Free includes up to {FREE_SHARED_CHAT_LIMIT} chats ({ownedCount}/{FREE_SHARED_CHAT_LIMIT} used).</>
-            )}
           </p>
         </motion.div>
 
@@ -129,19 +111,12 @@ export function SharedChatsPage() {
           <Input
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            placeholder={atLimit ? "Upgrade to Boost for more" : "New shared chat title"}
+            placeholder="New shared chat title"
             onKeyDown={(e) => e.key === "Enter" && create()}
-            disabled={atLimit}
           />
-          {atLimit ? (
-            <Button onClick={openCheckout} className="gap-2">
-              <Lock className="h-4 w-4" /> Upgrade
-            </Button>
-          ) : (
-            <Button onClick={create} disabled={creating || !newTitle.trim()} className="gap-2">
-              <Plus className="h-4 w-4" /> Create
-            </Button>
-          )}
+          <Button onClick={create} disabled={creating || !newTitle.trim()} className="gap-2">
+            <Plus className="h-4 w-4" /> Create
+          </Button>
         </GlassCard>
 
         {loading ? (

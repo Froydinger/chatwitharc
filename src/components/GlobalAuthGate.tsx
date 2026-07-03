@@ -5,9 +5,9 @@ import type { AuthGateDetail, GatedFeature } from "@/hooks/useRequireAuth";
 
 /**
  * Listens for the global `auth-gate-feature` event and renders the AuthModal
- * with the matching contextual copy + Boost CTA. Also fires
+ * with matching contextual copy. Also fires
  * `arcai-auth-completed` when the user transitions from anonymous → real, so
- * post-auth actions (like opening the upgrade modal) can run.
+ * post-auth actions can run.
  */
 export function GlobalAuthGate() {
   const { user, isAnonymous, loading } = useAuth();
@@ -29,7 +29,7 @@ export function GlobalAuthGate() {
     };
   }, []);
 
-  // When user upgrades from anonymous to a real account, close the modal
+  // When an anonymous user creates a permanent account, close the modal
   // and broadcast completion so post-auth actions can run.
   const [wasAnon, setWasAnon] = useState<boolean | null>(null);
   useEffect(() => {

@@ -30,7 +30,6 @@ import { useProfile } from "@/hooks/useProfile";
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { useSubscription } from "@/hooks/useSubscription";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useStreamingWithContinuation } from "@/hooks/useStreamingWithContinuation";
@@ -420,7 +419,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const { toast } = useToast();
   const showPopup = useFingerPopup((state) => state.showPopup);
   const { user, isAnonymous } = useAuth();
-  const subscription = useSubscription();
   // Guest mode = no user OR anonymous (auto-issued) Supabase session.
   const isGuestMode = !user || isAnonymous;
   const requireAuth = useRequireAuth();
@@ -529,7 +527,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
   // Persisted user-chosen image model + aspect ratio (for /image, "draw…", etc.)
   const { model: imageGenModel, aspectRatio: imageGenAspect, count: imageGenCount } = useImageGenStore();
-  const hasBoost = subscription.hasBoost;
 
   // When a /write canvas is open, auto-show canvas mode indicator so user knows
   // their messages will modify the canvas (not go to chat)
@@ -1065,7 +1062,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         imagePrompt: editInstruction,
       });
 
-      const effectiveCount = hasBoost ? Math.max(1, Math.min(3, Math.floor(Number(countOverride ?? imageGenCount) || 1))) : 1;
+      const effectiveCount = Math.max(1, Math.min(3, Math.floor(Number(countOverride ?? imageGenCount) || 1)));
       const editedUrls = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio, effectiveCount);
 
       const {
@@ -1145,16 +1142,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       if (guestCount >= 15) {
         // Dispatch event to show signup prompt
         window.dispatchEvent(new CustomEvent("arcai:guestMessageSent"));
-        return;
-      }
-
-      // Authenticated user: check daily message limit
-      if (user && !subscription.canSendMessage) {
-        toast({
-          title: "Daily message limit reached",
-          description: "Upgrade to ArcAi Pro for unlimited messages.",
-          variant: "destructive",
-        });
         return;
       }
     }
@@ -1264,8 +1251,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     // Track message usage
     if (isGuestMode) {
       window.dispatchEvent(new CustomEvent("arcai:guestMessageSent"));
-    } else if (user) {
-      subscription.recordMessage();
     }
 
     try {
@@ -1387,7 +1372,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrls = await ai.editImage(finalMessage, imageUrls, imageGenModel, imageGenAspect, hasBoost ? Math.max(1, Math.min(3, imageGenCount || 1)) : 1);
+            const editedUrls = await ai.editImage(finalMessage, imageUrls, imageGenModel, imageGenAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
             const {
               data: { user },
             } = await supabase.auth.getUser();
@@ -1489,7 +1474,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
-          const requestedCount = hasBoost ? Math.max(1, Math.min(3, imageGenCount || 1)) : 1;
+          const requestedCount = Math.max(1, Math.min(3, imageGenCount || 1));
           const genUrls = await ai.generateImage(apiPrompt, imageGenModel, imageGenAspect, requestedCount);
 
           const {
@@ -1567,7 +1552,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrls = await ai.editImage(finalMessage, sourceImageUrls, imageGenModel, imageGenAspect, hasBoost ? Math.max(1, Math.min(3, imageGenCount || 1)) : 1);
+            const editedUrls = await ai.editImage(finalMessage, sourceImageUrls, imageGenModel, imageGenAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
             const {
               data: { user },
             } = await supabase.auth.getUser();

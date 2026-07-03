@@ -74,12 +74,6 @@ export function Index() {
       <OnboardingScreen
         onComplete={() => {
           setOnboardingComplete(true);
-          // Show upgrade modal after onboarding
-          const hasSeenUpgrade = localStorage.getItem('arcai-seen-upgrade');
-          if (!hasSeenUpgrade) {
-            setTimeout(() => window.dispatchEvent(new CustomEvent('open-upgrade-modal')), 800);
-            localStorage.setItem('arcai-seen-upgrade', 'true');
-          }
         }}
       />
     );

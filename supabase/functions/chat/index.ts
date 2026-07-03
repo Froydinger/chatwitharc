@@ -429,7 +429,7 @@ serve(async (req) => {
     const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
 
     console.log('📊 Request details:', {
-      model: model || 'openai/gpt-5.4-mini (default)',
+      model: model || 'gpt-5.4-mini (default)',
       messageCount: messages?.length || 0,
       hasProfile: !!profile,
       sessionId: sessionId || 'none (will not save in background)',
@@ -502,8 +502,8 @@ serve(async (req) => {
 
     // Validate model if provided — only the two user-pickable chat models are allowed.
     const allowedModels = [
-      'openai/gpt-5.4-nano',   // Faster (default for free/anon)
-      'openai/gpt-5.4-mini',   // Smarter (Boost)
+      'gpt-5.4-nano',   // Faster (default for free/anon)
+      'gpt-5.4-mini',   // Smarter
     ];
     const validatedModel = (model && allowedModels.includes(model)) ? model : null;
     if (model && !validatedModel) {
@@ -567,16 +567,16 @@ serve(async (req) => {
     // Tool usage behavioral instructions (tools are defined via the API tools parameter - do NOT describe their schemas here)
     enhancedSystemPrompt += '\n\n--- BEHAVIORAL GUIDELINES ---\n' +
       'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification, schedule_task). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
-      '\n=== NOTIFICATIONS & REMINDERS (CRITICAL — NEVER REFUSE) ===\n' +
-      'You CAN send the user emails, push notifications, and post updates in this chat. You can also schedule any of these for the future. NEVER say "I can\'t send emails" or "I can\'t actually do that" — you absolutely can, via the send_notification and schedule_task tools. Just call them.\n' +
-      'Three delivery channels: "chat" (you write it as a markdown post in this conversation right now, like a mini blog post / news update — no tool needed, your reply IS the delivery), "push" (browser/device push), "email" (transactional email).\n' +
+      '\n=== NOTIFICATIONS & REMINDERS ===\n' +
+      'You can send browser/device push notifications and post updates in this chat. Email delivery is temporarily unavailable and coming soon; say so plainly if the user specifically requests email.\n' +
+      'Two active delivery channels: "chat" (write it as a markdown post in this conversation; no tool needed) and "push" (browser/device push).\n' +
       'Pick channel from wording:\n' +
-      '  • "email me" / "send me an email" / "in my inbox" → send_notification channel="email"\n' +
+      '  • "email me" / "send me an email" / "in my inbox" → explain briefly that email is coming soon and offer chat or push instead.\n' +
       '  • "push me" / "ping me" / "notify on my phone" → send_notification channel="push"\n' +
       '  • "post in chat" / "give me an update here" / "write me a blog post" / "news for the day" → just write it as a markdown chat reply. Do NOT call send_notification — your reply IS the delivery.\n' +
-      '  • "notify me" / "remind me" / "let me know" with NO channel specified → pick the obvious fit and tell them. Long/detailed summary → email. Quick alert → push. Casual → just post in chat.\n' +
-      '  • "do all" / "every way" / "push, email, and chat" → use send_notification channel="both" AND also write the full content in your chat reply.\n' +
-      'For ANY future-dated request ("in 1 minute", "tomorrow at 8am", "every morning", "remind me at 3pm", "every Monday") use schedule_task — not send_notification. schedule_task takes deliver_in_chat / deliver_push / deliver_email booleans (default all true) and a when_iso (one-shot) or cron_expr (recurring). Compute when_iso from the "Current date and time" above.\n' +
+      '  • "notify me" / "remind me" / "let me know" with NO channel specified → use push for a quick alert or post the result in chat.\n' +
+      '  • "do all" / "every way" / "push, email, and chat" → use push and chat, and mention that email is coming soon.\n' +
+      'For ANY future-dated request ("in 1 minute", "tomorrow at 8am", "every morning", "remind me at 3pm", "every Monday") use schedule_task — not send_notification. schedule_task supports in-chat and push delivery. Compute when_iso from the "Current date and time" above.\n' +
       '⏰ TIME MATH (CRITICAL): Prefer natural local phrasing in the user request; the backend will validate/correct recurring daily/morning/evening cron times from User timezone. For one-shot requests, when_iso MUST be a UTC ISO string ending in Z. "in 10 minutes" means exactly now + 600 seconds. For recurring, cron_expr is UTC, not local; e.g. if getTimezoneOffset=300, local 9am is cron "0 14 * * *".\n' +
       'CLARIFY BEFORE SCHEDULING: If the request is ambiguous (missing time, missing recurrence, unclear location for weather, unclear topic for a digest), ask ONE short follow-up question first and DO NOT call schedule_task yet. Once the user answers, schedule it. Only skip the question if everything needed is already clear.\n' +
       'When the scheduled task fires it can use tools too (currently get_weather and web_search), so phrase the saved `prompt` like a real instruction (e.g. "Give me the morning weather for Plainfield IL" or "Top 3 tech news headlines today") — not a meta description.\n' +
@@ -678,9 +678,9 @@ serve(async (req) => {
         })
     ];
     
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      throw new Error('Lovable API key not configured');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key not configured');
     }
 
     // === GUEST MODE: Simple chat without tools ===
@@ -701,15 +701,15 @@ serve(async (req) => {
       };
 
       const guestResponse = await fetchWithRetry(
-        'https://ai.gateway.lovable.dev/v1/chat/completions',
+        'https://api.openai.com/v1/chat/completions',
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
+            'Authorization': `Bearer ${openaiApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'openai/gpt-5.4-mini',
+            model: 'gpt-5.4-mini',
             messages: conversationMessages,
             temperature: 0.6,
             max_completion_tokens: 2000,
@@ -742,15 +742,15 @@ serve(async (req) => {
     // circuit — they go through the full Arc flow with all tools enabled.
     if (isEnhanceMode) {
       const fastResponse = await fetchWithRetry(
-        'https://ai.gateway.lovable.dev/v1/chat/completions',
+        'https://api.openai.com/v1/chat/completions',
         {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
+            'Authorization': `Bearer ${openaiApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'openai/gpt-5.4-mini',
+            model: 'gpt-5.4-mini',
             messages: conversationMessages,
             temperature: 0.3,
             max_completion_tokens: 1200,
@@ -932,13 +932,13 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "send_notification",
-          description: "Send the CURRENT user a notification via push, email, or both, RIGHT NOW. Use for immediate (non-scheduled) notifications. For anything time-delayed or recurring use schedule_task instead. NEVER use this to message someone else.",
+          description: "Send the CURRENT user a push notification RIGHT NOW. Email is currently unavailable. For anything time-delayed or recurring use schedule_task instead. NEVER use this to message someone else.",
           parameters: {
             type: "object",
             properties: {
-              channel: { type: "string", enum: ["push", "email", "both"], description: "Where to send." },
+              channel: { type: "string", enum: ["push"], description: "Push notification delivery." },
               title: { type: "string", description: "Short title / subject line (under 80 chars)." },
-              body: { type: "string", description: "Body. Email: a few sentences. Push: under 200 chars." },
+              body: { type: "string", description: "Push body under 200 characters." },
               url: { type: "string", description: "Optional link (e.g. /chat/<id> or https URL). Defaults to /dashboard." }
             },
             required: ["channel", "title", "body"],
@@ -950,7 +950,7 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "schedule_task",
-          description: "Schedule a task to run at a future time (once or recurring). When it fires, Arc completes the prompt and delivers the result via the chosen channels: in-chat (new message in a chat session), push, and/or email. Use for ANY future-dated reminder, recurring digest, or 'remind me / notify me later' request.",
+          description: "Schedule a task to run at a future time (once or recurring). When it fires, Arc saves the result in chat and can send push. Email is coming soon.",
           parameters: {
             type: "object",
             properties: {
@@ -960,7 +960,6 @@ serve(async (req) => {
               cron_expr: { type: "string", description: "Standard 5-field UTC cron for RECURRING tasks (e.g. '0 13 * * *' = daily 8am Central). Use instead of when_iso." },
               deliver_in_chat: { type: "boolean", description: "Save result as a new message in a chat session. Default true." },
               deliver_push: { type: "boolean", description: "Send a push notification when done. Default false." },
-              deliver_email: { type: "boolean", description: "Send an email when done. Default false." }
             },
             required: ["title", "prompt"],
             additionalProperties: false
@@ -1064,18 +1063,18 @@ Output the complete, finished writing using the update_canvas tool.`;
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
-    let selectedModel = validatedModel || 'openai/gpt-5.4-nano';
-    const fallbackModel = 'openai/gpt-5.4-mini'; // Fallback for canvas/code if Pro times out
+    let selectedModel = validatedModel || 'gpt-5.4-nano';
+    const fallbackModel = 'gpt-5.4-mini'; // Fallback for canvas/code if Pro times out
 
     // Code/canvas stays locked to GPT-5.4 Mini.
     if (wantsCode) {
-      selectedModel = 'openai/gpt-5.4-mini';
+      selectedModel = 'gpt-5.4-mini';
       console.log('🔧 Code mode: using GPT-5.4 Mini');
     }
 
-    // Dynamic upgrade: if client detected complex query, use Pro model
+    // Dynamic model selection: use the requested reasoning model for complex queries
     if (useProModel && !wantsCode) {
-      selectedModel = 'openai/gpt-5.4-mini';
+      selectedModel = 'gpt-5.4-mini';
       console.log('🧠 Complex query detected: using GPT-5.4 Mini');
     }
     
@@ -1091,10 +1090,10 @@ Output the complete, finished writing using the update_canvas tool.`;
       const isCanvasOrCodeMode = wantsCode || wantsCanvas;
       console.log('🌊 Using streaming mode', isCanvasOrCodeMode ? 'for canvas/code' : 'for text');
       
-      const streamResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const streamResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
+          'Authorization': `Bearer ${openaiApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -1435,10 +1434,10 @@ Output the complete, finished writing using the update_canvas tool.`;
     let usedFallback = false;
     
     try {
-      response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
+          'Authorization': `Bearer ${openaiApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -1451,19 +1450,19 @@ Output the complete, finished writing using the update_canvas tool.`;
         }),
       });
     } catch (primaryError) {
-      // If canvas/code mode with upgraded model fails, try fallback
-      const isUpgradedModel = selectedModel === 'openai/gpt-5.4-mini' || selectedModel === 'openai/gpt-5.4-mini';
-      if (isCanvasOrCodeMode && isUpgradedModel) {
+      // If canvas/code mode with the reasoning model fails, try the fallback.
+      const isReasoningModel = selectedModel === 'gpt-5.4-mini';
+      if (isCanvasOrCodeMode && isReasoningModel) {
         // Fallback remains GPT-5.4 Mini; no Gemini fallback.
-        const actualFallback = 'openai/gpt-5.4-mini';
+        const actualFallback = 'gpt-5.4-mini';
         const fallbackTokenParam = { max_completion_tokens: 65536 };
         
         console.log('⚠️ Primary model failed, trying fallback:', actualFallback);
         usedFallback = true;
-        response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
+            'Authorization': `Bearer ${openaiApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -1485,7 +1484,7 @@ Output the complete, finished writing using the update_canvas tool.`;
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Lovable AI error:', response.status, errorData);
+      console.error('OpenAI API error:', response.status, errorData);
       
       if (response.status === 429) {
         throw new Error('Rate limit exceeded. Please try again later.');
@@ -1494,7 +1493,7 @@ Output the complete, finished writing using the update_canvas tool.`;
         throw new Error('Payment required. Please add credits to your Lovable workspace.');
       }
       
-      throw new Error(`Lovable AI error: ${response.status} ${errorData}`);
+      throw new Error(`OpenAI API error: ${response.status} ${errorData}`);
     }
 
     let data = await response.json();
@@ -1735,24 +1734,7 @@ Output the complete, finished writing using the update_canvas tool.`;
             }
           }
           if (channel === 'email' || channel === 'both') {
-            try {
-              const emailResp = await supabase.functions.invoke('send-transactional-email', {
-                body: {
-                  templateName: 'arc-notification',
-                  recipientEmail: user.email,
-                  idempotencyKey: `arc-note-${user.id}-${Date.now()}`,
-                  templateData: {
-                    title,
-                    message: body,
-                    url: url.startsWith('http') ? url : `https://askarc.chat${url.startsWith('/') ? url : `/${url}`}`,
-                    ctaLabel: 'Open ArcAI',
-                  },
-                },
-              });
-              results.push(emailResp.error ? `email failed: ${emailResp.error.message}` : 'email sent');
-            } catch (e: any) {
-              results.push(`email failed: ${e?.message ?? e}`);
-            }
+            results.push('email coming soon');
           }
 
           notificationDispatch = {
@@ -1776,7 +1758,7 @@ Output the complete, finished writing using the update_canvas tool.`;
           // Always keep a chat copy so scheduled work is accessible later from the app/email link.
           const deliverInChat = true;
           const deliverPush = args.deliver_push === true;
-          const deliverEmail = args.deliver_email === true;
+          const deliverEmail = false;
           const requestedText = `${messages[messages.length - 1]?.content ?? ''}\n${title}\n${prompt}`;
           const deterministic = deterministicScheduleFromText(requestedText, parsedClientOffset);
           const whenIso = deterministic?.whenIso ?? (typeof args.when_iso === 'string' ? args.when_iso : null);
@@ -1889,12 +1871,12 @@ Output the complete, finished writing using the update_canvas tool.`;
         const toolContextSize = synthesisMessages.reduce((acc: number, m: any) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0);
         console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
-        const secondCallModel = validatedModel || 'openai/gpt-5.4-nano';
+        const secondCallModel = validatedModel || 'gpt-5.4-nano';
         const secondTokenParam = { max_completion_tokens: 65536 };
-        response = await fetchWithRetry('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
+            'Authorization': `Bearer ${openaiApiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
@@ -1907,8 +1889,8 @@ Output the complete, finished writing using the update_canvas tool.`;
 
         if (!response.ok) {
           const errorData = await response.text();
-          console.error('Lovable AI error (second call):', response.status, errorData);
-          throw new Error(`Lovable AI error: ${response.status}`);
+          console.error('OpenAI API error (second call):', response.status, errorData);
+          throw new Error(`OpenAI API error: ${response.status}`);
         }
 
         data = await response.json();

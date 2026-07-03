@@ -15,7 +15,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/pricing": {
     title: "ArcAI • Pricing",
     description:
-      "ArcAI is free forever. Upgrade via ArcAI Boost ($7/mo) for unlimited image generations, unlimited voice conversations, and one-tap web publishing for your code creations.",
+      "ArcAI is free forever with every model, unlimited voice, Deep Search, shared chats and web publishing. Image generation and editing include 20 outputs per account per UTC day.",
   },
   "/downloads": {
     title: "ArcAI • Downloads",
@@ -30,7 +30,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/dashboard/settings": {
     title: "ArcAI • Settings",
     description:
-      "Manage your ArcAI account, accent color, voice, memory and subscription preferences.",
+      "Manage your ArcAI account, accent color, voice, memory and usage preferences.",
   },
   "/support": {
     title: "ArcAI • Support",

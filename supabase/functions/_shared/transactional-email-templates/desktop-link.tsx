@@ -25,7 +25,7 @@ const DesktopLinkEmail = ({ displayName, desktopUrl }: DesktopLinkProps) => {
         <Container style={container}>
           <Section style={header}>
             <Img
-              src="https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/email-assets/arc-logo-ui.png"
+              src="https://cgvixgyjzswebosfqyll.supabase.co/storage/v1/object/public/email-assets/arc-logo-ui.png"
               width="56"
               height="56"
               alt="ArcAI"

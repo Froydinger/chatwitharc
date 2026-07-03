@@ -2,7 +2,7 @@
 // rewrites it into a clearer, more detailed instruction for an AI.
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
-const MODEL = 'openai/gpt-5.4-mini';
+const MODEL = 'gpt-5.4-mini';
 
 const SYSTEM_CHAT = `You are a PROMPT REWRITER. Your ONLY job is to rewrite the user's prompt into a clearer, more specific, more effective prompt for an AI assistant.
 
@@ -36,9 +36,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get('LOVABLE_API_KEY');
+    const apiKey = Deno.env.get('OPENAI_API_KEY');
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'Missing LOVABLE_API_KEY' }), {
+      return new Response(JSON.stringify({ error: 'Missing OPENAI_API_KEY' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
     const system = kind === 'image' ? SYSTEM_IMAGE : SYSTEM_CHAT;
 
-    const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
 
     if (!res.ok) {
       const errText = await res.text();
-      return new Response(JSON.stringify({ error: `Gateway ${res.status}: ${errText}` }), {
+      return new Response(JSON.stringify({ error: `OpenAI ${res.status}: ${errText}` }), {
         status: res.status === 429 || res.status === 402 ? res.status : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useImageQuota } from "@/hooks/useImageQuota";
 import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { useArcStore } from "@/store/useArcStore";
@@ -35,7 +35,7 @@ import { useArcStore } from "@/store/useArcStore";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { lovable } from "@/integrations/lovable/index";
+import { signInWithGoogle } from "@/integrations/auth";
 import { VoiceSelector } from "@/components/VoiceSelector";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useNavigate } from "react-router-dom";
@@ -74,24 +74,19 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   const { isAdmin } = useAdminSettings();
   const { clearAllSessions, createNewSession, lastSyncAt } = useArcStore();
   
-  const subscription = useSubscription();
+  const imageQuota = useImageQuota();
   const {
-    isSubscribed, loading: subLoading,
-    dailyMessagesUsed, dailyVoiceSessionsUsed,
-    canSendMessage, canUseVoice,
-    remainingMessages, remainingVoiceSessions,
-    openCheckout, openCustomerPortal,
-    FREE_DAILY_MESSAGE_LIMIT, FREE_DAILY_VOICE_LIMIT,
-    hasBoost, voiceConversations30d, FREE_VOICE_LIMIT_30D,
-    dailyImagesUsed, FREE_DAILY_IMAGE_LIMIT,
-  } = subscription;
+    loading: subLoading,
+    isAdmin: quotaAdmin,
+    dailyImagesUsed,
+    FREE_DAILY_IMAGE_LIMIT,
+  } = imageQuota;
 
   const [activeTab, setActiveTab] = useState<HubTab>("overview");
   const [stats, setStats] = useState<UserStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [funFact, setFunFact] = useState<string | null>(null);
   const [funFactLoading, setFunFactLoading] = useState(false);
-  const [portalLoading, setPortalLoading] = useState(false);
 
   // Profile editing
   const [displayNameDraft, setDisplayNameDraft] = useState("");
@@ -231,19 +226,12 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   };
 
 
-  const handlePortal = async () => {
-    setPortalLoading(true);
-    await openCustomerPortal();
-    setPortalLoading(false);
-  };
-
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
     : null;
 
 
-  const imagePercent = hasBoost ? 0 : Math.min(100, (dailyImagesUsed / FREE_DAILY_IMAGE_LIMIT) * 100);
-  const voicePercent = hasBoost ? 0 : Math.min(100, (voiceConversations30d / FREE_VOICE_LIMIT_30D) * 100);
+  const imagePercent = quotaAdmin ? 0 : Math.min(100, (dailyImagesUsed / FREE_DAILY_IMAGE_LIMIT) * 100);
 
   const getSyncStatus = () => {
     if (!user) return { icon: CloudOff, color: "text-muted-foreground", text: "Not signed in" };
@@ -326,46 +314,28 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                   </div>
                 </div>
 
-                {/* Subscription Card */}
+                {/* Free plan and image allowance */}
                 <div className="p-4 rounded-xl glass border border-border/30 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Crown className={cn("h-4 w-4", hasBoost ? "text-primary" : "text-muted-foreground")} />
+                      <Crown className="h-4 w-4 text-primary" />
                       <span className="font-medium">
-                        {subLoading ? "Loading..." : hasBoost ? "ArcAI Boost" : "Free · ArcAI"}
+                        {subLoading ? "Loading..." : quotaAdmin ? "ArcAI Admin" : "ArcAI · Free forever"}
                       </span>
                     </div>
-                    {hasBoost ? (
-                      <Button size="sm" variant="outline" className="h-7 text-xs glass border-glass-border" onClick={handlePortal} disabled={portalLoading}>
-                        {portalLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Manage"}
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm" className="h-7 text-xs noir-send-btn"
-                        onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('open-upgrade-modal')); }}
-                      >
-                        Get Boost
-                      </Button>
-                    )}
+                    <span className="text-xs font-semibold text-primary">NO PAID TIER</span>
                   </div>
-                  {!hasBoost && !subLoading && (
+                  {!subLoading && (
                     <div className="space-y-2">
                       <div>
                         <div className="flex justify-between text-xs text-muted-foreground mb-1">
                           <span>🖼️ Images (today)</span>
-                          <span>{dailyImagesUsed}/{FREE_DAILY_IMAGE_LIMIT}</span>
+                          <span>{quotaAdmin ? "Unlimited" : `${dailyImagesUsed}/${FREE_DAILY_IMAGE_LIMIT}`}</span>
                         </div>
                         <Progress value={imagePercent} className="h-1.5" />
                       </div>
-                      <div>
-                        <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                          <span>🎙️ Voice (last 30 days)</span>
-                          <span>{voiceConversations30d}/{FREE_VOICE_LIMIT_30D}</span>
-                        </div>
-                        <Progress value={voicePercent} className="h-1.5" />
-                      </div>
                       <p className="text-[10px] text-muted-foreground/70 text-center pt-1">
-                        ArcAI is free forever. Boost is a paid upgrade.
+                        Everything is free. Voice and all other features are unlimited.
                       </p>
                     </div>
                   )}
@@ -522,10 +492,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                           className="h-8 text-xs border-border bg-muted/40 hover:bg-muted/60"
                           onClick={async () => {
                             try {
-                              const result = await lovable.auth.signInWithOAuth("google", {
-                                redirect_uri: window.location.origin,
-                                extraParams: { prompt: "select_account" },
-                              });
+                              const result = await signInWithGoogle();
                               if (result.error) {
                                 toast({ title: "Connection failed", description: String(result.error), variant: "destructive" });
                               }

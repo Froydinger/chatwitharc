@@ -520,7 +520,7 @@ export function VoiceModeOverlay() {
               </motion.button>
             </div>
 
-            {/* Voice usage meter — hidden for Boost users.
+            {/* Voice usage meter.
                 Mobile: centered below the top button row.
                 sm+: inline between the left/right top clusters. */}
             <div

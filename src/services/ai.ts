@@ -87,7 +87,7 @@ export class AIService {
   private canvasTimeoutMs = 180000; // 180 second timeout for canvas/code generation
 
   constructor() {
-    // No API key needed - using secure edge function with Lovable Cloud
+    // API keys stay server-side in the configured Supabase Edge Functions.
   }
 
   // Wrapper for fetch with timeout
@@ -188,7 +188,7 @@ export class AIService {
       // Model routing based on user's model family preference
       const isCanvasOrCode = forceCanvas || forceCode;
       
-      // Check if the last user message warrants a model upgrade
+      // Check whether the last user message warrants the reasoning model
       const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
       const isComplex = !isCanvasOrCode && detectComplexQuery(lastUserMsg);
       
@@ -399,9 +399,11 @@ export class AIService {
       console.warn('Failed to fetch context blocks for streaming:', e);
     }
 
-    // Use hardcoded fallbacks to ensure URL is never undefined
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://jxywhodnndagbsmnbnnw.supabase.co";
-    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4eXdob2RubmRhZ2JzbW5ibm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwOTkwNjUsImV4cCI6MjA4MTY3NTA2NX0.tmqRRB4jbOOR0FWVsS8zXer_2IZLjzsPb2D3Ozu2bKk";
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase environment variables are not configured');
+    }
 
     // Get the user's actual session token (NOT the anon key)
     const { data: { session } } = await supabase.auth.getSession();
@@ -577,7 +579,7 @@ export class AIService {
     }
 
     try {
-      const modelToUse = preferredModel || 'openai/gpt-image-2';
+      const modelToUse = preferredModel || 'gpt-image-2';
       const safeCount = Math.max(1, Math.min(3, Math.floor(count) || 1));
 
       console.log('generateImage called with:', { prompt, preferredModel, aspectRatio, modelToUse, count: safeCount });
@@ -614,6 +616,7 @@ export class AIService {
         throw new Error('Failed to generate image');
       }
 
+      window.dispatchEvent(new Event('arc-image-quota-changed'));
       return urls;
     } catch (error) {
       console.error('Image generation error:', error);
@@ -630,7 +633,7 @@ export class AIService {
       const images = Array.isArray(baseImageUrls) ? baseImageUrls : [baseImageUrls];
       if (images.length > 14) throw new Error('Maximum 14 images allowed for combining');
 
-      const modelToUse = imageModel || 'openai/gpt-image-2';
+      const modelToUse = imageModel || 'gpt-image-2';
       const safeCount = Math.max(1, Math.min(3, Math.floor(count) || 1));
 
       const { data, error } = await supabase.functions.invoke('edit-image', {
@@ -659,6 +662,7 @@ export class AIService {
             window.dispatchEvent(new CustomEvent('imageFallbackUsed', { detail: { model: result.fallbackModel } }));
           } catch {}
         }
+        window.dispatchEvent(new Event('arc-image-quota-changed'));
         return result.imageUrls;
       }
 
@@ -667,6 +671,7 @@ export class AIService {
         ? data.imageUrls
         : (data?.imageUrl ? [data.imageUrl] : []);
       if (!data?.success || urls.length === 0) throw new Error('Failed to edit image');
+      window.dispatchEvent(new Event('arc-image-quota-changed'));
       return urls;
     } catch (error) {
       console.error('Image editing error:', error);

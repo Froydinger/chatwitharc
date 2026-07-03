@@ -1,14 +1,16 @@
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 
-const DEFAULT_SUPABASE_URL = 'https://jxywhodnndagbsmnbnnw.supabase.co';
-const DEFAULT_PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4eXdob2RubmRhZ2JzbW5ibm53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwOTkwNjUsImV4cCI6MjA4MTY3NTA2NX0.tmqRRB4jbOOR0FWVsS8zXer_2IZLjzsPb2D3Ozu2bKk';
 const AGENT_REQUEST_TIMEOUT_MS = 120000;
 const AGENT_INACTIVITY_TIMEOUT_MS = 90000;
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ||
-  (PROJECT_ID ? `https://${PROJECT_ID}.supabase.co` : DEFAULT_SUPABASE_URL);
+  (PROJECT_ID ? `https://${PROJECT_ID}.supabase.co` : undefined);
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  throw new Error('Supabase environment variables are not configured');
+}
 const AGENT_URL = `${SUPABASE_URL}/functions/v1/agent`;
 
 type AgentChatRole = 'user' | 'assistant' | 'system';
@@ -45,7 +47,6 @@ export async function sendAgentMessage(
   authToken?: string,
   chatHistory?: { role: string; content: string }[]
 ): Promise<AgentResult> {
-  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || DEFAULT_PUBLISHABLE_KEY;
   const messages = normalizeMessages(chatHistory, userMessage);
 
   const requestController = new AbortController();
@@ -57,7 +58,7 @@ export async function sendAgentMessage(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${authToken || supabaseKey}`,
+        Authorization: `Bearer ${authToken || SUPABASE_KEY}`,
       },
       body: JSON.stringify({
         messages,

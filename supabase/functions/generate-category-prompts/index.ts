@@ -125,13 +125,13 @@ Example: {"label": "🎨 Neon City", "prompt": "Generate image: a cyberpunk city
 
 CRITICAL: Every single label MUST have an emoji at the start! Use only regular quotes in JSON! Keep prompts general — never fabricate specific user details!`;
 
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      throw new Error('OPENAI_API_KEY not configured');
     }
 
     // Always use GPT-5.4 Mini for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'openai/gpt-5.4-mini';
+    const PROMPT_MODEL = 'gpt-5.4-mini';
     console.log('Using model for category prompts:', PROMPT_MODEL);
 
     const requestBody = {
@@ -146,10 +146,10 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
     };
 
     // Call AI to generate prompts
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),

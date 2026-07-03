@@ -118,13 +118,17 @@ export function useAccentColor() {
   const { user } = useAuth();
   const accentColor = useAccentStore((s) => s.accentColor);
   const setAccentColorLocal = useAccentStore((s) => s.setAccentColorLocal);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
 
 
   // Load accent color from profile on mount
   useEffect(() => {
-    if (!user || isLoaded || !supabase || !isSupabaseConfigured) {
-      if (!user || !supabase || !isSupabaseConfigured) setIsLoaded(true);
+    if (!user) {
+      setLoadedUserId(null);
+      setAccentColorLocal("noir");
+      return;
+    }
+    if (loadedUserId === user.id || !supabase || !isSupabaseConfigured) {
       return;
     }
 
@@ -136,23 +140,23 @@ export function useAccentColor() {
           .eq("user_id", user.id)
           .maybeSingle();
 
-        if (!error && data?.accent_color) {
-          const hasLocalChoice = localStorage.getItem("accentColor") !== null;
-          const nextAccent = data.accent_color === "blue" && !hasLocalChoice ? "noir" : data.accent_color;
-          setAccentColorLocal(nextAccent as AccentColor);
-          if (nextAccent !== data.accent_color) {
-            supabase.from("profiles").update({ accent_color: nextAccent }).eq("user_id", user.id).then(() => {});
-          }
+        const nextAccent = data?.accent_color && accentColorConfigs[data.accent_color as AccentColor]
+          ? data.accent_color as AccentColor
+          : "noir";
+        setAccentColorLocal(nextAccent);
+        if (!error && nextAccent !== data?.accent_color) {
+          await supabase.from("profiles").update({ accent_color: nextAccent }).eq("user_id", user.id);
         }
-        setIsLoaded(true);
+        setLoadedUserId(user.id);
       } catch (err) {
         console.error("Failed to load accent color:", err);
-        setIsLoaded(true);
+        setAccentColorLocal("noir");
+        setLoadedUserId(user.id);
       }
     };
 
     loadAccentColor();
-  }, [user, isLoaded]);
+  }, [user, loadedUserId, setAccentColorLocal]);
 
   // Apply CSS variables whenever accent color changes OR theme changes
   useEffect(() => {

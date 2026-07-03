@@ -1,8 +1,7 @@
 // Authenticated user → send a welcome / test push to themselves only.
-// Uses web-push-neo (Web Crypto + fetch) because the classic `web-push` npm
-// package crashes the Deno edge runtime (Deno.core.runMicrotasks not supported).
+// Delivery is delegated to the shared push sender so there is one Web Push
+// implementation to maintain.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { sendNotification } from "npm:web-push-neo@1.1.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,19 +9,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
-const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
-const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:admin@askarc.chat";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-
-  if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
-    return new Response(JSON.stringify({ error: "VAPID keys not configured" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
 
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -54,23 +42,6 @@ Deno.serve(async (req) => {
       // No body — treat as welcome
     }
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    const { data: subs, error } = await admin
-      .from("push_subscriptions")
-      .select("*")
-      .eq("user_id", user.id);
-
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const payload = isTest
       ? {
           title: "ArcAI",
@@ -89,43 +60,18 @@ Deno.serve(async (req) => {
           tag: "arc-welcome",
         };
 
-    const json = JSON.stringify(payload);
-    const vapidDetails = {
-      subject: VAPID_SUBJECT,
-      publicKey: VAPID_PUBLIC,
-      privateKey: VAPID_PRIVATE,
-    };
-
-    const results = await Promise.allSettled((subs ?? []).map(async (s: any) => {
-      try {
-        const res = await sendNotification(
-          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          json,
-          { vapidDetails, TTL: 60 },
-        );
-        if (res.status === 404 || res.status === 410) {
-          await admin.from("push_subscriptions").delete().eq("id", s.id);
-          return { id: s.id, ok: false, status: res.status };
-        }
-        if (res.status >= 400) {
-          const text = await res.text().catch(() => "");
-          console.error("push failed", res.status, text);
-          return { id: s.id, ok: false, status: res.status, error: text };
-        }
-        await admin.from("push_subscriptions")
-          .update({ last_used_at: new Date().toISOString() })
-          .eq("id", s.id);
-        return { id: s.id, ok: true };
-      } catch (err: any) {
-        console.error("send error", err?.message ?? err);
-        return { id: s.id, ok: false, error: String(err?.message ?? err) };
-      }
-    }));
-
-    const sent = results.filter((r) => r.status === "fulfilled" && (r as any).value.ok).length;
-    const failed = results.length - sent;
-
-    return new Response(JSON.stringify({ sent, failed, total: results.length }), {
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const response = await fetch(`${Deno.env.get("SUPABASE_URL")!}/functions/v1/send-push-notification`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ user_ids: [user.id], payload }),
+    });
+    const result = await response.text();
+    return new Response(result, {
+      status: response.status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {

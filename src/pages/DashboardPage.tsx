@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
-import { useSubscription } from "@/hooks/useSubscription";
+import { useImageQuota } from "@/hooks/useImageQuota";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useArcStore } from "@/store/useArcStore";
 import { useProfile } from "@/hooks/useProfile";
@@ -31,7 +31,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "@/components/ChatInput";
 import { MusicPopup } from "@/components/MusicPopup";
 import { useMusicStore } from "@/store/useMusicStore";
-import { PaymentFailureBanner } from "@/components/PaymentFailureBanner";
 import { CodePreview } from "@/components/CodePreview";
 import { canPreview, getLanguageDisplay, getLanguageColor } from "@/utils/codeUtils";
 import { useCanvasStore } from "@/store/useCanvasStore";
@@ -96,6 +95,7 @@ export function DashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as DashboardTab) || "overview";
   const { user, loading: authLoading, isAnonymous } = useAuth();
+  const { isAdmin } = useImageQuota();
 
   // Anonymous users are not allowed to view the dashboard at all.
   // Bounce them back to the chat and open the sign-in modal immediately.
@@ -112,7 +112,6 @@ export function DashboardPage() {
     return null;
   }
 
-  const { isSubscribed, subscriptionEnd, openCheckout, hasBoost } = useSubscription();
   const { profile } = useProfile();
   const { isLoaded } = useChatSync();
   const {
@@ -810,7 +809,6 @@ useEffect(() => {
         willChange: 'transform, opacity, filter',
       }}
     >
-      <PaymentFailureBanner />
       <div className="w-full px-4 sm:px-6 pt-3 sm:pt-4 pb-8 sm:pb-12 space-y-6 sm:space-y-8">
 
         {/* ═══ HEADER with ambient glow ═══ */}
@@ -876,7 +874,7 @@ useEffect(() => {
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/25 bg-primary/8 text-primary text-xs font-medium cursor-pointer hover:bg-primary/15 hover:border-primary/40 transition-colors"
           >
             <Zap className="h-3.5 w-3.5" />
-            <span>{hasBoost ? "ArcAI Boost — Unlimited chats, voice & images" : "ArcAI — Free forever · Unlimited chats · 10 images/day"}</span>
+            <span>{isAdmin ? "ArcAI Admin — unlimited everything" : "ArcAI — free forever · 20 image outputs/day"}</span>
           </button>
           <button
             onClick={() => navigate('/blog')}

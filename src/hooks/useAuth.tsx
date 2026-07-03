@@ -38,32 +38,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
-  const sendWelcomeEmail = async (userId: string, displayName: string | null) => {
-    if (!supabase) return;
-
-    try {
-      // Send welcome email via Lovable transactional emails
-      await supabase.functions.invoke('send-transactional-email', {
-        body: {
-          templateName: 'welcome',
-          recipientEmail: user?.email,
-          idempotencyKey: `welcome-${userId}`,
-          templateData: { displayName },
-        },
-      });
-      
-      // Mark as sent in database
-      await supabase
-        .from('profiles')
-        .update({ welcome_email_sent: true })
-        .eq('user_id', userId);
-
-      console.log('✅ Welcome email sent on first login');
-    } catch (error) {
-      console.error('Welcome email failed:', error);
-    }
-  };
-
   const fetchProfile = async (userId: string) => {
     if (!supabase) return;
 
@@ -93,13 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setNeedsOnboarding(false);
       }
 
-      // Send welcome email on first login (if not already sent)
-      if (data && !data.welcome_email_sent) {
-        // Use setTimeout to avoid blocking auth flow
-        setTimeout(() => {
-          sendWelcomeEmail(userId, data.display_name);
-        }, 1000);
-      }
     } catch (error) {
       console.error('Profile fetch error:', error);
       // Fallback: try to create profile if fetch fails
@@ -138,10 +105,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(data);
       setNeedsOnboarding(displayName === 'New User');
 
-      // Send welcome email for new users
-      setTimeout(() => {
-        sendWelcomeEmail(userId, displayName);
-      }, 1000);
     } catch (error) {
       console.error('Profile creation error:', error);
     }

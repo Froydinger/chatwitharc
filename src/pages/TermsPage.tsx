@@ -57,9 +57,9 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">4. Accounts &amp; sign-in</h2>
               <p className="text-muted-foreground">
-                Sign-in is handled by <strong>Google or Apple OAuth</strong>. You must provide accurate information and
-                keep your identity provider account secure. You're responsible for everything that happens under your
-                account.
+                Sign-in is handled by <strong>Supabase Auth</strong> using Google OAuth or email credentials. You must
+                provide accurate information and keep your login methods secure. You're responsible for everything that
+                happens under your account.
               </p>
             </section>
 
@@ -106,8 +106,9 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">8. Emails we send</h2>
               <p className="text-muted-foreground">
-                Transactional emails (account, security, support) are sent through <strong>Lovable Emails</strong> from{" "}
-                <code className="text-xs">notify.askarc.chat</code>. We don't send marketing or newsletter emails.
+                Supabase may send essential account and security emails, such as verification and password-reset
+                messages. Optional service and notification emails are coming soon. We don't send marketing or
+                newsletter emails.
               </p>
             </section>
 

@@ -5,7 +5,6 @@ import { useCanvasStore } from '@/store/useCanvasStore';
 import { cn } from '@/lib/utils';
 import { getLanguageDisplay, getLanguageColor } from '@/utils/codeUtils';
 import { deployCodeBlock } from '@/lib/deploy';
-import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 import { PublishModal } from '@/components/PublishModal';
 import { SiteManageModal } from '@/components/SiteManageModal';
@@ -25,7 +24,6 @@ export function CodeArtifactCard({
   className
 }: CodeArtifactCardProps) {
   const { openWithContent } = useCanvasStore();
-  const { isSubscribed } = useSubscription();
   const [publishedSite, setPublishedSite] = useState<PublishedSite | null>(null);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showManageModal, setShowManageModal] = useState(false);
@@ -36,12 +34,6 @@ export function CodeArtifactCard({
 
   const handleDeployClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Publishing is a Boost-only feature. Free users see the upgrade modal.
-    if (!isSubscribed) {
-      window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
-      toast.info('Publishing is a Boost feature ($7/mo)');
-      return;
-    }
     // Open the publish modal. The permanence warning lives inside the modal.
     setShowPublishModal(true);
   };

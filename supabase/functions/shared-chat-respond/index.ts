@@ -8,8 +8,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -88,7 +86,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         messages: convo,
-        model: "openai/gpt-5.4-mini",
+        model: "gpt-5.4-mini",
         clientDateTime: new Date().toString(),
         clientTimezone: "UTC",
         clientTimezoneOffsetMinutes: 0,

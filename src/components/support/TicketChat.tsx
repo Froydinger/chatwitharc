@@ -119,24 +119,6 @@ export function TicketChat({ ticketId, onBack, isAdmin }: TicketChatProps) {
       toast({ title: "Error", description: "Failed to send message", variant: "destructive" });
     } else {
       setNewMessage("");
-      // Send email notification to ticket owner when admin replies
-      if (isAdmin && ticket) {
-        try {
-          await supabase.functions.invoke("send-transactional-email", {
-            body: {
-              templateName: "support-reply",
-              recipientUserId: ticket.user_id,
-              idempotencyKey: `support-reply-${ticketId}-${Date.now()}`,
-              templateData: {
-                subject: ticket.subject,
-                messagePreview: messageContent.length > 200 ? messageContent.slice(0, 200) + "…" : messageContent,
-              },
-            },
-          });
-        } catch (e) {
-          console.error("Failed to send support reply email:", e);
-        }
-      }
     }
     setSending(false);
   };

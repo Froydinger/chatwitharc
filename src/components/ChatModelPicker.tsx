@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Brain, Lock, Check, ChevronDown } from 'lucide-react';
+import { Zap, Brain, Check, ChevronDown } from 'lucide-react';
 import { useModelStore, FASTER_MODEL, SMARTER_MODEL, type ChatModel } from '@/store/useModelStore';
 import { cn } from '@/lib/utils';
 
@@ -13,11 +13,10 @@ interface Props {
   placement?: 'up' | 'down';
 }
 
-/** Faster (5.4-nano) vs Smarter (5.4-mini) picker. Smarter is Boost-only. */
+/** Faster (5.4-nano) vs Smarter (5.4-mini) picker. Both are free. */
 export function ChatModelPicker({ className }: Props) {
   const chatModel = useModelStore((s) => s.chatModel);
   const setChatModel = useModelStore((s) => s.setChatModel);
-  const isBoost = useModelStore((s) => s.isBoost);
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
@@ -49,11 +48,6 @@ export function ChatModelPicker({ className }: Props) {
   }, [open]);
 
   const pick = (m: ChatModel) => {
-    if (m === SMARTER_MODEL && !isBoost) {
-      setOpen(false);
-      window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
-      return;
-    }
     setChatModel(m);
     setOpen(false);
   };
@@ -105,13 +99,7 @@ export function ChatModelPicker({ className }: Props) {
                   subtitle="GPT-5.4 Mini · deeper reasoning"
                   active={chatModel === SMARTER_MODEL}
                   onClick={() => pick(SMARTER_MODEL)}
-                  locked={!isBoost}
                 />
-                {!isBoost && (
-                  <div className="mt-1 px-2.5 py-1.5 text-[10px] text-muted-foreground border-t border-border/40">
-                    Smarter is unlocked with <span className="text-primary font-semibold">Boost</span>.
-                  </div>
-                )}
               </motion.div>
             </>
           )}
@@ -127,14 +115,12 @@ function Row({
   title,
   subtitle,
   active,
-  locked,
   onClick,
 }: {
   icon: React.ReactNode;
   title: string;
   subtitle: string;
   active?: boolean;
-  locked?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -152,7 +138,6 @@ function Row({
       <div className="flex-1 min-w-0">
         <div className="text-xs font-semibold flex items-center gap-1.5">
           {title}
-          {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
         </div>
         <div className="text-[10px] text-muted-foreground truncate">{subtitle}</div>
       </div>

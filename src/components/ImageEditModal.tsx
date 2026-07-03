@@ -15,7 +15,6 @@ import {
   type ImageModelId,
   type ImageAspectRatio,
 } from "@/store/useImageGenStore";
-import { useSubscription } from "@/hooks/useSubscription";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
 import { cn } from "@/lib/utils";
 
@@ -50,7 +49,6 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { addMessage } = useArcStore();
   const { toast } = useToast();
   
-  const { isSubscribed } = useSubscription();
   const { model: selectedModel, aspectRatio: selectedAspect, count: selectedCount, setModel, setAspectRatio } = useImageGenStore();
   const [openMenu, setOpenMenu] = useState<null | "model" | "aspect">(null);
 
@@ -67,15 +65,6 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const activeAspect = IMAGE_ASPECT_OPTIONS.find((a) => a.id === selectedAspect) ?? IMAGE_ASPECT_OPTIONS[0];
 
   const handlePickModel = (m: ImageModelId) => {
-    const target = IMAGE_MODEL_OPTIONS.find((o) => o.id === m);
-    if (target?.pro && !isSubscribed) {
-      toast({
-        title: "Pro feature",
-        description: `${target.label} is available with Pro. Sticking with ${activeModel.label}.`,
-      });
-      setOpenMenu(null);
-      return;
-    }
     setModel(m);
     setOpenMenu(null);
   };
@@ -364,7 +353,6 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
                     <div className="absolute bottom-full mb-2 left-0 w-64 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
                       {IMAGE_MODEL_OPTIONS.map((m) => {
                         const isActive = m.id === selectedModel;
-                        const locked = !!m.pro && !isSubscribed;
                         return (
                           <button
                             key={m.id}
@@ -373,7 +361,6 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
                             className={cn(
                               "w-full flex items-start gap-2 px-3 py-2 rounded-xl text-left transition-colors",
                               isActive ? "bg-primary/10" : "hover:bg-muted/40",
-                              locked && "opacity-70"
                             )}
                           >
                             <div className="flex-1 min-w-0">

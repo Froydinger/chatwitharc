@@ -1,20 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail } from "lucide-react";
-import { z } from "zod";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-
-const anonSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(100),
-  email: z.string().trim().email("Invalid email").max(255),
-  subject: z.string().trim().min(1, "Subject is required").max(200),
-  message: z.string().trim().min(1, "Message is required").max(2000),
-});
 
 export function AnonSupportForm() {
   const navigate = useNavigate();
@@ -23,8 +14,8 @@ export function AnonSupportForm() {
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [sent, setSent] = useState(false);
+  const submitting = false;
+  const sent = false;
 
   // Force dark theme for the public support view.
   useEffect(() => {
@@ -42,47 +33,7 @@ export function AnonSupportForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const parsed = anonSchema.safeParse({ name, email, subject, message });
-    if (!parsed.success) {
-      toast({
-        title: "Check the form",
-        description: parsed.error.issues[0]?.message ?? "Invalid input",
-        variant: "destructive",
-      });
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const { error } = await supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "ticket-opened",
-          idempotencyKey: `anon-support-${crypto.randomUUID()}`,
-          templateData: {
-            subject: `[Anon] ${parsed.data.subject}`,
-            userEmail: parsed.data.email,
-            userName: parsed.data.name,
-            priority: "normal",
-            messagePreview: parsed.data.message,
-            anonymous: true,
-          },
-        },
-      });
-      if (error) throw error;
-      setSent(true);
-      toast({
-        title: "Ticket sent",
-        description: "We'll reply to your email — no account needed.",
-      });
-    } catch (err) {
-      console.error("anon support submit failed", err);
-      toast({
-        title: "Couldn't send",
-        description: "Please try again in a moment.",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
-    }
+    toast({ title: "Coming soon", description: "Anonymous email support is temporarily unavailable." });
   };
 
   return (
@@ -94,7 +45,7 @@ export function AnonSupportForm() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">Support</h1>
           <p className="text-sm text-muted-foreground">
-            No account? No problem — we'll reply to your email.
+            Anonymous email support is coming soon. Sign in to open a trackable support ticket now.
           </p>
         </div>
       </div>
@@ -107,7 +58,7 @@ export function AnonSupportForm() {
           <div>
             <h2 className="text-lg font-semibold">Contact the ArcAI team</h2>
             <p className="text-xs text-muted-foreground">
-              Anonymous tickets are email-only. Sign in to track ticket status in your portal.
+              Coming soon — email delivery is temporarily unavailable.
             </p>
           </div>
         </div>
@@ -122,14 +73,14 @@ export function AnonSupportForm() {
         ) : (
           <form onSubmit={submit} className="space-y-3">
             <div className="grid sm:grid-cols-2 gap-3">
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" maxLength={100} required />
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your email" maxLength={255} required />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" maxLength={100} required disabled />
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your email" maxLength={255} required disabled />
             </div>
-            <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" maxLength={200} required />
-            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="How can we help?" rows={6} maxLength={2000} required />
+            <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" maxLength={200} required disabled />
+            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="How can we help?" rows={6} maxLength={2000} required disabled />
             <div className="flex justify-end">
-              <GlassButton type="submit" disabled={submitting}>
-                {submitting ? "Sending…" : "Send ticket"}
+              <GlassButton type="submit" disabled>
+                Coming soon
               </GlassButton>
             </div>
           </form>

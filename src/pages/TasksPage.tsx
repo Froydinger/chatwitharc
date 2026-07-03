@@ -103,7 +103,6 @@ export function TasksPage() {
   const [prompt, setPrompt] = useState("");
   const [scheduleText, setScheduleText] = useState("every day at 8am");
   const [pushOn, setPushOn] = useState(true);
-  const [emailOn, setEmailOn] = useState(false);
   
   const [creating, setCreating] = useState(false);
 
@@ -156,7 +155,7 @@ export function TasksPage() {
       next_run_at: nextRun,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
       push_on_complete: pushOn,
-      notify_email: emailOn,
+      notify_email: false,
     });
     setCreating(false);
     if (error) {
@@ -232,8 +231,10 @@ export function TasksPage() {
               <Switch checked={pushOn} onCheckedChange={setPushOn} />
             </div>
             <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2">Email me the results</Label>
-              <Switch checked={emailOn} onCheckedChange={setEmailOn} />
+              <Label className="flex items-center gap-2 text-muted-foreground">
+                Email me the results <span className="text-[10px] uppercase tracking-wide">Coming soon</span>
+              </Label>
+              <Switch checked={false} disabled />
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setShowNew(false)}>Cancel</Button>

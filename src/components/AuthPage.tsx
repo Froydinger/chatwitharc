@@ -5,9 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
+import { getAuthRedirectUrl, signInWithGoogle } from "@/integrations/auth";
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, User } from "lucide-react";
-import { AppleLogo } from "@/components/icons/AppleLogo";
 import { Separator } from "@/components/ui/separator";
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'magic-link';
@@ -43,7 +42,7 @@ export function AuthPage() {
     setLoading(true);
     try {
       if (mode === 'magic-link') {
-        const redirectUrl = 'https://askarc.chat/';
+        const redirectUrl = getAuthRedirectUrl();
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: { emailRedirectTo: redirectUrl },
@@ -55,7 +54,7 @@ export function AuthPage() {
         });
         setEmail("");
       } else if (mode === 'forgot-password') {
-        const redirectUrl = 'https://askarc.chat/';
+        const redirectUrl = getAuthRedirectUrl();
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: redirectUrl,
         });
@@ -71,7 +70,7 @@ export function AuthPage() {
         if (error) throw error;
         toast({ title: "Welcome back!", description: "You've been signed in successfully" });
       } else {
-        const redirectUrl = 'https://askarc.chat/';
+        const redirectUrl = getAuthRedirectUrl();
         const { error, data } = await supabase.auth.signUp({
           email,
           password,
@@ -108,10 +107,7 @@ export function AuthPage() {
   const handleGoogleAuth = async () => {
     setLoading(true);
     try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-        extraParams: { prompt: "select_account" },
-      });
+      const { error } = await signInWithGoogle();
       if (error) throw error;
     } catch (error: any) {
       toast({
@@ -123,22 +119,6 @@ export function AuthPage() {
     }
   };
 
-  const handleAppleAuth = async () => {
-    setLoading(true);
-    try {
-      const { error } = await lovable.auth.signInWithOAuth("apple", {
-        redirect_uri: window.location.origin,
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error?.message || "An error occurred with Apple sign in",
-        variant: "destructive",
-      });
-      setLoading(false);
-    }
-  };
 
   const onSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault();
@@ -367,18 +347,6 @@ export function AuthPage() {
                 Continue with Google
               </GlassButton>
 
-              {/* Apple Sign In */}
-              <GlassButton
-                variant="ghost"
-                onClick={handleAppleAuth}
-                disabled={loading}
-                className="w-full border border-white/20"
-                type="button"
-              >
-                <AppleLogo className="w-4 h-4 mr-2" />
-                Continue with Apple
-              </GlassButton>
-
               {/* Toggle Auth Mode */}
               <div className="text-center">
                 <button
@@ -395,7 +363,7 @@ export function AuthPage() {
               <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-xs text-gray-300 leading-relaxed space-y-2">
                 <p className="font-semibold text-white">How we use your Google account</p>
                 <p>
-                  When you continue with Google (or Apple), we only receive your <span className="text-white font-medium">email address</span> and <span className="text-white font-medium">name</span>. That's it.
+                  When you continue with Google, we only receive your <span className="text-white font-medium">email address</span> and <span className="text-white font-medium">name</span>. That's it.
                 </p>
                 <p>
                   Your email is used to create your ArcAI account. Your name is pre-filled in your profile and you can change it anytime in Settings.

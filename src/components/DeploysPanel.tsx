@@ -79,7 +79,7 @@ export function DeploysPanel() {
             <Rocket className="h-3.5 w-3.5" />
             How publishing works
           </div>
-          <p>Publish a code creation while you're a Boost subscriber and it stays live forever — even if you cancel later.</p>
+          <p>Publish a code creation for free and keep it live until you choose to unpublish it.</p>
           <p>Publications are <strong>final</strong>: once live they cannot be edited or re-published. You can unpublish at any time, but unpublished sites cannot be brought back.</p>
         </div>
       </div>

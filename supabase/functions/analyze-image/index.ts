@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,9 +40,9 @@ serve(async (req) => {
     );
   }
 
-  if (!lovableApiKey) {
-    console.error('Lovable API key not found');
-    return new Response(JSON.stringify({ error: 'Lovable API key not configured' }), {
+  if (!openaiApiKey) {
+    console.error('OpenAI API key not found');
+    return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -90,20 +90,20 @@ serve(async (req) => {
 
     // Allowlist supported vision models — fall back to default if unknown
     const ALLOWED_MODELS = new Set([
-      'openai/gpt-5.4-mini',
-      'openai/gpt-5.4-mini',
-      'openai/gpt-5.4-mini',
-      'openai/gpt-5.4-mini',
+      'gpt-5.4-mini',
+      'gpt-5.4-mini',
+      'gpt-5.4-mini',
+      'gpt-5.4-mini',
     ]);
     const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
       ? model
-      : 'openai/gpt-5.4-mini';
+      : 'gpt-5.4-mini';
     console.log('Using model for image analysis:', selectedModel);
     
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -124,7 +124,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('Lovable AI error:', errorData);
+      console.error('OpenAI API error:', errorData);
       
       if (response.status === 429) {
         return new Response(JSON.stringify({

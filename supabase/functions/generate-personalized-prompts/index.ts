@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,7 +64,7 @@ serve(async (req) => {
     }
 
     // Always use GPT-5.4 Mini for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'openai/gpt-5.4-mini';
+    const PROMPT_MODEL = 'gpt-5.4-mini';
     console.log('Using model for personalized prompts:', PROMPT_MODEL);
 
     const requestBody = {
@@ -118,10 +118,10 @@ Keep "text" short (25-35 chars), put full context in "fullPrompt".`
       max_completion_tokens: 500,
     };
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),

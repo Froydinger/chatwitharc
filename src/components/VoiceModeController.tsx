@@ -9,7 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 import { AIService } from '@/services/ai';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
-import { useSubscription } from '@/hooks/useSubscription';
 import { 
   setGlobalInterruptHandler, 
   setGlobalMuteHandoffHandler, 
@@ -275,7 +274,6 @@ export function VoiceModeController() {
   const { toast } = useToast();
   const { addMessage, messages } = useArcStore();
   const { profile, updateProfile } = useProfile();
-  const { recordVoiceConversation } = useSubscription();
   const {
     isActive,
     selectedVoice,
@@ -899,15 +897,6 @@ When the user shares their camera or attaches an image, describe what you see na
 
       // Final save of any remaining turns
       saveNewTurns(true).then((count) => {
-        const finalTurns = useVoiceModeStore.getState().conversationTurns;
-        const hadExchange =
-          finalTurns.some((t) => t.role === 'user' && t.transcript.trim()) &&
-          finalTurns.some((t) => t.role === 'assistant' && t.transcript.trim());
-        if (hadExchange) {
-          recordVoiceConversation().catch((e) =>
-            console.error('Failed to record voice conversation:', e)
-          );
-        }
         if (count > 0 || savedTurnIndex > 0) {
           console.log(`✅ Voice conversation fully saved (${savedTurnIndex} total turns)`);
           toast({
@@ -920,7 +909,7 @@ When the user shares their camera or attaches an image, describe what you see na
         savedTurnIndex = 0;
       });
     }
-  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, toast, deactivateVoiceMode, saveNewTurns, recordVoiceConversation]);
+  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, toast, deactivateVoiceMode, saveNewTurns]);
 
   // Periodic auto-save every 30s during active voice mode (reduced from 60s to
   // minimise data loss if a crash occurs between saves)

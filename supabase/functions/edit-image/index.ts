@@ -10,15 +10,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const OPENAI_TIMEOUT_MS = 180_000;
-const FALLBACK_MODEL = 'google/gemini-3.1-flash-image';
-
-const DEFAULT_IMAGE_MODEL = 'openai/gpt-image-2';
-const ALLOWED_IMAGE_MODELS = new Set<string>(['openai/gpt-image-2']);
+const DEFAULT_IMAGE_MODEL = 'gpt-image-2';
+const ALLOWED_IMAGE_MODELS = new Set<string>(['gpt-image-2']);
 function pickModel(requested?: string): string {
   return requested && ALLOWED_IMAGE_MODELS.has(requested) ? requested : DEFAULT_IMAGE_MODEL;
 }
@@ -174,13 +171,9 @@ async function cropTo16x9(imageUrl: string): Promise<string> {
 }
 
 async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, size: string, count: number) {
-  const endpoint = OPENAI_API_KEY
-    ? 'https://api.openai.com/v1/images/edits'
-    : 'https://ai.gateway.lovable.dev/v1/images/edits';
-  const headers = OPENAI_API_KEY
-    ? { 'Authorization': `Bearer ${OPENAI_API_KEY}` }
-    : { 'Authorization': `Bearer ${LOVABLE_API_KEY}` };
-  const modelName = OPENAI_API_KEY ? toOpenAIModel(model) : model;
+  const endpoint = 'https://api.openai.com/v1/images/edits';
+  const headers = { 'Authorization': `Bearer ${OPENAI_API_KEY}` };
+  const modelName = toOpenAIModel(model);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
@@ -204,69 +197,6 @@ async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: st
     if (err instanceof Error && err.name === 'AbortError') return { ok: false, status: 408, rawText: 'Request timeout' };
     return { ok: false, status: 500, rawText: err instanceof Error ? err.message : 'Unknown fetch error' };
   }
-}
-
-async function callGeminiEdit(prompt: string, sources: { b64: string; mime: string }[], count: number) {
-  // Lovable AI Gateway chat-completions image shape for Gemini image models.
-  // We request `count` images by issuing parallel calls (Gemini doesn't take `n`).
-  const endpoint = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-  const headers = {
-    'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-    'Content-Type': 'application/json',
-  };
-  const content: any[] = [{ type: 'text', text: prompt }];
-  for (const s of sources) {
-    content.push({ type: 'image_url', image_url: { url: `data:${s.mime};base64,${s.b64}` } });
-  }
-  const body = {
-    model: FALLBACK_MODEL,
-    messages: [{ role: 'user', content }],
-    modalities: ['image', 'text'],
-  };
-  const runOne = async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
-      const rawText = await res.text();
-      clearTimeout(timeoutId);
-      return { ok: res.ok, status: res.status, rawText };
-    } catch (err) {
-      clearTimeout(timeoutId);
-      if (err instanceof Error && err.name === 'AbortError') return { ok: false, status: 408, rawText: 'Request timeout' };
-      return { ok: false, status: 500, rawText: err instanceof Error ? err.message : 'Unknown fetch error' };
-    }
-  };
-  const results = await Promise.all(Array.from({ length: Math.max(1, count) }, runOne));
-  const urls: string[] = [];
-  let lastErr: { status: number; rawText: string } | null = null;
-  for (const r of results) {
-    if (!r.ok) { lastErr = { status: r.status, rawText: r.rawText }; continue; }
-    try {
-      const parsed = JSON.parse(r.rawText);
-      // Gateway-normalized OpenAI shape OR chat-completions images
-      const data = Array.isArray(parsed?.data) ? parsed.data : [];
-      for (const item of data) {
-        if (typeof item?.url === 'string') urls.push(item.url);
-        else if (typeof item?.b64_json === 'string') urls.push(`data:image/png;base64,${item.b64_json}`);
-      }
-      if (urls.length === 0) {
-        const images = parsed?.choices?.[0]?.message?.images;
-        if (Array.isArray(images)) {
-          for (const im of images) if (im?.image_url?.url) urls.push(im.image_url.url);
-        }
-      }
-    } catch {
-      lastErr = { status: 500, rawText: r.rawText };
-    }
-  }
-  if (urls.length === 0 && lastErr) return { ok: false, status: lastErr.status, rawText: lastErr.rawText, urls: [] };
-  return { ok: true, status: 200, rawText: '', urls };
 }
 
 function extractOpenAIImageUrls(parsed: any): string[] {
@@ -308,13 +238,13 @@ async function uploadDataUrlsToStorage(supabase: any, userId: string, urls: stri
 
 async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], size: string, count: number, selectedModel: string, isYouTube: boolean) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  let successfulCount = 0;
   try {
     const sources = await Promise.all(imageArray.map((url, i) => fetchImageAsBlob(url, i)));
     console.log(`[job ${jobId}] OpenAI edit attempt (${size}, n=${count}${isYouTube ? ', youtube' : ''})`);
     const primary = await callOpenAIEdits(prompt, sources, selectedModel, size, count);
 
     let urls: string[] = [];
-    let fallbackUsed: string | null = null;
     let primaryErr: ReturnType<typeof classifyError> | null = null;
 
     if (primary.ok) {
@@ -329,32 +259,14 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
       console.warn(`[job ${jobId}] OpenAI failed (${primary.status} / ${primaryErr.errorType}): ${primaryErr.debugDetail.slice(0, 240)}`);
     }
 
-    // Only fall back to Gemini on transient errors. Deterministic 4xx (content
-    // policy, invalid input image, bad request) will fail Gemini too and just
-    // double latency — surface the real OpenAI error to the user instead.
-    const shouldFallback = urls.length === 0 && (
-      primary.ok || // OpenAI returned OK but we got no images
-      primary.status >= 500 ||
-      primary.status === 408 ||
-      primary.status === 429
-    );
-
-    if (urls.length === 0 && shouldFallback) {
-      console.log(`[job ${jobId}] attempting Gemini fallback`);
-      const fb = await callGeminiEdit(prompt, sources.map(s => ({ b64: s.b64, mime: s.mime })), count);
-      if (fb.ok && fb.urls.length > 0) {
-        urls = fb.urls;
-        fallbackUsed = FALLBACK_MODEL;
-      } else {
-        const err = primaryErr ?? classifyError(fb.status, fb.rawText);
-        await updateJob(supabase, jobId, { status: 'failed', error_message: err.errorMessage, error_type: err.errorType });
-        console.error(`[job ${jobId}] both models failed`);
-        return;
-      }
-    } else if (urls.length === 0 && primaryErr) {
-      // Hard failure from OpenAI — pass the real message through.
-      await updateJob(supabase, jobId, { status: 'failed', error_message: primaryErr.errorMessage, error_type: primaryErr.errorType });
-      console.error(`[job ${jobId}] OpenAI hard failure, no fallback attempted`);
+    if (urls.length === 0) {
+      const err = primaryErr ?? {
+        errorType: 'provider_error',
+        errorMessage: 'OpenAI returned no edited image. Please try again.',
+        debugDetail: 'Empty OpenAI image response',
+      };
+      await updateJob(supabase, jobId, { status: 'failed', error_message: err.errorMessage, error_type: err.errorType });
+      console.error(`[job ${jobId}] OpenAI image edit failed: ${err.debugDetail.slice(0, 240)}`);
       return;
     }
 
@@ -370,22 +282,29 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
       status: 'completed',
       result_image_url: finalUrls[0],
       result_image_urls: finalUrls,
-      fallback_model: fallbackUsed,
+      fallback_model: null,
       error_message: null,
       error_type: null,
     });
-    console.log(`[job ${jobId}] completed (${finalUrls.length} image${finalUrls.length === 1 ? '' : 's'}${fallbackUsed ? `, fallback=${fallbackUsed}` : ''})`);
+    successfulCount = finalUrls.length;
+    console.log(`[job ${jobId}] completed (${finalUrls.length} image${finalUrls.length === 1 ? '' : 's'})`);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error(`[job ${jobId}] processing error:`, err);
     await updateJob(supabase, jobId, { status: 'failed', error_message: message, error_type: 'processing_error' });
+  } finally {
+    const { error } = await supabase.rpc('finalize_image_quota', {
+      target_job_id: jobId,
+      successful_count: successfulCount,
+    });
+    if (error) console.error(`[job ${jobId}] failed to finalize image quota:`, error);
   }
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-  if ((!OPENAI_API_KEY && !LOVABLE_API_KEY) || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!OPENAI_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return jsonResponse({ success: false, error: 'Image editing backend not configured.', errorType: 'configuration_error' });
   }
 
@@ -396,6 +315,13 @@ serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) return jsonResponse({ error: 'Invalid or expired token' }, 401);
+  if (user.is_anonymous) {
+    return jsonResponse({
+      success: false,
+      error: 'Create a free account to edit images.',
+      errorType: 'account_required',
+    }, 403);
+  }
 
   try {
     const { prompt, baseImageUrl, baseImageUrls, aspectRatio, imageModel, count } = await req.json();
@@ -432,6 +358,24 @@ serve(async (req) => {
     }
 
     const jobId = jobData.id;
+    const { data: quota, error: quotaError } = await supabase.rpc('reserve_image_quota', {
+      target_user_id: user.id,
+      target_job_id: jobId,
+      requested_count: requestedCount,
+    });
+    if (quotaError) {
+      await updateJob(supabase, jobId, { status: 'failed', error_message: 'Could not reserve image quota', error_type: 'quota_error' });
+      return jsonResponse({ success: false, error: "Could not check today's image allowance.", errorType: 'quota_error' }, 500);
+    }
+    if (!quota?.allowed) {
+      await updateJob(supabase, jobId, { status: 'failed', error_message: 'Daily image limit reached', error_type: 'daily_limit' });
+      return jsonResponse({
+        success: false,
+        error: `Daily image limit reached. ${quota?.remaining ?? 0} of 20 remaining.`,
+        errorType: 'daily_limit',
+        quota,
+      }, 429);
+    }
     const isYouTube = aspect === '16:9';
     const editPrompt = buildEditPrompt(prompt, imageArray.length, isYouTube);
 
@@ -445,7 +389,7 @@ serve(async (req) => {
       task.catch(e => console.error('Background task error:', e));
     }
 
-    return jsonResponse({ jobId, status: 'pending', success: true });
+    return jsonResponse({ jobId, status: 'pending', success: true, quota });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error in edit-image:', error);

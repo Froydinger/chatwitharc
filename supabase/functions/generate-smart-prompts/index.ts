@@ -22,7 +22,7 @@ serve(async (req) => {
     const context = body?.context || 'general';
 
     // Always use GPT-5.4 Mini for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'openai/gpt-5.4-mini';
+    const PROMPT_MODEL = 'gpt-5.4-mini';
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -146,18 +146,18 @@ Example format:
   ...
 ]`;
 
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openaiApiKey) {
+      throw new Error('OPENAI_API_KEY not configured');
     }
 
     console.log('Using model for smart prompts:', PROMPT_MODEL, 'context:', context);
 
     // Call AI to generate prompts
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

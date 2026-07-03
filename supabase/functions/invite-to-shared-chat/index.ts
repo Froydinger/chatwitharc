@@ -70,36 +70,16 @@ Deno.serve(async (req) => {
     const inviterName = inviterProfile?.display_name || user.email?.split("@")[0] || "Someone";
 
     const normalized = String(email).trim().toLowerCase();
-    const SITE = "https://askarc.chat";
-    const chatUrl = `${SITE}/shared/${chat_id}`;
-
     // Look up existing auth user
     const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     const target = list?.users?.find((u) => u.email?.toLowerCase() === normalized);
-
-    // Helper: fire the invite email (non-blocking).
-    const sendInviteEmail = (isExistingUser: boolean) => {
-      admin.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "shared-chat-invite",
-          recipientEmail: normalized,
-          idempotencyKey: `shared-invite-${chat_id}-${normalized}`,
-          templateData: {
-            inviterName,
-            chatTitle: chat.title,
-            chatUrl,
-            isExistingUser,
-          },
-        },
-      }).catch((e) => console.error("invite email failed", e));
-    };
 
     if (target) {
       const { error: insErr } = await admin.from("shared_chat_members").insert({
         chat_id, user_id: target.id, role,
       });
       if (insErr && !insErr.message.includes("duplicate")) throw insErr;
-      // Push + email
+      // Existing ArcAI users receive an in-app push.
       fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push-notification`, {
         method: "POST",
         headers: {
@@ -116,20 +96,16 @@ Deno.serve(async (req) => {
           },
         }),
       }).catch(() => {});
-      sendInviteEmail(true);
       return new Response(JSON.stringify({ status: "added", user_id: target.id }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Create pending invite + email them so they can sign up and join
-    const { data: invite, error: invErr } = await admin.from("shared_chat_invites").insert({
-      chat_id, email: normalized, role, invited_by: user.id,
-    }).select("token").single();
-    if (invErr) throw invErr;
-    sendInviteEmail(false);
-
-    return new Response(JSON.stringify({ status: "invited", token: invite!.token }), {
+    return new Response(JSON.stringify({
+      error: "Email invitations are coming soon. For now, invite someone who already has an ArcAI account.",
+      code: "email_invites_coming_soon",
+    }), {
+      status: 409,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

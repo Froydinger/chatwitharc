@@ -37,7 +37,6 @@ import { QuotePanel } from "@/components/QuotePanel";
 import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
-import { useSubscription } from "@/hooks/useSubscription";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 export type RightPanelTab = "history" | "quote" | "settings";
@@ -77,7 +76,6 @@ export function RightPanel({
 }: RightPanelProps) {
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const isAdminBannerActive = useAdminBanner();
-  const { isSubscribed } = useSubscription();
   const navigate = useNavigate();
   const corporateMode = useCorporateModeStore((s) => s.enabled);
   const setCorporate = useCorporateModeStore((s) => s.setEnabled);
@@ -380,24 +378,6 @@ export function RightPanel({
             </AnimatePresence>
           </div>
 
-          {/* Upgrade banner */}
-          {!isSubscribed && (
-            <div className="p-3 border-t border-border/50">
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent("open-upgrade-modal"))}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/25 hover:border-primary/50 transition-all group"
-              >
-                <div className="p-1.5 rounded-lg bg-primary/20">
-                  <Crown className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex-1 text-left min-w-0">
-                  <p className="text-sm font-semibold text-foreground">Upgrade to Boost</p>
-                  <p className="text-[11px] text-muted-foreground truncate">Unlimited images & voice</p>
-                </div>
-                <span className="text-xs font-bold text-primary">$7/mo</span>
-              </button>
-            </div>
-          )}
         </div>
       </motion.div>
     </>

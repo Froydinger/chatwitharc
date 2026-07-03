@@ -21,7 +21,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
         <Container style={container}>
           <Section style={header}>
             <Img
-              src="https://jxywhodnndagbsmnbnnw.supabase.co/storage/v1/object/public/email-assets/arc-logo-ui.png"
+              src="https://cgvixgyjzswebosfqyll.supabase.co/storage/v1/object/public/email-assets/arc-logo-ui.png"
               width="56"
               height="56"
               alt="ArcAI"
@@ -80,14 +80,14 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
             </Section>
           </Section>
 
-          <Section style={upgradeCard}>
-            <Text style={emoji}>⚡</Text>
-            <Heading style={h2}>Unlock the full experience</Heading>
-            <Text style={upgradeParagraph}>
-              Upgrade to ArcAI Pro for unlimited messages, voice mode, image generation, music player, and more.
+          <Section style={supportCard}>
+            <Text style={emoji}>☕</Text>
+            <Heading style={h2}>Everything is free</Heading>
+            <Text style={supportParagraph}>
+              All models, voice, Deep Search, publishing, and creative tools are included. Images and edits include 20 outputs per UTC day.
             </Text>
-            <Button style={upgradeButton} href="https://askarc.chat/?upgrade=true">
-              ✨ Upgrade to Pro
+            <Button style={supportButton} href="https://buymeacoffee.com/winthenight">
+              Support Win The Night
             </Button>
           </Section>
 
@@ -154,7 +154,7 @@ const tipRow = { marginBottom: '16px' }
 const tipIcon = { fontSize: '20px', margin: '0 0 4px' }
 const tipTitle = { color: '#0f172a', fontSize: '14px', fontWeight: '600' as const, margin: '0 0 2px' }
 const tipDesc = { color: '#94a3b8', fontSize: '13px', margin: '0' }
-const upgradeCard = {
+const supportCard = {
   backgroundColor: '#f1f5f9',
   margin: '16px 0 0',
   padding: '28px 24px',
@@ -163,8 +163,8 @@ const upgradeCard = {
   textAlign: 'center' as const,
 }
 const h2 = { color: '#0f172a', fontSize: '20px', fontWeight: '700' as const, margin: '0 0 8px' }
-const upgradeParagraph = { color: '#475569', fontSize: '14px', lineHeight: '22px', margin: '0 0 20px' }
-const upgradeButton = {
+const supportParagraph = { color: '#475569', fontSize: '14px', lineHeight: '22px', margin: '0 0 20px' }
+const supportButton = {
   backgroundColor: '#7c3aed',
   borderRadius: '10px',
   color: '#ffffff',

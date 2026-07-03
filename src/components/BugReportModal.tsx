@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { AlertTriangle, Send } from "lucide-react";
 
 interface BugReportModalProps {
@@ -21,65 +20,10 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
   const { toast } = useToast();
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState(user?.email || "");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmitting = false;
 
   const handleSubmit = async () => {
-    if (!description.trim()) {
-      toast({
-        title: "Description required",
-        description: "Please describe what happened",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      if (!supabase || !isSupabaseConfigured) {
-        throw new Error("Bug reporting is not available. Please try again later.");
-      }
-
-      // Call Edge Function to send bug report email
-      const bugId = crypto.randomUUID();
-      const { error: emailError } = await supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: 'bug-report',
-          recipientEmail: email,
-          idempotencyKey: `bug-report-${bugId}`,
-          templateData: {
-            userEmail: email,
-            errorMessage,
-            errorStack,
-            description,
-            url: window.location.href,
-            userAgent: navigator.userAgent,
-          },
-        },
-      });
-
-      if (emailError) {
-        console.error("Failed to send email:", emailError);
-        // Don't throw - bug report is saved even if email fails
-      }
-
-      toast({
-        title: "Bug report sent",
-        description: "Thank you for helping us improve!",
-      });
-
-      setDescription("");
-      onClose();
-    } catch (error: any) {
-      console.error("Failed to submit bug report:", error);
-      toast({
-        title: "Failed to submit",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast({ title: "Coming soon", description: "Bug-report email is temporarily unavailable." });
   };
 
   return (
@@ -91,7 +35,7 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
             Report a Bug
           </DialogTitle>
           <DialogDescription>
-            Help us fix this issue by providing details about what happened.
+            Bug-report email is coming soon. This form is temporarily read-only.
           </DialogDescription>
         </DialogHeader>
 
@@ -116,6 +60,7 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
               className="glass border-glass-border"
+              disabled
             />
             <p className="text-xs text-muted-foreground">We'll only use this to follow up on your report</p>
           </div>
@@ -129,7 +74,7 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what you were doing when the error occurred..."
               className="glass border-glass-border min-h-[120px]"
-              disabled={isSubmitting}
+              disabled
             />
           </div>
 
@@ -152,7 +97,7 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || !description.trim()}
+            disabled
             className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
           >
             {isSubmitting ? (
@@ -160,7 +105,7 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
             ) : (
               <>
                 <Send className="w-4 h-4 mr-2" />
-                Send Report
+                Coming soon
               </>
             )}
           </Button>

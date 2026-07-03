@@ -4,8 +4,8 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
-import { Mail, Lock, Eye, EyeOff, X, Crown, Sparkles, Mic, ImagePlus, Globe, Code2, PenLine, Music, Paperclip } from "lucide-react";
+import { getAuthRedirectUrl, signInWithGoogle } from "@/integrations/auth";
+import { Mail, Lock, Eye, EyeOff, X, Sparkles, Mic, ImagePlus, Globe, Code2, PenLine, Music, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GatedFeature, AuthGateDetail } from "@/hooks/useRequireAuth";
 
@@ -27,7 +27,6 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
   research: { title: "Sign in for research", subtitle: "Cited sources from the web.", icon: Globe },
   code: { title: "Sign in to write code", subtitle: "Pro code & app generation.", icon: Code2 },
   canvas: { title: "Sign in for canvas", subtitle: "Long-form writing & layouts.", icon: PenLine },
-  boost: { title: "Sign in to go Boost", subtitle: "One tap — straight to checkout.", icon: Crown },
   generic: { title: "Welcome to ArcAI", subtitle: "Sign in to unlock everything.", icon: Sparkles },
 };
 
@@ -115,32 +114,6 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
         blob3: "bg-cyan-400/20",
       };
 
-  // If user opens via the "Boost" CTA, queue the upgrade modal to open
-  // automatically right after auth completes.
-  useEffect(() => {
-    if (!isOpen) return;
-    if (feature === "boost") {
-      sessionStorage.setItem("arcai-post-auth-action", "open-upgrade");
-    }
-  }, [isOpen, feature]);
-
-  // After auth state flips to a real user, fire the queued post-auth action.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const handler = () => {
-      const queued = sessionStorage.getItem("arcai-post-auth-action");
-      if (queued === "open-upgrade") {
-        sessionStorage.removeItem("arcai-post-auth-action");
-        setTimeout(
-          () => window.dispatchEvent(new CustomEvent("open-upgrade-modal")),
-          400,
-        );
-      }
-    };
-    window.addEventListener("arcai-auth-completed", handler);
-    return () => window.removeEventListener("arcai-auth-completed", handler);
-  }, []);
-
   const handleAuth = async () => {
     if (!supabase || !isSupabaseConfigured) {
       toast({ title: "Error", description: "Authentication is not available.", variant: "destructive" });
@@ -159,7 +132,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
         toast({ title: "Welcome back!", description: "You've been signed in successfully" });
         onClose();
       } else {
-        const redirectUrl = 'https://askarc.chat/';
+        const redirectUrl = getAuthRedirectUrl();
         const { error } = await supabase.auth.signUp({
           email, password,
           options: { emailRedirectTo: redirectUrl },
@@ -178,10 +151,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
   const handleGoogleAuth = async () => {
     setLoading(true);
     try {
-      const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
-        extraParams: { prompt: "select_account" },
-      });
+      const { error } = await signInWithGoogle();
       if (error) throw error;
     } catch (error: any) {
       toast({ title: "Error", description: error?.message || "An error occurred with Google sign in", variant: "destructive" });
@@ -189,18 +159,6 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
     }
   };
 
-  const handleAppleAuth = async () => {
-    setLoading(true);
-    try {
-      const { error } = await lovable.auth.signInWithOAuth("apple", {
-        redirect_uri: window.location.origin,
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      toast({ title: "Error", description: error?.message || "An error occurred with Apple sign in", variant: "destructive" });
-      setLoading(false);
-    }
-  };
 
   const onSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault();
@@ -350,20 +308,6 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                     </GlassButton>
                   </motion.div>
 
-                  <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-                    <GlassButton
-                      variant="ghost"
-                      onClick={handleAppleAuth}
-                      disabled={loading}
-                      className={cn("w-full h-12 rounded-xl border text-base", t.border, t.borderHover, t.socialText)}
-                      type="button"
-                    >
-                      <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-                      </svg>
-                      Continue with Apple
-                    </GlassButton>
-                  </motion.div>
                 </div>
 
                 {/* Divider & Email Toggle */}
@@ -485,22 +429,6 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                   )}
                 </AnimatePresence>
 
-                {/* Subtle Boost mention */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    sessionStorage.setItem("arcai-post-auth-action", "open-upgrade");
-                    window.dispatchEvent(new CustomEvent("open-upgrade-modal"));
-                  }}
-                  className={cn(
-                    "w-full text-center text-[11px] transition-colors inline-flex items-center justify-center gap-1.5",
-                    t.textSubtle,
-                    isLight ? "hover:text-zinc-800" : "hover:text-white/70",
-                  )}
-                >
-                  <Crown className="h-3 w-3" />
-                  Want everything unlocked? <span className="underline underline-offset-2">Go Boost · $7/mo</span>
-                </button>
                 </>
                 )}
               </motion.div>

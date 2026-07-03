@@ -5,8 +5,8 @@ export type ModelFamily = 'openai';
 export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-analysis' | 'image-edit' | 'file-gen';
 
 /** User-pickable chat models. */
-export const FASTER_MODEL = 'openai/gpt-5.4-nano';
-export const SMARTER_MODEL = 'openai/gpt-5.4-mini';
+export const FASTER_MODEL = 'gpt-5.4-nano';
+export const SMARTER_MODEL = 'gpt-5.4-mini';
 export type ChatModel = typeof FASTER_MODEL | typeof SMARTER_MODEL;
 
 interface ModelStore {
@@ -15,9 +15,6 @@ interface ModelStore {
   /** Active chat model. Defaults to Faster (nano). */
   chatModel: ChatModel;
   setChatModel: (model: ChatModel) => void;
-  /** Synced from useSubscription; gates Smarter pick + tool model tier. */
-  isBoost: boolean;
-  setIsBoost: (v: boolean) => void;
 }
 
 export const useModelStore = create<ModelStore>()(
@@ -27,8 +24,6 @@ export const useModelStore = create<ModelStore>()(
       setModelFamily: () => set({ modelFamily: 'openai' }),
       chatModel: FASTER_MODEL,
       setChatModel: (model) => set({ chatModel: model }),
-      isBoost: false,
-      setIsBoost: (v) => set({ isBoost: v }),
     }),
     {
       name: 'arc-model-family',
@@ -40,22 +35,22 @@ export const useModelStore = create<ModelStore>()(
 /**
  * Get the correct model string for a given task.
  * - Chat tasks follow the user's chosen chatModel (Faster/Smarter).
- * - Tool tasks are tier-gated: Boost → mini, Free/Anon → nano.
+ * - Tool tasks follow the user's selected chat model.
  * - Image gen/edit are pinned to gpt-image-2.
  */
 export function getModelForTask(task: ModelTask): string {
-  const { chatModel, isBoost } = useModelStore.getState();
+  const { chatModel } = useModelStore.getState();
   switch (task) {
     case 'chat':
     case 'deep-chat':
       return chatModel;
     case 'image-gen':
     case 'image-edit':
-      return 'openai/gpt-image-2';
+      return 'gpt-image-2';
     case 'code':
     case 'image-analysis':
     case 'file-gen':
     default:
-      return isBoost ? SMARTER_MODEL : FASTER_MODEL;
+      return chatModel;
   }
 }

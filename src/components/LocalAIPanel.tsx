@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem, Mail, Loader2 } from "lucide-react";
+import { Cpu, Download, CheckCircle2, AlertTriangle, Crown, Trash2, Sparkles, Zap, Gem, Mail } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,6 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
-import { useSubscription } from "@/hooks/useSubscription";
 import {
   isWebGPUSupported,
   loadLocalModel,
@@ -19,8 +18,6 @@ import {
 } from "@/services/localAI";
 import { useToast } from "@/hooks/use-toast";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 
 interface ModelOption {
   id: string;
@@ -38,8 +35,6 @@ const DESKTOP_MODELS: ModelOption[] = [
 ];
 
 export function LocalAIPanel() {
-  const { isSubscribed } = useSubscription();
-  const { user, profile } = useAuth();
   const {
     enabled, setEnabled,
     preferCloud, setPreferCloud,
@@ -53,8 +48,6 @@ export function LocalAIPanel() {
   const [cached, setCached] = useState<Record<string, boolean>>({});
   const [cacheChecked, setCacheChecked] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [desktopEmail, setDesktopEmail] = useState("");
-  const [sendingDesktopLink, setSendingDesktopLink] = useState(false);
 
   const isIOS = typeof navigator !== 'undefined' && (
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -67,10 +60,6 @@ export function LocalAIPanel() {
   })();
 
   const MODELS: ModelOption[] = DESKTOP_MODELS;
-
-  useEffect(() => {
-    if (user?.email) setDesktopEmail(user.email);
-  }, [user?.email]);
 
   useEffect(() => {
     if (isMobileLocal) return;
@@ -115,10 +104,6 @@ export function LocalAIPanel() {
 
   const handleDownload = async (modelId: string) => {
     if (downloadingId) return;
-    if (!isSubscribed) {
-      toast({ title: 'Pro feature', description: 'Arc Local requires a Pro subscription.' });
-      return;
-    }
     const gpuOk = await isWebGPUSupported();
     setWebgpuSupported(gpuOk);
     if (!gpuOk) {
@@ -175,39 +160,6 @@ export function LocalAIPanel() {
     try { await loadLocalModel(() => {}, modelId); } catch {}
   };
 
-  const handleSendDesktopLink = async () => {
-    const email = desktopEmail.trim().toLowerCase();
-    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254;
-    if (!emailOk) {
-      toast({ title: 'Enter a valid email', description: 'Please use a valid email address.', variant: 'destructive' });
-      return;
-    }
-
-    setSendingDesktopLink(true);
-    try {
-      const { error } = await supabase.functions.invoke('send-transactional-email', {
-        body: {
-          templateName: 'desktop-link',
-          recipientEmail: email,
-          idempotencyKey: `desktop-link-${email}-${new Date().toISOString().slice(0, 10)}`,
-          templateData: {
-            displayName: profile?.display_name || user?.user_metadata?.full_name || undefined,
-            desktopUrl: 'https://askarc.chat/',
-          },
-        },
-      });
-
-      if (error) throw error;
-      toast({ title: 'Desktop link sent', description: 'Check your inbox for the desktop link.' });
-    } catch (error: any) {
-      console.error('Desktop link email failed:', error);
-      toast({ title: 'Could not send email', description: error?.message || 'Please try again.', variant: 'destructive' });
-    } finally {
-      setSendingDesktopLink(false);
-    }
-  };
-
-  const proLocked = !isSubscribed;
   const noWebGPU = webgpuSupported === false;
   const anyCached = Object.values(cached).some(Boolean);
 
@@ -221,7 +173,7 @@ export function LocalAIPanel() {
           <div className="min-w-0">
             <h3 className="font-semibold text-foreground">Open Arc on desktop</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Local models and Corporate Mode are desktop-only. Send yourself a link to use Arc Local on a computer.
+              Local models and Corporate Mode are desktop-only. Desktop-link email is coming soon.
             </p>
           </div>
         </div>
@@ -233,19 +185,17 @@ export function LocalAIPanel() {
             autoCapitalize="none"
             autoCorrect="off"
             autoComplete="email"
-            placeholder="you@example.com"
-            value={desktopEmail}
-            onChange={(e) => setDesktopEmail(e.target.value)}
+            placeholder="Email link — coming soon"
+            disabled
           />
           <Button
             type="button"
             variant="glass"
             className="w-full"
-            onClick={handleSendDesktopLink}
-            disabled={sendingDesktopLink}
+            disabled
           >
-            {sendingDesktopLink ? <Loader2 className="animate-spin" /> : <Mail />}
-            {sendingDesktopLink ? 'Sending…' : 'Send desktop link'}
+            <Mail />
+            Coming soon
           </Button>
         </div>
       </GlassCard>
@@ -280,7 +230,7 @@ export function LocalAIPanel() {
                 Desktop required for Arc Local
               </p>
               <p className="text-muted-foreground mt-0.5 leading-relaxed">
-                Mobile devices no longer offer Corporate Mode, local model downloads, or on-device Llama. Email yourself a desktop link below.
+                Mobile devices no longer offer Corporate Mode, local model downloads, or on-device Llama. Desktop-link email is coming soon.
               </p>
             </div>
           </div>
@@ -289,9 +239,9 @@ export function LocalAIPanel() {
             <div className="flex items-start gap-2">
               <Mail className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-foreground">Email me a desktop link</p>
+                <p className="text-sm font-medium text-foreground">Email me a desktop link — Coming soon</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
-                  We’ll send you a quick link to open Arc on desktop with this same account.
+                  This option will return when transactional email is connected.
                 </p>
               </div>
             </div>
@@ -303,33 +253,24 @@ export function LocalAIPanel() {
                 autoCapitalize="none"
                 autoCorrect="off"
                 autoComplete="email"
-                placeholder="you@example.com"
-                value={desktopEmail}
-                onChange={(e) => setDesktopEmail(e.target.value)}
+                placeholder="Email link — coming soon"
+                disabled
               />
               <Button
                 type="button"
                 variant="glass"
                 className="w-full"
-                onClick={handleSendDesktopLink}
-                disabled={sendingDesktopLink}
+                disabled
               >
-                {sendingDesktopLink ? <Loader2 className="animate-spin" /> : <Mail />}
-                {sendingDesktopLink ? 'Sending…' : 'Send desktop link'}
+                <Mail />
+                Coming soon
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {!isMobileLocal && proLocked && (
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-muted/30 border border-border/50">
-          <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-muted-foreground">Upgrade to Boost to unlock on-device AI.</p>
-        </div>
-      )}
-
-      {!isMobileLocal && noWebGPU && !proLocked && (
+      {!isMobileLocal && noWebGPU && (
         <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 border border-destructive/30">
           <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
           <div className="text-xs">
