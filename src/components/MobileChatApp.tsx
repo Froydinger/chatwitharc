@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, LayoutDashboard, Share2, Lock } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, LayoutDashboard, Share2, Lock, MoreHorizontal, Monitor, Check, Palette } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
@@ -41,6 +41,17 @@ import { GENERAL_QUICK_PROMPTS, pickRandomPrompts } from "@/components/WelcomeSe
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useAccentStore, type AccentColor } from "@/store/useAccentStore";
+import { useAccentColor } from "@/hooks/useAccentColor";
+import { useAdminSettings } from "@/hooks/useAdminSettings";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
@@ -132,8 +143,27 @@ function getDaypartGreeting(d: Date = new Date()): string {
   return greetings[randomIndex];
 }
 
+const ACCENT_SWATCHES: { id: AccentColor; label: string; gradient: string; adminOnly?: boolean }[] = [
+  { id: "red",    label: "Red",    gradient: "linear-gradient(135deg, hsl(0,90%,48%), hsl(0,90%,58%))" },
+  { id: "blue",   label: "Blue",   gradient: "linear-gradient(135deg, hsl(205,100%,48%), hsl(205,95%,58%))" },
+  { id: "green",  label: "Green",  gradient: "linear-gradient(135deg, hsl(145,82%,35%), hsl(145,80%,45%))" },
+  { id: "yellow", label: "Yellow", gradient: "linear-gradient(135deg, hsl(45,100%,48%), hsl(45,100%,58%))" },
+  { id: "purple", label: "Purple", gradient: "linear-gradient(135deg, hsl(268,85%,52%), hsl(268,82%,62%))" },
+  { id: "orange", label: "Orange", gradient: "linear-gradient(135deg, hsl(22,100%,50%), hsl(22,98%,60%))" },
+  { id: "noir",   label: "Noir",   gradient: "linear-gradient(135deg, hsl(0,0%,4%), hsl(0,0%,18%))" },
+  { id: "gold",   label: "Gold",   gradient: "linear-gradient(135deg, hsl(40,78%,42%), hsl(46,92%,64%) 50%, hsl(43,82%,48%))", adminOnly: true },
+];
+
 export function MobileChatApp() {
   const navigate = useNavigate();
+  const accent = useAccentStore((s) => s.accentColor);
+  const { setAccentColor } = useAccentColor();
+  const { isAdmin } = useAdminSettings();
+  const accentSwatches = ACCENT_SWATCHES.filter((s) => !s.adminOnly || isAdmin);
+  const themeMode = useAccentStore((s) => s.themeMode);
+  const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
+  const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
+  const themeLabel = themeMode === "light" ? "Light" : themeMode === "system" ? "System" : "Dark";
   const {
     messages,
     isLoading,
@@ -923,6 +953,66 @@ export function MobileChatApp() {
                   </Button>
                 </motion.div>
               )}
+
+              {/* Mobile Overflow Theme Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <motion.button 
+                    whileHover={{ scale: 1.1, y: -2 }} 
+                    whileTap={{ scale: 0.95 }} 
+                    transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                    className="rounded-full h-9 w-9 border border-input glass-shimmer flex items-center justify-center cursor-pointer transition-all focus:outline-none"
+                    title="Appearance Options"
+                  >
+                    <MoreHorizontal className="h-4 w-4 text-foreground/80" />
+                  </motion.button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 panel-solid border-border/60 z-[300]">
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Theme</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={cycleThemeMode} className="gap-2 cursor-pointer">
+                    <ThemeIcon className="h-4 w-4" />
+                    <span className="text-sm">Theme: {themeLabel}</span>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-xs text-muted-foreground">Accent color</DropdownMenuLabel>
+                  <div className="flex items-center justify-between gap-1 px-2 py-1.5">
+                    {accentSwatches.map((opt) => {
+                      const isActive = accent === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setAccentColor(opt.id);
+                          }}
+                          title={opt.label}
+                          aria-label={`Select ${opt.label} accent color`}
+                          className={cn(
+                            "relative h-6 w-6 rounded-full transition-transform",
+                            opt.id === "noir" && "accent-swatch-noir",
+                            isActive ? "ring-2 ring-offset-1 ring-offset-popover ring-primary scale-110" : "hover:scale-110",
+                          )}
+                          style={opt.id === "noir" ? undefined : { background: opt.gradient }}
+                        >
+                          {isActive && (
+                            <Check className="absolute inset-0 m-auto h-3.5 w-3.5 text-white drop-shadow" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => navigate("/dashboard/settings?section=appearance")}
+                    className="gap-2 cursor-pointer"
+                  >
+                    <Palette className="h-4 w-4" />
+                    <span className="text-sm">Appearance settings</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Music Player Button */}
               <motion.div 

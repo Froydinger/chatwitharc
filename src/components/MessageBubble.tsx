@@ -283,6 +283,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               {/* Weather Card */}
               {!isUser && message.weatherData && (
                 <motion.div
+                  key="card-weather"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25 }}
@@ -295,6 +296,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               {/* Scheduled Task Card */}
               {!isUser && message.scheduledTask && (
                 <motion.div
+                  key="card-scheduled-task"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25 }}
@@ -307,6 +309,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               {/* Notification Dispatch Card */}
               {!isUser && message.notificationDispatch && (
                 <motion.div
+                  key="card-notification-dispatch"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25 }}
@@ -320,6 +323,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               {message.type === "image" &&
                 (message.imageUrl || message.imageUrls) && (
                   <motion.div
+                    key="card-images"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.12 }}
@@ -394,6 +398,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               {/* File Attachment */}
               {message.type === "file" && message.fileUrl && (
                 <motion.div
+                  key="card-file"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.12 }}
@@ -412,6 +417,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               {/* Canvas Attachment */}
               {message.type === "canvas" && message.canvasContent && (
                 <motion.div
+                  key="card-canvas"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.12 }}
@@ -428,6 +434,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               {/* Code Artifact */}
               {message.type === "code" && message.codeContent && (
                 <motion.div
+                  key="card-code"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.12 }}
@@ -445,6 +452,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               {/* IDE App Builder Artifact */}
               {message.type === "ide" && message.idePrompt && (
                 <motion.div
+                  key="card-ide"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.12 }}
@@ -462,7 +470,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               {/* Text */}
               {message.type !== "image-generating" &&
                 (isEditing ? (
-                  <div className="space-y-2 relative z-10">
+                  <div key="text-edit" className="space-y-2 relative z-10">
                     <Input
                       value={editContent}
                       onChange={(e) => setEditContent(e.target.value)}
@@ -490,13 +498,14 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   </div>
                 ) : (
                   isUser ? (
-                    <p className="relative z-10 text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                    <p key="text-user" className="relative z-10 text-foreground whitespace-pre-wrap break-words leading-relaxed">
                       {message.content}
                     </p>
                   ) : (
                     // AI messages with code block support and markdown
                     message.content.trim().length > 0 && !["canvas", "code", "ide", "file"].includes(message.type) && (
                       <div
+                        key="text-assistant"
                         className="relative z-10 w-full min-w-0 arc-message-bubble"
                       >
 
