@@ -19,7 +19,7 @@ const SITE = "https://askarc.chat";
 const LANDING_FAQ = [
   {
     q: "What is ArcAI?",
-    a: "ArcAI is a free multimodal AI assistant with chat, real-time voice, image generation, a code canvas, and long-term memory — all in your browser at askarc.chat.",
+    a: "ArcAI is a free multimodal AI assistant built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, real-time voice, image generation, a code canvas, and long-term memory — all in your browser.",
   },
   {
     q: "Is ArcAI free?",
@@ -47,7 +47,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Does ArcAI remember conversations?",
-    a: "Yes. Signed-in users get a persistent Memory Bank that Arc reads before every reply.",
+    a: "Yes. Signed-in users get a persistent Memory Bank that Arc reads before every reply to reflect on past context.",
   },
   {
     q: "Can ArcAI generate images?",
@@ -135,16 +135,16 @@ export function LandingPage() {
       {/* Hero */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 pt-20 pb-24 text-center md:pt-32 md:pb-32">
         <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 animate-in fade-in zoom-in-95 duration-500">
-          <Sparkles className="h-3.5 w-3.5" /> Free plan covers it all · Boost upgrade optional
+          <Sparkles className="h-3.5 w-3.5" /> Ask, Reflect, Create — the ARC of reasoning.
         </div>
-        <h1 className="mx-auto max-w-3xl text-5xl font-semibold tracking-tight md:text-7xl animate-in fade-in slide-in-from-bottom-3 duration-700">
-          The free AI assistant that actually remembers you.
+        <h1 className="mx-auto max-w-4xl text-5xl font-semibold tracking-tight md:text-7xl lg:text-8xl animate-in fade-in slide-in-from-bottom-3 duration-700">
+          Ask. Reflect. Create.
         </h1>
         <p
           className="mx-auto mt-6 max-w-2xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
         >
-          Get 20 Smarter chats/day, unlimited Fast chats, and 10 images/day free. Or upgrade to Boost to publish your code online at a custom arc link and get higher quotas — no pressure.
+          Ask questions, let Arc reflect with memory and Deep Search, and create live web apps instantly. Get 20 daily reasoning chats and 10 images free, or upgrade to Boost for custom link publishing.
         </p>
         <div
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"
@@ -171,19 +171,19 @@ export function LandingPage() {
       {/* Features */}
       <section className="relative z-10 mx-auto max-w-6xl px-6 py-16">
         <h2 className="text-center text-3xl font-semibold tracking-tight md:text-4xl">
-          Everything you need. Free.
+          The ARC Workflow
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-sm text-white/50">
-          Our free plan is fully featured to handle your day-to-day. If you want to publish your code online at a custom arc link and get higher quotas, Boost is waiting.
+          Every step of your creative journey covered on our free plan.
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { icon: MessageSquare, title: "Smarter reasoning", body: "20 daily reasoning chats with GPT-5.4 Mini." },
-            { icon: Mic, title: "Unlimited real-time voice", body: "Natural spoken conversations with interruptions, free." },
-            { icon: ImageIcon, title: "AI image generation", body: "10 free generated or edited outputs a day with GPT-Image-2." },
-            { icon: Code2, title: "Code canvas", body: "Generate, preview, and build functional web apps in-browser." },
-            { icon: Brain, title: "Long-term memory", body: "Arc actually remembers what you told it." },
-            { icon: Sparkles, title: "Web search with sources", body: "Live answers with citations, powered by Perplexity." },
+            { icon: MessageSquare, title: "[Ask] Smarter Reasoning", body: "Ask complex queries. Get 20 daily reasoning responses from GPT-5.4 Mini." },
+            { icon: Sparkles, title: "[Ask] Deep Search", body: "Scan the live web with AI summaries and real-time citations." },
+            { icon: Brain, title: "[Reflect] Memory Bank", body: "Arc reflects on your context and history to personalize answers." },
+            { icon: Mic, title: "[Reflect] Live Voice", body: "Reflect out loud with zero-latency spoken conversation." },
+            { icon: Code2, title: "[Create] Code Canvas", body: "Instantly build, run, and preview complete web creations." },
+            { icon: ImageIcon, title: "[Create] Image Studio", body: "Create stunning custom image outputs with GPT-Image-2." },
           ].map((f, i) => (
             <div
               key={f.title}
@@ -198,7 +198,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Voluntary support / Optional Upgrade */}
+      {/* Optional Upgrade */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 py-16">
         <div className="relative overflow-hidden rounded-3xl border border-white/[0.12] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-8 md:p-12">
           <div
