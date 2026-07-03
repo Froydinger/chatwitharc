@@ -54,7 +54,10 @@ export function BlogPostPage() {
       mainEntity: post.faq.map((f) => ({
         "@type": "Question",
         name: f.q,
-        acceptedAnswer: { "@type": "Answer", text: f.a },
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: [f.a, ...(f.details ?? []), ...(f.bullets ?? [])].join(" "),
+        },
       })),
     },
     {
@@ -106,6 +109,14 @@ export function BlogPostPage() {
         <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">{post.title}</h1>
         <p className="mt-5 text-lg text-white/60">{post.intro}</p>
 
+        {post.body && (
+          <div className="mt-6 space-y-4 text-base leading-relaxed text-white/68">
+            {post.body.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </div>
+        )}
+
         <div className="mt-10 flex flex-wrap items-center gap-3">
           <button
             onClick={handleTry}
@@ -122,6 +133,21 @@ export function BlogPostPage() {
             <section key={f.q}>
               <h2 className="text-2xl font-semibold tracking-tight">{f.q}</h2>
               <p className="mt-3 leading-relaxed text-white/70">{f.a}</p>
+              {f.details?.map((detail) => (
+                <p key={detail} className="mt-3 leading-relaxed text-white/62">
+                  {detail}
+                </p>
+              ))}
+              {f.bullets && (
+                <ul className="mt-4 space-y-2 text-sm text-white/62">
+                  {f.bullets.map((bullet) => (
+                    <li key={bullet} className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-white/45" />
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </section>
           ))}
         </div>
