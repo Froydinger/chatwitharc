@@ -870,13 +870,19 @@ useEffect(() => {
         <div id="dashboard-image-preview-target" />
 
         {/* ═══ FREE BADGE ═══ */}
-        <div>
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => navigate('/dashboard/settings?section=plan')}
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/25 bg-primary/8 text-primary text-xs font-medium cursor-pointer hover:bg-primary/15 hover:border-primary/40 transition-colors"
           >
             <Zap className="h-3.5 w-3.5" />
             <span>{hasBoost ? "ArcAI Boost — Unlimited chats, voice & images" : "ArcAI — Free forever · Unlimited chats · 10 images/day"}</span>
+          </button>
+          <button
+            onClick={() => navigate('/blog')}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+          >
+            Guides & FAQs
           </button>
         </div>
 
