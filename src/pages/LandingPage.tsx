@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import {
   ArrowRight,
   Sparkles,
@@ -178,19 +179,29 @@ export function LandingPage() {
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { icon: MessageSquare, title: "[Ask] Smarter Reasoning", body: "Ask complex queries. Get 20 daily reasoning responses from GPT-5.4 Mini." },
-            { icon: Sparkles, title: "[Ask] Deep Search", body: "Scan the live web with AI summaries and real-time citations." },
-            { icon: Brain, title: "[Reflect] Memory Bank", body: "Arc reflects on your context and history to personalize answers." },
-            { icon: Mic, title: "[Reflect] Live Voice", body: "Reflect out loud with zero-latency spoken conversation." },
-            { icon: Code2, title: "[Create] Code Canvas", body: "Instantly build, run, and preview complete web creations." },
-            { icon: ImageIcon, title: "[Create] Image Studio", body: "Create stunning custom image outputs with GPT-Image-2." },
+            { category: "Ask", icon: MessageSquare, title: "Smarter Reasoning", body: "Ask complex queries. Get 20 daily reasoning responses from GPT-5.4 Mini." },
+            { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web with AI summaries and real-time citations." },
+            { category: "Reflect", icon: Brain, title: "Memory Bank", body: "Arc reflects on your context and history to personalize answers." },
+            { category: "Reflect", icon: Mic, title: "Live Voice", body: "Reflect out loud with zero-latency spoken conversation." },
+            { category: "Create", icon: Code2, title: "Code Canvas", body: "Instantly build, run, and preview complete web creations." },
+            { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create stunning custom image outputs with GPT-Image-2." },
           ].map((f, i) => (
             <div
               key={f.title}
               className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 transition-all hover:bg-white/[0.06] hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-2 duration-500"
               style={{ animationDelay: `${i * 60}ms`, animationFillMode: "backwards" }}
             >
-              <f.icon className="mb-4 h-5 w-5 text-white/70" />
+              <div className="flex items-center justify-between mb-4">
+                <f.icon className="h-5 w-5 text-white/70" />
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border",
+                  f.category === "Ask" && "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                  f.category === "Reflect" && "bg-purple-500/10 text-purple-400 border-purple-500/20",
+                  f.category === "Create" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                )}>
+                  {f.category}
+                </span>
+              </div>
               <div className="text-base font-medium">{f.title}</div>
               <div className="mt-1 text-sm text-white/[0.55]">{f.body}</div>
             </div>
