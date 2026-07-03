@@ -109,16 +109,9 @@ export function SupportPage() {
   };
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <GlassCard className="p-8 text-center max-w-md">
-          <MessageSquare className="w-12 h-12 text-primary mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-foreground mb-2">Sign in Required</h2>
-          <p className="text-muted-foreground">Please sign in to access support.</p>
-        </GlassCard>
-      </div>
-    );
+    return <AnonSupportForm />;
   }
+
 
   // Admin view
   if (isAdmin) {
