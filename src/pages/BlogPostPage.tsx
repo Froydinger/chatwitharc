@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, useParams, Navigate, useNavigate } from "react-router-dom";
+import { Link, useParams, Navigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { BLOG_POSTS, getPostBySlug } from "@/content/blog/posts";
@@ -8,7 +8,6 @@ const SITE = "https://askarc.chat";
 
 export function BlogPostPage() {
   const { slug = "" } = useParams();
-  const navigate = useNavigate();
   const post = getPostBySlug(slug);
 
   useEffect(() => {

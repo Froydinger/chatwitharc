@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   ArrowRight,
@@ -65,8 +65,6 @@ const LANDING_FAQ = [
 ];
 
 export function LandingPage() {
-  const navigate = useNavigate();
-
   // Force pure-dark theme regardless of user preference on the lander.
   useEffect(() => {
     const root = document.documentElement;

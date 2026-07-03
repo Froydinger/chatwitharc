@@ -347,10 +347,10 @@ export function SettingsPanel() {
     try {
       localStorage.removeItem('theme');
       localStorage.removeItem('followSystem');
-      localStorage.removeItem('accentColor');
-      // Reset theme to follow system on sign out
-      localStorage.removeItem('themeMode');
-      useAccentStore.getState().setThemeMode('system');
+      localStorage.setItem('accentColor', 'noir');
+      localStorage.setItem('themeMode', 'dark');
+      useAccentStore.getState().setAccentColorLocal('noir');
+      useAccentStore.getState().setThemeMode('dark');
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       toast({ title: "Signed out", description: "You've been signed out successfully" });
