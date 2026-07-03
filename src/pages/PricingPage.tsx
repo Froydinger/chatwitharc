@@ -64,48 +64,68 @@ export function PricingPage() {
         });
         return;
       }
-      const { data: sessionData } = await supabase.auth.getSession();
-      const uid = sessionData?.session?.user?.id;
-      if (!uid) throw new Error("no-session");
-
-      const ticketId = crypto.randomUUID();
       const subject = `Pricing contact — ${parsed.data.name}`;
       const body = `From: ${parsed.data.name} <${parsed.data.email}>\n\n${parsed.data.message}`;
 
-      const { error: tErr } = await supabase.from("support_tickets").insert({
-        id: ticketId,
-        user_id: uid,
-        subject,
-      });
-      if (tErr) throw tErr;
-
-      const { error: mErr } = await supabase.from("ticket_messages").insert({
-        ticket_id: ticketId,
-        sender_id: uid,
-        content: body,
-        is_admin_reply: false,
-      });
-      if (mErr) throw mErr;
-
-      // Fire-and-forget admin email notification.
-      supabase.functions
-        .invoke("send-transactional-email", {
+      if (!user || isAnonymous) {
+        // Anonymous path: no ticket record, admin gets an email with reply-to = user's email.
+        const { error: eErr } = await supabase.functions.invoke("send-transactional-email", {
           body: {
             templateName: "ticket-opened",
-            idempotencyKey: `pricing-contact-${ticketId}`,
+            idempotencyKey: `pricing-anon-${crypto.randomUUID()}`,
             templateData: {
               subject,
               userEmail: parsed.data.email,
               userName: parsed.data.name,
               priority: "normal",
+              messagePreview: parsed.data.message,
+              anonymous: true,
             },
           },
-        })
-        .catch(() => {});
+        });
+        if (eErr) throw eErr;
+      } else {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const uid = sessionData?.session?.user?.id;
+        if (!uid) throw new Error("no-session");
+
+        const ticketId = crypto.randomUUID();
+        const { error: tErr } = await supabase.from("support_tickets").insert({
+          id: ticketId,
+          user_id: uid,
+          subject,
+        });
+        if (tErr) throw tErr;
+
+        const { error: mErr } = await supabase.from("ticket_messages").insert({
+          ticket_id: ticketId,
+          sender_id: uid,
+          content: body,
+          is_admin_reply: false,
+        });
+        if (mErr) throw mErr;
+
+        supabase.functions
+          .invoke("send-transactional-email", {
+            body: {
+              templateName: "ticket-opened",
+              idempotencyKey: `pricing-contact-${ticketId}`,
+              templateData: {
+                subject,
+                userEmail: parsed.data.email,
+                userName: parsed.data.name,
+                priority: "normal",
+              },
+            },
+          })
+          .catch(() => {});
+      }
 
       toast({
         title: "Message sent",
-        description: "Thanks — we'll get back to you soon.",
+        description: (!user || isAnonymous)
+          ? "Thanks — we'll reply to your email shortly."
+          : "Thanks — we'll get back to you soon.",
       });
       setName("");
       setEmail("");
