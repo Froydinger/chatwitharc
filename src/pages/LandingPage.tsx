@@ -182,7 +182,7 @@ export function LandingPage() {
       </div>
 
       {/* Nav */}
-      <header className="relative z-10 flex items-center justify-between px-6 py-5 md:px-12 animate-in fade-in slide-in-from-top-2 duration-500">
+      <header className="relative z-10 flex items-center justify-between px-6 pb-5 safe-area-top-nav md:px-12 animate-in fade-in slide-in-from-top-2 duration-500">
         <div className="flex items-center gap-2.5">
           <img src="/arc-logo-ui.png" alt="ArcAI logo" className="h-8 w-8 animate-float" />
           <span className="text-lg font-semibold tracking-tight">ArcAI</span>

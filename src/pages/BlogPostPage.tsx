@@ -92,7 +92,7 @@ export function BlogPostPage() {
         ))}
       </Helmet>
 
-      <header className="flex items-center justify-between px-6 py-5 md:px-12">
+      <header className="flex items-center justify-between px-6 pb-5 safe-area-top-nav md:px-12">
         <Link to="/blog" className="flex items-center gap-2 text-white/70 hover:text-white transition-colors">
           <ArrowLeft className="h-4 w-4" />
           <span className="text-sm">All guides</span>

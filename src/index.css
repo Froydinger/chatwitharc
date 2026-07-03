@@ -1198,44 +1198,6 @@ All colors MUST be HSL for perfect glass effects.
     border-radius: 0;
   }
 
-  /* One-shot aurora halo on arrival */
-  @keyframes arc-aurora-halo {
-    0% {
-      box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.28),
-        inset 0 1px 0 hsl(0 0% 100% / 0.06),
-        0 0 0 0 hsl(var(--primary) / 0),
-        0 0 0 0 hsl(var(--primary) / 0);
-    }
-    30% {
-      box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.28),
-        inset 0 1px 0 hsl(0 0% 100% / 0.08),
-        0 0 36px 6px hsl(var(--primary) / 0.38),
-        0 0 90px 24px hsl(var(--primary) / 0.18);
-    }
-    100% {
-      box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.28),
-        inset 0 1px 0 hsl(0 0% 100% / 0.06),
-        0 0 0 0 hsl(var(--primary) / 0),
-        0 0 0 0 hsl(var(--primary) / 0);
-    }
-  }
-
-  /* Settle bounce on stream end */
-  @keyframes arc-settle {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.012);
-    }
-    100% {
-      transform: scale(1);
-    }
-  }
-
   /* Logo handoff pulse - thinking -> speaking */
   @keyframes arc-logo-handoff {
     0% {
@@ -1252,61 +1214,72 @@ All colors MUST be HSL for perfect glass effects.
     }
   }
 
-  /* Accent glow while Arc is streaming - warm settle-out when done.
-     Use a CSS variable so we can transition a single scalar (opacity multiplier)
-     smoothly. Children inherit text-shadow via the descendant rule so the
-     interpolated value follows them even after the typewriter DOM swap. */
-  .arc-typing-glow {
-    --arc-glow-strength: 0;
-    text-shadow:
-      0 0 4px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.95)),
-      0 0 12px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.8)),
-      0 0 28px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.6)),
-      0 0 52px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.4));
-    transition: --arc-glow-strength 2200ms cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  .arc-typing-glow * {
-    text-shadow: inherit;
-  }
-
-  .arc-typing-glow.arc-typing-glow-active {
-    --arc-glow-strength: 1;
-    transition: --arc-glow-strength 380ms ease-out;
-  }
-
-  /* Light mode: quieter than dark but still visibly warm */
-  .light .arc-typing-glow {
-    text-shadow:
-      0 0 6px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.36)),
-      0 0 16px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.23)),
-      0 0 32px hsl(var(--primary) / calc(var(--arc-glow-strength) * 0.14));
-  }
-
-  @property --arc-glow-strength {
-    syntax: "<number>";
-    inherits: true;
-    initial-value: 0;
-  }
-
   @media (prefers-reduced-motion: no-preference) {
-    .arc-halo-once {
-      animation: arc-aurora-halo 1.6s cubic-bezier(0.22, 1, 0.36, 1) 1;
-    }
-    .arc-settle-once {
-      animation: arc-settle 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 1;
-    }
     .arc-logo-pulse {
       animation: arc-logo-handoff 480ms cubic-bezier(0.22, 1, 0.36, 1) 1;
     }
 
-    /* Words just fade in - no blur, no transform shift */
-    @keyframes arc-word-materialize {
-      from {
+    /* Each word fades in glowing, holds warm for roughly the next 8 words of
+       cadence, then lets its own glow decay — so the light trails the newest
+       words instead of the whole block flaring and settling at once. */
+    @keyframes arc-word-stream {
+      0% {
         opacity: 0;
+        text-shadow:
+          0 0 4px hsl(var(--primary) / 0.95),
+          0 0 12px hsl(var(--primary) / 0.8),
+          0 0 28px hsl(var(--primary) / 0.6);
       }
-      to {
+      12% {
         opacity: 1;
+        text-shadow:
+          0 0 4px hsl(var(--primary) / 0.95),
+          0 0 12px hsl(var(--primary) / 0.8),
+          0 0 28px hsl(var(--primary) / 0.6);
+      }
+      52% {
+        text-shadow:
+          0 0 4px hsl(var(--primary) / 0.95),
+          0 0 12px hsl(var(--primary) / 0.8),
+          0 0 28px hsl(var(--primary) / 0.6);
+      }
+      100% {
+        opacity: 1;
+        text-shadow:
+          0 0 4px hsl(var(--primary) / 0),
+          0 0 12px hsl(var(--primary) / 0),
+          0 0 28px hsl(var(--primary) / 0);
+      }
+    }
+
+    /* Light mode: quieter than dark but still visibly warm */
+    @keyframes arc-word-stream-light {
+      0% {
+        opacity: 0;
+        text-shadow:
+          0 0 6px hsl(var(--primary) / 0.36),
+          0 0 16px hsl(var(--primary) / 0.23),
+          0 0 32px hsl(var(--primary) / 0.14);
+      }
+      12% {
+        opacity: 1;
+        text-shadow:
+          0 0 6px hsl(var(--primary) / 0.36),
+          0 0 16px hsl(var(--primary) / 0.23),
+          0 0 32px hsl(var(--primary) / 0.14);
+      }
+      52% {
+        text-shadow:
+          0 0 6px hsl(var(--primary) / 0.36),
+          0 0 16px hsl(var(--primary) / 0.23),
+          0 0 32px hsl(var(--primary) / 0.14);
+      }
+      100% {
+        opacity: 1;
+        text-shadow:
+          0 0 6px hsl(var(--primary) / 0),
+          0 0 16px hsl(var(--primary) / 0),
+          0 0 32px hsl(var(--primary) / 0);
       }
     }
 
@@ -1315,7 +1288,10 @@ All colors MUST be HSL for perfect glass effects.
       opacity: 1;
     }
     .arc-word.arc-word-entering {
-      animation: arc-word-materialize 140ms ease-out both;
+      animation: arc-word-stream 1250ms ease-out both;
+    }
+    .light .arc-word.arc-word-entering {
+      animation-name: arc-word-stream-light;
     }
   }
 
@@ -1405,6 +1381,11 @@ All colors MUST be HSL for perfect glass effects.
 
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Marketing-page nav: keep py-5 rhythm but push below the iOS notch/Dynamic Island */
+.safe-area-top-nav {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem);
 }
 
 /* ============================================================

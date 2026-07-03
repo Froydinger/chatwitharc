@@ -140,51 +140,24 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     );
 
 
-    // Magical arrival state - one-shot animations for the latest assistant message
-    const [haloed, setHaloed] = useState(false);
-    const [settled, setSettled] = useState(false);
+    // One-shot logo handoff pulse for the latest assistant message
     const [logoPulse, setLogoPulse] = useState(false);
-    const [isTypewriterVisuallyActive, setIsTypewriterVisuallyActive] = useState(false);
-    const glowSettleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const prevThinkingRef = useRef(isThinking);
     const prevContentLenRef = useRef(message.content.length);
-    const prevAnimateRef = useRef(shouldAnimateTypewriter);
     const hasAssistantContent = !isUser && message.content.trim().length > 0;
-
-    useEffect(() => {
-      return () => {
-        if (glowSettleTimeoutRef.current) clearTimeout(glowSettleTimeoutRef.current);
-      };
-    }, []);
-
-    useEffect(() => {
-      if (shouldAnimateTypewriter && hasAssistantContent) {
-        if (glowSettleTimeoutRef.current) clearTimeout(glowSettleTimeoutRef.current);
-        setIsTypewriterVisuallyActive(true);
-      }
-    }, [hasAssistantContent, shouldAnimateTypewriter]);
 
     useEffect(() => {
       if (isUser || !isLatestAssistant) return;
       const len = message.content.length;
-      // Halo: first time content appears while streaming
-      if (!haloed && len > 0 && prevContentLenRef.current === 0) {
-        setHaloed(true);
-      }
       // Logo handoff pulse: thinking -> speaking, or first token without thinking phase
       const firstToken = prevContentLenRef.current === 0 && len > 0;
       const thinkingEnded = prevThinkingRef.current && !isThinking && len > 0;
       if (firstToken || thinkingEnded) {
         setLogoPulse(true);
       }
-      // Settle bounce: typewriter just finished
-      if (prevAnimateRef.current && !shouldAnimateTypewriter && len > 0) {
-        setSettled(true);
-      }
       prevThinkingRef.current = isThinking;
       prevContentLenRef.current = len;
-      prevAnimateRef.current = shouldAnimateTypewriter;
-    }, [isLatestAssistant, isThinking, message.content, shouldAnimateTypewriter, isUser, haloed]);
+    }, [isLatestAssistant, isThinking, message.content, isUser]);
 
 
     const handleCopy = async () => {
@@ -230,17 +203,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     };
 
     const handleTypewriterTyping = useCallback(() => {
-      if (glowSettleTimeoutRef.current) clearTimeout(glowSettleTimeoutRef.current);
-      setIsTypewriterVisuallyActive(true);
       const event = new CustomEvent('typewriter-typing');
       window.dispatchEvent(event);
-    }, []);
-
-    const handleTypewriterComplete = useCallback(() => {
-      if (glowSettleTimeoutRef.current) clearTimeout(glowSettleTimeoutRef.current);
-      glowSettleTimeoutRef.current = setTimeout(() => {
-        setIsTypewriterVisuallyActive(false);
-      }, 120);
     }, []);
 
     const handleMessageClick = () => {
@@ -533,7 +497,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     // AI messages with code block support and markdown
                     message.content.trim().length > 0 && !["canvas", "code", "ide", "file"].includes(message.type) && (
                       <div
-                        className={`relative z-10 w-full min-w-0 arc-message-bubble arc-typing-glow ${isLatestAssistant && (isThinking || isTypewriterVisuallyActive) ? "arc-typing-glow-active" : ""}`}
+                        className="relative z-10 w-full min-w-0 arc-message-bubble"
                       >
 
                         {contentParts.map((part, idx) => {
@@ -554,7 +518,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                 text={part.content}
                                 shouldAnimate={true}
                                 onTyping={handleTypewriterTyping}
-                                onComplete={handleTypewriterComplete}
                               />
                             );
                           }

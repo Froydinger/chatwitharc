@@ -288,7 +288,7 @@ export function LocalAIPanel() {
         </div>
       )}
 
-      {!isMobileLocal && !proLocked && !noWebGPU && (
+      {!isMobileLocal && !noWebGPU && (
         <>
           {!cacheChecked && (
             <div className="p-3 rounded-xl bg-muted/20 border border-border/40 text-xs text-muted-foreground">

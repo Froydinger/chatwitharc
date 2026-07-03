@@ -18,11 +18,6 @@ interface WordStreamMarkdownProps {
   onComplete?: () => void;
 }
 
-interface RevealState {
-  count: number;
-  enteringFrom: number;
-}
-
 const tokenizeText = (value: string) => value.match(/\s+|\S+/g) ?? [];
 
 const countWords = (tokens: string[]) => tokens.reduce((sum, token) => sum + (/^\s+$/.test(token) ? 0 : 1), 0);
@@ -138,52 +133,43 @@ export const WordStreamMarkdown = ({
   const totalWords = useMemo(() => countWords(tokens), [tokens]);
   const animateWords = shouldAnimate && totalWords <= 6000;
 
-  const [revealState, setRevealState] = useState<RevealState>(() => ({
-    count: animateWords ? 0 : totalWords,
-    enteringFrom: 0,
-  }));
+  const [revealedCount, setRevealedCount] = useState<number>(() => (animateWords ? 0 : totalWords));
   const completedWordCountRef = useRef(-1);
 
   useEffect(() => {
     if (!animateWords) {
-      setRevealState({ count: totalWords, enteringFrom: totalWords });
+      setRevealedCount(totalWords);
       return;
     }
 
-    setRevealState((state) => {
-      if (state.count <= totalWords) return state;
-      return { count: totalWords, enteringFrom: totalWords };
-    });
+    setRevealedCount((count) => Math.min(count, totalWords));
   }, [animateWords, totalWords]);
 
   useEffect(() => {
-    if (!animateWords || revealState.count >= totalWords) return;
+    if (!animateWords || revealedCount >= totalWords) return;
 
-    const behind = totalWords - revealState.count;
-    // Slightly slower cadence so each word's blur-in finishes before the next starts.
+    const behind = totalWords - revealedCount;
+    // Slightly slower cadence so each word's glow-in finishes before the next starts.
     const interval = behind > 240 ? 32 : behind > 120 ? 48 : behind > 48 ? 64 : 80;
 
     const id = window.setTimeout(() => {
-      setRevealState((state) => {
-        const next = Math.min(totalWords, state.count + 1);
-        return { count: next, enteringFrom: next - 1 };
-      });
+      setRevealedCount((count) => Math.min(totalWords, count + 1));
       onTyping?.();
     }, interval);
 
     return () => window.clearTimeout(id);
-  }, [animateWords, onTyping, revealState.count, totalWords]);
+  }, [animateWords, onTyping, revealedCount, totalWords]);
 
   useEffect(() => {
-    if (!animateWords || totalWords === 0 || revealState.count < totalWords) return;
+    if (!animateWords || totalWords === 0 || revealedCount < totalWords) return;
     if (completedWordCountRef.current === totalWords) return;
     completedWordCountRef.current = totalWords;
     onComplete?.();
-  }, [animateWords, onComplete, revealState.count, totalWords]);
+  }, [animateWords, onComplete, revealedCount, totalWords]);
 
   const visibleText = useMemo(
-    () => hideUnclosedMarkdownTail(animateWords ? getPrefixByWords(tokens, revealState.count) : text),
-    [animateWords, revealState.count, text, tokens]
+    () => hideUnclosedMarkdownTail(animateWords ? getPrefixByWords(tokens, revealedCount) : text),
+    [animateWords, revealedCount, text, tokens]
   );
 
   const renderTextWithWords = useCallback((children: any, cursor: { i: number }): any => {
@@ -197,12 +183,10 @@ export const WordStreamMarkdown = ({
         }
         const idx = cursor.i;
         cursor.i += 1;
-        const isEntering = idx === revealState.count - 1;
+        // Class stays constant after mount (keys are stable), so the glow
+        // animation runs exactly once — when this word is first revealed.
         return (
-          <span
-            key={`arc-word-${idx}`}
-            className={isEntering ? "arc-word arc-word-entering" : "arc-word"}
-          >
+          <span key={`arc-word-${idx}`} className="arc-word arc-word-entering">
             {p}
           </span>
         );
@@ -225,9 +209,12 @@ export const WordStreamMarkdown = ({
     };
 
     return walk(children, "w");
-  }, [animateWords, revealState.count]);
+  }, [animateWords]);
 
   const components = useMemo(() => {
+    // The cursor must reset every time ReactMarkdown re-renders new text,
+    // otherwise word indices (and keys) drift and every span remounts —
+    // visibleText in the deps below is what forces that reset per reveal.
     const cursor = { i: 0 };
     return {
       p: ({ node, children, ...props }: any) => (
@@ -353,7 +340,8 @@ export const WordStreamMarkdown = ({
         );
       },
     };
-  }, [renderTextWithWords]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- visibleText resets the word cursor per render
+  }, [renderTextWithWords, visibleText]);
 
   return (
     <div className={`relative z-10 text-foreground break-words ${className}`}>
