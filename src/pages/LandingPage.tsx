@@ -19,7 +19,7 @@ const SITE = "https://askarc.chat";
 const LANDING_FAQ = [
   {
     q: "What is ArcAI?",
-    a: "ArcAI is a free multimodal AI assistant built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, real-time voice, image generation, a code canvas, and long-term memory — all in your browser.",
+    a: "ArcAI is a free multimodal AI assistant built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, real-time voice, image generation, a code canvas, and long-term memory, all in your browser.",
   },
   {
     q: "Is ArcAI free?",
@@ -27,7 +27,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer an optional Boost upgrade for $7/month that increases your daily image quota to 30 and unlocks unlimited Smarter chats and web publishing. No pressure — the free plan does it all.",
+    a: "Yes. We offer an optional Boost upgrade for $7/month that increases your daily image quota to 30 and unlocks unlimited Smarter chats and web publishing. No pressure, the free plan does it all.",
   },
   {
     q: "Is ArcAI a free ChatGPT alternative?",
@@ -135,7 +135,7 @@ export function LandingPage() {
       {/* Hero */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 pt-20 pb-24 text-center md:pt-32 md:pb-32">
         <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 animate-in fade-in zoom-in-95 duration-500">
-          <Sparkles className="h-3.5 w-3.5" /> Ask, Reflect, Create — the ARC of reasoning.
+          <Sparkles className="h-3.5 w-3.5" /> Ask, Reflect, Create · The ARC of reasoning.
         </div>
         <h1 className="mx-auto max-w-4xl text-5xl font-semibold tracking-tight md:text-7xl lg:text-8xl animate-in fade-in slide-in-from-bottom-3 duration-700">
           Ask. Reflect. Create.

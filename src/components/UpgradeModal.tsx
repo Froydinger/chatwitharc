@@ -84,7 +84,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
                 </GlassButton>
                 {!paymentsAvailable() && user && (
                   <p className="text-[11px] text-muted-foreground mt-2">
-                    Checkout coming soon — go-live in progress.
+                    Checkout coming soon, go-live in progress.
                   </p>
                 )}
               </>

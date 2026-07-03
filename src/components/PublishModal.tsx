@@ -120,7 +120,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
 
   const handlePublish = async () => {
     if (!subdomain.trim()) { setError('Site name is required'); return; }
-    if (availability === 'taken') { setError('That address is already taken — pick a different one.'); return; }
+    if (availability === 'taken') { setError('That address is already taken, pick a different one.'); return; }
     setError('');
     setPublishing(true);
     try {
@@ -130,7 +130,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
       const msg = err instanceof Error ? err.message : 'Publish failed';
       setError(msg);
       // If server says taken, mark it
-      if (/already taken|taken — pick/i.test(msg)) setAvailability('taken');
+      if (/already taken|taken, pick/i.test(msg)) setAvailability('taken');
     } finally {
       setPublishing(false);
     }
@@ -255,14 +255,14 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
             </div>
           </div>
 
-          {/* Notice — updates allowed */}
+          {/* Notice: updates allowed */}
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3.5 py-3 space-y-1">
             <p className="text-xs font-medium text-amber-500/90">Before you publish</p>
             <ul className="text-xs text-muted-foreground space-y-0.5 list-disc list-inside">
               <li>Your site goes live at a <span className="font-mono">.{PUBLISH_DOMAIN}</span> URL</li>
               <li>You can re-publish to push updates to the same URL anytime</li>
               <li>It stays live until you choose to unpublish it</li>
-              <li>Unpublishing is the only destructive action — once gone, the URL can't be recovered</li>
+              <li>Unpublishing is the only destructive action, once gone, the URL can't be recovered</li>
             </ul>
           </div>
 
