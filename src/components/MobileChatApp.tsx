@@ -852,33 +852,43 @@ export function MobileChatApp() {
                 top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'} + 8px)`,
               }}
             >
-              <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+              <motion.div 
+                whileHover={{ scale: 1.1, y: -2 }} 
+                whileTap={{ scale: 0.95 }} 
+                transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                className="cursor-pointer"
+                onClick={() => {
+                  if (!canUseSidebar) {
+                    requireAuth("menu");
+                    return;
+                  }
+                  if (isMobile) {
+                    setRightPanelOpen(!rightPanelOpen);
+                  } else {
+                    toggleDock();
+                  }
+                }}
+              >
                 <Button
                   variant="outline"
                   size="icon"
-                  className="rounded-full glass-shimmer transition-all"
-                  onClick={() => {
-                    if (!canUseSidebar) {
-                      requireAuth("menu");
-                      return;
-                    }
-                    if (isMobile) {
-                      setRightPanelOpen(!rightPanelOpen);
-                    } else {
-                      toggleDock();
-                    }
-                  }}
+                  className="rounded-full glass-shimmer transition-all pointer-events-none"
                 >
                   <Menu className="h-4 w-4" />
                 </Button>
               </motion.div>
 
-              <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+              <motion.div 
+                whileHover={{ scale: 1.1, y: -2 }} 
+                whileTap={{ scale: 0.95 }} 
+                transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                className="cursor-pointer"
+                onClick={handleNewChat}
+              >
                 <Button
                   variant="outline"
                   size="icon"
-                  className="rounded-full glass-shimmer transition-all"
-                  onClick={handleNewChat}
+                  className="rounded-full glass-shimmer transition-all pointer-events-none"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -898,12 +908,17 @@ export function MobileChatApp() {
             >
               {/* Share Button */}
               {currentSessionId && messages.length > 0 && (
-                <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
+                <motion.div 
+                  whileHover={{ scale: 1.1, y: -2 }} 
+                  whileTap={{ scale: 0.95 }} 
+                  transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                  className="cursor-pointer"
+                  onClick={() => setIsShareDialogOpen(true)}
+                >
                   <Button
                     variant="outline"
                     size="icon"
-                    className="rounded-full glass-shimmer transition-all"
-                    onClick={() => setIsShareDialogOpen(true)}
+                    className="rounded-full glass-shimmer transition-all pointer-events-none"
                     title="Share chat"
                   >
                     <Share2 className="h-4 w-4" />
@@ -916,22 +931,22 @@ export function MobileChatApp() {
                 whileHover={{ scale: 1.1, y: -2 }} 
                 whileTap={{ scale: 0.95 }} 
                 transition={{ type: "spring", damping: 15, stiffness: 300 }}
-                className="relative"
+                className="relative cursor-pointer"
+                onClick={() => {
+                  if (isAnonymous) {
+                    requireAuth("music");
+                    return;
+                  }
+                  setIsMusicPopupOpen(!isMusicPopupOpen);
+                }}
               >
                 <Button
                   variant="outline"
                   size="icon"
                   className={cn(
-                    "rounded-full glass-shimmer transition-all",
+                    "rounded-full glass-shimmer transition-all pointer-events-none",
                     isMusicPlaying && "ring-2 ring-primary/50"
                   )}
-                  onClick={() => {
-                    if (isAnonymous) {
-                      requireAuth("music");
-                      return;
-                    }
-                    setIsMusicPopupOpen(!isMusicPopupOpen);
-                  }}
                   title="Music Player"
                 >
                   {/* Show waveform when playing, music note when not */}
@@ -961,23 +976,23 @@ export function MobileChatApp() {
 
               {/* Logo Orb - clickable and opens support popup */}
               <motion.div
-                className="relative"
+                className="relative cursor-pointer"
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 whileTap={{ scale: 0.95 }}
                 animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
                 transition={isLogoSpinning ? { duration: 0.6, ease: "easeOut" } : { type: "spring", damping: 15, stiffness: 300 }}
+                onClick={() => {
+                  if (isAnonymous) {
+                    requireAuth("menu");
+                    return;
+                  }
+                  navigate('/dashboard');
+                }}
               >
                 <Button
                   variant="outline"
                   size="icon"
-                  className="rounded-full glass-shimmer transition-all overflow-hidden"
-                  onClick={() => {
-                    if (isAnonymous) {
-                      requireAuth("menu");
-                      return;
-                    }
-                    navigate('/dashboard');
-                  }}
+                  className="rounded-full glass-shimmer transition-all overflow-hidden pointer-events-none"
                   title="Dashboard"
                 >
                   <LayoutDashboard className="h-6 w-6 text-primary" />
