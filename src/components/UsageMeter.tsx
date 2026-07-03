@@ -1,5 +1,5 @@
 import { Sparkles, Mic } from "lucide-react";
-import { useImageQuota } from "@/hooks/useImageQuota";
+import { useSubscription } from "@/hooks/useSubscription";
 import { cn } from "@/lib/utils";
 
 interface UsageMeterProps {
@@ -8,18 +8,22 @@ interface UsageMeterProps {
 }
 
 /**
- * Tiny floating pill for the daily image allowance. Voice is unlimited.
- */
+  * Tiny floating pill for the daily image allowance. Voice is unlimited.
+  */
 export function UsageMeter({ kind, className }: UsageMeterProps) {
   const {
     isAdmin,
+    hasBoost,
     dailyImagesUsed,
-    FREE_DAILY_IMAGE_LIMIT,
-  } = useImageQuota();
+    imageLimit,
+    voiceConversations30d,
+    remainingVoiceConversations,
+    FREE_VOICE_LIMIT_30D,
+  } = useSubscription();
 
   const isImage = kind === "image";
 
-  if (!isImage || isAdmin) {
+  if (isAdmin || (isImage && hasBoost && imageLimit === Infinity)) {
     const Icon = isImage ? Sparkles : Mic;
     return (
       <div
@@ -38,15 +42,15 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
     );
   }
 
-  const used = dailyImagesUsed;
-  const limit = FREE_DAILY_IMAGE_LIMIT;
-  const remaining = Math.max(0, limit - used);
+  const used = isImage ? dailyImagesUsed : voiceConversations30d;
+  const limit = isImage ? imageLimit : FREE_VOICE_LIMIT_30D;
+  const remaining = isImage ? Math.max(0, limit - used) : remainingVoiceConversations;
   const pct = Math.min(100, (used / limit) * 100);
   const isExhausted = remaining === 0;
   const isLow = remaining > 0 && remaining <= Math.max(1, Math.floor(limit * 0.3));
 
   const Icon = isImage ? Sparkles : Mic;
-  const periodLabel = "today";
+  const periodLabel = isImage ? "today" : "this month";
 
   return (
     <div
@@ -61,7 +65,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50",
         className,
       )}
-      aria-label={`${remaining} image ${remaining === 1 ? "output" : "outputs"} remaining today.`}
+      aria-label={`${remaining} ${isImage ? "images" : "voice calls"} remaining ${periodLabel}.`}
     >
       <Icon className="h-3.5 w-3.5 shrink-0" />
       <span className="tabular-nums hidden sm:inline">
@@ -70,7 +74,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           : `${remaining} / ${limit} ${isImage ? "images" : "voice"} left ${periodLabel}`}
       </span>
       <span className="tabular-nums sm:hidden">
-        {isImage ? `${used}/${limit}` : `${used}/${limit}`}
+        {`${used}/${limit}`}
       </span>
       {/* mini progress bar */}
       <span className="hidden sm:inline-block w-10 h-1 rounded-full bg-muted/70 overflow-hidden">

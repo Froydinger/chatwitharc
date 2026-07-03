@@ -1,10 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { SubscriptionProvider } from "@/hooks/useSubscription";
+import { UpgradeModal } from "@/components/UpgradeModal";
+import { BoostSync } from "@/components/BoostSync";
 import { ImageQuotaProvider } from "@/hooks/useImageQuota";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { UpdateNotification } from "@/components/UpdateNotification";
@@ -74,6 +77,7 @@ const detectStandaloneMode = () => {
 const App = () => {
   const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   
   useVisibilityHandler();
   useCorporateModeEnforcer();
@@ -81,6 +85,11 @@ const App = () => {
   useTheme();
   useCustomFont();
 
+  useEffect(() => {
+    const handleOpen = () => setUpgradeOpen(true);
+    window.addEventListener('open-upgrade-modal', handleOpen);
+    return () => window.removeEventListener('open-upgrade-modal', handleOpen);
+  }, []);
 
   // Detect standalone mode on mount
   useEffect(() => {
@@ -90,60 +99,64 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ImageQuotaProvider>
-        <TooltipProvider>
-          <div className="arcai-drag-bar" />
-          <LiquidFilter />
-          <BackgroundGradients />
-          {showStarfield && <Starfield />}
-            <Toaster />
-            <Sonner />
-            <FingerPopupContainer />
-            <PWAInstallPrompt />
-            <UpdateNotification />
-            <AdminBanner />
-            <BugReportModal
-              isOpen={isOpen}
-              onClose={closeBugReport}
-              errorMessage={errorMessage}
-              errorStack={errorStack}
-            />
-            <BrowserRouter>
-              <ScrollToTop />
-              <RouteSEO />
-              <PageTransition>
-                <Routes>
-                  <Route path="/" element={<RootGate />} />
-                  <Route path="/welcome" element={<LandingPage />} />
-                  <Route path="/blog" element={<BlogIndexPage />} />
-                  <Route path="/blog/:slug" element={<BlogPostPage />} />
-                  <Route path="/chat/:sessionId" element={<Index />} />
-                  <Route path="/share/:sessionId" element={<SharedChatPage />} />
-                  <Route path="/downloads" element={<DownloadPage />} />
-                  <Route path="/pricing" element={<PricingPage />} />
-                  <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
-                  <Route path="/apps" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/apps/:projectId" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/admin" element={<AdminPage />} />
-                  <Route path="/unsubscribe" element={<UnsubscribePage />} />
-                  <Route path="/support" element={<SupportPage />} />
-                  <Route path="/tasks" element={<TasksPage />} />
-                  <Route path="/shared" element={<SharedChatsPage />} />
-                  <Route path="/shared/:chatId" element={<SharedChatRoomPage />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="/terms" element={<TermsPage />} />
-                  <Route path="/privacy" element={<PrivacyPolicyPage />} />
-                  <Route path="/refund-policy" element={<Navigate to="/terms" replace />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </PageTransition>
-            </BrowserRouter>
-            <GlobalMusicPlayer />
-            <CorporateMemoryConsentGate />
-            <GlobalAuthGate />
-        </TooltipProvider>
-        </ImageQuotaProvider>
+        <SubscriptionProvider>
+          <ImageQuotaProvider>
+            <TooltipProvider>
+              <div className="arcai-drag-bar" />
+              <LiquidFilter />
+              <BackgroundGradients />
+              {showStarfield && <Starfield />}
+              <Toaster />
+              <Sonner />
+              <FingerPopupContainer />
+              <PWAInstallPrompt />
+              <UpdateNotification />
+              <AdminBanner />
+              <BugReportModal
+                isOpen={isOpen}
+                onClose={closeBugReport}
+                errorMessage={errorMessage}
+                errorStack={errorStack}
+              />
+              <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+              <BoostSync />
+              <BrowserRouter>
+                <ScrollToTop />
+                <RouteSEO />
+                <PageTransition>
+                  <Routes>
+                    <Route path="/" element={<RootGate />} />
+                    <Route path="/welcome" element={<LandingPage />} />
+                    <Route path="/blog" element={<BlogIndexPage />} />
+                    <Route path="/blog/:slug" element={<BlogPostPage />} />
+                    <Route path="/chat/:sessionId" element={<Index />} />
+                    <Route path="/share/:sessionId" element={<SharedChatPage />} />
+                    <Route path="/downloads" element={<DownloadPage />} />
+                    <Route path="/pricing" element={<PricingPage />} />
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
+                    <Route path="/apps" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/apps/:projectId" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/admin" element={<AdminPage />} />
+                    <Route path="/unsubscribe" element={<UnsubscribePage />} />
+                    <Route path="/support" element={<SupportPage />} />
+                    <Route path="/tasks" element={<TasksPage />} />
+                    <Route path="/shared" element={<SharedChatsPage />} />
+                    <Route path="/shared/:chatId" element={<SharedChatRoomPage />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="/terms" element={<TermsPage />} />
+                    <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                    <Route path="/refund-policy" element={<Navigate to="/terms" replace />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </PageTransition>
+              </BrowserRouter>
+              <GlobalMusicPlayer />
+              <CorporateMemoryConsentGate />
+              <GlobalAuthGate />
+            </TooltipProvider>
+          </ImageQuotaProvider>
+        </SubscriptionProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

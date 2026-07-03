@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { checkSubdomainAvailability, PUBLISH_DOMAIN } from '@/lib/deploy';
+import { useSubscription } from '@/hooks/useSubscription';
 
 const EMOJI_OPTIONS = ['🚀', '⚡', '🌟', '🎯', '🔥', '💎', '🎨', '🌈', '🦋', '🍀', '🎭', '🏆'];
 const BG_OPTIONS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
@@ -36,6 +37,7 @@ function slugify(s: string): string {
 type AvailabilityState = 'idle' | 'checking' | 'available' | 'taken';
 
 export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: PublishModalProps) {
+  const { hasBoost, openCheckout } = useSubscription();
   const [title, setTitle] = useState(defaultTitle || 'My Site');
   const [subdomain, setSubdomain] = useState('');
   const [subdomainEdited, setSubdomainEdited] = useState(false);
@@ -80,6 +82,38 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
   }, [subdomain, open]);
 
   if (!open) return null;
+
+  if (!hasBoost) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative w-full max-w-md rounded-2xl border border-border/30 bg-background shadow-2xl overflow-hidden p-6 text-center">
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-white/10 transition-colors"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/15 mb-4">
+            <Rocket className="h-7 w-7 text-primary" />
+          </div>
+          <h2 className="text-xl font-bold mb-2">Publishing requires Boost</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            Upgrade to ArcAI Boost for $7/month to publish your web creations to custom URLs, get unlimited Smarter reasoning chats, and generate up to 30 images a day.
+          </p>
+          <div className="flex flex-col gap-2.5">
+            <Button onClick={() => { onClose(); openCheckout(); }} className="w-full rounded-xl">
+              Upgrade to Boost ($7/mo)
+            </Button>
+            <Button variant="ghost" onClick={onClose} className="w-full rounded-xl">
+              Maybe later
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const previewUrl = `${subdomain || 'my-site'}.${PUBLISH_DOMAIN}`;
   const faviconSvg = makeFaviconSvg(emoji, bg);

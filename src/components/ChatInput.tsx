@@ -30,6 +30,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useModelStore, SMARTER_MODEL } from "@/store/useModelStore";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useStreamingWithContinuation } from "@/hooks/useStreamingWithContinuation";
@@ -422,6 +424,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Guest mode = no user OR anonymous (auto-issued) Supabase session.
   const isGuestMode = !user || isAnonymous;
   const requireAuth = useRequireAuth();
+  const { canSendSmarterChat, openCheckout, recordSmarterChat } = useSubscription();
   const { personas, fetchPersonas } = usePersonasStore();
 
   const {
@@ -1124,6 +1127,18 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       return;
     }
 
+    // Quota check for Smarter chats (gpt-5.4-mini)
+    const currentModel = useModelStore.getState().chatModel;
+    if (currentModel === SMARTER_MODEL && !canSendSmarterChat) {
+      toast({
+        title: "Smarter Chat Limit Reached",
+        description: "You've reached your daily limit of 20 Smarter (GPT-5.4 Mini) chats. Upgrade to Boost for unlimited access, or switch to Fast (GPT-5.4 Nano) mode!",
+        variant: "destructive",
+      });
+      openCheckout();
+      return;
+    }
+
     // If Arc is currently thinking, queue the message instead of blocking
     // Check both React state AND direct store state to avoid stale closure races
     const storeIsLoading = useArcStore.getState().isLoading;
@@ -1251,6 +1266,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     // Track message usage
     if (isGuestMode) {
       window.dispatchEvent(new CustomEvent("arcai:guestMessageSent"));
+    }
+
+    if (currentModel === SMARTER_MODEL) {
+      recordSmarterChat();
     }
 
     try {

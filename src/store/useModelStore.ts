@@ -15,6 +15,8 @@ interface ModelStore {
   /** Active chat model. Defaults to Faster (nano). */
   chatModel: ChatModel;
   setChatModel: (model: ChatModel) => void;
+  isBoost: boolean;
+  setIsBoost: (isBoost: boolean) => void;
 }
 
 export const useModelStore = create<ModelStore>()(
@@ -24,6 +26,8 @@ export const useModelStore = create<ModelStore>()(
       setModelFamily: () => set({ modelFamily: 'openai' }),
       chatModel: FASTER_MODEL,
       setChatModel: (model) => set({ chatModel: model }),
+      isBoost: false,
+      setIsBoost: (isBoost) => set({ isBoost }),
     }),
     {
       name: 'arc-model-family',

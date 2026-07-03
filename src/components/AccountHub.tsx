@@ -23,11 +23,11 @@ import {
   ExternalLink, Heart, Crown, MessageSquare, Brain, Image,
   Sparkles, RefreshCw, Calendar, Loader2, User, Palette, Mic,
   Check, Shield, Settings, LogOut, Trash2, AlertTriangle,
-  Mail, Key, Download, Cloud, CloudOff, WifiOff, Camera, Save, RotateCcw,
+  Mail, Key, Download, Cloud, CloudOff, WifiOff, Camera, Save, RotateCcw, Zap,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { useImageQuota } from "@/hooks/useImageQuota";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { useArcStore } from "@/store/useArcStore";
@@ -74,13 +74,15 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   const { isAdmin } = useAdminSettings();
   const { clearAllSessions, createNewSession, lastSyncAt } = useArcStore();
   
-  const imageQuota = useImageQuota();
   const {
     loading: subLoading,
     isAdmin: quotaAdmin,
     dailyImagesUsed,
-    FREE_DAILY_IMAGE_LIMIT,
-  } = imageQuota;
+    imageLimit: FREE_DAILY_IMAGE_LIMIT,
+    hasBoost,
+    openCheckout,
+    openCustomerPortal,
+  } = useSubscription();
 
   const [activeTab, setActiveTab] = useState<HubTab>("overview");
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -456,6 +458,53 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                 <Section icon={<Mail className="h-4 w-4" />} title="Email Address" desc="Your account email">
                   <div className="text-sm text-muted-foreground font-mono bg-muted/20 px-3 py-2 rounded-lg">
                     {user?.email || "No email"}
+                  </div>
+                </Section>
+
+                {/* Subscription Tier */}
+                <Section icon={<Sparkles className="h-4 w-4" />} title="Subscription Tier" desc="Your billing tier and limits">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+                      <div>
+                        <div className="text-sm font-medium flex items-center gap-1.5">
+                          {hasBoost ? (
+                            <>
+                              <Zap className="h-3.5 w-3.5 text-primary fill-primary" />
+                              <span>ArcAI Boost</span>
+                            </>
+                          ) : (
+                            <span>ArcAI Free Tier</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
+                          {hasBoost ? "Unlimited Smarter reasoning & custom domain publishing" : "20 Smarter chats/day & 10 images/day limit"}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        {hasBoost ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs border-primary/40 text-primary bg-primary/10 hover:bg-primary/20"
+                            onClick={openCustomerPortal}
+                          >
+                            Billing
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs bg-primary text-primary-foreground hover:bg-primary/90"
+                            onClick={() => {
+                              onClose();
+                              openCheckout();
+                            }}
+                          >
+                            Upgrade
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </Section>
 
