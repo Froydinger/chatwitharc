@@ -863,7 +863,7 @@ export function MobileChatApp() {
                     size="icon"
                     className="rounded-full glass-shimmer transition-all"
                     onClick={() => {
-                      if (isAnonymous) {
+                      if (!canUseSidebar) {
                         requireAuth("menu");
                         return;
                       }
@@ -877,6 +877,7 @@ export function MobileChatApp() {
                     <Menu className="h-4 w-4" />
                   </Button>
                 </motion.div>
+
                 <motion.div whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", damping: 15, stiffness: 300 }}>
                   <Button
                     variant="outline"
