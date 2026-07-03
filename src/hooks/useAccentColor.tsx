@@ -137,8 +137,12 @@ export function useAccentColor() {
           .maybeSingle();
 
         if (!error && data?.accent_color) {
-          // Update local shared state (no DB write-back)
-          setAccentColorLocal(data.accent_color as AccentColor);
+          const hasLocalChoice = localStorage.getItem("accentColor") !== null;
+          const nextAccent = data.accent_color === "blue" && !hasLocalChoice ? "noir" : data.accent_color;
+          setAccentColorLocal(nextAccent as AccentColor);
+          if (nextAccent !== data.accent_color) {
+            supabase.from("profiles").update({ accent_color: nextAccent }).eq("user_id", user.id).then(() => {});
+          }
         }
         setIsLoaded(true);
       } catch (err) {
