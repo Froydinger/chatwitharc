@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ensureAnonSession } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name too long"),
@@ -18,6 +18,7 @@ const contactSchema = z.object({
 
 export function PricingPage() {
   const { toast } = useToast();
+  const { user, isAnonymous } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -41,8 +42,14 @@ export function PricingPage() {
 
     setSubmitting(true);
     try {
-      // Ensure we have a Supabase session (anon is fine) so RLS lets us insert.
-      await ensureAnonSession().catch(() => {});
+      if (!user || isAnonymous) {
+        window.dispatchEvent(new CustomEvent("auth-gate-feature", { detail: { feature: "generic" } }));
+        toast({
+          title: "Sign in to send",
+          description: "Create a free account so we can reply to your request.",
+        });
+        return;
+      }
       const { data: sessionData } = await supabase.auth.getSession();
       const uid = sessionData?.session?.user?.id;
       if (!uid) throw new Error("no-session");

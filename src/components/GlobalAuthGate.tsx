@@ -22,9 +22,7 @@ export function GlobalAuthGate() {
     };
     window.addEventListener("auth-gate-feature", handler);
 
-    // Note: we deliberately do NOT listen for `arcai:guestMessageSent` here.
-    // Anonymous users can chat freely; the modal only appears for gated
-    // features via `auth-gate-feature`.
+    // Chat is now account-only; this only opens from explicit auth gates.
 
     return () => {
       window.removeEventListener("auth-gate-feature", handler);

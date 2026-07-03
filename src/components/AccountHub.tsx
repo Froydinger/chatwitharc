@@ -179,7 +179,8 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     try {
       localStorage.removeItem('theme');
       localStorage.removeItem('followSystem');
-      localStorage.removeItem('accentColor');
+      localStorage.setItem('accentColor', 'noir');
+      localStorage.setItem('themeMode', 'dark');
       await supabase.auth.signOut();
       toast({ title: "Signed out" });
       onClose();

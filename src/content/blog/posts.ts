@@ -7,6 +7,8 @@
 export interface FAQItem {
   q: string;
   a: string;
+  details?: string[];
+  bullets?: string[];
 }
 
 export interface BlogPost {
@@ -16,26 +18,27 @@ export interface BlogPost {
   keywords: string[];
   updated: string; // ISO date
   intro: string;
+  body?: string[];
   faq: FAQItem[];
   cta: string;
 }
 
 const UPDATED = "2026-07-03";
 
-export const BLOG_POSTS: BlogPost[] = [
+const RAW_BLOG_POSTS: BlogPost[] = [
   {
     slug: "what-is-arcai",
     title: "What is ArcAI? A free AI assistant that remembers you",
     description:
-      "ArcAI is a free multimodal AI assistant with voice, image generation, code and long-term memory. Try it in your browser with no signup required.",
+      "ArcAI is a free multimodal AI assistant with voice, image generation, code and long-term memory. Try it in your browser with a free account.",
     keywords: ["ArcAI", "Ask Arc", "free AI assistant", "AI with memory"],
     updated: UPDATED,
     intro:
-      "ArcAI (sometimes called Ask Arc) is a free AI assistant that combines chat, real-time voice, image generation, and coding tools in a single browser app. It works without a signup, and it remembers what you talked about across sessions.",
+      "ArcAI (sometimes called Ask Arc) is a free AI assistant that combines chat, real-time voice, image generation, and coding tools in a single browser app. Create a free account to chat, save your work, and let Arc remember what you talked about across sessions.",
     faq: [
       {
         q: "What is ArcAI?",
-        a: "ArcAI is a free, multimodal AI assistant built by Win The Night Productions. It gives you chat, real-time voice conversations, AI image generation, a code canvas, and long-term memory — all without paying for a subscription.",
+        a: "ArcAI is a free, multimodal AI assistant built by Win The Night Productions. It gives you chat, real-time voice conversations, AI image generation, a code canvas, and long-term memory — all without paying for a subscription once you create a free account.",
       },
       {
         q: "Is ArcAI really free?",
@@ -43,7 +46,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Do I need an account to use ArcAI?",
-        a: "No. You can open askarc.chat and start chatting immediately as a guest. Sign up any time to save your history and unlock features like memory, canvases, and voice.",
+        a: "Yes. A free account is required to chat so your history, memory, files, canvases and voice limits stay attached to you instead of disappearing in a guest session.",
       },
       {
         q: "What can I ask Arc?",
@@ -60,7 +63,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: "free-chatgpt-alternative",
     title: "The best free ChatGPT alternative in 2026",
     description:
-      "Looking for a free ChatGPT alternative? ArcAI gives you unlimited chat, voice, image generation and memory — no credit card, no message limit.",
+      "Looking for a free ChatGPT alternative? ArcAI gives you unlimited chat, voice, image generation and memory — no credit card required.",
     keywords: ["free ChatGPT alternative", "ChatGPT free", "free AI chatbot"],
     updated: UPDATED,
     intro:
@@ -68,7 +71,7 @@ export const BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "What is the best free alternative to ChatGPT?",
-        a: "ArcAI is the best free ChatGPT alternative for most people. It offers unlimited chat with GPT-class models, real-time voice, image generation, web search with sources, and long-term memory — all free, no credit card.",
+        a: "ArcAI is the best free ChatGPT alternative for most people. It offers unlimited chat with GPT-class models, real-time voice, image generation, web search with sources, and long-term memory — all free, with a free account and no credit card.",
       },
       {
         q: "Is ArcAI as good as ChatGPT Plus?",
@@ -80,7 +83,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Can I use ArcAI without signing up?",
-        a: "Yes. Guest chat works instantly. Sign up any time to save conversations and unlock memory, canvases, and personalization.",
+        a: "Create a free account to start. ArcAI no longer opens chat screens for logged-out visitors, which keeps your history and settings protected from the first message.",
       },
     ],
     cta: "Try the free ChatGPT alternative",
@@ -93,7 +96,7 @@ export const BLOG_POSTS: BlogPost[] = [
     keywords: ["free Gemini alternative", "Google AI alternative", "Gemini free"],
     updated: UPDATED,
     intro:
-      "Google Gemini is powerful but ties you to a Google account and pushes you toward the paid Advanced tier. ArcAI is a free Gemini alternative you can use in seconds with no Google login.",
+      "Google Gemini is powerful but ties you to a Google account and pushes you toward the paid Advanced tier. ArcAI is a free Gemini alternative you can use in seconds with a free ArcAI account and no required Google login.",
     faq: [
       {
         q: "Is there a free alternative to Google Gemini?",
@@ -105,7 +108,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI private?",
-        a: "Your data stays in your account. Guest chats are ephemeral; signed-in chats sync to your private vault. You can wipe everything from the settings screen in one click.",
+        a: "Your data stays in your account. ArcAI requires a free account for chat so conversations, memory and settings stay tied to you. You can wipe everything from the settings screen in one click.",
       },
     ],
     cta: "Try the free Gemini alternative",
@@ -114,7 +117,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: "free-gpt-4-alternative",
     title: "A free GPT-4 alternative you can use right now",
     description:
-      "Get GPT-class answers without paying for GPT-4. ArcAI is a free GPT-4 alternative with voice, images, code and memory built in.",
+      "Get GPT-class answers with a free account. ArcAI is a free GPT-4 alternative with voice, images, code and memory built in.",
     keywords: ["free GPT-4 alternative", "GPT-4 free", "free GPT"],
     updated: UPDATED,
     intro:
@@ -256,7 +259,7 @@ export const BLOG_POSTS: BlogPost[] = [
     keywords: ["Ask Arc", "askarc.chat", "ArcAI"],
     updated: UPDATED,
     intro:
-      "Ask Arc is the way people refer to using ArcAI, the free AI assistant from Win The Night Productions. Just visit askarc.chat and start typing.",
+      "Ask Arc is the way people refer to using ArcAI, the free AI assistant from Win The Night Productions. Visit askarc.chat, create a free account, and start typing.",
     faq: [
       {
         q: "What is Ask Arc?",
@@ -264,7 +267,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How do I start using Ask Arc?",
-        a: "Visit askarc.chat, type your question, and press send. You can chat as a guest or sign in to save history and unlock voice and memory.",
+        a: "Visit askarc.chat, create a free account, type your question, and press send. Your chats, memory, voice use and canvases stay tied to that account.",
       },
       {
         q: "Is Ask Arc the same as ArcAI?",
@@ -293,7 +296,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Can I move from ChatGPT to ArcAI?",
-        a: "Yes. Just start a conversation at askarc.chat. Sign up to save history. Nothing to install.",
+        a: "Yes. Create a free account at askarc.chat and start a conversation. Nothing to install.",
       },
     ],
     cta: "Try the free ChatGPT alternative",
@@ -369,7 +372,7 @@ export const BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "How do I start chatting with Arc?",
-        a: "Go to askarc.chat and type. You can chat as a guest immediately, or sign up to save history.",
+        a: "Go to askarc.chat and type. Create a free account first. ArcAI keeps the chat screen behind login so your history, memory and preferences are protected from the start.",
       },
       {
         q: "How do I use voice mode?",
@@ -387,6 +390,133 @@ export const BLOG_POSTS: BlogPost[] = [
     cta: "Start using ArcAI free",
   },
 ];
+
+const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; boost: string; proof: string }> = {
+  "what-is-arcai": {
+    angle: "ArcAI is built around a simple idea: one assistant should handle the whole loop — thinking, searching, speaking, writing, coding, creating images, and remembering the context that makes those tasks personal.",
+    useCases: ["daily planning", "research with sources", "image generation", "coding prototypes", "voice brainstorming", "long-term personal context"],
+    boost: "Boost matters most when ArcAI becomes part of your daily workflow: unlimited voice, unlimited image generation, Deep Search, and one-tap publishing remove the caps power users run into first.",
+    proof: "That combination makes ArcAI feel less like a single chatbot tab and more like a personal operating layer for creative work.",
+  },
+  "free-chatgpt-alternative": {
+    angle: "The reason people search for a free ChatGPT alternative is not because they hate ChatGPT — it is because the features they actually want are often split across paid plans, usage caps, or separate apps.",
+    useCases: ["unlimited everyday chat", "free image generation", "real-time voice", "persistent memory", "web search", "document analysis"],
+    boost: "Free covers most casual and daily use; Boost is for people who are replacing multiple paid AI subscriptions and want the caps gone.",
+    proof: "ArcAI is strongest when you want ChatGPT-style answers plus the features people usually associate with premium AI assistants.",
+  },
+  "free-gemini-alternative": {
+    angle: "Gemini is powerful, but many users want an assistant that is not organized around one ecosystem. ArcAI is browser-first and independent while still giving you multimodal tools in one place.",
+    useCases: ["chat without Google Workspace", "voice conversations", "AI images", "coding help", "source-backed web answers", "memory across projects"],
+    boost: "Boost adds the high-frequency pieces Gemini alternatives are usually missing: unlimited voice, unlimited images, deeper research, and publishing for code projects.",
+    proof: "That makes ArcAI a practical Gemini alternative for people who want less lock-in and more creative surface area.",
+  },
+  "free-gpt-4-alternative": {
+    angle: "Most people searching for a free GPT-4 alternative want strong reasoning without turning every useful feature into a monthly bill. ArcAI focuses on GPT-class quality with practical tools around it.",
+    useCases: ["reasoning through hard questions", "writing drafts", "debugging code", "summarizing documents", "generating images", "turning ideas into apps"],
+    boost: "The free tier is enough to evaluate and use the assistant seriously; Boost is there when image, voice, research, or publishing limits become the bottleneck.",
+    proof: "The result is GPT-style usefulness without needing to choose between chat, voice, images, memory, and code in separate products.",
+  },
+  "free-claude-alternative": {
+    angle: "Claude is known for thoughtful writing and analysis, but many users want that style of assistance with voice, images, coding, and memory in the same product.",
+    useCases: ["long-form writing", "structured thinking", "brainstorming", "code review", "voice notes", "saved personal context"],
+    boost: "Boost is additive rather than mandatory: it gives heavy users unlimited creative generation, unlimited voice, and publishing without weakening the free tier.",
+    proof: "ArcAI is especially useful when you want a writing-friendly assistant that can also create, search, speak, and remember.",
+  },
+  "best-free-ai-assistant-2026": {
+    angle: "A good free AI assistant in 2026 should not just answer questions. It should remember, speak, search, generate images, analyze files, help with code, and stay affordable.",
+    useCases: ["personal productivity", "creative work", "student research", "small business tasks", "coding", "voice-first brainstorming"],
+    boost: "Boost is the upgrade path for people who outgrow generous free limits but still want a simple, low-cost plan instead of juggling multiple subscriptions.",
+    proof: "That is why ArcAI is positioned as a daily assistant, not just another chatbot with a text box.",
+  },
+  "free-ai-with-voice": {
+    angle: "Voice changes the way people use AI: it turns the assistant into a thinking partner while walking, driving, cooking, planning, or working through an idea out loud.",
+    useCases: ["hands-free brainstorming", "practice conversations", "planning your day", "talking through code", "capturing ideas", "voice-first coaching"],
+    boost: "Free voice gives you room to actually test the workflow; Boost makes it unlimited when talking to Arc becomes a habit.",
+    proof: "Because voice shares context with the rest of ArcAI, spoken conversations can connect back to memory, chat, research, and creative work.",
+  },
+  "free-ai-image-generator": {
+    angle: "A standalone image generator is useful, but an image generator inside your AI assistant is more useful because the same chat can plan, revise, describe, and edit the image workflow.",
+    useCases: ["social graphics", "concept art", "product mockups", "moodboards", "thumbnails", "iterative image edits"],
+    boost: "The free plan covers everyday creation with 10 images per day; Boost removes that ceiling for designers, founders, creators, and anyone iterating heavily.",
+    proof: "ArcAI makes image generation feel like part of the conversation instead of a separate tool you have to manage.",
+  },
+  "ai-that-remembers-conversations": {
+    angle: "Memory is what turns an AI assistant from a disposable answer machine into something personal. ArcAI can keep track of preferences, projects, facts, and context you choose to save.",
+    useCases: ["personal preferences", "ongoing projects", "writing style", "business context", "recurring goals", "saved instructions"],
+    boost: "Boost pairs especially well with memory because unlimited voice and images become more useful when Arc already understands your taste and goals.",
+    proof: "The important detail is control: memory is useful only when users can inspect, edit, export, and delete it.",
+  },
+  "ask-arc-what-is-it": {
+    angle: "Ask Arc is the natural way to describe using ArcAI: you bring a question, problem, draft, file, idea, or voice note, and Arc helps move it forward.",
+    useCases: ["asking questions", "rewriting text", "researching", "generating images", "coding", "remembering preferences"],
+    boost: "Boost is there for the people who use Ask Arc constantly and want unlimited creative and voice workflows.",
+    proof: "The product is meant to feel approachable: open it, ask, refine, save, and continue later.",
+  },
+  "arcai-vs-chatgpt": {
+    angle: "ArcAI vs ChatGPT comes down to packaging. ChatGPT is a massive general product; ArcAI is tuned around generous free access, memory, creative tools, voice, code, and a simpler upgrade path.",
+    useCases: ["free daily chat", "voice", "image generation", "memory", "code canvas", "publishing"],
+    boost: "Boost makes the comparison sharper for power users because $7/month unlocks unlimited voice/images and publishing without making the free tier feel fake.",
+    proof: "If you already pay for ChatGPT and only use a few core features, ArcAI may cover the same jobs with less friction.",
+  },
+  "arcai-vs-gemini": {
+    angle: "ArcAI vs Gemini is partly about ecosystem. Gemini is best for users who want a Google-native assistant; ArcAI is for people who want a focused, independent AI workspace.",
+    useCases: ["browser-first AI", "non-Google login options", "voice", "images", "memory", "web research"],
+    boost: "Boost gives ArcAI a clear power-user path while keeping the everyday assistant free and accessible.",
+    proof: "ArcAI is easier to evaluate on its own merits because it is not built as a doorway into a larger office suite.",
+  },
+  "free-ai-for-coding": {
+    angle: "Coding with AI works best when the assistant can move from explanation to implementation. ArcAI's code canvas is designed for generating, previewing, and iterating on working web app ideas.",
+    useCases: ["debugging", "prototype apps", "UI changes", "scripts", "learning code", "publishing small projects"],
+    boost: "Boost is particularly valuable for coding because one-tap publishing turns a generated project into something you can actually share.",
+    proof: "That makes ArcAI more than a code-answer bot: it can become a lightweight builder workspace.",
+  },
+  "free-ai-for-writing": {
+    angle: "A useful AI writing assistant should help with structure, voice, edits, outlines, rewrites, titles, summaries, and long-form drafts — not just produce generic paragraphs.",
+    useCases: ["blog posts", "essays", "emails", "scripts", "brand copy", "editing tone"],
+    boost: "Boost helps writers who pair writing with voice brainstorming, image generation, deep research, or publishing workflows.",
+    proof: "ArcAI is strongest when writing is connected to the rest of your context: memory, research, files, and drafts.",
+  },
+  "how-to-use-arcai-free": {
+    angle: "The easiest way to learn ArcAI is to start with one task, then layer in the tools: ask, refine, search, attach, generate, speak, remember, and build.",
+    useCases: ["first question", "voice mode", "image generation", "file analysis", "memory setup", "code canvas"],
+    boost: "You do not need Boost to begin; Boost simply removes the limits when voice, images, research, and publishing become regular parts of your workflow.",
+    proof: "A free account is enough to understand the product and decide which workflows matter to you.",
+  },
+};
+
+const DEFAULT_CONTEXT = TOPIC_CONTEXT["what-is-arcai"];
+
+function enrichPost(post: BlogPost): BlogPost {
+  const context = TOPIC_CONTEXT[post.slug] ?? DEFAULT_CONTEXT;
+  const body = post.body ?? [
+    context.angle,
+    `The important difference is consolidation. Instead of bouncing between separate tools for ${context.useCases.slice(0, 4).join(", ")}, ArcAI puts those workflows in one account with one memory system and one interface. That matters for searchers comparing “free AI assistant,” “free GPT alternative,” or “free AI with voice” because the question is rarely just price — it is whether the free product is useful enough to become a daily habit.`,
+    context.boost,
+  ];
+
+  const faq = post.faq.map((item, index) => ({
+    ...item,
+    details:
+      item.details ??
+      [
+        `${item.a} In practical terms, this means you can start with a normal question and keep going into follow-ups, research, drafts, files, images, voice, or code without switching products. ArcAI is designed for the kind of messy, real workflow where a user asks one thing, changes direction, adds context, and expects the assistant to keep up.`,
+        index === 0
+          ? context.proof
+          : `For most people, the free tier is the right starting point. It keeps the core assistant accessible while Boost exists for heavier use, especially when you want unlimited creative generation, unlimited voice conversations, deeper web research, or publishing.`
+      ],
+    bullets:
+      item.bullets ??
+      [
+        `Best for: ${context.useCases.slice(0, 3).join(", ")}.`,
+        "Free account required; no credit card required to start.",
+        "Boost is optional and additive, not required for basic everyday use.",
+      ],
+  }));
+
+  return { ...post, body, faq };
+}
+
+export const BLOG_POSTS: BlogPost[] = RAW_BLOG_POSTS.map(enrichPost);
 
 export function getPostBySlug(slug: string): BlogPost | undefined {
   return BLOG_POSTS.find((p) => p.slug === slug);

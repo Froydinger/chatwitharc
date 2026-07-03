@@ -47,10 +47,10 @@ export const useAccentStore = create<AccentStore>((set, get) => ({
       const legacy = localStorage.getItem("lightMode");
       if (legacy === "false") return "dark";
       if (legacy === "true") return "light";
-      // Default for new users: follow OS preference
-      return "system";
+      // Default for new users: noir/dark. Never inherit OS light mode on first run.
+      return "dark";
     } catch {
-      return "system";
+      return "dark";
     }
   })(),
 

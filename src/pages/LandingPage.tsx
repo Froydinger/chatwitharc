@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   ArrowRight,
@@ -12,9 +12,7 @@ import {
   Zap,
   Infinity as InfinityIcon,
   Rocket,
-  Check,
 } from "lucide-react";
-import { ensureAnonSession } from "@/hooks/useAuth";
 import { BLOG_POSTS } from "@/content/blog/posts";
 
 const SITE = "https://askarc.chat";
@@ -38,7 +36,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Do I need to sign up?",
-    a: "No signup required to chat. Sign in to save history and unlock voice, memory, and canvases.",
+    a: "Yes. A free account is required to chat so your history, memory, voice, files, canvases and settings stay tied to you from the first message.",
   },
   {
     q: "Which AI models power ArcAI?",
@@ -67,8 +65,6 @@ const LANDING_FAQ = [
 ];
 
 export function LandingPage() {
-  const navigate = useNavigate();
-
   // Force pure-dark theme regardless of user preference on the lander.
   useEffect(() => {
     const root = document.documentElement;
@@ -83,15 +79,8 @@ export function LandingPage() {
     };
   }, []);
 
-  // No pre-warm: an anonymous session is only minted when the user clicks
-  // "Try Arc free" — otherwise the lander gets bypassed on refresh.
-  const handleTry = async () => {
-    try {
-      await ensureAnonSession();
-    } catch {
-      /* ignore — Index will retry on first message */
-    }
-    navigate("/");
+  const handleTry = () => {
+    window.dispatchEvent(new CustomEvent("auth-gate-feature", { detail: { feature: "generic" } }));
   };
 
   const openBoost = () => {
@@ -177,8 +166,8 @@ export function LandingPage() {
           It combines chat with GPT-class models, real-time voice conversations, AI image generation
           with GPT-Image-2, a code canvas, document analysis, web search with citations, and
           persistent long-term memory. ArcAI is a free alternative to ChatGPT, Google Gemini,
-          Anthropic Claude, Microsoft Copilot and Perplexity. No credit card, no signup required to
-          start chatting. Optional ArcAI Boost upgrade is $7 per month for unlimited images,
+          Anthropic Claude, Microsoft Copilot and Perplexity. No credit card required to
+          start chatting with a free account. Optional ArcAI Boost upgrade is $7 per month for unlimited images,
           unlimited voice, Deep Search web research, and one-tap web publishing.
         </p>
         <h2>Frequently asked questions about ArcAI</h2>
