@@ -73,7 +73,7 @@ export function BlogIndexPage() {
               className="group block rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-colors hover:bg-white/[0.06]"
             >
               <div className="text-lg font-medium leading-snug">{p.title}</div>
-              <div className="mt-2 text-sm text-white/55">{p.description}</div>
+              <div className="mt-2 text-sm text-white/[0.55]">{p.description}</div>
               <div className="mt-3 text-xs text-white/40 transition-colors group-hover:text-white/70">
                 Read →
               </div>
