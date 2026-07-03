@@ -14,7 +14,7 @@ export const SEO = ({
   title,
   description,
   path,
-  image = "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/77302715-310d-4492-9c0a-75abfa08ba33",
+  image = "https://askarc.chat/og-image.png",
   type = "website",
 }: SEOProps) => {
   const url = `${SITE_URL}${path}`;
