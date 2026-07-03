@@ -30,15 +30,15 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: "what-is-arcai",
     title: "What is ArcAI? A free AI assistant that remembers you",
     description:
-      "ArcAI is a free multimodal AI assistant with voice, image generation, code and long-term memory. Try it in your browser with no signup required.",
+      "ArcAI is a free multimodal AI assistant with voice, image generation, code and long-term memory. Try it in your browser with a free account.",
     keywords: ["ArcAI", "Ask Arc", "free AI assistant", "AI with memory"],
     updated: UPDATED,
     intro:
-      "ArcAI (sometimes called Ask Arc) is a free AI assistant that combines chat, real-time voice, image generation, and coding tools in a single browser app. It works without a signup, and it remembers what you talked about across sessions.",
+      "ArcAI (sometimes called Ask Arc) is a free AI assistant that combines chat, real-time voice, image generation, and coding tools in a single browser app. Create a free account to chat, save your work, and let Arc remember what you talked about across sessions.",
     faq: [
       {
         q: "What is ArcAI?",
-        a: "ArcAI is a free, multimodal AI assistant built by Win The Night Productions. It gives you chat, real-time voice conversations, AI image generation, a code canvas, and long-term memory — all without paying for a subscription.",
+        a: "ArcAI is a free, multimodal AI assistant built by Win The Night Productions. It gives you chat, real-time voice conversations, AI image generation, a code canvas, and long-term memory — all without paying for a subscription once you create a free account.",
       },
       {
         q: "Is ArcAI really free?",
@@ -46,7 +46,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Do I need an account to use ArcAI?",
-        a: "No. You can open askarc.chat and start chatting immediately as a guest. Sign up any time to save your history and unlock features like memory, canvases, and voice.",
+        a: "Yes. A free account is required to chat so your history, memory, files, canvases and voice limits stay attached to you instead of disappearing in a guest session.",
       },
       {
         q: "What can I ask Arc?",
@@ -63,7 +63,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: "free-chatgpt-alternative",
     title: "The best free ChatGPT alternative in 2026",
     description:
-      "Looking for a free ChatGPT alternative? ArcAI gives you unlimited chat, voice, image generation and memory — no credit card, no message limit.",
+      "Looking for a free ChatGPT alternative? ArcAI gives you unlimited chat, voice, image generation and memory — no credit card required.",
     keywords: ["free ChatGPT alternative", "ChatGPT free", "free AI chatbot"],
     updated: UPDATED,
     intro:
@@ -71,7 +71,7 @@ export const BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "What is the best free alternative to ChatGPT?",
-        a: "ArcAI is the best free ChatGPT alternative for most people. It offers unlimited chat with GPT-class models, real-time voice, image generation, web search with sources, and long-term memory — all free, no credit card.",
+        a: "ArcAI is the best free ChatGPT alternative for most people. It offers unlimited chat with GPT-class models, real-time voice, image generation, web search with sources, and long-term memory — all free, with a free account and no credit card.",
       },
       {
         q: "Is ArcAI as good as ChatGPT Plus?",
@@ -83,7 +83,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Can I use ArcAI without signing up?",
-        a: "Yes. Guest chat works instantly. Sign up any time to save conversations and unlock memory, canvases, and personalization.",
+        a: "Create a free account to start. ArcAI no longer opens chat screens for logged-out visitors, which keeps your history and settings protected from the first message.",
       },
     ],
     cta: "Try the free ChatGPT alternative",
@@ -96,7 +96,7 @@ export const BLOG_POSTS: BlogPost[] = [
     keywords: ["free Gemini alternative", "Google AI alternative", "Gemini free"],
     updated: UPDATED,
     intro:
-      "Google Gemini is powerful but ties you to a Google account and pushes you toward the paid Advanced tier. ArcAI is a free Gemini alternative you can use in seconds with no Google login.",
+      "Google Gemini is powerful but ties you to a Google account and pushes you toward the paid Advanced tier. ArcAI is a free Gemini alternative you can use in seconds with a free ArcAI account and no required Google login.",
     faq: [
       {
         q: "Is there a free alternative to Google Gemini?",
@@ -117,7 +117,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: "free-gpt-4-alternative",
     title: "A free GPT-4 alternative you can use right now",
     description:
-      "Get GPT-class answers without paying for GPT-4. ArcAI is a free GPT-4 alternative with voice, images, code and memory built in.",
+      "Get GPT-class answers with a free account. ArcAI is a free GPT-4 alternative with voice, images, code and memory built in.",
     keywords: ["free GPT-4 alternative", "GPT-4 free", "free GPT"],
     updated: UPDATED,
     intro:
@@ -259,7 +259,7 @@ export const BLOG_POSTS: BlogPost[] = [
     keywords: ["Ask Arc", "askarc.chat", "ArcAI"],
     updated: UPDATED,
     intro:
-      "Ask Arc is the way people refer to using ArcAI, the free AI assistant from Win The Night Productions. Just visit askarc.chat and start typing.",
+      "Ask Arc is the way people refer to using ArcAI, the free AI assistant from Win The Night Productions. Visit askarc.chat, create a free account, and start typing.",
     faq: [
       {
         q: "What is Ask Arc?",
@@ -267,7 +267,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How do I start using Ask Arc?",
-        a: "Visit askarc.chat, type your question, and press send. You can chat as a guest or sign in to save history and unlock voice and memory.",
+        a: "Visit askarc.chat, create a free account, type your question, and press send. Your chats, memory, voice use and canvases stay tied to that account.",
       },
       {
         q: "Is Ask Arc the same as ArcAI?",
@@ -296,7 +296,7 @@ export const BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Can I move from ChatGPT to ArcAI?",
-        a: "Yes. Just start a conversation at askarc.chat. Sign up to save history. Nothing to install.",
+        a: "Yes. Create a free account at askarc.chat and start a conversation. Nothing to install.",
       },
     ],
     cta: "Try the free ChatGPT alternative",
@@ -372,7 +372,7 @@ export const BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "How do I start chatting with Arc?",
-        a: "Go to askarc.chat and type. You can chat as a guest immediately, or sign up to save history.",
+        a: "Go to askarc.chat and type. Create a free account first. ArcAI keeps the chat screen behind login so your history, memory and preferences are protected from the start.",
       },
       {
         q: "How do I use voice mode?",
