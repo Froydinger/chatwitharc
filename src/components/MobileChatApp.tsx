@@ -252,7 +252,7 @@ export function MobileChatApp() {
     if (rightPanelOpen) setRightPanelOpen(false);
   }, [isAnonymous, rightPanelDocked, rightPanelOpen, setRightPanelOpen]);
 
-  // Initialize rightPanelOpen + docked state based on device type and user's last preference
+  // Initialize rightPanelOpen + docked state based on device type and user's last preference on mount/resize
   useEffect(() => {
     const isLargeScreen = window.innerWidth >= 1024;
 
@@ -260,17 +260,15 @@ export function MobileChatApp() {
       // Restore docked preference; default to undocked (hover-only) for new users
       const dockedPref = localStorage.getItem("arc_rightPanelDocked") === "true";
       setRightPanelDocked(canUseSidebar ? dockedPref : false);
-      if (dockedPref && !rightPanelOpen && canUseSidebar) {
+      if (dockedPref && canUseSidebar) {
         setRightPanelOpen(true);
       }
-    } else if (isMobile) {
+    } else {
       // Always close on mobile/tablet by default
       setRightPanelDocked(false);
-      if (rightPanelOpen) {
-        setRightPanelOpen(false);
-      }
+      setRightPanelOpen(false);
     }
-  }, [isMobile, canUseSidebar, rightPanelOpen, setRightPanelOpen]);
+  }, [isMobile, canUseSidebar, setRightPanelOpen]);
 
   const dashboardSwipeOpeningRef = useRef(false);
 
