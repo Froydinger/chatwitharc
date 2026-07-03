@@ -83,18 +83,15 @@ export function LandingPage() {
     };
   }, []);
 
-  useEffect(() => {
-    ensureAnonSession().catch(() => {});
-  }, []);
-
+  // No pre-warm: an anonymous session is only minted when the user clicks
+  // "Try Arc free" — otherwise the lander gets bypassed on refresh.
   const handleTry = async () => {
-    ensureAnonSession().catch(() => {});
+    try {
+      await ensureAnonSession();
+    } catch {
+      /* ignore — Index will retry on first message */
+    }
     navigate("/");
-    setTimeout(() => {
-      if (window.location.pathname === "/welcome") {
-        navigate("/");
-      }
-    }, 50);
   };
 
   const openBoost = () => {
