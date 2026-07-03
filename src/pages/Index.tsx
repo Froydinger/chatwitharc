@@ -32,12 +32,12 @@ export function Index() {
       const sessionExists = chatSessions.find(s => s.id === sessionId);
       if (sessionExists && currentSessionId !== sessionId) {
         loadSession(sessionId);
-      } else if (!sessionExists) {
+      } else if (!sessionExists && currentSessionId !== sessionId) {
         console.warn('Session from URL not found:', sessionId);
         navigate('/', { replace: true });
       }
     }
-  }, [sessionId, user, chatSessions, currentSessionId, isLoaded]);
+  }, [sessionId, user, chatSessions, currentSessionId, isLoaded, loadSession, navigate]);
 
   // Handle pending prompt from previous flows after authentication
   useEffect(() => {
