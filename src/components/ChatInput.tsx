@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
 import { useAccentColor } from "@/hooks/useAccentColor";
-import { useAuth, ensureAnonSession } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { AIService } from "@/services/ai";
@@ -1119,11 +1119,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const messageToSend = messageOverride ?? inputValue;
     if (!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) return;
 
-    // Lazily mint an anonymous Supabase session for unauthenticated visitors
-    // the moment they actually try to send something. Avoids ghost guest
-    // accounts piling up from page loads, crawlers and bots.
-    if (!user) {
-      await ensureAnonSession();
+    if (!user || isAnonymous) {
+      if (messageToSend.trim()) {
+        sessionStorage.setItem("pending-prompt", messageToSend.trim());
+      }
+      requireAuth("generic");
+      return;
     }
 
     // If Arc is currently thinking, queue the message instead of blocking

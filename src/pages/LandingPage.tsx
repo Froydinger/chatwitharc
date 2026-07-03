@@ -12,9 +12,7 @@ import {
   Zap,
   Infinity as InfinityIcon,
   Rocket,
-  Check,
 } from "lucide-react";
-import { ensureAnonSession } from "@/hooks/useAuth";
 import { BLOG_POSTS } from "@/content/blog/posts";
 
 const SITE = "https://askarc.chat";
@@ -83,15 +81,8 @@ export function LandingPage() {
     };
   }, []);
 
-  // No pre-warm: an anonymous session is only minted when the user clicks
-  // "Try Arc free" — otherwise the lander gets bypassed on refresh.
-  const handleTry = async () => {
-    try {
-      await ensureAnonSession();
-    } catch {
-      /* ignore — Index will retry on first message */
-    }
-    navigate("/");
+  const handleTry = () => {
+    window.dispatchEvent(new CustomEvent("auth-gate-feature", { detail: { feature: "generic" } }));
   };
 
   const openBoost = () => {

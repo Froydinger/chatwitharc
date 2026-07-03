@@ -51,11 +51,11 @@ import { BlogIndexPage } from "./pages/BlogIndexPage";
 import { BlogPostPage } from "./pages/BlogPostPage";
 import { useAuth } from "@/hooks/useAuth";
 
-/** Show marketing lander to signed-out visitors, chat to everyone else. */
+/** Show marketing lander to signed-out/anonymous visitors, chat to real accounts only. */
 const RootGate = () => {
-  const { user, loading } = useAuth();
-  if (loading) return <Index />;
-  return user ? <Index /> : <LandingPage />;
+  const { user, loading, isAnonymous } = useAuth();
+  if (loading) return <LandingPage />;
+  return user && !isAnonymous ? <Index /> : <LandingPage />;
 };
 
 const queryClient = new QueryClient();

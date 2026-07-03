@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { Link, useParams, Navigate, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { ensureAnonSession } from "@/hooks/useAuth";
 import { BLOG_POSTS, getPostBySlug } from "@/content/blog/posts";
 
 const SITE = "https://askarc.chat";
@@ -28,8 +27,7 @@ export function BlogPostPage() {
   if (!post) return <Navigate to="/blog" replace />;
 
   const handleTry = () => {
-    ensureAnonSession().catch(() => {});
-    navigate("/");
+    window.dispatchEvent(new CustomEvent("auth-gate-feature", { detail: { feature: "generic" } }));
   };
 
   const url = `${SITE}/blog/${post.slug}`;

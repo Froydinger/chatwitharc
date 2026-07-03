@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useChatSync } from "@/hooks/useChatSync";
@@ -85,8 +85,10 @@ export function Index() {
     );
   }
 
-  // Everyone — including anonymous guests — sees the chat screen.
-  // Premium actions are gated client-side via useRequireAuth and
-  // server-side via the chat edge function's guest mode.
+  // No guest chat screens. Signed-out or anonymous visitors always see the lander.
+  if (!user || isAnonymous) {
+    return <Navigate to="/" replace />;
+  }
+
   return <MobileChatApp />;
 }
