@@ -244,7 +244,7 @@ export function PricingPage() {
                   <Link to="/support" className="underline hover:text-foreground">
                     Open a support ticket
                   </Link>
-                  . Otherwise, drop us a note below.
+                  . Not signed in? Drop us a note below — we'll reply to your email.
                 </p>
               </div>
             </div>
