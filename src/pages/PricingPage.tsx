@@ -7,6 +7,8 @@ import { Check, Sparkles, ArrowLeft, Zap, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { ensureAnonSession } from "@/hooks/useAuth";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100, "Name too long"),
@@ -19,12 +21,13 @@ export function PricingPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const openBoost = () => {
     window.dispatchEvent(new CustomEvent("open-upgrade-modal"));
   };
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = contactSchema.safeParse({ name, email, message });
     if (!parsed.success) {
@@ -35,9 +38,67 @@ export function PricingPage() {
       });
       return;
     }
-    const subject = encodeURIComponent(`ArcAI support — ${parsed.data.name}`);
-    const body = encodeURIComponent(`From: ${parsed.data.name} <${parsed.data.email}>\n\n${parsed.data.message}`);
-    window.location.href = `mailto:arc@froydinger.com?subject=${subject}&body=${body}`;
+
+    setSubmitting(true);
+    try {
+      // Ensure we have a Supabase session (anon is fine) so RLS lets us insert.
+      await ensureAnonSession().catch(() => {});
+      const { data: sessionData } = await supabase.auth.getSession();
+      const uid = sessionData?.session?.user?.id;
+      if (!uid) throw new Error("no-session");
+
+      const ticketId = crypto.randomUUID();
+      const subject = `Pricing contact — ${parsed.data.name}`;
+      const body = `From: ${parsed.data.name} <${parsed.data.email}>\n\n${parsed.data.message}`;
+
+      const { error: tErr } = await supabase.from("support_tickets").insert({
+        id: ticketId,
+        user_id: uid,
+        subject,
+      });
+      if (tErr) throw tErr;
+
+      const { error: mErr } = await supabase.from("ticket_messages").insert({
+        ticket_id: ticketId,
+        sender_id: uid,
+        content: body,
+        is_admin_reply: false,
+      });
+      if (mErr) throw mErr;
+
+      // Fire-and-forget admin email notification.
+      supabase.functions
+        .invoke("send-transactional-email", {
+          body: {
+            templateName: "ticket-opened",
+            idempotencyKey: `pricing-contact-${ticketId}`,
+            templateData: {
+              subject,
+              userEmail: parsed.data.email,
+              userName: parsed.data.name,
+              priority: "normal",
+            },
+          },
+        })
+        .catch(() => {});
+
+      toast({
+        title: "Message sent",
+        description: "Thanks — we'll get back to you soon.",
+      });
+      setName("");
+      setEmail("");
+      setMessage("");
+    } catch (err) {
+      console.error("pricing contact submit failed", err);
+      toast({
+        title: "Couldn't send",
+        description: "Please try again in a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -175,9 +236,11 @@ export function PricingPage() {
               />
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <p className="text-[11px] text-muted-foreground">
-                  Sends to <span className="font-mono">arc@froydinger.com</span> via your email app.
+                  Sent straight to the ArcAI team — no email app needed.
                 </p>
-                <GlassButton type="submit">Send message</GlassButton>
+                <GlassButton type="submit" disabled={submitting}>
+                  {submitting ? "Sending…" : "Send message"}
+                </GlassButton>
               </div>
             </form>
           </GlassCard>
