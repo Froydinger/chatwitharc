@@ -35,7 +35,7 @@ import { useArcStore } from "@/store/useArcStore";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { signInWithGoogle } from "@/integrations/auth";
+import { signInWithGoogle, signOutCurrentSession } from "@/integrations/auth";
 import { VoiceSelector } from "@/components/VoiceSelector";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useNavigate } from "react-router-dom";
@@ -176,11 +176,11 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
       localStorage.removeItem('followSystem');
       localStorage.setItem('accentColor', 'noir');
       localStorage.setItem('themeMode', 'dark');
-      await supabase.auth.signOut();
-      toast({ title: "Signed out" });
+      await signOutCurrentSession();
       onClose();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      window.location.replace("/");
+    } catch (error: unknown) {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to sign out", variant: "destructive" });
     }
   };
 
@@ -211,8 +211,9 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
       await supabase.from("profiles").delete().eq("user_id", u.id);
       await supabase.from("chat_sessions").delete().eq("user_id", u.id);
       toast({ title: "Account deleted" });
-      await supabase.auth.signOut();
+      await signOutCurrentSession();
       onClose();
+      window.location.replace("/");
     } catch {
       toast({ title: "Deletion failed", variant: "destructive" });
     } finally {

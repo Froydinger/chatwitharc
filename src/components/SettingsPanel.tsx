@@ -37,7 +37,7 @@ import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { useAccentStore } from "@/store/useAccentStore";
 import { AVAILABLE_FONTS, getStoredCustomFont, setStoredCustomFont, type CustomFontId } from "@/hooks/useCustomFont";
 
-import { getAuthRedirectUrl, signInWithGoogle } from "@/integrations/auth";
+import { getAuthRedirectUrl, signInWithGoogle, signOutCurrentSession } from "@/integrations/auth";
 import { DeleteDataModal } from "@/components/DeleteDataModal";
 import { useProfile } from "@/hooks/useProfile";
 import { useArcStore } from "@/store/useArcStore";
@@ -343,11 +343,10 @@ export function SettingsPanel() {
       localStorage.setItem('themeMode', 'dark');
       useAccentStore.getState().setAccentColorLocal('noir');
       useAccentStore.getState().setThemeMode('dark');
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      toast({ title: "Signed out", description: "You've been signed out successfully" });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to sign out", variant: "destructive" });
+      await signOutCurrentSession();
+      window.location.replace("/");
+    } catch (error: unknown) {
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to sign out", variant: "destructive" });
     }
   };
 
@@ -384,7 +383,8 @@ export function SettingsPanel() {
       await supabase.from("profiles").delete().eq("user_id", user.id);
       await supabase.from("chat_sessions").delete().eq("user_id", user.id);
       toast({ title: "Account deleted", description: "Your account has been permanently deleted." });
-      await supabase.auth.signOut();
+      await signOutCurrentSession();
+      window.location.replace("/");
     } catch (error: any) {
       console.error("Delete account error:", error);
       toast({ title: "Deletion failed", description: "Failed to delete account.", variant: "destructive" });
