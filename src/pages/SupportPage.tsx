@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { TicketChat } from "@/components/support/TicketChat";
 import { AdminTicketList } from "@/components/support/AdminTicketList";
+import { AnonSupportForm } from "@/components/support/AnonSupportForm";
 import { fadeInVariants, staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
 
 interface Ticket {
