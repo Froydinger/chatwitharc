@@ -108,7 +108,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI private?",
-        a: "Your data stays in your account. Guest chats are ephemeral; signed-in chats sync to your private vault. You can wipe everything from the settings screen in one click.",
+        a: "Your data stays in your account. ArcAI requires a free account for chat so conversations, memory and settings stay tied to you. You can wipe everything from the settings screen in one click.",
       },
     ],
     cta: "Try the free Gemini alternative",
