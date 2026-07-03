@@ -7,6 +7,8 @@
 export interface FAQItem {
   q: string;
   a: string;
+  details?: string[];
+  bullets?: string[];
 }
 
 export interface BlogPost {
@@ -16,6 +18,7 @@ export interface BlogPost {
   keywords: string[];
   updated: string; // ISO date
   intro: string;
+  body?: string[];
   faq: FAQItem[];
   cta: string;
 }
