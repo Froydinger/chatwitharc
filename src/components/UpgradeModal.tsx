@@ -111,7 +111,7 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
         ) : (
           <div className="p-4">
             <h3 className="text-lg font-semibold mb-3 text-center">Complete your upgrade</h3>
-            <div className="bg-muted/10 border border-white/5 rounded-lg overflow-y-auto max-h-[65vh] p-2">
+            <div className="bg-white rounded-lg overflow-y-auto max-h-[65vh] p-2">
               <StripeEmbeddedCheckout
                 priceId={resolvedPriceId}
                 customerEmail={user?.email}

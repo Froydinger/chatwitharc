@@ -110,9 +110,8 @@ Deno.serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: 1 }],
       mode: isRecurring ? "subscription" : "payment",
-      success_url: returnUrl,
-      cancel_url: returnUrl.split("?")[0],
-      allow_promotion_codes: true,
+      ui_mode: "embedded",
+      return_url: returnUrl,
       ...(customerId && { customer: customerId }),
       ...(resolvedUserId && {
         metadata: { userId: resolvedUserId },
@@ -120,7 +119,7 @@ Deno.serve(async (req) => {
       }),
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
