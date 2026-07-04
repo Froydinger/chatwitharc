@@ -74,7 +74,7 @@ export const BackgroundGradients = () => {
     return (
       <motion.div
         key={`bg-static-${accentColor}-${primaryGlow}-${isLight}`}
-        className="fixed pointer-events-none z-0"
+        className="fixed pointer-events-none z-[-2]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -83,7 +83,7 @@ export const BackgroundGradients = () => {
           left: '-50%',
           width: '200%',
           height: '200%',
-          zIndex: 0,
+          zIndex: -2,
           background: gradientStyle,
         }}
       />
@@ -112,7 +112,7 @@ export const BackgroundGradients = () => {
   return (
     <motion.div
       key={`bg-static-${accentColor}-${primaryGlow}-${isLight}`}
-      className="fixed pointer-events-none z-0"
+      className="fixed pointer-events-none z-[-2]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -121,7 +121,7 @@ export const BackgroundGradients = () => {
         left: '-25%',
         width: '150%',
         height: '150%',
-        zIndex: 0,
+        zIndex: -2,
         background: gradientStyle,
       }}
     />
