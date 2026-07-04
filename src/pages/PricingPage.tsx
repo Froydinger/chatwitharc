@@ -34,17 +34,17 @@ export function PricingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground py-16 px-4">
       <div className="max-w-6xl mx-auto">
-        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
+        <Link to="/" className="inline-flex items-center gap-2 text-foreground/80 hover:text-primary font-medium transition-colors mb-8">
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
 
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-card mb-4">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">ArcAI Pricing Plans</span>
+            <span className="text-sm font-semibold text-foreground/90">ArcAI Pricing Plans</span>
           </div>
-          <h1 className="text-5xl font-bold mb-4">Choose your reasoning tier.</h1>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+          <h1 className="text-5xl font-bold mb-4 text-foreground">Choose your reasoning tier.</h1>
+          <p className="text-lg text-foreground/75 max-w-xl mx-auto">
             Get started with our robust free tier or upgrade to Boost for custom web publishing and elevated quotas.
           </p>
         </div>
