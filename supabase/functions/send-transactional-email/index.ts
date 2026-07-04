@@ -1,7 +1,6 @@
 import * as React from 'npm:react@18.3.1'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { TEMPLATES } from '../_shared/transactional-email-templates/registry.ts'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -325,17 +324,15 @@ Deno.serve(async (req) => {
       ? template.subject(templateData)
       : template.subject
 
-  // 5. Send immediately via Lovable Email API (no queue, no retries).
-  // Trade-off: failed sends are lost rather than retried — accepted to reduce Cloud usage.
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
-  if (!apiKey) {
-    console.error('LOVABLE_API_KEY not configured')
+  const resendApiKey = Deno.env.get('RESEND_API_KEY')
+  if (!resendApiKey) {
+    console.error('RESEND_API_KEY not configured')
     await supabase.from('email_send_log').insert({
       message_id: messageId,
       template_name: templateName,
       recipient_email: effectiveRecipient,
       status: 'failed',
-      error_message: 'LOVABLE_API_KEY not configured',
+      error_message: 'RESEND_API_KEY not configured',
     })
     return new Response(JSON.stringify({ error: 'Email service not configured' }), {
       status: 500,
@@ -344,22 +341,28 @@ Deno.serve(async (req) => {
   }
 
   try {
-    await sendLovableEmail(
-      {
+    const fromEmail = Deno.env.get('SEND_EMAIL_FROM') || `noreply@${FROM_DOMAIN}`
+    const formattedFrom = fromEmail.includes('<') ? fromEmail : `ArcAI <${fromEmail}>`
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${resendApiKey}`,
+      },
+      body: JSON.stringify({
+        from: formattedFrom,
         to: effectiveRecipient,
-        from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-        sender_domain: SENDER_DOMAIN,
         subject: resolvedSubject,
         html,
         text: plainText,
-        purpose: 'transactional',
-        label: templateName,
-        idempotency_key: idempotencyKey,
-        unsubscribe_token: unsubscribeToken,
-        message_id: messageId,
-      },
-      { apiKey, sendUrl: Deno.env.get('LOVABLE_SEND_URL') }
-    )
+      }),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Resend API returned status ${response.status}: ${errorText}`)
+    }
 
     await supabase.from('email_send_log').insert({
       message_id: messageId,

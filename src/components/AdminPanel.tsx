@@ -53,6 +53,31 @@ export function AdminPanel() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [testEmail, setTestEmail] = useState('jkrd09@gmail.com');
+  const [sendingTest, setSendingTest] = useState(false);
+
+  const handleSendTestEmail = async () => {
+    if (!supabase) return;
+    setSendingTest(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-transactional-email', {
+        body: {
+          templateName: 'welcome',
+          recipientEmail: testEmail.trim(),
+          templateData: {
+            displayName: 'Jake'
+          }
+        }
+      });
+      if (error) throw error;
+      toast({ title: 'Test Email Sent!', description: `A welcome email has been sent to ${testEmail}` });
+    } catch (err: any) {
+      console.error('Failed to send test email:', err);
+      toast({ title: 'Error', description: err.message || 'Failed to send test email', variant: 'destructive' });
+    } finally {
+      setSendingTest(false);
+    }
+  };
 
   const fetchUsers = useCallback(async () => {
     if (!supabase) return;
@@ -406,6 +431,34 @@ export function AdminPanel() {
                 </div>
                 <Button onClick={() => handleSave('enable_step_by_step')} disabled={updating} size="sm">Save</Button>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Email Service Testing</CardTitle>
+              <CardDescription>Test transactional email sending via Resend integration</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="test_recipient_email">Test Recipient Email</Label>
+                <Input
+                  id="test_recipient_email"
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="jkrd09@gmail.com"
+                />
+                <p className="text-xs text-muted-foreground">Specify the recipient email address for sending test emails</p>
+              </div>
+              <Button 
+                onClick={handleSendTestEmail} 
+                disabled={sendingTest || !testEmail.trim()} 
+                size="sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
+              >
+                {sendingTest ? 'Sending...' : 'Send Test Welcome Email'}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>
