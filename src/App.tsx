@@ -58,20 +58,20 @@ const FullscreenLoader = ({ onComplete }: { onComplete: () => void }) => {
   const [stage, setStage] = useState<'spin' | 'lock' | 'bloop'>('spin');
 
   useEffect(() => {
-    // 3.5 seconds of spinning
+    // 2.0 seconds of spinning
     const lockTimer = setTimeout(() => {
       setStage('lock');
-    }, 3500);
+    }, 2000);
 
-    // 4.5 seconds: start blooping out (takes 0.5s)
+    // 2.6 seconds: start blooping out (takes 0.4s)
     const bloopTimer = setTimeout(() => {
       setStage('bloop');
-    }, 4500);
+    }, 2600);
 
-    // 5.0 seconds: completely finished
+    // 3.0 seconds: completely finished
     const completeTimer = setTimeout(() => {
       onComplete();
-    }, 5000);
+    }, 3000);
 
     return () => {
       clearTimeout(lockTimer);
@@ -85,7 +85,7 @@ const FullscreenLoader = ({ onComplete }: { onComplete: () => void }) => {
       className="fixed inset-0 flex items-center justify-center bg-[#000000] z-[9999]"
       initial={{ opacity: 1 }}
       animate={{ opacity: stage === 'bloop' ? 0 : 1 }}
-      transition={{ duration: 0.5, ease: "easeInOut" }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
     >
       <div className="relative flex items-center justify-center">
         <div className="absolute inset-0 rounded-full bg-primary/20 filter blur-xl animate-pulse scale-150" />
@@ -103,15 +103,15 @@ const FullscreenLoader = ({ onComplete }: { onComplete: () => void }) => {
           transition={
             stage === 'spin'
               ? {
-                  rotate: { duration: 3.5, ease: "easeOut" },
-                  scale: { duration: 0.8, ease: "easeOut" },
-                  opacity: { duration: 0.8, ease: "easeOut" }
+                  rotate: { duration: 2.0, ease: "easeOut" },
+                  scale: { duration: 0.6, ease: "easeOut" },
+                  opacity: { duration: 0.6, ease: "easeOut" }
                 }
               : stage === 'lock'
               ? { duration: 0.1 }
               : {
-                  scale: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] },
-                  opacity: { duration: 0.3 }
+                  scale: { duration: 0.35, ease: [0.34, 1.56, 0.64, 1] },
+                  opacity: { duration: 0.25 }
                 }
           }
         >
