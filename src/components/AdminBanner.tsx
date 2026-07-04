@@ -9,6 +9,7 @@ interface BannerSettings {
   dismissible: boolean;
   timeout: number;
   color: string;
+  link?: string;
 }
 
 // -----------------------------------------------------------------------------
@@ -40,6 +41,7 @@ const EMPTY_SETTINGS: BannerSettings = {
   dismissible: false,
   timeout: 0,
   color: '#00f0ff',
+  link: '',
 };
 
 let cachedSettings: BannerSettings = EMPTY_SETTINGS;
@@ -75,6 +77,7 @@ async function fetchSettingsOnce(force = false): Promise<void> {
         dismissible: settings.banner_dismissible === 'true',
         timeout: parseInt(settings.banner_timeout || '0', 10),
         color: settings.banner_color || '#00f0ff',
+        link: settings.banner_link || '',
       };
       cachedRawMessage = cachedSettings.message;
       lastFetchedAt = Date.now();
@@ -117,11 +120,15 @@ export function useAdminBanner() {
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
+    if (!settings.dismissible) {
+      setIsDismissed(false);
+      return;
+    }
     const dismissedKey = `banner_dismissed_${settings.message}`;
     setIsDismissed(localStorage.getItem(dismissedKey) === 'true');
-  }, [settings.message]);
+  }, [settings.message, settings.dismissible]);
 
-  return settings.enabled && !!settings.message && !isDismissed;
+  return settings.enabled && !!settings.message && (!settings.dismissible || !isDismissed);
 }
 
 export function AdminBanner() {
@@ -131,9 +138,13 @@ export function AdminBanner() {
   const [bannerHeight, setBannerHeight] = useState(0);
 
   useEffect(() => {
+    if (!bannerSettings.dismissible) {
+      setIsDismissed(false);
+      return;
+    }
     const dismissedKey = `banner_dismissed_${bannerSettings.message}`;
     setIsDismissed(localStorage.getItem(dismissedKey) === 'true');
-  }, [bannerSettings.message]);
+  }, [bannerSettings.message, bannerSettings.dismissible]);
 
   // Auto-timeout effect
   useEffect(() => {
@@ -181,6 +192,15 @@ export function AdminBanner() {
     }
   };
 
+  const renderContent = () => (
+    <>
+      {getIcon()}
+      <p className="text-sm md:text-base font-semibold text-center">
+        {bannerSettings.message}
+      </p>
+    </>
+  );
+
   return (
     <>
       {!isDismissed && (
@@ -190,12 +210,20 @@ export function AdminBanner() {
           style={{ backgroundColor: bannerSettings.color }}
         >
           <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center justify-center gap-3 text-black">
-              {getIcon()}
-              <p className="text-sm md:text-base font-semibold text-center">
-                {bannerSettings.message}
-              </p>
-            </div>
+            {bannerSettings.link ? (
+              <a
+                href={bannerSettings.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-3 text-black hover:opacity-90 hover:underline cursor-pointer"
+              >
+                {renderContent()}
+              </a>
+            ) : (
+              <div className="flex items-center justify-center gap-3 text-black">
+                {renderContent()}
+              </div>
+            )}
           </div>
         </div>
       )}

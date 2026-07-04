@@ -301,7 +301,7 @@ export function AdminPanel() {
 
   const handleSaveBanner = async () => {
     try {
-      const keys = ["banner_enabled", "banner_message", "banner_icon", "banner_dismissible", "banner_timeout", "banner_color"];
+      const keys = ["banner_enabled", "banner_message", "banner_link", "banner_icon", "banner_dismissible", "banner_timeout", "banner_color"];
       for (const key of keys) {
         const val = localValues[key] !== undefined ? localValues[key] : getSetting(key);
         await updateSetting(key, val || "");
@@ -1156,7 +1156,7 @@ export function AdminPanel() {
                   />
                 </div>
 
-                <div className="space-y-2">
+                 <div className="space-y-2">
                   <Label htmlFor="banner_message_input" className="text-sm font-semibold">Banner Alert Message</Label>
                   <Input
                     id="banner_message_input"
@@ -1164,6 +1164,18 @@ export function AdminPanel() {
                     onChange={(e) => handleValueChange("banner_message", e.target.value)}
                     placeholder="Maintenance scheduled for tonight at 23:00 UTC..."
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="banner_link_input" className="text-sm font-semibold">Banner Click Link (Optional)</Label>
+                  <Input
+                    id="banner_link_input"
+                    type="url"
+                    value={getCurrentValue("banner_link") || ""}
+                    onChange={(e) => handleValueChange("banner_link", e.target.value)}
+                    placeholder="https://askarc.chat/update"
+                  />
+                  <p className="text-xs text-muted-foreground">Optional URL that users are redirected to when they click the banner</p>
                 </div>
 
                 <div className="space-y-2">

@@ -34,6 +34,7 @@ export function AdminSettingsPanel() {
   const [bannerDismissible, setBannerDismissible] = useState(false);
   const [bannerTimeout, setBannerTimeout] = useState(0);
   const [bannerColor, setBannerColor] = useState('#00f0ff');
+  const [bannerLink, setBannerLink] = useState('');
 
   const getSetting = (key: string) => settings.find(s => s.key === key);
 
@@ -64,6 +65,7 @@ export function AdminSettingsPanel() {
       const dismissible = getSetting('banner_dismissible')?.value === 'true';
       const timeout = parseInt(getSetting('banner_timeout')?.value || '0', 10);
       const color = getSetting('banner_color')?.value || '#00f0ff';
+      const link = getSetting('banner_link')?.value || '';
 
       setBannerEnabled(enabled);
       setBannerMessage(message);
@@ -71,6 +73,7 @@ export function AdminSettingsPanel() {
       setBannerDismissible(dismissible);
       setBannerTimeout(timeout);
       setBannerColor(color);
+      setBannerLink(link);
     }
   }, [settings]);
 
@@ -166,6 +169,7 @@ export function AdminSettingsPanel() {
       await updateSetting('banner_dismissible', bannerDismissible.toString(), 'Allow users to dismiss the banner with an X button');
       await updateSetting('banner_timeout', bannerTimeout.toString(), 'Auto-hide banner after N seconds (0 = no timeout)');
       await updateSetting('banner_color', bannerColor, 'Background color for the admin banner (hex color code)');
+      await updateSetting('banner_link', bannerLink, 'Destination URL for clicking on the banner message');
       toast({
         title: "Banner updated",
         description: "The announcement banner has been successfully updated.",
@@ -311,6 +315,20 @@ export function AdminSettingsPanel() {
                 />
                 <p className="text-xs text-muted-foreground">
                   This message will be displayed in the banner when enabled
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="banner-link">Banner Click Link (Optional)</Label>
+                <Input
+                  id="banner-link"
+                  type="url"
+                  value={bannerLink}
+                  onChange={(e) => setBannerLink(e.target.value)}
+                  placeholder="https://askarc.chat/update"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Optional URL that users are redirected to when they click the banner message
                 </p>
               </div>
 
