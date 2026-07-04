@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -43,7 +44,7 @@ export function AnonSupportForm() {
       formData.append("subject", subject);
       formData.append("message", message);
       
-      const res = await fetch("/", {
+      const res = await fetch(window.location.pathname, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: formData.toString(),
@@ -146,9 +147,9 @@ export function AnonSupportForm() {
               required 
             />
             <div className="flex justify-end">
-              <GlassButton type="submit" disabled={submitting}>
+              <Button type="submit" disabled={submitting} className="glass-btn hover:opacity-90">
                 {submitting ? "Sending..." : "Send Message"}
-              </GlassButton>
+              </Button>
             </div>
           </form>
         )}
