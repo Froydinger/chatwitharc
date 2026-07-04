@@ -4,18 +4,22 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { Sparkles, Check, X, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
-import { BOOST_PRICE_ID, BOOST_PRICE_DISPLAY, paymentsAvailable } from "@/lib/stripe";
+import { 
+  BOOST_PRICE_ID, 
+  BOOST_PRICE_DISPLAY, 
+  BOOST_ANNUAL_PRICE_ID, 
+  BOOST_ANNUAL_PRICE_DISPLAY, 
+  paymentsAvailable 
+} from "@/lib/stripe";
 
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
   userName?: string;
+  priceId?: string;
 }
 
-// ArcAI is free forever. This modal pitches the ArcAI Boost upgrade ($7/mo)
-// for users who want unlimited image generation and unlimited voice
-// conversations. Free quotas: 10 images/day, 10 voice conversations / 30 days.
-export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
+export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
   const { user } = useAuth();
   const [showCheckout, setShowCheckout] = useState(false);
 
@@ -23,6 +27,10 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
     setShowCheckout(false);
     onClose();
   };
+
+  const resolvedPriceId = priceId || BOOST_PRICE_ID;
+  const isAnnual = resolvedPriceId === BOOST_ANNUAL_PRICE_ID;
+  const priceDisplay = isAnnual ? BOOST_ANNUAL_PRICE_DISPLAY : BOOST_PRICE_DISPLAY;
 
   const canCheckout = paymentsAvailable() && !!user;
 
@@ -43,10 +51,10 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
               <Zap className="h-7 w-7 text-primary" />
             </div>
             <h2 className="text-2xl font-bold mb-1">ArcAI Boost</h2>
-            <p className="text-sm text-muted-foreground mb-1">$7/month paid upgrade</p>
+            <p className="text-sm text-muted-foreground mb-1">{isAnnual ? "$65/year paid upgrade" : "$7/month paid upgrade"}</p>
             <div className="flex items-baseline justify-center gap-1 my-4">
-              <span className="text-4xl font-bold">{BOOST_PRICE_DISPLAY.split('/')[0]}</span>
-              <span className="text-muted-foreground">/ month</span>
+              <span className="text-4xl font-bold">{priceDisplay.split('/')[0]}</span>
+              <span className="text-muted-foreground">/ {isAnnual ? "year" : "month"}</span>
             </div>
 
             <ul className="text-left space-y-2.5 mb-6 max-w-sm mx-auto">
@@ -94,9 +102,9 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
         ) : (
           <div className="p-4">
             <h3 className="text-lg font-semibold mb-3 text-center">Complete your upgrade</h3>
-            <div className="bg-white rounded-lg overflow-hidden">
+            <div className="bg-white rounded-lg overflow-y-auto max-h-[65vh] p-2">
               <StripeEmbeddedCheckout
-                priceId={BOOST_PRICE_ID}
+                priceId={resolvedPriceId}
                 customerEmail={user?.email}
                 userId={user?.id}
               />

@@ -181,8 +181,14 @@ const App = () => {
   useTheme();
   useCustomFont();
 
+  const [upgradePriceId, setUpgradePriceId] = useState<string | undefined>(undefined);
+
   useEffect(() => {
-    const handleOpen = () => setUpgradeOpen(true);
+    const handleOpen = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      setUpgradePriceId(customEvent.detail?.priceId);
+      setUpgradeOpen(true);
+    };
     window.addEventListener('open-upgrade-modal', handleOpen);
     return () => window.removeEventListener('open-upgrade-modal', handleOpen);
   }, []);
@@ -214,7 +220,11 @@ const App = () => {
                 errorMessage={errorMessage}
                 errorStack={errorStack}
               />
-              <UpgradeModal isOpen={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+              <UpgradeModal 
+                isOpen={upgradeOpen} 
+                onClose={() => setUpgradeOpen(false)} 
+                priceId={upgradePriceId}
+              />
               <BoostSync />
               <BrowserRouter>
                 <ScrollToTop />

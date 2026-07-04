@@ -212,8 +212,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [hasBoost]);
 
   // Opens the Boost upgrade modal (mounted globally in App.tsx).
-  const openCheckout = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
+  const openCheckout = useCallback((priceId?: string) => {
+    window.dispatchEvent(new CustomEvent('open-upgrade-modal', { detail: { priceId } }));
   }, []);
 
   const openCustomerPortal = useCallback(async () => {
