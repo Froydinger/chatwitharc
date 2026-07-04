@@ -1021,7 +1021,7 @@ export function MobileChatApp() {
                       />
                     </div>
                   ) : (
-                    <Music className="h-4 w-4" />
+                    <Music className="h-4 w-4 text-primary" />
                   )}
                 </Button>
               </motion.div>

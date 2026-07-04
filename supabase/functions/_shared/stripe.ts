@@ -22,10 +22,21 @@ export function getConnectionApiKey(env: StripeEnv): string {
 export function createStripeClient(env: StripeEnv): Stripe {
   const connectionApiKey = getConnectionApiKey(env);
 
-  return new Stripe(connectionApiKey, {
+  const options: any = {
     apiVersion: "2023-10-16",
-    httpClient: Stripe.createFetchHttpClient(),
-  });
+  };
+
+  if (connectionApiKey.startsWith("mk_")) {
+    const customFetch = (url: string, fetchOptions: any) => {
+      const rewrittenUrl = url.replace("https://api.stripe.com/v1", "https://connector-gateway.lovable.dev/stripe/v1");
+      return fetch(rewrittenUrl, fetchOptions);
+    };
+    options.httpClient = Stripe.createFetchHttpClient(customFetch);
+  } else {
+    options.httpClient = Stripe.createFetchHttpClient();
+  }
+
+  return new Stripe(connectionApiKey, options);
 }
 
 export async function verifyWebhook(

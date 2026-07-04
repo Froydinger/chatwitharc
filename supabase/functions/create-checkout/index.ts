@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
         stripePrice = await stripe.prices.retrieve(priceId);
       }
     } catch (e) {
-      throw new Error(`Price not found or invalid: ${priceId}`);
+      throw new Error(`Price '${priceId}' not found. Stripe error: ${e.message}`);
     }
     const isRecurring = stripePrice.type === "recurring";
 
