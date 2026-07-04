@@ -204,6 +204,7 @@ async function webSearchTavily(query: string): Promise<WebSearchResponse> {
         include_raw_content: false,
         include_images: false,
       }),
+      signal: AbortSignal.timeout(10000),
     });
 
     if (!response.ok) {

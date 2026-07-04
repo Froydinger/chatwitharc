@@ -64,7 +64,7 @@ function extractStateHint(raw: string): string | null {
 async function geocode(query: string, stateHint: string | null): Promise<any | null> {
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=10&language=en&format=json`;
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
     const data = await res.json();
     const results: any[] = data?.results || [];
     if (results.length === 0) return null;
@@ -96,7 +96,8 @@ serve(async (req) => {
       // Reverse-geocode for a friendly label, but never block on it
       try {
         const rg = await fetch(
-          `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=en&format=json`
+          `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=en&format=json`,
+          { signal: AbortSignal.timeout(4000) }
         );
         const rgData = await rg.json();
         const r = rgData?.results?.[0];
@@ -137,7 +138,7 @@ serve(async (req) => {
       `&current=temperature_2m,apparent_temperature,is_day,relative_humidity_2m,weather_code,wind_speed_10m` +
       `&daily=temperature_2m_max,temperature_2m_min` +
       `&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=auto`;
-    const wxRes = await fetch(wxUrl);
+    const wxRes = await fetch(wxUrl, { signal: AbortSignal.timeout(6000) });
     const wx = await wxRes.json();
 
     const current = wx.current || {};

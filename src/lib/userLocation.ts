@@ -42,18 +42,19 @@ export function wasLocationDenied(): boolean {
 
 async function reverseGeocode(lat: number, lon: number): Promise<Partial<UserLocation>> {
   try {
-    let signal: AbortSignal | undefined = undefined;
-    if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
-      signal = (AbortSignal as any).timeout(4000);
-    }
-    const res = await fetch(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`,
-      { signal }
+    const fetchPromise = fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
     );
+
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout")), 4000)
+    );
+
+    const res = await Promise.race([fetchPromise, timeoutPromise]);
     if (!res.ok) return {};
     const data = await res.json();
     return {
-      city: data.city || data.locality || undefined,
+      city: data.locality || data.city || undefined,
       region: data.principalSubdivision || undefined,
       country: data.countryName || undefined,
     };
