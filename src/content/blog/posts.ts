@@ -54,7 +54,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which AI models does ArcAI use?",
-        a: "ArcAI routes requests across best-in-class models including GPT-5.4 Mini, Gemini, Perplexity Sonar for search, GPT-Image-2 for images, and OpenAI Realtime for voice. You get the strongest model for each task without picking one manually.",
+        a: "ArcAI routes requests across best-in-class models including GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) for premium reasoning, GPT-5.4 Nano for quick replies, Gemini, Perplexity Sonar for search, GPT-Image-2 for images, and OpenAI Realtime for voice. You get the strongest model for each task.",
       },
     ],
     cta: "Try ArcAI free",
@@ -75,7 +75,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI as good as ChatGPT Plus?",
-        a: "For everyday use, yes. ArcAI routes to GPT-5.4 Mini for chat, GPT-Image-2 for images, and OpenAI Realtime for voice — the same underlying models that power ChatGPT Plus features, packaged in a friendlier free app.",
+        a: "For everyday use, yes. ArcAI routes to GPT-5.4 Nano for default chats, with GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) models available for advanced reasoning, GPT-Image-2 for images, and OpenAI Realtime for voice — the same underlying models that power ChatGPT Plus features.",
       },
       {
         q: "Does the free version have message limits?",
@@ -125,11 +125,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "Is there a free version of GPT-4?",
-        a: "OpenAI's own free tier limits access to GPT-4-class models. ArcAI is a free GPT alternative that routes chats through GPT-5.4 Mini and Nano, giving you comparable quality with no message wall.",
+        a: "OpenAI's own free tier limits access to GPT-4-class models. ArcAI is a free GPT alternative that routes chats through GPT-5.4 Nano, and offers GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) for advanced reasoning.",
       },
       {
         q: "What model does ArcAI use for chat?",
-        a: "Default chat runs on GPT-5.4 Nano for speed and GPT-5.4 Mini for deeper reasoning. Both are OpenAI GPT-class models and free to use inside ArcAI.",
+        a: "Default chat runs on GPT-5.4 Nano. Premium reasoning models—GPT-5.4 (Thinking) and GPT-5.5 (Deep Think)—are available on the Boost tier.",
       },
       {
         q: "Can ArcAI do everything GPT-4 can?",
@@ -326,7 +326,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     slug: "free-ai-for-coding",
     title: "The best free AI for coding in your browser",
     description:
-      "ArcAI includes a free code canvas that generates, previews and publishes web apps — powered by GPT-5.4 Mini.",
+      "ArcAI includes a free code canvas that generates, previews and publishes web apps — powered by GPT-5.4 (Thinking).",
     keywords: ["free AI coding", "AI code generator free", "free Copilot alternative"],
     updated: UPDATED,
     intro:
@@ -334,7 +334,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "What is the best free AI for coding?",
-        a: "ArcAI is a strong free option: it has a code canvas powered by GPT-5.4 Mini, live preview, and free one-tap publishing to a public URL.",
+        a: "ArcAI is a strong free option: it has a code canvas powered by GPT-5.4 (Thinking), live preview, and free one-tap publishing to a public URL.",
       },
       {
         q: "Can I publish what I build?",
@@ -355,7 +355,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "What is the best free AI for writing?",
-        a: "ArcAI. Its writing canvas is powered by GPT-5.4 Mini and includes selection-based edits, tone changes and rewrites — all free.",
+        a: "ArcAI. Its writing canvas is powered by GPT-5.4 (Thinking) and includes selection-based edits, tone changes and rewrites — all free.",
       },
     ],
     cta: "Try free AI writing",

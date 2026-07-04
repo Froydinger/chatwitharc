@@ -14,8 +14,8 @@ export function AnonSupportForm() {
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
-  const submitting = false;
-  const sent = false;
+  const [submitting, setSubmitting] = useState(false);
+  const [sent, setSent] = useState(false);
 
   // Force dark theme for the public support view.
   useEffect(() => {
@@ -33,7 +33,38 @@ export function AnonSupportForm() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({ title: "Coming soon", description: "Anonymous email support is temporarily unavailable." });
+    setSubmitting(true);
+    
+    try {
+      const formData = new URLSearchParams();
+      formData.append("form-name", "support");
+      formData.append("name", name);
+      formData.append("email", email);
+      formData.append("subject", subject);
+      formData.append("message", message);
+      
+      const res = await fetch("/", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData.toString(),
+      });
+      
+      if (res.ok) {
+        setSent(true);
+        toast({ title: "Message sent!", description: "We have received your request and will respond shortly." });
+      } else {
+        throw new Error("Failed to send message via form handler");
+      }
+    } catch (err) {
+      console.error("Netlify form submit failed:", err);
+      toast({ 
+        title: "Submission Error", 
+        description: "There was a problem sending your message. Please try again.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -43,9 +74,9 @@ export function AnonSupportForm() {
           <ArrowLeft className="w-5 h-5" />
         </GlassButton>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">Support</h1>
+          <h1 className="text-2xl font-bold">Help Center</h1>
           <p className="text-sm text-muted-foreground">
-            Anonymous email support is coming soon. Sign in to open a trackable support ticket now.
+            Get help with your account or send a ticket directly to the team.
           </p>
         </div>
       </div>
@@ -58,7 +89,7 @@ export function AnonSupportForm() {
           <div>
             <h2 className="text-lg font-semibold">Contact the ArcAI team</h2>
             <p className="text-xs text-muted-foreground">
-              Coming soon — email delivery is temporarily unavailable.
+              Send us a message and we'll reply directly to your email.
             </p>
           </div>
         </div>
@@ -71,16 +102,52 @@ export function AnonSupportForm() {
             </p>
           </div>
         ) : (
-          <form onSubmit={submit} className="space-y-3">
+          <form 
+            onSubmit={submit} 
+            className="space-y-3" 
+            name="support" 
+            data-netlify="true"
+          >
+            <input type="hidden" name="form-name" value="support" />
             <div className="grid sm:grid-cols-2 gap-3">
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" maxLength={100} required disabled />
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your email" maxLength={255} required disabled />
+              <Input 
+                name="name"
+                value={name} 
+                onChange={(e) => setName(e.target.value)} 
+                placeholder="Your name" 
+                maxLength={100} 
+                required 
+              />
+              <Input 
+                type="email" 
+                name="email"
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="Your email" 
+                maxLength={255} 
+                required 
+              />
             </div>
-            <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" maxLength={200} required disabled />
-            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="How can we help?" rows={6} maxLength={2000} required disabled />
+            <Input 
+              name="subject"
+              value={subject} 
+              onChange={(e) => setSubject(e.target.value)} 
+              placeholder="Subject" 
+              maxLength={200} 
+              required 
+            />
+            <Textarea 
+              name="message"
+              value={message} 
+              onChange={(e) => setMessage(e.target.value)} 
+              placeholder="How can we help?" 
+              rows={6} 
+              maxLength={2000} 
+              required 
+            />
             <div className="flex justify-end">
-              <GlassButton type="submit" disabled>
-                Coming soon
+              <GlassButton type="submit" disabled={submitting}>
+                {submitting ? "Sending..." : "Send Message"}
               </GlassButton>
             </div>
           </form>

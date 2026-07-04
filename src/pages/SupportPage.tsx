@@ -122,8 +122,8 @@ export function SupportPage() {
             <ArrowLeft className="w-5 h-5" />
           </GlassButton>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">Support</h1>
-            <p className="text-sm text-muted-foreground">Get help with your account</p>
+            <h1 className="text-2xl font-bold text-foreground">Help Center</h1>
+            <p className="text-sm text-muted-foreground">Get help with your account or chat with our team</p>
           </div>
           <GlassButton onClick={() => setShowNewTicket(true)} className="gap-2">
             <Plus className="w-4 h-4" />

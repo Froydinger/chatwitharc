@@ -126,7 +126,7 @@ export function LandingPage() {
             Pricing
           </Link>
           <Link to="/support" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
-            Support
+            Help
           </Link>
           <button
             onClick={handleTry}
@@ -377,7 +377,7 @@ export function LandingPage() {
           <span>·</span>
           <Link to="/pricing" className="hover:text-white">Pricing</Link>
           <span>·</span>
-          <Link to="/support" className="hover:text-white">Support</Link>
+          <Link to="/support" className="hover:text-white">Help</Link>
           <span>·</span>
           <Link to="/privacy" className="hover:text-white">Privacy</Link>
           <span>·</span>

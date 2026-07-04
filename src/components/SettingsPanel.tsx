@@ -928,7 +928,7 @@ export function SettingsPanel() {
       <div className="text-center space-y-2 text-sm text-muted-foreground">
         <p className="text-xs opacity-60">Web Version v4.2.0</p>
         <div className="flex items-center justify-center gap-4">
-          <a href="/support" className="hover:text-primary-glow transition-colors underline">Support</a>
+          <a href="/support" className="hover:text-primary-glow transition-colors underline">Help</a>
           <span>•</span>
           <a
             href="https://winthenight.productions"
@@ -1051,7 +1051,7 @@ export function SettingsPanel() {
           <div className="mt-4 text-xs text-muted-foreground/80 px-2 space-y-2">
             <div className="opacity-60">Web Version v4.2.0</div>
             <div className="flex flex-wrap items-center gap-2">
-              <a href="/support" className="hover:text-primary-glow underline">Support</a>
+              <a href="/support" className="hover:text-primary-glow underline">Help</a>
               <span>•</span>
               <a href="/blog" className="hover:text-primary-glow underline">Guides & FAQs</a>
               <span>•</span>
