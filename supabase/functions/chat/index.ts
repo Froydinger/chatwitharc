@@ -958,7 +958,7 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "schedule_task",
-          description: "Schedule a task to run at a future time (once or recurring). Supports in-chat, push, and email delivery.",
+          description: "Schedule a task to run at a future time (once or recurring). Supports in-chat and push delivery. Email delivery is temporarily disabled/unavailable.",
           parameters: {
             type: "object",
             properties: {
@@ -968,7 +968,7 @@ serve(async (req) => {
               cron_expr: { type: "string", description: "Standard 5-field UTC cron for RECURRING tasks (e.g. '0 13 * * *' = daily 8am Central). Use instead of when_iso." },
               deliver_in_chat: { type: "boolean", description: "Save result as a new message in a chat session. Default true." },
               deliver_push: { type: "boolean", description: "Send a push notification when done. Default false." },
-              deliver_email: { type: "boolean", description: "Send an email notification when done. Default false." },
+              deliver_email: { type: "boolean", description: "DEPRECATED: Email notifications are temporarily disabled/unavailable. Always set to false or omit." },
             },
             required: ["title", "prompt"],
             additionalProperties: false

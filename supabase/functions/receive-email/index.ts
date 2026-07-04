@@ -74,6 +74,16 @@ Deno.serve(async (req) => {
 
     const fromStr = emailDetails?.from || payload.from || "";
     const { name: senderName, email: senderEmail } = parseFrom(fromStr);
+
+    // Safety guard: NEVER process inbound messages from our own system/domain as new support tickets.
+    // This is a bulletproof shield against recursive loops if Webhooks are configured for all events.
+    if (senderEmail.endsWith("@askarc.chat") || senderEmail.endsWith("@notify.askarc.chat")) {
+      console.log(`Ignoring outbound system email: ${senderEmail}`);
+      return new Response(JSON.stringify({ success: true, ignored: true, reason: "System email" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     
     // Parse original recipient to catch wildcard/alias emails (e.g. support@ or hello@)
     const rawTo = emailDetails?.to || payload.to;

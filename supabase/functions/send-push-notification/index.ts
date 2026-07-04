@@ -97,12 +97,19 @@ Deno.serve(async (req) => {
           status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { data: isAdmin } = await admin
-        .from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle();
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: "Admin required" }), {
-          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      
+      // Parse body early to check if it's an admin-only dispatch
+      const rawBody = await req.clone().json().catch(() => ({}));
+      const isAdminsOnly = rawBody?.admins_only === true;
+
+      if (!isAdminsOnly) {
+        const { data: isAdmin } = await admin
+          .from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle();
+        if (!isAdmin) {
+          return new Response(JSON.stringify({ error: "Admin required" }), {
+            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
     }
 
@@ -115,8 +122,14 @@ Deno.serve(async (req) => {
     }
 
     let userIds: string[] = [];
-    if (Array.isArray(body?.user_ids)) userIds = body.user_ids;
-    else if (body?.user_id) userIds = [body.user_id];
+    if (body?.admins_only === true) {
+      const { data: admins } = await admin.from("admin_users").select("user_id");
+      userIds = (admins || []).map(a => a.user_id);
+    } else if (Array.isArray(body?.user_ids)) {
+      userIds = body.user_ids;
+    } else if (body?.user_id) {
+      userIds = [body.user_id];
+    }
 
     let query = admin.from("push_subscriptions").select("*");
     if (userIds.length) query = query.in("user_id", userIds);

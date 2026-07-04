@@ -336,5 +336,12 @@
         }
       }
     </script>
+    <!-- A little helper template for Netlify post-processing search crawlers to recognize our form -->
+    <form name="support" netlify netlify-honeypot="bot-field" hidden>
+      <input type="text" name="name" />
+      <input type="email" name="email" />
+      <input type="text" name="subject" />
+      <textarea name="message"></textarea>
+    </form>
   </body>
 </html>
