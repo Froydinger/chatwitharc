@@ -28,79 +28,79 @@ const UPDATED = "2026-07-03";
 const RAW_BLOG_POSTS: BlogPost[] = [
   {
     slug: "what-is-arcai",
-    title: "What is ArcAI? A free AI assistant that remembers you",
+    title: "What is ArcAI? A personal workspace with built-in reasoning AI",
     description:
-      "ArcAI is a free multimodal AI assistant with voice, image generation, code and long-term memory. Try it in your browser with a free account.",
-    keywords: ["ArcAI", "Ask Arc", "free AI assistant", "AI with memory"],
+      "ArcAI is a multimodal AI assistant with voice, image generation, code canvas and long-term memory. Use the robust free tier or upgrade to Boost.",
+    keywords: ["ArcAI", "Ask Arc", "AI assistant", "AI with memory", "Boost tier"],
     updated: UPDATED,
     intro:
-      "ArcAI (sometimes called Ask Arc) is a free AI assistant that combines chat, real-time voice, image generation, and coding tools in a single browser app. Create a free account to chat, save your work, and let Arc remember what you talked about across sessions.",
+      "ArcAI (sometimes called Ask Arc) is an AI workspace that combines chat, real-time voice, image generation, and coding tools in a single browser app. You can get started with a free account, or unlock unlimited premium reasoning and voice mode with the Boost upgrade.",
     faq: [
       {
         q: "What is ArcAI?",
-        a: "ArcAI is a free, multimodal AI assistant built by Win The Night Productions. It gives you chat, real-time voice conversations, AI image generation, a code canvas, and long-term memory — all without paying for a subscription once you create a free account.",
+        a: "ArcAI is a multimodal AI assistant and workspace built by Win The Night™ Foundation. It gives you chat, voice conversations, AI image generation, a code canvas, and long-term memory — all accessible on a generous free tier or via our premium Boost plan.",
       },
       {
-        q: "Is ArcAI really free?",
-        a: "Yes. ArcAI is free forever with unlimited chats, voice, Deep Search, shared chats and publishing. Permanent accounts can generate or edit 20 image outputs per UTC day.",
+        q: "Is ArcAI free?",
+        a: "Yes. ArcAI offers a robust free tier with unlimited chats with GPT-5.4 Nano, 20 chats/day with GPT-5.4 Mini, Deep Search, and basic image generation. Upgrading to Boost for $7/month unlocks unlimited premium reasoning models (GPT-5.4 Thinking & GPT-5.5 Deep Think), unlimited voice mode, custom web publishing, and higher image quotas (20 GPT-Image-2 outputs/day).",
       },
       {
         q: "Do I need an account to use ArcAI?",
-        a: "Yes. A free account is required to chat so your history, memory, files, canvases and voice limits stay attached to you instead of disappearing in a guest session.",
+        a: "Yes. A free account is required to start chatting so your history, memory, files, canvases and limits stay attached to you instead of disappearing in a guest session.",
       },
       {
         q: "What can I ask Arc?",
-        a: "Anything you would ask ChatGPT, Claude or Gemini — general questions, writing help, coding, math, image generation, live voice conversations, web search with citations, and PDF or document analysis.",
+        a: "Anything you would ask other AI assistants — general questions, writing help, coding, math, image generation, live voice conversations, web search with citations, and PDF or document analysis.",
       },
       {
         q: "Which AI models does ArcAI use?",
-        a: "ArcAI routes requests across best-in-class models including GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) for premium reasoning, GPT-5.4 Nano for quick replies, Gemini, Perplexity Sonar for search, GPT-Image-2 for images, and OpenAI Realtime for voice. You get the strongest model for each task.",
+        a: "ArcAI routes requests across best-in-class models. Free accounts get GPT-5.4 Nano for quick chats and 20 chats/day with GPT-5.4 Mini. Boost subscribers unlock unlimited GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) for advanced reasoning. GPT-Image-2 powers images, OpenAI Realtime handles voice, and Perplexity Sonar handles web search.",
       },
     ],
-    cta: "Try ArcAI free",
+    cta: "Try ArcAI now",
   },
   {
     slug: "free-chatgpt-alternative",
-    title: "The best free ChatGPT alternative in 2026",
+    title: "A powerful free ChatGPT alternative in 2026",
     description:
-      "Looking for a free ChatGPT alternative? ArcAI gives you unlimited chat, voice, image generation and memory — no credit card required.",
-    keywords: ["free ChatGPT alternative", "ChatGPT free", "free AI chatbot"],
+      "Looking for a ChatGPT alternative? ArcAI gives you unlimited fast chat, reasoning tools, and persistent memory on a robust free tier.",
+    keywords: ["ChatGPT alternative", "ChatGPT free", "free AI chatbot"],
     updated: UPDATED,
     intro:
-      "ChatGPT's free tier is limited: fewer messages, slower models, no voice, and image generation gated behind Plus. ArcAI is a free ChatGPT alternative that gives you the premium features without the paywall.",
+      "ChatGPT's free tier is highly limited. ArcAI is a ChatGPT alternative that gives you a generous free tier with reasoning models, search citations, canvases, and long-term memory, plus a premium Boost upgrade to unlock unlimited power-user features.",
     faq: [
       {
-        q: "What is the best free alternative to ChatGPT?",
-        a: "ArcAI is the best free ChatGPT alternative for most people. It offers unlimited chat with GPT-class models, real-time voice, image generation, web search with sources, and long-term memory — all free, with a free account and no credit card.",
+        q: "What is the best alternative to ChatGPT?",
+        a: "ArcAI is a leading ChatGPT alternative. It offers unlimited fast chat with GPT-class models, Deep Search with sources, persistent memory, and a code canvas — all available on our free tier, with a premium Boost plan available for advanced users.",
       },
       {
         q: "Is ArcAI as good as ChatGPT Plus?",
-        a: "For everyday use, yes. ArcAI routes to GPT-5.4 Nano for default chats, with GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) models available for advanced reasoning, GPT-Image-2 for images, and OpenAI Realtime for voice — the same underlying models that power ChatGPT Plus features.",
+        a: "Yes. With a Boost upgrade, ArcAI gives you unlimited access to GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) models, unlimited voice conversations, and custom web publishing — matching or exceeding ChatGPT Plus features at a fraction of the cost.",
       },
       {
-        q: "Does the free version have message limits?",
-        a: "No hard message or voice caps. Every model and feature is free; image generation and editing are limited to 20 outputs per account per UTC day.",
+        q: "Does the free tier have message limits?",
+        a: "No hard limits on everyday chats using GPT-5.4 Nano. Chats with GPT-5.4 Mini are limited to 20 per day on the free tier, and advanced reasoning models (Thinking and Deep Think) require a Boost subscription.",
       },
       {
         q: "Can I use ArcAI without signing up?",
         a: "Create a free account to start. ArcAI no longer opens chat screens for logged-out visitors, which keeps your history and settings protected from the first message.",
       },
     ],
-    cta: "Try the free ChatGPT alternative",
+    cta: "Try the ChatGPT alternative",
   },
   {
     slug: "free-gemini-alternative",
-    title: "A free Gemini alternative with voice and image generation",
+    title: "A flexible Gemini alternative with voice and image generation",
     description:
-      "Prefer something lighter than Gemini? ArcAI is a free multimodal AI assistant with voice, images, code and memory — right in your browser.",
-    keywords: ["free Gemini alternative", "Google AI alternative", "Gemini free"],
+      "Prefer something lighter than Gemini? ArcAI is a multimodal AI assistant with voice, images, code and memory — right in your browser.",
+    keywords: ["Gemini alternative", "Google AI alternative", "Gemini free"],
     updated: UPDATED,
     intro:
-      "Google Gemini is powerful but ties you to a Google account and pushes you toward the paid Advanced tier. ArcAI is a free Gemini alternative you can use in seconds with a free ArcAI account and no required Google login.",
+      "Google Gemini is powerful but ties you to a Google account and pushes you toward the paid Advanced tier. ArcAI is a flexible Gemini alternative you can use in seconds with an independent account, offering both free and premium Boost options.",
     faq: [
       {
-        q: "Is there a free alternative to Google Gemini?",
-        a: "Yes — ArcAI is a free Gemini alternative that includes chat, voice, image generation, coding, and web search with citations, and it does not require a Google account.",
+        q: "Is there an alternative to Google Gemini?",
+        a: "Yes — ArcAI is a Gemini alternative that includes chat, voice, image generation, coding, and web search with citations, and it does not require a Google account or ecosystem lock-in.",
       },
       {
         q: "Does ArcAI use Gemini?",
@@ -111,21 +111,21 @@ const RAW_BLOG_POSTS: BlogPost[] = [
         a: "Your data stays in your account. ArcAI requires a free account for chat so conversations, memory and settings stay tied to you. You can wipe everything from the settings screen in one click.",
       },
     ],
-    cta: "Try the free Gemini alternative",
+    cta: "Try the Gemini alternative",
   },
   {
     slug: "free-gpt-4-alternative",
-    title: "A free GPT-4 alternative you can use right now",
+    title: "A GPT-4 reasoning alternative you can use right now",
     description:
-      "Get GPT-class answers with a free account. ArcAI is a free GPT-4 alternative with voice, images, code and memory built in.",
-    keywords: ["free GPT-4 alternative", "GPT-4 free", "free GPT"],
+      "Get GPT-class answers with a free account. ArcAI is a GPT-4 class alternative with voice, images, code and memory built in.",
+    keywords: ["GPT-4 alternative", "GPT-4 free", "free GPT"],
     updated: UPDATED,
     intro:
-      "GPT-4 (and now GPT-5) is behind a paywall on most services. ArcAI gives you free access to GPT-class reasoning — plus voice, images and memory — without the subscription.",
+      "GPT-4 (and now GPT-5) is behind a paywall on most services. ArcAI gives you free access to GPT-5.4 Nano and Mini, and offers unlimited GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) reasoning via our premium Boost upgrade.",
     faq: [
       {
         q: "Is there a free version of GPT-4?",
-        a: "OpenAI's own free tier limits access to GPT-4-class models. ArcAI is a free GPT alternative that routes chats through GPT-5.4 Nano, and offers GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) for advanced reasoning.",
+        a: "OpenAI's own free tier limits access to GPT-4-class models. ArcAI is a GPT alternative that routes default chats through GPT-5.4 Nano (unlimited) and GPT-5.4 Mini (20/day), while reserving advanced reasoning models (Thinking and Deep Think) for Boost.",
       },
       {
         q: "What model does ArcAI use for chat?",
@@ -133,102 +133,102 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Can ArcAI do everything GPT-4 can?",
-        a: "For chat, writing, coding, analysis and image understanding — yes. Add real-time voice, image generation, memory and web search on top, all free.",
+        a: "Yes. In addition to text reasoning, ArcAI features real-time voice, image generation, canvases, and long-term memory, making it a complete assistant.",
       },
     ],
-    cta: "Try the free GPT alternative",
+    cta: "Try the GPT alternative",
   },
   {
     slug: "free-claude-alternative",
-    title: "A free Claude alternative with longer memory",
+    title: "A Claude alternative with longer memory and premium features",
     description:
-      "Want Claude-level chat for free? ArcAI is a free Claude alternative with voice, image generation, and true cross-session memory.",
-    keywords: ["free Claude alternative", "Anthropic Claude free", "Claude free"],
+      "Want Claude-level chat? ArcAI is a Claude alternative with voice, image generation, and true cross-session memory.",
+    keywords: ["Claude alternative", "Anthropic Claude free", "Claude free"],
     updated: UPDATED,
     intro:
-      "Anthropic's Claude is excellent but its free tier is throttled and lacks voice or image generation. ArcAI is a free Claude alternative that adds the multimodal features Claude leaves out.",
+      "Anthropic's Claude is excellent but its free tier is throttled and lacks voice or image generation. ArcAI is a Claude alternative that adds the multimodal features Claude leaves out, with optional Boost upgrades for power users.",
     faq: [
       {
-        q: "What is a free alternative to Claude?",
-        a: "ArcAI. It offers thoughtful, high-quality chat responses, plus voice mode, image generation, code canvas, and persistent memory — free to use in any browser.",
+        q: "What is an alternative to Claude?",
+        a: "ArcAI. It offers thoughtful, high-quality chat responses, plus voice mode, image generation, code canvas, and persistent memory — available on a generous free tier or premium Boost tier.",
       },
       {
         q: "Does ArcAI remember past conversations?",
         a: "Yes. Signed-in users get a persistent Memory Bank that Arc reads before every response, so it truly remembers what you told it — something Claude's free tier doesn't offer.",
       },
     ],
-    cta: "Try the free Claude alternative",
+    cta: "Try the Claude alternative",
   },
   {
     slug: "best-free-ai-assistant-2026",
-    title: "The best free AI assistant in 2026",
+    title: "A leading free AI assistant in 2026",
     description:
-      "Comparing free AI assistants in 2026? ArcAI leads on voice, image generation, memory and price — every feature is free forever.",
+      "Comparing AI assistants in 2026? ArcAI leads on voice, image generation, memory and price, with a clear upgrade path.",
     keywords: ["best free AI assistant", "free AI 2026", "AI assistant free"],
     updated: UPDATED,
     intro:
-      "In 2026 the free AI assistant market is crowded — ChatGPT, Gemini, Claude, Copilot, Perplexity. ArcAI stands out by bundling the features you actually want (voice, images, memory) into a genuinely free product.",
+      "In 2026 the free AI assistant market is crowded. ArcAI stands out by bundling the features you actually want (voice, images, memory) into a generous free plan, with a simple $7/month Boost tier to unlock maximum power.",
     faq: [
       {
         q: "What is the best free AI assistant in 2026?",
-        a: "ArcAI. It offers unlimited chat and voice, 20 generated or edited image outputs a day, web search with citations, document analysis, long-term memory, and a code canvas — all free.",
+        a: "ArcAI. It offers unlimited chat, daily image quotas, web search with citations, document analysis, long-term memory, and a code canvas on the free tier, with a premium Boost plan for elevated quotas and reasoning.",
       },
       {
-        q: "Which free AI has voice mode?",
-        a: "ArcAI has real-time voice conversations powered by OpenAI Realtime API on the free plan. Most competitors reserve voice for paid tiers.",
+        q: "Which AI has voice mode?",
+        a: "ArcAI has real-time voice conversations powered by OpenAI Realtime API. Unlimited voice mode is unlocked on the premium Boost tier.",
       },
       {
         q: "Which free AI generates images?",
-        a: "ArcAI includes 20 generated or edited image outputs per UTC day using GPT-Image-2. Every other feature is unlimited and free.",
+        a: "ArcAI includes GPT-Image-1 Mini (40 outputs/day), GPT-Image-1 (10 outputs/day), and 3 free premium GPT-Image-2 outputs. Boost plan upgrades this to 20 premium GPT-Image-2 outputs per day.",
       },
     ],
-    cta: "Try the best free AI assistant",
+    cta: "Try the AI assistant",
   },
   {
     slug: "free-ai-with-voice",
-    title: "The best free AI with voice mode",
+    title: "An AI with advanced real-time voice mode",
     description:
-      "Want to talk to an AI for free? ArcAI has real-time voice conversations built in, powered by OpenAI Realtime.",
+      "Want to talk to an AI? ArcAI has real-time voice conversations built in, powered by OpenAI Realtime and available in Boost.",
     keywords: ["free AI voice", "voice AI free", "talk to AI free"],
     updated: UPDATED,
     intro:
-      "Most AI assistants charge for voice. ArcAI gives you real-time voice conversations for free — with natural interruptions, multiple voices, and the same memory as text chat.",
+      "Most AI assistants charge for voice. ArcAI provides voice mode conversations, utilizing the OpenAI Realtime API. You can unlock unlimited voice mode with our Boost subscription.",
     faq: [
       {
-        q: "Which AI has free voice conversations?",
-        a: "ArcAI. It uses the OpenAI Realtime API to deliver free, unlimited, low-latency spoken conversations with multiple voice options.",
+        q: "Which AI has voice conversations?",
+        a: "ArcAI. It uses the OpenAI Realtime API to deliver low-latency spoken conversations with multiple natural voice options. Unlimited voice conversations are included in Boost.",
       },
       {
         q: "Can I interrupt the AI while it's talking?",
         a: "Yes. ArcAI's voice mode supports natural interruptions — start speaking and Arc listens.",
       },
     ],
-    cta: "Try free AI voice mode",
+    cta: "Try AI voice mode",
   },
   {
     slug: "free-ai-image-generator",
-    title: "A free AI image generator built into your chat",
+    title: "AI image generator built into your workspace",
     description:
-      "Generate 10 AI images a day for free. ArcAI's image generator uses GPT-Image-2 and lives inside a full AI chat app.",
-    keywords: ["free AI image generator", "AI image free", "GPT image free"],
+      "Generate AI images directly in chat. ArcAI's image generator uses GPT-Image-2 and features both free and Boost tiers.",
+    keywords: ["AI image generator", "AI image free", "GPT image free"],
     updated: UPDATED,
     intro:
-      "ArcAI includes a free AI image generator powered by GPT-Image-2. Permanent accounts can generate or edit 20 outputs every UTC day.",
+      "ArcAI includes a built-in AI image generator powered by GPT-Image-2. Free accounts get daily base image quotas, while Boost accounts unlock higher quotas and full image editing features.",
     faq: [
       {
-        q: "What is the best free AI image generator?",
-        a: "ArcAI is a strong free option because it uses OpenAI's GPT-Image-2 model, integrated directly into a full AI chat and voice app — no separate account or paywall for basic use.",
+        q: "What is the best AI image generator?",
+        a: "ArcAI is a strong option because it integrates OpenAI's GPT-Image-2 model directly into your chat and workspace, making it easy to create and edit images.",
       },
       {
         q: "How many free images can I generate?",
-        a: "20 generated or edited outputs per permanent account per UTC day. Multi-image requests count once per returned output.",
+        a: "Free accounts get GPT-Image-1 Mini (40 outputs/day), GPT-Image-1 (10 outputs/day), and 3 premium GPT-Image-2 outputs. Upgrading to Boost gives you 20 premium GPT-Image-2 outputs per day.",
       },
       {
         q: "Can I edit generated images?",
-        a: "Yes. Ask Arc to edit an image and it will run an edit pass with GPT-Image-2 (with Google Nano Banana 2 as fallback).",
+        a: "Yes. Full image editing (combining, inpainting, and variations of base images) is unlocked with a Boost subscription.",
       },
     ],
-    cta: "Generate free AI images",
+    cta: "Generate AI images",
   },
   {
     slug: "ai-that-remembers-conversations",
@@ -395,91 +395,91 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "what-is-arcai": {
     angle: "ArcAI is built around a simple idea: one assistant should handle the whole loop — thinking, searching, speaking, writing, coding, creating images, and remembering the context that makes those tasks personal.",
     useCases: ["daily planning", "research with sources", "image generation", "coding prototypes", "voice brainstorming", "long-term personal context"],
-    freeAccess: "Every ArcAI feature is free. The only account-level allowance is 20 generated or edited image outputs per UTC day.",
+    freeAccess: "Every ArcAI feature is accessible via our free plan. Upgrades to Boost unlock unlimited premium reasoning, unlimited voice mode, custom web publishing, and higher image quotas.",
     proof: "That combination makes ArcAI feel less like a single chatbot tab and more like a personal operating layer for creative work.",
   },
   "free-chatgpt-alternative": {
-    angle: "The reason people search for a free ChatGPT alternative is not because they hate ChatGPT — it is because the features they actually want are often split across paid plans, usage caps, or separate apps.",
-    useCases: ["unlimited everyday chat", "free image generation", "real-time voice", "persistent memory", "web search", "document analysis"],
-    freeAccess: "ArcAI has no paid tier: every model, unlimited voice, Deep Search and publishing are included.",
+    angle: "The reason people search for an alternative to ChatGPT is not because they hate ChatGPT — it is because the features they actually want are often split across paid plans, usage caps, or separate apps.",
+    useCases: ["unlimited everyday chat", "image generation", "real-time voice", "persistent memory", "web search", "document analysis"],
+    freeAccess: "ArcAI provides a robust free tier with unlimited chats, search citations, and canvases, plus an optional Boost upgrade for $7/month to unlock advanced reasoning, voice conversations, and custom publishing.",
     proof: "ArcAI is strongest when you want ChatGPT-style answers plus the features people usually associate with premium AI assistants.",
   },
   "free-gemini-alternative": {
     angle: "Gemini is powerful, but many users want an assistant that is not organized around one ecosystem. ArcAI is browser-first and independent while still giving you multimodal tools in one place.",
     useCases: ["chat without Google Workspace", "voice conversations", "AI images", "coding help", "source-backed web answers", "memory across projects"],
-    freeAccess: "Unlimited voice, deeper research and publishing are included free; images and edits include 20 outputs per UTC day.",
+    freeAccess: "ArcAI's free plan includes unlimited fast chat, 20 smarter chats/day, Deep Search, and basic image generation. Premium reasoning, unlimited voice, and web publishing are available in our Boost tier.",
     proof: "That makes ArcAI a practical Gemini alternative for people who want less lock-in and more creative surface area.",
   },
   "free-gpt-4-alternative": {
-    angle: "Most people searching for a free GPT-4 alternative want strong reasoning without turning every useful feature into a monthly bill. ArcAI focuses on GPT-class quality with practical tools around it.",
+    angle: "Most people searching for a GPT-4 alternative want strong reasoning without turning every useful feature into a massive monthly bill. ArcAI focuses on GPT-class quality with practical tools around it.",
     useCases: ["reasoning through hard questions", "writing drafts", "debugging code", "summarizing documents", "generating images", "turning ideas into apps"],
-    freeAccess: "The full product is available free, without limiting voice, research, models or publishing.",
+    freeAccess: "Free accounts get GPT-5.4 Nano and Mini, while advanced reasoning (GPT-5.4 Thinking and GPT-5.5 Deep Think) is unlocked with Boost.",
     proof: "The result is GPT-style usefulness without needing to choose between chat, voice, images, memory, and code in separate products.",
   },
   "free-claude-alternative": {
     angle: "Claude is known for thoughtful writing and analysis, but many users want that style of assistance with voice, images, coding, and memory in the same product.",
     useCases: ["long-form writing", "structured thinking", "brainstorming", "code review", "voice notes", "saved personal context"],
-    freeAccess: "There is no upgrade path because the complete assistant is available to every account.",
+    freeAccess: "We offer both a generous free tier for daily use, and a Boost upgrade for power users seeking unlimited reasoning models.",
     proof: "ArcAI is especially useful when you want a writing-friendly assistant that can also create, search, speak, and remember.",
   },
   "best-free-ai-assistant-2026": {
-    angle: "A good free AI assistant in 2026 should not just answer questions. It should remember, speak, search, generate images, analyze files, help with code, and stay affordable.",
+    angle: "A good AI assistant in 2026 should not just answer questions. It should remember, speak, search, generate images, analyze files, help with code, and stay affordable.",
     useCases: ["personal productivity", "creative work", "student research", "small business tasks", "coding", "voice-first brainstorming"],
-    freeAccess: "ArcAI replaces the upgrade path with a simple free product and one transparent daily image allowance.",
+    freeAccess: "ArcAI offers a robust free tier, and provides a clear and transparent Boost upgrade path to unlock unlimited reasoning and voice capabilities.",
     proof: "That is why ArcAI is positioned as a daily assistant, not just another chatbot with a text box.",
   },
   "free-ai-with-voice": {
     angle: "Voice changes the way people use AI: it turns the assistant into a thinking partner while walking, driving, cooking, planning, or working through an idea out loud.",
     useCases: ["hands-free brainstorming", "practice conversations", "planning your day", "talking through code", "capturing ideas", "voice-first coaching"],
-    freeAccess: "Voice is free and unlimited, so it can become a real habit instead of a timed demo.",
+    freeAccess: "Voice mode is available on both tiers, with unlimited conversations unlocked via a Boost subscription.",
     proof: "Because voice shares context with the rest of ArcAI, spoken conversations can connect back to memory, chat, research, and creative work.",
   },
   "free-ai-image-generator": {
     angle: "A standalone image generator is useful, but an image generator inside your AI assistant is more useful because the same chat can plan, revise, describe, and edit the image workflow.",
     useCases: ["social graphics", "concept art", "product mockups", "moodboards", "thumbnails", "iterative image edits"],
-    freeAccess: "Permanent accounts receive 20 generated or edited image outputs per UTC day, counted per returned output.",
+    freeAccess: "Free accounts receive basic image generation quotas, while Boost accounts unlock premium models, higher quotas, and full image editing.",
     proof: "ArcAI makes image generation feel like part of the conversation instead of a separate tool you have to manage.",
   },
   "ai-that-remembers-conversations": {
     angle: "Memory is what turns an AI assistant from a disposable answer machine into something personal. ArcAI can keep track of preferences, projects, facts, and context you choose to save.",
     useCases: ["personal preferences", "ongoing projects", "writing style", "business context", "recurring goals", "saved instructions"],
-    freeAccess: "Memory, voice, research and creative tools all share context without requiring an upgrade.",
+    freeAccess: "Memory, canvases, and Deep Search are fully included on the free tier to keep your workspace integrated.",
     proof: "The important detail is control: memory is useful only when users can inspect, edit, export, and delete it.",
   },
   "ask-arc-what-is-it": {
     angle: "Ask Arc is the natural way to describe using ArcAI: you bring a question, problem, draft, file, idea, or voice note, and Arc helps move it forward.",
     useCases: ["asking questions", "rewriting text", "researching", "generating images", "coding", "remembering preferences"],
-    freeAccess: "People can use Ask Arc constantly without a subscription; only image outputs carry a daily allowance.",
+    freeAccess: "Get started for free at askarc.chat, with optional Boost subscriptions available to unlock advanced reasoning, unlimited voice, and web publishing.",
     proof: "The product is meant to feel approachable: open it, ask, refine, save, and continue later.",
   },
   "arcai-vs-chatgpt": {
-    angle: "ArcAI vs ChatGPT comes down to packaging. ChatGPT is a massive general product; ArcAI is tuned around genuinely free access, memory, creative tools, voice and code.",
+    angle: "ArcAI vs ChatGPT comes down to packaging. ChatGPT is a massive general product; ArcAI is tuned around focused workspace utility, memory, creative tools, voice and code.",
     useCases: ["free daily chat", "voice", "image generation", "memory", "code canvas", "publishing"],
-    freeAccess: "The comparison is simple: ArcAI has no paid tier, while keeping one transparent 20-output daily image allowance.",
+    freeAccess: "ArcAI's free plan includes search citations, canvases, and long-term memory, while our $7/month Boost tier matches or exceeds ChatGPT Plus capabilities.",
     proof: "If you already pay for ChatGPT and only use a few core features, ArcAI may cover the same jobs with less friction.",
   },
   "arcai-vs-gemini": {
     angle: "ArcAI vs Gemini is partly about ecosystem. Gemini is best for users who want a Google-native assistant; ArcAI is for people who want a focused, independent AI workspace.",
     useCases: ["browser-first AI", "non-Google login options", "voice", "images", "memory", "web research"],
-    freeAccess: "ArcAI keeps both everyday and power-user features free and accessible.",
+    freeAccess: "ArcAI provides an independent alternative with a robust free plan and clear upgrade paths.",
     proof: "ArcAI is easier to evaluate on its own merits because it is not built as a doorway into a larger office suite.",
   },
   "free-ai-for-coding": {
     angle: "Coding with AI works best when the assistant can move from explanation to implementation. ArcAI's code canvas is designed for generating, previewing, and iterating on working web app ideas.",
     useCases: ["debugging", "prototype apps", "UI changes", "scripts", "learning code", "publishing small projects"],
-    freeAccess: "One-tap publishing is free, turning generated projects into live URLs anyone can share.",
+    freeAccess: "Code generation and preview are free, with public web publishing unlocked via our Boost subscription.",
     proof: "That makes ArcAI more than a code-answer bot: it can become a lightweight builder workspace.",
   },
   "free-ai-for-writing": {
     angle: "A useful AI writing assistant should help with structure, voice, edits, outlines, rewrites, titles, summaries, and long-form drafts — not just produce generic paragraphs.",
     useCases: ["blog posts", "essays", "emails", "scripts", "brand copy", "editing tone"],
-    freeAccess: "Writers can combine voice brainstorming, images, Deep Search and publishing without a paywall.",
+    freeAccess: "Writers can draft, edit, and analyze documents on our free tier, or upgrade to Boost for advanced reasoning models.",
     proof: "ArcAI is strongest when writing is connected to the rest of your context: memory, research, files, and drafts.",
   },
   "how-to-use-arcai-free": {
     angle: "The easiest way to learn ArcAI is to start with one task, then layer in the tools: ask, refine, search, attach, generate, speak, remember, and build.",
     useCases: ["first question", "voice mode", "image generation", "file analysis", "memory setup", "code canvas"],
-    freeAccess: "You receive the complete product immediately; images and edits share a 20-output daily allowance.",
+    freeAccess: "Get started for free to explore the core product, then upgrade to Boost when you are ready to expand your workspace capabilities.",
     proof: "A free account is enough to understand the product and decide which workflows matter to you.",
   },
 };
@@ -490,7 +490,7 @@ function enrichPost(post: BlogPost): BlogPost {
   const context = TOPIC_CONTEXT[post.slug] ?? DEFAULT_CONTEXT;
   const body = post.body ?? [
     context.angle,
-    `The important difference is consolidation. Instead of bouncing between separate tools for ${context.useCases.slice(0, 4).join(", ")}, ArcAI puts those workflows in one account with one memory system and one interface. That matters for searchers comparing “free AI assistant,” “free GPT alternative,” or “free AI with voice” because the question is rarely just price — it is whether the free product is useful enough to become a daily habit.`,
+    `The important difference is consolidation. Instead of bouncing between separate tools for ${context.useCases.slice(0, 4).join(", ")}, ArcAI puts those workflows in one account with one memory system and one interface. That matters for searchers comparing assistants because the question is rarely just price — it is whether the product is useful enough to become a daily habit.`,
     context.freeAccess,
   ];
 
@@ -502,14 +502,14 @@ function enrichPost(post: BlogPost): BlogPost {
         `${item.a} In practical terms, this means you can start with a normal question and keep going into follow-ups, research, drafts, files, images, voice, or code without switching products. ArcAI is designed for the kind of messy, real workflow where a user asks one thing, changes direction, adds context, and expects the assistant to keep up.`,
         index === 0
           ? context.proof
-          : `ArcAI has no paid tier. Every model, unlimited voice, deeper web research and publishing are available free; image generation and editing include 20 outputs per UTC day.`
+          : `ArcAI offers a generous free tier with unlimited chats, Deep Search, and basic image generation. Upgrading to Boost for $7/month unlocks unlimited premium reasoning, unlimited voice mode, custom web publishing, and higher image quotas.`
       ],
     bullets:
       item.bullets ??
       [
         `Best for: ${context.useCases.slice(0, 3).join(", ")}.`,
         "Free account required; no credit card required to start.",
-        "No paid upgrade or credit card is required for any feature.",
+        "Optional Boost upgrade available for advanced features.",
       ],
   }));
 

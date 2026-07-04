@@ -35,7 +35,7 @@ export const InviteEmail = ({
       <Container style={container}>
         <Section style={header}>
           <Img
-            src="https://cgvixgyjzswebosfqyll.supabase.co/storage/v1/object/public/email-assets/arc-logo-ui.png"
+            src="https://askarc.chat/arc-logo-ui.png"
             width="48"
             height="48"
             alt="ArcAI"
@@ -67,7 +67,7 @@ export const InviteEmail = ({
               Click here if the button doesn't work
             </Link>
           </Text>
-          <Text style={copy}>© 2026 ArcAI by Win The Night Productions</Text>
+          <Text style={copy}>© 2026 ArcAI by Win The Night™ Foundation</Text>
         </Section>
       </Container>
     </Body>
@@ -77,39 +77,22 @@ export const InviteEmail = ({
 export default InviteEmail
 
 const main = {
-  backgroundColor: '#f6f6f6',
+  backgroundColor: '#09090b',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 }
-
 const container = { margin: '0 auto', padding: '40px 0', maxWidth: '520px' }
 const header = { textAlign: 'center' as const, paddingBottom: '24px' }
 const logo = { margin: '0 auto', borderRadius: '12px' }
-
 const content = {
-  backgroundColor: '#ffffff',
+  backgroundColor: '#18181b',
   borderRadius: '12px',
   padding: '40px 32px',
   textAlign: 'center' as const,
-  border: '1px solid #e5e5e5',
+  border: '1px solid rgba(0, 128, 240, 0.25)',
 }
-
-const h1 = {
-  color: '#111111',
-  fontSize: '24px',
-  fontWeight: '700' as const,
-  margin: '0 0 16px',
-  letterSpacing: '-0.3px',
-}
-
-const paragraph = {
-  color: '#555555',
-  fontSize: '15px',
-  lineHeight: '26px',
-  margin: '0 0 28px',
-}
-
+const h1 = { color: '#fafafa', fontSize: '24px', fontWeight: '700' as const, margin: '0 0 16px', letterSpacing: '-0.3px' }
+const paragraph = { color: '#a1a1aa', fontSize: '15px', lineHeight: '26px', margin: '0 0 28px' }
 const btnWrap = { textAlign: 'center' as const }
-
 const btn = {
   backgroundColor: '#0080f0',
   borderRadius: '8px',
@@ -121,10 +104,10 @@ const btn = {
   display: 'inline-block',
   padding: '12px 32px',
   border: 'none',
+  boxShadow: '0 4px 12px rgba(0, 128, 240, 0.3)',
 }
-
-const hr = { borderColor: '#eeeeee', margin: '0' }
+const hr = { borderColor: '#27272a', margin: '20px 0' }
 const footer = { padding: '24px 32px', textAlign: 'center' as const }
-const footerText = { color: '#999999', fontSize: '12px', lineHeight: '20px', margin: '0 0 4px' }
+const footerText = { color: '#71717a', fontSize: '12px', lineHeight: '20px', margin: '0 0 4px' }
 const footerLink = { color: '#0080f0', textDecoration: 'underline', fontSize: '12px' }
-const copy = { color: '#bbbbbb', fontSize: '11px', margin: '12px 0 0' }
+const copy = { color: '#52525b', fontSize: '11px', margin: '12px 0 0' }

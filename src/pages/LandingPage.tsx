@@ -20,31 +20,31 @@ const SITE = "https://askarc.chat";
 const LANDING_FAQ = [
   {
     q: "What is ArcAI?",
-    a: "ArcAI is a free multimodal AI assistant built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, real-time voice, image generation, a code canvas, and long-term memory, all in your browser.",
+    a: "ArcAI is a multimodal AI assistant built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, voice mode, image generation, a code canvas, and long-term memory, all in your browser.",
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Every core feature is free, including 20 Smarter chats/day, unlimited Fast chats, unlimited voice, and 10 images/day. Upgrade to Boost for unlimited Smarter chats, 30 images/day, and publishing your code online at a custom arc link.",
+    a: "Yes. Our free tier includes unlimited chats with GPT-5.4 Nano, 20 chats/day with GPT-5.4 Mini, Deep Search, canvases, memory, and basic image generation. Upgrade to Boost for unlimited advanced reasoning models (GPT-5.4 Thinking & GPT-5.5 Deep Think), unlimited voice, higher image quotas, and custom web publishing.",
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer an optional Boost upgrade for $7/month that increases your daily image quota to 30 and unlocks unlimited Smarter chats and web publishing. No pressure, the free plan does it all.",
+    a: "Yes. We offer a Boost upgrade for $7/month (or $65/year) that unlocks unlimited premium reasoning chats, unlimited voice, full image editing, higher image quotas (20 GPT-Image-2 outputs/day), and live web app publishing.",
   },
   {
     q: "Is ArcAI a free ChatGPT alternative?",
-    a: "Yes. ArcAI is a free alternative to ChatGPT, Gemini and Claude that adds voice, image generation and true persistent memory on the free tier.",
+    a: "Yes. ArcAI is a powerful alternative to ChatGPT, Gemini and Claude, offering a robust free plan with reasoning models, search citations, canvases, and long-term memory.",
   },
   {
     q: "Do I need to sign up?",
-    a: "Yes. A free account is required to chat so your history, memory, voice, files, canvases and settings stay tied to you from the first message.",
+    a: "Yes. A free account is required to chat so your history, memory, files, canvases and settings stay securely tied to you from your very first message.",
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) for advanced reasoning, GPT-5.4 Nano for quick chats, GPT-Image-2 for images, OpenAI Realtime for voice, and Perplexity Sonar for web search.",
+    a: "We route requests to best-in-class models: GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) for advanced reasoning, GPT-5.4 Nano and Mini for everyday chats, GPT-Image-2 for images, OpenAI Realtime for voice, and Perplexity Sonar for web search.",
   },
   {
     q: "Is ArcAI private?",
-    a: "Yes. Your chats sync to your private account and you can wipe everything from settings in one click.",
+    a: "Yes. Your chats sync to your private account and you can completely wipe your chat history and memory from settings in a single click.",
   },
   {
     q: "Does Arc remember me across devices?",
@@ -52,15 +52,15 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI generate images?",
-    a: "Yes. Free accounts can generate 10 images a day, and Boost accounts can generate up to 30 images a day.",
+    a: "Yes. Free accounts receive GPT-Image-1 Mini (40 outputs/day), GPT-Image-1 (10 outputs/day), and 3 free premium GPT-Image-2 outputs. Boost accounts unlock 20 premium GPT-Image-2 outputs per day and full editing features.",
   },
   {
     q: "Does ArcAI have voice mode?",
-    a: "Yes. Real-time voice conversations powered by OpenAI Realtime are free and unlimited.",
+    a: "Yes. Voice mode is available, providing low-latency spoken conversations with multiple natural voices. Unlimited voice mode is included on the Boost tier.",
   },
   {
     q: "Can ArcAI write code?",
-    a: "Yes. The code canvas generates functional web apps with a live preview, which you can publish online at a custom arc link with an optional Boost upgrade.",
+    a: "Yes. The code canvas generates functional web apps with a live preview. Boost users can also publish their creations online to a public custom link.",
   },
 ];
 
@@ -146,10 +146,10 @@ export function LandingPage() {
           Ask. Reflect. Create.
         </h1>
         <p
-          className="mx-auto mt-6 max-w-2xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
+          className="mx-auto mt-6 max-w-xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
         >
-          Arc is a personal sanctuary for your ideas, designed to help you focus, collaborate, and bring your creations to life.
+          A personal sanctuary for your ideas. Focus, collaborate, and create with integrated AI.
         </p>
         <div
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"
