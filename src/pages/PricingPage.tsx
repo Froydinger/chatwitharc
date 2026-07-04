@@ -81,7 +81,7 @@ export function PricingPage() {
             <div>
               <div className="text-sm font-semibold text-primary tracking-wider uppercase mb-2">Boost Monthly</div>
               <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-5xl font-bold">$7</span>
+                <span className="text-5xl font-bold">$10</span>
                 <span className="text-muted-foreground">/ month</span>
               </div>
               <ul className="space-y-3 mb-8">

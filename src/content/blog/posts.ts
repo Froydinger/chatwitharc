@@ -42,7 +42,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI free?",
-        a: "Yes. ArcAI offers a robust free tier with unlimited chats with GPT-5.4 Nano, 20 chats/day with GPT-5.4 Mini, Deep Search, and basic image generation. Upgrading to Boost for $7/month unlocks unlimited premium reasoning models (GPT-5.4 Thinking & GPT-5.5 Deep Think), unlimited voice mode, custom web publishing, and higher image quotas (20 GPT-Image-2 outputs/day).",
+        a: "Yes. ArcAI offers a robust free tier with unlimited chats with GPT-5.4 Nano, 20 chats/day with GPT-5.4 Mini, Deep Search, and basic image generation. Upgrading to Boost for $10/month unlocks unlimited premium reasoning models (GPT-5.4 Thinking & GPT-5.5 Deep Think), unlimited voice mode, custom web publishing, and higher image quotas (20 GPT-Image-2 outputs/day).",
       },
       {
         q: "Do I need an account to use ArcAI?",
@@ -167,7 +167,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["best free AI assistant", "free AI 2026", "AI assistant free"],
     updated: UPDATED,
     intro:
-      "In 2026 the free AI assistant market is crowded. ArcAI stands out by bundling the features you actually want (voice, images, memory) into a generous free plan, with a simple $7/month Boost tier to unlock maximum power.",
+      "In 2026 the free AI assistant market is crowded. ArcAI stands out by bundling the features you actually want (voice, images, memory) into a generous free plan, with a simple $10/month Boost tier to unlock maximum power.",
     faq: [
       {
         q: "What is the best free AI assistant in 2026?",
@@ -401,7 +401,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-chatgpt-alternative": {
     angle: "The reason people search for an alternative to ChatGPT is not because they hate ChatGPT — it is because the features they actually want are often split across paid plans, usage caps, or separate apps.",
     useCases: ["unlimited everyday chat", "image generation", "real-time voice", "persistent memory", "web search", "document analysis"],
-    freeAccess: "ArcAI provides a robust free tier with unlimited chats, search citations, and canvases, plus an optional Boost upgrade for $7/month to unlock advanced reasoning, voice conversations, and custom publishing.",
+    freeAccess: "ArcAI provides a robust free tier with unlimited chats, search citations, and canvases, plus an optional Boost upgrade for $10/month to unlock advanced reasoning, voice conversations, and custom publishing.",
     proof: "ArcAI is strongest when you want ChatGPT-style answers plus the features people usually associate with premium AI assistants.",
   },
   "free-gemini-alternative": {
@@ -455,7 +455,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "arcai-vs-chatgpt": {
     angle: "ArcAI vs ChatGPT comes down to packaging. ChatGPT is a massive general product; ArcAI is tuned around focused workspace utility, memory, creative tools, voice and code.",
     useCases: ["free daily chat", "voice", "image generation", "memory", "code canvas", "publishing"],
-    freeAccess: "ArcAI's free plan includes search citations, canvases, and long-term memory, while our $7/month Boost tier matches or exceeds ChatGPT Plus capabilities.",
+    freeAccess: "ArcAI's free plan includes search citations, canvases, and long-term memory, while our $10/month Boost tier matches or exceeds ChatGPT Plus capabilities.",
     proof: "If you already pay for ChatGPT and only use a few core features, ArcAI may cover the same jobs with less friction.",
   },
   "arcai-vs-gemini": {
@@ -502,7 +502,7 @@ function enrichPost(post: BlogPost): BlogPost {
         `${item.a} In practical terms, this means you can start with a normal question and keep going into follow-ups, research, drafts, files, images, voice, or code without switching products. ArcAI is designed for the kind of messy, real workflow where a user asks one thing, changes direction, adds context, and expects the assistant to keep up.`,
         index === 0
           ? context.proof
-          : `ArcAI offers a generous free tier with unlimited chats, Deep Search, and basic image generation. Upgrading to Boost for $7/month unlocks unlimited premium reasoning, unlimited voice mode, custom web publishing, and higher image quotas.`
+          : `ArcAI offers a generous free tier with unlimited chats, Deep Search, and basic image generation. Upgrading to Boost for $10/month unlocks unlimited premium reasoning, unlimited voice mode, custom web publishing, and higher image quotas.`
       ],
     bullets:
       item.bullets ??

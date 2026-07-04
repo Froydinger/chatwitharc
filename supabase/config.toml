@@ -18,3 +18,4 @@ project_id = "cgvixgyjzswebosfqyll"
   [functions.receive-email]
     verify_jwt = false
 
+

@@ -9,7 +9,7 @@ const DISMISS_KEY = "arcai-anon-boost-dismissed";
 
 /**
  * Pinned, dismissible banner above the chat input for anonymous (guest) users.
- * Sells both free sign-in and Boost ($7/mo) in one breath.
+ * Sells both free sign-in and Boost ($10/mo) in one breath.
  */
 export function BoostCtaBanner({ className }: { className?: string }) {
   const { user, isAnonymous, loading } = useAuth();

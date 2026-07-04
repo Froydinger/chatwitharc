@@ -28,7 +28,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade for $7/month (or $65/year) that unlocks unlimited premium reasoning chats, unlimited voice, full image editing, higher image quotas (20 GPT-Image-2 outputs/day), and live web app publishing.",
+    a: "Yes. We offer a Boost upgrade for $10/month (or $65/year) that unlocks unlimited premium reasoning chats, unlimited voice, full image editing, higher image quotas (20 GPT-Image-2 outputs/day), and live web app publishing.",
   },
   {
     q: "Is ArcAI a free ChatGPT alternative?",
@@ -229,7 +229,7 @@ export function LandingPage() {
               Free is powerful. <span className="text-white/70">Boost is optional.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              Arc is built to be a safe, helpful hub for everyone. The free plan has no catch, you get memory, real-time voice, search, and coding out of the box. Upgrade to Boost for $7/month only if you want to publish creations to public custom links or need higher quotas.
+              Arc is built to be a safe, helpful hub for everyone. The free plan has no catch, you get memory, real-time voice, search, and coding out of the box. Upgrade to Boost for $10/month only if you want to publish creations to public custom links or need higher quotas.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">

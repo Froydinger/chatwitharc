@@ -171,7 +171,7 @@ export function UpgradePage() {
                 <div>
                   <div className="text-xs font-bold text-primary tracking-wider uppercase mb-2">Boost Monthly</div>
                   <div className="flex items-baseline gap-1 mb-6">
-                    <span className="text-5xl font-black tracking-tight text-white">$7</span>
+                    <span className="text-5xl font-black tracking-tight text-white">$10</span>
                     <span className="text-muted-foreground text-sm font-medium">/ month</span>
                   </div>
                   

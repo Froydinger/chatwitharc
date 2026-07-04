@@ -100,11 +100,11 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
           </div>
           <h2 className="text-xl font-bold mb-2">Publishing requires Boost</h2>
           <p className="text-sm text-muted-foreground mb-6">
-            Upgrade to ArcAI Boost for $7/month to publish your code online at a custom arc link, get unlimited Smarter reasoning chats, and generate up to 30 images a day.
+            Upgrade to ArcAI Boost for $10/month to publish your code online at a custom arc link, get unlimited Smarter reasoning chats, and generate up to 30 images a day.
           </p>
           <div className="flex flex-col gap-2.5">
             <Button onClick={() => { onClose(); openCheckout(); }} className="w-full rounded-xl">
-              Upgrade to Boost ($7/mo)
+              Upgrade to Boost ($10/mo)
             </Button>
             <Button variant="ghost" onClick={onClose} className="w-full rounded-xl">
               Maybe later

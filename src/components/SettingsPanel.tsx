@@ -828,7 +828,7 @@ export function SettingsPanel() {
                 className="text-xs bg-primary text-primary-foreground hover:bg-primary/95"
                 onClick={() => openCheckout()}
               >
-                Upgrade to Boost ($7)
+                Upgrade to Boost ($10)
               </GlassButton>
             )}
           </div>
