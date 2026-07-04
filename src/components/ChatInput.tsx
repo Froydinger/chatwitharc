@@ -1197,7 +1197,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     if ((currentModel === THINKING_MODEL || currentModel === DEEP_THINK_MODEL) && !hasBoost) {
       toast({
         title: "Boost Plan Required",
-        description: "Thinking (GPT-5.4) and Deep Think (GPT-5.5) modes are available on the Boost plan. Upgrade now to get unlimited access to advanced reasoning models!",
+        description: "Smart (GPT-5.4) and Smartest (GPT-5.5) modes are available on the Boost plan. Upgrade now to get unlimited access to advanced reasoning models!",
         variant: "destructive",
       });
       openCheckout();

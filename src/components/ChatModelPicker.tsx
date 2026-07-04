@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Lightbulb, Brain, BrainCircuit, RefreshCcwDot, Check, ChevronDown, Lock } from 'lucide-react';
+import { FastForward, StepForward, Brain, BrainCircuit, RefreshCcwDot, Check, ChevronDown, Lock } from 'lucide-react';
 import { useModelStore, AUTO_MODEL, FASTER_MODEL, SMARTER_MODEL, THINKING_MODEL, DEEP_THINK_MODEL, type ChatModel } from '@/store/useModelStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
@@ -26,15 +26,15 @@ export function ChatModelPicker({ className }: Props) {
   let CurrentIcon = RefreshCcwDot;
   if (chatModel === FASTER_MODEL) {
     current = 'Faster';
-    CurrentIcon = Zap;
+    CurrentIcon = FastForward;
   } else if (chatModel === SMARTER_MODEL) {
-    current = 'Smarter';
-    CurrentIcon = Lightbulb;
+    current = 'Fast';
+    CurrentIcon = StepForward;
   } else if (chatModel === THINKING_MODEL) {
-    current = 'Thinking';
+    current = 'Smart';
     CurrentIcon = Brain;
   } else if (chatModel === DEEP_THINK_MODEL) {
-    current = 'Deep Think';
+    current = 'Smartest';
     CurrentIcon = BrainCircuit;
   }
 
@@ -113,22 +113,22 @@ export function ChatModelPicker({ className }: Props) {
                   onClick={() => pick(AUTO_MODEL)}
                 />
                 <Row
-                  icon={<Zap className="h-4 w-4 text-primary" />}
+                  icon={<FastForward className="h-4 w-4 text-primary" />}
                   title="Faster"
                   subtitle="GPT-5.4 Nano · quickest replies"
                   active={chatModel === FASTER_MODEL}
                   onClick={() => pick(FASTER_MODEL)}
                 />
                 <Row
-                  icon={<Lightbulb className="h-4 w-4 text-primary" />}
-                  title="Smarter"
+                  icon={<StepForward className="h-4 w-4 text-primary" />}
+                  title="Fast"
                   subtitle="GPT-5.4 Mini · balanced replies"
                   active={chatModel === SMARTER_MODEL}
                   onClick={() => pick(SMARTER_MODEL)}
                 />
                 <Row
                   icon={<Brain className="h-4 w-4 text-primary" />}
-                  title="Thinking"
+                  title="Smart"
                   subtitle="GPT-5.4 · deeper reasoning"
                   active={chatModel === THINKING_MODEL}
                   gated={!hasBoost}
@@ -136,7 +136,7 @@ export function ChatModelPicker({ className }: Props) {
                 />
                 <Row
                   icon={<BrainCircuit className="h-4 w-4 text-primary" />}
-                  title="Deep Think"
+                  title="Smartest"
                   subtitle="GPT-5.5 · ultimate reasoning"
                   active={chatModel === DEEP_THINK_MODEL}
                   gated={!hasBoost}

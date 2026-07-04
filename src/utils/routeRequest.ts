@@ -141,13 +141,13 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
 
 function getModelInfo(m: string): { name: string; tier: string } {
   if (m === 'gpt-5.5') {
-    return { name: 'GPT-5.5', tier: 'Deep Think' };
+    return { name: 'GPT-5.5', tier: 'Smartest' };
   }
   if (m === 'gpt-5.4') {
-    return { name: 'GPT-5.4', tier: 'Thinking' };
+    return { name: 'GPT-5.4', tier: 'Smart' };
   }
   if (m === 'gpt-5.4-mini') {
-    return { name: 'GPT-5.4 Mini', tier: 'Smarter' };
+    return { name: 'GPT-5.4 Mini', tier: 'Fast' };
   }
   return { name: 'GPT-5.4 Nano', tier: 'Faster' };
 }
