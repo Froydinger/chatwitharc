@@ -142,11 +142,11 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
               initial={{ opacity: 0 }}
               animate={{
                 opacity: 1,
-                scale: [1, 1.1, 1]
+                rotate: 360
               }}
               transition={{
                 opacity: { duration: 0.4, ease: "easeOut" },
-                scale: { duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
+                rotate: { duration: 6, repeat: Infinity, ease: "linear" }
               }}
             >
               <ThemedLogo className="h-full w-full opacity-90" alt="Generating" />
@@ -169,25 +169,6 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
                 scale: { duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
               }}
             />
-            <motion.div
-              className="absolute -top-2 -right-2"
-              style={{
-                backfaceVisibility: 'hidden',
-                transform: 'translateZ(0)',
-                willChange: 'transform, opacity'
-              }}
-              animate={{
-                scale: [0, 1, 0],
-                opacity: [0, 1, 0]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            >
-              <Sparkles className="h-6 w-6 text-primary/80" />
-            </motion.div>
           </div>
           <motion.span
             className="text-xl font-semibold text-foreground/90 tracking-tight"
@@ -225,11 +206,11 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
             initial={{ opacity: 0 }}
             animate={{
               opacity: 1,
-              scale: [1, 1.15, 1]
+              rotate: 360
             }}
             transition={{
               opacity: { duration: 0.4, ease: "easeOut" },
-              scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
+              rotate: { duration: 5, repeat: Infinity, ease: "linear" }
             }}
           >
             <ThemedLogo className="h-full w-full" alt="Thinking" />
@@ -252,25 +233,6 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
               scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
             }}
           />
-          <motion.div
-            className="absolute -top-1 -right-1"
-            style={{ 
-              backfaceVisibility: 'hidden',
-              transform: 'translateZ(0)',
-              willChange: 'transform, opacity'
-            }}
-            animate={{ 
-              scale: [0, 1, 0],
-              opacity: [0, 1, 0]
-            }}
-            transition={{ 
-              duration: 1.5,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          >
-            <Sparkles className="h-3 w-3 text-primary" />
-          </motion.div>
         </div>
         <div className="relative flex items-center min-w-0">
           <AnimatePresence mode="wait">
