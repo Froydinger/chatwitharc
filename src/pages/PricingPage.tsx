@@ -8,8 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { BOOST_PRICE_ID, BOOST_ANNUAL_PRICE_ID } from "@/lib/stripe";
 
 const FREE_FEATURES = [
-  "Fast chats (GPT-5.4 Nano)",
-  "Smarter chats (GPT-5.4 Mini)",
+  "Faster chats (GPT-5.4 Nano)",
+  "Fast chats (GPT-5.4 Mini)",
   "Image Generation (GPT-Image-1 & 2)",
   "Deep Search web research",
   "Real-time voice conversations",
@@ -18,8 +18,8 @@ const FREE_FEATURES = [
 ];
 
 const BOOST_FEATURES = [
-  "Unlimited Reasoning (GPT-5.4 Thinking)",
-  "Unlimited Deep Reason (GPT-5.5 Deep Think)",
+  "Unlimited Reasoning (GPT-5.4 Smart)",
+  "Unlimited Deep Reason (GPT-5.5 Smartest)",
   "Premium Image Generation (GPT-Image-2)",
   "Advanced image editing studio",
   "Publish live web apps to custom links",

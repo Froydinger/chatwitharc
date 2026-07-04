@@ -799,8 +799,8 @@ export function SettingsPanel() {
               {quotaAdmin 
                 ? "Unlimited reasoning chats and image outputs." 
                 : hasBoost 
-                ? "Unlimited Smarter chats, 30 images/day, and publishing creations online at custom arc links." 
-                : "20 Smarter chats/day, 10 images/day, and unlimited Fast chats."
+                ? "Unlimited Fast chats, 30 images/day, and publishing creations online at custom arc links." 
+                : "20 Fast chats/day, 10 images/day, and unlimited Faster chats."
               }
             </p>
             {hasBoost && currentPeriodEnd && (

@@ -44,7 +44,7 @@ import { useImageGenStore, getResolvedImageModel } from './useImageGenStore';
 
 /**
  * Get the correct model string for a given task.
- * - Chat tasks follow the user's chosen chatModel (Faster/Smarter).
+ * - Chat tasks follow the user's chosen chatModel (Faster/Fast/Smart/Smartest).
  * - Tool tasks follow the user's selected chat model.
  * - Image gen/edit are bound to the user's selected image model.
  */

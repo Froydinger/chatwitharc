@@ -398,7 +398,7 @@ export function RightPanel({
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-semibold text-foreground">Upgrade to Boost</h4>
                     <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                      Unlock unlimited GPT-5.4 (Thinking), GPT-5.5 (Deep Think), and custom web publishing.
+                      Unlock unlimited GPT-5.4 (Smart), GPT-5.5 (Smartest), and custom web publishing.
                     </p>
                   </div>
                 </div>

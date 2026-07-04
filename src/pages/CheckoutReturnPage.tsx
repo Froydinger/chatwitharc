@@ -93,7 +93,7 @@ export default function CheckoutReturnPage() {
             </div>
             <h2 className="text-2xl font-bold tracking-tight mb-2 text-emerald-500">Welcome to Boost!</h2>
             <p className="text-muted-foreground text-sm max-w-xs mb-4">
-              Your subscription is active and all Smarter features are now unlocked.
+              Your subscription is active and Smart & Smartest modes are now unlocked.
             </p>
             <p className="text-xs text-primary/60 animate-bounce">
               Redirecting you to the dashboard...

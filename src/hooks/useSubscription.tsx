@@ -72,7 +72,7 @@ interface SubscriptionState {
   remainingImages: number;
   imageLimit: number;
 
-  // Smarter Chat quota (daily, client-side & server-side matched)
+  // Fast (Mini) chat quota (daily, client-side & server-side matched)
   dailySmarterChatsUsed: number;
   canSendSmarterChat: boolean;
   remainingSmarterChats: number;
@@ -138,7 +138,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const canGenerateImage = isAdmin || dailyImagesUsed < imageLimit;
   const remainingImages = isAdmin ? Infinity : Math.max(0, imageLimit - dailyImagesUsed);
 
-  // Smarter Chat quota logic
+  // Fast (Mini) chat quota logic
   // Admin: unlimited
   // Boost: unlimited
   // Free: 0 (completely gated!)

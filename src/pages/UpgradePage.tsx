@@ -9,8 +9,8 @@ import { BOOST_PRICE_ID, BOOST_ANNUAL_PRICE_ID } from "@/lib/stripe";
 import { motion } from "framer-motion";
 
 const BOOST_FEATURES = [
-  "Unlimited Reasoning (GPT-5.4 Thinking)",
-  "Unlimited Deep Reason (GPT-5.5 Deep Think)",
+  "Unlimited Reasoning (GPT-5.4 Smart)",
+  "Unlimited Deep Reason (GPT-5.5 Smartest)",
   "Premium Image Generation (GPT-Image-2)",
   "Advanced image editing studio",
   "Publish live web apps to custom links",

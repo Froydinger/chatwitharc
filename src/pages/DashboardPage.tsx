@@ -923,7 +923,7 @@ useEffect(() => {
               {isAdmin 
                 ? "ArcAI Admin — unlimited everything" 
                 : hasBoost 
-                  ? "ArcAI Boost — Smarter features unlocked" 
+                  ? "ArcAI Boost — Smart & Smartest unlocked" 
                   : "ArcAI — free forever · 20 image outputs/day"}
             </span>
           </button>

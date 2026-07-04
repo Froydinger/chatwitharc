@@ -477,7 +477,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          {hasBoost ? "Unlimited Smarter reasoning & custom domain publishing" : "20 Smarter chats/day & 10 images/day limit"}
+                          {hasBoost ? "Unlimited Fast reasoning & custom domain publishing" : "20 Fast chats/day & 10 images/day limit"}
                         </div>
                       </div>
                       <div className="flex gap-2">
