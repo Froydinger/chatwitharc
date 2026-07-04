@@ -355,7 +355,7 @@ export const useArcStore = create<ArcState>()(
 
           const titlePrompt = {
             role: 'system' as const,
-            content: 'Generate a short, creative, specific title (3 to 5 words) summarizing this chat. Output ONLY the plain text title, no quotes, no markdown, no punctuation.'
+            content: '[ENHANCE_MODE] Generate a short, creative, specific title (3 to 5 words) summarizing this chat. Output ONLY the plain text title, no quotes, no markdown, no punctuation.'
           };
 
           const ai = new AIService();
@@ -536,9 +536,23 @@ export const useArcStore = create<ArcState>()(
               return loaded;
             });
 
+            // Keep any local sessions that are NOT in the remote database but have local messages,
+            // are the current session, or were created very recently (e.g. within 5 minutes)
+            const unsyncedSessions = state.chatSessions.filter(local => {
+              if (local.isLocalOnly) return false;
+              const isRemote = loadedSessions.some(loaded => loaded.id === local.id);
+              if (isRemote) return false;
+
+              const isCurrent = local.id === state.currentSessionId;
+              const hasMessages = local.messages && local.messages.length > 0;
+              const isRecent = Date.now() - new Date(local.createdAt).getTime() < 300000; // 5 mins
+
+              return isCurrent || hasMessages || isRecent;
+            });
+
             // Keep any local-only (corp mode) sessions alongside cloud-loaded ones.
             const localOnly = (state.chatSessions || []).filter((s) => s.isLocalOnly);
-            const finalSessions = [...localOnly, ...mergedSessions];
+            const finalSessions = [...localOnly, ...unsyncedSessions, ...mergedSessions];
 
             // If we have a current session, hydrate it immediately if needed
             const currentSessionId = state.currentSessionId;
