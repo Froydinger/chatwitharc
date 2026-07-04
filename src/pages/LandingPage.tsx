@@ -149,7 +149,7 @@ export function LandingPage() {
           className="mx-auto mt-6 max-w-2xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
         >
-          Arc is a safe, personal sanctuary for your ideas. With background music, custom accent colors, and persistent memory context that remembers you everywhere you go, it is built to help you focus, collaborate, and bring creations to life.
+          Arc is a personal sanctuary for your ideas, designed to help you focus, collaborate, and bring your creations to life.
         </p>
         <div
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"

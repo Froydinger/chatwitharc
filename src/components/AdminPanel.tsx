@@ -10,9 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Shield, Settings, Users, MessageSquare, Trash2, Crown, Search, RefreshCw } from 'lucide-react';
+import { Shield, Settings, Users, MessageSquare, Trash2, Crown, Search, RefreshCw, Megaphone, Download, Construction, AlertTriangle, PartyPopper } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
+import { AdminDownloadManager } from './AdminDownloadManager';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -134,6 +137,19 @@ export function AdminPanel() {
     }
   };
 
+  const handleSaveBanner = async () => {
+    try {
+      const keys = ['banner_enabled', 'banner_message', 'banner_icon', 'banner_dismissible', 'banner_timeout', 'banner_color'];
+      for (const key of keys) {
+        const val = localValues[key] !== undefined ? localValues[key] : getSetting(key);
+        await updateSetting(key, val || '');
+      }
+      toast({ title: 'Banner settings updated', description: 'All banner settings saved successfully.' });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update banner settings.', variant: 'destructive' });
+    }
+  };
+
   const handleValueChange = (key: string, value: string) => {
     setLocalValues(prev => ({ ...prev, [key]: value }));
   };
@@ -218,18 +234,22 @@ export function AdminPanel() {
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             Users
           </TabsTrigger>
           <TabsTrigger value="system" className="flex items-center gap-2">
             <Settings className="w-4 h-4" />
-            System
+            System & Banner
           </TabsTrigger>
           <TabsTrigger value="ai" className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
             AI Config
+          </TabsTrigger>
+          <TabsTrigger value="downloads" className="flex items-center gap-2">
+            <Download className="w-4 h-4" />
+            Downloads
           </TabsTrigger>
         </TabsList>
 
@@ -436,6 +456,103 @@ export function AdminPanel() {
 
           <Card>
             <CardHeader>
+              <CardTitle>Announcement Banner</CardTitle>
+              <CardDescription>Configure the global system-wide notification banner</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="banner_enabled">Enable Announcement Banner</Label>
+                <Switch
+                  id="banner_enabled"
+                  checked={getCurrentValue('banner_enabled') === 'true'}
+                  onCheckedChange={(checked) => handleValueChange('banner_enabled', checked ? 'true' : 'false')}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="banner_message">Banner Message</Label>
+                <Input
+                  id="banner_message"
+                  value={getCurrentValue('banner_message') || ''}
+                  onChange={(e) => handleValueChange('banner_message', e.target.value)}
+                  placeholder="Maintenance announcement..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Banner Icon</Label>
+                <RadioGroup
+                  value={getCurrentValue('banner_icon') || 'alert'}
+                  onValueChange={(val) => handleValueChange('banner_icon', val)}
+                  className="flex gap-4 mt-1"
+                >
+                  <div className="flex items-center gap-1">
+                    <RadioGroupItem value="alert" id="icon-alert" />
+                    <Label htmlFor="icon-alert" className="flex items-center gap-1 cursor-pointer">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Alert
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <RadioGroupItem value="construction" id="icon-const" />
+                    <Label htmlFor="icon-const" className="flex items-center gap-1 cursor-pointer">
+                      <Construction className="w-3.5 h-3.5 text-blue-500" /> Maintenance
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <RadioGroupItem value="celebrate" id="icon-celeb" />
+                    <Label htmlFor="icon-celeb" className="flex items-center gap-1 cursor-pointer">
+                      <PartyPopper className="w-3.5 h-3.5 text-emerald-500" /> Celebrate
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Label htmlFor="banner_dismissible">Allow Users to Dismiss</Label>
+                <Switch
+                  id="banner_dismissible"
+                  checked={getCurrentValue('banner_dismissible') === 'true'}
+                  onCheckedChange={(checked) => handleValueChange('banner_dismissible', checked ? 'true' : 'false')}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="banner_timeout">Auto-hide Timeout (Seconds, 0 = keep visible)</Label>
+                <Input
+                  id="banner_timeout"
+                  type="number"
+                  value={getCurrentValue('banner_timeout') || '0'}
+                  onChange={(e) => handleValueChange('banner_timeout', e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="banner_color">Banner Accent Color (Hex)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="banner_color"
+                    type="text"
+                    value={getCurrentValue('banner_color') || '#00f0ff'}
+                    onChange={(e) => handleValueChange('banner_color', e.target.value)}
+                    placeholder="#00f0ff"
+                    className="max-w-[150px]"
+                  />
+                  <div
+                    className="w-10 h-10 rounded border border-border"
+                    style={{ backgroundColor: getCurrentValue('banner_color') || '#00f0ff' }}
+                  />
+                </div>
+              </div>
+
+              <Button onClick={handleSaveBanner} disabled={updating} className="w-full">
+                Save Banner Settings
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Email Service Testing</CardTitle>
               <CardDescription>Test transactional email sending via Resend integration</CardDescription>
             </CardHeader>
@@ -484,6 +601,33 @@ export function AdminPanel() {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Image Generation Restrictions</CardTitle>
+              <CardDescription>
+                Define negative prompts or content restrictions for image generation.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="image_restrictions">Image Restrictions</Label>
+                <Textarea
+                  id="image_restrictions"
+                  value={getCurrentValue('image_restrictions')}
+                  onChange={(e) => handleValueChange('image_restrictions', e.target.value)}
+                  placeholder="Likenesses, buildings, style limits to exclude..."
+                  rows={6}
+                  className="font-mono text-sm"
+                />
+                <Button onClick={() => handleSave('image_restrictions')} disabled={updating} size="sm">Save Image Restrictions</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="downloads" className="space-y-6">
+          <AdminDownloadManager />
         </TabsContent>
       </Tabs>
     </div>

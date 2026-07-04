@@ -65,7 +65,8 @@
           root.style.setProperty('--user-message-border', config.userMessageBorder);
           
           // Noir theme: black text on white buttons
-          if (accentColor === 'noir') {
+          // Primary foreground color: black text in light mode, white text in dark mode for readable buttons
+          if (isLight) {
             root.style.setProperty('--primary-foreground', '0 0% 5%');
           } else {
             root.style.setProperty('--primary-foreground', '240 10% 98%');
