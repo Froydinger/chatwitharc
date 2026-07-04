@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     if (RESEND_API_KEY && emailId) {
       try {
         console.log(`Fetching email details for ${emailId} from Resend API...`);
-        const response = await fetch(`https://api.resend.com/emails/${emailId}`, {
+        const response = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
           headers: {
             Authorization: `Bearer ${RESEND_API_KEY}`,
           },
@@ -83,6 +83,23 @@ Deno.serve(async (req) => {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Idempotency check: Skip duplicate webhook retries
+    if (emailId) {
+      const { data: existingMsg } = await admin
+        .from("ticket_messages")
+        .select("id")
+        .eq("email_id", emailId)
+        .maybeSingle();
+
+      if (existingMsg) {
+        console.log(`Duplicate webhook retry detected: Email ID ${emailId} is already processed.`);
+        return new Response(JSON.stringify({ success: true, duplicate: true, reason: `Email ID: ${emailId} already processed` }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
     
     // Parse original recipient to catch wildcard/alias emails (e.g. support@ or hello@)
@@ -169,6 +186,7 @@ Deno.serve(async (req) => {
       content: textContent,
       is_inbound: true,
       is_admin_reply: false,
+      email_id: emailId,
     });
 
     // 5. Query admin user IDs
