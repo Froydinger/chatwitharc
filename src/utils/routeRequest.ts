@@ -17,8 +17,8 @@ export type RouteDestination =
   | 'local'                     // On-device model (label resolved at render)
   | 'cloud-chat'                // GPT-5.4 Mini — default chat
   | 'cloud-chat-pro'            // GPT-5.4 Mini — heavier reasoning
-  | 'cloud-search'              // Perplexity (sonar-pro)
-  | 'cloud-search-tavily'       // Tavily fallback
+  | 'cloud-search'              // Tavily Advanced retrieval + GPT synthesis
+  | 'cloud-search-tavily'       // Legacy alias — same Tavily pipeline
   | 'cloud-vision'              // GPT-5.4 Mini (image understanding)
   | 'cloud-document'            // GPT-5.4 Mini (document analysis)
   | 'cloud-voice'               // OpenAI Realtime

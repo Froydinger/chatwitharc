@@ -552,9 +552,9 @@ serve(async (req) => {
     // Validate model if provided — only the user-pickable chat models are allowed.
     const allowedModels = [
       'gpt-5.4-nano',   // Faster
-      'gpt-5.4-mini',   // Smarter
-      'gpt-5.4',        // Thinking
-      'gpt-5.5',        // Deep Think
+      'gpt-5.4-mini',   // Fast
+      'gpt-5.4',        // Smart
+      'gpt-5.5',        // Smartest
     ];
     const validatedModel = (model && allowedModels.includes(model)) ? model : null;
     if (model && !validatedModel) {
@@ -1143,19 +1143,16 @@ Output the complete, finished writing using the update_canvas tool.`;
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
+    // Honor the client's model choice exactly. Auto mode grades complexity
+    // client-side (Nano/Mini for most, GPT-5.4 or GPT-5.5 for heavy asks),
+    // and an explicitly picked model must never be silently up/downgraded.
     let selectedModel = validatedModel || 'gpt-5.4-nano';
-    const fallbackModel = 'gpt-5.4-mini'; // Fallback for canvas/code if Pro times out
+    const fallbackModel = 'gpt-5.4-mini'; // Fallback for canvas/code if the primary model times out
 
-    // Code/canvas stays locked to GPT-5.4 Mini.
-    if (wantsCode) {
+    if (wantsCode && !validatedModel) {
+      // Code with no model specified floors at Mini rather than Nano
       selectedModel = 'gpt-5.4-mini';
-      console.log('🔧 Code mode: using GPT-5.4 Mini');
-    }
-
-    // Dynamic model selection: use the requested reasoning model for complex queries if on default nano model
-    if (useProModel && !wantsCode && selectedModel === 'gpt-5.4-nano') {
-      selectedModel = 'gpt-5.4-mini';
-      console.log('🧠 Complex query detected: upgrading to GPT-5.4 Mini');
+      console.log('🔧 Code mode with no model specified: defaulting to GPT-5.4 Mini');
     }
     
     // OpenAI models use max_completion_tokens.

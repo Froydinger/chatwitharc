@@ -44,22 +44,29 @@ import { useImageGenStore, getResolvedImageModel } from './useImageGenStore';
 
 /**
  * Get the correct model string for a given task.
- * - Chat tasks follow the user's chosen chatModel (Faster/Fast/Smart/Smartest).
- * - Tool tasks follow the user's selected chat model.
+ * - Auto mode routes by task + graded complexity (0 simple → 3 very complex):
+ *   most requests stay on Nano/Mini; complex ones step up to GPT-5.4, and only
+ *   genuinely heavyweight ones reach GPT-5.5.
+ * - An explicitly picked model is NEVER silently upgraded or downgraded —
+ *   every chat-pipeline task runs exactly what the user selected.
  * - Image gen/edit are bound to the user's selected image model.
  */
-export function getModelForTask(task: ModelTask): string {
+export function getModelForTask(task: ModelTask, complexity: 0 | 1 | 2 | 3 = 0): string {
   const { chatModel } = useModelStore.getState();
-  
+
   if (chatModel === AUTO_MODEL) {
     switch (task) {
       case 'chat':
+        if (complexity >= 3) return 'gpt-5.5';
+        if (complexity === 2) return 'gpt-5.4';
+        if (complexity === 1) return 'gpt-5.4-mini';
         return 'gpt-5.4-nano';
       case 'code':
-        return 'gpt-5.5'; // Coding uses GPT-5.5
       case 'file-gen':
-        return 'gpt-5.4-mini'; // Write commands use GPT-5.4 Mini
       case 'deep-chat':
+        // Code, write canvases, and deep chat floor at Mini; heavy asks step up
+        if (complexity >= 3) return 'gpt-5.5';
+        if (complexity === 2) return 'gpt-5.4';
         return 'gpt-5.4-mini';
       case 'image-gen':
       case 'image-edit':

@@ -2,20 +2,29 @@ import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask } from "@/store/useModelStore";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext } from "@/lib/userLocation";
 
-// Detect if a user message warrants upgrading to a more powerful model
-export function detectComplexQuery(message: string): boolean {
-  if (!message) return false;
-  const lower = message.toLowerCase().trim();
+/**
+ * Graded complexity score for Auto-mode model routing.
+ * 0 = simple (Nano) · 1 = moderate (Mini) · 2 = complex (GPT-5.4) · 3 = very complex (GPT-5.5).
+ * Only applies when the user has Auto selected — explicit picks are never upgraded.
+ */
+export type QueryComplexity = 0 | 1 | 2 | 3;
 
-  // Long messages suggest complex requests
-  if (lower.length > 400) return true;
+export function assessQueryComplexity(message: string): QueryComplexity {
+  if (!message) return 0;
+  const lower = message.toLowerCase().trim();
+  let score = 0;
+
+  // Length signals
+  if (lower.length > 300) score += 1;
+  if (lower.length > 800) score += 1;
+  if (lower.length > 2000) score += 1;
 
   // Multi-part questions (numbered lists or multiple question marks)
   const questionMarks = (lower.match(/\?/g) || []).length;
-  if (questionMarks >= 3) return true;
-  if (/(?:^|\n)\s*\d+[\.\)]\s/m.test(lower) && lower.length > 150) return true;
+  if (questionMarks >= 3) score += 1;
+  if (/(?:^|\n)\s*\d+[\.\)]\s/m.test(lower) && lower.length > 150) score += 1;
 
-  // Analysis / reasoning keywords
+  // Analysis / reasoning keywords (each distinct hit adds weight, capped)
   const analysisKeywords = [
     'explain in detail', 'analyze', 'analyse', 'compare and contrast',
     'step by step', 'in depth', 'in-depth', 'write me an essay',
@@ -23,7 +32,7 @@ export function detectComplexQuery(message: string): boolean {
     'detailed explanation', 'deep dive', 'elaborate on',
     'critically evaluate', 'summarize the research', 'long-form',
   ];
-  if (analysisKeywords.some(k => lower.includes(k))) return true;
+  score += Math.min(analysisKeywords.filter(k => lower.includes(k)).length, 2);
 
   // Code-related terms (without explicit /code prefix)
   const codeKeywords = [
@@ -31,9 +40,26 @@ export function detectComplexQuery(message: string): boolean {
     'function that', 'write a script', 'code review', 'optimize this code',
     'build a component', 'create a class', 'data structure',
   ];
-  if (codeKeywords.some(k => lower.includes(k))) return true;
+  if (codeKeywords.some(k => lower.includes(k))) score += 1;
 
-  return false;
+  // Heavyweight signals that justify the top-tier reasoning models
+  const heavyKeywords = [
+    'formal proof', 'prove that', 'research paper', 'whitepaper', 'white paper',
+    'dissertation', 'thesis', 'system architecture', 'design a system',
+    'security audit', 'threat model', 'full application', 'entire app',
+    'production-ready', 'production ready', 'exhaustive',
+  ];
+  if (heavyKeywords.some(k => lower.includes(k))) score += 2;
+
+  if (score >= 5) return 3;
+  if (score >= 3) return 2;
+  if (score >= 1) return 1;
+  return 0;
+}
+
+// Back-compat boolean: does the message warrant more than the lightest model?
+export function detectComplexQuery(message: string): boolean {
+  return assessQueryComplexity(message) >= 1;
 }
 
 interface AIMessage {
@@ -190,19 +216,16 @@ export class AIService {
       // Model routing based on user's model family preference
       const isCanvasOrCode = forceCanvas || forceCode;
       
-      // Check whether the last user message warrants the reasoning model
+      // Grade the last user message so Auto mode can route to the right tier
       const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
-      const isComplex = !isCanvasOrCode && detectComplexQuery(lastUserMsg);
-      
+      const complexity = assessQueryComplexity(lastUserMsg);
+      const isComplex = !isCanvasOrCode && complexity >= 1;
+
       const selectedModel = modelOverride || (forceCode
-        ? getModelForTask('code')
+        ? getModelForTask('code', complexity)
         : forceCanvas
-          ? getModelForTask('file-gen')
-          : forceWebSearch
-            ? getModelForTask('chat')
-            : isComplex
-              ? getModelForTask('deep-chat')
-              : getModelForTask('chat'));
+          ? getModelForTask('file-gen', complexity)
+          : getModelForTask('chat', complexity));
 
       // Use longer timeout for canvas/code generation or complex queries (especially with 3.1 Pro)
       const timeoutMs = (isCanvasOrCode || isComplex) ? this.canvasTimeoutMs : this.defaultTimeoutMs;
@@ -370,17 +393,14 @@ export class AIService {
 
     // Model routing based on user's model family preference
     const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
-    const isComplex = !(forceCanvas || forceCode) && detectComplexQuery(lastUserMsg);
-    
+    const complexity = assessQueryComplexity(lastUserMsg);
+    const isComplex = !(forceCanvas || forceCode) && complexity >= 1;
+
     const selectedModel = forceCode
-      ? getModelForTask('code')
+      ? getModelForTask('code', complexity)
       : forceCanvas
-        ? getModelForTask('file-gen')
-        : forceWebSearch
-          ? getModelForTask('chat')
-          : isComplex
-            ? getModelForTask('deep-chat')
-            : getModelForTask('chat');
+        ? getModelForTask('file-gen', complexity)
+        : getModelForTask('chat', complexity);
 
     // Enrich profile with context blocks (same as sendMessage)
     let enrichedProfile = profile || {};
