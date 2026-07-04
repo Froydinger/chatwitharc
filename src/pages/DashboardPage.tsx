@@ -1776,8 +1776,8 @@ function Section({ title, icon: Icon, action, actionLabel, count, children }: {
 function ChatCard({ session, timeAgo, onClick }: { session: any; timeAgo: (d: any) => string; onClick: () => void; index?: number }) {
   return (
     <div
-      className="relative overflow-hidden rounded-xl cursor-pointer border border-border/30 hover:border-primary/25 transition-all group"
-      style={{ background: 'linear-gradient(135deg, hsl(var(--muted) / 0.25) 0%, hsl(var(--primary) / 0.04) 100%)' }}
+      className="relative overflow-hidden rounded-xl cursor-pointer border border-border/65 hover:border-primary/40 transition-all group"
+      style={{ background: 'linear-gradient(135deg, hsl(var(--muted) / 0.75) 0%, hsl(var(--primary) / 0.06) 100%)' }}
       onClick={onClick}
     >
       {/* Left accent strip */}
@@ -1791,13 +1791,13 @@ function ChatCard({ session, timeAgo, onClick }: { session: any; timeAgo: (d: an
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-foreground truncate text-sm">{session.title}</p>
           <div className="flex items-center gap-1.5 mt-1">
-            <Clock className="h-3 w-3 text-muted-foreground/60" />
-            <span className="text-[11px] text-muted-foreground">{timeAgo(session.lastMessageAt)}</span>
-            <span className="text-muted-foreground/30">·</span>
-            <span className="text-[11px] text-muted-foreground">{session.messageCount ?? session.messages.length} msgs</span>
+            <Clock className="h-3 w-3 text-foreground/50 group-hover:text-primary/70 transition-colors" />
+            <span className="text-[11px] text-foreground/75 font-medium">{timeAgo(session.lastMessageAt)}</span>
+            <span className="text-foreground/40 font-semibold">·</span>
+            <span className="text-[11px] text-foreground/75 font-medium">{session.messageCount ?? session.messages.length} msgs</span>
           </div>
         </div>
-        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+        <ArrowRight className="h-3.5 w-3.5 text-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
       </div>
     </div>
   );

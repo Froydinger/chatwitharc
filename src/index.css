@@ -175,10 +175,10 @@ All colors MUST be HSL for perfect glass effects.
 
   /* Dashboard bottom nav pill — mirrors glass-dock so it matches the input bar */
   .dashboard-nav-pill {
-    background: hsl(var(--background) / 0.92);
+    background: hsl(var(--surface) / 0.92);
     backdrop-filter: blur(24px) saturate(140%);
     -webkit-backdrop-filter: blur(24px) saturate(140%);
-    border: 1px solid hsl(var(--foreground) / 0.08);
+    border: 1px solid hsl(var(--border) / 0.6);
     box-shadow:
       0 12px 36px rgba(0, 0, 0, 0.6),
       inset 0 1px 0 hsl(var(--foreground) / 0.05);
@@ -206,6 +206,13 @@ All colors MUST be HSL for perfect glass effects.
       0 8px 24px hsl(0 0% 0% / 0.06),
       0 0 18px hsl(0 0% 0% / 0.04),
       inset 0 1px 0 hsl(0 0% 100% / 0.8);
+  }
+  :root.dark[data-accent="noir"] .dashboard-nav-pill {
+    background: hsl(var(--accent) / 0.92);
+    border-color: hsl(var(--border) / 0.8);
+    box-shadow:
+      0 12px 36px rgba(0, 0, 0, 0.75),
+      inset 0 1px 0 hsl(var(--foreground) / 0.08);
   }
 
   /* Noir in light mode — softer, lighter button shadows */
