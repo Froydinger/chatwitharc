@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, LayoutDashboard, Share2, Lock, MoreHorizontal, Monitor, Check, Palette } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, LayoutDashboard, Share2, Lock, MoreHorizontal, Monitor, Check, Palette, CircleGauge } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
@@ -970,36 +970,10 @@ export function MobileChatApp() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="rounded-full glass-shimmer transition-all pointer-events-none flex items-center justify-center relative"
+                    className="rounded-full glass-shimmer transition-all pointer-events-none flex items-center justify-center"
                     title={`Image Quota: ${remainingImages === Infinity ? "Unlimited" : `${remainingImages} / ${limit} remaining`}`}
                   >
-                    {/* SVG circular gauge */}
-                    <svg className="w-5 h-5 -rotate-90" viewBox="0 0 36 36">
-                      <circle
-                        cx="18"
-                        cy="18"
-                        r="14"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3.2"
-                        className="text-white/10"
-                      />
-                      <motion.circle
-                        cx="18"
-                        cy="18"
-                        r="14"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3.2"
-                        strokeDasharray="88"
-                        strokeDashoffset={remainingImages === Infinity ? 0 : 88 - (88 * Math.max(0, Math.min(1, remainingImages / (limit || 1))))}
-                        strokeLinecap="round"
-                        className="text-primary transition-all duration-500"
-                      />
-                    </svg>
-                    <span className="absolute text-[8.5px] font-bold tabular-nums">
-                      {remainingImages === Infinity ? "∞" : remainingImages}
-                    </span>
+                    <CircleGauge className="h-4 w-4 text-primary" />
                   </Button>
                 </motion.div>
               )}
