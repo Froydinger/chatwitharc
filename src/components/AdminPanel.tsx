@@ -308,7 +308,12 @@ export function AdminPanel() {
       }
       toast({ title: "Banner settings updated", description: "All banner settings saved successfully." });
     } catch (error) {
-      toast({ title: "Error", description: "Failed to update banner settings.", variant: "destructive" });
+      console.error("Failed to save banner settings:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update banner settings.",
+        variant: "destructive"
+      });
     }
   };
 
