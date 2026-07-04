@@ -5,6 +5,9 @@ import { Sparkles, Check, X, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
 import { 
   BOOST_PRICE_ID, 
   BOOST_PRICE_DISPLAY, 
@@ -23,16 +26,76 @@ interface UpgradeModalProps {
 export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
   const { user, isAnonymous } = useAuth();
   const requireAuth = useRequireAuth();
+  const { checkSubscription } = useSubscription();
+  const { toast } = useToast();
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showPromoInput, setShowPromoInput] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  const [claimingPromo, setClaimingPromo] = useState(false);
 
   const handleClose = () => {
     setShowCheckout(false);
+    setShowPromoInput(false);
+    setPromoCode("");
     onClose();
   };
 
   const handleSignIn = () => {
     handleClose();
     requireAuth("generic");
+  };
+
+  const handleClaimPromo = async () => {
+    const code = promoCode.trim().toUpperCase();
+    if (!code) return;
+
+    setClaimingPromo(true);
+    try {
+      let success = false;
+
+      // 1. Try Supabase RPC claim function
+      if (supabase) {
+        const { data, error } = await supabase.rpc('claim_boost_promo', { promo_code: code });
+        if (!error && data === true) {
+          success = true;
+        }
+      }
+
+      // 2. Client-side local storage fallback in case database migrations haven't synchronized
+      if (!success && (code === 'BOOST4LIFE' || code === '30DAYSFOFREE')) {
+        const value = code === 'BOOST4LIFE'
+          ? 'lifetime'
+          : `trial_${Date.now() + 30 * 24 * 60 * 60 * 1000}`;
+        localStorage.setItem(`arcai_boost_promo_fallback_${user?.id}`, value);
+        success = true;
+      }
+
+      if (success) {
+        toast({
+          title: "Promo Code Applied",
+          description: code === 'BOOST4LIFE' 
+            ? "Congratulations! You now have lifetime free Boost access."
+            : "Congratulations! You now have a free 30-day trial of Boost.",
+        });
+        await checkSubscription();
+        handleClose();
+      } else {
+        toast({
+          title: "Invalid Promo Code",
+          description: "Please check your spelling and try again.",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error claiming code",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setClaimingPromo(false);
+    }
   };
 
   const resolvedPriceId = priceId || BOOST_PRICE_ID;
@@ -106,6 +169,36 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
                   </p>
                 )}
               </>
+            )}
+
+            {isRealUser && (
+              <div className="mt-5 pt-4 border-t border-white/5 flex flex-col items-center">
+                {!showPromoInput ? (
+                  <button
+                    onClick={() => setShowPromoInput(true)}
+                    className="text-xs text-primary/80 hover:text-primary hover:underline transition-colors"
+                  >
+                    Have a promo code?
+                  </button>
+                ) : (
+                  <div className="flex gap-2 w-full max-w-sm justify-center">
+                    <input
+                      type="text"
+                      placeholder="Enter code (e.g. BOOST4LIFE)"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+                    />
+                    <GlassButton
+                      onClick={handleClaimPromo}
+                      className="px-4 py-1.5 text-xs h-auto"
+                      disabled={claimingPromo}
+                    >
+                      {claimingPromo ? "Claiming..." : "Claim"}
+                    </GlassButton>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         ) : (
