@@ -307,11 +307,12 @@ export function AdminPanel() {
         await updateSetting(key, val || "");
       }
       toast({ title: "Banner settings updated", description: "All banner settings saved successfully." });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to save banner settings:", error);
+      const errMsg = error?.message || error?.error_description || (typeof error === "string" ? error : JSON.stringify(error)) || "Failed to update banner settings.";
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update banner settings.",
+        description: errMsg,
         variant: "destructive"
       });
     }
