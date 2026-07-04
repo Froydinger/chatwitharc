@@ -150,8 +150,8 @@ export const WordStreamMarkdown = ({
     if (!animateWords || revealedCount >= totalWords) return;
 
     const behind = totalWords - revealedCount;
-    // Slightly slower cadence so each word's glow-in finishes before the next starts.
-    const interval = behind > 240 ? 32 : behind > 120 ? 48 : behind > 48 ? 64 : 80;
+    // Speed up typing cadence by 2x for a faster responsive flow
+    const interval = behind > 240 ? 16 : behind > 120 ? 24 : behind > 48 ? 32 : 40;
 
     const id = window.setTimeout(() => {
       setRevealedCount((count) => Math.min(totalWords, count + 1));

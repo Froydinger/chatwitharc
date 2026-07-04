@@ -42,9 +42,13 @@ export function wasLocationDenied(): boolean {
 
 async function reverseGeocode(lat: number, lon: number): Promise<Partial<UserLocation>> {
   try {
+    let signal: AbortSignal | undefined = undefined;
+    if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
+      signal = (AbortSignal as any).timeout(4000);
+    }
     const res = await fetch(
       `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`,
-      { signal: AbortSignal.timeout(4000) }
+      { signal }
     );
     if (!res.ok) return {};
     const data = await res.json();
@@ -69,15 +73,26 @@ export async function getUserLocation(): Promise<UserLocation | null> {
   if (typeof navigator === 'undefined' || !navigator.geolocation) return null;
 
   const coords = await new Promise<GeolocationCoordinates | null>((resolve) => {
+    // Manual fallback timeout of 6 seconds to ensure the promise resolves
+    // even if the browser/webview geolocation prompt gets stuck.
+    const timerId = setTimeout(() => {
+      console.warn("Geolocation prompt timed out manually.");
+      resolve(null);
+    }, 6000);
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => resolve(pos.coords),
+      (pos) => {
+        clearTimeout(timerId);
+        resolve(pos.coords);
+      },
       (err) => {
+        clearTimeout(timerId);
         if (err.code === err.PERMISSION_DENIED) {
           try { sessionStorage.setItem(DENIED_KEY, '1'); } catch {}
         }
         resolve(null);
       },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 5 * 60 * 1000 }
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 5 * 60 * 1000 }
     );
   });
 
