@@ -47,9 +47,6 @@ export const BackgroundGradients = () => {
     return isIpad && isStandalone;
   };
 
-  // Noir dark mode = pure sleek black, no gradient overlay
-  if (isNoir && !isLight) return null;
-
   const shouldSimplify = isIpadPWA();
 
   // Light mode halves the glow intensity; noir light mode = pure white gradient
@@ -64,10 +61,10 @@ export const BackgroundGradients = () => {
               hsl(0 0% 100% / 0.9) 40%,
               hsl(0 0% 100% / 0.7) 70%,
               transparent 100%)`
-          : `radial-gradient(ellipse 120% 80% at 50% 20%,
-              hsl(0 0% 25% / 0.5) 0%,
-              hsl(0 0% 15% / 0.3) 40%,
-              hsl(0 0% 8% / 0.15) 70%,
+          : `radial-gradient(circle at center,
+              hsl(0 0% 10.5% / 0.9) 0%,
+              hsl(0 0% 7.1% / 0.6) 40%,
+              hsl(0 0% 4% / 0.25) 70%,
               transparent 100%)`)
       : `radial-gradient(circle at center,
           hsl(${primaryGlow} / ${0.04 * lightMul}) 0%,
@@ -100,11 +97,11 @@ export const BackgroundGradients = () => {
             hsl(0 0% 100% / 0.9) 35%,
             hsl(0 0% 100% / 0.7) 60%,
             transparent 90%)`
-        : `radial-gradient(ellipse 130% 70% at 50% 15%,
-            hsl(0 0% 28% / 0.55) 0%,
-            hsl(0 0% 18% / 0.35) 35%,
-            hsl(0 0% 10% / 0.18) 60%,
-            transparent 90%)`)
+        : `radial-gradient(circle at center,
+            hsl(0 0% 10.5% / 0.9) 0%,
+            hsl(0 0% 7.1% / 0.6) 40%,
+            hsl(0 0% 4% / 0.25) 70%,
+            transparent 100%)`)
     : `radial-gradient(circle at center,
         hsl(${primaryGlow} / ${0.1 * lightMul}) 0%,
         hsl(${primaryGlow} / ${0.05 * lightMul}) 30%,

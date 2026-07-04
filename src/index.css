@@ -273,7 +273,7 @@ All colors MUST be HSL for perfect glass effects.
 
   /* Noir Theme - Deep Black Glass (dark mode only) */
   :root.dark[data-accent="noir"] {
-    --background: 0 0% 7.1%;
+    --background: 0 0% 0%;
     --card: 0 0% 11.8%;
     --surface: 0 0% 8.6%;
     --muted: 0 0% 10%;
