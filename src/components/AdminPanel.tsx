@@ -121,12 +121,12 @@ export function AdminPanel() {
     }
   };
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (perPage = 100) => {
     if (!supabase) return;
     setUsersLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("admin-users", {
-        body: { action: "list", perPage: 100 },
+        body: { action: "list", perPage },
       });
       if (error) throw error;
       setUsers(data.users || []);
@@ -256,9 +256,9 @@ export function AdminPanel() {
     if (isAdmin && !adminLoading) {
       if (activeSection === "dashboard") {
         fetchStats();
-        fetchUsers();
+        fetchUsers(5);
       } else if (activeSection === "users") {
-        fetchUsers();
+        fetchUsers(100);
       } else if (activeSection === "bugs") {
         fetchBugs();
       } else if (activeSection === "tickets") {
@@ -557,7 +557,11 @@ export function AdminPanel() {
                     <div className="h-7 w-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500"><DollarSign className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <h4 className="text-2xl font-black">${stats?.mrr?.toFixed(2) || "0.00"}</h4>
+                    {statsLoading && !stats ? (
+                      <div className="h-8 w-24 bg-muted/20 animate-pulse rounded mt-1" />
+                    ) : (
+                      <h4 className="text-2xl font-black">${stats?.mrr?.toFixed(2) || "0.00"}</h4>
+                    )}
                     <p className="text-[10px] text-muted-foreground mt-1">From live Stripe payments</p>
                   </CardContent>
                 </Card>
@@ -568,7 +572,11 @@ export function AdminPanel() {
                     <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><Users className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <h4 className="text-2xl font-black">{stats?.totalUsers || "0"}</h4>
+                    {statsLoading && !stats ? (
+                      <div className="h-8 w-16 bg-muted/20 animate-pulse rounded mt-1" />
+                    ) : (
+                      <h4 className="text-2xl font-black">{stats?.totalUsers || "0"}</h4>
+                    )}
                     <p className="text-[10px] text-muted-foreground mt-1">Registered email profiles</p>
                   </CardContent>
                 </Card>
@@ -579,9 +587,13 @@ export function AdminPanel() {
                     <div className="h-7 w-7 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500"><Crown className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <h4 className="text-2xl font-black">
-                      {stats?.activeLiveSubsCount || "0"} <span className="text-xs text-muted-foreground font-normal">live</span>
-                    </h4>
+                    {statsLoading && !stats ? (
+                      <div className="h-8 w-24 bg-muted/20 animate-pulse rounded mt-1" />
+                    ) : (
+                      <h4 className="text-2xl font-black">
+                        {stats?.activeLiveSubsCount || "0"} <span className="text-xs text-muted-foreground font-normal">live</span>
+                      </h4>
+                    )}
                     <p className="text-[10px] text-muted-foreground mt-1">{stats?.activeSandboxSubsCount || "0"} test subscriptions</p>
                   </CardContent>
                 </Card>
@@ -592,7 +604,11 @@ export function AdminPanel() {
                     <div className="h-7 w-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500"><MessageSquare className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <h4 className="text-2xl font-black">{stats?.chatsCount || "0"}</h4>
+                    {statsLoading && !stats ? (
+                      <div className="h-8 w-16 bg-muted/20 animate-pulse rounded mt-1" />
+                    ) : (
+                      <h4 className="text-2xl font-black">{stats?.chatsCount || "0"}</h4>
+                    )}
                     <p className="text-[10px] text-muted-foreground mt-1">Created chat history threads</p>
                   </CardContent>
                 </Card>
@@ -603,7 +619,11 @@ export function AdminPanel() {
                     <div className="h-7 w-7 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-500"><Sparkles className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <h4 className="text-2xl font-black">{stats?.totalImages || "0"}</h4>
+                    {statsLoading && !stats ? (
+                      <div className="h-8 w-16 bg-muted/20 animate-pulse rounded mt-1" />
+                    ) : (
+                      <h4 className="text-2xl font-black">{stats?.totalImages || "0"}</h4>
+                    )}
                     <p className="text-[10px] text-muted-foreground mt-1">Generated via GPT Image models</p>
                   </CardContent>
                 </Card>
@@ -614,7 +634,11 @@ export function AdminPanel() {
                     <div className="h-7 w-7 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-500"><Globe className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <h4 className="text-2xl font-black">{stats?.sitesCount || "0"}</h4>
+                    {statsLoading && !stats ? (
+                      <div className="h-8 w-16 bg-muted/20 animate-pulse rounded mt-1" />
+                    ) : (
+                      <h4 className="text-2xl font-black">{stats?.sitesCount || "0"}</h4>
+                    )}
                     <p className="text-[10px] text-muted-foreground mt-1">Online shared static websites</p>
                   </CardContent>
                 </Card>
@@ -625,7 +649,11 @@ export function AdminPanel() {
                     <div className="h-7 w-7 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500"><AlertTriangle className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <h4 className="text-2xl font-black">{stats?.bugsCount || "0"}</h4>
+                    {statsLoading && !stats ? (
+                      <div className="h-8 w-16 bg-muted/20 animate-pulse rounded mt-1" />
+                    ) : (
+                      <h4 className="text-2xl font-black">{stats?.bugsCount || "0"}</h4>
+                    )}
                     <p className="text-[10px] text-muted-foreground mt-1">Logged runtime crash traces</p>
                   </CardContent>
                 </Card>
@@ -636,7 +664,11 @@ export function AdminPanel() {
                     <div className="h-7 w-7 rounded-lg bg-teal-500/10 flex items-center justify-center text-teal-500"><Activity className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <h4 className="text-2xl font-black">{stats?.ticketsCount || "0"}</h4>
+                    {statsLoading && !stats ? (
+                      <div className="h-8 w-16 bg-muted/20 animate-pulse rounded mt-1" />
+                    ) : (
+                      <h4 className="text-2xl font-black">{stats?.ticketsCount || "0"}</h4>
+                    )}
                     <p className="text-[10px] text-muted-foreground mt-1">Logged customer help issues</p>
                   </CardContent>
                 </Card>
@@ -696,23 +728,36 @@ export function AdminPanel() {
                   </CardHeader>
                   <CardContent className="p-4">
                     <div className="space-y-3.5">
-                      {users.slice(0, 5).map((user) => (
-                        <div key={user.id} className="flex items-center gap-3 text-xs">
-                          <Avatar className="h-7 w-7">
-                            <AvatarImage src={user.avatar_url || undefined} />
-                            <AvatarFallback className="text-[10px]">
-                              {(user.display_name || user.email || "?")[0].toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground truncate">{user.display_name || "No name"}</p>
-                            <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
-                          </div>
-                          <span className="text-[9px] text-muted-foreground shrink-0">{new Date(user.created_at).toLocaleDateString()}</span>
+                      {usersLoading && users.length === 0 ? (
+                        <div className="space-y-3">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <div key={n} className="flex items-center gap-3">
+                              <div className="h-7 w-7 rounded-full bg-muted/20 animate-pulse" />
+                              <div className="flex-1 space-y-1">
+                                <div className="h-3 w-20 bg-muted/20 animate-pulse rounded" />
+                                <div className="h-2.5 w-32 bg-muted/20 animate-pulse rounded" />
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                      {users.length === 0 && (
+                      ) : users.length === 0 ? (
                         <p className="text-center text-xs text-muted-foreground py-4">No users registered</p>
+                      ) : (
+                        users.slice(0, 5).map((user) => (
+                          <div key={user.id} className="flex items-center gap-3 text-xs">
+                            <Avatar className="h-7 w-7">
+                              <AvatarImage src={user.avatar_url || undefined} />
+                              <AvatarFallback className="text-[10px]">
+                                {(user.display_name || user.email || "?")[0].toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-foreground truncate">{user.display_name || "No name"}</p>
+                              <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
+                            </div>
+                            <span className="text-[9px] text-muted-foreground shrink-0">{new Date(user.created_at).toLocaleDateString()}</span>
+                          </div>
+                        ))
                       )}
                     </div>
                   </CardContent>

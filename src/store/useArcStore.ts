@@ -191,7 +191,7 @@ export interface ArcState {
   startChatWithMessage: (message: string) => void;
 
   // Supabase Sync
-  syncFromSupabase: () => Promise<void>;
+  syncFromSupabase: (limit?: number) => Promise<void>;
   saveChatToSupabase: (session: ChatSession, revision?: number) => Promise<void>;
   isOnline: boolean;
   lastSyncAt: Date | null;
@@ -406,7 +406,7 @@ export const useArcStore = create<ArcState>()(
           }
         }
       },
-      syncFromSupabase: async () => {
+      syncFromSupabase: async (limit?: number) => {
         if (!supabase || !isSupabaseConfigured) {
           console.log('⚠️ Supabase not configured, skipping sync');
           return;
@@ -447,11 +447,12 @@ export const useArcStore = create<ArcState>()(
           console.log('🔄 Starting metadata-first sync from Supabase for user:', user.id);
 
           let sessionsMeta: any[] = [];
+          const fetchLimit = limit !== undefined ? limit : 10;
 
           // Primary path: metadata RPC (fastest)
           const { data: rpcSessions, error: rpcError } = await supabase.rpc('list_chat_sessions_meta', {
             searching_user_id: user.id,
-            max_sessions: 500
+            max_sessions: fetchLimit
           });
 
           if (rpcError) {
@@ -464,7 +465,7 @@ export const useArcStore = create<ArcState>()(
               .select('id, title, created_at, updated_at, canvas_content, folder_id, persona_id')
               .eq('user_id', user.id)
               .order('updated_at', { ascending: false })
-              .limit(500);
+              .limit(fetchLimit);
 
             if (fallbackError) {
               console.error('❌ Fallback sync error:', fallbackError);
