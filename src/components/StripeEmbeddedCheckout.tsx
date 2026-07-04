@@ -16,21 +16,35 @@ export function StripeEmbeddedCheckout({
   returnUrl,
 }: StripeEmbeddedCheckoutProps) {
   const fetchClientSecret = async (): Promise<string> => {
-    const finalReturnUrl =
-      returnUrl || `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`;
-    const { data, error } = await supabase.functions.invoke("create-checkout", {
-      body: {
-        priceId,
-        customerEmail,
-        userId,
-        returnUrl: finalReturnUrl,
-        environment: getStripeEnvironment(),
-      },
-    });
-    if (error || !data?.clientSecret) {
-      throw new Error(error?.message || data?.error || "Failed to create checkout session");
+    try {
+      const finalReturnUrl =
+        returnUrl || `${window.location.origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`;
+      
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          priceId,
+          customerEmail,
+          userId,
+          returnUrl: finalReturnUrl,
+          environment: getStripeEnvironment(),
+        },
+      });
+
+      if (error) {
+        console.error("Supabase edge function invoke error:", error);
+        throw new Error(error.message || "Failed to create checkout session");
+      }
+
+      if (!data?.clientSecret) {
+        throw new Error(data?.error || "No client secret returned");
+      }
+
+      return data.clientSecret;
+    } catch (err: any) {
+      console.error("fetchClientSecret exception:", err);
+      // Throw a clean string message to prevent cyclic structure serialization errors in Stripe SDK
+      throw new Error(err?.message || String(err) || "Failed to initialize checkout session");
     }
-    return data.clientSecret;
   };
 
   return (
