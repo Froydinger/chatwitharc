@@ -6,7 +6,7 @@ import {
   Plus, Clock, Settings, Search,
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
   Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music, Edit2, Check, X,
-  Layers, PenLine, FileCode, MessageCircle, Upload, Users, FolderPlus, Folder, Pin, PinOff, MoreVertical
+  Layers, PenLine, FileCode, MessageCircle, Upload, Users, FolderPlus, Folder, Pin, PinOff, MoreVertical, MoreHorizontal
 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,7 +35,7 @@ import { CodePreview } from "@/components/CodePreview";
 import { canPreview, getLanguageDisplay, getLanguageColor } from "@/utils/codeUtils";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { DeploysPanel } from "@/components/DeploysPanel";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
 
 type DashboardTab = "overview" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -1995,36 +1995,46 @@ function ChatListItem({ session, currentSessionId, timeAgo, onLoad, onDelete, fo
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary">
-                <Folder className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground">
+                <MoreHorizontal className="h-4.5 w-4.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-xl glass-card">
-              <DropdownMenuItem onClick={() => onMove(session.id, null)} className="gap-2 cursor-pointer">
-                <X className="h-4 w-4" />
-                Remove from folder
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              {folders.map(f => (
-                <DropdownMenuItem key={f.id} onClick={() => onMove(session.id, f.id)} className="gap-2 cursor-pointer">
+            <DropdownMenuContent align="end" className="w-52 rounded-xl glass-card">
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2 cursor-pointer" onClick={e => e.stopPropagation()}>
                   <Folder className="h-4 w-4" />
-                  {f.name}
-                </DropdownMenuItem>
-              ))}
+                  <span>Move to Folder</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="w-48 rounded-xl bg-background border-border">
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(session.id, null); }} className="gap-2 cursor-pointer">
+                      <X className="h-4 w-4" />
+                      <span>Remove from folder</span>
+                    </DropdownMenuItem>
+                    {folders.length > 0 && <DropdownMenuSeparator />}
+                    {folders.map(f => (
+                      <DropdownMenuItem key={f.id} onClick={(e) => { e.stopPropagation(); onMove(session.id, f.id); }} className="gap-2 cursor-pointer">
+                        <Folder className="h-4 w-4" />
+                        <span>{f.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={(e) => { e.stopPropagation(); onDelete(); }} 
+                className="gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Delete Chat</span>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-          <ArrowRight className="h-4 w-4 text-muted-foreground/30" />
+          <ArrowRight className="h-4 w-4 text-muted-foreground/30 hidden md:block" />
         </div>
       </div>
     </div>
