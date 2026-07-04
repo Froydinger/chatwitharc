@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Sparkles, Check, X, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
+import { cn } from "@/lib/utils";
 import { 
   BOOST_PRICE_ID, 
   BOOST_PRICE_DISPLAY, 
@@ -24,6 +25,14 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
   const { user, isAnonymous } = useAuth();
   const requireAuth = useRequireAuth();
   const [showCheckout, setShowCheckout] = useState(false);
+  const [selectedPriceId, setSelectedPriceId] = useState(priceId || BOOST_PRICE_ID);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedPriceId(priceId || BOOST_PRICE_ID);
+      setShowCheckout(false);
+    }
+  }, [isOpen, priceId]);
 
   const handleClose = () => {
     setShowCheckout(false);
@@ -35,8 +44,7 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
     requireAuth("generic");
   };
 
-  const resolvedPriceId = priceId || BOOST_PRICE_ID;
-  const isAnnual = resolvedPriceId === BOOST_ANNUAL_PRICE_ID;
+  const isAnnual = selectedPriceId === BOOST_ANNUAL_PRICE_ID;
   const priceDisplay = isAnnual ? BOOST_ANNUAL_PRICE_DISPLAY : BOOST_PRICE_DISPLAY;
 
   const isRealUser = !!user && !isAnonymous;
@@ -44,22 +52,53 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-lg border-white/10 p-0 overflow-hidden bg-background/95 backdrop-blur-xl">
-        <button
-          onClick={handleClose}
-          className="absolute top-3 right-3 z-10 p-1.5 rounded-full hover:bg-white/10 transition-colors"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
+      <DialogContent 
+        className={cn(
+          "max-w-lg border-white/10 p-0 overflow-hidden bg-background/95 backdrop-blur-xl transition-all duration-300",
+          showCheckout && "border-none bg-transparent shadow-none backdrop-blur-none overflow-visible [&>button]:hidden"
+        )}
+      >
         {!showCheckout ? (
           <div className="p-6 text-center">
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/15 mb-4">
               <Zap className="h-7 w-7 text-primary" />
             </div>
             <h2 className="text-2xl font-bold mb-1">ArcAI Boost</h2>
-            <p className="text-sm text-muted-foreground mb-1">{isAnnual ? "$65/year paid upgrade" : "$7/month paid upgrade"}</p>
+            
+            {/* Billing Cycle Selector Switch */}
+            <div className="flex justify-center my-5">
+              <div className="inline-flex items-center gap-0.5 p-1 rounded-full bg-muted/40 border border-border/40 backdrop-blur-xl">
+                <button
+                  onClick={() => setSelectedPriceId(BOOST_PRICE_ID)}
+                  className={cn(
+                    "h-8 px-4 rounded-full text-xs font-semibold transition-all duration-200",
+                    selectedPriceId === BOOST_PRICE_ID
+                      ? "bg-primary/70 text-primary-foreground shadow-[0_1px_3px_rgba(0,0,0,0.15)]"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Monthly
+                </button>
+                <button
+                  onClick={() => setSelectedPriceId(BOOST_ANNUAL_PRICE_ID)}
+                  className={cn(
+                    "h-8 px-4 rounded-full text-xs font-semibold transition-all duration-200 relative",
+                    selectedPriceId === BOOST_ANNUAL_PRICE_ID
+                      ? "bg-primary/70 text-primary-foreground shadow-[0_1px_3px_rgba(0,0,0,0.15)]"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Yearly
+                  <span className="absolute -top-1.5 -right-2 bg-emerald-500 text-[8px] text-white px-1.5 py-0.5 rounded-full font-bold">
+                    Save 22%
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground mb-1">
+              {isAnnual ? "$65/year paid upgrade" : "$7/month paid upgrade"}
+            </p>
             <div className="flex items-baseline justify-center gap-1 my-4">
               <span className="text-4xl font-bold">{priceDisplay.split('/')[0]}</span>
               <span className="text-muted-foreground">/ {isAnnual ? "year" : "month"}</span>
@@ -109,21 +148,20 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
             )}
           </div>
         ) : (
-          <div className="p-4">
-            <h3 className="text-lg font-semibold mb-3 text-center">Complete your upgrade</h3>
-            <div className="bg-white rounded-lg overflow-y-auto max-h-[65vh] p-2">
-              <StripeEmbeddedCheckout
-                priceId={resolvedPriceId}
-                customerEmail={user?.email}
-                userId={user?.id}
-              />
-            </div>
+          <div className="relative w-full max-h-[90vh] overflow-y-auto rounded-xl p-1 overflow-visible">
+            {/* Absolute custom Back/Close button floating outside the Stripe box */}
             <button
               onClick={() => setShowCheckout(false)}
-              className="mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center"
+              className="absolute -top-12 right-0 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 p-2 rounded-full transition-all border border-white/10 backdrop-blur-md flex items-center justify-center z-50 shadow-lg hover:scale-105 active:scale-95"
+              aria-label="Back"
             >
-              ← Back
+              <X className="h-4 w-4" />
             </button>
+            <StripeEmbeddedCheckout
+              priceId={selectedPriceId}
+              customerEmail={user?.email}
+              userId={user?.id}
+            />
           </div>
         )}
       </DialogContent>
