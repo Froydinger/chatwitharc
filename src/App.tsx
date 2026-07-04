@@ -51,11 +51,30 @@ import { LandingPage } from "./pages/LandingPage";
 import { BlogIndexPage } from "./pages/BlogIndexPage";
 import { BlogPostPage } from "./pages/BlogPostPage";
 import { useAuth } from "@/hooks/useAuth";
+import { ThemedLogo } from "@/components/ThemedLogo";
+import { motion } from "framer-motion";
+
+const FullscreenLoader = () => {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-[#0a0a0a] z-50">
+      <motion.div
+        className="h-16 w-16"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+      >
+        <div className="h-full w-full relative flex items-center justify-center">
+          <ThemedLogo className="h-full w-full" alt="Loading" />
+          <div className="absolute inset-0 rounded-full bg-primary/20 filter blur-xl animate-pulse" />
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 /** Show marketing lander to signed-out/anonymous visitors, chat to real accounts only. */
 const RootGate = () => {
   const { user, loading, isAnonymous } = useAuth();
-  if (loading) return <LandingPage />;
+  if (loading) return <FullscreenLoader />;
   return user && !isAnonymous ? <Index /> : <LandingPage />;
 };
 
