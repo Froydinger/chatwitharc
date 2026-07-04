@@ -201,6 +201,33 @@ export function AdminBanner() {
     </>
   );
 
+  const getContrastTextColor = (hexColor: string) => {
+    if (!hexColor) return 'text-black';
+    const cleanHex = hexColor.replace('#', '');
+    
+    let r = 0, g = 0, b = 0;
+    if (cleanHex.length === 3) {
+      r = parseInt(cleanHex[0] + cleanHex[0], 16);
+      g = parseInt(cleanHex[1] + cleanHex[1], 16);
+      b = parseInt(cleanHex[2] + cleanHex[2], 16);
+    } else if (cleanHex.length === 6) {
+      r = parseInt(cleanHex.slice(0, 2), 16);
+      g = parseInt(cleanHex.slice(2, 4), 16);
+      b = parseInt(cleanHex.slice(4, 6), 16);
+    } else {
+      const lower = hexColor.toLowerCase();
+      if (lower === 'black' || lower === '#000000' || lower === '#111111' || lower === 'noir') {
+        return 'text-white';
+      }
+      return 'text-black';
+    }
+    
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 128 ? 'text-black' : 'text-white';
+  };
+
+  const contrastClass = getContrastTextColor(bannerSettings.color);
+
   return (
     <>
       {!isDismissed && (
@@ -215,12 +242,12 @@ export function AdminBanner() {
                 href={bannerSettings.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-3 text-black hover:opacity-90 hover:underline cursor-pointer"
+                className={`flex items-center justify-center gap-3 ${contrastClass} hover:opacity-90 hover:underline cursor-pointer`}
               >
                 {renderContent()}
               </a>
             ) : (
-              <div className="flex items-center justify-center gap-3 text-black">
+              <div className={`flex items-center justify-center gap-3 ${contrastClass}`}>
                 {renderContent()}
               </div>
             )}
@@ -231,7 +258,7 @@ export function AdminBanner() {
       {bannerSettings.dismissible && (
         <button
           onClick={handleToggle}
-          className={`fixed left-1/2 -translate-x-1/2 z-[100] p-2 text-black rounded-full shadow-lg transition-all duration-300 ${
+          className={`fixed left-1/2 -translate-x-1/2 z-[100] p-2 ${contrastClass} rounded-full shadow-lg transition-all duration-300 ${
             isDismissed ? 'opacity-50 scale-50' : 'opacity-100 scale-100 hover:scale-110'
           }`}
           style={{

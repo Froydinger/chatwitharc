@@ -1296,6 +1296,33 @@ export function AdminPanel() {
                       style={{ backgroundColor: getCurrentValue("banner_color") || "#00f0ff" }}
                     />
                   </div>
+                  <div className="flex flex-wrap gap-2 mt-1.5">
+                    {[
+                      { label: "Red", hex: "#ef4444" },
+                      { label: "Blue", hex: "#3b82f6" },
+                      { label: "Green", hex: "#10b981" },
+                      { label: "Yellow", hex: "#eab308" },
+                      { label: "Purple", hex: "#a855f7" },
+                      { label: "Orange", hex: "#f97316" },
+                      { label: "Noir", hex: "#000000" },
+                      { label: "White", hex: "#ffffff" },
+                    ].map((color) => (
+                      <button
+                        key={color.hex}
+                        type="button"
+                        onClick={() => handleValueChange("banner_color", color.hex)}
+                        className={cn(
+                          "h-8 px-3 rounded-lg text-xs font-medium border transition-all flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95",
+                          (getCurrentValue("banner_color") || "#00f0ff").toLowerCase() === color.hex.toLowerCase()
+                            ? "border-primary bg-primary/10 text-foreground ring-2 ring-primary/20"
+                            : "border-border bg-muted/20 text-muted-foreground hover:bg-muted/40"
+                        )}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: color.hex }} />
+                        {color.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <Button onClick={handleSaveBanner} disabled={updating} className="w-full font-semibold h-10 bg-primary hover:bg-primary/90 text-primary-foreground">

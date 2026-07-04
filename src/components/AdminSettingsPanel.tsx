@@ -420,37 +420,91 @@ export function AdminSettingsPanel() {
                       className="flex-1 font-mono"
                     />
                   </div>
+                  <div className="flex flex-wrap gap-2 mt-1.5">
+                    {[
+                      { label: "Red", hex: "#ef4444" },
+                      { label: "Blue", hex: "#3b82f6" },
+                      { label: "Green", hex: "#10b981" },
+                      { label: "Yellow", hex: "#eab308" },
+                      { label: "Purple", hex: "#a855f7" },
+                      { label: "Orange", hex: "#f97316" },
+                      { label: "Noir", hex: "#000000" },
+                      { label: "White", hex: "#ffffff" },
+                    ].map((color) => (
+                      <button
+                        key={color.hex}
+                        type="button"
+                        onClick={() => setBannerColor(color.hex)}
+                        className={`h-8 px-3 rounded-lg text-xs font-medium border transition-all flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 ${
+                          bannerColor.toLowerCase() === color.hex.toLowerCase()
+                            ? "border-primary bg-primary/10 text-foreground ring-2 ring-primary/20"
+                            : "border-border bg-muted/20 text-muted-foreground hover:bg-muted/40"
+                        }`}
+                      >
+                        <span className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0" style={{ backgroundColor: color.hex }} />
+                        {color.label}
+                      </button>
+                    ))}
+                  </div>
                   <p className="text-xs text-muted-foreground">
-                    Choose a background color for the banner
+                    Choose a background color for the banner or pick a preset theme color
                   </p>
                 </div>
               </div>
 
               <Separator />
 
-              {bannerEnabled && bannerMessage && (
-                <div className="space-y-2">
-                  <Label>Preview</Label>
-                  <div className="border-2 border-black rounded-lg p-4 shadow-lg" style={{ backgroundColor: bannerColor }}>
-                    <div className="flex items-center justify-center gap-3 text-black relative">
-                      {bannerIcon === 'construction' && <Construction className="w-5 h-5 flex-shrink-0" />}
-                      {bannerIcon === 'alert' && <AlertTriangle className="w-5 h-5 flex-shrink-0" />}
-                      {bannerIcon === 'celebrate' && <PartyPopper className="w-5 h-5 flex-shrink-0" />}
-                      <p className="text-sm md:text-base font-semibold text-center">
-                        {bannerMessage}
-                      </p>
-                      {bannerDismissible && (
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
-                          <button className="p-1 hover:bg-black/10 rounded transition-colors">
-                            <ChevronUp className="w-5 h-5" />
-                          </button>
-                          <button className="p-1 hover:bg-black/10 rounded transition-colors">
-                            <X className="w-5 h-5" />
-                          </button>
-                        </div>
-                      )}
+              {bannerEnabled && bannerMessage && (() => {
+                const getContrastTextColor = (hexColor: string) => {
+                  if (!hexColor) return 'text-black';
+                  const cleanHex = hexColor.replace('#', '');
+                  let r = 0, g = 0, b = 0;
+                  if (cleanHex.length === 3) {
+                    r = parseInt(cleanHex[0] + cleanHex[0], 16);
+                    g = parseInt(cleanHex[1] + cleanHex[1], 16);
+                    b = parseInt(cleanHex[2] + cleanHex[2], 16);
+                  } else if (cleanHex.length === 6) {
+                    r = parseInt(cleanHex.slice(0, 2), 16);
+                    g = parseInt(cleanHex.slice(2, 4), 16);
+                    b = parseInt(cleanHex.slice(4, 6), 16);
+                  } else {
+                    const lower = hexColor.toLowerCase();
+                    if (lower === 'black' || lower === '#000000' || lower === '#111111' || lower === 'noir') {
+                      return 'text-white';
+                    }
+                    return 'text-black';
+                  }
+                  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+                  return yiq >= 128 ? 'text-black' : 'text-white';
+                };
+                const contrastClass = getContrastTextColor(bannerColor);
+
+                return (
+                  <div className="space-y-2">
+                    <Label>Preview</Label>
+                    <div className="border-2 border-black rounded-lg p-4 shadow-lg" style={{ backgroundColor: bannerColor }}>
+                      <div className={`flex items-center justify-center gap-3 ${contrastClass} relative`}>
+                        {bannerIcon === 'construction' && <Construction className="w-5 h-5 flex-shrink-0" />}
+                        {bannerIcon === 'alert' && <AlertTriangle className="w-5 h-5 flex-shrink-0" />}
+                        {bannerIcon === 'celebrate' && <PartyPopper className="w-5 h-5 flex-shrink-0" />}
+                        <p className="text-sm md:text-base font-semibold text-center">
+                          {bannerMessage}
+                        </p>
+                        {bannerDismissible && (
+                          <div className="absolute right-0 top-1/2 -translate-y-1/2 flex gap-1">
+                            <button className={`p-1 hover:bg-black/10 rounded transition-colors ${contrastClass}`}>
+                              <ChevronUp className="w-5 h-5" />
+                            </button>
+                            <button className={`p-1 hover:bg-black/10 rounded transition-colors ${contrastClass}`}>
+                              <X className="w-5 h-5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
+                );
+              })()}
                   {(bannerDismissible || bannerTimeout > 0) && (
                     <p className="text-xs text-muted-foreground">
                       {bannerDismissible && bannerTimeout > 0 && `Users can dismiss this banner or it will auto-hide after ${bannerTimeout} seconds`}
