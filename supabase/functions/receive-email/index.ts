@@ -155,11 +155,10 @@ Deno.serve(async (req) => {
     const adminIds = (admins || []).map((ad) => ad.user_id);
 
     // Parse email creation date to avoid flooding on replayed historic webhooks
-    const emailCreatedAt = emailDetails?.created_at || payload.data?.created_at || payload.created_at || new Date().toISOString();
-    const emailDate = new Date(emailCreatedAt);
-    const now = new Date();
-    // Margins: Only notify if the email event was generated in the last 10 minutes
-    const isRecent = Math.abs(now.getTime() - emailDate.getTime()) < 10 * 60 * 1000;
+    const emailCreatedAt = emailDetails?.created_at || payload.data?.created_at || payload.created_at;
+    const isRecent = emailCreatedAt
+      ? (Math.abs(new Date().getTime() - new Date(emailCreatedAt).getTime()) < 10 * 60 * 1000)
+      : false; // Default to false if no timestamp can be verified
 
     if (isRecent) {
       // 6. Dispatch push notifications to admins
