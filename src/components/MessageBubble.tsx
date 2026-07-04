@@ -128,7 +128,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const { profile } = useProfile();
     const { toast } = useToast();
     const [isEditing, setIsEditing] = useState(false);
-    const [editContent, setEditContent] = useState(message.content);
+    const [editContent, setEditContent] = useState(message.content || "");
     const [showActions, setShowActions] = useState(false);
     const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
     const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
@@ -143,12 +143,12 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     // One-shot logo handoff pulse for the latest assistant message
     const [logoPulse, setLogoPulse] = useState(false);
     const prevThinkingRef = useRef(isThinking);
-    const prevContentLenRef = useRef(message.content.length);
-    const hasAssistantContent = !isUser && message.content.trim().length > 0;
+    const prevContentLenRef = useRef((message.content || "").length);
+    const hasAssistantContent = !isUser && (message.content || "").trim().length > 0;
 
     useEffect(() => {
       if (isUser || !isLatestAssistant) return;
-      const len = message.content.length;
+      const len = (message.content || "").length;
       // Logo handoff pulse: thinking -> speaking, or first token without thinking phase
       const firstToken = prevContentLenRef.current === 0 && len > 0;
       const thinkingEnded = prevThinkingRef.current && !isThinking && len > 0;
@@ -162,7 +162,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
     const handleCopy = async () => {
       try {
-        await navigator.clipboard.writeText(message.content);
+        await navigator.clipboard.writeText(message.content || "");
         
         setShowActions(false);
       } catch {
@@ -181,7 +181,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
     const handleSaveEdit = () => {
       const next = editContent.trim();
-      if (next && next !== message.content) {
+      if (next && next !== (message.content || "")) {
         editMessage(message.id, next);
         onEdit?.(message.id, next);
       }
@@ -189,7 +189,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     };
 
     const handleCancelEdit = () => {
-      setEditContent(message.content);
+      setEditContent(message.content || "");
       setIsEditing(false);
     };
 
@@ -248,7 +248,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
       return parts.length > 0 ? parts : [{ type: "text" as const, content: text }];
     };
 
-    const contentParts = !isUser && message.type === "text" ? parseCodeBlocks(message.content) : [];
+    const contentParts = !isUser && message.type === "text" ? parseCodeBlocks(message.content || "") : [];
 
     return (
       <div
@@ -570,7 +570,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     </p>
                   ) : (
                     // AI messages with code block support and markdown
-                    message.content.trim().length > 0 && !["canvas", "code", "ide", "file"].includes(message.type) && (
+                    (message.content || "").trim().length > 0 && !["canvas", "code", "ide", "file"].includes(message.type) && (
                       <div
                         key="text-assistant"
                         className="relative z-10 w-full min-w-0 arc-message-bubble"

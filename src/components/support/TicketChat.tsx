@@ -119,6 +119,42 @@ export function TicketChat({ ticketId, onBack, isAdmin }: TicketChatProps) {
       toast({ title: "Error", description: "Failed to send message", variant: "destructive" });
     } else {
       setNewMessage("");
+      
+      // Send email notifications
+      if (ticket) {
+        if (isAdmin) {
+          try {
+            await supabase.functions.invoke("send-transactional-email", {
+              body: {
+                templateName: "support-reply",
+                recipientUserId: ticket.user_id,
+                templateData: {
+                  subject: ticket.subject,
+                  messagePreview: messageContent,
+                },
+              },
+            });
+          } catch (e) {
+            console.error("Failed to send admin reply email notification:", e);
+          }
+        } else {
+          try {
+            await supabase.functions.invoke("send-transactional-email", {
+              body: {
+                templateName: "arc-notification",
+                recipientEmail: "jkrd09@gmail.com",
+                templateData: {
+                  title: `New reply on ticket: ${ticket.subject}`,
+                  message: `User (${user.email}) wrote:\n\n${messageContent}`,
+                  url: "https://askarc.chat/support",
+                },
+              },
+            });
+          } catch (e) {
+            console.error("Failed to notify admins of user reply:", e);
+          }
+        }
+      }
     }
     setSending(false);
   };
@@ -143,6 +179,43 @@ export function TicketChat({ ticketId, onBack, isAdmin }: TicketChatProps) {
       image_url: urlData.publicUrl,
       is_admin_reply: isAdmin,
     });
+
+    // Send email notifications for attachments
+    if (ticket) {
+      if (isAdmin) {
+        try {
+          await supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "support-reply",
+              recipientUserId: ticket.user_id,
+              templateData: {
+                subject: ticket.subject,
+                messagePreview: "Attached an image",
+              },
+            },
+          });
+        } catch (e) {
+          console.error("Failed to send admin attachment email notification:", e);
+        }
+      } else {
+        try {
+          await supabase.functions.invoke("send-transactional-email", {
+            body: {
+              templateName: "arc-notification",
+              recipientEmail: "jkrd09@gmail.com",
+              templateData: {
+                title: `New image attachment on ticket: ${ticket.subject}`,
+                message: `User (${user.email}) attached an image.`,
+                url: "https://askarc.chat/support",
+              },
+            },
+          });
+        } catch (e) {
+          console.error("Failed to notify admins of user attachment:", e);
+        }
+      }
+    }
+
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };

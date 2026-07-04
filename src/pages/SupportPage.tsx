@@ -83,6 +83,25 @@ export function SupportPage() {
       content: newMessage.trim(),
       is_admin_reply: false,
     });
+
+    // Notify admins of new ticket
+    try {
+      await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "ticket-opened",
+          recipientEmail: "jkrd09@gmail.com",
+          templateData: {
+            subject: newSubject.trim(),
+            userEmail: user.email,
+            userName: user.email,
+            priority: "normal",
+          },
+        },
+      });
+    } catch (e) {
+      console.error("Failed to notify admins of new ticket:", e);
+    }
+
     toast({ title: "Ticket created", description: "We'll get back to you soon!" });
     setNewSubject("");
     setNewMessage("");
