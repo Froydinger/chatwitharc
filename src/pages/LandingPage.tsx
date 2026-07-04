@@ -9,10 +9,9 @@ import {
   Image as ImageIcon,
   Code2,
   Brain,
-  Coffee,
+  Crown,
 } from "lucide-react";
 import { BLOG_POSTS } from "@/content/blog/posts";
-import { SUPPORT_URL } from "@/lib/support";
 import { useAuth } from "@/hooks/useAuth";
 
 const SITE = "https://askarc.chat";
@@ -28,7 +27,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade for $10/month (or $65/year) that unlocks unlimited premium reasoning chats, unlimited voice, full image editing, higher image quotas (20 GPT-Image-2 outputs/day), and live web app publishing.",
+    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that unlocks unlimited premium reasoning chats, unlimited voice, full image editing, higher image quotas (20 GPT-Image-2 outputs/day), and live web app publishing.",
   },
   {
     q: "Is ArcAI a free ChatGPT alternative?",
@@ -92,6 +91,23 @@ export function LandingPage() {
       window.dispatchEvent(
         new CustomEvent("auth-gate-feature", {
           detail: { feature: "generic" },
+        })
+      );
+    }
+  };
+
+  const handleGetBoost = () => {
+    if (user && !isAnonymous) {
+      navigate("/upgrade");
+    } else {
+      const onAuthCompleted = () => {
+        navigate("/upgrade");
+        window.removeEventListener("arcai-auth-completed", onAuthCompleted);
+      };
+      window.addEventListener("arcai-auth-completed", onAuthCompleted);
+      window.dispatchEvent(
+        new CustomEvent("auth-gate-feature", {
+          detail: { feature: "boost" },
         })
       );
     }
@@ -162,14 +178,12 @@ export function LandingPage() {
             Try Arc free
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
-          <a
-            href={SUPPORT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={handleGetBoost}
             className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.03] px-6 py-3 text-base font-medium text-white/90 hover:bg-white/[0.07] transition-colors"
           >
-            <Coffee className="h-4 w-4" /> Support ArcAI
-          </a>
+            <Crown className="h-4 w-4 text-primary" /> Get Boost
+          </button>
         </div>
       </section>
 
@@ -261,14 +275,12 @@ export function LandingPage() {
               >
                 View pricing plans
               </Link>
-              <a
-                href={SUPPORT_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={handleGetBoost}
                 className="inline-flex items-center gap-2 text-sm text-white/70 hover:text-white transition-colors"
               >
-                Support Win The Night voluntarily →
-              </a>
+                Get Boost upgrade →
+              </button>
             </div>
           </div>
         </div>
@@ -360,14 +372,12 @@ export function LandingPage() {
             Try Arc free
             <ArrowRight className="h-4 w-4" />
           </button>
-          <a
-            href={SUPPORT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={handleGetBoost}
             className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] px-7 py-3.5 text-base font-medium text-white/90 hover:bg-white/[0.06] transition-colors"
           >
-            <Coffee className="h-4 w-4" /> Support Win The Night
-          </a>
+            <Crown className="h-4 w-4 text-primary" /> Get Boost
+          </button>
         </div>
       </section>
 

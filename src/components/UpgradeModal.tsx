@@ -97,7 +97,7 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
             </div>
 
             <p className="text-sm text-muted-foreground mb-1">
-              {isAnnual ? "$65/year paid upgrade" : "$10/month paid upgrade"}
+              {isAnnual ? "$95/year paid upgrade" : "$10/month paid upgrade"}
             </p>
             <div className="flex items-baseline justify-center gap-1 my-4">
               <span className="text-4xl font-bold">{priceDisplay.split('/')[0]}</span>

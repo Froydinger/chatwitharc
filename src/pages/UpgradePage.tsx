@@ -201,10 +201,10 @@ export function UpgradePage() {
                 <div>
                   <div className="text-xs font-bold text-primary tracking-wider uppercase mb-2">Boost Annual</div>
                   <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-5xl font-black tracking-tight text-white">$65</span>
+                    <span className="text-5xl font-black tracking-tight text-white">$95</span>
                     <span className="text-muted-foreground text-sm font-medium">/ year</span>
                   </div>
-                  <p className="text-xs text-primary font-bold mb-6">Equal to just $5.41/month</p>
+                  <p className="text-xs text-primary font-bold mb-6">Equal to just $7.91/month</p>
                   
                   <ul className="space-y-3.5 mb-8">
                     {BOOST_FEATURES.map((feature) => (

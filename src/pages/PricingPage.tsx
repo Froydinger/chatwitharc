@@ -113,10 +113,10 @@ export function PricingPage() {
             <div>
               <div className="text-sm font-semibold text-primary tracking-wider uppercase mb-2">Boost Annual</div>
               <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-5xl font-bold">$65</span>
+                <span className="text-5xl font-bold">$95</span>
                 <span className="text-muted-foreground">/ year</span>
               </div>
-              <p className="text-xs text-primary font-medium mb-6">Save 22% compared to monthly plan</p>
+              <p className="text-xs text-primary font-medium mb-6">Save 20% compared to monthly plan</p>
               <ul className="space-y-3 mb-8">
                 {BOOST_FEATURES.map((feature) => (
                   <li key={feature} className="flex items-start gap-3 text-sm">

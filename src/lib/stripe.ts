@@ -34,4 +34,4 @@ export const BOOST_PRICE_ID = "arcai_boost_monthly";
 export const BOOST_PRICE_DISPLAY = "$10/month";
 
 export const BOOST_ANNUAL_PRICE_ID = "arcai_boost_annual";
-export const BOOST_ANNUAL_PRICE_DISPLAY = "$65/year";
+export const BOOST_ANNUAL_PRICE_DISPLAY = "$95/year";
