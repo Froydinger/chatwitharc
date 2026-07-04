@@ -520,19 +520,35 @@ export const useArcStore = create<ArcState>()(
 
             console.log(`✅ Synced ${loadedSessions.length} session metadata (messages will load on demand)`);
 
-            // If we have a current session, hydrate it immediately
-            const currentSessionId = state.currentSessionId;
-            const currentSessionMeta = currentSessionId
-              ? loadedSessions.find(s => s.id === currentSessionId)
-              : null;
+            // Keep local hydrated sessions/messages so background sync doesn't overwrite
+            // local state that is newer than what we fetched.
+            const mergedSessions = loadedSessions.map(loaded => {
+              const local = state.chatSessions.find(s => s.id === loaded.id);
+              if (local && (local.isHydrated || (local.messages && local.messages.length > 0))) {
+                return {
+                  ...loaded,
+                  messages: local.messages,
+                  isHydrated: local.isHydrated,
+                  messageCount: Math.max(loaded.messageCount, local.messages.length),
+                  canvasContent: local.canvasContent || loaded.canvasContent
+                };
+              }
+              return loaded;
+            });
 
             // Keep any local-only (corp mode) sessions alongside cloud-loaded ones.
             const localOnly = (state.chatSessions || []).filter((s) => s.isLocalOnly);
-            const mergedSessions = [...localOnly, ...loadedSessions];
+            const finalSessions = [...localOnly, ...mergedSessions];
+
+            // If we have a current session, hydrate it immediately if needed
+            const currentSessionId = state.currentSessionId;
+            const currentSessionMeta = currentSessionId
+              ? finalSessions.find(s => s.id === currentSessionId)
+              : null;
 
             set({
               folders: loadedFolders,
-              chatSessions: mergedSessions,
+              chatSessions: finalSessions,
               lastSyncAt: new Date(),
               isOnline: true,
               syncedUserId: user.id,
@@ -541,7 +557,7 @@ export const useArcStore = create<ArcState>()(
               messages: currentSessionMeta ? state.messages : []
             });
 
-            // If there's a current session, hydrate it in background
+            // If there's a current session, hydrate it in background if not already hydrated
             if (currentSessionId && currentSessionMeta && !currentSessionMeta.isHydrated) {
               get().hydrateSession(currentSessionId);
             }
