@@ -54,38 +54,23 @@ import { useAuth } from "@/hooks/useAuth";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { motion } from "framer-motion";
 
-const FullscreenLoader = ({ onComplete }: { onComplete: () => void }) => {
-  const [stage, setStage] = useState<'spin' | 'lock' | 'bloop'>('spin');
+const FullscreenLoader = () => {
+  const [stage, setStage] = useState<'spin' | 'bloop'>('spin');
 
   useEffect(() => {
-    // 2.0 seconds of spinning
-    const lockTimer = setTimeout(() => {
-      setStage('lock');
-    }, 2000);
-
-    // 2.6 seconds: start blooping out (takes 0.4s)
-    const bloopTimer = setTimeout(() => {
+    // 1.0 second of spinning, then transition to concurrent bloop/fade
+    const timer = setTimeout(() => {
       setStage('bloop');
-    }, 2600);
-
-    // 3.0 seconds: completely finished
-    const completeTimer = setTimeout(() => {
-      onComplete();
-    }, 3000);
-
-    return () => {
-      clearTimeout(lockTimer);
-      clearTimeout(bloopTimer);
-      clearTimeout(completeTimer);
-    };
-  }, [onComplete]);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <motion.div
       className="fixed inset-0 flex items-center justify-center bg-[#000000] z-[9999]"
       initial={{ opacity: 1 }}
       animate={{ opacity: stage === 'bloop' ? 0 : 1 }}
-      transition={{ duration: 0.4, ease: "easeInOut" }}
+      transition={{ duration: 0.5, ease: "easeInOut" }}
     >
       <div className="relative flex items-center justify-center">
         <div className="absolute inset-0 rounded-full bg-primary/20 filter blur-xl animate-pulse scale-150" />
@@ -96,22 +81,18 @@ const FullscreenLoader = ({ onComplete }: { onComplete: () => void }) => {
           animate={
             stage === 'spin'
               ? { scale: 1, opacity: 1, rotate: 360 * 3 }
-              : stage === 'lock'
-              ? { scale: 1, opacity: 1, rotate: 360 * 3 }
               : { scale: 0, opacity: 0, rotate: 360 * 3 }
           }
           transition={
             stage === 'spin'
               ? {
-                  rotate: { duration: 2.0, ease: "easeOut" },
-                  scale: { duration: 0.6, ease: "easeOut" },
-                  opacity: { duration: 0.6, ease: "easeOut" }
+                  rotate: { duration: 1.0, ease: "easeOut" },
+                  scale: { duration: 0.4, ease: "easeOut" },
+                  opacity: { duration: 0.4, ease: "easeOut" }
                 }
-              : stage === 'lock'
-              ? { duration: 0.1 }
               : {
-                  scale: { duration: 0.35, ease: [0.34, 1.56, 0.64, 1] },
-                  opacity: { duration: 0.25 }
+                  scale: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] },
+                  opacity: { duration: 0.3 }
                 }
           }
         >
@@ -141,8 +122,36 @@ const FastLoader = () => {
 
 /** Show marketing lander to signed-out/anonymous visitors, chat to real accounts only. */
 const RootGate = () => {
-  const { user, loading, isAnonymous } = useAuth();
-  if (loading) return <FastLoader />;
+  const { user, loading: authLoading, isAnonymous } = useAuth();
+  const [showSessionLoader, setShowSessionLoader] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const shown = sessionStorage.getItem('arc:sessionLoaderShown') === 'true';
+    return !shown;
+  });
+
+  const [timerFinished, setTimerFinished] = useState(false);
+
+  useEffect(() => {
+    if (!showSessionLoader) return;
+    const timer = setTimeout(() => {
+      setTimerFinished(true);
+    }, 1500); // 1.5s total animation duration
+    return () => clearTimeout(timer);
+  }, [showSessionLoader]);
+
+  useEffect(() => {
+    if (showSessionLoader && timerFinished && !authLoading) {
+      sessionStorage.setItem('arc:sessionLoaderShown', 'true');
+      setShowSessionLoader(false);
+    }
+  }, [showSessionLoader, timerFinished, authLoading]);
+
+  if (showSessionLoader) {
+    return <FullscreenLoader />;
+  }
+
+  if (authLoading) return <FastLoader />;
+
   return user && !isAnonymous ? <Index /> : <LandingPage />;
 };
 
@@ -165,12 +174,6 @@ const App = () => {
   const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [showSessionLoader, setShowSessionLoader] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const shown = sessionStorage.getItem('arc:sessionLoaderShown') === 'true';
-    const isRoot = window.location.pathname === '/';
-    return !shown && isRoot;
-  });
   
   useVisibilityHandler();
   useCorporateModeEnforcer();
@@ -188,17 +191,6 @@ const App = () => {
   useEffect(() => {
     detectStandaloneMode();
   }, []);
-
-  if (showSessionLoader) {
-    return (
-      <FullscreenLoader
-        onComplete={() => {
-          sessionStorage.setItem('arc:sessionLoaderShown', 'true');
-          setShowSessionLoader(false);
-        }}
-      />
-    );
-  }
 
   return (
     <QueryClientProvider client={queryClient}>
