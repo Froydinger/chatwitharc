@@ -149,7 +149,7 @@ export function LandingPage() {
           className="mx-auto mt-6 max-w-xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
         >
-          A personal sanctuary for your ideas. Focus, collaborate, and create with integrated AI.
+          Your new favorite personal assistant, that actually knows who you are.
         </p>
         <div
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"
