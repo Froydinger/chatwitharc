@@ -237,6 +237,155 @@ serve(async (req) => {
       });
     }
 
+    if (action === "stats") {
+      // 1. Total users
+      const { data: { users }, error: usersErr } = await supabase.auth.admin.listUsers();
+      if (usersErr) throw usersErr;
+      const totalUsers = users?.length || 0;
+
+      // 2. Active subscriptions
+      const { data: subs, error: subsErr } = await supabase
+        .from("subscriptions")
+        .select("status, environment");
+      if (subsErr) throw subsErr;
+
+      const activeSubs = subs?.filter(s => s.status === "active") || [];
+      const activeLiveSubsCount = activeSubs.filter(s => s.environment === "live").length;
+      const activeSandboxSubsCount = activeSubs.filter(s => s.environment === "sandbox").length;
+      const mrr = activeLiveSubsCount * 7.00;
+
+      // 3. Activity counts
+      const [
+        { count: chatsCount },
+        { count: filesCount },
+        { count: sitesCount },
+        { count: bugsCount },
+        { count: ticketsCount },
+        { count: voiceCount }
+      ] = await Promise.all([
+        supabase.from("chat_sessions").select("id", { count: "exact", head: true }),
+        supabase.from("generated_files").select("id", { count: "exact", head: true }),
+        supabase.from("published_sites").select("id", { count: "exact", head: true }),
+        supabase.from("bug_reports").select("id", { count: "exact", head: true }),
+        supabase.from("support_tickets").select("id", { count: "exact", head: true }),
+        supabase.from("voice_conversations").select("id", { count: "exact", head: true })
+      ]);
+
+      // 4. Image Generation Stats
+      const { data: imageUsage } = await supabase.from("daily_image_usage").select("used");
+      const totalImages = imageUsage?.reduce((sum, item) => sum + (item.used || 0), 0) || 0;
+
+      return new Response(JSON.stringify({
+        totalUsers,
+        activeLiveSubsCount,
+        activeSandboxSubsCount,
+        mrr,
+        chatsCount: chatsCount || 0,
+        filesCount: filesCount || 0,
+        sitesCount: sitesCount || 0,
+        bugsCount: bugsCount || 0,
+        ticketsCount: ticketsCount || 0,
+        voiceCount: voiceCount || 0,
+        totalImages
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "list_bugs") {
+      const { data: bugs, error } = await supabase
+        .from("bug_reports")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ bugs }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "delete_bug") {
+      const { bugId } = params;
+      if (!bugId) throw new Error("bugId required");
+      const { error } = await supabase.from("bug_reports").delete().eq("id", bugId);
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "list_tickets") {
+      const { data: tickets, error } = await supabase
+        .from("support_tickets")
+        .select("*")
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ tickets }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "get_ticket_messages") {
+      const { ticketId } = params;
+      if (!ticketId) throw new Error("ticketId required");
+      const { data: messages, error } = await supabase
+        .from("ticket_messages")
+        .select("*")
+        .eq("ticket_id", ticketId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ messages }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "reply_to_ticket") {
+      const { ticketId, content } = params;
+      if (!ticketId) throw new Error("ticketId required");
+      if (!content) throw new Error("content required");
+
+      const { data: reply, error: replyErr } = await supabase
+        .from("ticket_messages")
+        .insert({
+          ticket_id: ticketId,
+          sender_id: callerUserId,
+          content,
+          is_admin_reply: true
+        })
+        .select()
+        .single();
+      if (replyErr) throw replyErr;
+
+      const { error: ticketErr } = await supabase
+        .from("support_tickets")
+        .update({ status: "replied", updated_at: new Date().toISOString() })
+        .eq("id", ticketId);
+      if (ticketErr) throw ticketErr;
+
+      return new Response(JSON.stringify({ success: true, reply }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "update_ticket_status") {
+      const { ticketId, status } = params;
+      if (!ticketId) throw new Error("ticketId required");
+      if (!status) throw new Error("status required");
+
+      const { error } = await supabase
+        .from("support_tickets")
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq("id", ticketId);
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error(`Unknown action: ${action}`);
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
