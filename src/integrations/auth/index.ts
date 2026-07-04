@@ -20,14 +20,15 @@ export function signInWithGoogle(redirectTo = getAuthRedirectUrl()) {
  * reference an Auth record that has already been consolidated.
  */
 export async function signOutCurrentSession() {
+  // Fire Supabase sign out in the background without blocking the UI
   try {
-    await supabase.auth.signOut();
+    supabase.auth.signOut().catch(() => {});
   } catch (e) {
     // Ignore global sign out error and fallback to local
   }
 
   try {
-    await supabase.auth.signOut({ scope: "local" });
+    supabase.auth.signOut({ scope: "local" }).catch(() => {});
   } catch (e) {
     // Ignore
   }
