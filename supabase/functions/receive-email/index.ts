@@ -35,6 +35,17 @@ Deno.serve(async (req) => {
     const body = await req.json();
     console.log("Inbound email received:", body);
 
+    // If this is a Resend webhook event check, ignore anything that isn't 'email.received'.
+    // Since 'All events' is selected on Resend, this prevents infinite notification loops
+    // triggered by outgoing transactional emails (sent, delivered, opened, etc.).
+    if (body.type && body.type !== "email.received") {
+      console.log(`Ignoring non-received webhook event type: ${body.type}`);
+      return new Response(JSON.stringify({ success: true, ignored: true, reason: `Ignored event type: ${body.type}` }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Support both direct inbound payloads and wrapped webhook payloads
     const payload = (body.type === "email.received" || body.data) ? body.data : body;
 
