@@ -576,15 +576,15 @@ serve(async (req) => {
     enhancedSystemPrompt += '\n\n--- BEHAVIORAL GUIDELINES ---\n' +
       'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification, schedule_task). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
       '\n=== NOTIFICATIONS & REMINDERS ===\n' +
-      'You can send browser/device push notifications and post updates in this chat. Email delivery is temporarily unavailable and coming soon; say so plainly if the user specifically requests email.\n' +
-      'Two active delivery channels: "chat" (write it as a markdown post in this conversation; no tool needed) and "push" (browser/device push).\n' +
+      'You can send browser/device push notifications, email alerts, and post updates in this chat.\n' +
+      'Three active delivery channels: "chat" (write it as a markdown post in this conversation; no tool needed), "push" (browser/device push), and "email" (email notification).\n' +
       'Pick channel from wording:\n' +
-      '  • "email me" / "send me an email" / "in my inbox" → explain briefly that email is coming soon and offer chat or push instead.\n' +
-      '  • "push me" / "ping me" / "notify on my phone" → send_notification channel="push"\n' +
+      '  • "email me" / "send me an email" / "in my inbox" → deliver_email=true\n' +
+      '  • "push me" / "ping me" / "notify on my phone" → deliver_push=true (or send_notification channel="push")\n' +
       '  • "post in chat" / "give me an update here" / "write me a blog post" / "news for the day" → just write it as a markdown chat reply. Do NOT call send_notification — your reply IS the delivery.\n' +
-      '  • "notify me" / "remind me" / "let me know" with NO channel specified → use push for a quick alert or post the result in chat.\n' +
-      '  • "do all" / "every way" / "push, email, and chat" → use push and chat, and mention that email is coming soon.\n' +
-      'For ANY future-dated request ("in 1 minute", "tomorrow at 8am", "every morning", "remind me at 3pm", "every Monday") use schedule_task — not send_notification. schedule_task supports in-chat and push delivery. Compute when_iso from the "Current date and time" above.\n' +
+      '  • "notify me" / "remind me" / "let me know" with NO channel specified → use push or chat.\n' +
+      '  • "do all" / "every way" / "push, email, and chat" → use push, email, and chat.\n' +
+      'For ANY future-dated request ("in 1 minute", "tomorrow at 8am", "every morning", "remind me at 3pm", "every Monday") use schedule_task — not send_notification. schedule_task supports in-chat, push, and email delivery. Compute when_iso from the "Current date and time" above.\n' +
       '⏰ TIME MATH (CRITICAL): Prefer natural local phrasing in the user request; the backend will validate/correct recurring daily/morning/evening cron times from User timezone. For one-shot requests, when_iso MUST be a UTC ISO string ending in Z. "in 10 minutes" means exactly now + 600 seconds. For recurring, cron_expr is UTC, not local; e.g. if getTimezoneOffset=300, local 9am is cron "0 14 * * *".\n' +
       'CLARIFY BEFORE SCHEDULING: If the request is ambiguous (missing time, missing recurrence, unclear location for weather, unclear topic for a digest), ask ONE short follow-up question first and DO NOT call schedule_task yet. Once the user answers, schedule it. Only skip the question if everything needed is already clear.\n' +
       'When the scheduled task fires it can use tools too (currently get_weather and web_search), so phrase the saved `prompt` like a real instruction (e.g. "Give me the morning weather for Plainfield IL" or "Top 3 tech news headlines today") — not a meta description.\n' +
@@ -958,7 +958,7 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "schedule_task",
-          description: "Schedule a task to run at a future time (once or recurring). Supports in-chat and push delivery. Email delivery is temporarily disabled/unavailable.",
+          description: "Schedule a task to run at a future time (once or recurring). Supports in-chat, push, and email delivery.",
           parameters: {
             type: "object",
             properties: {
@@ -968,7 +968,7 @@ serve(async (req) => {
               cron_expr: { type: "string", description: "Standard 5-field UTC cron for RECURRING tasks (e.g. '0 13 * * *' = daily 8am Central). Use instead of when_iso." },
               deliver_in_chat: { type: "boolean", description: "Save result as a new message in a chat session. Default true." },
               deliver_push: { type: "boolean", description: "Send a push notification when done. Default false." },
-              deliver_email: { type: "boolean", description: "DEPRECATED: Email notifications are temporarily disabled/unavailable. Always set to false or omit." },
+              deliver_email: { type: "boolean", description: "Send an email notification when done. Default false." },
             },
             required: ["title", "prompt"],
             additionalProperties: false

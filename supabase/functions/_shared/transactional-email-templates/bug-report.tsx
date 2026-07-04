@@ -29,7 +29,7 @@ const BugReportEmail = ({
       <Container style={container}>
         <Section style={header}>
           <Img
-            src="https://cgvixgyjzswebosfqyll.supabase.co/storage/v1/object/public/email-assets/arc-logo-ui.png"
+            src="https://askarc.chat/arc-logo-ui.png"
             width="40"
             height="40"
             alt="ArcAI"
@@ -70,7 +70,7 @@ const BugReportEmail = ({
         </Section>
 
         <Section style={footer}>
-          <Text style={footerText}>ArcAI Bug Report System</Text>
+          <Text style={footerText}>ArcAI Bug Report System by Win The Night™ Foundation</Text>
         </Section>
       </Container>
     </Body>
@@ -93,31 +93,31 @@ export const template = {
 } satisfies TemplateEntry
 
 const main = {
-  backgroundColor: '#ffffff',
+  backgroundColor: '#09090b',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 }
 const container = { margin: '0 auto', padding: '40px 0', maxWidth: '560px' }
 const header = { textAlign: 'center' as const, paddingBottom: '16px' }
 const logo = { margin: '0 auto', borderRadius: '10px' }
 const content = {
-  backgroundColor: '#f8fafc',
+  backgroundColor: '#18181b',
   borderRadius: '12px',
   padding: '32px 28px',
-  border: '1px solid #e2e8f0',
+  border: '1px solid rgba(0, 128, 240, 0.25)',
 }
-const h1 = { color: '#0f172a', fontSize: '22px', fontWeight: '700' as const, margin: '0 0 24px' }
-const label = { color: '#64748b', fontSize: '12px', fontWeight: '600' as const, textTransform: 'uppercase' as const, margin: '0 0 4px', letterSpacing: '0.05em' }
-const value = { color: '#0f172a', fontSize: '14px', margin: '0 0 16px', lineHeight: '22px' }
-const hr = { borderColor: '#e2e8f0', margin: '8px 0 16px' }
+const h1 = { color: '#fafafa', fontSize: '22px', fontWeight: '700' as const, margin: '0 0 24px' }
+const label = { color: '#71717a', fontSize: '12px', fontWeight: '600' as const, textTransform: 'uppercase' as const, margin: '0 0 4px', letterSpacing: '0.05em' }
+const value = { color: '#fafafa', fontSize: '14px', margin: '0 0 16px', lineHeight: '22px' }
+const hr = { borderColor: '#27272a', margin: '8px 0 16px' }
 const codeBox = {
-  backgroundColor: '#f1f5f9',
-  border: '1px solid #e2e8f0',
+  backgroundColor: '#09090b',
+  border: '1px solid rgba(0, 128, 240, 0.15)',
   borderRadius: '8px',
   padding: '12px 16px',
   marginBottom: '16px',
 }
 const codeText = {
-  color: '#334155',
+  color: '#fafafa',
   fontSize: '13px',
   fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Courier, monospace',
   margin: '0',
@@ -126,4 +126,4 @@ const codeText = {
   wordBreak: 'break-all' as const,
 }
 const footer = { padding: '20px', textAlign: 'center' as const }
-const footerText = { color: '#94a3b8', fontSize: '11px', margin: '0' }
+const footerText = { color: '#52525b', fontSize: '11px', margin: '0' }

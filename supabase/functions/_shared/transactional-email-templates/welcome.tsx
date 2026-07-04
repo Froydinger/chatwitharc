@@ -21,7 +21,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
         <Container style={container}>
           <Section style={header}>
             <Img
-              src="https://cgvixgyjzswebosfqyll.supabase.co/storage/v1/object/public/email-assets/arc-logo-ui.png"
+              src="https://askarc.chat/arc-logo-ui.png"
               width="56"
               height="56"
               alt="ArcAI"
@@ -87,13 +87,13 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
               All models, voice, Deep Search, publishing, and creative tools are included. Images and edits include 20 outputs per UTC day.
             </Text>
             <Button style={supportButton} href="https://buymeacoffee.com/winthenight">
-              Support Win The Night
+              Support Win The Night™ Foundation
             </Button>
           </Section>
 
           <Section style={footer}>
             <Text style={footerText}>Need help? Just ask ArcAI anything!</Text>
-            <Text style={copy}>© 2026 ArcAI by Win The Night Productions</Text>
+            <Text style={copy}>© 2026 ArcAI by Win The Night™ Foundation</Text>
           </Section>
         </Container>
       </Body>
@@ -109,28 +109,28 @@ export const template = {
 } satisfies TemplateEntry
 
 const main = {
-  backgroundColor: '#ffffff',
+  backgroundColor: '#09090b',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 }
 const container = { margin: '0 auto', padding: '40px 0', maxWidth: '560px' }
 const header = { textAlign: 'center' as const, paddingBottom: '24px' }
 const logo = { margin: '0 auto', borderRadius: '14px' }
 const content = {
-  backgroundColor: '#f8fafc',
+  backgroundColor: '#18181b',
   borderRadius: '16px',
   padding: '40px 32px',
-  border: '1px solid #e2e8f0',
+  border: '1px solid rgba(0, 128, 240, 0.25)',
 }
 const emoji = { fontSize: '48px', textAlign: 'center' as const, margin: '0 0 16px' }
 const h1 = {
-  color: '#0f172a',
+  color: '#fafafa',
   fontSize: '28px',
   fontWeight: '700' as const,
   textAlign: 'center' as const,
   margin: '0 0 16px',
 }
 const paragraph = {
-  color: '#475569',
+  color: '#a1a1aa',
   fontSize: '15px',
   lineHeight: '26px',
   textAlign: 'center' as const,
@@ -147,23 +147,24 @@ const button = {
   textAlign: 'center' as const,
   display: 'inline-block',
   padding: '14px 36px',
+  boxShadow: '0 4px 12px rgba(0, 128, 240, 0.3)',
 }
-const hr = { borderColor: '#e2e8f0', margin: '0 0 24px' }
-const tipsHeading = { color: '#475569', fontSize: '14px', fontWeight: '500' as const, margin: '0 0 20px' }
+const hr = { borderColor: '#27272a', margin: '0 0 24px' }
+const tipsHeading = { color: '#fafafa', fontSize: '14px', fontWeight: '500' as const, margin: '0 0 20px' }
 const tipRow = { marginBottom: '16px' }
 const tipIcon = { fontSize: '20px', margin: '0 0 4px' }
-const tipTitle = { color: '#0f172a', fontSize: '14px', fontWeight: '600' as const, margin: '0 0 2px' }
-const tipDesc = { color: '#94a3b8', fontSize: '13px', margin: '0' }
+const tipTitle = { color: '#fafafa', fontSize: '14px', fontWeight: '600' as const, margin: '0 0 2px' }
+const tipDesc = { color: '#a1a1aa', fontSize: '13px', margin: '0' }
 const supportCard = {
-  backgroundColor: '#f1f5f9',
+  backgroundColor: '#18181b',
   margin: '16px 0 0',
   padding: '28px 24px',
   borderRadius: '16px',
-  border: '1px solid #e2e8f0',
+  border: '1px solid rgba(124, 58, 237, 0.25)',
   textAlign: 'center' as const,
 }
-const h2 = { color: '#0f172a', fontSize: '20px', fontWeight: '700' as const, margin: '0 0 8px' }
-const supportParagraph = { color: '#475569', fontSize: '14px', lineHeight: '22px', margin: '0 0 20px' }
+const h2 = { color: '#fafafa', fontSize: '20px', fontWeight: '700' as const, margin: '0 0 8px' }
+const supportParagraph = { color: '#a1a1aa', fontSize: '14px', lineHeight: '22px', margin: '0 0 20px' }
 const supportButton = {
   backgroundColor: '#7c3aed',
   borderRadius: '10px',
@@ -174,7 +175,8 @@ const supportButton = {
   textAlign: 'center' as const,
   display: 'inline-block',
   padding: '12px 32px',
+  boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)',
 }
 const footer = { padding: '28px 20px', textAlign: 'center' as const }
-const footerText = { color: '#64748b', fontSize: '13px', margin: '0 0 12px' }
-const copy = { color: '#94a3b8', fontSize: '11px', margin: '0' }
+const footerText = { color: '#71717a', fontSize: '13px', margin: '0 0 12px' }
+const copy = { color: '#52525b', fontSize: '11px', margin: '0' }

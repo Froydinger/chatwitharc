@@ -25,7 +25,7 @@ const DesktopLinkEmail = ({ displayName, desktopUrl }: DesktopLinkProps) => {
         <Container style={container}>
           <Section style={header}>
             <Img
-              src="https://cgvixgyjzswebosfqyll.supabase.co/storage/v1/object/public/email-assets/arc-logo-ui.png"
+              src="https://askarc.chat/arc-logo-ui.png"
               width="56"
               height="56"
               alt="ArcAI"
@@ -53,7 +53,7 @@ const DesktopLinkEmail = ({ displayName, desktopUrl }: DesktopLinkProps) => {
           </Section>
 
           <Section style={footer}>
-            <Text style={footerText}>Sent from {SITE_NAME} by Win The Night</Text>
+            <Text style={footerText}>Sent from {SITE_NAME} by Win The Night™ Foundation</Text>
           </Section>
         </Container>
       </Body>
@@ -69,29 +69,29 @@ export const template = {
 } satisfies TemplateEntry
 
 const main = {
-  backgroundColor: '#ffffff',
+  backgroundColor: '#09090b',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 }
 const container = { margin: '0 auto', padding: '40px 0', maxWidth: '560px' }
 const header = { textAlign: 'center' as const, paddingBottom: '24px' }
 const logo = { margin: '0 auto', borderRadius: '14px' }
 const content = {
-  backgroundColor: '#f8fafc',
+  backgroundColor: '#18181b',
   borderRadius: '16px',
   padding: '40px 32px',
-  border: '1px solid #e2e8f0',
+  border: '1px solid rgba(0, 128, 240, 0.25)',
   textAlign: 'center' as const,
 }
 const emoji = { fontSize: '48px', textAlign: 'center' as const, margin: '0 0 16px' }
 const h1 = {
-  color: '#0f172a',
+  color: '#fafafa',
   fontSize: '28px',
   fontWeight: '700' as const,
   textAlign: 'center' as const,
   margin: '0 0 16px',
 }
 const paragraph = {
-  color: '#475569',
+  color: '#a1a1aa',
   fontSize: '15px',
   lineHeight: '26px',
   textAlign: 'center' as const,
@@ -108,7 +108,8 @@ const button = {
   textAlign: 'center' as const,
   display: 'inline-block',
   padding: '14px 36px',
+  boxShadow: '0 4px 12px rgba(0, 128, 240, 0.3)',
 }
-const note = { color: '#64748b', fontSize: '13px', lineHeight: '20px', margin: '0' }
+const note = { color: '#71717a', fontSize: '13px', lineHeight: '20px', margin: '0' }
 const footer = { padding: '28px 20px', textAlign: 'center' as const }
-const footerText = { color: '#94a3b8', fontSize: '11px', margin: '0' }
+const footerText = { color: '#52525b', fontSize: '11px', margin: '0' }
