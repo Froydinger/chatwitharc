@@ -601,12 +601,6 @@ useEffect(() => {
     })();
   }, [user]);
 
-  // Load full history (up to 500) in the background when the user visits the Chats tab
-  useEffect(() => {
-    if (user && activeTab === "chats") {
-      syncFromSupabase(500);
-    }
-  }, [activeTab, user, syncFromSupabase]);
 
   const allChats = useMemo(() => {
     return [...chatSessions].sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());

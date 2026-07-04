@@ -513,24 +513,6 @@ export function ChatHistoryPanel() {
                 </button>
               </div>
             )}
-
-            {!hasLoadedOlder && sortedSessions.length > 0 && (
-              <div className="flex items-center justify-center pt-3 pb-2 border-t border-border/10 mt-3">
-                <button
-                  onClick={handleLoadOlder}
-                  disabled={loadingOlder}
-                  className="h-8 px-4 rounded-xl text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  {loadingOlder ? (
-                    <>
-                      <RefreshCw className="h-3 w-3 animate-spin" /> Loading...
-                    </>
-                  ) : (
-                    <>Load Older Chats</>
-                  )}
-                </button>
-              </div>
-            )}
           </div>
         )}
       </div>

@@ -406,7 +406,7 @@ export const useArcStore = create<ArcState>()(
           }
         }
       },
-      syncFromSupabase: async (limit?: number) => {
+      syncFromSupabase: async (limit = 500) => {
         if (!supabase || !isSupabaseConfigured) {
           console.log('⚠️ Supabase not configured, skipping sync');
           return;
@@ -447,7 +447,7 @@ export const useArcStore = create<ArcState>()(
           console.log('🔄 Starting metadata-first sync from Supabase for user:', user.id);
 
           let sessionsMeta: any[] = [];
-          const fetchLimit = limit !== undefined ? limit : 10;
+          const fetchLimit = limit;
 
           // Primary path: metadata RPC (fastest)
           const { data: rpcSessions, error: rpcError } = await supabase.rpc('list_chat_sessions_meta', {
@@ -841,11 +841,6 @@ export const useArcStore = create<ArcState>()(
               allSessionsHydrated: true
             };
           });
-
-          // Run background naming pass once hydration is complete
-          setTimeout(() => {
-            get().generateTitlesForUnnamedChats();
-          }, 1000);
         } catch (error) {
           console.error('❌ Failed to bulk hydrate sessions:', error);
         } finally {
