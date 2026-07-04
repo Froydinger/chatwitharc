@@ -198,8 +198,9 @@ export function SearchCanvas() {
 
       const formattedContent = data?.content || `No results found for "${query}".`;
       const images: string[] = data?.images || [];
+      const quickAnswer: string = data?.quickAnswer || "";
 
-      addSession(query, results, formattedContent, undefined, images);
+      addSession(query, results, formattedContent, undefined, images, quickAnswer);
 
       toast({
         title: `Found ${results.length} sources`,
@@ -952,18 +953,36 @@ export function SearchCanvas() {
                   </div>
                 )}
 
-                {/* Search Visual Results Grid */}
+                {/* Search Quick Answer Card */}
+                {activeSession.quickAnswer && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="mb-6 relative z-10 p-4 rounded-3xl border border-primary/20 bg-primary/5 backdrop-blur-md shadow-sm"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="w-4 h-4 text-primary animate-pulse" />
+                      <h3 className="text-xs font-semibold text-primary uppercase tracking-wider">Quick Answer</h3>
+                    </div>
+                    <p className="text-sm sm:text-base leading-relaxed text-foreground/95 font-medium">
+                      {activeSession.quickAnswer}
+                    </p>
+                  </motion.div>
+                )}
+
+                {/* Search Visual Results Row */}
                 {activeSession.images && activeSession.images.length > 0 && (
                   <div className="mb-8 relative z-10">
                     <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Visual Results</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {activeSession.images.slice(0, 8).map((imgUrl, idx) => (
+                    <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
+                      {activeSession.images.map((imgUrl, idx) => (
                         <motion.div
                           key={idx}
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ delay: idx * 0.04 }}
-                          className="group relative aspect-video rounded-2xl overflow-hidden border border-border/50 bg-card cursor-pointer shadow-sm hover:scale-[1.03] hover:shadow-md hover:border-primary/40 transition-all duration-300"
+                          className="flex-shrink-0 w-44 sm:w-56 aspect-video snap-start group relative rounded-2xl overflow-hidden border border-border/50 bg-card cursor-pointer shadow-sm hover:scale-[1.02] hover:shadow-md hover:border-primary/40 transition-all duration-300"
                           onClick={() => setSelectedImageUrlForModal(imgUrl)}
                         >
                           <SmoothImage

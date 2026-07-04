@@ -55,6 +55,7 @@ export interface SearchSession {
   currentTab?: 'search' | 'chats' | 'saved';
   summaryConversation?: SourceMessage[]; // Follow-up conversation within the summary
   images?: string[];
+  quickAnswer?: string;
 }
 
 interface SearchState {
@@ -82,7 +83,7 @@ interface SearchState {
   setPendingSearchQuery: (query: string | null) => void;
   
   // Session actions
-  addSession: (query: string, results: SearchResult[], formattedContent: string, relatedQueries?: string[], images?: string[]) => string;
+  addSession: (query: string, results: SearchResult[], formattedContent: string, relatedQueries?: string[], images?: string[], quickAnswer?: string) => string;
   setActiveSession: (sessionId: string) => void;
   updateSession: (sessionId: string, updates: Partial<Omit<SearchSession, 'id' | 'timestamp'>>) => void;
   removeSession: (sessionId: string) => void;
@@ -207,7 +208,7 @@ export const useSearchStore = create<SearchState>()(
         set({ pendingSearchQuery: query });
       },
 
-      addSession: (query, results, formattedContent, relatedQueries, images) => {
+      addSession: (query, results, formattedContent, relatedQueries, images, quickAnswer) => {
         const id = crypto.randomUUID();
         const newSession: SearchSession = {
           id,
@@ -217,6 +218,7 @@ export const useSearchStore = create<SearchState>()(
           timestamp: Date.now(),
           relatedQueries,
           images,
+          quickAnswer,
         };
 
         set((state) => ({
@@ -556,11 +558,11 @@ export const useSearchStore = create<SearchState>()(
             ? `Context from previous conversation about "${session.query}":\n${previousContext}\n\nFollow-up question: ${message}`
             : `Follow-up to "${session.query}": ${message}`;
 
-          // Use Perplexity for follow-up search
           const { data, error } = await supabase.functions.invoke('perplexity-search', {
             body: {
               query: contextualQuery,
               model: 'sonar-pro',
+              skipImages: true,
             },
           });
 
@@ -713,6 +715,7 @@ export const useSearchStore = create<SearchState>()(
                 sourceConversations: s.source_conversations || {},
                 summaryConversation: s.summary_conversation || [],
                 images: s.source_conversations?._session_images || [],
+                quickAnswer: s.source_conversations?._session_quick_answer || undefined,
               };
             });
 
@@ -846,10 +849,11 @@ export const useSearchStore = create<SearchState>()(
             return;
           }
 
-          // Embed session images inside source_conversations json to avoid schema limitations
+          // Embed session images and quick answer inside source_conversations json to avoid schema limitations
           const sourceConvs = {
             ...(session.sourceConversations || {}),
-            _session_images: session.images || []
+            _session_images: session.images || [],
+            _session_quick_answer: session.quickAnswer || null
           };
 
           // Use type assertion since the types file may not be updated yet
