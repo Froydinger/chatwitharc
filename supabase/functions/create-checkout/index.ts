@@ -89,9 +89,18 @@ Deno.serve(async (req) => {
     }
 
     const stripe = createStripeClient(environment);
-    const prices = await stripe.prices.list({ lookup_keys: [priceId] });
-    if (!prices.data.length) throw new Error("Price not found");
-    const stripePrice = prices.data[0];
+    let stripePrice;
+    try {
+      const prices = await stripe.prices.list({ lookup_keys: [priceId] });
+      if (prices.data.length) {
+        stripePrice = prices.data[0];
+      } else {
+        // Fallback to retrieving directly by ID if lookup_keys matches nothing
+        stripePrice = await stripe.prices.retrieve(priceId);
+      }
+    } catch (e) {
+      throw new Error(`Price not found or invalid: ${priceId}`);
+    }
     const isRecurring = stripePrice.type === "recurring";
 
     const customerId = (resolvedEmail || resolvedUserId)
