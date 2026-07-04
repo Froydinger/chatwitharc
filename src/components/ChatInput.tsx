@@ -31,7 +31,7 @@ import { useAccentColor } from "@/hooks/useAccentColor";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useModelStore, SMARTER_MODEL } from "@/store/useModelStore";
+import { useModelStore, FASTER_MODEL, SMARTER_MODEL, THINKING_MODEL, DEEP_THINK_MODEL } from "@/store/useModelStore";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useStreamingWithContinuation } from "@/hooks/useStreamingWithContinuation";
@@ -1191,9 +1191,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       return;
     }
 
-    // Quota check for gated reasoning models (gpt-5.4-mini and gpt-5.5)
+    // Quota check for gated reasoning models (gpt-5.4 and gpt-5.5)
     const currentModel = useModelStore.getState().chatModel;
-    if (currentModel !== FASTER_MODEL && !hasBoost) {
+    if ((currentModel === THINKING_MODEL || currentModel === DEEP_THINK_MODEL) && !hasBoost) {
       toast({
         title: "Boost Plan Required",
         description: "Thinking (GPT-5.4) and Deep Think (GPT-5.5) modes are available on the Boost plan. Upgrade now to get unlimited access to advanced reasoning models!",

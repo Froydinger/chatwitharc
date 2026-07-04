@@ -506,10 +506,12 @@ serve(async (req) => {
       );
     }
 
-    // Validate model if provided — only the two user-pickable chat models are allowed.
+    // Validate model if provided — only the user-pickable chat models are allowed.
     const allowedModels = [
-      'gpt-5.4-nano',   // Faster (default for free/anon)
+      'gpt-5.4-nano',   // Faster
       'gpt-5.4-mini',   // Smarter
+      'gpt-5.4',        // Thinking
+      'gpt-5.5',        // Deep Think
     ];
     const validatedModel = (model && allowedModels.includes(model)) ? model : null;
     if (model && !validatedModel) {
@@ -1078,10 +1080,10 @@ Output the complete, finished writing using the update_canvas tool.`;
       console.log('🔧 Code mode: using GPT-5.4 Mini');
     }
 
-    // Dynamic model selection: use the requested reasoning model for complex queries
-    if (useProModel && !wantsCode) {
+    // Dynamic model selection: use the requested reasoning model for complex queries if on default nano model
+    if (useProModel && !wantsCode && selectedModel === 'gpt-5.4-nano') {
       selectedModel = 'gpt-5.4-mini';
-      console.log('🧠 Complex query detected: using GPT-5.4 Mini');
+      console.log('🧠 Complex query detected: upgrading to GPT-5.4 Mini');
     }
     
     // OpenAI models use max_completion_tokens.

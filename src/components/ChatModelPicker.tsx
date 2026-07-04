@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Brain, Sparkles, Check, ChevronDown, Lock } from 'lucide-react';
-import { useModelStore, FASTER_MODEL, THINKING_MODEL, DEEP_THINK_MODEL, type ChatModel } from '@/store/useModelStore';
+import { Zap, Lightbulb, Brain, BrainCircuit, Check, ChevronDown, Lock } from 'lucide-react';
+import { useModelStore, FASTER_MODEL, SMARTER_MODEL, THINKING_MODEL, DEEP_THINK_MODEL, type ChatModel } from '@/store/useModelStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
 
@@ -24,12 +24,15 @@ export function ChatModelPicker({ className }: Props) {
 
   let current = 'Faster';
   let CurrentIcon = Zap;
-  if (chatModel === THINKING_MODEL) {
+  if (chatModel === SMARTER_MODEL) {
+    current = 'Smarter';
+    CurrentIcon = Lightbulb;
+  } else if (chatModel === THINKING_MODEL) {
     current = 'Thinking';
     CurrentIcon = Brain;
   } else if (chatModel === DEEP_THINK_MODEL) {
     current = 'Deep Think';
-    CurrentIcon = Sparkles;
+    CurrentIcon = BrainCircuit;
   }
 
   // Compute position when opening, and on resize/scroll while open.
@@ -56,7 +59,7 @@ export function ChatModelPicker({ className }: Props) {
   }, [open]);
 
   const pick = (m: ChatModel) => {
-    if (m !== FASTER_MODEL && !hasBoost) {
+    if ((m === THINKING_MODEL || m === DEEP_THINK_MODEL) && !hasBoost) {
       openCheckout();
       setOpen(false);
       return;
@@ -107,6 +110,13 @@ export function ChatModelPicker({ className }: Props) {
                   onClick={() => pick(FASTER_MODEL)}
                 />
                 <Row
+                  icon={<Lightbulb className="h-4 w-4 text-primary" />}
+                  title="Smarter"
+                  subtitle="GPT-5.4 Mini · balanced replies"
+                  active={chatModel === SMARTER_MODEL}
+                  onClick={() => pick(SMARTER_MODEL)}
+                />
+                <Row
                   icon={<Brain className="h-4 w-4 text-primary" />}
                   title="Thinking"
                   subtitle="GPT-5.4 · deeper reasoning"
@@ -115,7 +125,7 @@ export function ChatModelPicker({ className }: Props) {
                   onClick={() => pick(THINKING_MODEL)}
                 />
                 <Row
-                  icon={<Sparkles className="h-4 w-4 text-primary" />}
+                  icon={<BrainCircuit className="h-4 w-4 text-primary" />}
                   title="Deep Think"
                   subtitle="GPT-5.5 · ultimate reasoning"
                   active={chatModel === DEEP_THINK_MODEL}
