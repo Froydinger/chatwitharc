@@ -194,13 +194,15 @@ export class AIService {
       const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
       const isComplex = !isCanvasOrCode && detectComplexQuery(lastUserMsg);
       
-      const selectedModel = modelOverride || (isCanvasOrCode
+      const selectedModel = modelOverride || (forceCode
         ? getModelForTask('code')
-        : forceWebSearch
-          ? getModelForTask('chat')
-          : isComplex
-            ? getModelForTask('deep-chat')
-            : getModelForTask('chat'));
+        : forceCanvas
+          ? getModelForTask('file-gen')
+          : forceWebSearch
+            ? getModelForTask('chat')
+            : isComplex
+              ? getModelForTask('deep-chat')
+              : getModelForTask('chat'));
 
       // Use longer timeout for canvas/code generation or complex queries (especially with 3.1 Pro)
       const timeoutMs = (isCanvasOrCode || isComplex) ? this.canvasTimeoutMs : this.defaultTimeoutMs;
@@ -370,13 +372,15 @@ export class AIService {
     const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
     const isComplex = !(forceCanvas || forceCode) && detectComplexQuery(lastUserMsg);
     
-    const selectedModel = (forceCanvas || forceCode) 
+    const selectedModel = forceCode
       ? getModelForTask('code')
-      : forceWebSearch
-        ? getModelForTask('chat')
-        : isComplex
-          ? getModelForTask('deep-chat')
-          : getModelForTask('chat');
+      : forceCanvas
+        ? getModelForTask('file-gen')
+        : forceWebSearch
+          ? getModelForTask('chat')
+          : isComplex
+            ? getModelForTask('deep-chat')
+            : getModelForTask('chat');
 
     // Enrich profile with context blocks (same as sendMessage)
     let enrichedProfile = profile || {};

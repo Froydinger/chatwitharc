@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Lightbulb, Brain, BrainCircuit, Check, ChevronDown, Lock } from 'lucide-react';
-import { useModelStore, FASTER_MODEL, SMARTER_MODEL, THINKING_MODEL, DEEP_THINK_MODEL, type ChatModel } from '@/store/useModelStore';
+import { Zap, Lightbulb, Brain, BrainCircuit, Sparkles, Check, ChevronDown, Lock } from 'lucide-react';
+import { useModelStore, AUTO_MODEL, FASTER_MODEL, SMARTER_MODEL, THINKING_MODEL, DEEP_THINK_MODEL, type ChatModel } from '@/store/useModelStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
 
@@ -22,9 +22,12 @@ export function ChatModelPicker({ className }: Props) {
   const btnRef = useRef<HTMLButtonElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
 
-  let current = 'Faster';
-  let CurrentIcon = Zap;
-  if (chatModel === SMARTER_MODEL) {
+  let current = 'Auto';
+  let CurrentIcon = Sparkles;
+  if (chatModel === FASTER_MODEL) {
+    current = 'Faster';
+    CurrentIcon = Zap;
+  } else if (chatModel === SMARTER_MODEL) {
     current = 'Smarter';
     CurrentIcon = Lightbulb;
   } else if (chatModel === THINKING_MODEL) {
@@ -102,6 +105,13 @@ export function ChatModelPicker({ className }: Props) {
                 style={{ top: coords.top, left: coords.left }}
                 className="fixed z-[9999] w-60 rounded-2xl border border-border/40 glass shadow-2xl p-1.5"
               >
+                <Row
+                  icon={<Sparkles className="h-4 w-4 text-primary" />}
+                  title="Auto"
+                  subtitle="Best model for each task"
+                  active={chatModel === AUTO_MODEL}
+                  onClick={() => pick(AUTO_MODEL)}
+                />
                 <Row
                   icon={<Zap className="h-4 w-4 text-primary" />}
                   title="Faster"
