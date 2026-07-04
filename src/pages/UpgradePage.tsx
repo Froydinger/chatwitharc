@@ -58,12 +58,12 @@ export function UpgradePage() {
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
 
       <div className="max-w-4xl mx-auto relative z-10">
-        <button
-          onClick={() => navigate(-1)}
+        <Link
+          to="/"
           className="inline-flex items-center gap-2 text-white/70 hover:text-white font-medium transition-colors mb-8 bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl border border-white/5 backdrop-blur-md"
         >
           <ArrowLeft className="h-4 w-4" /> Back
-        </button>
+        </Link>
 
         {/* Not Logged In State */}
         {!isLoggedIn ? (
