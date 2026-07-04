@@ -311,7 +311,7 @@ export function ChatHistoryPanel() {
 
         
         {isCreatingFolder && (
-          <div className="flex items-center gap-2 p-2 rounded-xl bg-muted/20 border border-border/40 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 p-2 rounded-xl bg-muted/40 border border-border/60 focus-within:border-primary/40 transition-all animate-in fade-in slide-in-from-top-2">
             <input
               autoFocus
               type="text"
@@ -319,7 +319,7 @@ export function ChatHistoryPanel() {
               onChange={(e) => setNewFolderName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
               placeholder="Folder name..."
-              className="flex-1 bg-transparent text-xs outline-none"
+              className="flex-1 bg-transparent text-base md:text-xs outline-none text-foreground placeholder:text-muted-foreground/60"
             />
             <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setIsCreatingFolder(false)}>
               <X className="h-3 w-3" />

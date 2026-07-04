@@ -1211,7 +1211,8 @@ export const useArcStore = create<ArcState>()(
         const newMessage = {
           ...message,
           id: messageId,
-          timestamp: new Date()
+          timestamp: new Date(),
+          sourceModel: message.role === 'assistant' ? (message.sourceModel || 'cloud-chat') : undefined
         };
         
         
@@ -1369,6 +1370,7 @@ export const useArcStore = create<ArcState>()(
             canvasContent,
             canvasLabel: displayLabel,
             memoryAction,
+            sourceModel: 'cloud-canvas',
           });
           return createdId;
         }
@@ -1387,6 +1389,7 @@ export const useArcStore = create<ArcState>()(
             canvasContent,
             canvasLabel: displayLabel,
             memoryAction,
+            sourceModel: 'cloud-canvas',
             timestamp: new Date(),
           };
 
@@ -1439,6 +1442,7 @@ export const useArcStore = create<ArcState>()(
             codeLanguage: language,
             codeLabel: displayLabel,
             memoryAction,
+            sourceModel: 'cloud-code',
           });
           return createdId;
         }
@@ -1458,6 +1462,7 @@ export const useArcStore = create<ArcState>()(
             codeLanguage: language,
             codeLabel: displayLabel,
             memoryAction,
+            sourceModel: 'cloud-code',
             timestamp: new Date(),
           };
 

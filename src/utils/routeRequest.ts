@@ -94,10 +94,16 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
       const { name, tier } = getModelInfo(m);
       return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `${tier} mode — OpenAI ${name}.` };
     }
-    case 'cloud-search':
-      return { label: 'Cloud · Web Search', icon: 'cloud', tooltip: 'Web Search with cited sources.' };
-    case 'cloud-search-tavily':
-      return { label: 'Cloud · Web Search', icon: 'cloud', tooltip: 'Web Search with cited sources.' };
+    case 'cloud-search': {
+      const m = useModelStore.getState().chatModel;
+      const { name } = getModelInfo(m);
+      return { label: `Cloud · ${name} (Web)`, icon: 'cloud', tooltip: `Web Search synthesis — OpenAI ${name}.` };
+    }
+    case 'cloud-search-tavily': {
+      const m = useModelStore.getState().chatModel;
+      const { name } = getModelInfo(m);
+      return { label: `Cloud · ${name} (Web)`, icon: 'cloud', tooltip: `Web Search synthesis — OpenAI ${name}.` };
+    }
     case 'cloud-vision': {
       const m = useModelStore.getState().chatModel;
       const { name } = getModelInfo(m);

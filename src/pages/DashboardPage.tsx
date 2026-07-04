@@ -1060,13 +1060,13 @@ useEffect(() => {
               <AnimatePresence>
                 {isCreatingFolder && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                    <div className="flex items-center gap-2 p-3 rounded-xl bg-primary/5 border border-primary/15 mb-2">
-                      <Folder className="h-4 w-4 text-primary shrink-0" />
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/40 border border-border/60 focus-within:border-primary/40 mb-2 transition-all">
+                      <Folder className="h-4 w-4 text-foreground/70 shrink-0" />
                       <Input
                         value={newFolderName}
                         onChange={e => setNewFolderName(e.target.value)}
                         placeholder="Folder name..."
-                        className="h-8 bg-background/50 border-none focus-visible:ring-0 px-1 text-sm"
+                        className="h-8 bg-background/50 border-none focus-visible:ring-0 px-1 text-base md:text-sm text-foreground placeholder:text-muted-foreground/60"
                         autoFocus
                         onKeyDown={e => e.key === 'Enter' && handleCreateFolder()}
                       />
