@@ -82,7 +82,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Shield, Crown, Sparkles, Activity, ExternalLink } from "lucide-react";
+import { Shield, Crown, Sparkles, Activity, ExternalLink, Calendar } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { LocalAIPanel } from "@/components/LocalAIPanel";
@@ -252,6 +252,8 @@ export function SettingsPanel() {
     smarterChatLimit,
     openCheckout,
     openCustomerPortal,
+    cancelAtPeriodEnd,
+    currentPeriodEnd,
   } = useSubscription();
   const { toast } = useToast();
   const { accentColor, setAccentColor } = useAccentColor();
@@ -801,6 +803,15 @@ export function SettingsPanel() {
                 : "20 Smarter chats/day, 10 images/day, and unlimited Fast chats."
               }
             </p>
+            {hasBoost && currentPeriodEnd && (
+              <p className="text-[11px] text-muted-foreground mt-1.5 font-medium flex items-center gap-1">
+                <Calendar className="h-3 w-3 text-primary/80" />
+                {cancelAtPeriodEnd 
+                  ? `Subscription ends on ${new Date(currentPeriodEnd).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}`
+                  : `Next renewal on ${new Date(currentPeriodEnd).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}`
+                }
+              </p>
+            )}
           </div>
           <div>
             {quotaAdmin ? null : hasBoost ? (

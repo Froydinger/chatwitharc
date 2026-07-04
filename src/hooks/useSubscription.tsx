@@ -93,6 +93,8 @@ interface SubscriptionState {
   remainingVoiceSessions: number;
   subscriptionEnd: string | null;
   paymentStatus: 'ok' | 'past_due' | 'none';
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?: string | null;
 
   // Actions
   checkSubscription: () => Promise<void>;
@@ -122,6 +124,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [dailyImagesUsed, setDailyImagesUsed] = useState(() => getDailyImageCount());
   const [dailySmarterChatsUsed, setDailySmarterChatsUsed] = useState(() => getDailySmarterChatCount());
   const [voiceConversations30d, setVoiceConversations30d] = useState(0);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState<boolean>(false);
+  const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
 
   const emailUnlimited = !!user?.email && UNLIMITED_EMAILS.has(user.email.toLowerCase());
   const hasBoost = isAdmin || emailUnlimited || hasBoostSub;
@@ -166,6 +170,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     if (!user || !supabase) {
       setIsAdmin(false);
       setHasBoostSub(false);
+      setCancelAtPeriodEnd(false);
+      setCurrentPeriodEnd(null);
       setLoading(false);
       return;
     }
@@ -176,6 +182,23 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       ]);
       setIsAdmin(!!adminData);
       setHasBoostSub(!!boostData);
+
+      // Fetch active subscription details
+      const { data: subDetails } = await supabase
+        .from('subscriptions')
+        .select('cancel_at_period_end, current_period_end')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (subDetails) {
+        setCancelAtPeriodEnd(!!subDetails.cancel_at_period_end);
+        setCurrentPeriodEnd(subDetails.current_period_end);
+      } else {
+        setCancelAtPeriodEnd(false);
+        setCurrentPeriodEnd(null);
+      }
     } catch (err) {
       console.error('[subscription] check failed', err);
     } finally {
@@ -278,6 +301,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       voiceConversations30d,
       canStartVoiceConversation,
       remainingVoiceConversations,
+      cancelAtPeriodEnd,
+      currentPeriodEnd,
 
       // Legacy
       isSubscribed: hasBoost,
