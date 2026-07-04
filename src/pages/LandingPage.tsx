@@ -185,7 +185,7 @@ export function LandingPage() {
           {[
             { category: "Ask", icon: MessageSquare, title: "Advanced Reasoning", body: "Choose between GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) models to solve your most complex problems with ultimate depth." },
             { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
-            { category: "Reflect", icon: Brain, title: "Memory That Follows You", body: "Arc remembers your background, preferences, and goals across every device, reflecting on past chats to grow with you over time." },
+            { category: "Reflect", icon: Brain, title: "Deep Cross-Session Memory", body: "Arc is built to reflect and remember. It automatically builds a persistent Memory Bank of your preferences, goals, and facts across sessions, recalling context so it genuinely knows who you are." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },
             { category: "Create", icon: Code2, title: "Code Canvas", body: "Turn thoughts into running web apps instantly, with a visual canvas to preview, build, and publish your creations." },
             { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create custom images and art with state-of-the-art vision models, bringing visual ideas to life in seconds." },
