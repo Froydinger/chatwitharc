@@ -10,7 +10,6 @@ import { UpgradeModal } from "@/components/UpgradeModal";
 import { BoostSync } from "@/components/BoostSync";
 import { ImageQuotaProvider } from "@/hooks/useImageQuota";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
-import { UpdateNotification } from "@/components/UpdateNotification";
 import { AdminBanner } from "@/components/AdminBanner";
 import { PageTransition } from "@/components/PageTransition";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -172,6 +171,11 @@ const detectStandaloneMode = () => {
   }
 };
 
+const ThemeManager = () => {
+  useTheme();
+  return null;
+};
+
 const App = () => {
   const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
@@ -180,7 +184,6 @@ const App = () => {
   useVisibilityHandler();
   useCorporateModeEnforcer();
   useLocalModelPersistence();
-  useTheme();
   useCustomFont();
 
   const [upgradePriceId, setUpgradePriceId] = useState<string | undefined>(undefined);
@@ -214,7 +217,6 @@ const App = () => {
               <Sonner />
               <FingerPopupContainer />
               <PWAInstallPrompt />
-              <UpdateNotification />
               <AdminBanner />
               <BugReportModal
                 isOpen={isOpen}
@@ -229,6 +231,7 @@ const App = () => {
               />
               <BoostSync />
               <BrowserRouter>
+                <ThemeManager />
                 <ScrollToTop />
                 <RouteSEO />
                 <PageTransition>

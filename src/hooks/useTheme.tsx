@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAccentStore, type ThemeMode } from "@/store/useAccentStore";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useLocation } from "react-router-dom";
 
 function isThemeMode(value: unknown): value is ThemeMode {
   return value === "light" || value === "dark" || value === "system";
@@ -12,6 +13,7 @@ export function useTheme() {
   const setThemeMode = useAccentStore((s) => s.setThemeMode);
   const { user, isAnonymous, loading } = useAuth();
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
     if (loading) return;
@@ -58,8 +60,9 @@ export function useTheme() {
     const root = document.documentElement;
 
     const apply = (isLight: boolean) => {
-      // Shared chat pages always render in dark theme for legibility of the CTA bar
-      if (typeof window !== "undefined" && window.location.pathname.startsWith("/share/")) {
+      // Shared chat, pricing, and upgrade pages always render in dark theme
+      const path = location.pathname;
+      if (path.startsWith("/share/") || path === "/pricing" || path === "/upgrade") {
         root.classList.remove("light");
         root.classList.add("dark");
         return;
@@ -94,5 +97,5 @@ export function useTheme() {
     }
 
     apply(themeMode === "light");
-  }, [themeMode]);
+  }, [themeMode, location.pathname]);
 }
