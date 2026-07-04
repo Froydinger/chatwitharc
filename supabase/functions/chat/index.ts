@@ -958,7 +958,7 @@ serve(async (req) => {
         type: "function",
         function: {
           name: "schedule_task",
-          description: "Schedule a task to run at a future time (once or recurring). When it fires, Arc saves the result in chat and can send push. Email is coming soon.",
+          description: "Schedule a task to run at a future time (once or recurring). Supports in-chat, push, and email delivery.",
           parameters: {
             type: "object",
             properties: {
@@ -968,6 +968,7 @@ serve(async (req) => {
               cron_expr: { type: "string", description: "Standard 5-field UTC cron for RECURRING tasks (e.g. '0 13 * * *' = daily 8am Central). Use instead of when_iso." },
               deliver_in_chat: { type: "boolean", description: "Save result as a new message in a chat session. Default true." },
               deliver_push: { type: "boolean", description: "Send a push notification when done. Default false." },
+              deliver_email: { type: "boolean", description: "Send an email notification when done. Default false." },
             },
             required: ["title", "prompt"],
             additionalProperties: false
@@ -1765,11 +1766,10 @@ Output the complete, finished writing using the update_canvas tool.`;
           const args = JSON.parse(toolCall.function.arguments);
           const title = String(args.title ?? 'Scheduled task').slice(0, 200);
           const prompt = String(args.prompt ?? '').slice(0, 4000);
-          // Always keep a chat copy so scheduled work is accessible later from the app/email link.
           const deliverInChat = true;
           const deliverPush = args.deliver_push === true;
-          const deliverEmail = false;
           const requestedText = `${messages[messages.length - 1]?.content ?? ''}\n${title}\n${prompt}`;
+          const deliverEmail = args.deliver_email === true || requestedText.toLowerCase().includes('email') || requestedText.toLowerCase().includes('mail');
           const deterministic = deterministicScheduleFromText(requestedText, parsedClientOffset);
           const whenIso = deterministic?.whenIso ?? (typeof args.when_iso === 'string' ? args.when_iso : null);
           const cronExpr = deterministic?.cronExpr ?? (typeof args.cron_expr === 'string' ? args.cron_expr : null);
