@@ -394,6 +394,9 @@ All colors MUST be HSL for perfect glass effects.
 
   html {
     background: hsl(var(--background));
+    overflow-x: hidden;
+    width: 100vw;
+    max-width: 100%;
   }
 
   body {
@@ -401,6 +404,8 @@ All colors MUST be HSL for perfect glass effects.
     background: transparent;
     min-height: 100vh;
     overflow-x: hidden;
+    width: 100vw;
+    max-width: 100%;
     position: relative;
   }
 
