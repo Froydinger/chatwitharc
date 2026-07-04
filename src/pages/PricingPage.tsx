@@ -8,7 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 const FREE_FEATURES = [
   "20 daily Smarter (GPT-5.4 Mini) reasoning chats",
   "Unlimited Fast (GPT-5.4 Nano) chats",
-  "10 generated or edited image outputs per UTC day",
+  "GPT-Image-1 Mini (40 outputs/day) & GPT-Image-1 (10 outputs/day)",
+  "3 free daily GPT-Image-2 premium outputs",
   "Deep Search with summaries and citations",
   "File uploads, document analysis, memory, and canvases",
   "2 shared chats (up to 6 people each)",
@@ -17,7 +18,8 @@ const FREE_FEATURES = [
 
 const BOOST_FEATURES = [
   "Unlimited Smarter (GPT-5.4 Mini) reasoning chats",
-  "Generate up to 30 images a day (10 on free)",
+  "20 premium GPT Image 2 outputs per day",
+  "Full image editing (combining & variations of base images)",
   "Publish your code online at a custom arc link",
   "Unlimited voice conversations",
   "Unlimited shared chats (up to 6 people each)",

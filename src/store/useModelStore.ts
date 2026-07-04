@@ -36,11 +36,13 @@ export const useModelStore = create<ModelStore>()(
   )
 );
 
+import { useImageGenStore } from './useImageGenStore';
+
 /**
  * Get the correct model string for a given task.
  * - Chat tasks follow the user's chosen chatModel (Faster/Smarter).
  * - Tool tasks follow the user's selected chat model.
- * - Image gen/edit are pinned to gpt-image-2.
+ * - Image gen/edit are bound to the user's selected image model.
  */
 export function getModelForTask(task: ModelTask): string {
   const { chatModel } = useModelStore.getState();
@@ -50,7 +52,7 @@ export function getModelForTask(task: ModelTask): string {
       return chatModel;
     case 'image-gen':
     case 'image-edit':
-      return 'gpt-image-2';
+      return useImageGenStore.getState().model || 'gpt-image-1';
     case 'code':
     case 'image-analysis':
     case 'file-gen':

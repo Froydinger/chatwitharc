@@ -52,7 +52,8 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
             <ul className="text-left space-y-2.5 mb-6 max-w-sm mx-auto">
               {[
                 "Unlimited Smarter (GPT-5.4 Mini) reasoning chats",
-                "Generate up to 30 images a day (10 on free)",
+                "20 high-fidelity GPT Image 2 outputs per day",
+                "Premium image editing (variations & base image combining)",
                 "Publish your code online at a custom arc link",
                 "Unlimited voice conversations",
                 "Unlimited shared chats (up to 6 people each)",
@@ -70,7 +71,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
                 <Sparkles className="h-3 w-3" />
                 <span className="font-medium text-foreground">Free forever includes</span>
               </div>
-              20 Smarter chats/day · Unlimited Fast chats · 10 images/day · 2 shared chats
+              20 Smarter chats/day · GPT-Image-1 Mini (40/day) · GPT-Image-1 (10/day) · 3 GPT-Image-2/day · 2 shared chats
             </div>
 
             {canCheckout ? (

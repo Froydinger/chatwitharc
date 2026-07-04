@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS bug_reports (
 ALTER TABLE bug_reports ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can insert their own bug reports
+DROP POLICY IF EXISTS "Users can insert bug reports" ON bug_reports;
 CREATE POLICY "Users can insert bug reports"
   ON bug_reports
   FOR INSERT
@@ -22,18 +23,18 @@ CREATE POLICY "Users can insert bug reports"
   WITH CHECK (auth.uid() = user_id);
 
 -- Policy: Admins can view all bug reports
+DROP POLICY IF EXISTS "Admins can view all bug reports" ON bug_reports;
 CREATE POLICY "Admins can view all bug reports"
   ON bug_reports
   FOR SELECT
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM profiles
-      WHERE profiles.user_id = auth.uid()
-      AND profiles.is_admin = true
+      SELECT 1 FROM public.admin_users
+      WHERE admin_users.user_id = auth.uid()
     )
   );
 
 -- Index for faster queries
-CREATE INDEX idx_bug_reports_created_at ON bug_reports(created_at DESC);
-CREATE INDEX idx_bug_reports_user_id ON bug_reports(user_id);
+CREATE INDEX IF NOT EXISTS idx_bug_reports_created_at ON bug_reports(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_bug_reports_user_id ON bug_reports(user_id);

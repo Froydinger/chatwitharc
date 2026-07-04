@@ -15,8 +15,8 @@ const REQUEST_TIMEOUT_MS = 180_000;
 const RETRY_DELAY_MS = 3_000;
 
 // All image generation is locked to OpenAI GPT-Image-2 at medium quality.
-const DEFAULT_IMAGE_MODEL = "gpt-image-2";
-const ALLOWED_IMAGE_MODELS = new Set<string>(["gpt-image-2"]);
+const DEFAULT_IMAGE_MODEL = "gpt-image-1";
+const ALLOWED_IMAGE_MODELS = new Set<string>(["gpt-image-1", "gpt-image-1-mini", "gpt-image-2"]);
 function pickImageModel(requested?: unknown): string {
   return typeof requested === "string" && ALLOWED_IMAGE_MODELS.has(requested)
     ? requested

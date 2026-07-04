@@ -24,6 +24,8 @@ interface ImageOptionsDockProps {
   widthPx?: number;
 }
 
+import { useSubscription } from "@/hooks/useSubscription";
+
 /**
  * Inner controls (model + aspect + usage meter). Can be rendered inline
  * inside another panel (e.g. the Selected Images preview) or wrapped by
@@ -31,6 +33,7 @@ interface ImageOptionsDockProps {
  */
 export function ImageOptionsContent({ showUsage = true }: { showUsage?: boolean }) {
   const { model, aspectRatio, count, setModel, setAspectRatio, setCount } = useImageGenStore();
+  const { hasBoost } = useSubscription();
 
   const [openMenu, setOpenMenu] = useState<null | "model" | "aspect" | "count">(null);
 
@@ -60,47 +63,49 @@ export function ImageOptionsContent({ showUsage = true }: { showUsage?: boolean 
 
       <div className="flex flex-wrap items-end gap-3">
         {/* Model picker */}
-        <div className="relative flex flex-col gap-1">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Model</span>
-          <button
-            type="button"
-            onClick={() => setOpenMenu(openMenu === "model" ? null : "model")}
-            className={cn(
-              "flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
-            )}
-          >
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            <span className="font-medium">{activeModel.label}</span>
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
+        {hasBoost && (
+          <div className="relative flex flex-col gap-1">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Model</span>
+            <button
+              type="button"
+              onClick={() => setOpenMenu(openMenu === "model" ? null : "model")}
+              className={cn(
+                "flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
+              )}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span className="font-medium">{activeModel.label}</span>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
 
-          {openMenu === "model" && (
-            <div className="absolute bottom-full mb-2 left-0 w-64 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
-              {IMAGE_MODEL_OPTIONS.map((m) => {
-                const isActive = m.id === model;
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => handlePickModel(m.id)}
-                    className={cn(
-                      "w-full flex items-start gap-2 px-3 py-2 rounded-xl text-left transition-colors",
-                      isActive ? "bg-primary/10" : "hover:bg-muted/40",
-                    )}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-medium text-foreground truncate">{m.label}</span>
+            {openMenu === "model" && (
+              <div className="absolute bottom-full mb-2 left-0 w-64 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
+                {IMAGE_MODEL_OPTIONS.map((m) => {
+                  const isActive = m.id === model;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => handlePickModel(m.id)}
+                      className={cn(
+                        "w-full flex items-start gap-2 px-3 py-2 rounded-xl text-left transition-colors",
+                        isActive ? "bg-primary/10" : "hover:bg-muted/40",
+                      )}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium text-foreground truncate">{m.label}</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{m.blurb}</p>
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{m.blurb}</p>
-                    </div>
-                    {isActive && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                      {isActive && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Aspect ratio picker */}
         <div className="relative flex flex-col gap-1">

@@ -453,7 +453,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Guest mode = no user OR anonymous (auto-issued) Supabase session.
   const isGuestMode = !user || isAnonymous;
   const requireAuth = useRequireAuth();
-  const { canSendSmarterChat, openCheckout, recordSmarterChat } = useSubscription();
+  const { hasBoost, canSendSmarterChat, openCheckout, recordSmarterChat } = useSubscription();
   const { personas, fetchPersonas } = usePersonasStore();
 
   const {
@@ -492,7 +492,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
-  const [allImagesEditMode, setAllImagesEditMode] = useState(true);
+  const [allImagesEditMode, setAllImagesEditMode] = useState(false);
+  const [showLimitsModal, setShowLimitsModal] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState<File[]>([]);
   const [isActive, setIsActive] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -1471,6 +1472,16 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           allImagesEditMode ||
           (finalMessage && isImageEditRequest(finalMessage)) ||
           images.length > 1;
+
+        if (isEditMode && !hasBoost) {
+          toast({
+            title: "Boost Premium Feature",
+            description: "Image editing and combining is only available on the Boost tier. Please upgrade to unlock editing!",
+            variant: "destructive"
+          });
+          openCheckout();
+          return;
+        }
 
         if (isEditMode) {
           await addMessage({ content: finalMessage, role: "user", type: "image", imageUrls });
@@ -2569,7 +2580,18 @@ ${safeCode}
                   <div className="mt-3 pt-2 border-t border-border/30">
                     <button
                       type="button"
-                      onClick={() => setAllImagesEditMode(!allImagesEditMode)}
+                      onClick={() => {
+                        if (!hasBoost) {
+                          toast({
+                            title: "Boost Premium Feature",
+                            description: "Image editing and combining is only available on the Boost tier. Please upgrade to unlock editing!",
+                            variant: "destructive"
+                          });
+                          openCheckout();
+                          return;
+                        }
+                        setAllImagesEditMode(!allImagesEditMode);
+                      }}
                       className="w-full px-3 py-2 rounded-lg text-sm font-medium transition-all bg-black text-white hover:bg-black/80"
                     >
                       {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
@@ -2598,7 +2620,7 @@ ${safeCode}
           const anchored = rect ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom } : { bottom };
           return createPortal(
             <div
-              className={rect ? "fixed z-[32] pointer-events-none" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[32] pointer-events-none"}
+              className={rect ? "fixed z-[50] pointer-events-none" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[50] pointer-events-none"}
               style={anchored}
             >
               <div className="px-4 flex justify-end mx-auto max-w-[760px]">
@@ -2656,7 +2678,18 @@ ${safeCode}
             {/* Mode indicators removed — single-tool indication is handled inline elsewhere */}
             {/* Model picker moved to header (see MobileChatApp header buttons) */}
 
-
+            {messages.length === 0 && (
+              <div className="flex items-center gap-2 mb-2 px-1">
+                <button
+                  type="button"
+                  onClick={() => setShowLimitsModal(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-muted/45 hover:bg-muted/70 text-muted-foreground transition-all border border-border/30 hover:scale-105 active:scale-95 cursor-pointer"
+                >
+                  <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                  <span>Image Quotas & Limits</span>
+                </button>
+              </div>
+            )}
 
             <div className="relative flex items-center gap-2">
               {/* Add/Attachment Menu */}
@@ -3081,6 +3114,127 @@ ${safeCode}
           textareaRef.current?.focus();
         }}
       />
+
+      {/* Detailed Limits Modal */}
+      {createPortal(
+        <AnimatePresence>
+          {showLimitsModal && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[500] bg-black/60 backdrop-blur-md"
+                onClick={() => setShowLimitsModal(false)}
+              />
+              <div className="fixed inset-0 z-[501] flex items-center justify-center p-4 pointer-events-none">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                  transition={{ type: "spring", stiffness: 350, damping: 28 }}
+                  className="pointer-events-auto w-[min(90vw,420px)] rounded-3xl border border-white/10 bg-background/95 backdrop-blur-2xl shadow-2xl p-6 flex flex-col gap-5 text-foreground relative overflow-hidden"
+                >
+                  {/* Close button */}
+                  <button
+                    onClick={() => setShowLimitsModal(false)}
+                    className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
+                    aria-label="Close"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-2xl bg-primary/10 text-primary">
+                      <Sparkles className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Image Quotas & Limits</h3>
+                      <p className="text-xs text-muted-foreground">Daily limits reset at 00:00 UTC</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3 py-1">
+                    {/* GPT Image 1 */}
+                    <div className="flex items-start justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                      <div className="flex-1 pr-3">
+                        <div className="text-sm font-semibold">GPT Image 1 (Default)</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Balanced quality and details. Good for general prompts.</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/15 text-primary border border-primary/25">10 daily</span>
+                      </div>
+                    </div>
+
+                    {/* GPT Image 1 Mini */}
+                    <div className="flex items-start justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                      <div className="flex-1 pr-3">
+                        <div className="text-sm font-semibold flex items-center gap-1.5">
+                          GPT Image 1 Mini
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Fast, lightweight, and lightweight budget generations.</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">40 daily</span>
+                      </div>
+                    </div>
+
+                    {/* GPT Image 2 */}
+                    <div className="flex items-start justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                      <div className="flex-1 pr-3">
+                        <div className="text-sm font-semibold flex items-center gap-1.5">
+                          GPT Image 2
+                          <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30 font-bold">Premium</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Ultra high-fidelity detail and custom aspect ratios.</div>
+                      </div>
+                      <div className="text-right shrink-0 flex flex-col gap-1 items-end">
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/25">3 free / day</span>
+                        <span className="text-[10px] text-muted-foreground">Boost: 20 daily</span>
+                      </div>
+                    </div>
+
+                    {/* Image Editing */}
+                    <div className="flex items-start justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5">
+                      <div className="flex-1 pr-3">
+                        <div className="text-sm font-semibold">Image Editing</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Combine base images and request editing variations.</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/25">Boost Only</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 mt-1">
+                    <button
+                      onClick={() => {
+                        setShowLimitsModal(false);
+                        navigate("/dashboard/settings");
+                      }}
+                      className="flex-1 h-11 rounded-xl text-xs font-medium border border-white/10 hover:bg-white/5 transition-colors cursor-pointer"
+                    >
+                      Detailed Settings
+                    </button>
+                    {!hasBoost && (
+                      <button
+                        onClick={() => {
+                          setShowLimitsModal(false);
+                          openCheckout();
+                        }}
+                        className="flex-1 h-11 rounded-xl text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/95 transition-colors cursor-pointer"
+                      >
+                        Upgrade to Boost
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 });

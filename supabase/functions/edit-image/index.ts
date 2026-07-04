@@ -14,8 +14,8 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const OPENAI_TIMEOUT_MS = 180_000;
-const DEFAULT_IMAGE_MODEL = 'gpt-image-2';
-const ALLOWED_IMAGE_MODELS = new Set<string>(['gpt-image-2']);
+const DEFAULT_IMAGE_MODEL = 'gpt-image-1';
+const ALLOWED_IMAGE_MODELS = new Set<string>(['gpt-image-1', 'gpt-image-1-mini', 'gpt-image-2']);
 function pickModel(requested?: string): string {
   return requested && ALLOWED_IMAGE_MODELS.has(requested) ? requested : DEFAULT_IMAGE_MODEL;
 }
