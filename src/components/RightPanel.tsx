@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
+import { useSubscription } from "@/hooks/useSubscription";
 
 export type RightPanelTab = "history" | "quote" | "settings";
 
@@ -91,6 +92,7 @@ export function RightPanel({
   const { selectedModelId, status: localStatus } = useLocalAIStore();
   const { toast } = useToast();
   const isMobileLocal = isMobileLocalDevice();
+  const { hasBoost, openCheckout } = useSubscription();
 
   const handleToggleCorporate = () => {
     if (isMobileLocal) return;
@@ -382,6 +384,34 @@ export function RightPanel({
               )}
             </AnimatePresence>
           </div>
+
+          {!hasBoost && (
+            <div className="p-4 border-t border-border/50 bg-primary/5">
+              <div className="relative overflow-hidden rounded-xl border border-primary/20 bg-background/50 p-3.5 backdrop-blur-md">
+                {/* Decorative glow */}
+                <div className="absolute -right-8 -top-8 w-24 h-24 bg-primary/10 rounded-full blur-xl pointer-events-none" />
+                
+                <div className="flex items-start gap-3">
+                  <div className="inline-flex items-center justify-center p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                    <Crown className="h-4.5 w-4.5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-semibold text-foreground">Upgrade to Boost</h4>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                      Unlock unlimited GPT-5.4 (Thinking), GPT-5.5 (Deep Think), and custom web publishing.
+                    </p>
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={() => openCheckout()}
+                  className="w-full mt-3 h-8 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all"
+                >
+                  Upgrade to Boost
+                </Button>
+              </div>
+            </div>
+          )}
 
         </div>
       </motion.div>
