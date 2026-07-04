@@ -10,13 +10,20 @@ function isThemeMode(value: unknown): value is ThemeMode {
 export function useTheme() {
   const themeMode = useAccentStore((s) => s.themeMode);
   const setThemeMode = useAccentStore((s) => s.setThemeMode);
-  const { user, isAnonymous } = useAuth();
+  const { user, isAnonymous, loading } = useAuth();
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (loading) return;
+
     if (!user || isAnonymous) {
       setLoadedUserId(null);
-      setThemeMode("dark");
+      const saved = localStorage.getItem("themeMode");
+      if (saved && isThemeMode(saved)) {
+        setThemeMode(saved);
+      } else {
+        setThemeMode("dark");
+      }
       return;
     }
     if (loadedUserId === user.id) return;
@@ -40,12 +47,12 @@ export function useTheme() {
       });
 
     return () => { cancelled = true; };
-  }, [user, loadedUserId, setThemeMode]);
+  }, [user, loadedUserId, setThemeMode, loading, isAnonymous]);
 
   useEffect(() => {
-    if (!user || loadedUserId !== user.id) return;
+    if (loading || !user || loadedUserId !== user.id) return;
     void supabase.from("profiles").update({ theme_preference: themeMode }).eq("user_id", user.id);
-  }, [themeMode, user, loadedUserId]);
+  }, [themeMode, user, loadedUserId, loading]);
 
   useEffect(() => {
     const root = document.documentElement;

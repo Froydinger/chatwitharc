@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from '@/utils/memoryDetection';
 import { useCanvasStore } from '@/store/useCanvasStore';
+import { AIService } from '@/services/ai';
 
 // Helper to extract a title from canvas content (first heading or first line)
 function extractCanvasTitle(content: string): string | null {
@@ -151,6 +152,9 @@ export interface ArcState {
 
   // Canvas persistence
   updateSessionCanvasContent: (sessionId: string, canvasContent: string) => Promise<void>;
+  updateSessionTitle: (sessionId: string, title: string) => Promise<void>;
+  generateChatTitle: (sessionId: string, messages: any[]) => Promise<void>;
+  generateTitlesForUnnamedChats: () => Promise<void>;
 
   // Current Chat State
   messages: Message[];
@@ -315,6 +319,89 @@ export const useArcStore = create<ArcState>()(
           await get().saveChatToSupabase(updated, revision);
         } catch (e) {
           console.error('❌ Failed to save canvas to Supabase:', e);
+        }
+      },
+
+      updateSessionTitle: async (sessionId: string, title: string) => {
+        const state = get();
+        const existing = state.chatSessions.find(s => s.id === sessionId);
+        if (!existing) return;
+
+        const updated: ChatSession = { ...existing, title, lastMessageAt: new Date() };
+        set({
+          chatSessions: state.chatSessions.map(s => (s.id === sessionId ? updated : s)),
+        });
+
+        if (supabase && isSupabaseConfigured && !existing.isLocalOnly) {
+          try {
+            const { error } = await supabase
+              .from('chat_sessions')
+              .update({ title })
+              .eq('id', sessionId);
+            if (error) throw error;
+          } catch (e) {
+            console.error('❌ Failed to save updated title to Supabase:', e);
+          }
+        }
+      },
+
+      generateChatTitle: async (sessionId: string, messages: any[]) => {
+        try {
+          const chatMessages = messages
+            .filter(m => m.type === 'text')
+            .map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+          
+          if (chatMessages.length === 0) return;
+
+          const titlePrompt = {
+            role: 'system' as const,
+            content: 'Generate a short, creative, specific title (3 to 5 words) summarizing this chat. Output ONLY the plain text title, no quotes, no markdown, no punctuation.'
+          };
+
+          const ai = new AIService();
+          // Use gpt-5.4-nano specifically for fast and cheap naming
+          const res = await ai.sendMessage(
+            [titlePrompt, ...chatMessages.slice(0, 4)],
+            undefined,
+            undefined,
+            undefined,
+            false,
+            false,
+            false,
+            false,
+            false,
+            'gpt-5.4-nano'
+          );
+
+          const generatedTitle = res.content.trim().replace(/^["']|["']$/g, '').slice(0, 50);
+          if (generatedTitle && generatedTitle.length > 2 && !generatedTitle.toLowerCase().includes("generate a short")) {
+            console.log(`✨ Named chat "${sessionId}" to "${generatedTitle}"`);
+            await get().updateSessionTitle(sessionId, generatedTitle);
+          }
+        } catch (e) {
+          console.warn('Failed to generate chat title:', e);
+        }
+      },
+
+      generateTitlesForUnnamedChats: async () => {
+        const state = get();
+        // Find chats that have messages but are still named "New Chat" or are empty
+        const unnamed = state.chatSessions.filter(s => 
+          s.messages.length > 0 && 
+          (s.title === "New Chat" || !s.title || s.title.startsWith("New Chat"))
+        );
+
+        if (unnamed.length === 0) return;
+        console.log(`🏷️ Found ${unnamed.length} unnamed chat sessions. Running background title naming pass...`);
+
+        // Process them sequentially with a small delay to avoid rate limits
+        for (const session of unnamed) {
+          try {
+            await get().generateChatTitle(session.id, session.messages);
+            await new Promise(r => setTimeout(r, 600)); // 600ms delay between calls
+          } catch (err) {
+            console.error('Failed to update title for session:', session.id, err);
+          }
         }
       },
       syncFromSupabase: async () => {
@@ -721,6 +808,11 @@ export const useArcStore = create<ArcState>()(
               allSessionsHydrated: true
             };
           });
+
+          // Run background naming pass once hydration is complete
+          setTimeout(() => {
+            get().generateTitlesForUnnamedChats();
+          }, 1000);
         } catch (error) {
           console.error('❌ Failed to bulk hydrate sessions:', error);
         } finally {

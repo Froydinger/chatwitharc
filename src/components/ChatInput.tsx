@@ -1909,9 +1909,13 @@ ${safeCode}
               }
 
               // Persist to session for canvas/code (use streamedContent, not result.content)
-              const { currentSessionId, updateSessionCanvasContent } = useArcStore.getState();
+              const { currentSessionId, updateSessionCanvasContent, chatSessions, generateChatTitle } = useArcStore.getState();
               if (currentSessionId) {
                 await updateSessionCanvasContent(currentSessionId, streamedContent || result.content);
+                const session = chatSessions.find((s) => s.id === currentSessionId);
+                if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
+                  generateChatTitle(currentSessionId, useArcStore.getState().messages);
+                }
               }
             },
 
@@ -2117,6 +2121,15 @@ ${safeCode}
                 setSearchingChats(false);
                 setAccessingMemory(false);
 
+                // Intelligently generate a title if it's the first assistant message or still has default title
+                const { currentSessionId: sId, chatSessions: cSessions, generateChatTitle } = useArcStore.getState();
+                if (sId) {
+                  const session = cSessions.find((s) => s.id === sId);
+                  if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
+                    generateChatTitle(sId, useArcStore.getState().messages);
+                  }
+                }
+
                 if (cancelRequested) return;
               } catch (localErr: any) {
                 console.warn("Local model failed, falling back to cloud:", localErr);
@@ -2194,6 +2207,15 @@ ${safeCode}
                     : "cloud-search"
                   : "cloud-chat",
               });
+
+              // Intelligently generate a title if it's the first assistant message or still has default title
+              const { currentSessionId: sId, chatSessions: cSessions, generateChatTitle } = useArcStore.getState();
+              if (sId) {
+                const session = cSessions.find((s) => s.id === sId);
+                if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
+                  generateChatTitle(sId, useArcStore.getState().messages);
+                }
+              }
 
               // Handle canvas/code updates if the AI decided to use those tools
               if (result.codeUpdate) {

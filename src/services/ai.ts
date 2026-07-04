@@ -112,7 +112,8 @@ export class AIService {
     forceCanvas?: boolean,
     forceCode?: boolean,
     forceResearch?: boolean,
-    guestMode?: boolean
+    guestMode?: boolean,
+    modelOverride?: string
   ): Promise<SendMessageResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Chat service is not available. Please configure Supabase.');
@@ -192,13 +193,13 @@ export class AIService {
       const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
       const isComplex = !isCanvasOrCode && detectComplexQuery(lastUserMsg);
       
-      const selectedModel = isCanvasOrCode
+      const selectedModel = modelOverride || (isCanvasOrCode
         ? getModelForTask('code')
         : forceWebSearch
           ? getModelForTask('chat')
           : isComplex
             ? getModelForTask('deep-chat')
-            : getModelForTask('chat');
+            : getModelForTask('chat'));
 
       // Use longer timeout for canvas/code generation or complex queries (especially with 3.1 Pro)
       const timeoutMs = (isCanvasOrCode || isComplex) ? this.canvasTimeoutMs : this.defaultTimeoutMs;
