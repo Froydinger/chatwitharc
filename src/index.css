@@ -848,6 +848,59 @@ All colors MUST be HSL for perfect glass effects.
     filter: blur(0.3px);
   }
 
+  /* Accent-color glass tinting for all color options other than noir */
+  :root:not([data-accent="noir"]) .glass-btn {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--primary) / 0.04) 40%, hsl(var(--primary) / 0.0) 60%, hsl(var(--primary) / 0.06) 100%), rgba(20, 20, 25, 0.45) !important;
+    border-color: hsl(var(--primary) / 0.28) !important;
+  }
+  :root:not([data-accent="noir"]) .glass-btn:hover {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--primary) / 0.08) 40%, hsl(var(--primary) / 0.0) 60%, hsl(var(--primary) / 0.1) 100%), rgba(20, 20, 25, 0.55) !important;
+    border-color: hsl(var(--primary) / 0.48) !important;
+    box-shadow:
+      0 16px 40px -4px rgba(0, 0, 0, 0.45),
+      0 6px 16px -2px rgba(0, 0, 0, 0.25),
+      inset 0 2px 0.8px rgba(255, 255, 255, 0.5),
+      inset 0 -2px 2px rgba(0, 0, 0, 0.28),
+      inset 0 0 0 1px hsl(var(--primary) / 0.15) !important;
+  }
+  :root.light:not([data-accent="noir"]) .glass-btn {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.2) 0%, hsl(var(--primary) / 0.08) 45%, hsl(var(--primary) / 0.02) 55%, hsl(var(--primary) / 0.12) 100%), rgba(255, 255, 255, 0.35) !important;
+    border-color: hsl(var(--primary) / 0.22) !important;
+  }
+  :root.light:not([data-accent="noir"]) .glass-btn:hover {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.28) 0%, hsl(var(--primary) / 0.12) 45%, hsl(var(--primary) / 0.04) 55%, hsl(var(--primary) / 0.18) 100%), rgba(255, 255, 255, 0.45) !important;
+    border-color: hsl(var(--primary) / 0.38) !important;
+  }
+
+  /* General glass panel tinting outside of noir */
+  :root:not([data-accent="noir"]) .glass {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.05) 0%, hsl(var(--primary) / 0.01) 100%), rgba(20, 20, 25, 0.45) !important;
+    border-color: hsl(var(--primary) / 0.18) !important;
+  }
+  :root:not([data-accent="noir"]) .glass-strong {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.08) 0%, hsl(var(--primary) / 0.02) 100%), rgba(20, 20, 25, 0.6) !important;
+    border-color: hsl(var(--primary) / 0.25) !important;
+  }
+  :root:not([data-accent="noir"]) .glass-card,
+  :root:not([data-accent="noir"]) .glass-panel {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.06) 0%, hsl(var(--primary) / 0.01) 100%), rgba(20, 20, 25, 0.55) !important;
+    border-color: hsl(var(--primary) / 0.2) !important;
+  }
+
+  :root.light:not([data-accent="noir"]) .glass {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, hsl(var(--primary) / 0.03) 100%), rgba(255, 255, 255, 0.55) !important;
+    border-color: hsl(var(--primary) / 0.15) !important;
+  }
+  :root.light:not([data-accent="noir"]) .glass-strong {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--primary) / 0.04) 100%), rgba(255, 255, 255, 0.65) !important;
+    border-color: hsl(var(--primary) / 0.2) !important;
+  }
+  :root.light:not([data-accent="noir"]) .glass-card,
+  :root.light:not([data-accent="noir"]) .glass-panel {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.12) 0%, hsl(var(--primary) / 0.03) 100%), rgba(255, 255, 255, 0.6) !important;
+    border-color: hsl(var(--primary) / 0.18) !important;
+  }
+
   /* Glass panel styling for modals */
   .glass-panel {
     background: rgba(20, 20, 25, 0.6);

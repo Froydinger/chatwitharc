@@ -59,7 +59,7 @@ export function ChatModelPicker({ className }: Props) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'inline-flex items-center gap-1.5 h-10 px-4 rounded-full border border-input bg-background hover:bg-primary/10 hover:text-primary transition-all glass-shimmer text-sm font-semibold text-foreground/90',
+          'glass-btn inline-flex items-center gap-1.5 h-10 px-4 rounded-full text-sm font-semibold text-foreground/90',
           className,
         )}
         aria-label={`Model: ${current}`}
@@ -84,7 +84,7 @@ export function ChatModelPicker({ className }: Props) {
                 exit={{ opacity: 0, y: -6, scale: 0.96 }}
                 transition={{ type: 'spring', stiffness: 380, damping: 26 }}
                 style={{ top: coords.top, left: coords.left }}
-                className="fixed z-[9999] w-60 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-2xl shadow-2xl p-1.5"
+                className="fixed z-[9999] w-60 rounded-2xl border border-border/40 glass shadow-2xl p-1.5"
               >
                 <Row
                   icon={<Zap className="h-4 w-4 text-primary" />}

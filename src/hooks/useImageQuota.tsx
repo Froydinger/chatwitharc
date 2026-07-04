@@ -19,6 +19,7 @@ interface ImageQuotaState {
   isAdmin: boolean;
   dailyImagesUsed: number;
   remainingImages: number;
+  limit: number;
   canGenerateImage: boolean;
   resetAt: string | null;
   refreshQuota: () => Promise<void>;
@@ -68,11 +69,13 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
   const value = useMemo<ImageQuotaState>(() => {
     const isAdmin = quota?.isAdmin === true;
     const remaining = isAdmin ? Infinity : quota?.remaining ?? DAILY_IMAGE_OUTPUT_LIMIT;
+    const limit = isAdmin ? Infinity : quota?.limit ?? 10;
     return {
       loading,
       isAdmin,
       dailyImagesUsed: quota?.used ?? 0,
       remainingImages: remaining,
+      limit,
       canGenerateImage: !isAnonymous && (isAdmin || remaining > 0),
       resetAt: quota?.resetAt ?? null,
       refreshQuota,

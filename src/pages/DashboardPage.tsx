@@ -1667,27 +1667,10 @@ useEffect(() => {
               </div>
             </motion.div>
 
-            {/* Desktop: label over icon inside bubble when dragging */}
-            {!isMobile && isBubbleDragging && bubbleHoverIdx >= 0 && bubbleHoverIdx < tabs.length && (
-              <div
-                className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                style={{ zIndex: 40 }}
-              >
-                <span
-                  className="text-[10px] font-semibold tracking-wide uppercase"
-                  style={{
-                    color: 'hsl(var(--primary))',
-                    textShadow: '0 0 8px hsl(var(--primary) / 0.5)',
-                  }}
-                >
-                  {tabs[bubbleHoverIdx].label}
-                </span>
-              </div>
-            )}
           </motion.div>
 
-          {/* Mobile: tooltip above bubble when dragging */}
-          {isMobile && isBubbleDragging && bubbleHoverIdx >= 0 && bubbleHoverIdx < tabs.length && (
+          {/* Tooltip above bubble when dragging (desktop and mobile) */}
+          {isBubbleDragging && bubbleHoverIdx >= 0 && bubbleHoverIdx < tabs.length && (
             <motion.div
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1704,13 +1687,13 @@ useEffect(() => {
               }}
             >
               <span
-                className="px-2.5 py-1 rounded-lg text-xs font-medium whitespace-nowrap"
+                className="px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap border"
                 style={{
-                  background: 'hsl(var(--background) / 0.9)',
-                  border: '1px solid hsl(var(--border) / 0.5)',
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%), rgba(20, 20, 25, 0.65)',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
                   color: 'hsl(var(--primary))',
-                  backdropFilter: 'blur(12px)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  backdropFilter: 'blur(16px)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
                 }}
               >
                 {tabs[bubbleHoverIdx].label}

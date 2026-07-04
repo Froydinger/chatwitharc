@@ -38,6 +38,7 @@ import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { SmartSuggestions } from "@/components/SmartSuggestions";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { GENERAL_QUICK_PROMPTS, pickRandomPrompts } from "@/components/WelcomeSection";
+import { useImageQuota } from "@/hooks/useImageQuota";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -185,6 +186,7 @@ export function MobileChatApp() {
     refreshSessionFromSupabase,
   } = useArcStore();
   const { profile } = useProfile();
+  const { dailyImagesUsed, remainingImages, limit } = useImageQuota();
   const { user, isAnonymous } = useAuth();
   const requireAuth = useRequireAuth();
   const canUseSidebar = !!user && !isAnonymous;
@@ -955,6 +957,52 @@ export function MobileChatApp() {
               )}
 
 
+
+              {/* Image Quota Circular Gauge Button */}
+              {user && !isAnonymous && (
+                <motion.div 
+                  whileHover={{ scale: 1.1, y: -2 }} 
+                  whileTap={{ scale: 0.95 }} 
+                  transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                  className="cursor-pointer"
+                  onClick={() => window.dispatchEvent(new CustomEvent("open-image-limits-modal"))}
+                >
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full glass-shimmer transition-all pointer-events-none flex items-center justify-center relative"
+                    title={`Image Quota: ${remainingImages === Infinity ? "Unlimited" : `${remainingImages} / ${limit} remaining`}`}
+                  >
+                    {/* SVG circular gauge */}
+                    <svg className="w-5 h-5 -rotate-90" viewBox="0 0 36 36">
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="14"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3.2"
+                        className="text-white/10"
+                      />
+                      <motion.circle
+                        cx="18"
+                        cy="18"
+                        r="14"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3.2"
+                        strokeDasharray="88"
+                        strokeDashoffset={remainingImages === Infinity ? 0 : 88 - (88 * Math.max(0, Math.min(1, remainingImages / (limit || 1))))}
+                        strokeLinecap="round"
+                        className="text-primary transition-all duration-500"
+                      />
+                    </svg>
+                    <span className="absolute text-[8.5px] font-bold tabular-nums">
+                      {remainingImages === Infinity ? "∞" : remainingImages}
+                    </span>
+                  </Button>
+                </motion.div>
+              )}
 
               {/* Music Player Button */}
               <motion.div 

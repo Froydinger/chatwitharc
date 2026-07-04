@@ -125,7 +125,6 @@ export function useAccentColor() {
   useEffect(() => {
     if (!user) {
       setLoadedUserId(null);
-      setAccentColorLocal("noir");
       return;
     }
     if (loadedUserId === user.id || !supabase || !isSupabaseConfigured) {
@@ -140,17 +139,13 @@ export function useAccentColor() {
           .eq("user_id", user.id)
           .maybeSingle();
 
-        const nextAccent = data?.accent_color && accentColorConfigs[data.accent_color as AccentColor]
-          ? data.accent_color as AccentColor
-          : "noir";
-        setAccentColorLocal(nextAccent);
-        if (!error && nextAccent !== data?.accent_color) {
-          await supabase.from("profiles").update({ accent_color: nextAccent }).eq("user_id", user.id);
+        if (data?.accent_color && accentColorConfigs[data.accent_color as AccentColor]) {
+          const nextAccent = data.accent_color as AccentColor;
+          setAccentColorLocal(nextAccent);
         }
         setLoadedUserId(user.id);
       } catch (err) {
         console.error("Failed to load accent color:", err);
-        setAccentColorLocal("noir");
         setLoadedUserId(user.id);
       }
     };
