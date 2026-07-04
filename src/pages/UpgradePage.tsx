@@ -22,7 +22,7 @@ export function UpgradePage() {
   const navigate = useNavigate();
   const { user, loading: authLoading, isAnonymous } = useAuth();
   const { hasBoost, openCheckout, openCustomerPortal, loading: subLoading, currentPeriodEnd } = useSubscription();
-  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("annual");
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("monthly");
 
   // If auth is done loading and there is no user (or user is guest), redirect or show message
   const isLoggedIn = !!user && !isAnonymous;
@@ -146,9 +146,6 @@ export function UpgradePage() {
               {/* Boost Consolidated Upgrade Card */}
               <GlassCard className="p-8 flex flex-col justify-between border-primary relative overflow-hidden bg-primary/5">
                 <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-100" />
-                <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-lg shadow-primary/20 animate-pulse">
-                  <Sparkles className="h-3 w-3" /> Best Value
-                </div>
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <div className="text-sm font-semibold text-primary tracking-wider uppercase">

@@ -30,7 +30,7 @@ const BOOST_FEATURES = [
 export function PricingPage() {
   const { user } = useAuth();
   const { hasBoost, openCheckout, openCustomerPortal } = useSubscription();
-  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("annual");
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("monthly");
 
   return (
     <div className="min-h-screen bg-background text-foreground py-16 px-4">
@@ -75,9 +75,6 @@ export function PricingPage() {
 
           {/* Boost Plan */}
           <GlassCard className="p-8 flex flex-col justify-between border-primary relative overflow-hidden bg-primary/5">
-            <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-lg shadow-primary/20 animate-pulse">
-              <Sparkles className="h-3 w-3" /> Best Value
-            </div>
             <div>
               <div className="flex justify-between items-center mb-3">
                 <div className="text-sm font-semibold text-primary tracking-wider uppercase">
