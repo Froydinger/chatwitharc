@@ -142,24 +142,6 @@ export function UpgradePage() {
             </div>
 
             {/* Billing Toggle */}
-            <div className="flex items-center justify-center gap-3 mb-8">
-              <span className={`text-sm transition-colors duration-200 ${billingInterval === "monthly" ? "text-white font-semibold" : "text-muted-foreground"}`}>
-                Monthly
-              </span>
-              <button
-                onClick={() => setBillingInterval(billingInterval === "monthly" ? "annual" : "monthly")}
-                className="relative w-12 h-6 rounded-full bg-zinc-800 transition-colors duration-200 p-0.5 border border-white/10"
-              >
-                <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 shadow-md ${billingInterval === "annual" ? "translate-x-6" : "translate-x-0"}`} />
-              </button>
-              <span className={`text-sm transition-colors duration-200 ${billingInterval === "annual" ? "text-white font-semibold" : "text-muted-foreground"} flex items-center gap-2`}>
-                Annual
-                <span className="text-[10px] bg-primary/20 text-primary font-bold px-2 py-0.5 rounded-full">
-                  Save 20%
-                </span>
-              </span>
-            </div>
-
             <div className="max-w-md mx-auto">
               {/* Boost Consolidated Upgrade Card */}
               <GlassCard className="p-8 flex flex-col justify-between border-primary relative overflow-hidden bg-primary/5">
@@ -168,8 +150,28 @@ export function UpgradePage() {
                   <Sparkles className="h-3 w-3" /> Best Value
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-primary tracking-wider uppercase mb-2">
-                    Boost {billingInterval === "monthly" ? "Monthly" : "Annual"}
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="text-sm font-semibold text-primary tracking-wider uppercase">
+                      Boost Plan
+                    </div>
+                    {/* Billing Toggle inside Card */}
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[11px] transition-colors duration-200 ${billingInterval === "monthly" ? "text-white font-semibold" : "text-muted-foreground"}`}>
+                        Monthly
+                      </span>
+                      <button
+                        onClick={() => setBillingInterval(billingInterval === "monthly" ? "annual" : "monthly")}
+                        className="relative w-8 h-4 rounded-full bg-zinc-800 transition-colors duration-200 p-0.5 border border-white/10 flex items-center"
+                      >
+                        <div className={`w-3 h-3 rounded-full bg-white transition-transform duration-200 shadow-md ${billingInterval === "annual" ? "translate-x-3.5" : "translate-x-0"}`} />
+                      </button>
+                      <span className={`text-[11px] transition-colors duration-200 ${billingInterval === "annual" ? "text-white font-semibold" : "text-muted-foreground"} flex items-center gap-1`}>
+                        Annual
+                        <span className="text-[8px] bg-primary/20 text-primary font-bold px-1 py-0.2 rounded-full">
+                          -20%
+                        </span>
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-baseline gap-1 mb-1">
                     <span className="text-5xl font-black tracking-tight text-white">
