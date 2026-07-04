@@ -63,6 +63,31 @@ const ROUTE_META: Record<string, RouteMeta> = {
     description:
       "Guides and FAQs about ArcAI, the free AI assistant with voice, image generation, code and memory.",
   },
+  "/upgrade": {
+    title: "ArcAI • Upgrade to Boost",
+    description:
+      "Upgrade your ArcAI account to Boost for unlimited premium reasoning, unlimited voice mode, custom web publishing, and higher image quotas.",
+  },
+  "/share": {
+    title: "ArcAI • Shared Conversation",
+    description:
+      "Read this shared ArcAI conversation with reasoning, search, and coding context.",
+  },
+  "/tasks": {
+    title: "ArcAI • Tasks",
+    description:
+      "View and manage your scheduled reminder tasks and automated actions.",
+  },
+  "/shared": {
+    title: "ArcAI • Shared Rooms",
+    description:
+      "View and collaborate in shared project workspaces and chat rooms.",
+  },
+  "/checkout/return": {
+    title: "ArcAI • Checkout Completed",
+    description:
+      "Thank you for upgrading to ArcAI Boost. Your subscription features are ready.",
+  },
 };
 
 export const RouteSEO = () => {
@@ -73,6 +98,12 @@ export const RouteSEO = () => {
   // Normalize dynamic chat routes to a canonical /chat path
   if (path.startsWith("/chat/")) {
     path = "/chat";
+  }
+  if (path.startsWith("/share/")) {
+    path = "/share";
+  }
+  if (path.startsWith("/shared/")) {
+    path = "/shared";
   }
 
   // Let per-post <Helmet> in BlogPostPage own SEO for /blog/:slug.
