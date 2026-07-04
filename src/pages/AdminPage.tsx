@@ -9,7 +9,10 @@ export function AdminPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile-friendly header with back button */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border">
+      <div 
+        className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border"
+        style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+      >
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
           <Button
             variant="ghost"

@@ -35,15 +35,42 @@ Deno.serve(async (req) => {
     const body = await req.json();
     console.log("Inbound email received:", body);
 
-    const fromStr = body.from || "";
+    // Support both direct inbound payloads and wrapped webhook payloads
+    const payload = (body.type === "email.received" || body.data) ? body.data : body;
+
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+    const emailId = payload.email_id || payload.id;
+    let emailDetails = null;
+
+    if (RESEND_API_KEY && emailId) {
+      try {
+        console.log(`Fetching email details for ${emailId} from Resend API...`);
+        const response = await fetch(`https://api.resend.com/emails/${emailId}`, {
+          headers: {
+            Authorization: `Bearer ${RESEND_API_KEY}`,
+          },
+        });
+        if (response.ok) {
+          emailDetails = await response.json();
+          console.log("Successfully retrieved email details:", emailDetails);
+        } else {
+          console.error(`Resend API fetch failed with status: ${response.status} ${response.statusText}`);
+        }
+      } catch (e) {
+        console.error("Failed to query Resend API:", e);
+      }
+    }
+
+    const fromStr = emailDetails?.from || payload.from || "";
     const { name: senderName, email: senderEmail } = parseFrom(fromStr);
     
     // Parse original recipient to catch wildcard/alias emails (e.g. support@ or hello@)
-    const toStr = Array.isArray(body.to) ? body.to[0] : (body.to || "");
+    const rawTo = emailDetails?.to || payload.to;
+    const toStr = Array.isArray(rawTo) ? rawTo[0] : (rawTo || "");
     const { email: recipientEmail } = parseFrom(toStr);
     
-    const subject = body.subject || "No Subject";
-    const textContent = body.text || body.html || "Empty email body";
+    const subject = emailDetails?.subject || payload.subject || "No Subject";
+    const textContent = emailDetails?.text || emailDetails?.html || payload.text || payload.html || "Empty email body";
 
     if (!senderEmail) {
       return new Response(JSON.stringify({ error: "Missing sender email address" }), {
