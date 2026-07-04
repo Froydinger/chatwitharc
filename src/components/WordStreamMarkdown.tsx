@@ -135,6 +135,7 @@ export const WordStreamMarkdown = ({
 
   const [revealedCount, setRevealedCount] = useState<number>(() => (animateWords ? 0 : totalWords));
   const completedWordCountRef = useRef(-1);
+  const cursorRef = useRef(0);
 
   useEffect(() => {
     if (!animateWords) {
@@ -172,7 +173,7 @@ export const WordStreamMarkdown = ({
     [animateWords, revealedCount, text, tokens]
   );
 
-  const renderTextWithWords = useCallback((children: any, cursor: { i: number }): any => {
+  const renderTextWithWords = useCallback((children: any): any => {
     if (!animateWords) return children;
 
     const wrap = (str: string, keyPrefix: string) => {
@@ -181,9 +182,9 @@ export const WordStreamMarkdown = ({
         if (/^\s+$/.test(p) || p === "") {
           return <span key={`${keyPrefix}-${i}`}>{p}</span>;
         }
-        const idx = cursor.i;
-        cursor.i += 1;
-        // Class stays constant after mount (keys are stable), so the glow
+        const idx = cursorRef.current;
+        cursorRef.current += 1;
+        // Class stays constant after mount (keys are stable), so the fade
         // animation runs exactly once — when this word is first revealed.
         return (
           <span key={`arc-word-${idx}`} className="arc-word arc-word-entering">
@@ -212,39 +213,35 @@ export const WordStreamMarkdown = ({
   }, [animateWords]);
 
   const components = useMemo(() => {
-    // The cursor must reset every time ReactMarkdown re-renders new text,
-    // otherwise word indices (and keys) drift and every span remounts —
-    // visibleText in the deps below is what forces that reset per reveal.
-    const cursor = { i: 0 };
     return {
       p: ({ node, children, ...props }: any) => (
         <p className="text-base leading-relaxed mb-3 last:mb-0 text-foreground/90" {...props}>
-          {renderTextWithWords(children, cursor)}
+          {renderTextWithWords(children)}
         </p>
       ),
       li: ({ node, children, ...props }: any) => (
         <li className="text-base leading-relaxed text-foreground/90" {...props}>
-          {renderTextWithWords(children, cursor)}
+          {renderTextWithWords(children)}
         </li>
       ),
       h1: ({ node, children, ...props }: any) => (
         <h1 className="text-2xl font-bold mt-5 mb-2.5 text-foreground" {...props}>
-          {renderTextWithWords(children, cursor)}
+          {renderTextWithWords(children)}
         </h1>
       ),
       h2: ({ node, children, ...props }: any) => (
         <h2 className="text-xl font-semibold mt-4 mb-2 text-foreground" {...props}>
-          {renderTextWithWords(children, cursor)}
+          {renderTextWithWords(children)}
         </h2>
       ),
       h3: ({ node, children, ...props }: any) => (
         <h3 className="text-lg font-semibold mt-3 mb-1.5 text-foreground" {...props}>
-          {renderTextWithWords(children, cursor)}
+          {renderTextWithWords(children)}
         </h3>
       ),
       h4: ({ node, children, ...props }: any) => (
         <h4 className="text-base font-semibold mt-3 mb-1.5 text-foreground" {...props}>
-          {renderTextWithWords(children, cursor)}
+          {renderTextWithWords(children)}
         </h4>
       ),
       strong: ({ node, children, ...props }: any) => (
@@ -340,8 +337,10 @@ export const WordStreamMarkdown = ({
         );
       },
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- visibleText resets the word cursor per render
-  }, [renderTextWithWords, visibleText]);
+  }, [renderTextWithWords]);
+
+  // Reset the word cursor Ref before ReactMarkdown starts rendering children
+  cursorRef.current = 0;
 
   return (
     <div className={`relative z-10 text-foreground break-words ${className}`}>
