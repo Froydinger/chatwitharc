@@ -266,11 +266,6 @@ export function usePushNotifications() {
         // Non-fatal — welcome push failure shouldn't block subscription
         console.warn("welcome push failed:", e);
       }
-      await showLocalPushProof("Welcome to ArcAI 🎉", {
-        body: "Push is on! I'll ping you when scheduled tasks finish or someone @mentions you in a shared chat.",
-        tag: "arc-welcome",
-        url: "/",
-      });
 
       return true;
     } catch (e: any) {
@@ -307,11 +302,6 @@ export function usePushNotifications() {
       body: { test: true },
     });
     if (error) throw error;
-    await showLocalPushProof("ArcAI", {
-      body: "Test notification — you're all set 🎉",
-      tag: "arc-test",
-      url: "/",
-    });
   }, []);
 
   return {
