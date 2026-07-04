@@ -826,7 +826,7 @@ export function SettingsPanel() {
               <GlassButton
                 size="sm"
                 className="text-xs bg-primary text-primary-foreground hover:bg-primary/95"
-                onClick={openCheckout}
+                onClick={() => openCheckout()}
               >
                 Upgrade to Boost ($7)
               </GlassButton>
