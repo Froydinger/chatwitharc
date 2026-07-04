@@ -226,6 +226,7 @@ useEffect(() => {
   const [isBubbleDragging, setIsBubbleDragging] = useState(false);
   const [bubbleHoverIdx, setBubbleHoverIdx] = useState(-1);
   const [pillDims, setPillDims] = useState({ w: 0, h: 64 });
+  const [showShine, setShowShine] = useState(false);
   const LENS_SCALE = 2.0;
   const bubbleCX = useMotionValue(-999); // -999 = not yet initialized
   const bubbleLeft = useTransform(bubbleCX, cx => cx - BUBBLE_R);
@@ -305,7 +306,16 @@ useEffect(() => {
       const trackStart = PILL_PAD + NAV_EDGE_INSET;
       const trackW = Math.max(0, contentW - NAV_EDGE_INSET * 2);
       const tabW = trackW / tabs.length;
-      animate(bubbleCX, trackStart + tabIndex * tabW + tabW / 2, { type: 'spring', stiffness: 420, damping: 20, mass: 0.7 });
+      animate(bubbleCX, trackStart + tabIndex * tabW + tabW / 2, { 
+        type: 'spring', 
+        stiffness: 420, 
+        damping: 20, 
+        mass: 0.7,
+        onComplete: () => {
+          setShowShine(true);
+          setTimeout(() => setShowShine(false), 500);
+        }
+      });
     }
 
     // Drop animation (delayed to happen after movement)
@@ -778,7 +788,14 @@ useEffect(() => {
       mass: 0.6,
       onComplete: () => {
         setIsBubbleDragging(false);
-        setBubbleHoverIdx(-1);
+        // Wait 120ms (lens fade-out duration) before showing the static icon to prevent overlap blips
+        setTimeout(() => {
+          setBubbleHoverIdx(-1);
+        }, 120);
+
+        // Trigger settling shine pulse
+        setShowShine(true);
+        setTimeout(() => setShowShine(false), 500);
       }
     });
 
@@ -1598,6 +1615,24 @@ useEffect(() => {
             onPointerUp={onBubblePtrUp}
             onPointerCancel={onBubblePtrUp}
           >
+            {/* Settling Shine Effect */}
+            <AnimatePresence>
+              {showShine && (
+                <motion.div
+                  className="absolute inset-0 pointer-events-none"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: [0, 1, 0], scale: [0.8, 1.4, 1.8] }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.45, ease: "easeOut" }}
+                  style={{
+                    zIndex: 45,
+                    background: 'radial-gradient(circle, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.2) 30%, transparent 60%)',
+                    mixBlendMode: 'screen',
+                  }}
+                />
+              )}
+            </AnimatePresence>
+
             {/* True magnification lens — zooms the actual nav icons through the bubble circle */}
             <motion.div
               animate={{ opacity: isBubbleDragging ? 1 : 0 }}
