@@ -36,6 +36,13 @@ interface AdminUser {
   is_admin: boolean;
   admin_role: string | null;
   is_primary_admin: boolean;
+  subscription: {
+    status: string;
+    stripe_subscription_id: string | null;
+    stripe_customer_id: string | null;
+    current_period_end: string | null;
+    environment: string;
+  } | null;
 }
 
 export function AdminPanel() {
@@ -141,6 +148,34 @@ export function AdminPanel() {
     }
   };
 
+  const handleGrantBoost = async (user: AdminUser) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase.functions.invoke('admin-users', {
+        body: { action: 'grant_boost', userId: user.id },
+      });
+      if (error) throw error;
+      toast({ title: 'Boost subscription granted', description: `Boost has been activated for ${user.display_name || user.email}` });
+      fetchUsers();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to grant Boost', variant: 'destructive' });
+    }
+  };
+
+  const handleRevokeBoost = async (user: AdminUser) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase.functions.invoke('admin-users', {
+        body: { action: 'revoke_boost', userId: user.id },
+      });
+      if (error) throw error;
+      toast({ title: 'Boost subscription revoked', description: `Boost has been deactivated for ${user.display_name || user.email}` });
+      fetchUsers();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to revoke Boost', variant: 'destructive' });
+    }
+  };
+
   const filteredUsers = users.filter(u => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
@@ -214,7 +249,7 @@ export function AdminPanel() {
                         <AvatarFallback>{(user.display_name || user.email || '?')[0].toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium text-foreground truncate">{user.display_name || 'No name'}</p>
                           {user.is_primary_admin && (
                             <Badge variant="default" className="text-xs"><Crown className="w-3 h-3 mr-1" />Owner</Badge>
@@ -222,19 +257,87 @@ export function AdminPanel() {
                           {user.is_admin && !user.is_primary_admin && (
                             <Badge variant="secondary" className="text-xs"><Shield className="w-3 h-3 mr-1" />Admin</Badge>
                           )}
+                          {user.subscription ? (
+                            <Badge 
+                              variant={user.subscription.status === 'active' ? 'default' : 'outline'} 
+                              className={cn(
+                                "text-xs",
+                                user.subscription.status === 'active' 
+                                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
+                                  : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                              )}
+                            >
+                              <Crown className="w-3 h-3 mr-1" />
+                              Boost: {user.subscription.status}
+                              {user.subscription.stripe_subscription_id?.startsWith('promo_') && ' (Promo)'}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs text-muted-foreground bg-muted/10">
+                              Free Tier
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground truncate">{user.email}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Joined {new Date(user.created_at).toLocaleDateString()}
-                          {user.last_sign_in_at && ` · Last seen ${new Date(user.last_sign_in_at).toLocaleDateString()}`}
-                        </p>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+                          <span>Joined {new Date(user.created_at).toLocaleDateString()}</span>
+                          {user.last_sign_in_at && <span>· Last seen {new Date(user.last_sign_in_at).toLocaleDateString()}</span>}
+                          
+                          {user.subscription?.stripe_customer_id && (
+                            <>
+                              <span>·</span>
+                              <a
+                                href={`https://dashboard.stripe.com/${user.subscription.environment === 'sandbox' ? 'test/' : ''}customers/${user.subscription.stripe_customer_id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-primary hover:underline font-semibold"
+                              >
+                                Stripe Customer
+                              </a>
+                            </>
+                          )}
+                          {user.subscription?.stripe_subscription_id && !user.subscription.stripe_subscription_id.startsWith('promo_') && (
+                            <>
+                              <span>·</span>
+                              <a
+                                href={`https://dashboard.stripe.com/${user.subscription.environment === 'sandbox' ? 'test/' : ''}subscriptions/${user.subscription.stripe_subscription_id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-primary hover:underline font-semibold"
+                              >
+                                Stripe Subscription
+                              </a>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {!user.is_primary_admin && (
                           <>
+                            {user.subscription?.status === 'active' ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-amber-500/30 text-amber-500 hover:bg-amber-500/10 h-9"
+                                onClick={() => handleRevokeBoost(user)}
+                              >
+                                <Crown className="w-3 h-3 mr-1" />
+                                Revoke Boost
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 h-9"
+                                onClick={() => handleGrantBoost(user)}
+                              >
+                                <Crown className="w-3 h-3 mr-1" />
+                                Grant Boost
+                              </Button>
+                            )}
                             <Button
                               variant={user.is_admin ? 'secondary' : 'outline'}
                               size="sm"
+                              className="h-9"
                               onClick={() => handleToggleAdmin(user)}
                             >
                               <Shield className="w-3 h-3 mr-1" />

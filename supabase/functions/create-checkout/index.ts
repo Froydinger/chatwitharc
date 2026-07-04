@@ -112,6 +112,7 @@ Deno.serve(async (req) => {
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded",
       return_url: returnUrl,
+      allow_promotion_codes: true,
       ...(customerId && { customer: customerId }),
       ...(resolvedUserId && {
         metadata: { userId: resolvedUserId },

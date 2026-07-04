@@ -49,38 +49,53 @@ serve(async (req) => {
       // List all users with profiles
       const { data: { users }, error } = await supabase.auth.admin.listUsers({
         page: params.page || 1,
-        perPage: params.perPage || 50,
+        perPage: params.perPage || 100, // retrieve more
       });
 
       if (error) throw error;
 
       // Get profiles for all users
       const userIds = users.map(u => u.id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, avatar_url, preferred_model")
-        .in("user_id", userIds);
+      const [profilesRes, adminsRes, subsRes] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("user_id, display_name, avatar_url, preferred_model")
+          .in("user_id", userIds),
+        supabase
+          .from("admin_users")
+          .select("user_id, role, is_primary_admin"),
+        supabase
+          .from("subscriptions")
+          .select("user_id, status, stripe_subscription_id, stripe_customer_id, current_period_end, environment")
+          .in("user_id", userIds),
+      ]);
 
-      // Get admin users
-      const { data: admins } = await supabase
-        .from("admin_users")
-        .select("user_id, role, is_primary_admin");
+      const profileMap = new Map((profilesRes.data || []).map(p => [p.user_id, p]));
+      const adminMap = new Map((adminsRes.data || []).map(a => [a.user_id, a]));
+      const subMap = new Map((subsRes.data || []).map(s => [s.user_id, s]));
 
-      const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
-      const adminMap = new Map((admins || []).map(a => [a.user_id, a]));
-
-      const enrichedUsers = users.map(u => ({
-        id: u.id,
-        email: u.email,
-        created_at: u.created_at,
-        last_sign_in_at: u.last_sign_in_at,
-        display_name: profileMap.get(u.id)?.display_name || null,
-        avatar_url: profileMap.get(u.id)?.avatar_url || null,
-        preferred_model: profileMap.get(u.id)?.preferred_model || null,
-        is_admin: adminMap.has(u.id),
-        admin_role: adminMap.get(u.id)?.role || null,
-        is_primary_admin: adminMap.get(u.id)?.is_primary_admin || false,
-      }));
+      const enrichedUsers = users.map(u => {
+        const sub = subMap.get(u.id);
+        return {
+          id: u.id,
+          email: u.email,
+          created_at: u.created_at,
+          last_sign_in_at: u.last_sign_in_at,
+          display_name: profileMap.get(u.id)?.display_name || null,
+          avatar_url: profileMap.get(u.id)?.avatar_url || null,
+          preferred_model: profileMap.get(u.id)?.preferred_model || null,
+          is_admin: adminMap.has(u.id),
+          admin_role: adminMap.get(u.id)?.role || null,
+          is_primary_admin: adminMap.get(u.id)?.is_primary_admin || false,
+          subscription: sub ? {
+            status: sub.status,
+            stripe_subscription_id: sub.stripe_subscription_id,
+            stripe_customer_id: sub.stripe_customer_id,
+            current_period_end: sub.current_period_end,
+            environment: sub.environment,
+          } : null,
+        };
+      });
 
       return new Response(JSON.stringify({ users: enrichedUsers, total: users.length }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -182,6 +197,39 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ success: true, isAdmin: !existing }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "grant_boost") {
+      const { userId } = params;
+      if (!userId) throw new Error("userId required");
+
+      await supabase.from("subscriptions").upsert({
+        user_id: userId,
+        status: "active",
+        price_id: "arcai_boost_monthly",
+        product_id: "arcai_boost",
+        current_period_end: "9999-12-31 23:59:59+00",
+        current_period_start: new Date().toISOString(),
+        environment: "sandbox",
+        stripe_subscription_id: `promo_admin_${userId}_${Date.now()}`,
+      }, { onConflict: "user_id" });
+
+      logStep("Granted boost via admin", { userId });
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "revoke_boost") {
+      const { userId } = params;
+      if (!userId) throw new Error("userId required");
+
+      await supabase.from("subscriptions").delete().eq("user_id", userId);
+
+      logStep("Revoked boost via admin", { userId });
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

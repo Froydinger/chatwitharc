@@ -123,19 +123,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [dailySmarterChatsUsed, setDailySmarterChatsUsed] = useState(() => getDailySmarterChatCount());
   const [voiceConversations30d, setVoiceConversations30d] = useState(0);
 
-  const [hasPromoFallback, setHasPromoFallback] = useState(() => {
-    if (!user) return false;
-    const claimed = localStorage.getItem(`arcai_boost_promo_fallback_${user.id}`);
-    if (claimed === 'lifetime') return true;
-    if (claimed && claimed.startsWith('trial_')) {
-      const expiresAt = parseInt(claimed.split('_')[1], 10);
-      return expiresAt > Date.now();
-    }
-    return false;
-  });
-
   const emailUnlimited = !!user?.email && UNLIMITED_EMAILS.has(user.email.toLowerCase());
-  const hasBoost = isAdmin || emailUnlimited || hasBoostSub || hasPromoFallback;
+  const hasBoost = isAdmin || emailUnlimited || hasBoostSub;
 
   // Image quota logic
   // Admin: unlimited
@@ -177,21 +166,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     if (!user || !supabase) {
       setIsAdmin(false);
       setHasBoostSub(false);
-      setHasPromoFallback(false);
       setLoading(false);
       return;
     }
-    
-    // Recheck promo fallback
-    const claimed = localStorage.getItem(`arcai_boost_promo_fallback_${user.id}`);
-    let promoValid = false;
-    if (claimed === 'lifetime') promoValid = true;
-    else if (claimed && claimed.startsWith('trial_')) {
-      const expiresAt = parseInt(claimed.split('_')[1], 10);
-      promoValid = expiresAt > Date.now();
-    }
-    setHasPromoFallback(promoValid);
-
     try {
       const [{ data: adminData }, { data: boostData }] = await Promise.all([
         supabase.rpc('is_admin_user'),

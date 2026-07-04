@@ -68,8 +68,8 @@ export function PricingPage() {
                 ))}
               </ul>
             </div>
-            <GlassButton className="w-full mt-auto" disabled={!user || !hasBoost}>
-              {user ? (hasBoost ? "Current Plan: Free" : "Active Plan") : "Free Tier"}
+            <GlassButton className="w-full mt-auto" disabled={true}>
+              {user ? (hasBoost ? "Basic Access" : "Active Plan") : "Free Tier"}
             </GlassButton>
           </GlassCard>
 
