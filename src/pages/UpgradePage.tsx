@@ -9,20 +9,20 @@ import { BOOST_PRICE_ID, BOOST_ANNUAL_PRICE_ID } from "@/lib/stripe";
 import { motion } from "framer-motion";
 
 const BOOST_FEATURES = [
-  "Unlimited GPT-5.4 (Thinking) reasoning chats",
-  "Unlimited GPT-5.5 (Deep Think) reasoning chats",
-  "20 premium GPT Image 2 outputs per day",
-  "Full image editing (combining & variations of base images)",
-  "Publish your code online at a custom arc link",
-  "Unlimited voice conversations",
-  "Unlimited shared chats (up to 6 people each)",
-  "Priority features and server access",
+  "Unlimited Reasoning (GPT-5.4 Thinking)",
+  "Unlimited Deep Reason (GPT-5.5 Deep Think)",
+  "Premium Image Generation (GPT-Image-2)",
+  "Advanced image editing studio",
+  "Publish live web apps to custom links",
+  "Unlimited shared chats & rooms",
+  "Priority feature & server access",
 ];
 
 export function UpgradePage() {
   const navigate = useNavigate();
   const { user, loading: authLoading, isAnonymous } = useAuth();
   const { hasBoost, openCheckout, openCustomerPortal, loading: subLoading, currentPeriodEnd } = useSubscription();
+  const [billingInterval, setBillingInterval] = useState<"monthly" | "annual">("annual");
 
   // If auth is done loading and there is no user (or user is guest), redirect or show message
   const isLoggedIn = !!user && !isAnonymous;
@@ -65,30 +65,7 @@ export function UpgradePage() {
           <ArrowLeft className="h-4 w-4" /> Back
         </Link>
 
-        {/* Not Logged In State */}
-        {!isLoggedIn ? (
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="text-center"
-          >
-            <GlassCard className="p-8 max-w-md mx-auto border-white/5 bg-white/[0.02]">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-4 border border-primary/20">
-                <Zap className="h-6 w-6 text-primary" />
-              </div>
-              <h2 className="text-2xl font-bold mb-2">Authentication Required</h2>
-              <p className="text-sm text-muted-foreground mb-6">
-                Please sign in or create an account to access the pricing and upgrades page.
-              </p>
-              <Link to="/welcome">
-                <GlassButton className="w-full bg-primary text-primary-foreground hover:bg-primary/95">
-                  Sign In to Continue
-                </GlassButton>
-              </Link>
-            </GlassCard>
-          </motion.div>
-        ) : hasBoost ? (
+        {hasBoost ? (
           /* Already Upgraded State */
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
@@ -164,16 +141,50 @@ export function UpgradePage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-              {/* Boost Monthly */}
-              <GlassCard className="p-8 flex flex-col justify-between border-white/5 bg-white/[0.01] hover:bg-white/[0.02] hover:border-primary/20 transition-all duration-300 relative overflow-hidden group">
-                <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            {/* Billing Toggle */}
+            <div className="flex items-center justify-center gap-3 mb-8">
+              <span className={`text-sm transition-colors duration-200 ${billingInterval === "monthly" ? "text-white font-semibold" : "text-muted-foreground"}`}>
+                Monthly
+              </span>
+              <button
+                onClick={() => setBillingInterval(billingInterval === "monthly" ? "annual" : "monthly")}
+                className="relative w-12 h-6 rounded-full bg-zinc-800 transition-colors duration-200 p-0.5 border border-white/10"
+              >
+                <div className={`w-4.5 h-4.5 rounded-full bg-white transition-transform duration-200 shadow-md ${billingInterval === "annual" ? "translate-x-6" : "translate-x-0"}`} />
+              </button>
+              <span className={`text-sm transition-colors duration-200 ${billingInterval === "annual" ? "text-white font-semibold" : "text-muted-foreground"} flex items-center gap-2`}>
+                Annual
+                <span className="text-[10px] bg-primary/20 text-primary font-bold px-2 py-0.5 rounded-full">
+                  Save 20%
+                </span>
+              </span>
+            </div>
+
+            <div className="max-w-md mx-auto">
+              {/* Boost Consolidated Upgrade Card */}
+              <GlassCard className="p-8 flex flex-col justify-between border-primary relative overflow-hidden bg-primary/5">
+                <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-100" />
+                <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-lg shadow-primary/20 animate-pulse">
+                  <Sparkles className="h-3 w-3" /> Best Value
+                </div>
                 <div>
-                  <div className="text-xs font-bold text-primary tracking-wider uppercase mb-2">Boost Monthly</div>
-                  <div className="flex items-baseline gap-1 mb-6">
-                    <span className="text-5xl font-black tracking-tight text-white">$10</span>
-                    <span className="text-muted-foreground text-sm font-medium">/ month</span>
+                  <div className="text-sm font-semibold text-primary tracking-wider uppercase mb-2">
+                    Boost {billingInterval === "monthly" ? "Monthly" : "Annual"}
                   </div>
+                  <div className="flex items-baseline gap-1 mb-1">
+                    <span className="text-5xl font-black tracking-tight text-white">
+                      {billingInterval === "monthly" ? "$10" : "$95"}
+                    </span>
+                    <span className="text-muted-foreground text-sm font-medium">
+                      / {billingInterval === "monthly" ? "month" : "year"}
+                    </span>
+                  </div>
+                  {billingInterval === "annual" && (
+                    <p className="text-xs text-primary font-bold mb-5">Equal to just $7.91/month (Save 20%)</p>
+                  )}
+                  {billingInterval === "monthly" && (
+                    <div className="h-4 mb-5" />
+                  )}
                   
                   <ul className="space-y-3.5 mb-8">
                     {BOOST_FEATURES.map((feature) => (
@@ -187,40 +198,9 @@ export function UpgradePage() {
 
                 <GlassButton
                   className="w-full bg-primary text-primary-foreground hover:bg-primary/95 font-semibold py-6 rounded-xl shadow-lg shadow-primary/15 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]"
-                  onClick={() => openCheckout(BOOST_PRICE_ID)}
+                  onClick={() => openCheckout(billingInterval === "monthly" ? BOOST_PRICE_ID : BOOST_ANNUAL_PRICE_ID)}
                 >
-                  Upgrade Monthly
-                </GlassButton>
-              </GlassCard>
-
-              {/* Boost Annual */}
-              <GlassCard className="p-8 flex flex-col justify-between border-primary/40 bg-primary/[0.02] hover:bg-primary/[0.04] transition-all duration-300 relative overflow-hidden group">
-                <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-lg shadow-primary/20 animate-pulse">
-                  <Sparkles className="h-3 w-3" /> Save 22%
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-primary tracking-wider uppercase mb-2">Boost Annual</div>
-                  <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-5xl font-black tracking-tight text-white">$95</span>
-                    <span className="text-muted-foreground text-sm font-medium">/ year</span>
-                  </div>
-                  <p className="text-xs text-primary font-bold mb-6">Equal to just $7.91/month</p>
-                  
-                  <ul className="space-y-3.5 mb-8">
-                    {BOOST_FEATURES.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2.5 text-sm text-white/90">
-                        <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <GlassButton
-                  className="w-full bg-primary text-primary-foreground hover:bg-primary/95 font-semibold py-6 rounded-xl shadow-lg shadow-primary/20 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]"
-                  onClick={() => openCheckout(BOOST_ANNUAL_PRICE_ID)}
-                >
-                  Upgrade Annual
+                  Upgrade {billingInterval === "monthly" ? "Monthly" : "Annual"}
                 </GlassButton>
               </GlassCard>
             </div>
