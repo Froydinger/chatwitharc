@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, MessageSquare, AlertCircle, Clock, CheckCircle2, XCircle,
-  User, Crown, Search, Plus,
+  User, Crown, Search, Plus, Mail
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
@@ -29,6 +29,8 @@ interface Ticket {
   created_at: string;
   updated_at: string;
   user_id: string;
+  sender_email?: string | null;
+  sender_name?: string | null;
 }
 
 interface UserInfo {
@@ -146,6 +148,7 @@ export function AdminTicketList() {
 
   if (selectedTicketId) {
     const ticket = tickets.find((t) => t.id === selectedTicketId);
+    const isEmailTicket = ticket && !!ticket.sender_email;
     const ticketUser = ticket ? userProfiles[ticket.user_id] : null;
     const ticketPlan = ticket ? userPlans[ticket.user_id] : "Unknown";
 
@@ -154,18 +157,35 @@ export function AdminTicketList() {
         {ticket && (
           <div className="bg-accent/20 border-b border-border/30 px-4 py-2 pt-16 sm:pt-20">
             <div className="max-w-3xl mx-auto flex items-center gap-3 flex-wrap">
-              <User className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-foreground font-medium">
-                {ticketUser?.display_name || "Unknown User"}
-              </span>
-              <Badge variant="outline" className="text-xs">
-                {ticketPlan === "Pro" ? (
-                  <span className="flex items-center gap-1"><Crown className="w-3 h-3 text-amber-400" /> Pro</span>
-                ) : ticketPlan}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                ID: {ticket.user_id.slice(0, 8)}...
-              </span>
+              {isEmailTicket ? (
+                <>
+                  <Mail className="w-4 h-4 text-primary" />
+                  <span className="text-sm text-foreground font-medium">
+                    {ticket.sender_name || "Guest Customer"}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    ({ticket.sender_email})
+                  </span>
+                  <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                    Email Customer
+                  </Badge>
+                </>
+              ) : (
+                <>
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm text-foreground font-medium">
+                    {ticketUser?.display_name || "Unknown User"}
+                  </span>
+                  <Badge variant="outline" className="text-xs">
+                    {ticketPlan === "Pro" ? (
+                      <span className="flex items-center gap-1"><Crown className="w-3 h-3 text-amber-400" /> Pro</span>
+                    ) : ticketPlan}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    ID: {ticket.user_id.slice(0, 8)}...
+                  </span>
+                </>
+              )}
             </div>
           </div>
         )}
@@ -182,6 +202,8 @@ export function AdminTicketList() {
     const matchesFilter = filter === "all" || t.status === filter;
     const matchesSearch = !search || 
       t.subject.toLowerCase().includes(search.toLowerCase()) ||
+      (t.sender_email || "").toLowerCase().includes(search.toLowerCase()) ||
+      (t.sender_name || "").toLowerCase().includes(search.toLowerCase()) ||
       (userProfiles[t.user_id]?.display_name || "").toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
@@ -314,13 +336,24 @@ export function AdminTicketList() {
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-foreground truncate">{ticket.subject}</h3>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-xs text-muted-foreground">
-                            {profile?.display_name || "Unknown"}
-                          </span>
-                          {plan === "Pro" && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              <Crown className="w-2.5 h-2.5 text-amber-400 mr-0.5" /> Pro
-                            </Badge>
+                          {ticket.sender_email ? (
+                            <>
+                              <Mail className="w-3.5 h-3.5 text-primary" />
+                              <span className="text-xs text-primary font-medium">
+                                {ticket.sender_name || ticket.sender_email}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-xs text-muted-foreground">
+                                {profile?.display_name || "Unknown"}
+                              </span>
+                              {plan === "Pro" && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  <Crown className="w-2.5 h-2.5 text-amber-400 mr-0.5" /> Pro
+                                </Badge>
+                              )}
+                            </>
                           )}
                           <span className="text-xs text-muted-foreground">
                             · {new Date(ticket.updated_at).toLocaleDateString()}

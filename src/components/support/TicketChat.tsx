@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Send, Image as ImageIcon, Loader2, Shield } from "lucide-react";
+import { ArrowLeft, Send, Image as ImageIcon, Loader2, Shield, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -25,6 +25,8 @@ interface Message {
   image_url: string | null;
   is_admin_reply: boolean;
   created_at: string;
+  sender_email?: string | null;
+  is_inbound?: boolean;
 }
 
 interface TicketInfo {
@@ -34,6 +36,8 @@ interface TicketInfo {
   priority: string;
   user_id: string;
   created_at: string;
+  sender_email?: string | null;
+  sender_name?: string | null;
 }
 
 interface TicketChatProps {
@@ -124,15 +128,27 @@ export function TicketChat({ ticketId, onBack, isAdmin }: TicketChatProps) {
       if (ticket) {
         if (isAdmin) {
           try {
+            const isEmailTicket = !!ticket.sender_email;
             await supabase.functions.invoke("send-transactional-email", {
-              body: {
-                templateName: "support-reply",
-                recipientUserId: ticket.user_id,
-                templateData: {
-                  subject: ticket.subject,
-                  messagePreview: messageContent,
-                },
-              },
+              body: isEmailTicket 
+                ? {
+                    templateName: "support-reply",
+                    recipientEmail: ticket.sender_email,
+                    templateData: {
+                      subject: ticket.subject,
+                      messagePreview: messageContent,
+                      isEmailGuest: true,
+                    },
+                  }
+                : {
+                    templateName: "support-reply",
+                    recipientUserId: ticket.user_id,
+                    templateData: {
+                      subject: ticket.subject,
+                      messagePreview: messageContent,
+                      isEmailGuest: false,
+                    },
+                  },
             });
           } catch (e) {
             console.error("Failed to send admin reply email notification:", e);
@@ -184,15 +200,27 @@ export function TicketChat({ ticketId, onBack, isAdmin }: TicketChatProps) {
     if (ticket) {
       if (isAdmin) {
         try {
+          const isEmailTicket = !!ticket.sender_email;
           await supabase.functions.invoke("send-transactional-email", {
-            body: {
-              templateName: "support-reply",
-              recipientUserId: ticket.user_id,
-              templateData: {
-                subject: ticket.subject,
-                messagePreview: "Attached an image",
-              },
-            },
+            body: isEmailTicket
+              ? {
+                  templateName: "support-reply",
+                  recipientEmail: ticket.sender_email,
+                  templateData: {
+                    subject: ticket.subject,
+                    messagePreview: "Attached an image",
+                    isEmailGuest: true,
+                  },
+                }
+              : {
+                  templateName: "support-reply",
+                  recipientUserId: ticket.user_id,
+                  templateData: {
+                    subject: ticket.subject,
+                    messagePreview: "Attached an image",
+                    isEmailGuest: false,
+                  },
+                },
           });
         } catch (e) {
           console.error("Failed to send admin attachment email notification:", e);
@@ -278,7 +306,7 @@ export function TicketChat({ ticketId, onBack, isAdmin }: TicketChatProps) {
       <GlassCard className="flex-1 p-4 overflow-y-auto mb-4 max-h-[calc(100vh-14rem)]">
         <div className="space-y-4">
           {messages.map((msg) => {
-            const isOwn = msg.sender_id === user?.id;
+            const isOwn = isAdmin ? msg.is_admin_reply : !msg.is_admin_reply;
             return (
               <motion.div
                 key={msg.id}
@@ -291,10 +319,21 @@ export function TicketChat({ ticketId, onBack, isAdmin }: TicketChatProps) {
                     ? "bg-primary/20 text-foreground"
                     : "bg-accent/40 text-foreground"
                 }`}>
-                  {msg.is_admin_reply && !isOwn && (
+                  {!isOwn && (
                     <div className="flex items-center gap-1 mb-1">
-                      <Shield className="w-3 h-3 text-primary" />
-                      <span className="text-[10px] font-medium text-primary">Admin</span>
+                      {msg.is_admin_reply ? (
+                        <>
+                          <Shield className="w-3 h-3 text-primary" />
+                          <span className="text-[10px] font-medium text-primary">Admin</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[180px]">
+                            {msg.sender_email || "Customer"}
+                          </span>
+                        </>
+                      )}
                     </div>
                   )}
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>

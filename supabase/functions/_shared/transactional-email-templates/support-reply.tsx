@@ -10,12 +10,13 @@ const SITE_NAME = 'ArcAI'
 interface SupportReplyProps {
   subject?: string
   messagePreview?: string
+  isEmailGuest?: boolean
 }
 
-const SupportReplyEmail = ({ subject, messagePreview }: SupportReplyProps) => (
+const SupportReplyEmail = ({ subject, messagePreview, isEmailGuest }: SupportReplyProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>New reply on your support ticket — {subject || 'Your ticket'}</Preview>
+    <Preview>{isEmailGuest ? `Support Reply: ${subject}` : `New reply on your support ticket — ${subject || 'Your ticket'}`}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
@@ -30,7 +31,7 @@ const SupportReplyEmail = ({ subject, messagePreview }: SupportReplyProps) => (
 
         <Section style={content}>
           <Text style={emoji}>💬</Text>
-          <Heading style={h1}>New reply on your ticket</Heading>
+          <Heading style={h1}>{isEmailGuest ? 'Message from Arc Support' : 'New reply on your ticket'}</Heading>
           <Text style={subjectLine}>
             <strong>Subject:</strong> {subject || 'Support ticket'}
           </Text>
@@ -41,15 +42,25 @@ const SupportReplyEmail = ({ subject, messagePreview }: SupportReplyProps) => (
             </Section>
           )}
 
-          <Section style={ctaWrap}>
-            <Button style={button} href="https://askarc.chat/support">
-              View Conversation
-            </Button>
-          </Section>
+          {!isEmailGuest ? (
+            <Section style={ctaWrap}>
+              <Button style={button} href="https://askarc.chat/support">
+                View Conversation
+              </Button>
+            </Section>
+          ) : (
+            <Text style={{ ...subjectLine, margin: '20px 0 0', fontStyle: 'italic', fontSize: '13px' }}>
+              Reply directly to this email to continue the conversation.
+            </Text>
+          )}
         </Section>
 
         <Section style={footer}>
-          <Text style={footerText}>You're receiving this because you have an open support ticket.</Text>
+          <Text style={footerText}>
+            {isEmailGuest 
+              ? "You're receiving this because you contacted support at hello@askarc.chat."
+              : "You're receiving this because you have an open support ticket."}
+          </Text>
           <Text style={copy}>© 2026 ArcAI by Win The Night Productions</Text>
         </Section>
       </Container>
@@ -61,7 +72,7 @@ export const template = {
   component: SupportReplyEmail,
   subject: (data: Record<string, any>) => `Reply on your ticket: ${data.subject || 'Support'}`,
   displayName: 'Support ticket reply',
-  previewData: { subject: 'Login issue', messagePreview: 'Hey! I looked into this and it should be fixed now. Let me know if it happens again.' },
+  previewData: { subject: 'Login issue', messagePreview: 'Hey! I looked into this and it should be fixed now. Let me know if it happens again.', isEmailGuest: false },
 } satisfies TemplateEntry
 
 const main = {
