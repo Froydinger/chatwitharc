@@ -52,7 +52,7 @@ import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptions
 import { PromptEnhancer } from "@/components/PromptEnhancer";
 // ChatModelPicker now lives in the chat header (MobileChatApp), not the input bar.
 import { UsageMeter } from "@/components/UsageMeter";
-import { useImageGenStore } from "@/store/useImageGenStore";
+import { useImageGenStore, useResolvedImageModel } from "@/store/useImageGenStore";
 import { usePersonasStore } from "@/store/usePersonasStore";
 import { useImageQuota } from "@/hooks/useImageQuota";
 
@@ -567,7 +567,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const shouldShowBuildMode = !!inputValue && checkForBuildRequest(inputValue);
 
   // Persisted user-chosen image model + aspect ratio (for /image, "draw…", etc.)
-  const { model: imageGenModel, aspectRatio: imageGenAspect, count: imageGenCount } = useImageGenStore();
+  const { aspectRatio: imageGenAspect, count: imageGenCount } = useImageGenStore();
+  const imageGenModel = useResolvedImageModel();
 
   // When a /write canvas is open, auto-show canvas mode indicator so user knows
   // their messages will modify the canvas (not go to chat)

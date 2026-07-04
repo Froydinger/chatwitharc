@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useImageQuota } from "@/hooks/useImageQuota";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useArcStore } from "@/store/useArcStore";
 import { useProfile } from "@/hooks/useProfile";
@@ -96,6 +97,7 @@ export function DashboardPage() {
   const initialTab = (searchParams.get("tab") as DashboardTab) || "overview";
   const { user, loading: authLoading, isAnonymous } = useAuth();
   const { isAdmin } = useImageQuota();
+  const { hasBoost } = useSubscription();
 
   // Anonymous users are not allowed to view the dashboard at all.
   // Bounce them back to the chat and open the sign-in modal immediately.
@@ -915,7 +917,13 @@ useEffect(() => {
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/25 bg-primary/8 text-primary text-xs font-medium cursor-pointer hover:bg-primary/15 hover:border-primary/40 transition-colors"
           >
             <Zap className="h-3.5 w-3.5" />
-            <span>{isAdmin ? "ArcAI Admin — unlimited everything" : "ArcAI — free forever · 20 image outputs/day"}</span>
+            <span>
+              {isAdmin 
+                ? "ArcAI Admin — unlimited everything" 
+                : hasBoost 
+                  ? "ArcAI Boost — Smarter features unlocked" 
+                  : "ArcAI — free forever · 20 image outputs/day"}
+            </span>
           </button>
           <button
             onClick={() => navigate('/blog')}

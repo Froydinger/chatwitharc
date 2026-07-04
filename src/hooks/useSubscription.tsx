@@ -229,7 +229,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         },
       });
       if (error || !data?.url) throw new Error(error?.message || data?.error || 'Portal unavailable');
-      window.open(data.url, '_blank', 'noopener,noreferrer');
+      window.location.href = data.url;
     } catch (err) {
       console.error('[subscription] portal failed', err);
       window.alert(err instanceof Error ? err.message : 'Could not open billing portal');

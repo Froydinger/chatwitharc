@@ -60,6 +60,7 @@ import {
   IMAGE_ASPECT_OPTIONS,
   type ImageModelId,
   type ImageAspectRatio,
+  useResolvedImageModel,
 } from "@/store/useImageGenStore";
 import {
   AlertDialog,
@@ -185,7 +186,8 @@ function Tile({
 
 
 function ImageDefaultsCard() {
-  const { model, aspectRatio, setModel, setAspectRatio } = useImageGenStore();
+  const { aspectRatio, setModel, setAspectRatio } = useImageGenStore();
+  const model = useResolvedImageModel();
   return (
     <SectionCard icon={ImageIcon} title="Image Defaults" subtitle="Used when generating images">
       <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1 pt-1">Model</div>

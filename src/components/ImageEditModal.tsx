@@ -14,6 +14,7 @@ import {
   IMAGE_ASPECT_OPTIONS,
   type ImageModelId,
   type ImageAspectRatio,
+  useResolvedImageModel,
 } from "@/store/useImageGenStore";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
 import { cn } from "@/lib/utils";
@@ -49,7 +50,8 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { addMessage } = useArcStore();
   const { toast } = useToast();
   
-  const { model: selectedModel, aspectRatio: selectedAspect, count: selectedCount, setModel, setAspectRatio } = useImageGenStore();
+  const { aspectRatio: selectedAspect, count: selectedCount, setModel, setAspectRatio } = useImageGenStore();
+  const selectedModel = useResolvedImageModel();
   const [openMenu, setOpenMenu] = useState<null | "model" | "aspect">(null);
 
   // If a lastUsedModel was passed and it differs from the current store, prime the store once on open.

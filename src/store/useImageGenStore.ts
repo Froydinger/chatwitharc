@@ -48,6 +48,7 @@ export const MAX_IMAGE_COUNT: ImageCount = 3;
 
 interface ImageGenState {
   model: ImageModelId;
+  hasExplicitlyChosenModel?: boolean;
   aspectRatio: ImageAspectRatio;
   count: ImageCount;
   setModel: (m: ImageModelId) => void;
@@ -59,10 +60,14 @@ export const useImageGenStore = create<ImageGenState>()(
   persist(
     (set) => ({
       model: DEFAULT_IMAGE_MODEL,
+      hasExplicitlyChosenModel: false,
       aspectRatio: '1:1',
       count: 1,
       setModel: (m) =>
-        set({ model: ALLOWED_IMAGE_MODELS.includes(m) ? m : DEFAULT_IMAGE_MODEL }),
+        set({ 
+          model: ALLOWED_IMAGE_MODELS.includes(m) ? m : DEFAULT_IMAGE_MODEL,
+          hasExplicitlyChosenModel: true
+        }),
       setAspectRatio: (a) => set({ aspectRatio: a }),
       setCount: (c) => set({ count: (c >= 1 && c <= 3 ? c : 1) as ImageCount }),
     }),
@@ -93,3 +98,26 @@ export const useImageGenStore = create<ImageGenState>()(
     }
   )
 );
+
+// Helper function to resolve the image model in non-React code (e.g., Zustand store getters)
+export function getResolvedImageModel(isBoost: boolean): ImageModelId {
+  const state = useImageGenStore.getState();
+  if (state.hasExplicitlyChosenModel) {
+    return state.model;
+  }
+  return isBoost ? 'gpt-image-2' : 'gpt-image-1';
+}
+
+// React hook to resolve the image model dynamically based on subscription state
+import { useSubscription } from '@/hooks/useSubscription';
+
+export function useResolvedImageModel(): ImageModelId {
+  const { hasBoost } = useSubscription();
+  const model = useImageGenStore((s) => s.model);
+  const hasExplicit = useImageGenStore((s) => s.hasExplicitlyChosenModel);
+  
+  if (hasExplicit) {
+    return model;
+  }
+  return hasBoost ? 'gpt-image-2' : 'gpt-image-1';
+}

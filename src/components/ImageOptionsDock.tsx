@@ -25,6 +25,7 @@ interface ImageOptionsDockProps {
 }
 
 import { useSubscription } from "@/hooks/useSubscription";
+import { useResolvedImageModel } from "@/store/useImageGenStore";
 
 /**
  * Inner controls (model + aspect + usage meter). Can be rendered inline
@@ -32,7 +33,8 @@ import { useSubscription } from "@/hooks/useSubscription";
  * <ImageOptionsDock /> for its own floating dock.
  */
 export function ImageOptionsContent({ showUsage = true }: { showUsage?: boolean }) {
-  const { model, aspectRatio, count, setModel, setAspectRatio, setCount } = useImageGenStore();
+  const { aspectRatio, count, setModel, setAspectRatio, setCount } = useImageGenStore();
+  const model = useResolvedImageModel();
   const { hasBoost } = useSubscription();
 
   const [openMenu, setOpenMenu] = useState<null | "model" | "aspect" | "count">(null);

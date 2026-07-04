@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export const DAILY_IMAGE_OUTPUT_LIMIT = 20;
 
-import { useImageGenStore } from "@/store/useImageGenStore";
+import { useImageGenStore, useResolvedImageModel } from "@/store/useImageGenStore";
 
 interface ImageQuotaSnapshot {
   used: number;
@@ -32,7 +32,7 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
   const { user, isAnonymous } = useAuth();
   const [loading, setLoading] = useState(true);
   const [quota, setQuota] = useState<ImageQuotaSnapshot | null>(null);
-  const selectedModel = useImageGenStore((s) => s.model);
+  const selectedModel = useResolvedImageModel();
 
   const refreshQuota = useCallback(async () => {
     if (!user || isAnonymous) {
@@ -43,7 +43,7 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
     setLoading(true);
     try {
       const { data, error } = await supabase.rpc("get_my_image_quota", {
-        chosen_model: useImageGenStore.getState().model || 'gpt-image-1'
+        chosen_model: selectedModel
       });
       if (error) throw error;
       setQuota(data as unknown as ImageQuotaSnapshot);

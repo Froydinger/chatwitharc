@@ -40,7 +40,7 @@ export const useModelStore = create<ModelStore>()(
   )
 );
 
-import { useImageGenStore } from './useImageGenStore';
+import { useImageGenStore, getResolvedImageModel } from './useImageGenStore';
 
 /**
  * Get the correct model string for a given task.
@@ -63,7 +63,7 @@ export function getModelForTask(task: ModelTask): string {
         return 'gpt-5.4-mini';
       case 'image-gen':
       case 'image-edit':
-        return useImageGenStore.getState().model || 'gpt-image-1';
+        return getResolvedImageModel(useModelStore.getState().isBoost);
       case 'image-analysis':
       default:
         return 'gpt-5.4-nano';
@@ -76,7 +76,7 @@ export function getModelForTask(task: ModelTask): string {
       return chatModel;
     case 'image-gen':
     case 'image-edit':
-      return useImageGenStore.getState().model || 'gpt-image-1';
+      return getResolvedImageModel(useModelStore.getState().isBoost);
     case 'code':
     case 'image-analysis':
     case 'file-gen':
