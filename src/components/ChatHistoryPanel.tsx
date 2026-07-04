@@ -514,7 +514,7 @@ export function ChatHistoryPanel() {
               </div>
             )}
 
-            {!hasLoadedOlder && sortedSessions.length >= 10 && (
+            {!hasLoadedOlder && sortedSessions.length > 0 && (
               <div className="flex items-center justify-center pt-3 pb-2 border-t border-border/10 mt-3">
                 <button
                   onClick={handleLoadOlder}

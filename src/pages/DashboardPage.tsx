@@ -601,6 +601,13 @@ useEffect(() => {
     })();
   }, [user]);
 
+  // Load full history (up to 500) in the background when the user visits the Chats tab
+  useEffect(() => {
+    if (user && activeTab === "chats") {
+      syncFromSupabase(500);
+    }
+  }, [activeTab, user, syncFromSupabase]);
+
   const allChats = useMemo(() => {
     return [...chatSessions].sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
   }, [chatSessions]);
@@ -682,15 +689,16 @@ useEffect(() => {
   };
 
   const insightTip = useMemo(() => {
+    const chatCount = quickCounts.chats !== null ? quickCounts.chats : allChats.length;
     const tips = [
-      allChats.length > 0 ? `You've had ${allChats.length} conversations with Arc.` : null,
+      chatCount > 0 ? `You've had ${chatCount} conversations with Arc.` : null,
       totalImageCount != null && totalImageCount > 0 ? `You've generated ${totalImageCount} image${totalImageCount === 1 ? '' : 's'} with Arc so far.` : null,
       contextBlocks.length > 0 ? `Arc is remembering ${contextBlocks.length} key details about you.` : null,
       "Start a new chat to brainstorm your next big idea.",
       "Use /code to have Arc write or debug code for you.",
     ].filter(Boolean) as string[];
     return tips[Math.floor(Math.random() * tips.length)];
-  }, [allChats.length, totalImageCount, contextBlocks.length]);
+  }, [allChats.length, totalImageCount, contextBlocks.length, quickCounts.chats]);
 
   if (authLoading) return null;
 
@@ -713,10 +721,10 @@ useEffect(() => {
 
   // Stats for overview
   const stats = [
-    { label: "Chats", tab: "chats" as DashboardTab, value: allChats.length > 0 ? allChats.length : quickCounts.chats, icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
+    { label: "Chats", tab: "chats" as DashboardTab, value: quickCounts.chats !== null ? quickCounts.chats : (allChats.length > 0 ? allChats.length : 0), icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
     { label: "Images", tab: "images" as DashboardTab, value: totalImageCount, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Canvases", tab: "canvases" as DashboardTab, value: filteredCanvases.length, icon: Layers, color: "35 90% 60%", tw: "text-orange-400" },
-    { label: "Memories", tab: "memories" as DashboardTab, value: contextBlocks.length > 0 ? contextBlocks.length : quickCounts.memories, icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
+    { label: "Memories", tab: "memories" as DashboardTab, value: quickCounts.memories !== null ? quickCounts.memories : (contextBlocks.length > 0 ? contextBlocks.length : 0), icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
   const getIdxFromCX = (cx: number) => {
