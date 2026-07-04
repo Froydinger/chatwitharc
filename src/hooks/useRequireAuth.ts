@@ -12,6 +12,7 @@ export type GatedFeature =
   | "research"
   | "code"
   | "canvas"
+  | "boost"
   | "generic";
 
 export interface AuthGateDetail {

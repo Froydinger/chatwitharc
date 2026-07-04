@@ -27,6 +27,7 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
   research: { title: "Sign in for research", subtitle: "Cited sources from the web.", icon: Globe },
   code: { title: "Sign in to write code", subtitle: "Code and app generation.", icon: Code2 },
   canvas: { title: "Sign in for canvas", subtitle: "Long-form writing & layouts.", icon: PenLine },
+  boost: { title: "Sign in to upgrade", subtitle: "Access premium reasoning models and custom web publishing.", icon: Zap },
   generic: { title: "Welcome to ArcAI", subtitle: "Sign in to unlock everything.", icon: Sparkles },
 };
 
