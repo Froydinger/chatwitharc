@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { signInWithGoogle } from "@/integrations/auth";
-import { Mail, Lock, Eye, EyeOff, X, Sparkles, Mic, ImagePlus, Globe, Code2, PenLine, Music, Paperclip } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, X, Sparkles, Mic, ImagePlus, Globe, Code2, PenLine, Music, Paperclip, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GatedFeature, AuthGateDetail } from "@/hooks/useRequireAuth";
 
