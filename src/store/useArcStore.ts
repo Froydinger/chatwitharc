@@ -608,9 +608,8 @@ export const useArcStore = create<ArcState>()(
         const state = get();
         const session = state.chatSessions.find(s => s.id === sessionId);
         
-        // Skip if already hydrated (and has messages), currently hydrating, or local-only (corp mode never hits cloud).
-        const hasMessages = session && Array.isArray(session.messages) && session.messages.length > 0;
-        if ((session?.isHydrated && hasMessages) || session?.isLocalOnly || state.isHydratingSession === sessionId) {
+        // Skip if already hydrated, currently hydrating, or local-only (corp mode never hits cloud).
+        if (session?.isHydrated || session?.isLocalOnly || state.isHydratingSession === sessionId) {
           return;
         }
 
@@ -1068,8 +1067,8 @@ export const useArcStore = create<ArcState>()(
               : []
           });
 
-          // If session isn't hydrated or has no messages, fetch messages in background
-          if (!session.isHydrated || !session.messages || session.messages.length === 0) {
+          // If session isn't hydrated, fetch messages in background
+          if (!session.isHydrated) {
             get().hydrateSession(sessionId);
           }
         } else {

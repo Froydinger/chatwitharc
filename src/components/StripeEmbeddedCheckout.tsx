@@ -32,18 +32,18 @@ export function StripeEmbeddedCheckout({
 
       if (error) {
         console.error("Supabase edge function invoke error:", error);
-        throw new Error(error.message || "Failed to create checkout session");
+        throw error.message || "Failed to create checkout session";
       }
 
       if (!data?.clientSecret) {
-        throw new Error(data?.error || "No client secret returned");
+        throw data?.error || "No client secret returned";
       }
 
       return data.clientSecret;
     } catch (err: any) {
       console.error("fetchClientSecret exception:", err);
-      // Throw a clean string message to prevent cyclic structure serialization errors in Stripe SDK
-      throw new Error(err?.message || String(err) || "Failed to initialize checkout session");
+      // Throw/reject with a clean primitive string to prevent cyclic structure serialization errors in Stripe SDK
+      throw err?.message || String(err) || "Failed to initialize checkout session";
     }
   };
 

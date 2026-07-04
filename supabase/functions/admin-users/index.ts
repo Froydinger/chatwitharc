@@ -54,8 +54,11 @@ serve(async (req) => {
 
       if (error) throw error;
 
+      // Filter out anonymous users (those without an email or marked as anonymous)
+      const registeredUsers = (users || []).filter(u => u.email && u.email.trim() !== "" && !u.is_anonymous);
+
       // Get profiles for all users
-      const userIds = users.map(u => u.id);
+      const userIds = registeredUsers.map(u => u.id);
       const [profilesRes, adminsRes, subsRes] = await Promise.all([
         supabase
           .from("profiles")
@@ -74,7 +77,7 @@ serve(async (req) => {
       const adminMap = new Map((adminsRes.data || []).map(a => [a.user_id, a]));
       const subMap = new Map((subsRes.data || []).map(s => [s.user_id, s]));
 
-      const enrichedUsers = users.map(u => {
+      const enrichedUsers = registeredUsers.map(u => {
         const sub = subMap.get(u.id);
         return {
           id: u.id,
@@ -97,7 +100,7 @@ serve(async (req) => {
         };
       });
 
-      return new Response(JSON.stringify({ users: enrichedUsers, total: users.length }), {
+      return new Response(JSON.stringify({ users: enrichedUsers, total: enrichedUsers.length }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
