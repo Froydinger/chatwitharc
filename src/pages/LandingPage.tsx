@@ -40,7 +40,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "GPT-5.4 Mini and Nano for chat and code, GPT-Image-2 for images, OpenAI Realtime for voice, and Perplexity Sonar for web search.",
+    a: "GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) for advanced reasoning, GPT-5.4 Nano for quick chats, GPT-Image-2 for images, OpenAI Realtime for voice, and Perplexity Sonar for web search.",
   },
   {
     q: "Is ArcAI private?",
@@ -183,7 +183,7 @@ export function LandingPage() {
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { category: "Ask", icon: MessageSquare, title: "Smarter Reasoning", body: "Ask your most complex questions. Get deep, real-time responses from GPT-5.4 Mini without limits on your curiosity." },
+            { category: "Ask", icon: MessageSquare, title: "Advanced Reasoning", body: "Choose between GPT-5.4 (Thinking) and GPT-5.5 (Deep Think) models to solve your most complex problems with ultimate depth." },
             { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
             { category: "Reflect", icon: Brain, title: "Memory That Follows You", body: "Arc remembers your background, preferences, and goals across every device, reflecting on past chats to grow with you over time." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },

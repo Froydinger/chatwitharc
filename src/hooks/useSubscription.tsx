@@ -137,10 +137,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   // Smarter Chat quota logic
   // Admin: unlimited
   // Boost: unlimited
-  // Free: 20
-  const smarterChatLimit = hasBoost ? Infinity : FREE_DAILY_SMARTER_CHAT_LIMIT;
-  const canSendSmarterChat = hasBoost || dailySmarterChatsUsed < smarterChatLimit;
-  const remainingSmarterChats = hasBoost ? Infinity : Math.max(0, smarterChatLimit - dailySmarterChatsUsed);
+  // Free: 0 (completely gated!)
+  const smarterChatLimit = hasBoost ? Infinity : 0;
+  const canSendSmarterChat = hasBoost;
+  const remainingSmarterChats = hasBoost ? Infinity : 0;
 
   const canStartVoiceConversation = hasBoost || voiceConversations30d < FREE_VOICE_LIMIT_30D;
   const remainingVoiceConversations = hasBoost

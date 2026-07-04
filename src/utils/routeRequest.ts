@@ -91,9 +91,7 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
     case 'cloud-chat':
     case 'cloud-chat-pro': {
       const m = useModelStore.getState().chatModel;
-      const isSmart = m === SMARTER_MODEL;
-      const name = isSmart ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
-      const tier = isSmart ? 'Smarter' : 'Faster';
+      const { name, tier } = getModelInfo(m);
       return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `${tier} mode — OpenAI ${name}.` };
     }
     case 'cloud-search':
@@ -101,22 +99,25 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
     case 'cloud-search-tavily':
       return { label: 'Cloud · Web Search', icon: 'cloud', tooltip: 'Web Search with cited sources.' };
     case 'cloud-vision': {
-      const name = useModelStore.getState().chatModel === SMARTER_MODEL ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
+      const m = useModelStore.getState().chatModel;
+      const { name } = getModelInfo(m);
       return { label: `Cloud · ${name} (Vision)`, icon: 'cloud', tooltip: `Image understanding — OpenAI ${name}.` };
     }
     case 'cloud-document': {
-      const name = useModelStore.getState().chatModel === SMARTER_MODEL ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
+      const m = useModelStore.getState().chatModel;
+      const { name } = getModelInfo(m);
       return { label: `Cloud · ${name} (Docs)`, icon: 'cloud', tooltip: `Document analysis — OpenAI ${name}.` };
     }
     case 'cloud-voice':
       return { label: 'Cloud · OpenAI Realtime', icon: 'cloud', tooltip: 'Voice mode — OpenAI Realtime API.' };
     case 'cloud-code': {
-      const name = useModelStore.getState().chatModel === SMARTER_MODEL ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
+      const m = useModelStore.getState().chatModel;
+      const { name } = getModelInfo(m);
       return { label: `Cloud · ${name} (Code)`, icon: 'cloud', tooltip: `Code generation — OpenAI ${name}.` };
     }
     case 'cloud-canvas': {
       const m = useModelStore.getState().chatModel;
-      const name = m === SMARTER_MODEL ? 'GPT-5.4 Mini' : 'GPT-5.4 Nano';
+      const { name } = getModelInfo(m);
       return { label: `Cloud · ${name} (Canvas)`, icon: 'cloud', tooltip: `Long-form writing canvas — OpenAI ${name}.` };
     }
 
@@ -130,5 +131,14 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
     case 'cloud-ide':
       return { label: 'Cloud · GPT-5.4 Mini (App Builder)', icon: 'cloud', tooltip: 'App Builder agent — OpenAI GPT-5.4 Mini.' };
   }
+}
 
+function getModelInfo(m: string): { name: string; tier: string } {
+  if (m === 'gpt-5.5') {
+    return { name: 'GPT-5.5', tier: 'Deep Think' };
+  }
+  if (m === 'gpt-5.4-mini') {
+    return { name: 'GPT-5.4 (Thinking)', tier: 'Thinking' };
+  }
+  return { name: 'GPT-5.4 Nano', tier: 'Faster' };
 }

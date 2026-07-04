@@ -6,8 +6,13 @@ export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-ana
 
 /** User-pickable chat models. */
 export const FASTER_MODEL = 'gpt-5.4-nano';
-export const SMARTER_MODEL = 'gpt-5.4-mini';
-export type ChatModel = typeof FASTER_MODEL | typeof SMARTER_MODEL;
+export const THINKING_MODEL = 'gpt-5.4-mini';
+export const DEEP_THINK_MODEL = 'gpt-5.5';
+
+// For backwards compatibility in legacy files
+export const SMARTER_MODEL = THINKING_MODEL;
+
+export type ChatModel = typeof FASTER_MODEL | typeof THINKING_MODEL | typeof DEEP_THINK_MODEL;
 
 interface ModelStore {
   modelFamily: ModelFamily;

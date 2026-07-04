@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Brain, Check, ChevronDown } from 'lucide-react';
-import { useModelStore, FASTER_MODEL, SMARTER_MODEL, type ChatModel } from '@/store/useModelStore';
+import { Zap, Brain, Sparkles, Check, ChevronDown, Lock } from 'lucide-react';
+import { useModelStore, FASTER_MODEL, THINKING_MODEL, DEEP_THINK_MODEL, type ChatModel } from '@/store/useModelStore';
+import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
 
 // Restore point marker — safe rebuild checkpoint
@@ -13,16 +14,23 @@ interface Props {
   placement?: 'up' | 'down';
 }
 
-/** Faster (5.4-nano) vs Smarter (5.4-mini) picker. Both are free. */
 export function ChatModelPicker({ className }: Props) {
   const chatModel = useModelStore((s) => s.chatModel);
   const setChatModel = useModelStore((s) => s.setChatModel);
+  const { hasBoost, openCheckout } = useSubscription();
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
 
-  const current = chatModel === SMARTER_MODEL ? 'Smarter' : 'Faster';
-  const CurrentIcon = chatModel === SMARTER_MODEL ? Brain : Zap;
+  let current = 'Faster';
+  let CurrentIcon = Zap;
+  if (chatModel === THINKING_MODEL) {
+    current = 'Thinking';
+    CurrentIcon = Brain;
+  } else if (chatModel === DEEP_THINK_MODEL) {
+    current = 'Deep Think';
+    CurrentIcon = Sparkles;
+  }
 
   // Compute position when opening, and on resize/scroll while open.
   useEffect(() => {
@@ -48,6 +56,11 @@ export function ChatModelPicker({ className }: Props) {
   }, [open]);
 
   const pick = (m: ChatModel) => {
+    if (m !== FASTER_MODEL && !hasBoost) {
+      openCheckout();
+      setOpen(false);
+      return;
+    }
     setChatModel(m);
     setOpen(false);
   };
@@ -95,10 +108,19 @@ export function ChatModelPicker({ className }: Props) {
                 />
                 <Row
                   icon={<Brain className="h-4 w-4 text-primary" />}
-                  title="Smarter"
-                  subtitle="GPT-5.4 Mini · deeper reasoning"
-                  active={chatModel === SMARTER_MODEL}
-                  onClick={() => pick(SMARTER_MODEL)}
+                  title="Thinking"
+                  subtitle="GPT-5.4 · deeper reasoning"
+                  active={chatModel === THINKING_MODEL}
+                  gated={!hasBoost}
+                  onClick={() => pick(THINKING_MODEL)}
+                />
+                <Row
+                  icon={<Sparkles className="h-4 w-4 text-primary" />}
+                  title="Deep Think"
+                  subtitle="GPT-5.5 · ultimate reasoning"
+                  active={chatModel === DEEP_THINK_MODEL}
+                  gated={!hasBoost}
+                  onClick={() => pick(DEEP_THINK_MODEL)}
                 />
               </motion.div>
             </>
@@ -115,12 +137,14 @@ function Row({
   title,
   subtitle,
   active,
+  gated,
   onClick,
 }: {
   icon: React.ReactNode;
   title: string;
   subtitle: string;
   active?: boolean;
+  gated?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -136,8 +160,9 @@ function Row({
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-semibold flex items-center gap-1.5">
-          {title}
+        <div className="text-xs font-semibold flex items-center justify-between gap-1.5">
+          <span>{title}</span>
+          {gated && <Lock className="h-3 w-3 text-muted-foreground/60" />}
         </div>
         <div className="text-[10px] text-muted-foreground truncate">{subtitle}</div>
       </div>

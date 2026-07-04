@@ -59,7 +59,8 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
 
             <ul className="text-left space-y-2.5 mb-6 max-w-sm mx-auto">
               {[
-                "Unlimited Smarter (GPT-5.4 Mini) reasoning chats",
+                "Unlimited GPT-5.4 (Thinking) reasoning chats",
+                "Unlimited GPT-5.5 (Deep Think) reasoning chats",
                 "20 high-fidelity GPT Image 2 outputs per day",
                 "Premium image editing (variations & base image combining)",
                 "Publish your code online at a custom arc link",

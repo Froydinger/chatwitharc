@@ -1191,12 +1191,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       return;
     }
 
-    // Quota check for Smarter chats (gpt-5.4-mini)
+    // Quota check for gated reasoning models (gpt-5.4-mini and gpt-5.5)
     const currentModel = useModelStore.getState().chatModel;
-    if (currentModel === SMARTER_MODEL && !canSendSmarterChat) {
+    if (currentModel !== FASTER_MODEL && !hasBoost) {
       toast({
-        title: "Smarter Chat Limit Reached",
-        description: "You've reached your daily limit of 20 Smarter (GPT-5.4 Mini) chats. Upgrade to Boost for unlimited access, or switch to Fast (GPT-5.4 Nano) mode!",
+        title: "Boost Plan Required",
+        description: "Thinking (GPT-5.4) and Deep Think (GPT-5.5) modes are available on the Boost plan. Upgrade now to get unlimited access to advanced reasoning models!",
         variant: "destructive",
       });
       openCheckout();

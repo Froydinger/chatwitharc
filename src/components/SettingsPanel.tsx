@@ -827,13 +827,13 @@ export function SettingsPanel() {
   const UsageCard = (
     <SectionCard icon={Stars} title="Usage & Quotas" subtitle="Quota allowances reset at 00:00 UTC">
       <Tile
-        title="Smarter Reasoning Chats (GPT-5.4 Mini)"
-        description="Reasoning chat quota"
+        title="Reasoning Chats (GPT-5.4 / 5.5)"
+        description="Advanced reasoning models"
         right={
           quotaAdmin || smarterChatLimit === Infinity ? (
             <span className="font-mono text-primary text-sm">Unlimited</span>
           ) : (
-            <span className="font-mono text-foreground text-sm">{dailySmarterChatsUsed} / {smarterChatLimit}</span>
+            <span className="font-mono text-muted-foreground text-sm">Locked (Boost Plan)</span>
           )
         }
       />
