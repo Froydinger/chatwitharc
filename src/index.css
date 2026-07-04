@@ -1237,61 +1237,19 @@ All colors MUST be HSL for perfect glass effects.
     @keyframes arc-word-stream {
       0% {
         opacity: 0;
-        text-shadow:
-          0 0 4px hsl(var(--primary) / 0.95),
-          0 0 12px hsl(var(--primary) / 0.8),
-          0 0 28px hsl(var(--primary) / 0.6);
-      }
-      12% {
-        opacity: 1;
-        text-shadow:
-          0 0 4px hsl(var(--primary) / 0.95),
-          0 0 12px hsl(var(--primary) / 0.8),
-          0 0 28px hsl(var(--primary) / 0.6);
-      }
-      52% {
-        text-shadow:
-          0 0 4px hsl(var(--primary) / 0.95),
-          0 0 12px hsl(var(--primary) / 0.8),
-          0 0 28px hsl(var(--primary) / 0.6);
       }
       100% {
         opacity: 1;
-        text-shadow:
-          0 0 4px hsl(var(--primary) / 0),
-          0 0 12px hsl(var(--primary) / 0),
-          0 0 28px hsl(var(--primary) / 0);
       }
     }
 
-    /* Light mode: quieter than dark but still visibly warm */
+    /* Light mode */
     @keyframes arc-word-stream-light {
       0% {
         opacity: 0;
-        text-shadow:
-          0 0 6px hsl(var(--primary) / 0.36),
-          0 0 16px hsl(var(--primary) / 0.23),
-          0 0 32px hsl(var(--primary) / 0.14);
-      }
-      12% {
-        opacity: 1;
-        text-shadow:
-          0 0 6px hsl(var(--primary) / 0.36),
-          0 0 16px hsl(var(--primary) / 0.23),
-          0 0 32px hsl(var(--primary) / 0.14);
-      }
-      52% {
-        text-shadow:
-          0 0 6px hsl(var(--primary) / 0.36),
-          0 0 16px hsl(var(--primary) / 0.23),
-          0 0 32px hsl(var(--primary) / 0.14);
       }
       100% {
         opacity: 1;
-        text-shadow:
-          0 0 6px hsl(var(--primary) / 0),
-          0 0 16px hsl(var(--primary) / 0),
-          0 0 32px hsl(var(--primary) / 0);
       }
     }
 
@@ -1300,7 +1258,7 @@ All colors MUST be HSL for perfect glass effects.
       opacity: 1;
     }
     .arc-word.arc-word-entering {
-      animation: arc-word-stream 1250ms ease-out both;
+      animation: arc-word-stream 150ms ease-out both;
     }
     .light .arc-word.arc-word-entering {
       animation-name: arc-word-stream-light;
