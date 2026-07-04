@@ -3,6 +3,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Sparkles, Check, X, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { StripeEmbeddedCheckout } from "@/components/StripeEmbeddedCheckout";
 import { 
   BOOST_PRICE_ID, 
@@ -20,7 +21,8 @@ interface UpgradeModalProps {
 }
 
 export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
-  const { user } = useAuth();
+  const { user, isAnonymous } = useAuth();
+  const requireAuth = useRequireAuth();
   const [showCheckout, setShowCheckout] = useState(false);
 
   const handleClose = () => {
@@ -28,11 +30,17 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
     onClose();
   };
 
+  const handleSignIn = () => {
+    handleClose();
+    requireAuth("generic");
+  };
+
   const resolvedPriceId = priceId || BOOST_PRICE_ID;
   const isAnnual = resolvedPriceId === BOOST_ANNUAL_PRICE_ID;
   const priceDisplay = isAnnual ? BOOST_ANNUAL_PRICE_DISPLAY : BOOST_PRICE_DISPLAY;
 
-  const canCheckout = paymentsAvailable() && !!user;
+  const isRealUser = !!user && !isAnonymous;
+  const canCheckout = paymentsAvailable() && isRealUser;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -89,8 +97,8 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
               </GlassButton>
             ) : (
               <>
-                <GlassButton className="w-full" onClick={handleClose}>
-                  {user ? "Got it" : "Sign in to upgrade"}
+                <GlassButton className="w-full" onClick={isRealUser ? handleClose : handleSignIn}>
+                  {isRealUser ? "Got it" : "Sign in to upgrade"}
                 </GlassButton>
                 {!paymentsAvailable() && user && (
                   <p className="text-[11px] text-muted-foreground mt-2">
