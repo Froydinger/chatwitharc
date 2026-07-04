@@ -235,7 +235,7 @@ export function AdminBanner() {
             isDismissed ? 'opacity-50 scale-50' : 'opacity-100 scale-100 hover:scale-110'
           }`}
           style={{
-            top: isDismissed ? '28px' : `${bannerHeight}px`,
+            top: isDismissed ? 'calc(6px + env(safe-area-inset-top, 0px))' : `${bannerHeight}px`,
             backgroundColor: bannerSettings.color
           }}
           onMouseEnter={(e) => {
