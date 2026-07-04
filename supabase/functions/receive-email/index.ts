@@ -154,46 +154,55 @@ Deno.serve(async (req) => {
     const { data: admins } = await admin.from("admin_users").select("user_id");
     const adminIds = (admins || []).map((ad) => ad.user_id);
 
-    // 6. Dispatch push notifications to admins
-    if (adminIds.length > 0) {
-      await fetch(`${SUPABASE_URL}/functions/v1/send-push-notification`, {
+    // Parse email creation date to avoid flooding on replayed historic webhooks
+    const emailCreatedAt = emailDetails?.created_at || payload.data?.created_at || payload.created_at || new Date().toISOString();
+    const emailDate = new Date(emailCreatedAt);
+    const now = new Date();
+    // Margins: Only notify if the email event was generated in the last 10 minutes
+    const isRecent = Math.abs(now.getTime() - emailDate.getTime()) < 10 * 60 * 1000;
+
+    if (isRecent) {
+      // 6. Dispatch push notifications to admins
+      if (adminIds.length > 0) {
+        await fetch(`${SUPABASE_URL}/functions/v1/send-push-notification`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            user_ids: adminIds,
+            payload: {
+              title: `✉️ Support Email: ${senderName}`,
+              body: subject,
+              url: "/admin?tab=tickets",
+              tag: `support-ticket-inbound`,
+            },
+          }),
+        }).catch((err) => console.error("Admin push notification failed:", err));
+      }
+
+      // 7. Dispatch transactional email alert to admin email
+      const adminNotificationEmail = "jkrd09@gmail.com";
+      await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          user_ids: adminIds,
-          payload: {
-            title: `✉️ Support Email: ${senderName}`,
-            body: subject,
-            url: "/admin?tab=tickets",
-            tag: `support-ticket-inbound`,
+          templateName: "arc-notification",
+          recipientEmail: adminNotificationEmail,
+          templateData: {
+            title: `New Support Email: ${senderName}`,
+            message: `From: ${senderName} (${senderEmail})\nSubject: ${subject}\n\n${textContent.slice(0, 1000)}`,
+            url: "https://askarc.chat/admin",
           },
         }),
-      }).catch((err) => console.error("Admin push notification failed:", err));
+      }).catch((err) => console.error("Admin email notification failed:", err));
+    } else {
+      console.log(`Skipping admin push & email notifications for replayed historic email (Date: ${emailCreatedAt}) to prevent mail storm.`);
     }
-
-    // 7. Dispatch transactional email alert to admin email (Temporarily commented out to stop webhook replay storm)
-    /*
-    const adminNotificationEmail = "jkrd09@gmail.com";
-    await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        templateName: "arc-notification",
-        recipientEmail: adminNotificationEmail,
-        templateData: {
-          title: `New Support Email: ${senderName}`,
-          message: `From: ${senderName} (${senderEmail})\nSubject: ${subject}\n\n${textContent.slice(0, 1000)}`,
-          url: "https://askarc.chat/admin",
-        },
-      }),
-    }).catch((err) => console.error("Admin email notification failed:", err));
-    */
 
     return new Response(JSON.stringify({ success: true, ticketId }), {
       status: 200,
