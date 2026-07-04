@@ -7,26 +7,23 @@ import { useAuth } from "@/hooks/useAuth";
 import { BOOST_PRICE_ID, BOOST_ANNUAL_PRICE_ID } from "@/lib/stripe";
 
 const FREE_FEATURES = [
-  "Unlimited Fast (GPT-5.4 Nano) chats",
-  "20 Smarter (GPT-5.4 Mini) chats/day",
-  "Unlimited voice conversations",
-  "GPT-Image-1 Mini (40 outputs/day) & GPT-Image-1 (10 outputs/day)",
-  "3 free daily GPT-Image-2 premium outputs",
-  "Deep Search with summaries and citations",
-  "File uploads, document analysis, memory, and canvases",
-  "2 shared chats (up to 6 people each)",
-  "Create reminders and scheduled tasks",
+  "Fast chats (GPT-5.4 Nano)",
+  "Smarter chats (GPT-5.4 Mini)",
+  "Image Generation (GPT-Image-1 & 2)",
+  "Deep Search web research",
+  "Real-time voice conversations",
+  "Memory, file uploads & canvases",
+  "Reminders & shared chats",
 ];
 
 const BOOST_FEATURES = [
-  "Unlimited GPT-5.4 (Thinking) reasoning chats",
-  "Unlimited GPT-5.5 (Deep Think) reasoning chats",
-  "20 premium GPT Image 2 outputs per day",
-  "Full image editing (combining & variations of base images)",
-  "Publish your code online at a custom arc link",
-  "Unlimited voice conversations",
-  "Unlimited shared chats (up to 6 people each)",
-  "Priority features and server access",
+  "Unlimited Reasoning (GPT-5.4 Thinking)",
+  "Unlimited Deep Reason (GPT-5.5 Deep Think)",
+  "Premium Image Generation (GPT-Image-2)",
+  "Advanced image editing studio",
+  "Publish live web apps to custom links",
+  "Unlimited shared chats & rooms",
+  "Priority feature & server access",
 ];
 
 export function PricingPage() {
