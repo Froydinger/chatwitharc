@@ -74,6 +74,49 @@ function deterministicScheduleFromText(text: string, offsetMinutes: number): { c
 
   if (/\bevery\s+(\d+\s*)?(m|min|mins|minute|minutes|h|hr|hrs|hour|hours)\b|\bhourly\b/.test(s)) return null;
 
+  // One-time absolute times ("at 8pm", "later at 8", "tonight", "tomorrow at 9:30am").
+  // Computed here in the user's wall clock so the timestamp never depends on model arithmetic.
+  const explicitlyRecurring = /\b(every|daily|each day|weekdays?|(sun|mon|tues|wednes|thurs|fri|satur)days)\b/.test(s);
+  if (!explicitlyRecurring) {
+    const timeMatch =
+      s.match(/\b(?:at|around|by)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/) ||
+      s.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/);
+    const tomorrow = /\btomorrow\b/.test(s);
+    const tonight = /\btonight\b/.test(s);
+    const oneTimeDayWord = tomorrow || tonight || /\btoday\b/.test(s) || /\bthis (morning|afternoon|evening)\b/.test(s);
+    let parsed = timeMatch ? parseHour(timeMatch[1], timeMatch[2], timeMatch[3]) : null;
+    if (!parsed && oneTimeDayWord) {
+      if (tonight || /\bnight\b/.test(s)) parsed = { hour: 21, minute: 0 };
+      else if (/\bmorning\b/.test(s)) parsed = { hour: 9, minute: 0 };
+      else if (/\bafternoon\b/.test(s)) parsed = { hour: 13, minute: 0 };
+      else if (/\bevening\b/.test(s)) parsed = { hour: 18, minute: 0 };
+      else if (tomorrow) parsed = { hour: 9, minute: 0 };
+    }
+    if (parsed) {
+      // Shift into the user's wall clock, set the target time, shift back to UTC.
+      const localNow = new Date(Date.now() - offsetMinutes * 60000);
+      const target = new Date(localNow);
+      target.setUTCHours(parsed.hour, parsed.minute, 0, 0);
+      const hasAmPm = !!(timeMatch && timeMatch[3]);
+      if (!hasAmPm && parsed.hour < 12) {
+        // "at 8" with no am/pm: prefer tonight's 8pm over tomorrow's 8am when 8am already passed
+        if (tonight || /\b(evening|night)\b/.test(s)) target.setUTCHours(parsed.hour + 12);
+        else if (target <= localNow && !tomorrow) target.setUTCHours(parsed.hour + 12);
+      }
+      const oneTimeDayMap: Record<string, number> = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
+      const namedDow = Object.entries(oneTimeDayMap).find(([day]) => new RegExp(`\\b${day}\\b`).test(s))?.[1];
+      if (namedDow !== undefined) {
+        while (target.getUTCDay() !== namedDow || target <= localNow) target.setUTCDate(target.getUTCDate() + 1);
+      } else if (tomorrow) {
+        target.setUTCDate(target.getUTCDate() + 1);
+      } else if (target <= localNow) {
+        target.setUTCDate(target.getUTCDate() + 1);
+      }
+      return { whenIso: new Date(target.getTime() + offsetMinutes * 60000).toISOString() };
+    }
+    if (oneTimeDayWord || !/\b(morning|evening|night|afternoon)\b/.test(s)) return null;
+  }
+
   const recurring = /\b(every|daily|each day|weekday|weekdays|morning|evening|night|afternoon)\b/.test(s);
   if (!recurring) return null;
 
@@ -574,7 +617,7 @@ serve(async (req) => {
 
     // Tool usage behavioral instructions (tools are defined via the API tools parameter - do NOT describe their schemas here)
     enhancedSystemPrompt += '\n\n--- BEHAVIORAL GUIDELINES ---\n' +
-      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification, schedule_task). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
+      'You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification, schedule_task, update_scheduled_task). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.\n' +
       '\n=== NOTIFICATIONS & REMINDERS ===\n' +
       'You can send browser/device push notifications, email alerts, and post updates in this chat.\n' +
       'Three active delivery channels: "chat" (write it as a markdown post in this conversation; no tool needed), "push" (browser/device push), and "email" (email notification).\n' +
@@ -582,11 +625,12 @@ serve(async (req) => {
       '  • "email me" / "send me an email" / "in my inbox" → deliver_email=true\n' +
       '  • "push me" / "ping me" / "notify on my phone" → deliver_push=true (or send_notification channel="push")\n' +
       '  • "post in chat" / "give me an update here" / "write me a blog post" / "news for the day" → just write it as a markdown chat reply. Do NOT call send_notification — your reply IS the delivery.\n' +
-      '  • "notify me" / "remind me" / "let me know" with NO channel specified → use push or chat.\n' +
+      '  • "notify me" / "remind me" / "let me know" with NO channel specified → chat + push. Push is automatically included whenever the user has push notifications enabled — NEVER ask which channel to use; they can say "do email too" afterwards.\n' +
       '  • "do all" / "every way" / "push, email, and chat" → use push, email, and chat.\n' +
       'For ANY future-dated request ("in 1 minute", "tomorrow at 8am", "every morning", "remind me at 3pm", "every Monday") use schedule_task — not send_notification. schedule_task supports in-chat, push, and email delivery. Compute when_iso from the "Current date and time" above.\n' +
       '⏰ TIME MATH (CRITICAL): Prefer natural local phrasing in the user request; the backend will validate/correct recurring daily/morning/evening cron times from User timezone. For one-shot requests, when_iso MUST be a UTC ISO string ending in Z. "in 10 minutes" means exactly now + 600 seconds. For recurring, cron_expr is UTC, not local; e.g. if getTimezoneOffset=300, local 9am is cron "0 14 * * *".\n' +
-      'CLARIFY BEFORE SCHEDULING: If the request is ambiguous (missing time, missing recurrence, unclear location for weather, unclear topic for a digest), ask ONE short follow-up question first and DO NOT call schedule_task yet. Once the user answers, schedule it. Only skip the question if everything needed is already clear.\n' +
+      'CLARIFY BEFORE SCHEDULING: If the request is ambiguous (missing time, missing recurrence, unclear location for weather, unclear topic for a digest), ask ONE short follow-up question first and DO NOT call schedule_task yet. Once the user answers, schedule it. Only skip the question if everything needed is already clear. Delivery channel is NEVER a reason to ask — push+chat is the default.\n' +
+      'UPDATING REMINDERS: When the user follows up about an existing reminder ("do email too", "also push it", "change it to 9pm", "make it daily", "cancel that reminder"), call update_scheduled_task — do NOT create a duplicate with schedule_task. Omit task_id to target their most recent reminder.\n' +
       'When the scheduled task fires it can use tools too (currently get_weather and web_search), so phrase the saved `prompt` like a real instruction (e.g. "Give me the morning weather for Plainfield IL" or "Top 3 tech news headlines today") — not a meta description.\n' +
       '• Use get_weather (NOT web_search) for any weather, temperature, or forecast questions. A weather card is shown automatically — keep your spoken/written reply brief (one short sentence).\n' +
       '• When web_search returns results, ALWAYS synthesize and summarize them in your own words. NEVER just say "click on the sources".\n' +
@@ -663,7 +707,7 @@ serve(async (req) => {
         'You have access to the user\'s saved memories and past-chat search so you can stay consistent and grounded — use them silently to remember who the user is and keep the conversation coherent. Never break character to explain the memory system; just weave the knowledge in naturally as this character would.\n\n' +
         `${dateBlock}${userBlock}\n\n` +
         '--- TOOLS (use silently, in character) ---\n' +
-        'Tools available: web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification, schedule_task. Call them via the function-calling mechanism when useful; never output tool calls as text. Use search_past_chats immediately when the user references past conversations. Use save_memory when the user shares personal info or corrections (pass `replaces` for updates). Use get_weather for any weather question. When web_search returns results, synthesize them in your own voice as this character.\n' +
+        'Tools available: web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification, schedule_task, update_scheduled_task. Call them via the function-calling mechanism when useful; never output tool calls as text. Use search_past_chats immediately when the user references past conversations. Use save_memory when the user shares personal info or corrections (pass `replaces` for updates). Use get_weather for any weather question. When web_search returns results, synthesize them in your own voice as this character.\n' +
         'No emoji. No ASCII art / bar charts / box-drawing. Keep casual replies short and in-voice; for tool outputs (update_canvas, update_code) output the COMPLETE content.\n\n' +
         '=== GROUNDING ===\n' +
         '• Never invent facts about the user that are not in this conversation, the memories above, or a tool result.\n' +
@@ -967,10 +1011,32 @@ serve(async (req) => {
               when_iso: { type: "string", description: "ISO8601 UTC timestamp for ONE-TIME tasks. Compute from 'Current date and time' above (e.g. for 'in 1 minute' add 60s)." },
               cron_expr: { type: "string", description: "Standard 5-field UTC cron for RECURRING tasks (e.g. '0 13 * * *' = daily 8am Central). Use instead of when_iso." },
               deliver_in_chat: { type: "boolean", description: "Save result as a new message in a chat session. Default true." },
-              deliver_push: { type: "boolean", description: "Send a push notification when done. Default false." },
+              deliver_push: { type: "boolean", description: "Send a push notification when done. Defaults to true when the user has push notifications enabled. Only pass false if the user explicitly declines push." },
               deliver_email: { type: "boolean", description: "Send an email notification when done. Default false." },
             },
             required: ["title", "prompt"],
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "update_scheduled_task",
+          description: "Update or cancel an EXISTING scheduled task/reminder. Use when the user follows up about a reminder: 'do email too', 'also push it', 'change it to 9pm', 'make it daily', 'cancel that reminder'. If they mean the reminder just created or their latest one, omit task_id.",
+          parameters: {
+            type: "object",
+            properties: {
+              task_id: { type: "string", description: "ID of the task to update. Omit to target the user's most recently created active task." },
+              title: { type: "string", description: "New title, only if the user wants it changed." },
+              prompt: { type: "string", description: "New instruction, only if the user wants it changed." },
+              when_iso: { type: "string", description: "New ISO8601 UTC timestamp for ONE-TIME tasks." },
+              cron_expr: { type: "string", description: "New 5-field UTC cron for RECURRING tasks." },
+              deliver_push: { type: "boolean", description: "Turn push delivery on/off." },
+              deliver_email: { type: "boolean", description: "Turn email delivery on/off ('do email too' → true)." },
+              cancel: { type: "boolean", description: "true to cancel and delete the task." },
+            },
+            required: [],
             additionalProperties: false
           }
         }
@@ -1023,10 +1089,15 @@ serve(async (req) => {
       }
     }
 
-    // Force schedule_task for obvious future-dated requests
+    // Force schedule_task for obvious future-dated requests,
+    // and update_scheduled_task for follow-ups about an existing reminder
     if (toolChoice === "auto") {
+      const updateTaskRegex = /\b(e-?mail( me)? too|also e-?mail|add e-?mail|do e-?mail|push( me)? too|also push|add push|(change|move|update|edit|reschedule) (that|it|the|my|this) (reminder|task)|(cancel|delete|remove) (that|it|the|my|this) (reminder|task))\b/i;
       const scheduleRegex = /\b(remind me to|set a reminder|schedule a task|set an alarm|remind me in|remind me at|remind me tomorrow|remind me every|schedule a reminder)\b/i;
-      if (scheduleRegex.test(lastUserMessage)) {
+      if (updateTaskRegex.test(lastUserMessage)) {
+        toolChoice = { type: "function", function: { name: "update_scheduled_task" } };
+        console.log('✏️ Reminder follow-up detected — forcing update_scheduled_task');
+      } else if (scheduleRegex.test(lastUserMessage)) {
         toolChoice = { type: "function", function: { name: "schedule_task" } };
         console.log('⏰ Future-dated request detected — forcing schedule_task');
       }
@@ -1767,7 +1838,13 @@ Output the complete, finished writing using the update_canvas tool.`;
           const title = String(args.title ?? 'Scheduled task').slice(0, 200);
           const prompt = String(args.prompt ?? '').slice(0, 4000);
           const deliverInChat = true;
-          const deliverPush = args.deliver_push === true;
+          // Default push ON whenever the user has an active push subscription;
+          // the model can only opt out by explicitly passing deliver_push=false.
+          const { count: pushSubCount } = await supabase
+            .from('push_subscriptions')
+            .select('endpoint', { count: 'exact', head: true })
+            .eq('user_id', user.id);
+          const deliverPush = args.deliver_push === true || (args.deliver_push !== false && (pushSubCount ?? 0) > 0);
           const requestedText = `${messages[messages.length - 1]?.content ?? ''}\n${title}\n${prompt}`;
           const deliverEmail = args.deliver_email === true || requestedText.toLowerCase().includes('email') || requestedText.toLowerCase().includes('mail');
           const deterministic = deterministicScheduleFromText(requestedText, parsedClientOffset);
@@ -1833,6 +1910,90 @@ Output the complete, finished writing using the update_canvas tool.`;
               role: 'tool',
               tool_call_id: toolCall.id,
               content: `Schedule task failed: ${e?.message ?? e}. Apologize briefly and ask the user to retry.`,
+            });
+          }
+        } else if (toolCall.function.name === 'update_scheduled_task') {
+          const args = JSON.parse(toolCall.function.arguments);
+          try {
+            let query = supabase.from('scheduled_tasks').select('*').eq('user_id', user.id);
+            query = args.task_id ? query.eq('id', args.task_id) : query.eq('status', 'active');
+            const { data: found, error: findErr } = await query.order('created_at', { ascending: false }).limit(1);
+            if (findErr) throw findErr;
+            const task = found?.[0];
+            if (!task) throw new Error('No matching scheduled task found');
+
+            if (args.cancel === true) {
+              const { error: delErr } = await supabase.from('scheduled_tasks').delete().eq('id', task.id);
+              if (delErr) throw delErr;
+              conversationMessages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: `Scheduled task "${task.title}" cancelled. Reply with ONE short friendly confirmation (max 12 words).`,
+              });
+            } else {
+              const updates: Record<string, unknown> = {};
+              if (typeof args.title === 'string' && args.title) updates.title = args.title.slice(0, 200);
+              if (typeof args.prompt === 'string' && args.prompt) updates.prompt = args.prompt.slice(0, 4000);
+              if (typeof args.deliver_push === 'boolean') updates.push_on_complete = args.deliver_push;
+              if (typeof args.deliver_email === 'boolean') updates.notify_email = args.deliver_email;
+
+              const updateText = String(messages[messages.length - 1]?.content ?? '');
+              const negatedEmail = /\b(no|without|stop|remove|disable|turn off)\b[^.!?]*\be-?mail/i.test(updateText);
+              const negatedPush = /\b(no|without|stop|remove|disable|turn off)\b[^.!?]*\bpush\b/i.test(updateText);
+              if (updates.notify_email === undefined && /\be-?mail\b/i.test(updateText)) updates.notify_email = !negatedEmail;
+              if (updates.push_on_complete === undefined && /\bpush\b/i.test(updateText)) updates.push_on_complete = !negatedPush;
+
+              // Retime deterministically from the user's own words when they contain a time.
+              const det = deterministicScheduleFromText(updateText, parsedClientOffset);
+              const newWhenIso = det?.whenIso ?? (typeof args.when_iso === 'string' ? args.when_iso : null);
+              const newCronExpr = det?.cronExpr ?? (typeof args.cron_expr === 'string' ? args.cron_expr : null);
+              if (newWhenIso) {
+                updates.schedule_type = 'once';
+                updates.run_at = new Date(newWhenIso).toISOString();
+                updates.next_run_at = updates.run_at;
+                updates.cron_expr = null;
+                updates.status = 'active';
+              } else if (newCronExpr) {
+                updates.schedule_type = 'cron';
+                updates.cron_expr = newCronExpr;
+                updates.run_at = null;
+                updates.next_run_at = nextCronRun(newCronExpr, new Date()).toISOString();
+                updates.status = 'active';
+              }
+
+              if (Object.keys(updates).length === 0) throw new Error('No changes requested');
+
+              const { data: updated, error: updErr } = await supabase
+                .from('scheduled_tasks')
+                .update(updates)
+                .eq('id', task.id)
+                .select('*')
+                .single();
+              if (updErr) throw updErr;
+
+              scheduledTask = {
+                id: updated.id,
+                title: updated.title,
+                prompt: updated.prompt,
+                schedule_type: updated.schedule_type,
+                cron_expr: updated.cron_expr,
+                next_run_at: updated.next_run_at,
+                deliver_in_chat: true,
+                deliver_push: updated.push_on_complete === true,
+                deliver_email: updated.notify_email === true,
+              };
+
+              conversationMessages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: `Scheduled task updated (id=${task.id}). An updated confirmation card is shown to the user. Reply with ONE short friendly sentence (max 12 words). Do NOT repeat the schedule details.`,
+              });
+            }
+          } catch (e: any) {
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `Update scheduled task failed: ${e?.message ?? e}. Apologize briefly and ask the user to retry.`,
             });
           }
         }
