@@ -184,10 +184,10 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
                   <div className="flex gap-2 w-full max-w-sm justify-center">
                     <input
                       type="text"
-                      placeholder="Enter code (e.g. BOOST4LIFE)"
+                      placeholder="Enter promo code"
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+                      className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[16px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
                     />
                     <GlassButton
                       onClick={handleClaimPromo}
