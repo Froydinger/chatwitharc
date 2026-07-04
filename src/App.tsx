@@ -48,6 +48,7 @@ import { TasksPage } from "./pages/TasksPage";
 import { SharedChatsPage } from "./pages/SharedChatsPage";
 import { SharedChatRoomPage } from "./pages/SharedChatRoomPage";
 import { LandingPage } from "./pages/LandingPage";
+import CheckoutReturnPage from "./pages/CheckoutReturnPage";
 import { BlogIndexPage } from "./pages/BlogIndexPage";
 import { BlogPostPage } from "./pages/BlogPostPage";
 import { useAuth } from "@/hooks/useAuth";
@@ -249,6 +250,7 @@ const App = () => {
                     <Route path="/tasks" element={<TasksPage />} />
                     <Route path="/shared" element={<SharedChatsPage />} />
                     <Route path="/shared/:chatId" element={<SharedChatRoomPage />} />
+                    <Route path="/checkout/return" element={<CheckoutReturnPage />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/privacy" element={<PrivacyPolicyPage />} />

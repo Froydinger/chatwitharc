@@ -68,15 +68,21 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
-  const rawEnv = new URL(req.url).searchParams.get("env");
-  if (rawEnv !== "sandbox" && rawEnv !== "live") {
-    console.error("[payments-webhook] invalid env query param:", rawEnv);
-    return new Response(JSON.stringify({ received: true, ignored: "invalid env" }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+  let env: StripeEnv = "sandbox";
+  try {
+    const clone = req.clone();
+    const parsedBody = await clone.json();
+    if (parsedBody && typeof parsedBody.livemode === "boolean") {
+      env = parsedBody.livemode ? "live" : "sandbox";
+    } else {
+      const urlEnv = new URL(req.url).searchParams.get("env");
+      if (urlEnv === "live") env = "live";
+    }
+  } catch (e) {
+    console.error("[payments-webhook] Failed to parse body clone for auto-detect:", e);
+    const urlEnv = new URL(req.url).searchParams.get("env");
+    if (urlEnv === "live") env = "live";
   }
-  const env: StripeEnv = rawEnv;
 
   try {
     const event = await verifyWebhook(req, env);

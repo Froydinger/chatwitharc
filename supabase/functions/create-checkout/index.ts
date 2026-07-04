@@ -53,12 +53,16 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     const {
+      action,
+      sessionId,
       priceId,
       customerEmail,
       userId,
       returnUrl,
       environment,
     }: {
+      action?: string;
+      sessionId?: string;
       priceId?: string;
       customerEmail?: string;
       userId?: string;
@@ -66,9 +70,65 @@ Deno.serve(async (req) => {
       environment?: StripeEnv;
     } = body;
 
+    if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
+
+    // Action 1: Verify a completed checkout session
+    if (action === "verify") {
+      if (!sessionId) throw new Error("Missing sessionId");
+      const stripe = createStripeClient(environment);
+      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ["subscription", "subscription.items.data.price"],
+      });
+
+      if (session.status !== "complete" && session.payment_status !== "paid") {
+        return new Response(JSON.stringify({ success: false, status: session.status }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Upsert subscription directly since we validated it on Stripe
+      const targetUserId = session.metadata?.userId;
+      if (targetUserId) {
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+          { auth: { persistSession: false } },
+        );
+
+        let priceIdResolved = "arcai_boost_monthly"; // default
+        let productIdResolved = "prod_boost";
+
+        const subObject = session.subscription as any;
+        if (subObject) {
+          const item = subObject.items?.data?.[0];
+          productIdResolved = typeof item?.price?.product === "string" ? item.price.product : (item?.price?.product?.id || productIdResolved);
+          priceIdResolved = item?.price?.lookup_key || item?.price?.id || priceIdResolved;
+        }
+
+        await supabase.from("subscriptions").upsert({
+          user_id: targetUserId,
+          stripe_subscription_id: typeof session.subscription === "string" ? session.subscription : (session.subscription?.id || `sub_chk_${session.id}`),
+          stripe_customer_id: typeof session.customer === "string" ? session.customer : (session.customer?.id || null),
+          product_id: productIdResolved,
+          price_id: priceIdResolved,
+          status: "active",
+          environment: environment,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "user_id" });
+
+        console.log(`[create-checkout] Synchronously verified and upserted subscription for user: ${targetUserId}`);
+      }
+
+      return new Response(JSON.stringify({ success: true, status: session.status }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Action 2: Create a checkout session (default flow)
     if (!priceId || !/^[a-zA-Z0-9_-]+$/.test(priceId)) throw new Error("Invalid priceId");
     if (!returnUrl) throw new Error("Missing returnUrl");
-    if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
 
     // Resolve auth user if Authorization header is present (preferred over client-passed userId).
     let resolvedUserId = userId;
