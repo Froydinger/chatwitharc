@@ -72,6 +72,7 @@ export interface SendMessageResult {
   content: string;
   webSources?: WebSource[];
   searchProvider?: 'perplexity' | 'tavily';
+  searchImages?: string[];
   canvasUpdate?: CanvasUpdate;
   codeUpdate?: CodeUpdate;
   memorySaved?: { content: string };
@@ -268,6 +269,7 @@ export class AIService {
             content: data.choices[0]?.message?.content || 'Sorry, I could not generate a response.',
             webSources: data.web_sources,
             searchProvider: data.search_provider,
+            searchImages: data.search_images,
             canvasUpdate: data.canvas_update,
             codeUpdate: data.code_update,
             memorySaved: data.memory_saved,

@@ -35,6 +35,8 @@ import { useSearchStore, SearchResult, SavedLink } from "@/store/useSearchStore"
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
+import { ImageModal } from "@/components/ImageModal";
+import { SmoothImage } from "@/components/ui/smooth-image";
 
 export function SearchCanvas() {
   const corporateMode = useCorporateModeStore((s) => s.enabled);
@@ -73,6 +75,7 @@ export function SearchCanvas() {
   const [historyPage, setHistoryPage] = useState(0);
   const [smartSuggestions, setSmartSuggestions] = useState<Array<{ label: string; prompt: string }>>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [selectedImageUrlForModal, setSelectedImageUrlForModal] = useState<string | null>(null);
   const HISTORY_PAGE_SIZE = 5;
 
   // Default fallback suggestions for research
@@ -194,8 +197,9 @@ export function SearchCanvas() {
         })) || [];
 
       const formattedContent = data?.content || `No results found for "${query}".`;
+      const images: string[] = data?.images || [];
 
-      addSession(query, results, formattedContent, undefined);
+      addSession(query, results, formattedContent, undefined, images);
 
       toast({
         title: `Found ${results.length} sources`,
@@ -948,6 +952,34 @@ export function SearchCanvas() {
                   </div>
                 )}
 
+                {/* Search Visual Results Grid */}
+                {activeSession.images && activeSession.images.length > 0 && (
+                  <div className="mb-8 relative z-10">
+                    <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Visual Results</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {activeSession.images.slice(0, 8).map((imgUrl, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: idx * 0.04 }}
+                          className="group relative aspect-video rounded-2xl overflow-hidden border border-border/50 bg-card cursor-pointer shadow-sm hover:scale-[1.03] hover:shadow-md hover:border-primary/40 transition-all duration-300"
+                          onClick={() => setSelectedImageUrlForModal(imgUrl)}
+                        >
+                          <SmoothImage
+                            src={imgUrl}
+                            alt={`Visual source ${idx + 1}`}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
+                            <span className="text-xs text-white font-medium truncate">View Image</span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Main Answer - Blog Style */}
                 <article className="mb-8">
                   <div className="prose prose-neutral dark:prose-invert max-w-none">
@@ -1382,6 +1414,13 @@ export function SearchCanvas() {
             <SavedLinksSidebar />
           </div>
         )}
+        {/* Image Modal for Visual Results preview */}
+        <ImageModal
+          isOpen={selectedImageUrlForModal !== null}
+          onClose={() => setSelectedImageUrlForModal(null)}
+          imageUrl={selectedImageUrlForModal || ""}
+          alt="Visual search result preview"
+        />
       </div>
     </div>
   );

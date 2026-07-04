@@ -75,6 +75,7 @@ serve(async (req) => {
         max_results: 12,
         include_answer: 'advanced',
         include_raw_content: true,
+        include_images: true,
       }),
     });
 
@@ -190,11 +191,17 @@ serve(async (req) => {
     content = content.replace(/(\]\([^)]+\))(\[)/g, '$1, $2');
     content = content.replace(/  +/g, ' ');
 
+    const images = (tavilyData.images || []).map((img: any) => {
+      if (typeof img === 'string') return img;
+      return img?.url || '';
+    }).filter(Boolean);
+
     return new Response(
       JSON.stringify({
         content,
         sources,
         citations,
+        images,
         model: 'arc-research',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

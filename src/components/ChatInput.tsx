@@ -137,6 +137,35 @@ function checkForImageRequest(message: string): boolean {
   return false;
 }
 
+function extractSubjectForImageRequest(message: string): string {
+  const m = message.trim();
+  let cleaned = m.replace(/^(can\s+you\s+)?(please\s+)?(show\s+me|find|search\s+for|look\s+up|google|generate|create|make|draw|paint|render|give\s+me)\s+/i, '');
+  cleaned = cleaned.replace(/^(an?\s+)?(image|picture|photo|illustration|drawing|visual|graphic|sketch|artwork|clipart|photos|images|pictures)\s+(of|for|about)\s+/i, '');
+  cleaned = cleaned.replace(/\b(photos|images|pictures|photo|image|picture)\b/i, '');
+  return cleaned.trim() || "a beautiful subject";
+}
+
+function analyzeImageRequestIntent(message: string): 'generate' | 'search' | 'ask' | 'none' {
+  if (!message) return 'none';
+  const m = message.trim().toLowerCase();
+  
+  const isImageQuery = /\b(image|picture|photo|illustration|drawing|visual|graphic|sketch|artwork|clipart)s?\b/i.test(m);
+  if (!isImageQuery) {
+    return 'none';
+  }
+
+  const explicitGen = /\b(generate|create|make|draw|paint|render|sketch|produce|design|vector|ai\s+generate|generate\s+ai|stable\s+diffusion|dall-e|midjourney|make\s+me\s+an?)\b/i.test(m);
+  const explicitSearch = /\b(search|find|look\s+up|google|tavily|web\s+search|real|actual|photo\s+of|photograph|stock\s+photo|camera|live)\b/i.test(m);
+
+  if (explicitGen && !explicitSearch) {
+    return 'generate';
+  }
+  if (explicitSearch && !explicitGen) {
+    return 'search';
+  }
+  return 'ask';
+}
+
 // Prefix-based detection: code/ OR /code — opens code canvas (inline code block), NOT the IDE
 function checkForCodingRequest(message: string): boolean {
   if (!message) return false;
@@ -741,6 +770,32 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     };
   }, []);
 
+  // Listen for user image choice selection (from choice button grid)
+  useEffect(() => {
+    const handleChoice = async (e: Event) => {
+      const { action, subject, messageId } = (e as CustomEvent).detail;
+      
+      // Clear choice metadata to make the buttons vanish from UI
+      useArcStore.setState((state) => {
+        const idx = state.messages.findIndex((m: any) => m.id === messageId);
+        if (idx === -1) return state;
+        const updated = [...state.messages];
+        updated[idx] = { ...updated[idx], imageChoiceSubject: undefined };
+        return { messages: updated } as any;
+      });
+
+      // Submit immediately on behalf of the user
+      if (action === 'generate') {
+        void handleSend(`/image ${subject}`);
+      } else {
+        void handleSend(`/search images of ${subject}`);
+      }
+    };
+
+    window.addEventListener('image-choice-selected', handleChoice);
+    return () => window.removeEventListener('image-choice-selected', handleChoice);
+  }, []);
+
   // Supported document MIME types
   const DOCUMENT_TYPES = [
     "application/pdf",
@@ -1210,6 +1265,44 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     let wasImageMode = shouldShowBanana || checkForImageRequest(finalMessage);
     let wasSearchMode = shouldShowSearchMode || checkForSearchRequest(finalMessage);
     let wasBuildMode = checkForBuildRequest(finalMessage);
+
+    // Natural language image generation/search routing when no slash command and no UI toggles are active
+    const isSlashOrOverride = finalMessage.trim().startsWith("/") ||
+                              shouldShowCanvasMode || shouldShowCodeMode || shouldShowBanana || shouldShowSearchMode;
+
+    if (!isSlashOrOverride && !documents.length && !images.length) {
+      const intent = analyzeImageRequestIntent(finalMessage);
+      if (intent === 'generate') {
+        wasImageMode = true;
+      } else if (intent === 'search') {
+        wasSearchMode = true;
+      } else if (intent === 'ask') {
+        const subject = extractSubjectForImageRequest(finalMessage);
+        
+        // Add user message to UI
+        await addMessage({ content: finalMessage, role: "user", type: "text" });
+        
+        // Add choice prompt from assistant
+        await addMessage({
+          content: `Would you like to **generate** a custom AI image of "${subject}", or **search** the web for photos?`,
+          role: "assistant",
+          type: "text",
+          imageChoiceSubject: subject,
+        });
+        
+        // Reset state & exit handleSend
+        setInputValue("");
+        setSelectedImages([]);
+        setSelectedDocuments([]);
+        setForceImageMode(false);
+        setForceCodingMode(false);
+        setForceCanvasMode(false);
+        setForceSearchMode(false);
+        setShowMenu(false);
+        setLoading(false);
+        return;
+      }
+    }
 
     // Clear UI promptly
     setInputValue("");
@@ -2201,6 +2294,7 @@ ${safeCode}
                 scheduledTask: result.scheduledTask,
                 notificationDispatch: result.notificationDispatch,
                 locationUsed: result.locationUsed,
+                searchImages: result.searchImages,
                 sourceModel: didSearchWeb
                   ? result.searchProvider === "tavily"
                     ? "cloud-search-tavily"

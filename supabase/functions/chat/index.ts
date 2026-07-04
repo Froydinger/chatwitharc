@@ -176,6 +176,7 @@ interface WebSearchResponse {
   summary: string;
   sources: WebSearchResult[];
   searchProvider: 'perplexity' | 'tavily';
+  images?: string[];
 }
 
 // Web search using Tavily
@@ -199,10 +200,10 @@ async function webSearchTavily(query: string): Promise<WebSearchResponse> {
         api_key: tavilyApiKey,
         query: query,
         search_depth: 'advanced',
-        max_results: 5,
+        max_results: 6,
         include_answer: true,
         include_raw_content: false,
-        include_images: false,
+        include_images: true,
       }),
       signal: AbortSignal.timeout(10000),
     });
@@ -210,7 +211,7 @@ async function webSearchTavily(query: string): Promise<WebSearchResponse> {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Tavily API error:', response.status, errorText);
-      return { summary: `Search failed: ${response.status}`, sources: [], searchProvider: 'tavily' };
+      return { summary: `Search failed: ${response.status}`, sources: [], searchProvider: 'tavily', images: [] };
     }
 
     const data = await response.json();
@@ -233,12 +234,16 @@ async function webSearchTavily(query: string): Promise<WebSearchResponse> {
       });
     }
 
+    const images = (data.images || []).map((img: any) => {
+      if (typeof img === 'string') return img;
+      return img?.url || '';
+    }).filter(Boolean);
     
-    return { summary: searchSummary || 'No relevant results found.', sources, searchProvider: 'tavily' };
+    return { summary: searchSummary || 'No relevant results found.', sources, searchProvider: 'tavily', images };
   } catch (error: unknown) {
     console.error('Web search error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return { summary: `Search error: ${message}`, sources: [], searchProvider: 'tavily' };
+    return { summary: `Search error: ${message}`, sources: [], searchProvider: 'tavily', images: [] };
   }
 }
 
@@ -1511,6 +1516,7 @@ Output the complete, finished writing using the update_canvas tool.`;
     const toolsUsed: string[] = [];
     let webSources: WebSearchResult[] = [];
     let searchProvider: 'perplexity' | 'tavily' | undefined;
+    let searchImages: string[] | undefined = undefined;
     let canvasUpdate: { content: string; label?: string } | null = null;
     let codeUpdate: { code: string; language: string; label?: string } | null = null;
     let weatherData: any = null;
@@ -1540,6 +1546,7 @@ Output the complete, finished writing using the update_canvas tool.`;
           // Store sources and provider for frontend
           webSources = searchResponse.sources;
           searchProvider = searchResponse.searchProvider;
+          searchImages = searchResponse.images;
           
           // Add tool response to conversation
           conversationMessages.push({
@@ -1934,6 +1941,7 @@ Output the complete, finished writing using the update_canvas tool.`;
       tool_calls_used: toolsUsed,
       web_sources: webSources.length > 0 ? webSources : undefined,
       search_provider: searchProvider,
+      search_images: searchImages,
       canvas_update: canvasUpdate,
       code_update: codeUpdate,
       memory_saved: memorySaved,

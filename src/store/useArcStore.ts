@@ -121,6 +121,8 @@ export interface Message {
     | 'cloud-image-edit'
     | 'cloud-image-edit-fallback'
     | 'cloud-ide';
+  searchImages?: string[];
+  imageChoiceSubject?: string;
 }
 
 export interface ArcState {

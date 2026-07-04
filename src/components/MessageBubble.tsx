@@ -319,6 +319,73 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </motion.div>
               )}
 
+              {/* Search Images Grid */}
+              {!isUser && message.searchImages && message.searchImages.length > 0 && (
+                <motion.div
+                  key="card-search-images"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mb-3 mt-1 relative z-10 grid grid-cols-2 md:grid-cols-3 gap-2 max-w-md"
+                >
+                  {message.searchImages.slice(0, 6).map((imgUrl, i) => (
+                    <div 
+                      key={i} 
+                      className="relative aspect-video rounded-xl overflow-hidden border border-border/40 group/img cursor-pointer bg-muted/40 shadow-sm hover:scale-[1.02] hover:shadow-md transition-all duration-300"
+                      onClick={() => setSelectedImageUrl(imgUrl)}
+                    >
+                      <SmoothImage 
+                        src={imgUrl} 
+                        alt={`Search result ${i + 1}`} 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-end p-2">
+                        <span className="text-[10px] text-white font-medium truncate">View Image</span>
+                      </div>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+
+              {/* Image Choice Card */}
+              {!isUser && message.imageChoiceSubject && (
+                <motion.div
+                  key="card-image-choice"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mb-3 mt-2 relative z-10 p-3 rounded-2xl glass border border-border/40 max-w-sm"
+                >
+                  <p className="text-xs text-muted-foreground mb-3 font-medium">Select an option:</p>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm"
+                      variant="default"
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('image-choice-selected', { 
+                          detail: { action: 'generate', subject: message.imageChoiceSubject, messageId: message.id } 
+                        }));
+                      }}
+                      className="flex-1 text-xs rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow"
+                    >
+                      Generate AI Image
+                    </Button>
+                    <Button 
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('image-choice-selected', { 
+                          detail: { action: 'search', subject: message.imageChoiceSubject, messageId: message.id } 
+                        }));
+                      }}
+                      className="flex-1 text-xs rounded-xl bg-white/5 border-border/40 hover:bg-white/10"
+                    >
+                      Search Web Photos
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
               {/* Images */}
               {message.type === "image" &&
                 (message.imageUrl || message.imageUrls) && (

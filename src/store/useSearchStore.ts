@@ -54,6 +54,7 @@ export interface SearchSession {
   activeSourceUrl?: string | null;
   currentTab?: 'search' | 'chats' | 'saved';
   summaryConversation?: SourceMessage[]; // Follow-up conversation within the summary
+  images?: string[];
 }
 
 interface SearchState {
@@ -81,7 +82,7 @@ interface SearchState {
   setPendingSearchQuery: (query: string | null) => void;
   
   // Session actions
-  addSession: (query: string, results: SearchResult[], formattedContent: string, relatedQueries?: string[]) => string;
+  addSession: (query: string, results: SearchResult[], formattedContent: string, relatedQueries?: string[], images?: string[]) => string;
   setActiveSession: (sessionId: string) => void;
   updateSession: (sessionId: string, updates: Partial<Omit<SearchSession, 'id' | 'timestamp'>>) => void;
   removeSession: (sessionId: string) => void;
@@ -206,7 +207,7 @@ export const useSearchStore = create<SearchState>()(
         set({ pendingSearchQuery: query });
       },
 
-      addSession: (query, results, formattedContent, relatedQueries) => {
+      addSession: (query, results, formattedContent, relatedQueries, images) => {
         const id = crypto.randomUUID();
         const newSession: SearchSession = {
           id,
@@ -215,6 +216,7 @@ export const useSearchStore = create<SearchState>()(
           formattedContent,
           timestamp: Date.now(),
           relatedQueries,
+          images,
         };
 
         set((state) => ({
@@ -590,16 +592,19 @@ export const useSearchStore = create<SearchState>()(
 
           get().addSummaryMessage(sessionId, assistantMessage);
 
-          // Merge new sources into session results (avoid duplicates by URL)
-          if (newSources.length > 0) {
-            const existingUrls = new Set(session.results.map(r => r.url));
-            const uniqueNewSources = newSources.filter((s: any) => !existingUrls.has(s.url));
-            
-            if (uniqueNewSources.length > 0) {
-              get().updateSession(sessionId, {
-                results: [...session.results, ...uniqueNewSources],
-              });
-            }
+          // Merge new sources and images into session results (avoid duplicates by URL)
+          const newImages = data?.images || [];
+          const existingUrls = new Set(session.results.map(r => r.url));
+          const uniqueNewSources = newSources.filter((s: any) => !existingUrls.has(s.url));
+          
+          const existingImages = new Set(session.images || []);
+          const uniqueNewImages = newImages.filter((img: string) => !existingImages.has(img));
+
+          if (uniqueNewSources.length > 0 || uniqueNewImages.length > 0) {
+            get().updateSession(sessionId, {
+              results: [...session.results, ...uniqueNewSources],
+              images: [...(session.images || []), ...uniqueNewImages],
+            });
           }
         } catch (error) {
           console.error('Follow-up search error:', error);
@@ -707,6 +712,7 @@ export const useSearchStore = create<SearchState>()(
                 relatedQueries: s.related_queries || [],
                 sourceConversations: s.source_conversations || {},
                 summaryConversation: s.summary_conversation || [],
+                images: s.source_conversations?._session_images || [],
               };
             });
 
@@ -840,6 +846,12 @@ export const useSearchStore = create<SearchState>()(
             return;
           }
 
+          // Embed session images inside source_conversations json to avoid schema limitations
+          const sourceConvs = {
+            ...(session.sourceConversations || {}),
+            _session_images: session.images || []
+          };
+
           // Use type assertion since the types file may not be updated yet
           const { error } = await supabase
             .from('search_sessions' as any)
@@ -850,7 +862,7 @@ export const useSearchStore = create<SearchState>()(
               results: session.results,
               formatted_content: session.formattedContent,
               related_queries: session.relatedQueries || [],
-              source_conversations: session.sourceConversations || {},
+              source_conversations: sourceConvs,
               summary_conversation: session.summaryConversation || [],
               updated_at: new Date().toISOString(),
             } as any, { onConflict: 'id' });
