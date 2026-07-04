@@ -27,7 +27,22 @@ export function UpgradePage() {
   // If auth is done loading and there is no user (or user is guest), redirect or show message
   const isLoggedIn = !!user && !isAnonymous;
 
-  if (authLoading || subLoading) {
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) {
+      // Redirect to welcome/lander
+      navigate("/welcome");
+      // Trigger the login/auth gate modal immediately
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent("auth-gate-feature", {
+            detail: { feature: "generic", label: "Sign in to upgrade to Boost" },
+          })
+        );
+      }, 150);
+    }
+  }, [authLoading, isLoggedIn, navigate]);
+
+  if (authLoading || subLoading || !isLoggedIn) {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center gap-3">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
