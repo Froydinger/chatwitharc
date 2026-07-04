@@ -174,7 +174,8 @@ Deno.serve(async (req) => {
       }).catch((err) => console.error("Admin push notification failed:", err));
     }
 
-    // 7. Dispatch transactional email alert to admin email
+    // 7. Dispatch transactional email alert to admin email (Temporarily commented out to stop webhook replay storm)
+    /*
     const adminNotificationEmail = "jkrd09@gmail.com";
     await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
       method: "POST",
@@ -192,6 +193,7 @@ Deno.serve(async (req) => {
         },
       }),
     }).catch((err) => console.error("Admin email notification failed:", err));
+    */
 
     return new Response(JSON.stringify({ success: true, ticketId }), {
       status: 200,
