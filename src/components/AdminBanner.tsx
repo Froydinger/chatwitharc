@@ -233,8 +233,11 @@ export function AdminBanner() {
       {!isDismissed && (
         <div
           ref={bannerRef}
-          className="fixed top-0 left-0 right-0 z-50 border-b-2 border-black shadow-lg transition-all duration-300"
-          style={{ backgroundColor: bannerSettings.color }}
+          className="fixed left-0 right-0 z-50 border-b-2 border-black shadow-lg transition-all duration-300"
+          style={{ 
+            backgroundColor: bannerSettings.color,
+            top: 'env(safe-area-inset-top, 0px)'
+          }}
         >
           <div className="container mx-auto px-4 py-3">
             {bannerSettings.link ? (
@@ -262,7 +265,9 @@ export function AdminBanner() {
             isDismissed ? 'opacity-50 scale-50' : 'opacity-100 scale-100 hover:scale-110'
           }`}
           style={{
-            top: isDismissed ? '28px' : `${bannerHeight}px`,
+            top: isDismissed 
+              ? 'calc(env(safe-area-inset-top, 0px) + 28px)' 
+              : `calc(env(safe-area-inset-top, 0px) + ${bannerHeight}px)`,
             backgroundColor: bannerSettings.color
           }}
           onMouseEnter={(e) => {
