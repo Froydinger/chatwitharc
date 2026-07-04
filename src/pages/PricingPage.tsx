@@ -9,7 +9,7 @@ import { BOOST_PRICE_ID, BOOST_ANNUAL_PRICE_ID } from "@/lib/stripe";
 const FREE_FEATURES = [
   "Unlimited Fast (GPT-5.4 Nano) chats",
   "20 Smarter (GPT-5.4 Mini) chats/day",
-  "Real-time voice conversations (daily limits)",
+  "Unlimited voice conversations",
   "GPT-Image-1 Mini (40 outputs/day) & GPT-Image-1 (10 outputs/day)",
   "3 free daily GPT-Image-2 premium outputs",
   "Deep Search with summaries and citations",
