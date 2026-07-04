@@ -43,7 +43,57 @@ serve(async (req) => {
       );
     }
 
-    const { query, messages, skipImages } = await req.json();
+    const { query, messages, skipImages, quickAnswerOnly, mainContent } = await req.json();
+
+    // Quick answer background generation short-circuit
+    if (quickAnswerOnly) {
+      const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+      if (!OPENAI_API_KEY) {
+        return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), { status: 500, headers: corsHeaders });
+      }
+      
+      let quickAnswer = "";
+      try {
+        const textToSummarize = mainContent || query || "";
+        console.log('Generating ultra-concise quick answer via GPT for length:', textToSummarize.length);
+        
+        const prompt = mainContent 
+          ? `Summarize the provided text in exactly 1 clear, punchy sentence (strict maximum of 20 words). Focus only on direct, key facts. Do not use markdown headers, list markers, quotes, or punctuation formatting. Text: ${mainContent}`
+          : `Provide a quick, direct 1-sentence answer (strict maximum of 20 words) to this question: "${query}". Plain text only, no markdown, no quotes, no punctuation.`;
+
+        const quickResp = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-5.4-mini',
+            messages: [
+              { role: 'system', content: 'You are a precise, concise summarizer. Output exactly one sentence of key facts. Strict maximum of 20 words. No quotes, no markdown, no headings.' },
+              { role: 'user', content: prompt }
+            ],
+            max_tokens: 50,
+            temperature: 0.3,
+          }),
+        });
+
+        if (quickResp.ok) {
+          const quickData = await quickResp.json();
+          quickAnswer = (quickData.choices?.[0]?.message?.content || "").trim().replace(/^["']|["']$/g, '');
+        } else {
+          console.warn('Quick answer API call failed:', quickResp.status, await quickResp.text());
+        }
+      } catch (e) {
+        console.warn('Quick answer generation error:', e);
+      }
+
+      return new Response(
+        JSON.stringify({ quickAnswer }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const userQuery: string = query || messages?.filter((m: any) => m.role === 'user').slice(-1)[0]?.content || '';
     if (!userQuery) {
       return new Response(
@@ -196,42 +246,12 @@ serve(async (req) => {
       return img?.url || '';
     }).filter(Boolean) : [];
 
-    // Extract quick answer from Tavily or generate one using OpenAI if missing
-    let quickAnswer = tavilyData.answer || "";
-    if (!quickAnswer && content && OPENAI_API_KEY) {
-      try {
-        console.log('Generating quick answer summary via GPT...');
-        const quickResp = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-5.4-mini',
-            messages: [
-              { role: 'system', content: 'Summarize the provided text in exactly 1 or 2 concise, informative sentences. Do not use markdown headers, just plain text.' },
-              { role: 'user', content: content },
-            ],
-            max_tokens: 100,
-          }),
-        });
-        if (quickResp.ok) {
-          const quickData = await quickResp.json();
-          quickAnswer = quickData.choices?.[0]?.message?.content || "";
-        }
-      } catch (e) {
-        console.warn('Quick answer generation failed:', e);
-      }
-    }
-
     return new Response(
       JSON.stringify({
         content,
         sources,
         citations,
         images,
-        quickAnswer: quickAnswer || undefined,
         model: 'arc-research',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

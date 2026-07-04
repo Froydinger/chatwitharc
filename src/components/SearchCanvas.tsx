@@ -198,14 +198,32 @@ export function SearchCanvas() {
 
       const formattedContent = data?.content || `No results found for "${query}".`;
       const images: string[] = data?.images || [];
-      const quickAnswer: string = data?.quickAnswer || "";
 
-      addSession(query, results, formattedContent, undefined, images, quickAnswer);
+      // Save session with empty quickAnswer to show results instantly
+      const sessionId = addSession(query, results, formattedContent, undefined, images, "");
 
       toast({
         title: `Found ${results.length} sources`,
         description: "Deep Search complete",
       });
+
+      // Fetch ultra-concise quick answer asynchronously in the background
+      void (async () => {
+        try {
+          const { data: quickData } = await supabase.functions.invoke("perplexity-search", {
+            body: {
+              query,
+              mainContent: formattedContent,
+              quickAnswerOnly: true,
+            },
+          });
+          if (quickData?.quickAnswer) {
+            useSearchStore.getState().updateSession(sessionId, { quickAnswer: quickData.quickAnswer });
+          }
+        } catch (e) {
+          console.warn("Failed to fetch quick answer in background:", e);
+        }
+      })();
     } catch (error: any) {
       console.error("Search error:", error);
 
