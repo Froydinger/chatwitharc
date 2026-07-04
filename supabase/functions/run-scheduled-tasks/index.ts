@@ -19,10 +19,6 @@ const FROM_DOMAIN = "askarc.chat";
 
 const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-async function sendDisabledEmail(..._args: unknown[]): Promise<never> {
-  throw new Error("Scheduled-task email is temporarily disabled");
-}
-
 // Very small cron parser: supports `*`, `*/n`, comma lists, and ranges.
 // Returns next run time after `from` in UTC.
 function fieldMatches(value: number, expr: string): boolean {
@@ -175,6 +171,13 @@ function escapeHtml(value: string): string {
 async function sendTaskEmail(email: string, taskTitle: string, preview: string, chatUrl: string, idempotencyKey: string) {
   const messageId = crypto.randomUUID();
   const normalizedEmail = email.toLowerCase();
+  const resendApiKey = Deno.env.get("RESEND_API_KEY");
+  
+  if (!resendApiKey) {
+    console.error("❌ RESEND_API_KEY not configured in Deno.env, skipping email");
+    return;
+  }
+
   const { data: existingToken } = await admin
     .from("email_unsubscribe_tokens")
     .select("token, used_at")
@@ -195,30 +198,41 @@ async function sendTaskEmail(email: string, taskTitle: string, preview: string, 
     if (readTokenError || !storedToken?.token) throw readTokenError || new Error("Could not prepare email token");
     unsubscribeToken = storedToken.token;
   }
+  
   const safeTitle = escapeHtml(taskTitle);
   const safePreview = escapeHtml(preview).replace(/\n/g, "<br />");
   const subject = `✅ ${taskTitle} is done`;
+  
   const html = `<!doctype html><html><body style="margin:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:#0f172a;"><div style="max-width:560px;margin:0 auto;padding:40px 20px;"><div style="text-align:center;margin-bottom:24px;"><img src="https://cgvixgyjzswebosfqyll.supabase.co/storage/v1/object/public/email-assets/arc-logo-ui.png" width="56" height="56" alt="ArcAI" style="border-radius:14px;" /></div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:36px 28px;text-align:center;"><div style="font-size:44px;line-height:1;margin-bottom:14px;">✅</div><h1 style="font-size:24px;line-height:30px;margin:0 0 12px;font-weight:700;">${safeTitle}</h1><p style="color:#475569;font-size:15px;line-height:24px;margin:0 0 20px;">Your scheduled task finished. Open the saved chat anytime for the full result.</p><div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin:0 0 24px;text-align:left;color:#334155;font-size:14px;line-height:22px;">${safePreview}</div><a href="${chatUrl}" style="display:inline-block;background:#0080f0;color:#ffffff;text-decoration:none;border-radius:10px;padding:14px 32px;font-weight:600;font-size:16px;">Open results</a></div><p style="text-align:center;color:#94a3b8;font-size:11px;margin-top:28px;">© 2026 ArcAI by Win The Night Productions</p></div></body></html>`;
   const text = `${taskTitle}\n\n${preview}\n\nOpen results: ${chatUrl}`;
 
-  await sendDisabledEmail({
-    to: email,
-    from: `ArcAI <noreply@${FROM_DOMAIN}>`,
-    sender_domain: SENDER_DOMAIN,
-    subject,
-    html,
-    text,
-    purpose: "transactional",
-    label: "scheduled-task-complete",
-    idempotency_key: idempotencyKey,
-    unsubscribe_token: unsubscribeToken,
-    message_id: messageId,
+  const fromEmail = Deno.env.get("SEND_EMAIL_FROM") || `noreply@${FROM_DOMAIN}`;
+  const formattedFrom = fromEmail.includes("<") ? fromEmail : `ArcAI <${fromEmail}>`;
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${resendApiKey}`,
+    },
+    body: JSON.stringify({
+      from: formattedFrom,
+      to: normalizedEmail,
+      subject,
+      html,
+      text,
+    }),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Resend API returned status ${response.status}: ${errorText}`);
+  }
 
   await admin.from("email_send_log").insert({
     message_id: messageId,
     template_name: "scheduled-task-complete",
-    recipient_email: email,
+    recipient_email: normalizedEmail,
     status: "sent",
   });
 }
