@@ -1420,12 +1420,13 @@ Output the complete, finished writing using the update_canvas tool.`;
             }
             
             // Send final complete event (no-op if client already disconnected)
-            safeEnqueue(encoder.encode(`data: ${JSON.stringify({ 
+            safeEnqueue(encoder.encode(`data: ${JSON.stringify({
               type: 'done',
               mode: finalMode,
               content: finalContent,
               label,
-              language
+              language,
+              model_used: selectedModel
             })}\n\n`));
             try { controller.close(); } catch {}
 
@@ -2108,6 +2109,7 @@ Output the complete, finished writing using the update_canvas tool.`;
       weather_data: weatherData,
       scheduled_task: scheduledTask,
       notification_dispatch: notificationDispatch,
+      model_used: selectedModel,
     };
     
     // NOTE: We no longer save from the backend - the frontend handles all persistence.

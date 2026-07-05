@@ -106,6 +106,8 @@ export interface SendMessageResult {
   scheduledTask?: import('@/components/ScheduledTaskCard').ScheduledTaskData;
   notificationDispatch?: import('@/components/NotificationDispatchCard').NotificationDispatchData;
   locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
+  /** Exact model id that produced this response (e.g. 'gpt-5.4-mini'). */
+  modelUsed?: string;
 }
 
 export class AIService {
@@ -308,6 +310,7 @@ export class AIService {
               latitude: usedLocation.latitude,
               longitude: usedLocation.longitude,
             } : undefined,
+            modelUsed: (data.model_used as string | undefined) || selectedModel,
           };
         } catch (err: any) {
           lastError = err;
@@ -381,7 +384,7 @@ export class AIService {
     forceCode: boolean = false,
     onStart?: (mode: 'canvas' | 'code' | 'text') => void,
     onDelta?: (content: string) => void,
-    onDone?: (result: { mode: 'canvas' | 'code' | 'text'; content: string; label?: string; language?: string; webSources?: WebSource[] }) => void,
+    onDone?: (result: { mode: 'canvas' | 'code' | 'text'; content: string; label?: string; language?: string; webSources?: WebSource[]; modelUsed?: string }) => void,
     onError?: (error: string) => void,
     sessionId?: string,
     forceWebSearch?: boolean,
@@ -514,7 +517,8 @@ export class AIService {
                 content: event.content,
                 label: event.label,
                 language: event.language,
-                webSources: event.webSources
+                webSources: event.webSources,
+                modelUsed: event.model_used || selectedModel
               });
             } else if (event.type === 'error') {
               onError?.(event.message);

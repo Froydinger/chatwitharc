@@ -121,6 +121,10 @@ export interface Message {
     | 'cloud-image-edit'
     | 'cloud-image-edit-fallback'
     | 'cloud-ide';
+  // Exact model id that produced this response (e.g. 'gpt-5.4-mini').
+  // Stored at send time so the badge shows what actually ran, not the
+  // picker's current selection.
+  modelUsed?: string;
   searchImages?: string[];
   imageChoiceSubject?: string;
 }

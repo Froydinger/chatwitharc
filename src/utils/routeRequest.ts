@@ -70,8 +70,13 @@ export function routeRequest(ctx: RouteContext): RouteDestination {
   return 'cloud-chat';
 }
 
-/** Human-readable label for the source badge — shows the real model name. */
-export function getRouteLabel(route: RouteDestination): { label: string; icon: 'local' | 'cloud'; tooltip: string } {
+/**
+ * Human-readable label for the source badge — shows the real model name.
+ * `modelUsed` is the exact model id recorded on the message when it was
+ * generated; when present it wins over the picker's current selection so
+ * badges stay accurate for Auto-mode routing and old messages.
+ */
+export function getRouteLabel(route: RouteDestination, modelUsed?: string): { label: string; icon: 'local' | 'cloud'; tooltip: string } {
   switch (route) {
     case 'local': {
       let label = 'Local Model';
@@ -90,39 +95,39 @@ export function getRouteLabel(route: RouteDestination): { label: string; icon: '
     }
     case 'cloud-chat':
     case 'cloud-chat-pro': {
-      const m = useModelStore.getState().chatModel;
+      const m = modelUsed || useModelStore.getState().chatModel;
       const { name, tier } = getModelInfo(m);
       return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `${tier} mode — OpenAI ${name}.` };
     }
     case 'cloud-search': {
-      const m = useModelStore.getState().chatModel;
+      const m = modelUsed || useModelStore.getState().chatModel;
       const { name } = getModelInfo(m);
       return { label: `Cloud · ${name} (Web)`, icon: 'cloud', tooltip: `Web Search synthesis — OpenAI ${name}.` };
     }
     case 'cloud-search-tavily': {
-      const m = useModelStore.getState().chatModel;
+      const m = modelUsed || useModelStore.getState().chatModel;
       const { name } = getModelInfo(m);
       return { label: `Cloud · ${name} (Web)`, icon: 'cloud', tooltip: `Web Search synthesis — OpenAI ${name}.` };
     }
     case 'cloud-vision': {
-      const m = useModelStore.getState().chatModel;
+      const m = modelUsed || useModelStore.getState().chatModel;
       const { name } = getModelInfo(m);
       return { label: `Cloud · ${name} (Vision)`, icon: 'cloud', tooltip: `Image understanding — OpenAI ${name}.` };
     }
     case 'cloud-document': {
-      const m = useModelStore.getState().chatModel;
+      const m = modelUsed || useModelStore.getState().chatModel;
       const { name } = getModelInfo(m);
       return { label: `Cloud · ${name} (Docs)`, icon: 'cloud', tooltip: `Document analysis — OpenAI ${name}.` };
     }
     case 'cloud-voice':
       return { label: 'Cloud · OpenAI Realtime', icon: 'cloud', tooltip: 'Voice mode — OpenAI Realtime API.' };
     case 'cloud-code': {
-      const m = useModelStore.getState().chatModel;
+      const m = modelUsed || useModelStore.getState().chatModel;
       const { name } = getModelInfo(m);
       return { label: `Cloud · ${name} (Code)`, icon: 'cloud', tooltip: `Code generation — OpenAI ${name}.` };
     }
     case 'cloud-canvas': {
-      const m = useModelStore.getState().chatModel;
+      const m = modelUsed || useModelStore.getState().chatModel;
       const { name } = getModelInfo(m);
       return { label: `Cloud · ${name} (Canvas)`, icon: 'cloud', tooltip: `Long-form writing canvas — OpenAI ${name}.` };
     }

@@ -33,7 +33,7 @@ export function MessageMetadata({ message }: MessageMetadataProps) {
           aria-label="Show message details"
         >
           {message.sourceModel && (
-            <ModelSourceBadge source={message.sourceModel} />
+            <ModelSourceBadge source={message.sourceModel} modelUsed={message.modelUsed} />
           )}
           {hasTools && (
             <Zap className="h-3 w-3 text-primary/70 group-hover:text-primary" />
@@ -58,7 +58,7 @@ export function MessageMetadata({ message }: MessageMetadataProps) {
           {message.sourceModel && (
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">Model</div>
-              <ModelSourceBadge source={message.sourceModel} />
+              <ModelSourceBadge source={message.sourceModel} modelUsed={message.modelUsed} />
             </div>
           )}
 

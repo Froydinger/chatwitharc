@@ -18,13 +18,14 @@ interface StreamingOptions {
   forceWebSearch?: boolean;
   onStart?: (mode: 'canvas' | 'code' | 'text') => void;
   onDelta?: (delta: string) => void;
-  onDone?: (result: { 
-    mode: 'canvas' | 'code' | 'text'; 
-    content: string; 
-    label?: string; 
-    language?: string; 
+  onDone?: (result: {
+    mode: 'canvas' | 'code' | 'text';
+    content: string;
+    label?: string;
+    language?: string;
     webSources?: any[];
     wasContinued?: boolean;
+    modelUsed?: string;
   }) => void;
   onError?: (error: string) => void;
   onContinuing?: () => void; // Called when auto-continuation starts
@@ -63,6 +64,7 @@ export function useStreamingWithContinuation() {
     let finalLabel = '';
     let finalLanguage = 'html';
     let finalWebSources: any[] = [];
+    let finalModelUsed: string | undefined;
     let isFirstChunk = true;
     let continuationCount = 0;
     let currentMessages = [...messages];
@@ -106,6 +108,7 @@ export function useStreamingWithContinuation() {
             requestComplete = true;
             finalLabel = result.label || finalLabel;
             finalLanguage = result.language || finalLanguage;
+            finalModelUsed = result.modelUsed || finalModelUsed;
             if (result.webSources?.length) {
               finalWebSources = [...finalWebSources, ...result.webSources];
             }
@@ -160,7 +163,8 @@ export function useStreamingWithContinuation() {
                 label: finalLabel,
                 language: finalLanguage,
                 webSources: finalWebSources,
-                wasContinued: continuationCount > 0
+                wasContinued: continuationCount > 0,
+                modelUsed: finalModelUsed
               });
               resolve(true);
             }
@@ -176,7 +180,8 @@ export function useStreamingWithContinuation() {
                 label: finalLabel,
                 language: finalLanguage,
                 webSources: finalWebSources,
-                wasContinued: continuationCount > 0
+                wasContinued: continuationCount > 0,
+                modelUsed: finalModelUsed
               });
               resolve(true);
             } else {

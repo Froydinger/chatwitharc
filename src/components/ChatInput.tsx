@@ -1016,6 +1016,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           role: "assistant",
           type: "text",
           memoryAction,
+          modelUsed: result.modelUsed,
           sourceModel: didSearchWeb
             ? result.searchProvider === "tavily"
               ? "cloud-search-tavily"
@@ -1977,7 +1978,7 @@ ${safeCode}
                   const idx = state.messages.findIndex((m) => m.id === codeMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code" } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code", modelUsed: (result as any).modelUsed } as any;
                   return { messages: updated } as any;
                 });
 
@@ -2007,7 +2008,7 @@ ${safeCode}
                   const idx = state.messages.findIndex((m) => m.id === canvasMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas" } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas", modelUsed: (result as any).modelUsed } as any;
                   return { messages: updated } as any;
                 });
 
@@ -2265,6 +2266,7 @@ ${safeCode}
                   content: result.content,
                   role: "assistant",
                   type: "text",
+                  modelUsed: (result as any).modelUsed,
                   sourceModel: "cloud-chat",
                 });
               }
@@ -2315,6 +2317,7 @@ ${safeCode}
                 notificationDispatch: result.notificationDispatch,
                 locationUsed: result.locationUsed,
                 searchImages: result.searchImages,
+                modelUsed: result.modelUsed,
                 sourceModel: didSearchWeb
                   ? result.searchProvider === "tavily"
                     ? "cloud-search-tavily"
@@ -2344,7 +2347,7 @@ ${safeCode}
                   const idx = state.messages.findIndex((m) => m.id === codeMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code" } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code", modelUsed: (result as any).modelUsed } as any;
                   return { messages: updated } as any;
                 });
               } else if (result.canvasUpdate) {
@@ -2355,7 +2358,7 @@ ${safeCode}
                   const idx = state.messages.findIndex((m) => m.id === canvasMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas" } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas", modelUsed: (result as any).modelUsed } as any;
                   return { messages: updated } as any;
                 });
               }
