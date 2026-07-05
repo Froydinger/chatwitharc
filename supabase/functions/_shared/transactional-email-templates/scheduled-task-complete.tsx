@@ -20,7 +20,7 @@ const ScheduledTaskCompleteEmail = ({
 }: ScheduledTaskCompleteProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>✅ {taskTitle} is done — open it in {SITE_NAME}</Preview>
+    <Preview>{preview ? preview.slice(0, 140) : `${taskTitle} — from ${SITE_NAME}`}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
@@ -30,22 +30,19 @@ const ScheduledTaskCompleteEmail = ({
           />
         </Section>
         <Section style={content}>
-          <Text style={emoji}>✅</Text>
+          <Text style={emoji}>🔔</Text>
           <Heading style={h1}>{taskTitle}</Heading>
-          <Text style={paragraph}>
-            Your scheduled task just finished. Here's a quick peek — open the full results in {SITE_NAME} anytime.
-          </Text>
           {preview && (
-            <Section style={previewBox}>
-              <Text style={previewText}>{preview}</Text>
+            <Section style={messageBox}>
+              <Text style={messageText}>{preview}</Text>
             </Section>
           )}
           <Section style={ctaWrap}>
-            <Button style={button} href={chatUrl}>Open results</Button>
+            <Button style={button} href={chatUrl}>Open in {SITE_NAME}</Button>
           </Section>
           <Hr style={hr} />
           <Text style={tipDesc}>
-            You can manage or pause this task anytime from your Scheduled Tasks dashboard.
+            Scheduled with {SITE_NAME} — you can manage or pause this task anytime from your Scheduled Tasks dashboard.
           </Text>
         </Section>
         <Section style={footer}>
@@ -58,11 +55,11 @@ const ScheduledTaskCompleteEmail = ({
 
 export const template = {
   component: ScheduledTaskCompleteEmail,
-  subject: (d: Record<string, any>) => `✅ ${d?.taskTitle ?? 'Your scheduled task'} is done`,
+  subject: (d: Record<string, any>) => `🔔 ${d?.taskTitle ?? 'Your ArcAI reminder'}`,
   displayName: 'Scheduled task complete',
   previewData: {
-    taskTitle: 'Morning AI briefing',
-    preview: 'Top 3 AI stories today: 1) ... 2) ... 3) ...',
+    taskTitle: 'Update landing page with Easter eggs',
+    preview: "Hey! This is your reminder to update the landing page with Easter eggs.",
     chatUrl: 'https://askarc.chat/chat/abc',
   },
 } satisfies TemplateEntry
@@ -73,10 +70,9 @@ const header = { textAlign: 'center' as const, paddingBottom: '24px' }
 const logo = { margin: '0 auto', borderRadius: '14px' }
 const content = { backgroundColor: '#18181b', borderRadius: '16px', padding: '40px 32px', border: '1px solid rgba(0, 128, 240, 0.25)' }
 const emoji = { fontSize: '48px', textAlign: 'center' as const, margin: '0 0 16px' }
-const h1 = { color: '#fafafa', fontSize: '24px', fontWeight: '700' as const, textAlign: 'center' as const, margin: '0 0 12px' }
-const paragraph = { color: '#a1a1aa', fontSize: '15px', lineHeight: '26px', textAlign: 'center' as const, margin: '0 0 20px' }
-const previewBox = { backgroundColor: '#09090b', border: '1px solid rgba(0, 128, 240, 0.15)', borderRadius: '10px', padding: '16px', margin: '0 0 24px' }
-const previewText = { color: '#fafafa', fontSize: '14px', lineHeight: '22px', margin: '0', whiteSpace: 'pre-wrap' as const }
+const h1 = { color: '#fafafa', fontSize: '24px', fontWeight: '700' as const, textAlign: 'center' as const, margin: '0 0 20px' }
+const messageBox = { backgroundColor: '#09090b', border: '1px solid rgba(0, 128, 240, 0.25)', borderRadius: '12px', padding: '20px', margin: '0 0 24px' }
+const messageText = { color: '#fafafa', fontSize: '16px', lineHeight: '26px', margin: '0', whiteSpace: 'pre-wrap' as const }
 const ctaWrap = { textAlign: 'center' as const, margin: '0 0 12px' }
 const button = { backgroundColor: '#0080f0', borderRadius: '10px', color: '#ffffff', fontSize: '16px', fontWeight: '600' as const, textDecoration: 'none', textAlign: 'center' as const, display: 'inline-block', padding: '14px 36px', boxShadow: '0 4px 12px rgba(0, 128, 240, 0.3)' }
 const hr = { borderColor: '#27272a', margin: '20px 0' }
