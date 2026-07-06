@@ -1016,7 +1016,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           role: "assistant",
           type: "text",
           memoryAction,
-          modelUsed: result.modelUsed,
           sourceModel: didSearchWeb
             ? result.searchProvider === "tavily"
               ? "cloud-search-tavily"
@@ -1198,7 +1197,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     if ((currentModel === THINKING_MODEL || currentModel === DEEP_THINK_MODEL) && !hasBoost) {
       toast({
         title: "Boost Plan Required",
-        description: "Smart (GPT-5.4) and Smartest (GPT-5.5) modes are available on the Boost plan. Upgrade now to get unlimited access to advanced reasoning models!",
+        description: "Thinking (GPT-5.4) and Deep Think (GPT-5.5) modes are available on the Boost plan. Upgrade now to get unlimited access to advanced reasoning models!",
         variant: "destructive",
       });
       openCheckout();
@@ -1230,6 +1229,72 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const userMessage = messageToSend.trim();
     let images = [...selectedImages];
     let documents = [...selectedDocuments];
+
+    // Check if the user is asking to change models in chat
+    const lowerMsg = userMessage.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?]/g, "").trim();
+    const hasBoost = useModelStore.getState().isBoost;
+    let didChangeModel = false;
+    let modelNameLabel = "";
+
+    if (lowerMsg === "use a better model" || lowerMsg === "use better model" || lowerMsg === "go better" || lowerMsg === "better model") {
+      const current = useModelStore.getState().chatModel;
+      if (current === AUTO_MODEL || current === FASTER_MODEL) {
+        useModelStore.getState().setChatModel(SMARTER_MODEL);
+        modelNameLabel = "Smarter (GPT-5.4 Mini)";
+        didChangeModel = true;
+      } else if (current === SMARTER_MODEL) {
+        if (hasBoost) {
+          useModelStore.getState().setChatModel(THINKING_MODEL);
+          modelNameLabel = "Reasoning (GPT-5.4 Thinking)";
+          didChangeModel = true;
+        } else {
+          toast({
+            title: "Boost upgrade required",
+            description: "Upgrading to a reasoning model requires a Boost subscription.",
+          });
+        }
+      } else if (current === THINKING_MODEL) {
+        if (hasBoost) {
+          useModelStore.getState().setChatModel(DEEP_THINK_MODEL);
+          modelNameLabel = "Deep Reason (GPT-5.5 Deep Think)";
+          didChangeModel = true;
+        }
+      }
+    } else if (lowerMsg === "use the best model" || lowerMsg === "use best model" || lowerMsg === "go best" || lowerMsg === "best model") {
+      if (hasBoost) {
+        useModelStore.getState().setChatModel(DEEP_THINK_MODEL);
+        modelNameLabel = "Deep Reason (GPT-5.5 Deep Think)";
+        didChangeModel = true;
+      } else {
+        useModelStore.getState().setChatModel(SMARTER_MODEL);
+        modelNameLabel = "Smarter (GPT-5.4 Mini)";
+        didChangeModel = true;
+      }
+    } else if (lowerMsg === "use a faster model" || lowerMsg === "use faster model" || lowerMsg === "go faster" || lowerMsg === "use a faster" || lowerMsg === "faster model") {
+      useModelStore.getState().setChatModel(FASTER_MODEL);
+      modelNameLabel = "Fast (GPT-5.4 Nano)";
+      didChangeModel = true;
+    } else if (lowerMsg === "use a smarter model" || lowerMsg === "use smarter model" || lowerMsg === "go smarter" || lowerMsg === "use a smarter" || lowerMsg === "smarter model") {
+      if (hasBoost) {
+        useModelStore.getState().setChatModel(THINKING_MODEL);
+        modelNameLabel = "Reasoning (GPT-5.4 Thinking)";
+        didChangeModel = true;
+      } else {
+        useModelStore.getState().setChatModel(SMARTER_MODEL);
+        modelNameLabel = "Smarter (GPT-5.4 Mini)";
+        didChangeModel = true;
+      }
+    }
+
+    if (didChangeModel) {
+      toast({
+        title: `Switched model`,
+        description: `Successfully switched to the ${modelNameLabel} model as requested.`,
+      });
+      setInputValue("");
+      setLoading(false);
+      return;
+    }
 
     // Detect @mention context: returns {isActive, searchTerm} if user is typing @personaname
     let finalMessage = userMessage;
@@ -1978,7 +2043,7 @@ ${safeCode}
                   const idx = state.messages.findIndex((m) => m.id === codeMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code", modelUsed: (result as any).modelUsed } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code" } as any;
                   return { messages: updated } as any;
                 });
 
@@ -2008,7 +2073,7 @@ ${safeCode}
                   const idx = state.messages.findIndex((m) => m.id === canvasMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas", modelUsed: (result as any).modelUsed } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas" } as any;
                   return { messages: updated } as any;
                 });
 
@@ -2266,7 +2331,6 @@ ${safeCode}
                   content: result.content,
                   role: "assistant",
                   type: "text",
-                  modelUsed: (result as any).modelUsed,
                   sourceModel: "cloud-chat",
                 });
               }
@@ -2317,7 +2381,6 @@ ${safeCode}
                 notificationDispatch: result.notificationDispatch,
                 locationUsed: result.locationUsed,
                 searchImages: result.searchImages,
-                modelUsed: result.modelUsed,
                 sourceModel: didSearchWeb
                   ? result.searchProvider === "tavily"
                     ? "cloud-search-tavily"
@@ -2347,7 +2410,7 @@ ${safeCode}
                   const idx = state.messages.findIndex((m) => m.id === codeMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code", modelUsed: (result as any).modelUsed } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code" } as any;
                   return { messages: updated } as any;
                 });
               } else if (result.canvasUpdate) {
@@ -2358,7 +2421,7 @@ ${safeCode}
                   const idx = state.messages.findIndex((m) => m.id === canvasMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas", modelUsed: (result as any).modelUsed } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas" } as any;
                   return { messages: updated } as any;
                 });
               }

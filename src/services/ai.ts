@@ -2,37 +2,32 @@ import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask } from "@/store/useModelStore";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext } from "@/lib/userLocation";
 
-/**
- * Graded complexity score for Auto-mode model routing.
- * 0 = simple (Nano) · 1 = moderate (Mini) · 2 = complex (GPT-5.4) · 3 = very complex (GPT-5.5).
- * Only applies when the user has Auto selected — explicit picks are never upgraded.
- */
-export type QueryComplexity = 0 | 1 | 2 | 3;
-
-export function assessQueryComplexity(message: string): QueryComplexity {
-  if (!message) return 0;
+// Detect if a user message warrants upgrading to a more powerful model
+export function detectComplexQuery(message: string): boolean {
+  if (!message) return false;
   const lower = message.toLowerCase().trim();
-  let score = 0;
 
-  // Length signals
-  if (lower.length > 300) score += 1;
-  if (lower.length > 800) score += 1;
-  if (lower.length > 2000) score += 1;
+  // Long messages suggest complex requests
+  if (lower.length > 400) return true;
 
   // Multi-part questions (numbered lists or multiple question marks)
   const questionMarks = (lower.match(/\?/g) || []).length;
-  if (questionMarks >= 3) score += 1;
-  if (/(?:^|\n)\s*\d+[\.\)]\s/m.test(lower) && lower.length > 150) score += 1;
+  if (questionMarks >= 3) return true;
+  if (/(?:^|\n)\s*\d+[\.\)]\s/m.test(lower) && lower.length > 150) return true;
 
-  // Analysis / reasoning keywords (each distinct hit adds weight, capped)
+  // Analysis / reasoning keywords
   const analysisKeywords = [
     'explain in detail', 'analyze', 'analyse', 'compare and contrast',
     'step by step', 'in depth', 'in-depth', 'write me an essay',
     'break down', 'pros and cons', 'comprehensive', 'thorough',
     'detailed explanation', 'deep dive', 'elaborate on',
     'critically evaluate', 'summarize the research', 'long-form',
+    // Explicit instructions to use a better/smarter/thinking model
+    'better model', 'smarter model', 'thinking model', 'deep think',
+    'deep-think', 'reasoning model', 'think about this', 'reason this',
+    'switch models', 'upgrade model',
   ];
-  score += Math.min(analysisKeywords.filter(k => lower.includes(k)).length, 2);
+  if (analysisKeywords.some(k => lower.includes(k))) return true;
 
   // Code-related terms (without explicit /code prefix)
   const codeKeywords = [
@@ -40,26 +35,9 @@ export function assessQueryComplexity(message: string): QueryComplexity {
     'function that', 'write a script', 'code review', 'optimize this code',
     'build a component', 'create a class', 'data structure',
   ];
-  if (codeKeywords.some(k => lower.includes(k))) score += 1;
+  if (codeKeywords.some(k => lower.includes(k))) return true;
 
-  // Heavyweight signals that justify the top-tier reasoning models
-  const heavyKeywords = [
-    'formal proof', 'prove that', 'research paper', 'whitepaper', 'white paper',
-    'dissertation', 'thesis', 'system architecture', 'design a system',
-    'security audit', 'threat model', 'full application', 'entire app',
-    'production-ready', 'production ready', 'exhaustive',
-  ];
-  if (heavyKeywords.some(k => lower.includes(k))) score += 2;
-
-  if (score >= 5) return 3;
-  if (score >= 3) return 2;
-  if (score >= 1) return 1;
-  return 0;
-}
-
-// Back-compat boolean: does the message warrant more than the lightest model?
-export function detectComplexQuery(message: string): boolean {
-  return assessQueryComplexity(message) >= 1;
+  return false;
 }
 
 interface AIMessage {
@@ -106,8 +84,6 @@ export interface SendMessageResult {
   scheduledTask?: import('@/components/ScheduledTaskCard').ScheduledTaskData;
   notificationDispatch?: import('@/components/NotificationDispatchCard').NotificationDispatchData;
   locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
-  /** Exact model id that produced this response (e.g. 'gpt-5.4-mini'). */
-  modelUsed?: string;
 }
 
 export class AIService {
@@ -218,16 +194,19 @@ export class AIService {
       // Model routing based on user's model family preference
       const isCanvasOrCode = forceCanvas || forceCode;
       
-      // Grade the last user message so Auto mode can route to the right tier
+      // Check whether the last user message warrants the reasoning model
       const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
-      const complexity = assessQueryComplexity(lastUserMsg);
-      const isComplex = !isCanvasOrCode && complexity >= 1;
-
+      const isComplex = !isCanvasOrCode && detectComplexQuery(lastUserMsg);
+      
       const selectedModel = modelOverride || (forceCode
-        ? getModelForTask('code', complexity)
+        ? getModelForTask('code')
         : forceCanvas
-          ? getModelForTask('file-gen', complexity)
-          : getModelForTask('chat', complexity));
+          ? getModelForTask('file-gen')
+          : forceWebSearch
+            ? getModelForTask('chat')
+            : isComplex
+              ? getModelForTask('deep-chat')
+              : getModelForTask('chat'));
 
       // Use longer timeout for canvas/code generation or complex queries (especially with 3.1 Pro)
       const timeoutMs = (isCanvasOrCode || isComplex) ? this.canvasTimeoutMs : this.defaultTimeoutMs;
@@ -310,7 +289,6 @@ export class AIService {
               latitude: usedLocation.latitude,
               longitude: usedLocation.longitude,
             } : undefined,
-            modelUsed: (data.model_used as string | undefined) || selectedModel,
           };
         } catch (err: any) {
           lastError = err;
@@ -384,7 +362,7 @@ export class AIService {
     forceCode: boolean = false,
     onStart?: (mode: 'canvas' | 'code' | 'text') => void,
     onDelta?: (content: string) => void,
-    onDone?: (result: { mode: 'canvas' | 'code' | 'text'; content: string; label?: string; language?: string; webSources?: WebSource[]; modelUsed?: string }) => void,
+    onDone?: (result: { mode: 'canvas' | 'code' | 'text'; content: string; label?: string; language?: string; webSources?: WebSource[] }) => void,
     onError?: (error: string) => void,
     sessionId?: string,
     forceWebSearch?: boolean,
@@ -396,14 +374,17 @@ export class AIService {
 
     // Model routing based on user's model family preference
     const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
-    const complexity = assessQueryComplexity(lastUserMsg);
-    const isComplex = !(forceCanvas || forceCode) && complexity >= 1;
-
+    const isComplex = !(forceCanvas || forceCode) && detectComplexQuery(lastUserMsg);
+    
     const selectedModel = forceCode
-      ? getModelForTask('code', complexity)
+      ? getModelForTask('code')
       : forceCanvas
-        ? getModelForTask('file-gen', complexity)
-        : getModelForTask('chat', complexity);
+        ? getModelForTask('file-gen')
+        : forceWebSearch
+          ? getModelForTask('chat')
+          : isComplex
+            ? getModelForTask('deep-chat')
+            : getModelForTask('chat');
 
     // Enrich profile with context blocks (same as sendMessage)
     let enrichedProfile = profile || {};
@@ -517,8 +498,7 @@ export class AIService {
                 content: event.content,
                 label: event.label,
                 language: event.language,
-                webSources: event.webSources,
-                modelUsed: event.model_used || selectedModel
+                webSources: event.webSources
               });
             } else if (event.type === 'error') {
               onError?.(event.message);
