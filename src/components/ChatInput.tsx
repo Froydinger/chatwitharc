@@ -171,14 +171,15 @@ function analyzeImageRequestIntent(message: string): 'generate' | 'search' | 'as
 function checkForCodingRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
-  // Support code/, /code, build/, /build — App Builder IDE is disabled, so /build is routed to code
   if (/^code\//.test(m) || /^\/code\b/.test(m)) return true;
-  if (/^build\//.test(m) || /^\/build\b/.test(m)) return true;
   return false;
 }
 
-// App Builder IDE is disabled — /build is treated as a regular code request
-function checkForBuildRequest(_message: string): boolean {
+// App Builder IDE is active — /build navigates to the App Builder IDE
+function checkForBuildRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  if (/^build\//.test(m) || /^\/build\b/.test(m)) return true;
   return false;
 }
 
