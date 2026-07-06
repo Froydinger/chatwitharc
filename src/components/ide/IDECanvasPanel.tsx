@@ -107,15 +107,37 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
   // On mount: hydrate from store/db and initialize saved snapshot baseline
   useEffect(() => {
-    const initialFiles = ideFiles && Object.keys(ideFiles).length > 0 ? ideFiles : DEFAULT_FILES;
-    const initialMessages = storedMessages?.length ? (storedMessages as ChatMessage[]) : [];
+    let initialFiles = ideFiles && Object.keys(ideFiles).length > 0 ? ideFiles : DEFAULT_FILES;
+    let initialMessages = storedMessages?.length ? (storedMessages as ChatMessage[]) : [];
 
-    if (ideFiles && Object.keys(ideFiles).length > 0) {
+    // Guest/Offline fallback: load from localStorage if there is no database project id
+    if (!ideProjectId) {
+      const savedLocal = localStorage.getItem('arc_ide_local_snapshot');
+      if (savedLocal) {
+        try {
+          const parsed = JSON.parse(savedLocal);
+          if (parsed.files && Object.keys(parsed.files).length > 0) {
+            initialFiles = parsed.files;
+            setFiles(parsed.files);
+            filesRef.current = parsed.files;
+          }
+          if (parsed.messages && parsed.messages.length > 0) {
+            initialMessages = parsed.messages;
+            setMessagesRaw(parsed.messages);
+            messagesRef.current = parsed.messages;
+          }
+        } catch (e) {
+          console.error('Failed to parse local IDE snapshot:', e);
+        }
+      }
+    }
+
+    if (ideFiles && Object.keys(ideFiles).length > 0 && ideProjectId) {
       setFiles(ideFiles);
       filesRef.current = ideFiles;
     }
 
-    if (storedMessages?.length) {
+    if (storedMessages?.length && ideProjectId) {
       setMessagesRaw(storedMessages as ChatMessage[]);
       messagesRef.current = storedMessages as ChatMessage[];
     }
@@ -154,6 +176,11 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   // Track file/message changes and auto-save
   useEffect(() => {
     const currentSnapshot = buildPersistenceSnapshot(files, messages);
+
+    // Save guest/offline state instantly to localStorage
+    if (!ideProjectId) {
+      localStorage.setItem('arc_ide_local_snapshot', currentSnapshot);
+    }
 
     if (currentSnapshot !== lastSavedSnapshotRef.current) {
       setSyncStatus('unsaved');

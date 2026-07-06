@@ -39,9 +39,15 @@ export function AppsPage() {
 
   // If we have a projectId in the URL, load and open that project
   useEffect(() => {
+    const isBuildRoute = window.location.pathname.startsWith('/build');
     if (projectId) {
       const initialPrompt = searchParams.get('initialPrompt') || undefined;
       loadAndOpenProject(projectId, initialPrompt);
+    } else if (isBuildRoute) {
+      // Auto open IDE canvas in local/guest mode
+      import("@/types/ide").then(({ DEFAULT_FILES }) => {
+        openIDECanvas("", DEFAULT_FILES);
+      });
     } else {
       const buildPrompt = searchParams.get('prompt');
       if (buildPrompt) {
