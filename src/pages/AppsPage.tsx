@@ -89,14 +89,11 @@ export function AppsPage() {
         .eq('id', id)
         .single();
 
-      const filesToLoad = data?.files ? (data.files as unknown as VirtualFileSystem) : {};
-      if (Object.keys(filesToLoad).length === 0 && initialPrompt) {
-        // If no files are loaded but there's an initial prompt, use default files
-        const { DEFAULT_FILES } = await import("@/types/ide");
-        reopenIDECanvas(id, DEFAULT_FILES, (data as any).messages || [], initialPrompt);
-      } else {
-        reopenIDECanvas(id, filesToLoad, (data as any).messages || [], initialPrompt);
-      }
+      // If project has no files in database, populate with DEFAULT_FILES so esbuild has an entrypoint (src/main.tsx)
+      const filesData = data?.files ? (data.files as unknown as VirtualFileSystem) : {};
+      const filesToLoad = Object.keys(filesData).length > 0 ? filesData : DEFAULT_FILES;
+
+      reopenIDECanvas(id, filesToLoad, (data as any).messages || [], initialPrompt);
     } catch (err) {
       console.error('Failed to load project:', err);
       toast.error("Failed to load project");
