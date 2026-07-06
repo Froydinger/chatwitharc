@@ -4,16 +4,16 @@ import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Search, Sparkles, Cpu, BookOpen, 
   Settings, User, HelpCircle, ChevronRight, ChevronDown,
-  Layers, Volume2, Palette, ShieldAlert, BadgeInfo
+  Layers, Volume2, Palette, ShieldAlert, BadgeInfo,
+  Calendar, Key, Music, Users, FileCode, CheckCircle
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { fadeInVariants, staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
 
 interface DocArticle {
   id: string;
-  category: "models" | "local" | "canvas" | "memory" | "settings" | "features";
+  category: "models" | "local" | "canvas" | "memory" | "settings" | "media" | "sharing";
   title: string;
   question: string;
   answer: JSX.Element;
@@ -28,12 +28,13 @@ export function DocsPage() {
 
   const categories = [
     { id: "all", label: "All Topics", icon: BookOpen },
-    { id: "models", label: "AI & Models", icon: Sparkles },
-    { id: "local", label: "Local AI (Offline)", icon: Cpu },
-    { id: "canvas", label: "Canvas Mode", icon: Layers },
-    { id: "memory", label: "Memory Bank", icon: BadgeInfo },
-    { id: "settings", label: "Settings Guide", icon: Settings },
-    { id: "features", label: "Advanced Features", icon: HelpCircle }
+    { id: "models", label: "AI Models", icon: Sparkles },
+    { id: "local", label: "Local AI", icon: Cpu },
+    { id: "canvas", label: "Canvas", icon: Layers },
+    { id: "memory", label: "Memory", icon: BadgeInfo },
+    { id: "settings", label: "Settings", icon: Settings },
+    { id: "media", label: "Voice & Music", icon: Music },
+    { id: "sharing", label: "Collab & Share", icon: Users }
   ];
 
   const articles: DocArticle[] = [
@@ -46,11 +47,11 @@ export function DocsPage() {
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
             You can switch models using the <strong>Model Picker dropdown</strong> located at the 
-            <strong> top left of the chat window</strong>.
+            <strong> top left of the chat window</strong> (above the chat input).
           </p>
           <p>Click the picker to select from the following tiers:</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Auto</strong>: Best model is selected automatically based on the complexity of your task.</li>
+            <li><strong className="text-foreground">Auto</strong>: Best model is selected automatically based on the complexity of your task (routes code to GPT-5.5, simple prompts to Fast, complex reasoning to Deep Think).</li>
             <li><strong className="text-foreground">Fast (GPT-5.4 Nano)</strong>: High-speed, lightweight model optimized for simple, quick chat tasks.</li>
             <li><strong className="text-foreground">Smarter (GPT-5.4 Mini)</strong>: Balanced model for complex conversations and multi-turn logic.</li>
             <li><strong className="text-foreground">Reasoning (GPT-5.4 Thinking)</strong>: Deep logic model for coding, math, and long explanation generation (Requires <a href="/pricing" className="text-primary hover:underline font-semibold">Boost</a>).</li>
@@ -58,29 +59,92 @@ export function DocsPage() {
           </ul>
         </div>
       ),
-      keywords: ["switch model", "change model", "select model", "reasoning", "deep think", "picker", "dropdown", "gpt-5.5", "gpt-5.4"]
+      keywords: ["switch model", "change model", "select model", "reasoning", "deep think", "picker", "dropdown", "gpt-5.5", "gpt-5.4", "nano", "mini"]
     },
     {
-      id: "local-ai",
-      category: "local",
-      title: "Running local on-device AI",
-      question: "What is Local AI and how does it work?",
+      id: "model-quotas",
+      category: "models",
+      title: "Model Quotas and Usage Limits",
+      question: "What are the daily message limits and quotas?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            ArcAI features a state-of-the-art <strong>Local AI mode</strong> that allows you to run language models directly on your hardware (browser, WebGPU/WASM). 
-            This enables private, offline communication that never hits the cloud.
+            Usage quotas depend on your plan:
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li><strong className="text-foreground">Free Tier</strong>: Limited daily image generations and chat limits on standard models. Reasoning models (GPT-5.4 Thinking and GPT-5.5 Deep Think) are paywalled.</li>
+            <li><strong className="text-foreground">Boost Plan ($10/mo or $96/yr)</strong>: Removes daily chat caps, unlocks advanced reasoning models (GPT-5.4 Thinking, GPT-5.5 Deep Think), provides offline local model support, and upgrades image generation quality.</li>
+          </ul>
+          <p>You can check your current daily usage and remaining limit at <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>
+        </div>
+      ),
+      keywords: ["limit", "quota", "usage", "cost", "free tier", "message limit", "credits", "boost plan"]
+    },
+    {
+      id: "local-ai-setup",
+      category: "local",
+      title: "Running local on-device AI",
+      question: "How do I configure and run Local AI models?",
+      answer: (
+        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+          <p>
+            ArcAI features a state-of-the-art <strong>Local AI mode</strong> that allows you to run language models directly on your hardware (browser WebGPU). This ensures private, offline communication that never hits the network.
           </p>
           <p>To configure and download local models:</p>
           <ol className="list-decimal pl-5 space-y-1.5">
             <li>Go to the <a href="/settings?tab=ai" className="text-primary hover:underline font-semibold">Settings &gt; AI &amp; Models tab</a>.</li>
             <li>Scroll down to the <strong>Local AI Models</strong> section.</li>
-            <li>Select and download a model (e.g. <em>Llama 3.2 3B</em>, <em>Gemma 2 9B</em>, <em>Gemma 2 2B</em>, or <em>Llama 3.2 1B</em> for iOS/Safari Mobile).</li>
-            <li>Toggle <strong>Corporate Mode</strong> in <a href="/settings?tab=privacy" className="text-primary hover:underline font-semibold">Settings &gt; Privacy</a> to lock all traffic to local processing.</li>
+            <li>Select and download a model:
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li><em>Llama 3.2 3B</em>: Best balanced offline model.</li>
+                <li><em>Gemma 2 9B</em>: High-quality reasoning offline model (requires decent GPU).</li>
+                <li><em>Gemma 2 2B</em>: Low memory footprint for standard laptops.</li>
+                <li><em>Llama 3.2 1B (iOS)</em>: Optimized light model for iPhones/Safari.</li>
+              </ul>
+            </li>
           </ol>
         </div>
       ),
-      keywords: ["local ai", "offline mode", "on-device", "webgpu", "wasm", "download model", "llama", "gemma", "corporate mode"]
+      keywords: ["local ai", "on-device", "webgpu", "download model", "llama", "gemma", "offline", "corporate mode"]
+    },
+    {
+      id: "webgpu-errors",
+      category: "local",
+      title: "Troubleshooting WebGPU / Local AI Errors",
+      question: "What should I do if WebGPU fails or local AI doesn't load?",
+      answer: (
+        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+          <p>
+            Local AI requires WebGPU support. If you see errors:
+          </p>
+          <ol className="list-decimal pl-5 space-y-1.5">
+            <li>Ensure you are using a modern browser (Google Chrome, Microsoft Edge, or Arc Browser version 113+; or Safari 18+).</li>
+            <li>Check Chrome flags: Open <code>chrome://flags</code>, search for <strong>WebGPU</strong>, and set it to <strong>Enabled</strong>.</li>
+            <li>Verify your graphics driver is updated.</li>
+            <li>If your machine has integrated graphics and low RAM (under 8GB), try using the lighter <strong>Gemma 2 2B</strong> or <strong>Llama 3.2 1B</strong> models to prevent browser crashes.</li>
+          </ol>
+        </div>
+      ),
+      keywords: ["webgpu error", "local ai fails", "browser crash", "chrome flags", "webgpu support", "integrated graphics"]
+    },
+    {
+      id: "corporate-mode",
+      category: "local",
+      title: "Corporate Mode Privacy Settings",
+      question: "What is Corporate Mode and how do I enable it?",
+      answer: (
+        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+          <p>
+            <strong>Corporate Mode</strong> is a privacy setting that locks all chat activities to your local browser. When active, it disables cloud connections, preventing your data, chat logs, or document content from leaving your machine.
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li>To enable Corporate Mode, go to <a href="/settings?tab=privacy" className="text-primary hover:underline font-semibold">Settings &gt; Privacy</a>.</li>
+            <li>Toggle <strong>Corporate Mode</strong> to ON.</li>
+            <li>Once enabled, all cloud routing is disabled, and you must select a downloaded Local AI Model to continue chatting.</li>
+          </ul>
+        </div>
+      ),
+      keywords: ["corporate mode", "privacy", "no network", "offline lock", "local lock", "gdpr", "private chat"]
     },
     {
       id: "canvas-mode",
@@ -90,8 +154,7 @@ export function DocsPage() {
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            <strong>Canvas Mode</strong> is a split-screen workspace featuring an interactive panel on the right side of the screen. 
-            It is automatically triggered when you generate code or ask for long-form prose/document writing.
+            <strong>Canvas Mode</strong> is a split-screen workspace featuring an interactive panel on the right side of the screen. It is automatically triggered when you generate code or ask for long-form prose/document writing.
           </p>
           <p>Inside the Canvas, you can:</p>
           <ul className="list-disc pl-5 space-y-1.5">
@@ -103,6 +166,26 @@ export function DocsPage() {
         </div>
       ),
       keywords: ["canvas", "editor", "split screen", "split-screen", "side panel", "code editor", "document editor", "prose"]
+    },
+    {
+      id: "canvas-languages",
+      category: "canvas",
+      title: "Supported Languages in Canvas",
+      question: "What file types and programming languages are supported in Canvas?",
+      answer: (
+        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+          <p>
+            The Canvas code runner and markdown parser supports a wide variety of formats:
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li><strong className="text-foreground">Web Frontends</strong>: Full preview support for HTML, CSS, JavaScript, and Tailwind CSS.</li>
+            <li><strong className="text-foreground">Vector Graphics</strong>: Interactive renderer for SVG markup.</li>
+            <li><strong className="text-foreground">Documents</strong>: Rich formatting for Markdown (.md) and text files.</li>
+            <li><strong className="text-foreground">Source Code</strong>: Syntax highlighting for Python, Go, Rust, C++, Java, and SQL.</li>
+          </ul>
+        </div>
+      ),
+      keywords: ["canvas language", "html", "javascript", "svg", "tailwind", "python", "syntax highlighting", "markdown"]
     },
     {
       id: "memory-bank",
@@ -123,6 +206,26 @@ export function DocsPage() {
         </div>
       ),
       keywords: ["memory", "memories", "remember", "saved facts", "custom instructions", "memory bank", "profile memory"]
+    },
+    {
+      id: "custom-instructions",
+      category: "memory",
+      title: "Custom System Instructions",
+      question: "How do I add custom system instructions?",
+      answer: (
+        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+          <p>
+            Custom instructions allow you to shape how the AI responds across all conversations.
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li>Go to <a href="/settings?tab=account" className="text-primary hover:underline font-semibold">Settings &gt; Account tab</a>.</li>
+            <li>Find the <strong>Custom Instructions</strong> text area.</li>
+            <li>Input your preferences (e.g. <em>"Explain concepts as if I am a beginner"</em>, <em>"Keep code concise and avoid verbose commentary"</em>).</li>
+            <li>Click Save. These will be appended to the AI's system prompt for every message.</li>
+          </ul>
+        </div>
+      ),
+      keywords: ["custom instructions", "system instructions", "personality", "custom prompt", "profile config"]
     },
     {
       id: "appearance-colors",
@@ -146,7 +249,7 @@ export function DocsPage() {
     },
     {
       id: "voice-mode",
-      category: "features",
+      category: "media",
       title: "Hands-free Voice Mode",
       question: "How do I use Voice Mode?",
       answer: (
@@ -165,41 +268,62 @@ export function DocsPage() {
       keywords: ["voice mode", "microphone", "headphones", "openai realtime", "real-time voice", "voice chat", "talk to ai"]
     },
     {
-      id: "personas-custom",
-      category: "features",
-      title: "Creating custom Personas",
-      question: "How do I use or create custom AI personas?",
+      id: "music-spotify",
+      category: "media",
+      title: "Spotify Music Player Integration",
+      question: "How do I connect and control Spotify music inside Arc?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            Personas allow you to chat with tailored AI characters (e.g. Life Coach, Counselor, Noir Detective, Scholar, Pirate, Tutor, Chef).
+            ArcAI features a floating Spotify mini player built into the sidebar layout.
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong>Select Persona</strong>: Use the avatar selector next to the text input or type <strong className="text-foreground">@persona_name</strong> (e.g., <code>@counselor</code>) inside the chat input.</li>
-            <li><strong>Create Persona</strong>: Go to <a href="/settings?tab=personas" className="text-primary hover:underline font-semibold">Settings &gt; Personas Manager tab</a> to write custom system instructions and define your own AI character.</li>
+            <li>Ensure you have a Spotify Premium account and are logged in to Spotify on the same browser.</li>
+            <li>Click the Music Player controller in the sidebar/dock.</li>
+            <li>Start playing any song on Spotify desktop or mobile—the playback status, album art, and seek controls will sync automatically inside Arc's glass player widget.</li>
           </ul>
         </div>
       ),
-      keywords: ["personas", "persona", "custom persona", "coach", "counselor", "detective", "tutor", "mentions", "@persona"]
+      keywords: ["spotify", "music player", "sidebar music", "play songs", "music player", "sync audio"]
     },
     {
-      id: "boost-subscription",
-      category: "plan",
-      title: "Boost subscription and Pricing",
-      question: "What features are included in the Boost plan?",
+      id: "shared-chatrooms",
+      category: "sharing",
+      title: "Shared Team Chat Rooms",
+      question: "How do shared collaborative chat rooms work?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            The <strong>Boost plan</strong> provides unlimited access to premium models and removes daily usage caps.
+            ArcAI lets you invite other users to collaborative chat rooms under the <a href="/shared" className="text-primary hover:underline font-semibold">Shared chats page (/shared)</a>.
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong>Free tier</strong>: Limited daily image generations and chat limits on standard models.</li>
-            <li><strong>Boost tier ($10/month or $96/year)</strong>: Access to reasoning models (GPT-5.4 Thinking, GPT-5.5 Deep Think), unlimited web search queries, expanded file analysis sizes, and on-device offline models.</li>
-            <li>Manage billing or subscribe at <a href="/pricing" className="text-primary hover:underline font-semibold">Pricing &amp; Subscription Page</a>.</li>
+            <li>Create a new chat room and share the public URL with team members.</li>
+            <li>Messages sync in real-time across all connected clients.</li>
+            <li>Mention other users or personas directly in your message by typing <code>@username</code> or <code>@persona</code>.</li>
+            <li>Attach and upload images (up to 10MB per file) directly to the collaborative stream.</li>
           </ul>
         </div>
       ),
-      keywords: ["boost", "subscription", "price", "billing", "pricing", "plan", "limit", "quota", "premium"]
+      keywords: ["shared chats", "collab", "team chat", "mentions", "attachments", "shared room", "real-time"]
+    },
+    {
+      id: "sharing-transcripts",
+      category: "sharing",
+      title: "Sharing Chat Transcripts",
+      question: "How do I generate a public link to share a chat history?",
+      answer: (
+        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+          <p>
+            If you want to share a particular AI conversation with friends or colleagues:
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li>Click the <strong>Share</strong> button located at the top right of the chat header panel.</li>
+            <li>Confirm public sharing—Arc will generate a unique static link (e.g. <code>/share/your-session-id</code>).</li>
+            <li>Copy and send the URL. Anyone with the link will be able to read the formatted conversation (including code blocks and canvas states) without needing an account.</li>
+          </ul>
+        </div>
+      ),
+      keywords: ["share chat", "public link", "generate url", "transcript share", "send chat"]
     }
   ];
 
@@ -255,7 +379,7 @@ export function DocsPage() {
         </div>
 
         {/* Category Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
           {categories.map((cat) => {
             const Icon = cat.icon;
             const active = selectedCategory === cat.id;
@@ -267,7 +391,7 @@ export function DocsPage() {
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`rounded-lg flex flex-col items-center justify-center gap-1.5 py-3 h-auto ${
                   active 
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(var(--primary-rgb),0.2)]" 
                     : "glass border-glass-border hover:bg-white/5"
                 }`}
               >
@@ -303,7 +427,7 @@ export function DocsPage() {
                         className="w-full px-6 py-4 flex items-center justify-between text-left gap-4"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="p-1.5 rounded-lg bg-primary/10 text-primary text-xs shrink-0">
+                          <span className="p-1.5 rounded-lg bg-primary/10 text-primary text-xs shrink-0 font-mono">
                             {art.category.toUpperCase()}
                           </span>
                           <h3 className="font-semibold text-sm md:text-base text-foreground leading-tight">
