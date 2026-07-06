@@ -62,7 +62,20 @@ Rules for routing:
 • Always wrap the app in BrowserRouter with Routes/Route
 • Do NOT use lazy(), loader, action, createBrowserRouter, or data APIs — they are not supported
 • Keep route patterns simple: static segments and :param segments
-• For multi-page apps, create separate page components and wire them via Route elements`;
+• For multi-page apps, create separate page components and wire them via Route elements
+
+━━━ AUTHENTICATION & DATABASE (NETLIFY IDENTITY / DB) ━━━
+• If the user requests Authentication (Sign In, Sign Out, User Profiles):
+  - Check if \`src/components/NetlifyAuthModal.tsx\` exists in the file explorer.
+  - If it exists, import it: \`import { NetlifyAuthModal } from '@/components/NetlifyAuthModal';\`
+  - Render it and hook up the callbacks to manage user state (e.g., \`const [user, setUser] = useState(null)\`).
+  - Persist the user session using localStorage (e.g., checking \`localStorage.getItem('netlify_mock_users')\` to auto-login).
+• If the user requests Data Persistence (Saving posts, timeline, settings, lists):
+  - Check if \`src/lib/netlifyDb.ts\` exists in the file explorer.
+  - If it exists, import it: \`import { netlifyDb } from '@/lib/netlifyDb';\`
+  - Use \`netlifyDb.get(key)\` and \`netlifyDb.set(key, value)\` to load and persist records.
+  - Example: to save timeline posts: \`netlifyDb.set('posts', nextPosts)\`.
+  - Always merge with local state so updates render instantly in the UI.`;
 
 const tools = [
   {
