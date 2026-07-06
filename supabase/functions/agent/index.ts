@@ -309,7 +309,7 @@ serve(async (req) => {
               }
               const t = await aiResp.text();
               console.error("AI gateway error:", status, t);
-              send({ type: "error", message: `AI error (${status})` });
+              send({ type: "error", message: `AI error (${status}): ${t.slice(0, 100)}` });
               break;
             }
 

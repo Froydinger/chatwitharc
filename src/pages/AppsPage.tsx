@@ -39,7 +39,15 @@ export function AppsPage() {
 
   // If we have a projectId in the URL, load and open that project
   useEffect(() => {
-    const isBuildRoute = window.location.pathname.startsWith('/build');
+    const currentPath = window.location.pathname;
+    // If accessing via /apps, rewrite to /build to keep URLs unified, unless we are currently parsing a Supabase OAuth hash.
+    if (currentPath.startsWith('/apps') && !window.location.hash.includes('access_token')) {
+      const target = currentPath.replace(/^\/apps/, '/build');
+      navigate(target + window.location.search + window.location.hash, { replace: true });
+      return;
+    }
+
+    const isBuildRoute = currentPath.startsWith('/build') || currentPath.startsWith('/apps');
     if (projectId) {
       const initialPrompt = searchParams.get('initialPrompt') || undefined;
       loadAndOpenProject(projectId, initialPrompt);

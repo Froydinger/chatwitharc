@@ -1389,7 +1389,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     if (wasBuildMode) {
       const buildPrompt = extractPrefixPrompt(finalMessage);
       // Navigate to App Builder — the prompt will be handled there
-      navigate(buildPrompt ? `/apps?prompt=${encodeURIComponent(buildPrompt)}` : "/apps");
+      navigate(buildPrompt ? `/build?prompt=${encodeURIComponent(buildPrompt)}` : "/build");
       return;
     }
 
