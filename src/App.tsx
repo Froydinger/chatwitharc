@@ -41,6 +41,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { DashboardSettingsPage } from "./pages/DashboardSettingsPage";
 import UnsubscribePage from "./pages/UnsubscribePage";
 import { SupportPage } from "./pages/SupportPage";
+import { DocsPage } from "./pages/DocsPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import { SharedChatPage } from "./pages/SharedChatPage";
@@ -252,6 +253,7 @@ const App = () => {
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/unsubscribe" element={<UnsubscribePage />} />
                     <Route path="/support" element={<SupportPage />} />
+                    <Route path="/docs" element={<DocsPage />} />
                     <Route path="/tasks" element={<TasksPage />} />
                     <Route path="/shared" element={<SharedChatsPage />} />
                     <Route path="/shared/:chatId" element={<SharedChatRoomPage />} />
