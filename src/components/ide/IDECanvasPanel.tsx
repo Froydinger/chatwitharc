@@ -13,6 +13,7 @@ import { IDECodeEditor } from './IDECodeEditor';
 import { IDEPreviewPanel } from './IDEPreviewPanel';
 import { IDEChatPanel } from './IDEChatPanel';
 import { PublishDialog } from './PublishDialog';
+import { IDECloudPanel } from './IDECloudPanel';
 import { sendAgentMessage, type AgentResult } from '@/services/agent';
 import { deployToNetlify, unpublishFromNetlify } from '@/lib/deploy';
 import { getModelForTask } from '@/store/useModelStore';
@@ -53,7 +54,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const { ideFiles, idePrompt, ideAutoRunPrompt, ideProjectId, ideMessages: storedMessages, setIdeFiles, closeIDE, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId, setIdeMessages } = useIDEStore();
   const [files, setFiles] = useState<VirtualFileSystem>(ideFiles || DEFAULT_FILES);
   const [selectedFile, setSelectedFile] = useState<string | null>('src/App.tsx');
-  const [activeTab, setActiveTab] = useState<'code' | 'preview'>('code');
+  const [activeTab, setActiveTab] = useState<'code' | 'preview' | 'cloud'>('code');
   const [mobileCodeTab, setMobileCodeTab] = useState<'chat' | 'editor'>('chat');
   const [copied, setCopied] = useState(false);
   const [messages, setMessagesRaw] = useState<ChatMessage[]>(storedMessages?.length ? storedMessages : []);
@@ -619,6 +620,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
             <TabsList className="w-full justify-start rounded-none border-b border-border/30 bg-transparent px-3 h-9">
               <TabsTrigger value="code" className="gap-1.5 text-xs"><Code2 className="h-3.5 w-3.5" />Code</TabsTrigger>
               <TabsTrigger value="preview" className="gap-1.5 text-xs"><Eye className="h-3.5 w-3.5" />Preview</TabsTrigger>
+              <TabsTrigger value="cloud" className="gap-1.5 text-xs"><Cloud className="h-3.5 w-3.5" />Cloud</TabsTrigger>
             </TabsList>
             <TabsContent value="code" className="flex-1 m-0 relative">
               <div className="absolute inset-0 pb-12">
@@ -660,6 +662,9 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
             <TabsContent value="preview" className="flex-1 m-0 min-h-0">
               <IDEPreviewPanel files={files} onError={handlePreviewError} />
             </TabsContent>
+            <TabsContent value="cloud" className="flex-1 m-0 overflow-y-auto bg-black">
+              <IDECloudPanel files={files} setFiles={setFiles} />
+            </TabsContent>
           </Tabs>
         ) : (
           <ResizablePanelGroup direction="horizontal">
@@ -679,9 +684,13 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                   <TabsList className="w-full justify-start rounded-none border-b border-border/30 bg-transparent px-3 h-9">
                     <TabsTrigger value="code" className="gap-1.5 text-xs"><Code2 className="h-3.5 w-3.5" />Code</TabsTrigger>
                     <TabsTrigger value="preview" className="gap-1.5 text-xs"><Eye className="h-3.5 w-3.5" />Preview</TabsTrigger>
+                    <TabsTrigger value="cloud" className="gap-1.5 text-xs"><Cloud className="h-3.5 w-3.5" />Cloud Manager</TabsTrigger>
                   </TabsList>
                   <TabsContent value="code" className="flex-1 m-0">{EditorArea}</TabsContent>
                   <TabsContent value="preview" className="flex-1 m-0"><IDEPreviewPanel files={files} onError={handlePreviewError} /></TabsContent>
+                  <TabsContent value="cloud" className="flex-1 m-0 overflow-y-auto bg-black">
+                    <IDECloudPanel files={files} setFiles={setFiles} />
+                  </TabsContent>
                 </Tabs>
               </div>
             </ResizablePanel>

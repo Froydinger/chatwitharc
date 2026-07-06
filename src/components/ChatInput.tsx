@@ -19,6 +19,7 @@ import {
   Rocket,
   FileText,
   ListPlus,
+  Hammer,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
@@ -2957,6 +2958,22 @@ ${safeCode}
                             <div className="flex flex-col items-center text-center">
                               <span className="text-sm font-semibold">Prompts</span>
                               <span className="text-[10px] text-muted-foreground font-normal">Template library</span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setInputValue("build/ ");
+                              setShowMenu(false);
+                              textareaRef.current?.focus();
+                            }}
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                          >
+                            <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30">
+                              <Hammer className="h-5 w-5 text-purple-400" />
+                            </div>
+                            <div className="flex flex-col items-center text-center">
+                              <span className="text-sm font-semibold">Build</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">App Builder IDE</span>
                             </div>
                           </button>
                         </div>
