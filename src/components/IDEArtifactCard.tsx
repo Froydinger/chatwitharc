@@ -48,9 +48,9 @@ export function IDEArtifactCard({
 
   const handleOpen = () => {
     if (projectId) {
-      navigate(`/apps/${projectId}`);
+      navigate(`/build/${projectId}`);
     } else {
-      navigate('/apps');
+      navigate('/build');
     }
   };
 

@@ -2851,36 +2851,57 @@ ${safeCode}
                         transition={{ type: "spring", stiffness: 400, damping: 30 }}
                         style={{
                           background: "hsl(var(--background))",
-                          border: "1px solid hsl(var(--border))",
                         }}
-                        className="pointer-events-auto w-[min(92vw,480px)] max-h-[85vh] overflow-y-auto p-4 rounded-3xl shadow-2xl"
+                        className="pointer-events-auto w-[min(92vw,440px)] max-h-[85vh] overflow-y-auto p-5 rounded-[28px] shadow-2xl bg-neutral-950/80 backdrop-blur-xl border border-white/10"
                       >
-                        <div className="flex items-center justify-between mb-3 px-1">
-                          <span className="text-sm font-semibold">Tools & Actions</span>
+                        <div className="flex items-center justify-between mb-4 px-1">
+                          <span className="text-sm font-semibold tracking-wide text-white/90">Tools & Actions</span>
                           <button
                             onClick={() => setShowMenu(false)}
-                            className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+                            className="p-1 rounded-full hover:bg-white/10 transition-colors text-muted-foreground hover:text-white"
                             aria-label="Close"
                           >
                             <X className="h-4 w-4" />
                           </button>
                         </div>
+
+                        {/* Featured App Builder IDE Banner (At the Top!) */}
+                        <div className="mb-4">
+                          <button
+                            onClick={() => {
+                              setShowMenu(false);
+                              navigate("/build");
+                            }}
+                            className="w-full flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-200 group border border-purple-500/20 hover:border-purple-500/35 bg-purple-500/5 hover:bg-purple-500/10 shadow-[0_0_20px_-5px_rgba(168,85,247,0.1)]"
+                          >
+                            <div className="w-11 h-11 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0 group-hover:bg-purple-500/30 transition-colors">
+                              <Hammer className="h-5 w-5 text-purple-400 group-hover:rotate-12 transition-transform duration-200" />
+                            </div>
+                            <div className="flex flex-col items-start text-left">
+                              <span className="text-xs font-semibold text-white tracking-wide">App Builder IDE</span>
+                              <span className="text-[10px] text-muted-foreground font-normal leading-normal mt-0.5">Build full-scale interactive web apps in one prompt</span>
+                            </div>
+                          </button>
+                        </div>
+
+                        {/* Grid of Core Tools - Sleek unified look */}
                         <div className="grid grid-cols-2 gap-2">
                           <button
                             onClick={() => {
                               fileInputRef.current?.click();
                               setShowMenu(false);
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.01] hover:bg-white/[0.04] transition-all group border border-white/5 hover:border-white/10"
                           >
-                            <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30">
-                              <Paperclip className="h-5 w-5 text-blue-400" />
+                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-blue-500/10 flex items-center justify-center transition-colors">
+                              <Paperclip className="h-4.5 w-4.5 text-slate-400 group-hover:text-blue-400 transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
-                              <span className="text-sm font-semibold">Attach</span>
-                              <span className="text-[10px] text-muted-foreground font-normal">Files, PDFs, Docs</span>
+                              <span className="text-xs font-semibold text-white/90">Attach</span>
+                              <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Files, PDFs, Docs</span>
                             </div>
                           </button>
+
                           <button
                             onClick={() => {
                               setForceImageMode(true);
@@ -2888,16 +2909,17 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.01] hover:bg-white/[0.04] transition-all group border border-white/5 hover:border-white/10"
                           >
-                            <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/30">
-                              <ImagePlus className="h-5 w-5 text-amber-500" />
+                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-amber-500/10 flex items-center justify-center transition-colors">
+                              <ImagePlus className="h-4.5 w-4.5 text-slate-400 group-hover:text-amber-400 transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
-                              <span className="text-sm font-semibold">Generate</span>
-                              <span className="text-[10px] text-muted-foreground font-normal">AI Image Creation</span>
+                              <span className="text-xs font-semibold text-white/90">Generate</span>
+                              <span className="text-[9px] text-muted-foreground font-normal mt-0.5">AI Image Creation</span>
                             </div>
                           </button>
+
                           <button
                             onClick={() => {
                               setForceSearchMode(true);
@@ -2905,16 +2927,17 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.01] hover:bg-white/[0.04] transition-all group border border-white/5 hover:border-white/10"
                           >
-                            <div className="w-12 h-12 rounded-xl bg-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/30">
-                              <Globe className="h-5 w-5 text-indigo-400" />
+                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-indigo-500/10 flex items-center justify-center transition-colors">
+                              <Globe className="h-4.5 w-4.5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
-                              <span className="text-sm font-semibold">Search</span>
-                              <span className="text-[10px] text-muted-foreground font-normal">Live Web Results</span>
+                              <span className="text-xs font-semibold text-white/90">Search</span>
+                              <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Live Web Results</span>
                             </div>
                           </button>
+
                           <button
                             onClick={() => {
                               setForceCodingMode(true);
@@ -2922,16 +2945,17 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.01] hover:bg-white/[0.04] transition-all group border border-white/5 hover:border-white/10"
                           >
-                            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/30">
-                              <Code2 className="h-5 w-5 text-emerald-500" />
+                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-emerald-500/10 flex items-center justify-center transition-colors">
+                              <Code2 className="h-4.5 w-4.5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
-                              <span className="text-sm font-semibold">Code</span>
-                              <span className="text-[10px] text-muted-foreground font-normal">Scripting & logic</span>
+                              <span className="text-xs font-semibold text-white/90">Code</span>
+                              <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Scripting & logic</span>
                             </div>
                           </button>
+
                           <button
                             onClick={() => {
                               setForceCanvasMode(true);
@@ -2939,74 +2963,65 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.01] hover:bg-white/[0.04] transition-all group border border-white/5 hover:border-white/10"
                           >
-                            <div className="w-12 h-12 rounded-xl bg-pink-500/20 flex items-center justify-center group-hover:bg-pink-500/30">
-                              <PenLine className="h-5 w-5 text-pink-400" />
+                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-pink-500/10 flex items-center justify-center transition-colors">
+                              <PenLine className="h-4.5 w-4.5 text-slate-400 group-hover:text-pink-400 transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
-                              <span className="text-sm font-semibold">Draft</span>
-                              <span className="text-[10px] text-muted-foreground font-normal">Writing & Layouts</span>
+                              <span className="text-xs font-semibold text-white/90">Draft</span>
+                              <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Writing & Layouts</span>
                             </div>
                           </button>
+
                           <button
                             onClick={() => {
                               setShowPromptLibrary(true);
                               setShowMenu(false);
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.01] hover:bg-white/[0.04] transition-all group border border-white/5 hover:border-white/10"
                           >
-                            <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
-                              <ListPlus className="h-5 w-5 text-muted-foreground" />
+                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-neutral-500/20 flex items-center justify-center transition-colors">
+                              <ListPlus className="h-4.5 w-4.5 text-slate-400 group-hover:text-white transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
-                              <span className="text-sm font-semibold">Prompts</span>
-                              <span className="text-[10px] text-muted-foreground font-normal">Template library</span>
+                              <span className="text-xs font-semibold text-white/90">Prompts</span>
+                              <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Template library</span>
                             </div>
                           </button>
                         </div>
 
-                        {/* Wide Build Button */}
-                        <div className="mt-2.5">
-                          <button
-                            onClick={() => {
-                              setShowMenu(false);
-                              navigate("/build");
-                            }}
-                            className="w-full flex items-center gap-3.5 p-3 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5 bg-purple-500/10 hover:border-purple-500/20"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0 group-hover:bg-purple-500/30">
-                              <Hammer className="h-4.5 w-4.5 text-purple-400 group-hover:rotate-12 transition-transform" />
-                            </div>
-                            <div className="flex flex-col items-start text-left">
-                              <span className="text-xs font-semibold text-white">App Builder IDE</span>
-                              <span className="text-[10px] text-muted-foreground font-normal">Build full-scale interactive web apps in one prompt</span>
-                            </div>
-                          </button>
-                        </div>
+                        {/* Personas Carousel (Extremely premium, horizontal, clean scroll) */}
                         {PERSONAS_ENABLED && !activePersona && sortedPersonas.length > 0 && (
-                          <div className="mt-4 pt-4 border-t border-white/10">
-                            <div className="px-1 mb-2 text-xs font-semibold text-muted-foreground">Personas</div>
-                            <div className="grid grid-cols-2 gap-2">
+                          <div className="mt-5 pt-4 border-t border-white/5">
+                            <div className="px-1 mb-3 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Personas</div>
+                            <div className="flex gap-4 overflow-x-auto py-1 px-1 scrollbar-none snap-x">
                               {sortedPersonas.map((p) => {
                                 const isCustom = !p.id.startsWith('builtin-');
                                 return (
                                   <button
                                     key={p.id}
                                     type="button"
-                                    onClick={() => selectPersona(p)}
-                                    className="flex items-center gap-2 p-2 rounded-2xl hover:bg-white/10 transition-colors border border-white/5 text-left min-w-0"
+                                    onClick={() => {
+                                      selectPersona(p);
+                                      setShowMenu(false);
+                                    }}
+                                    className="flex flex-col items-center gap-1.5 snap-start shrink-0 w-16 group cursor-pointer text-center"
                                   >
-                                    {p.avatarUrl ? (
-                                      <img src={p.avatarUrl} alt={p.name} loading="lazy" className="w-9 h-9 rounded-full object-cover bg-white shrink-0" />
-                                    ) : (
-                                      <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-                                        {p.name[0].toUpperCase()}
-                                      </div>
-                                    )}
-                                    <span className="min-w-0 flex-1">
-                                      <span className="block text-sm font-semibold truncate">{p.name}</span>
-                                      {isCustom && <span className="block text-[10px] text-primary font-semibold">Custom</span>}
+                                    <div className="relative">
+                                      {p.avatarUrl ? (
+                                        <img src={p.avatarUrl} alt={p.name} loading="lazy" className="w-12 h-12 rounded-full object-cover bg-neutral-900 border border-white/10 group-hover:border-primary-glow/60 group-hover:scale-105 transition-all duration-200 shrink-0" />
+                                      ) : (
+                                        <div className="w-12 h-12 rounded-full bg-primary/10 border border-white/10 flex items-center justify-center text-primary font-bold text-base group-hover:border-primary-glow/60 group-hover:scale-105 transition-all duration-200 shrink-0">
+                                          {p.name[0].toUpperCase()}
+                                        </div>
+                                      )}
+                                      {isCustom && (
+                                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-primary-glow rounded-full border-2 border-neutral-950" title="Custom" />
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] font-medium text-muted-foreground group-hover:text-white transition-colors truncate w-full">
+                                      {p.name}
                                     </span>
                                   </button>
                                 );

@@ -268,19 +268,24 @@ serve(async (req) => {
               send({ type: "status", message: "Still working…" });
             }, 20000);
 
+            const targetModel = model || DEFAULT_AGENT_MODEL;
+            const isReasoning = targetModel.startsWith("o1") || targetModel.startsWith("o3") || targetModel.startsWith("gpt-5.");
+
             let aiResp: Response;
             try {
               aiResp = await fetch(AI_GATEWAY, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  model: model || DEFAULT_AGENT_MODEL,
+                  model: targetModel,
                   messages: conversationMessages,
                   tools,
                   tool_choice: toolChoice,
-                  temperature: 0.2,
-                  max_tokens: 12000,
                   stream: false,
+                  ...(isReasoning
+                    ? { max_completion_tokens: 25000 }
+                    : { max_tokens: 12000, temperature: 0.2 }
+                  ),
                 }),
                 signal: aiAbortController.signal,
               });

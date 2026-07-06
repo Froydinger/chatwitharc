@@ -15,6 +15,7 @@ import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
 import { useParams, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import type { VirtualFileSystem } from "@/types/ide";
+import { DEFAULT_FILES } from "@/types/ide";
 
 interface IDEProject {
   id: string;
@@ -72,7 +73,7 @@ export function AppsPage() {
         .single();
       if (error) throw error;
       if (data) {
-        navigate(`/apps/${data.id}?initialPrompt=${encodeURIComponent(prompt)}`);
+        navigate(`/build/${data.id}?initialPrompt=${encodeURIComponent(prompt)}`);
       }
     } catch (err) {
       console.error('Failed to create project:', err);
@@ -99,7 +100,7 @@ export function AppsPage() {
     } catch (err) {
       console.error('Failed to load project:', err);
       toast.error("Failed to load project");
-      navigate('/apps');
+      navigate('/build');
     }
   };
 
@@ -107,7 +108,7 @@ export function AppsPage() {
   if (projectId && isOpen) {
     return (
       <div className="fixed inset-0 z-[100] bg-background">
-        <IDECanvasPanel onClose={() => navigate('/apps')} />
+        <IDECanvasPanel onClose={() => navigate('/build')} />
       </div>
     );
   }
@@ -148,13 +149,14 @@ function AppsDashboard() {
   };
 
   const handleOpen = (project: IDEProject) => {
-    navigate(`/apps/${project.id}`);
+    navigate(`/build/${project.id}`);
   };
 
   const handleNewApp = () => {
-    // Navigate to apps with a new project flow — the IDE will create the project on first message
+    // Clear localStorage to ensure guest/local mode opens blank
+    localStorage.removeItem('arc_ide_local_snapshot');
     const { openIDECanvas } = useIDEStore.getState();
-    openIDECanvas('', undefined, false);
+    openIDECanvas('', DEFAULT_FILES, false);
     // Create project in DB first, then navigate
     createNewProject();
   };
@@ -175,7 +177,7 @@ function AppsDashboard() {
 
       if (error) throw error;
       if (data) {
-        navigate(`/apps/${data.id}`);
+        navigate(`/build/${data.id}`);
       }
     } catch (err) {
       console.error('Failed to create project:', err);

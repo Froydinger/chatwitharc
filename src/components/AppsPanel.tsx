@@ -64,7 +64,7 @@ export function AppsPanel() {
     if (isMobile || window.innerWidth < 1024) {
       setRightPanelOpen(false);
     }
-    window.location.href = `/apps/${project.id}`;
+    window.location.href = `/build/${project.id}`;
   };
 
   const handleDelete = async (e: React.MouseEvent, projectId: string) => {
@@ -107,7 +107,7 @@ export function AppsPanel() {
           variant="ghost"
           size="sm"
           className="text-primary hover:text-primary/80 gap-1"
-          onClick={() => window.location.href = '/apps'}
+          onClick={() => window.location.href = '/build'}
         >
           View All Apps
           <ArrowRight className="w-3.5 h-3.5" />

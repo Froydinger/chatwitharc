@@ -248,8 +248,6 @@ const App = () => {
                     <Route path="/upgrade" element={<UpgradePage />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
-                    <Route path="/apps" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/apps/:projectId" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/build" element={<AppsPage />} />
                     <Route path="/build/:projectId" element={<AppsPage />} />
                     <Route path="/admin" element={<AdminPage />} />
