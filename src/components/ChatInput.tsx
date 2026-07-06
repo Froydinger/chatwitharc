@@ -1021,6 +1021,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               ? "cloud-search-tavily"
               : "cloud-search"
             : "cloud-chat",
+          modelUsed: useModelStore.getState().chatModel,
         });
       } catch (err: any) {
         console.error("Chat error:", err);
@@ -1034,6 +1035,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           role: "assistant",
           type: "text",
           sourceModel: "cloud-chat",
+          modelUsed: useModelStore.getState().chatModel,
         });
       }
     },
@@ -1232,65 +1234,29 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
     // Check if the user is asking to change models in chat
     const lowerMsg = userMessage.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?]/g, "").trim();
-    const hasBoost = useModelStore.getState().isBoost;
-    let didChangeModel = false;
-    let modelNameLabel = "";
+    const isModelSwitchQuery =
+      lowerMsg === "use a better model" || lowerMsg === "use better model" || lowerMsg === "go better" || lowerMsg === "better model" ||
+      lowerMsg === "use the best model" || lowerMsg === "use best model" || lowerMsg === "go best" || lowerMsg === "best model" ||
+      lowerMsg === "use a faster model" || lowerMsg === "use faster model" || lowerMsg === "go faster" || lowerMsg === "use a faster" || lowerMsg === "faster model" ||
+      lowerMsg === "use a smarter model" || lowerMsg === "use smarter model" || lowerMsg === "go smarter" || lowerMsg === "use a smarter" || lowerMsg === "smarter model" ||
+      lowerMsg === "switch models" || lowerMsg === "upgrade model" || lowerMsg === "change model" || lowerMsg === "change models" || lowerMsg === "switch model";
 
-    if (lowerMsg === "use a better model" || lowerMsg === "use better model" || lowerMsg === "go better" || lowerMsg === "better model") {
-      const current = useModelStore.getState().chatModel;
-      if (current === AUTO_MODEL || current === FASTER_MODEL) {
-        useModelStore.getState().setChatModel(SMARTER_MODEL);
-        modelNameLabel = "Smarter (GPT-5.4 Mini)";
-        didChangeModel = true;
-      } else if (current === SMARTER_MODEL) {
-        if (hasBoost) {
-          useModelStore.getState().setChatModel(THINKING_MODEL);
-          modelNameLabel = "Reasoning (GPT-5.4 Thinking)";
-          didChangeModel = true;
-        } else {
-          toast({
-            title: "Boost upgrade required",
-            description: "Upgrading to a reasoning model requires a Boost subscription.",
-          });
-        }
-      } else if (current === THINKING_MODEL) {
-        if (hasBoost) {
-          useModelStore.getState().setChatModel(DEEP_THINK_MODEL);
-          modelNameLabel = "Deep Reason (GPT-5.5 Deep Think)";
-          didChangeModel = true;
-        }
-      }
-    } else if (lowerMsg === "use the best model" || lowerMsg === "use best model" || lowerMsg === "go best" || lowerMsg === "best model") {
-      if (hasBoost) {
-        useModelStore.getState().setChatModel(DEEP_THINK_MODEL);
-        modelNameLabel = "Deep Reason (GPT-5.5 Deep Think)";
-        didChangeModel = true;
-      } else {
-        useModelStore.getState().setChatModel(SMARTER_MODEL);
-        modelNameLabel = "Smarter (GPT-5.4 Mini)";
-        didChangeModel = true;
-      }
-    } else if (lowerMsg === "use a faster model" || lowerMsg === "use faster model" || lowerMsg === "go faster" || lowerMsg === "use a faster" || lowerMsg === "faster model") {
-      useModelStore.getState().setChatModel(FASTER_MODEL);
-      modelNameLabel = "Fast (GPT-5.4 Nano)";
-      didChangeModel = true;
-    } else if (lowerMsg === "use a smarter model" || lowerMsg === "use smarter model" || lowerMsg === "go smarter" || lowerMsg === "use a smarter" || lowerMsg === "smarter model") {
-      if (hasBoost) {
-        useModelStore.getState().setChatModel(THINKING_MODEL);
-        modelNameLabel = "Reasoning (GPT-5.4 Thinking)";
-        didChangeModel = true;
-      } else {
-        useModelStore.getState().setChatModel(SMARTER_MODEL);
-        modelNameLabel = "Smarter (GPT-5.4 Mini)";
-        didChangeModel = true;
-      }
-    }
+    if (isModelSwitchQuery) {
+      // Add user message to UI
+      await addMessage({ content: userMessage, role: "user", type: "text" });
+      
+      // Get the current model in use to display as the tag on the helper message
+      const currentModel = useModelStore.getState().chatModel;
 
-    if (didChangeModel) {
-      toast({
-        title: `Switched model`,
-        description: `Successfully switched to the ${modelNameLabel} model as requested.`,
+      // Add assistant prompt instructing model picker usage
+      await addMessage({
+        content: "To switch models, please use the model picker dropdown located at the top left of the chat window.",
+        role: "assistant",
+        type: "text",
+        sourceModel: "cloud-chat",
+        modelUsed: currentModel,
       });
+
       setInputValue("");
       setLoading(false);
       return;
@@ -1488,7 +1454,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               doc.name,
               doc.type || "application/octet-stream",
             );
-            await addMessage({ content: response, role: "assistant", type: "text", sourceModel: "cloud-document" });
+            await addMessage({
+              content: response,
+              role: "assistant",
+              type: "text",
+              sourceModel: "cloud-document",
+              modelUsed: useModelStore.getState().chatModel,
+            });
           }
         } catch (err: any) {
           toast({ title: "Error", description: err?.message || "Failed to analyze document", variant: "destructive" });
@@ -1497,6 +1469,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             role: "assistant",
             type: "text",
             sourceModel: "cloud-document",
+            modelUsed: useModelStore.getState().chatModel,
           });
         }
         return;
@@ -1640,7 +1613,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             : finalMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
           const personaMsg = buildPersonaSystemMessage();
           const response = await ai.sendMessageWithImage([...(personaMsg ? [personaMsg] : []), { role: "user", content: analysisPrompt }], base64s);
-          await addMessage({ content: response, role: "assistant", type: "text", sourceModel: "cloud-vision" });
+          await addMessage({
+            content: response,
+            role: "assistant",
+            type: "text",
+            sourceModel: "cloud-vision",
+            modelUsed: useModelStore.getState().chatModel,
+          });
         } catch {
           toast({ title: "Error", description: "Failed to analyze images", variant: "destructive" });
           await addMessage({
@@ -1648,6 +1627,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             role: "assistant",
             type: "text",
             sourceModel: "cloud-vision",
+            modelUsed: useModelStore.getState().chatModel,
           });
         }
         return;
