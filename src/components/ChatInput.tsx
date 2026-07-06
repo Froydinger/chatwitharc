@@ -557,16 +557,17 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const quickPrompts = getAllPromptsFlat();
 
-  // Mode toggles for image, coding, canvas, and search
+  // Mode toggles for image, coding, canvas, search, and build (IDE)
   const [forceImageMode, setForceImageMode] = useState(false);
   const [forceCodingMode, setForceCodingMode] = useState(false);
   const [forceCanvasMode, setForceCanvasMode] = useState(false);
   const [forceSearchMode, setForceSearchMode] = useState(false);
+  const [forceBuildMode, setForceBuildMode] = useState(false);
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
   const shouldShowCodeMode = forceCodingMode || (!!inputValue && checkForCodingRequest(inputValue));
   const shouldShowCanvasMode = forceCanvasMode || (!!inputValue && checkForCanvasRequest(inputValue));
   const shouldShowSearchMode = forceSearchMode || (!!inputValue && checkForSearchRequest(inputValue));
-  const shouldShowBuildMode = !!inputValue && checkForBuildRequest(inputValue);
+  const shouldShowBuildMode = forceBuildMode || (!!inputValue && checkForBuildRequest(inputValue));
 
   // Persisted user-chosen image model + aspect ratio (for /image, "draw…", etc.)
   const { aspectRatio: imageGenAspect, count: imageGenCount } = useImageGenStore();
@@ -2752,7 +2753,7 @@ ${safeCode}
                   }}
                   className={cn(
                     "ci-menu-btn flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
-                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || showCanvasIndicator || personaMention || activePersona) && !showMenu && "text-primary"
+                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowBuildMode || showCanvasIndicator || personaMention || activePersona) && !showMenu && "text-primary"
                   )}
                   aria-label={activePersona ? `Chatting with ${activePersona.name}` : "Add content"}
                   title={activePersona ? `Chatting with ${activePersona.name}` : undefined}
@@ -2780,6 +2781,8 @@ ${safeCode}
                     <ImagePlus className="h-4 w-4 text-amber-500" />
                   ) : shouldShowCodeMode ? (
                     <Code2 className="h-4 w-4 text-emerald-500" />
+                  ) : shouldShowBuildMode ? (
+                    <Hammer className="h-4 w-4 text-purple-400" />
                   ) : showCanvasIndicator ? (
                     <PenLine className="h-4 w-4 text-pink-400" />
                   ) : (
@@ -2805,7 +2808,7 @@ ${safeCode}
                 )}
 
                 {/* Clear active tool badge */}
-                {!showMenu && !activePersona && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode) && (
+                {!showMenu && !activePersona && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode || shouldShowBuildMode) && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -2814,8 +2817,9 @@ ${safeCode}
                       setForceSearchMode(false);
                       setForceCodingMode(false);
                       setForceCanvasMode(false);
+                      setForceBuildMode(false);
                       setInputValue((v) =>
-                        v.replace(/^\s*(image|search|code|write)\/\s*/i, "")
+                        v.replace(/^\s*(image|search|code|write|build)\/\s*/i, "")
                       );
                       textareaRef.current?.focus();
                     }}
@@ -2960,20 +2964,23 @@ ${safeCode}
                               <span className="text-[10px] text-muted-foreground font-normal">Template library</span>
                             </div>
                           </button>
+                        </div>
+
+                        {/* Wide Build Button */}
+                        <div className="mt-2.5">
                           <button
                             onClick={() => {
-                              setInputValue("build/ ");
                               setShowMenu(false);
-                              textareaRef.current?.focus();
+                              navigate("/build");
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5"
+                            className="w-full flex items-center gap-3.5 p-3 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5 bg-purple-500/10 hover:border-purple-500/20"
                           >
-                            <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center group-hover:bg-purple-500/30">
-                              <Hammer className="h-5 w-5 text-purple-400" />
+                            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0 group-hover:bg-purple-500/30">
+                              <Hammer className="h-4.5 w-4.5 text-purple-400 group-hover:rotate-12 transition-transform" />
                             </div>
-                            <div className="flex flex-col items-center text-center">
-                              <span className="text-sm font-semibold">Build</span>
-                              <span className="text-[10px] text-muted-foreground font-normal">App Builder IDE</span>
+                            <div className="flex flex-col items-start text-left">
+                              <span className="text-xs font-semibold text-white">App Builder IDE</span>
+                              <span className="text-[10px] text-muted-foreground font-normal">Build full-scale interactive web apps in one prompt</span>
                             </div>
                           </button>
                         </div>
