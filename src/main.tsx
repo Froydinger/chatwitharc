@@ -51,7 +51,11 @@ const ignoredErrorPatterns = [
   'Failed to fetch',
   'Load failed',
   'cancelled',
+  'canceled',
+  'Canceled',
   'AbortError',
+  'aborted',
+  'abort',
   'MutationRecord',
   'attributeName',
   // Camera/video play() interrupted when stream is removed — harmless race condition

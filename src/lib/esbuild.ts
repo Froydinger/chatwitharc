@@ -230,11 +230,39 @@ function createVirtualFsPlugin(files: VirtualFileSystem): esbuild.Plugin {
   return {
     name: 'virtual-fs',
     setup(build) {
-      build.onResolve({ filter: /^(react-dom\/client|react-dom|react|framer-motion|react-router-dom)$/ }, (args) => {
+      build.onResolve({ filter: /^(react-dom\/client|react-dom|react|framer-motion|react-router-dom|lucide-react|react-icons.*|.*icons.*)$/ }, (args) => {
         return { path: args.path, namespace: 'shim' };
       });
       build.onLoad({ filter: /.*/, namespace: 'shim' }, (args) => {
-        return { contents: shims[args.path] || 'module.exports = {};', loader: 'js' };
+        if (shims[args.path]) {
+          return { contents: shims[args.path], loader: 'js' };
+        }
+        if (args.path.includes('icons') || args.path.includes('lucide')) {
+          const contents = `
+            var React = window.React;
+            var h = React.createElement;
+            var IconProxy = new Proxy({}, {
+              get: function(target, prop) {
+                return function(props) {
+                  return h('span', Object.assign({}, props, {
+                    style: Object.assign({
+                      display: 'inline-block',
+                      width: '1em',
+                      height: '1em',
+                      borderRadius: '0.25em',
+                      border: '1px solid currentColor',
+                      verticalAlign: 'middle',
+                      opacity: 0.7
+                    }, props.style)
+                  }));
+                };
+              }
+            });
+            module.exports = IconProxy;
+          `;
+          return { contents, loader: 'js' };
+        }
+        return { contents: 'module.exports = {};', loader: 'js' };
       });
       build.onResolve({ filter: /^\./ }, (args) => {
         const importer = args.importer || 'src/main.tsx';
