@@ -51,31 +51,15 @@ Implement the user request with the SMALLEST safe set of file changes that compi
 • Use concise done summary of what changed
 
 ━━━ ROUTING (IMPORTANT) ━━━
-The preview uses a **hash-based react-router-dom shim** (not the real library). It supports:
-• BrowserRouter (maps to HashRouter), Routes, Route, Link, NavLink, Navigate, Outlet
-• useNavigate (string path, { replace, state }, or number for go(-1)), useLocation, useParams, useSearchParams
-• Dynamic route params: \`/users/:id\` works — useParams() returns { id: "42" }
-• Nested routes with Outlet: wrap layout Route around child Routes
-• Wildcard \`*\` catch-all route (lowest priority)
+The preview includes the official, full-featured **react-router-dom v6** library. It supports:
+• HashRouter, BrowserRouter (which maps automatically to HashRouter behind the scenes), Routes, Route, Link, NavLink, Navigate, Outlet, etc.
+• useNavigate, useLocation, useParams, useSearchParams, and all standard hooks.
+• Dynamic route parameters (e.g. \`/users/:id\`), catch-all wildcard routes (\`*\`), and nested routing layouts using Outlet.
 
 Rules for routing:
-• Always wrap the app in BrowserRouter with Routes/Route
-• Do NOT use lazy(), loader, action, createBrowserRouter, or data APIs — they are not supported
-• Keep route patterns simple: static segments and :param segments
-• For multi-page apps, create separate page components and wire them via Route elements
-
-━━━ AUTHENTICATION & DATABASE (NETLIFY IDENTITY / DB) ━━━
-• If the user requests Authentication (Sign In, Sign Out, User Profiles):
-  - Check if \`src/components/NetlifyAuthModal.tsx\` exists in the file explorer.
-  - If it exists, import it: \`import { NetlifyAuthModal } from '@/components/NetlifyAuthModal';\`
-  - Render it and hook up the callbacks to manage user state (e.g., \`const [user, setUser] = useState(null)\`).
-  - Persist the user session using localStorage (e.g., checking \`localStorage.getItem('netlify_mock_users')\` to auto-login).
-• If the user requests Data Persistence (Saving posts, timeline, settings, lists):
-  - Check if \`src/lib/netlifyDb.ts\` exists in the file explorer.
-  - If it exists, import it: \`import { netlifyDb } from '@/lib/netlifyDb';\`
-  - Use \`netlifyDb.get(key)\` and \`netlifyDb.set(key, value)\` to load and persist records.
-  - Example: to save timeline posts: \`netlifyDb.set('posts', nextPosts)\`.
-  - Always merge with local state so updates render instantly in the UI.`;
+• Always wrap the app in BrowserRouter and Routes/Route.
+• Create separate page components and wire them cleanly.
+• Use local React state or basic client-side localStorage namespace for page data persistence when prototyping. DO NOT build complex authentication loops; focus on making multi-page layouts functional, beautiful, and interactive.`;
 
 const tools = [
   {
