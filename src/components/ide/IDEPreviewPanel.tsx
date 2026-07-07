@@ -49,25 +49,6 @@ export function IDEPreviewPanel({
   }, {} as Record<string, string>);
 
   // Add default configurations
-  sandpackFiles['/package.json'] = JSON.stringify({
-    name: "vite-react-ts",
-    private: true,
-    version: "0.0.0",
-    type: "module",
-    scripts: {
-      "dev": "vite",
-      "build": "tsc && vite build",
-      "preview": "vite preview"
-    },
-    dependencies: {
-      "react": "^18.3.1",
-      "react-dom": "^18.3.1",
-      "react-router-dom": "^6.28.0",
-      "framer-motion": "^11.11.9",
-      "lucide-react": "^0.453.0",
-      "react-icons": "^5.3.0"
-    }
-  });
 
   sandpackFiles['/index.html'] = `<!DOCTYPE html>
 <html lang="en">
@@ -165,6 +146,14 @@ export function IDEPreviewPanel({
         <SandpackProvider
           key={previewKey}
           template="vite-react-ts"
+          customSetup={{
+            dependencies: {
+              "react-router-dom": "^6.28.0",
+              "framer-motion": "^11.11.9",
+              "lucide-react": "^0.453.0",
+              "react-icons": "^5.3.0"
+            }
+          }}
           files={sandpackFiles}
           options={{
             visibleFiles: ["/src/App.tsx"],
