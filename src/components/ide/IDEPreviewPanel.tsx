@@ -14,6 +14,7 @@ type ViewMode = 'desktop' | 'phone';
 
 export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
   const [html, setHtml] = useState('');
+  const [iframeKey, setIframeKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isBuilding, setIsBuilding] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -77,7 +78,7 @@ export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
       const iframeUrl = iframe.contentWindow?.location.href;
       if (iframeUrl && iframeUrl !== 'about:blank' && !iframeUrl.startsWith('about:srcdoc') && !iframeUrl.startsWith('blob:')) {
         console.warn('Iframe navigated away to:', iframeUrl);
-        iframe.srcDoc = html;
+        setIframeKey(prev => prev + 1);
       }
     } catch (err) {
       // Cross-origin navigation is naturally blocked by browser policy and won't load the parent app.
@@ -170,13 +171,14 @@ export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
                   </div>
                   {/* Screen */}
                   <div className="flex-1 rounded-[1.75rem] overflow-hidden bg-white">
-                     <iframe
-                       srcDoc={html}
-                       className="w-full h-full bg-white"
-                       title="Preview"
-                       sandbox="allow-scripts allow-modals allow-same-origin"
-                       onLoad={handleIframeLoad}
-                     />
+                      <iframe
+                        key={iframeKey}
+                        srcDoc={html}
+                        className="w-full h-full bg-white"
+                        title="Preview"
+                        sandbox="allow-scripts allow-modals allow-same-origin"
+                        onLoad={handleIframeLoad}
+                      />
                   </div>
                   {/* Home indicator */}
                   <div className="flex justify-center mt-1.5 shrink-0">
@@ -186,7 +188,7 @@ export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
               </div>
             </div>
           ) : (
-             <iframe srcDoc={html} className="w-full h-full bg-white" title="Preview"
+             <iframe key={iframeKey} srcDoc={html} className="w-full h-full bg-white" title="Preview"
                sandbox="allow-scripts allow-modals allow-same-origin" onLoad={handleIframeLoad} />
           )
         ) : null}
