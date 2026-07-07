@@ -1,9 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Loader2, User, Sparkles } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Send, Loader2, Sparkles, Home, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ThemedLogo } from '@/components/ThemedLogo';
 import { AgentTimeline } from './AgentTimeline';
 import { cn } from '@/lib/utils';
 import type { AgentAction } from '@/types/ide';
@@ -22,9 +21,19 @@ interface IDEChatPanelProps {
   isLoading: boolean;
   generatingId: string | null;
   onSend: (message: string) => void;
+  onGoHome?: () => void;
+  syncStatus?: 'saved' | 'saving' | 'unsaved' | 'error';
 }
 
-export function IDEChatPanel({ messages, liveActions, isLoading, generatingId, onSend }: IDEChatPanelProps) {
+export function IDEChatPanel({ 
+  messages, 
+  liveActions, 
+  isLoading, 
+  generatingId, 
+  onSend,
+  onGoHome,
+  syncStatus = 'saved'
+}: IDEChatPanelProps) {
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -49,40 +58,60 @@ export function IDEChatPanel({ messages, liveActions, isLoading, generatingId, o
   };
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-[#0b0c0e] border-r border-border/10">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border/30 flex items-center gap-3 shrink-0">
-        <div className="relative">
-          <ThemedLogo className="rounded-lg w-7 h-7" />
-        </div>
-        <div className="flex-1">
-          <h2 className="font-semibold text-sm leading-none">Arc Builder</h2>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Agentic Code Generation</p>
-        </div>
-        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
-          <Sparkles className="h-3 w-3" />
-          <span className="text-[10px] font-medium">Agentic</span>
+      <div className="px-4 py-3 border-b border-border/10 flex items-center justify-between shrink-0 bg-[#0d0e10]">
+        <div className="flex items-center gap-2.5">
+          {onGoHome && (
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={onGoHome}
+              className="h-7 w-7 rounded-md hover:bg-white/5"
+              title="Dashboard"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <div>
+            <h2 className="font-semibold text-sm leading-none flex items-center gap-1.5">
+              <span>Arc Code</span>
+              <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-mono font-bold tracking-wider">AGENT</span>
+            </h2>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {syncStatus === 'saving' && 'Saving changes…'}
+              {syncStatus === 'saved' && 'All changes saved'}
+              {syncStatus === 'unsaved' && 'Unsaved edits'}
+              {syncStatus === 'error' && 'Sync error'}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Messages */}
-      <ScrollArea ref={scrollRef} className="flex-1 p-4 [&>div>div]:!block">
-        <div className="space-y-3 w-full overflow-hidden">
+      <ScrollArea ref={scrollRef} className="flex-1 p-4">
+        <div className="space-y-4">
           {messages.length === 0 && (
-            <div className="text-center py-10 space-y-4 animate-fade-in">
-              <ThemedLogo className="mx-auto rounded-2xl w-14 h-14" />
-              <div>
-                <h3 className="font-semibold">What are we building?</h3>
-                <p className="text-xs text-muted-foreground mt-1 max-w-[240px] mx-auto leading-relaxed">
-                  Describe your app and I'll plan, create, and modify files step by step.
+            <div className="text-center py-12 space-y-6">
+              <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-primary/10 text-primary">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">Create a new web application</h3>
+                <p className="text-xs text-muted-foreground max-w-[240px] mx-auto leading-relaxed">
+                  Describe the app you want to build and I'll code it from scratch.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-1.5 justify-center pt-2">
-                {['Build a todo app', 'Weather dashboard', 'Portfolio site'].map((s) => (
+              <div className="flex flex-col gap-2 max-w-[280px] mx-auto pt-2">
+                {[
+                  'create a basic notes app inspired by apple notes',
+                  'build a budget tracker dashboard with localStorage',
+                  'create a clean kanban card board'
+                ].map((s) => (
                   <button
                     key={s}
                     onClick={() => setInput(s)}
-                    className="px-3 py-1 text-xs bg-secondary/60 hover:bg-secondary rounded-full text-muted-foreground hover:text-foreground transition-colors"
+                    className="px-4 py-2.5 text-xs text-left bg-[#121316] border border-border/10 hover:border-border/30 rounded-xl text-muted-foreground hover:text-foreground transition-all duration-200"
                   >
                     {s}
                   </button>
@@ -95,38 +124,40 @@ export function IDEChatPanel({ messages, liveActions, isLoading, generatingId, o
             const isCurrentlyGenerating = message.id === generatingId && isLoading;
 
             return (
-              <div key={message.id} className={cn('flex gap-2.5 overflow-hidden', message.role === 'user' ? 'flex-row-reverse' : '')}>
-                {message.role === 'user' ? (
-                  <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5 bg-secondary">
-                    <User className="h-3 w-3 text-muted-foreground" />
-                  </div>
-                ) : (
-                  <ThemedLogo className="rounded-md shrink-0 mt-0.5 w-6 h-6" />
+              <div 
+                key={message.id} 
+                className={cn(
+                  'flex flex-col gap-1 max-w-[90%]', 
+                  message.role === 'user' ? 'ml-auto' : 'mr-auto'
                 )}
-                <div className="flex flex-col gap-1 min-w-0 flex-1 overflow-hidden">
-                  <div className={cn(
-                    'rounded-2xl px-3.5 py-2.5 text-sm max-w-full break-words',
+              >
+                <span className="text-[10px] text-muted-foreground/60 px-1">
+                  {message.role === 'user' ? 'You' : 'Arc Agent'}
+                </span>
+                <div 
+                  className={cn(
+                    'rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-sm',
                     message.role === 'user'
-                      ? 'bg-primary text-primary-foreground ml-auto'
-                      : 'bg-secondary/50'
-                  )}>
-                    {isCurrentlyGenerating ? (
-                      <AgentTimeline actions={liveActions} isRunning={true} />
-                    ) : message.role === 'assistant' && message.agentActions && message.agentActions.length > 0 ? (
-                      <div className="space-y-2">
-                        <AgentTimeline actions={message.agentActions} isRunning={false} />
-                        {message.content && (
-                          <p className="text-xs text-foreground pt-1 border-t border-border/20">
-                            {message.content}
-                          </p>
-                        )}
-                      </div>
-                    ) : !message.content && message.role === 'assistant' ? (
-                      <span className="text-xs text-muted-foreground">Done! Check the Preview tab.</span>
-                    ) : (
-                      <span className="whitespace-pre-wrap">{message.content}</span>
-                    )}
-                  </div>
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-[#121316] border border-border/10 text-foreground'
+                  )}
+                >
+                  {isCurrentlyGenerating ? (
+                    <AgentTimeline actions={liveActions} isRunning={true} />
+                  ) : message.role === 'assistant' && message.agentActions && message.agentActions.length > 0 ? (
+                    <div className="space-y-3">
+                      <AgentTimeline actions={message.agentActions} isRunning={false} />
+                      {message.content && (
+                        <p className="text-xs text-foreground/90 pt-2 border-t border-border/10">
+                          {message.content}
+                        </p>
+                      )}
+                    </div>
+                  ) : !message.content && message.role === 'assistant' ? (
+                    <span className="text-muted-foreground">App generation complete! Look at the preview.</span>
+                  ) : (
+                    <span className="whitespace-pre-wrap">{message.content}</span>
+                  )}
                 </div>
               </div>
             );
@@ -134,21 +165,24 @@ export function IDEChatPanel({ messages, liveActions, isLoading, generatingId, o
         </div>
       </ScrollArea>
 
-      {/* Input */}
-      <div className="p-3 border-t border-border/30 shrink-0">
-        <form onSubmit={handleSubmit} className="flex gap-2">
+      {/* Prompt input area */}
+      <div className="p-4 border-t border-border/10 bg-[#0d0e10] shrink-0">
+        <form onSubmit={handleSubmit} className="relative flex items-end bg-[#121316] border border-border/10 rounded-xl p-2 focus-within:border-primary/45 transition-colors">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe what to build or change…"
-            className="min-h-[40px] max-h-28 resize-none text-sm bg-secondary/30 border-border/40 
-                     focus:border-primary/40 focus:ring-1 focus:ring-primary/15"
+            placeholder="Ask Arc to change styling, add pages, or fix errors…"
+            className="flex-1 min-h-[44px] max-h-28 resize-none text-xs bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-2"
             disabled={isLoading}
           />
-          <Button type="submit" size="icon" disabled={!input.trim() || isLoading}
-            className="h-10 w-10 shrink-0">
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          <Button 
+            type="submit" 
+            size="icon" 
+            disabled={!input.trim() || isLoading}
+            className="h-8 w-8 rounded-lg shrink-0"
+          >
+            {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
           </Button>
         </form>
       </div>

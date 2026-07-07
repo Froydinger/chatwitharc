@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useArcStore } from '@/store/useArcStore';
-import { ArrowLeft, Code2, Eye, Download, Copy, Check, MessageSquare, Sparkles, Save, Cloud, CloudOff, History, RotateCcw, Rocket, ExternalLink } from 'lucide-react';
+import { 
+  ArrowLeft, Code2, Eye, Download, Copy, Check, Sparkles, Cloud, Trash2, Rocket, Plus, ExternalLink, Calendar, Loader2, Play 
+} from 'lucide-react';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -8,7 +10,6 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIDEStore } from '@/store/useIDEStore';
-import { FileExplorer } from './FileExplorer';
 import { IDECodeEditor } from './IDECodeEditor';
 import { IDEPreviewPanel } from './IDEPreviewPanel';
 import { IDEChatPanel } from './IDEChatPanel';
@@ -16,16 +17,9 @@ import { PublishDialog } from './PublishDialog';
 import { IDECloudPanel } from './IDECloudPanel';
 import { sendAgentMessage, type AgentResult } from '@/services/agent';
 import { deployToNetlify, unpublishFromNetlify } from '@/lib/deploy';
-import { getModelForTask } from '@/store/useModelStore';
 import { supabase } from '@/integrations/supabase/client';
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 import { DEFAULT_FILES } from '@/types/ide';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface ChatMessage {
   id: string;
@@ -35,11 +29,16 @@ interface ChatMessage {
   agentActions?: AgentAction[];
 }
 
-interface ProjectVersion {
+interface LovableProject {
   id: string;
-  files: VirtualFileSystem;
-  timestamp: number;
-  label: string;
+  title: string;
+  prompt: string;
+  netlify_url?: string | null;
+  netlify_site_id?: string | null;
+  netlify_subdomain?: string | null;
+  created_at: string;
+  files: any;
+  messages: any;
 }
 
 interface IDECanvasPanelProps {
@@ -51,12 +50,18 @@ const buildPersistenceSnapshot = (nextFiles: VirtualFileSystem, nextMessages: Ch
   JSON.stringify({ files: nextFiles, messages: nextMessages });
 
 export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
-  const { ideFiles, idePrompt, ideAutoRunPrompt, ideProjectId, ideMessages: storedMessages, setIdeFiles, closeIDE, setIdeIsRunning, setIdeActions, clearIdePrompt, setIdeProjectId, setIdeMessages } = useIDEStore();
+  const { 
+    ideFiles, idePrompt, ideAutoRunPrompt, ideProjectId, ideMessages: storedMessages, 
+    setIdeFiles, closeIDE, setIdeIsRunning, setIdeActions, clearIdePrompt, 
+    setIdeProjectId, setIdeMessages 
+  } = useIDEStore();
+
   const [files, setFiles] = useState<VirtualFileSystem>(ideFiles || DEFAULT_FILES);
   const [selectedFile, setSelectedFile] = useState<string | null>('src/App.tsx');
-  const [activeTab, setActiveTab] = useState<'code' | 'preview' | 'cloud'>('code');
+  const [activeTab, setActiveTab] = useState<'preview' | 'code' | 'cloud'>('preview');
   const [mobileCodeTab, setMobileCodeTab] = useState<'chat' | 'editor'>('chat');
   const [copied, setCopied] = useState(false);
+  
   const [messages, setMessagesRaw] = useState<ChatMessage[]>(storedMessages?.length ? storedMessages : []);
   const setMessages: typeof setMessagesRaw = useCallback((update) => {
     setMessagesRaw(prev => {
@@ -65,30 +70,38 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       return next;
     });
   }, [setIdeMessages]);
+
   const [liveActions, setLiveActions] = useState<AgentAction[]>([]);
   const [isAgentRunning, setIsAgentRunning] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
   const syncStatusRef = useRef<'saved' | 'saving' | 'unsaved' | 'error'>('saved');
-  const [projectVersions, setProjectVersions] = useState<ProjectVersion[]>([]);
-  const [showVersions, setShowVersions] = useState(false);
+  
   const [showPublishDialog, setShowPublishDialog] = useState(false);
   const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
   const [netlifySiteId, setNetlifySiteId] = useState<string | null>(null);
   const [netlifySubdomain, setNetlifySubdomain] = useState<string | null>(null);
+  
+  const [projects, setProjects] = useState<LovableProject[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+  const [newProjectPrompt, setNewProjectPrompt] = useState('');
+
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const filesRef = useRef<VirtualFileSystem>(files);
   const messagesRef = useRef<ChatMessage[]>(messages);
   const autoFixedRef = useRef(false);
   const lastErrorRef = useRef<string | null>(null);
-  const projectVersionsRef = useRef<ProjectVersion[]>([]);
-  const lastSavedSnapshotRef = useRef(buildPersistenceSnapshot(ideFiles || DEFAULT_FILES, storedMessages?.length ? storedMessages : []));
   const projectIdRef = useRef<string | null>(ideProjectId);
-  const didAutoRunInitialPromptRef = useRef(false);
+  const lastSavedSnapshotRef = useRef(buildPersistenceSnapshot(ideFiles || DEFAULT_FILES, storedMessages?.length ? storedMessages : []));
 
-  // Keep refs in sync so save operations always persist the freshest state
+  // Sync files to store
+  useEffect(() => {
+    setIdeFiles(files);
+  }, [files, setIdeFiles]);
+
   useEffect(() => {
     filesRef.current = files;
   }, [files]);
@@ -98,26 +111,44 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   }, [messages]);
 
   useEffect(() => {
-    projectVersionsRef.current = projectVersions;
-  }, [projectVersions]);
-
-  useEffect(() => {
     if (!isAgentRunning) {
       autoFixedRef.current = false;
     }
   }, [isAgentRunning]);
 
-  // Sync files to store
-  useEffect(() => {
-    setIdeFiles(files);
-  }, [files, setIdeFiles]);
+  // Load user projects for the dashboard
+  const fetchProjects = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
 
-  // Hydrate files/messages from store/db whenever they change
+      setLoadingProjects(true);
+      const { data, error } = await supabase
+        .from('ide_projects')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProjects(data || []);
+    } catch (e) {
+      console.error('Failed to fetch projects:', e);
+    } finally {
+      setLoadingProjects(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!ideProjectId) {
+      void fetchProjects();
+    }
+  }, [ideProjectId, fetchProjects]);
+
+  // Hydrate files/messages from store/db whenever active project changes
   useEffect(() => {
     let initialFiles = ideFiles && Object.keys(ideFiles).length > 0 ? ideFiles : DEFAULT_FILES;
     let initialMessages = storedMessages?.length ? (storedMessages as ChatMessage[]) : [];
 
-    // Guest/Offline fallback: load from localStorage if there is no database project id
     if (!ideProjectId) {
       const savedLocal = localStorage.getItem('arc_ide_local_snapshot');
       if (savedLocal) {
@@ -155,7 +186,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     lastSavedSnapshotRef.current = buildPersistenceSnapshot(initialFiles, initialMessages);
   }, [ideFiles, storedMessages, ideProjectId]);
 
-  // Load netlify state once on project load
+  // Load Netlify configuration on project load
   useEffect(() => {
     if (!ideProjectId) return;
 
@@ -179,13 +210,12 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
           lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesRef.current, dbMessages as ChatMessage[]);
         }
       });
-  }, [ideProjectId]);
+  }, [ideProjectId, setIdeMessages]);
 
-  // Track file/message changes and auto-save
+  // Auto-saving snapshot listener
   useEffect(() => {
     const currentSnapshot = buildPersistenceSnapshot(files, messages);
 
-    // Save guest/offline state instantly to localStorage
     if (!ideProjectId) {
       localStorage.setItem('arc_ide_local_snapshot', currentSnapshot);
     }
@@ -205,10 +235,9 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [files, messages]);
+  }, [files, messages, ideProjectId]);
 
-  // Save project to database
+  // Save changes to Supabase
   const saveProject = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -216,31 +245,21 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
       const filesToPersist = filesRef.current;
       const messagesToPersist = messagesRef.current;
-      const versionsToPersist = projectVersionsRef.current;
 
       setSyncStatus('saving');
-
-      const newVersion: ProjectVersion = {
-        id: crypto.randomUUID(),
-        files: { ...filesToPersist },
-        timestamp: Date.now(),
-        label: `v${versionsToPersist.length + 1}`,
-      };
 
       if (projectIdRef.current) {
         const { error } = await supabase
           .from('ide_projects')
           .update({
             files: filesToPersist as any,
-            versions: [...versionsToPersist.slice(-19), newVersion] as any,
-            version: (versionsToPersist.length || 0) + 1,
             messages: messagesToPersist as any,
           })
           .eq('id', projectIdRef.current);
 
         if (error) throw error;
       } else {
-        const firstPrompt = messagesToPersist.find((m) => m.role === 'user')?.content || '';
+        const firstPrompt = messagesToPersist.find((m) => m.role === 'user')?.content || 'Arc App';
         const projectTitle = firstPrompt ? firstPrompt.slice(0, 100) : 'Untitled Project';
 
         const { data, error } = await supabase
@@ -250,7 +269,6 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
             title: projectTitle,
             prompt: firstPrompt,
             files: filesToPersist as any,
-            versions: [newVersion] as any,
             messages: messagesToPersist as any,
           })
           .select('id')
@@ -264,55 +282,68 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
         }
       }
 
-      setProjectVersions((prev) => {
-        const next = [...prev.slice(-19), newVersion];
-        projectVersionsRef.current = next;
-        return next;
-      });
-
       lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesToPersist, messagesToPersist);
       setSyncStatus('saved');
-
-      // Update the IDE message in chat with projectId and file count
-      const fileCount = Object.keys(filesToPersist).length;
-      const pid = projectIdRef.current;
-      if (pid) {
-        useArcStore.setState((state) => ({
-          messages: state.messages.map((m) =>
-            m.type === 'ide'
-              ? { ...m, ideProjectId: pid, ideFileCount: fileCount }
-              : m
-          ),
-        }));
-      }
     } catch (err) {
       console.error('Failed to save project:', err);
       setSyncStatus('error');
     }
   }, [setIdeProjectId]);
 
-  // Keep syncStatusRef current so the unmount handler sees the latest value
   useEffect(() => { syncStatusRef.current = syncStatus; }, [syncStatus]);
 
-  // Save on unmount if there are unsaved changes — empty deps so this only
-  // runs cleanup on true unmount, not on every syncStatus/saveProject change
-  // (previously those deps caused the cleanup to re-fire and loop 330+ times).
-  const saveProjectRef = useRef(saveProject);
-  useEffect(() => { saveProjectRef.current = saveProject; }, [saveProject]);
-  useEffect(() => {
-    return () => {
-      if (syncStatusRef.current === 'unsaved' || syncStatusRef.current === 'saving') {
-        void saveProjectRef.current();
-      }
-    };
-  }, []);
+  // Open project from dashboard
+  const handleOpenProject = (p: LovableProject) => {
+    setFiles(p.files || DEFAULT_FILES);
+    setMessagesRaw(p.messages || []);
+    setIdeFiles(p.files || DEFAULT_FILES);
+    setIdeMessages(p.messages || []);
+    setIdeProjectId(p.id);
+    projectIdRef.current = p.id;
+  };
 
-  const restoreVersion = useCallback((version: ProjectVersion) => {
-    setFiles(version.files);
-    setShowVersions(false);
-    toast({ title: `Restored ${version.label}` });
-  }, [toast]);
+  // Delete project from dashboard
+  const handleDeleteProject = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this app?')) return;
+    
+    try {
+      const { error } = await supabase
+        .from('ide_projects')
+        .delete()
+        .eq('id', id);
 
+      if (error) throw error;
+      setProjects(prev => prev.filter(p => p.id !== id));
+      toast({ title: 'App deleted successfully' });
+    } catch (e) {
+      console.error('Failed to delete project:', e);
+      toast({ title: 'Failed to delete app', variant: 'destructive' });
+    }
+  };
+
+  // Create new app from dashboard
+  const handleCreateNewAppSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newProjectPrompt.trim()) return;
+
+    setFiles(DEFAULT_FILES);
+    setMessagesRaw([]);
+    setIdeFiles(DEFAULT_FILES);
+    setIdeMessages([]);
+    setIdeProjectId(null);
+    projectIdRef.current = null;
+
+    const initialPrompt = newProjectPrompt.trim();
+    setNewProjectPrompt('');
+    
+    setIdeProjectId('temp-new-project'); // temporary value to trigger view transition
+    setTimeout(() => {
+      handleChatSend(initialPrompt);
+    }, 100);
+  };
+
+  // Chat message sender
   const runAgent = useCallback(async (prompt: string, chatHistory: ChatMessage[] = [], assistantId?: string) => {
     setIsAgentRunning(true);
     setIdeIsRunning(true);
@@ -358,73 +389,47 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
         const firstNew = hasWrittenFiles ? Object.keys(result.files!)[0] : null;
         if (firstNew) setSelectedFile(firstNew);
-        setActiveTab('preview');
       }
 
-      setMessages(prev => prev.map(msg =>
-        msg.id === aId ? { ...msg, content: result.summary, agentActions: result.actions } : msg,
-      ));
-
-      setTimeout(() => saveProject(), 500);
-
-      toast({
-        title: hasWrittenFiles || hasDeletions ? 'Files updated!' : 'Completed',
-        description: hasWrittenFiles || hasDeletions ? undefined : result.summary,
-      });
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Something went wrong';
-      setMessages(prev => prev.map(m => m.id === aId ? { ...m, content: `Error: ${msg}` } : m));
-      toast({ title: msg, variant: 'destructive' });
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === aId
+            ? {
+                ...msg,
+                content: result.summary,
+                agentActions: result.actions,
+              }
+            : msg
+        )
+      );
+    } catch (err: any) {
+      console.error('Agent compilation flow run error:', err);
+      toast({ title: 'Error executing agent', description: err.message, variant: 'destructive' });
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === aId
+            ? { ...msg, content: `Error: ${err.message || 'Execution failed.'}` }
+            : msg
+        )
+      );
     } finally {
       setIsAgentRunning(false);
       setIdeIsRunning(false);
       setGeneratingId(null);
-      setLiveActions([]);
     }
-  }, [toast, setIdeIsRunning, setIdeActions, saveProject]);
-
-  // Reset auto-run ref when switching projects
-  useEffect(() => {
-    didAutoRunInitialPromptRef.current = false;
-  }, [ideProjectId]);
-
-  // Auto-run exactly once for an initial /build prompt, but keep manual IDE opens blank.
-  useEffect(() => {
-    if (!idePrompt) return;
-
-    if (!ideAutoRunPrompt) {
-      clearIdePrompt();
-      return;
-    }
-
-    const hasRealMessages = messages.some(m => m.role === 'user' && m.content?.trim());
-    if (didAutoRunInitialPromptRef.current || hasRealMessages) {
-      clearIdePrompt();
-      return;
-    }
-
-    didAutoRunInitialPromptRef.current = true;
-    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: idePrompt, timestamp: Date.now() };
-    const assistantId = crypto.randomUUID();
-
-    setMessages([
-      userMsg,
-      { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() },
-    ]);
-    setGeneratingId(assistantId);
-    clearIdePrompt();
-    runAgent(idePrompt, [], assistantId);
-  }, [idePrompt, ideAutoRunPrompt, messages, clearIdePrompt, runAgent, setMessages, ideProjectId]);
+  }, [setIdeActions, setMessages, toast]);
 
   const handleChatSend = useCallback((message: string) => {
     autoFixedRef.current = false;
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: message, timestamp: Date.now() };
     const assistantId = crypto.randomUUID();
+    
     setMessages(prev => [...prev, userMsg, { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() }]);
     setGeneratingId(assistantId);
     runAgent(message, messagesRef.current, assistantId);
-  }, [runAgent]);
+  }, [runAgent, setMessages]);
 
+  // Handle compilation errors in preview
   const handlePreviewError = useCallback((error: string) => {
     if (isAgentRunning || autoFixedRef.current) return;
     if (error === lastErrorRef.current) {
@@ -433,6 +438,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     }
     autoFixedRef.current = true;
     lastErrorRef.current = error;
+    
     const fixMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -447,6 +453,73 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
   const handleFileChange = (path: string, content: string) => {
     setFiles(prev => ({ ...prev, [path]: { ...prev[path], content } }));
+  };
+
+  const handleAddFile = (path: string) => {
+    setFiles(prev => ({ ...prev, [path]: { content: '', language: 'typescript' } }));
+  };
+
+  const handleDeleteFile = (path: string) => {
+    setFiles(prev => {
+      const next = { ...prev };
+      delete next[path];
+      return next;
+    });
+  };
+
+  // Netlify Publishing
+  const handleDeploy = async (subdomain: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error('Unauthorized');
+    if (!projectIdRef.current) throw new Error('Create and save a project first before deploying.');
+
+    const result = await deployToNetlify(
+      projectIdRef.current,
+      files,
+      subdomain,
+      session.access_token,
+      netlifySiteId || undefined
+    );
+
+    setDeployedUrl(result.url);
+    setNetlifySiteId(result.siteId);
+    setNetlifySubdomain(result.subdomain);
+
+    await supabase
+      .from('ide_projects')
+      .update({
+        netlify_url: result.url,
+        netlify_site_id: result.siteId,
+        netlify_subdomain: result.subdomain,
+      })
+      .eq('id', projectIdRef.current);
+
+    toast({ title: 'App published successfully!' });
+  };
+
+  const handleUnpublish = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error('Unauthorized');
+    if (!netlifySiteId) return;
+
+    await unpublishFromNetlify(netlifySiteId, session.access_token);
+
+    setDeployedUrl(null);
+    setNetlifySiteId(null);
+    setNetlifySubdomain(null);
+
+    if (projectIdRef.current) {
+      await supabase
+        .from('ide_projects')
+        .update({
+          netlify_url: null,
+          netlify_site_id: null,
+          netlify_subdomain: null,
+        })
+        .eq('id', projectIdRef.current);
+    }
+
+    toast({ title: 'App unpublished successfully' });
   };
 
   const handleCopyAll = async () => {
@@ -467,201 +540,182 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `arc-project-${Date.now()}.txt`;
+    a.download = `arc-app-export.txt`;
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: 'Project exported' });
   };
 
-  const handleDeploy = async (subdomain: string, siteTitle: string, faviconSvg: string) => {
-    const result = await deployToNetlify('arc-app', files, subdomain, netlifySiteId, siteTitle, faviconSvg);
-    setDeployedUrl(result.url);
-    setNetlifySiteId(result.siteId);
-    setNetlifySubdomain(result.subdomain);
-    // Save netlify info + favicon label to database
-    if (projectIdRef.current) {
-      // Extract favicon label from the SVG by finding which option was used
-      const { FAVICON_OPTIONS } = await import('@/constants/faviconOptions');
-      const matchedOption = FAVICON_OPTIONS.find(o => {
-        const testSvg = faviconSvg;
-        return testSvg.includes(o.bg) && testSvg.includes(o.color);
-      });
-      await supabase
-        .from('ide_projects')
-        .update({
-          netlify_url: result.url,
-          netlify_site_id: result.siteId,
-          netlify_subdomain: result.subdomain,
-          favicon_label: matchedOption?.label || null,
-        } as any)
-        .eq('id', projectIdRef.current);
-    }
+  const handleGoHome = () => {
+    setIdeProjectId(null);
+    projectIdRef.current = null;
   };
 
-  const handleUnpublish = async () => {
-    if (!netlifySiteId) return;
-    await unpublishFromNetlify(netlifySiteId);
-    setDeployedUrl(null);
-    setNetlifySiteId(null);
-    setNetlifySubdomain(null);
-    if (projectIdRef.current) {
-      const { error } = await supabase
-        .from('ide_projects')
-        .update({
-          netlify_url: null,
-          netlify_site_id: null,
-          netlify_subdomain: null,
-        } as any)
-        .eq('id', projectIdRef.current);
-      if (error) throw new Error('Failed to clear publish state');
-    }
-    toast({ title: 'Site unpublished' });
-  };
-
-  const handleClose = async () => {
-    const hasUnsavedChanges =
-      buildPersistenceSnapshot(filesRef.current, messagesRef.current) !== lastSavedSnapshotRef.current;
-
-    if (hasUnsavedChanges || syncStatus === 'saving' || syncStatus === 'unsaved') {
-      await saveProject();
-    }
-
-    if (onClose) {
-      onClose();
-    } else {
-      closeIDE();
-    }
-  };
-
-  const fileCount = Object.keys(files).length;
-
-  const SyncIndicator = () => (
-    <div className={cn(
-      "flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium transition-all",
-      syncStatus === 'saved' && "text-emerald-400 bg-emerald-500/10",
-      syncStatus === 'saving' && "text-primary bg-primary/10",
-      syncStatus === 'unsaved' && "text-amber-400 bg-amber-500/10",
-      syncStatus === 'error' && "text-destructive bg-destructive/10",
-    )}>
-      {syncStatus === 'saved' && <><Cloud className="w-3 h-3" /> Saved</>}
-      {syncStatus === 'saving' && <><Cloud className="w-3 h-3 animate-pulse" /> Saving...</>}
-      {syncStatus === 'unsaved' && <><CloudOff className="w-3 h-3" /> Unsaved</>}
-      {syncStatus === 'error' && <><CloudOff className="w-3 h-3" /> Error</>}
-    </div>
-  );
-
-  const EditorArea = (
-    <div className="flex h-full">
-      <div className="w-48 min-w-[140px] border-r border-border/30 shrink-0">
-        <FileExplorer files={files} selectedFile={selectedFile} onSelectFile={setSelectedFile} />
-      </div>
-      <div className="flex-1">
-        <IDECodeEditor files={files} selectedFile={selectedFile} onFileChange={handleFileChange} />
-      </div>
-    </div>
-  );
-
-  return (
-    <div className={cn('h-screen flex flex-col bg-background', className)} style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-      {/* Header */}
-      <header className="h-auto min-h-[44px] px-2 sm:px-3 py-1.5 border-b border-border/30 flex flex-wrap items-center justify-between gap-1.5 shrink-0 bg-background/80 backdrop-blur-xl">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <Button variant="ghost" size="icon" onClick={handleClose} className="h-7 w-7 shrink-0">
-            <ArrowLeft className="h-3.5 w-3.5" />
-          </Button>
-          <div className="p-1.5 rounded-lg bg-primary/15">
-            <Code2 className="w-3.5 h-3.5 text-primary" />
-          </div>
-          <span className="font-semibold text-sm truncate max-w-[120px] sm:max-w-none">App Builder</span>
-          <span className="text-[10px] text-muted-foreground">{fileCount} files</span>
-          {isAgentRunning && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-              <Sparkles className="w-3 h-3 animate-pulse" />
-              <span className="text-[10px] font-medium">Building</span>
+  // Render Dashboard
+  if (!ideProjectId) {
+    return (
+      <div className={cn("h-full flex flex-col bg-[#0b0c0e] text-foreground", className)}>
+        {/* Header */}
+        <header className="px-6 py-4 border-b border-border/10 bg-[#0d0e10] flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-primary/10 text-primary">
+              <Sparkles className="h-5 w-5" />
             </div>
-          )}
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <SyncIndicator />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => saveProject()}
-            disabled={syncStatus === 'saving' || syncStatus === 'saved'}
-            className="h-7 w-7 p-0 text-muted-foreground"
-            title="Save project"
-          >
-            <Save className="w-3.5 h-3.5" />
+            <div>
+              <h1 className="text-base font-bold tracking-tight">Arc Code Dashboard</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Build and deploy instant React web applications</p>
+            </div>
+          </div>
+          <Button variant="ghost" onClick={closeIDE} className="text-xs rounded-lg hover:bg-white/5">
+            Exit Builder
           </Button>
-          <DropdownMenu open={showVersions} onOpenChange={setShowVersions}>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-muted-foreground"
-                title="Version history"
-                disabled={projectVersions.length === 0}
-              >
-                <History className="w-3.5 h-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 max-h-64 overflow-y-auto">
-              {projectVersions.length === 0 ? (
-                <div className="px-3 py-2 text-xs text-muted-foreground">No versions yet</div>
-              ) : (
-                [...projectVersions].reverse().map((v) => (
-                  <DropdownMenuItem
-                    key={v.id}
-                    onClick={() => restoreVersion(v)}
-                    className="flex items-center gap-2"
-                  >
-                    <RotateCcw className="w-3 h-3 text-muted-foreground" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs font-medium">{v.label}</span>
-                      <span className="text-[10px] text-muted-foreground ml-2">
-                        {new Date(v.timestamp).toLocaleTimeString()}
-                      </span>
+        </header>
+
+        {/* Dashboard Grid */}
+        <div className="flex-1 overflow-y-auto p-6 max-w-6xl w-full mx-auto space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Create New App Card */}
+            <div className="col-span-1 md:col-span-3 bg-[#0d0e10] border border-dashed border-border/20 rounded-2xl p-6 flex flex-col justify-center space-y-4 hover:border-primary/30 transition-colors">
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                  <Plus className="h-4 w-4 text-primary" />
+                  <span>Build a new application</span>
+                </h3>
+                <p className="text-xs text-muted-foreground">Describe your project idea below to jump right into the workspace</p>
+              </div>
+              <form onSubmit={handleCreateNewAppSubmit} className="flex gap-2 bg-[#121316] border border-border/10 rounded-xl p-2 focus-within:border-primary/45 transition-colors">
+                <input
+                  type="text"
+                  value={newProjectPrompt}
+                  onChange={e => setNewProjectPrompt(e.target.value)}
+                  placeholder="e.g. build an expense tracker app with charts"
+                  className="flex-1 bg-transparent border-none text-xs focus:outline-none focus:ring-0 px-2"
+                />
+                <Button type="submit" size="sm" className="gap-1.5 text-xs rounded-lg px-4" disabled={!newProjectPrompt.trim()}>
+                  <Play className="h-3 w-3 fill-current" />
+                  <span>Build</span>
+                </Button>
+              </form>
+            </div>
+
+            {/* List existing projects */}
+            {loadingProjects ? (
+              <div className="col-span-1 md:col-span-3 py-16 flex flex-col items-center justify-center space-y-3">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <p className="text-xs text-muted-foreground">Fetching your app registry…</p>
+              </div>
+            ) : projects.length === 0 ? (
+              <div className="col-span-1 md:col-span-3 py-16 text-center border border-border/10 rounded-2xl bg-[#0d0e10] space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">No applications found</p>
+                <p className="text-[11px] text-muted-foreground/60 max-w-[200px] mx-auto">Use the build bar above to start your first project!</p>
+              </div>
+            ) : (
+              projects.map(p => (
+                <div 
+                  key={p.id}
+                  onClick={() => handleOpenProject(p)}
+                  className="group bg-[#0d0e10] border border-border/10 hover:border-border/25 rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-0.5 flex flex-col h-44 justify-between"
+                >
+                  <div className="p-4 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <h4 className="text-xs font-semibold truncate flex-1 pr-2">{p.title}</h4>
+                      {p.netlify_url ? (
+                        <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-mono font-bold tracking-wide">LIVE</span>
+                      ) : (
+                        <span className="text-[9px] bg-secondary/80 text-muted-foreground px-1.5 py-0.5 rounded font-mono font-bold">DRAFT</span>
+                      )}
                     </div>
-                  </DropdownMenuItem>
-                ))
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button variant="ghost" size="sm" onClick={handleCopyAll} className="h-7 w-7 p-0 text-muted-foreground">
+                    <p className="text-[11px] text-muted-foreground/80 line-clamp-3 leading-relaxed">{p.prompt}</p>
+                  </div>
+                  <div className="px-4 py-3 bg-[#111215] border-t border-border/5 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
+                      <Calendar className="h-3.5 w-3.5" />
+                      <span>{new Date(p.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {p.netlify_url && (
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          asChild
+                          onClick={e => e.stopPropagation()}
+                          className="h-7 w-7 rounded-lg hover:bg-white/5"
+                          title="Open Live App"
+                        >
+                          <a href={p.netlify_url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                      )}
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        onClick={e => handleDeleteProject(p.id, e)}
+                        className="h-7 w-7 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
+                        title="Delete App"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render Workspace
+  return (
+    <div className={cn("h-full flex flex-col bg-[#0b0c0e] text-foreground", className)}>
+      {/* Header */}
+      <header className="px-4 py-2.5 border-b border-border/10 bg-[#0d0e10] flex items-center justify-between shrink-0 select-none">
+        <div className="flex items-center gap-3">
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            onClick={handleGoHome}
+            className="h-7 px-2.5 rounded-lg hover:bg-white/5 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Dashboard</span>
+          </Button>
+          <div className="h-4 w-[1px] bg-border/20 shrink-0" />
+          <span className="text-xs font-semibold max-w-[200px] truncate">
+            {messages.find(m => m.role === 'user')?.content?.slice(0, 50) || 'Active Workspace'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={handleCopyAll} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
             {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleExport} className="h-7 w-7 p-0 text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={handleExport} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
             <Download className="w-3.5 h-3.5" />
           </Button>
-          {deployedUrl && !isMobile && (
-            <a href={deployedUrl} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1 text-[11px] text-primary hover:underline max-w-[200px] truncate">
-              <ExternalLink className="h-3 w-3 shrink-0" />
-              {deployedUrl.replace('https://', '')}
-            </a>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowPublishDialog(true)}
-            className="h-7 px-2 text-muted-foreground gap-1"
-            title="Publish to web"
-          >
-            <Rocket className="w-3.5 h-3.5" />
-            {!isMobile && <span className="text-[10px]">{deployedUrl ? 'Update' : 'Publish'}</span>}
+          <Button variant="ghost" onClick={closeIDE} className="text-xs h-7 px-3 rounded-lg hover:bg-white/5">
+            Close Builder
           </Button>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Workspace Panel Split */}
       <div className="flex-1 overflow-hidden relative">
         {isMobile ? (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="h-full flex flex-col">
-            <TabsList className="w-full justify-start rounded-none border-b border-border/30 bg-transparent px-3 h-9">
-              <TabsTrigger value="code" className="gap-1.5 text-xs"><Code2 className="h-3.5 w-3.5" />Code</TabsTrigger>
-              <TabsTrigger value="preview" className="gap-1.5 text-xs"><Eye className="h-3.5 w-3.5" />Preview</TabsTrigger>
-              <TabsTrigger value="cloud" className="gap-1.5 text-xs"><Cloud className="h-3.5 w-3.5" />Cloud</TabsTrigger>
+            <TabsList className="w-full justify-start rounded-none border-b border-border/10 bg-[#0d0e10] px-3 h-9 shrink-0">
+              <TabsTrigger value="preview" className="gap-1.5 text-xs">Preview</TabsTrigger>
+              <TabsTrigger value="code" className="gap-1.5 text-xs">Code</TabsTrigger>
+              <TabsTrigger value="cloud" className="gap-1.5 text-xs">Cloud</TabsTrigger>
             </TabsList>
+            <TabsContent value="preview" className="flex-1 m-0 min-h-0">
+              <IDEPreviewPanel 
+                files={files} 
+                onError={handlePreviewError} 
+                deployedUrl={deployedUrl}
+                onPublishClick={() => setShowPublishDialog(true)}
+              />
+            </TabsContent>
             <TabsContent value="code" className="flex-1 m-0 relative">
               <div className="absolute inset-0 pb-12">
                 {mobileCodeTab === 'chat' ? (
@@ -671,64 +725,66 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                     isLoading={isAgentRunning}
                     generatingId={generatingId}
                     onSend={handleChatSend}
+                    onGoHome={handleGoHome}
+                    syncStatus={syncStatus}
                   />
                 ) : (
-                  EditorArea
+                  <IDECodeEditor 
+                    files={files} 
+                    selectedFile={selectedFile} 
+                    setSelectedFile={setSelectedFile} 
+                    onFileChange={handleFileChange}
+                    onAddFile={handleAddFile}
+                    onDeleteFile={handleDeleteFile}
+                  />
                 )}
               </div>
-              <div className="absolute bottom-0 left-0 right-0 h-12 border-t border-border/30 bg-background/80 backdrop-blur-xl flex items-center justify-around z-10">
-                <button
-                  onClick={() => setMobileCodeTab('chat')}
-                  className={cn(
-                    'flex flex-col items-center gap-0.5 px-6 py-1.5 rounded-lg transition-colors',
-                    mobileCodeTab === 'chat' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <MessageSquare className="h-4 w-4" />
-                  <span className="text-[10px] font-medium">Chat</span>
-                </button>
-                <button
-                  onClick={() => setMobileCodeTab('editor')}
-                  className={cn(
-                    'flex flex-col items-center gap-0.5 px-6 py-1.5 rounded-lg transition-colors',
-                    mobileCodeTab === 'editor' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <Code2 className="h-4 w-4" />
-                  <span className="text-[10px] font-medium">Code</span>
-                </button>
-              </div>
             </TabsContent>
-            <TabsContent value="preview" className="flex-1 m-0 min-h-0">
-              <IDEPreviewPanel files={files} onError={handlePreviewError} />
-            </TabsContent>
-            <TabsContent value="cloud" className="flex-1 m-0 overflow-y-auto bg-black">
+            <TabsContent value="cloud" className="flex-1 m-0 overflow-y-auto bg-[#0b0c0e]">
               <IDECloudPanel files={files} setFiles={setFiles} />
             </TabsContent>
           </Tabs>
         ) : (
           <ResizablePanelGroup direction="horizontal">
-            <ResizablePanel defaultSize={28} minSize={20} maxSize={40}>
+            <ResizablePanel defaultSize={32} minSize={20} maxSize={45}>
               <IDEChatPanel
                 messages={messages}
                 liveActions={liveActions}
                 isLoading={isAgentRunning}
                 generatingId={generatingId}
                 onSend={handleChatSend}
+                onGoHome={handleGoHome}
+                syncStatus={syncStatus}
               />
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={72}>
+            <ResizablePanel defaultSize={68}>
               <div className="h-full flex flex-col">
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="h-full flex flex-col">
-                  <TabsList className="w-full justify-start rounded-none border-b border-border/30 bg-transparent px-3 h-9">
-                    <TabsTrigger value="code" className="gap-1.5 text-xs"><Code2 className="h-3.5 w-3.5" />Code</TabsTrigger>
-                    <TabsTrigger value="preview" className="gap-1.5 text-xs"><Eye className="h-3.5 w-3.5" />Preview</TabsTrigger>
-                    <TabsTrigger value="cloud" className="gap-1.5 text-xs"><Cloud className="h-3.5 w-3.5" />Cloud Manager</TabsTrigger>
+                  <TabsList className="w-full justify-start rounded-none border-b border-border/10 bg-[#0d0e10] px-3 h-9 shrink-0">
+                    <TabsTrigger value="preview" className="gap-1.5 text-xs">Preview</TabsTrigger>
+                    <TabsTrigger value="code" className="gap-1.5 text-xs">Code</TabsTrigger>
+                    <TabsTrigger value="cloud" className="gap-1.5 text-xs">Cloud Manager</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="code" className="flex-1 m-0">{EditorArea}</TabsContent>
-                  <TabsContent value="preview" className="flex-1 m-0"><IDEPreviewPanel files={files} onError={handlePreviewError} /></TabsContent>
-                  <TabsContent value="cloud" className="flex-1 m-0 overflow-y-auto bg-black">
+                  <TabsContent value="preview" className="flex-1 m-0 min-h-0">
+                    <IDEPreviewPanel 
+                      files={files} 
+                      onError={handlePreviewError} 
+                      deployedUrl={deployedUrl}
+                      onPublishClick={() => setShowPublishDialog(true)}
+                    />
+                  </TabsContent>
+                  <TabsContent value="code" className="flex-1 m-0">
+                    <IDECodeEditor 
+                      files={files} 
+                      selectedFile={selectedFile} 
+                      setSelectedFile={setSelectedFile} 
+                      onFileChange={handleFileChange}
+                      onAddFile={handleAddFile}
+                      onDeleteFile={handleDeleteFile}
+                    />
+                  </TabsContent>
+                  <TabsContent value="cloud" className="flex-1 m-0 overflow-y-auto bg-[#0b0c0e]">
                     <IDECloudPanel files={files} setFiles={setFiles} />
                   </TabsContent>
                 </Tabs>
