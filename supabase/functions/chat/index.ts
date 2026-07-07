@@ -661,6 +661,7 @@ serve(async (req) => {
       '=== CODE OUTPUT RULES (CRITICAL) ===\n' +
       '• ALWAYS output COMPLETE, FULL code - from <!DOCTYPE> to </html>\n' +
       '• For HTML: Include ALL CSS in <style> tags and ALL JS in <script> tags - single file\n' +
+      '• SINGLE-FILE PREVIEWS ONLY: Regular chat code canvas runs as a single self-contained HTML page. NEVER use react-router-dom or assume multi-file projects exist in this mode. If you need navigation or multiple views, mock them entirely using local JS/React state (e.g., `const [currentTab, setCurrentTab] = useState("home")`). For full multi-page React routing projects, tell the user to use the [App Builder](https://askarc.chat/build).\n' +
       '• When modifying code: PRESERVE ALL existing styles, animations, and features\n' +
       '• NEVER remove CSS or functionality unless explicitly asked\n' +
       '• NEVER truncate, summarize, or say "rest of code here" - output EVERYTHING';
