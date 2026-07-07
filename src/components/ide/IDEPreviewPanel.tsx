@@ -144,7 +144,6 @@ export function IDEPreviewPanel({
 
       <div className="flex-1 relative overflow-hidden bg-[#0c0d0e]">
         <SandpackProvider
-          key={previewKey}
           template="vite-react-ts"
           customSetup={{
             dependencies: {
@@ -160,6 +159,7 @@ export function IDEPreviewPanel({
             activeFile: "/src/App.tsx",
           }}
           className="h-full w-full flex flex-col"
+          style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}
         >
           <SandpackErrorListener onError={onError} />
           
@@ -169,7 +169,7 @@ export function IDEPreviewPanel({
                 "transition-all duration-300 bg-white",
                 viewMode === 'phone' 
                   ? "w-[375px] h-[780px] rounded-[2.5rem] p-[10px] bg-zinc-900 ring-1 ring-white/10 shadow-2xl flex flex-col" 
-                  : "w-full h-full border-none"
+                  : "w-full h-full border-none flex flex-col"
               )}
             >
               {viewMode === 'phone' && (
@@ -182,14 +182,15 @@ export function IDEPreviewPanel({
                 </div>
               )}
               
-              <div className={cn("flex-1 bg-white overflow-hidden", viewMode === 'phone' && "rounded-[1.75rem]")}>
+              <div className={cn("flex-1 h-full w-full bg-white overflow-hidden flex flex-col", viewMode === 'phone' && "rounded-[1.75rem]")}>
                 <SandpackPreview
+                  key={previewKey}
                   showNavigator={false}
                   showCube={false}
                   showRestartButton={false}
                   showOpenInCodeSandbox={false}
                   className="w-full h-full border-none bg-white"
-                  customStyle={{ height: '100%' }}
+                  customStyle={{ height: '100%', width: '100%', flex: 1 }}
                 />
               </div>
 

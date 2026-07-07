@@ -548,123 +548,8 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const handleGoHome = () => {
     setIdeProjectId(null);
     projectIdRef.current = null;
+    if (onClose) onClose();
   };
-
-  // Render Dashboard
-  if (!ideProjectId) {
-    return (
-      <div className={cn("h-full flex flex-col bg-[#0b0c0e] text-foreground", className)}>
-        {/* Header */}
-        <header className="px-6 py-4 border-b border-border/10 bg-[#0d0e10] flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-base font-bold tracking-tight">Arc Code Dashboard</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Build and deploy instant React web applications</p>
-            </div>
-          </div>
-          <Button variant="ghost" onClick={closeIDE} className="text-xs rounded-lg hover:bg-white/5">
-            Exit Builder
-          </Button>
-        </header>
-
-        {/* Dashboard Grid */}
-        <div className="flex-1 overflow-y-auto p-6 max-w-6xl w-full mx-auto space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Create New App Card */}
-            <div className="col-span-1 md:col-span-3 bg-[#0d0e10] border border-dashed border-border/20 rounded-2xl p-6 flex flex-col justify-center space-y-4 hover:border-primary/30 transition-colors">
-              <div className="space-y-1">
-                <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                  <Plus className="h-4 w-4 text-primary" />
-                  <span>Build a new application</span>
-                </h3>
-                <p className="text-xs text-muted-foreground">Describe your project idea below to jump right into the workspace</p>
-              </div>
-              <form onSubmit={handleCreateNewAppSubmit} className="flex gap-2 bg-[#121316] border border-border/10 rounded-xl p-2 focus-within:border-primary/45 transition-colors">
-                <input
-                  type="text"
-                  value={newProjectPrompt}
-                  onChange={e => setNewProjectPrompt(e.target.value)}
-                  placeholder="e.g. build an expense tracker app with charts"
-                  className="flex-1 bg-transparent border-none text-xs focus:outline-none focus:ring-0 px-2"
-                />
-                <Button type="submit" size="sm" className="gap-1.5 text-xs rounded-lg px-4" disabled={!newProjectPrompt.trim()}>
-                  <Play className="h-3 w-3 fill-current" />
-                  <span>Build</span>
-                </Button>
-              </form>
-            </div>
-
-            {/* List existing projects */}
-            {loadingProjects ? (
-              <div className="col-span-1 md:col-span-3 py-16 flex flex-col items-center justify-center space-y-3">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                <p className="text-xs text-muted-foreground">Fetching your app registry…</p>
-              </div>
-            ) : projects.length === 0 ? (
-              <div className="col-span-1 md:col-span-3 py-16 text-center border border-border/10 rounded-2xl bg-[#0d0e10] space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground">No applications found</p>
-                <p className="text-[11px] text-muted-foreground/60 max-w-[200px] mx-auto">Use the build bar above to start your first project!</p>
-              </div>
-            ) : (
-              projects.map(p => (
-                <div 
-                  key={p.id}
-                  onClick={() => handleOpenProject(p)}
-                  className="group bg-[#0d0e10] border border-border/10 hover:border-border/25 rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 hover:-translate-y-0.5 flex flex-col h-44 justify-between"
-                >
-                  <div className="p-4 space-y-2">
-                    <div className="flex justify-between items-start">
-                      <h4 className="text-xs font-semibold truncate flex-1 pr-2">{p.title}</h4>
-                      {p.netlify_url ? (
-                        <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-mono font-bold tracking-wide">LIVE</span>
-                      ) : (
-                        <span className="text-[9px] bg-secondary/80 text-muted-foreground px-1.5 py-0.5 rounded font-mono font-bold">DRAFT</span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground/80 line-clamp-3 leading-relaxed">{p.prompt}</p>
-                  </div>
-                  <div className="px-4 py-3 bg-[#111215] border-t border-border/5 flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
-                      <Calendar className="h-3.5 w-3.5" />
-                      <span>{new Date(p.created_at).toLocaleDateString()}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      {p.netlify_url && (
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          asChild
-                          onClick={e => e.stopPropagation()}
-                          className="h-7 w-7 rounded-lg hover:bg-white/5"
-                          title="Open Live App"
-                        >
-                          <a href={p.netlify_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        </Button>
-                      )}
-                      <Button 
-                        size="icon" 
-                        variant="ghost" 
-                        onClick={e => handleDeleteProject(p.id, e)}
-                        className="h-7 w-7 rounded-lg hover:bg-red-500/10 text-muted-foreground hover:text-red-500"
-                        title="Delete App"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Render Workspace
   return (
@@ -706,7 +591,6 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
             <TabsList className="w-full justify-start rounded-none border-b border-border/10 bg-[#0d0e10] px-3 h-9 shrink-0">
               <TabsTrigger value="preview" className="gap-1.5 text-xs">Preview</TabsTrigger>
               <TabsTrigger value="code" className="gap-1.5 text-xs">Code</TabsTrigger>
-              <TabsTrigger value="cloud" className="gap-1.5 text-xs">Cloud</TabsTrigger>
             </TabsList>
             <TabsContent value="preview" className="flex-1 m-0 min-h-0">
               <IDEPreviewPanel 
@@ -740,9 +624,6 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 )}
               </div>
             </TabsContent>
-            <TabsContent value="cloud" className="flex-1 m-0 overflow-y-auto bg-[#0b0c0e]">
-              <IDECloudPanel files={files} setFiles={setFiles} />
-            </TabsContent>
           </Tabs>
         ) : (
           <ResizablePanelGroup direction="horizontal">
@@ -764,7 +645,6 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                   <TabsList className="w-full justify-start rounded-none border-b border-border/10 bg-[#0d0e10] px-3 h-9 shrink-0">
                     <TabsTrigger value="preview" className="gap-1.5 text-xs">Preview</TabsTrigger>
                     <TabsTrigger value="code" className="gap-1.5 text-xs">Code</TabsTrigger>
-                    <TabsTrigger value="cloud" className="gap-1.5 text-xs">Cloud Manager</TabsTrigger>
                   </TabsList>
                   <TabsContent value="preview" className="flex-1 m-0 min-h-0">
                     <IDEPreviewPanel 
@@ -783,9 +663,6 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                       onAddFile={handleAddFile}
                       onDeleteFile={handleDeleteFile}
                     />
-                  </TabsContent>
-                  <TabsContent value="cloud" className="flex-1 m-0 overflow-y-auto bg-[#0b0c0e]">
-                    <IDECloudPanel files={files} setFiles={setFiles} />
                   </TabsContent>
                 </Tabs>
               </div>
