@@ -223,14 +223,44 @@ export function generatePreviewHtml(bundledCode: string): string {
 <body>
   <div id="root"></div>
   <script>
+    var lastError = '';
+    var _error = console.error;
+    console.error = function() {
+      _error.apply(console, arguments);
+      var args = Array.prototype.slice.call(arguments);
+      var msg = args.map(function(arg) {
+        if (arg && arg.message) return arg.message + (arg.stack ? '\n' + arg.stack : '');
+        return typeof arg === 'object' ? JSON.stringify(arg) : String(arg);
+      }).join(' ');
+      
+      if (msg.indexOf('Warning:') !== 0 && msg.indexOf('info') !== 0) {
+        lastError = msg;
+        reportError(msg);
+      }
+    };
+
+    window.addEventListener('unhandledrejection', function(event) {
+      var reason = event.reason;
+      var msg = reason && reason.message ? reason.message + (reason.stack ? '\n' + reason.stack : '') : String(reason);
+      reportError('Unhandled Promise Rejection: ' + msg);
+    });
+
     window.onerror = function(msg, url, line, col, err) {
       var errMsg = (err && err.message) ? err.message : String(msg);
+      if (errMsg === 'Script error.' && lastError) {
+        errMsg = lastError;
+      }
+      reportError(errMsg);
+    };
+
+    function reportError(errMsg) {
       var root = document.getElementById('root');
-      if (root && !root.innerHTML.trim()) {
-        root.innerHTML = '<div style="padding:20px;color:#ef4444;font-family:monospace;"><h2>Runtime Error</h2><pre>' + errMsg + '</pre></div>';
+      if (root && (!root.innerHTML || root.innerHTML.indexOf('Runtime Error') !== -1 || root.innerHTML.indexOf('No Render') !== -1)) {
+        root.innerHTML = '<div style="padding:20px;color:#ef4444;font-family:monospace;white-space:pre-wrap;word-break:break-all;"><h2>Runtime Error</h2><pre>' + errMsg + '</pre></div>';
       }
       try { window.parent.postMessage({ type: 'preview-error', error: errMsg }, '*'); } catch(e) {}
-    };
+    }
+
     try {
       ${bundledCode}
       setTimeout(function() {
@@ -241,9 +271,7 @@ export function generatePreviewHtml(bundledCode: string): string {
       }, 1000);
     } catch (error) {
       var errMsg = error.message || String(error);
-      document.getElementById('root').innerHTML =
-        '<div style="padding:20px;color:#ef4444;font-family:monospace;"><h2>Runtime Error</h2><pre>' + errMsg + '</pre></div>';
-      try { window.parent.postMessage({ type: 'preview-error', error: errMsg }, '*'); } catch(e) {}
+      reportError(errMsg);
     }
   <\/script>
 </body>

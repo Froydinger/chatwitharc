@@ -82,6 +82,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const filesRef = useRef<VirtualFileSystem>(files);
   const messagesRef = useRef<ChatMessage[]>(messages);
   const autoFixedRef = useRef(false);
+  const lastErrorRef = useRef<string | null>(null);
   const projectVersionsRef = useRef<ProjectVersion[]>([]);
   const lastSavedSnapshotRef = useRef(buildPersistenceSnapshot(ideFiles || DEFAULT_FILES, storedMessages?.length ? storedMessages : []));
   const projectIdRef = useRef<string | null>(ideProjectId);
@@ -99,6 +100,12 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   useEffect(() => {
     projectVersionsRef.current = projectVersions;
   }, [projectVersions]);
+
+  useEffect(() => {
+    if (!isAgentRunning) {
+      autoFixedRef.current = false;
+    }
+  }, [isAgentRunning]);
 
   // Sync files to store
   useEffect(() => {
@@ -420,7 +427,12 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
   const handlePreviewError = useCallback((error: string) => {
     if (isAgentRunning || autoFixedRef.current) return;
+    if (error === lastErrorRef.current) {
+      console.warn('Skipping auto-fix: error is identical to last error:', error);
+      return;
+    }
     autoFixedRef.current = true;
+    lastErrorRef.current = error;
     const fixMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
