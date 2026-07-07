@@ -264,18 +264,24 @@ function createVirtualFsPlugin(files: VirtualFileSystem): esbuild.Plugin {
         }
         return { contents: 'module.exports = {};', loader: 'js' };
       });
-      build.onResolve({ filter: /^\./ }, (args) => {
-        const importer = args.importer || 'src/main.tsx';
-        const importerDir = importer.split('/').slice(0, -1).join('/');
-        let resolvedPath = args.path.startsWith('./') ? args.path.slice(2) : args.path;
-        const joined = importerDir ? `${importerDir}/${resolvedPath}` : resolvedPath;
-        const parts = joined.split('/');
-        const normalized: string[] = [];
-        for (const part of parts) {
-          if (part === '..') normalized.pop();
-          else if (part !== '.') normalized.push(part);
+      build.onResolve({ filter: /^(@\/|\.)/ }, (args) => {
+        let fullPath = '';
+        if (args.path.startsWith('@/')) {
+          fullPath = 'src/' + args.path.slice(2);
+        } else {
+          const importer = args.importer || 'src/main.tsx';
+          const importerDir = importer.split('/').slice(0, -1).join('/');
+          let resolvedPath = args.path.startsWith('./') ? args.path.slice(2) : args.path;
+          const joined = importerDir ? `${importerDir}/${resolvedPath}` : resolvedPath;
+          const parts = joined.split('/');
+          const normalized: string[] = [];
+          for (const part of parts) {
+            if (part === '..') normalized.pop();
+            else if (part !== '.') normalized.push(part);
+          }
+          fullPath = normalized.join('/');
         }
-        const fullPath = normalized.join('/');
+
         const extensions = ['', '.tsx', '.ts', '.jsx', '.js', '.css'];
         for (const ext of extensions) {
           if (files[fullPath + ext]) return { path: fullPath + ext, namespace: 'virtual-fs' };
