@@ -105,7 +105,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     setIdeFiles(files);
   }, [files, setIdeFiles]);
 
-  // On mount: hydrate from store/db and initialize saved snapshot baseline
+  // Hydrate files/messages from store/db whenever they change
   useEffect(() => {
     let initialFiles = ideFiles && Object.keys(ideFiles).length > 0 ? ideFiles : DEFAULT_FILES;
     let initialMessages = storedMessages?.length ? (storedMessages as ChatMessage[]) : [];
@@ -130,48 +130,49 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
           console.error('Failed to parse local IDE snapshot:', e);
         }
       }
-    }
-
-    if (ideFiles && Object.keys(ideFiles).length > 0 && ideProjectId) {
-      setFiles(ideFiles);
-      filesRef.current = ideFiles;
-    }
-
-    if (storedMessages?.length && ideProjectId) {
-      setMessagesRaw(storedMessages as ChatMessage[]);
-      messagesRef.current = storedMessages as ChatMessage[];
-    }
-
-    lastSavedSnapshotRef.current = buildPersistenceSnapshot(initialFiles, initialMessages);
-
-    if (ideProjectId) {
+    } else {
       projectIdRef.current = ideProjectId;
       setSyncStatus('saved');
 
-      // Load netlify state and messages from database
-      supabase
-        .from('ide_projects')
-        .select('netlify_url, netlify_site_id, netlify_subdomain, messages')
-        .eq('id', ideProjectId)
-        .single()
-        .then(({ data }) => {
-          if (!data) return;
+      if (ideFiles && Object.keys(ideFiles).length > 0) {
+        setFiles(ideFiles);
+        filesRef.current = ideFiles;
+      }
 
-          setDeployedUrl((data as any).netlify_url || null);
-          setNetlifySiteId((data as any).netlify_site_id || null);
-          setNetlifySubdomain((data as any).netlify_subdomain || null);
-
-          const dbMessages = (data as any).messages;
-          if (Array.isArray(dbMessages) && dbMessages.length > 0 && messagesRef.current.length === 0) {
-            setMessagesRaw(dbMessages as ChatMessage[]);
-            setIdeMessages(dbMessages as ChatMessage[]);
-            messagesRef.current = dbMessages as ChatMessage[];
-            lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesRef.current, dbMessages as ChatMessage[]);
-          }
-        });
+      if (storedMessages?.length) {
+        setMessagesRaw(storedMessages as ChatMessage[]);
+        messagesRef.current = storedMessages as ChatMessage[];
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    lastSavedSnapshotRef.current = buildPersistenceSnapshot(initialFiles, initialMessages);
+  }, [ideFiles, storedMessages, ideProjectId]);
+
+  // Load netlify state once on project load
+  useEffect(() => {
+    if (!ideProjectId) return;
+
+    supabase
+      .from('ide_projects')
+      .select('netlify_url, netlify_site_id, netlify_subdomain, messages')
+      .eq('id', ideProjectId)
+      .single()
+      .then(({ data }) => {
+        if (!data) return;
+
+        setDeployedUrl((data as any).netlify_url || null);
+        setNetlifySiteId((data as any).netlify_site_id || null);
+        setNetlifySubdomain((data as any).netlify_subdomain || null);
+
+        const dbMessages = (data as any).messages;
+        if (Array.isArray(dbMessages) && dbMessages.length > 0 && messagesRef.current.length === 0) {
+          setMessagesRaw(dbMessages as ChatMessage[]);
+          setIdeMessages(dbMessages as ChatMessage[]);
+          messagesRef.current = dbMessages as ChatMessage[];
+          lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesRef.current, dbMessages as ChatMessage[]);
+        }
+      });
+  }, [ideProjectId]);
 
   // Track file/message changes and auto-save
   useEffect(() => {
