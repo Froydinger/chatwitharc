@@ -226,7 +226,7 @@ serve(async (req) => {
       const fileList = Object.entries(currentFiles)
         .map(([path, content]: [string, any]) => {
           const src = typeof content === "string" ? content : content?.content || "";
-          const truncated = src.length > 3000 ? src.slice(0, 3000) + "\n// ... (truncated)" : src;
+          const truncated = src.length > 150000 ? src.slice(0, 150000) + "\n// ... (truncated)" : src;
           return `--- ${path} ---\n${truncated}`;
         })
         .join("\n\n");

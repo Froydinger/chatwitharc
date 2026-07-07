@@ -71,6 +71,19 @@ export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
     return () => { if (buildTimerRef.current) clearTimeout(buildTimerRef.current); };
   }, [files, isInitializing, runBuild]);
 
+  const handleIframeLoad = (e: React.SyntheticEvent<HTMLIFrameElement>) => {
+    const iframe = e.currentTarget;
+    try {
+      const iframeUrl = iframe.contentWindow?.location.href;
+      if (iframeUrl && iframeUrl !== 'about:blank' && !iframeUrl.startsWith('about:srcdoc') && !iframeUrl.startsWith('blob:')) {
+        console.warn('Iframe navigated away to:', iframeUrl);
+        iframe.srcDoc = html;
+      }
+    } catch (err) {
+      // Cross-origin navigation is naturally blocked by browser policy and won't load the parent app.
+    }
+  };
+
   const openInNewTab = () => {
     if (!html) return;
     const blob = new Blob([html], { type: 'text/html' });
@@ -157,12 +170,13 @@ export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
                   </div>
                   {/* Screen */}
                   <div className="flex-1 rounded-[1.75rem] overflow-hidden bg-white">
-                    <iframe
-                      srcDoc={html}
-                      className="w-full h-full bg-white"
-                      title="Preview"
-                      sandbox="allow-scripts allow-modals allow-same-origin"
-                    />
+                     <iframe
+                       srcDoc={html}
+                       className="w-full h-full bg-white"
+                       title="Preview"
+                       sandbox="allow-scripts allow-modals allow-same-origin"
+                       onLoad={handleIframeLoad}
+                     />
                   </div>
                   {/* Home indicator */}
                   <div className="flex justify-center mt-1.5 shrink-0">
@@ -172,8 +186,8 @@ export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
               </div>
             </div>
           ) : (
-            <iframe srcDoc={html} className="w-full h-full bg-white" title="Preview"
-              sandbox="allow-scripts allow-modals allow-same-origin" />
+             <iframe srcDoc={html} className="w-full h-full bg-white" title="Preview"
+               sandbox="allow-scripts allow-modals allow-same-origin" onLoad={handleIframeLoad} />
           )
         ) : null}
       </div>
