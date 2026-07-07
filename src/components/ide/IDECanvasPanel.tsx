@@ -96,6 +96,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const lastErrorRef = useRef<string | null>(null);
   const projectIdRef = useRef<string | null>(ideProjectId);
   const lastSavedSnapshotRef = useRef(buildPersistenceSnapshot(ideFiles || DEFAULT_FILES, storedMessages?.length ? storedMessages : []));
+  const didAutoRunInitialPromptRef = useRef(false);
 
   // Sync files to store
   useEffect(() => {
@@ -115,6 +116,15 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       autoFixedRef.current = false;
     }
   }, [isAgentRunning]);
+
+  // Auto-run initial prompt on mount if supplied
+  useEffect(() => {
+    if (idePrompt && ideAutoRunPrompt && !didAutoRunInitialPromptRef.current) {
+      didAutoRunInitialPromptRef.current = true;
+      clearIdePrompt();
+      handleChatSend(idePrompt);
+    }
+  }, [idePrompt, ideAutoRunPrompt, handleChatSend, clearIdePrompt]);
 
   // Load user projects for the dashboard
   const fetchProjects = useCallback(async () => {
