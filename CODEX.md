@@ -97,6 +97,15 @@ release: make sure changes build cleanly before pushing.
 - `supabase/functions/chat/index.ts` — main chat edge function (tools,
   scheduling, notifications)
 
+## App Builder & Sandbox Preview (`/build`)
+
+- **Agentic Sandbox Compiler**: Compiles React (TSX/JSX) and styles with Tailwind CSS, Lucide React, Framer Motion, and React Icons.
+- **Routing**: Shims standard `react-router-dom` imports to the official UMD build of React Router DOM v6 under the hood. All browser routing (like `BrowserRouter`) is automatically mapped to `HashRouter` inside the iframe.
+- **Sandbox Previews**: Rendered using a `srcDoc` iframe. An `onLoad` handler catches full-page navigations (preventing the parent app from loading inside the preview panel) and forces the iframe to reload via a state `key` trigger.
+- **App Builder Limitations**:
+  - Frontend-only: There is no server-side Node.js/Python database logic.
+  - Storage: Previews share the host origin's localStorage space. Prototyped database state must be client-side and should prefix localStorage keys to prevent cross-app contamination.
+
 ## Notes
 
 - Model tiers in the chat picker: Auto, Faster (GPT-5.4 Nano), Fast (GPT-5.4
