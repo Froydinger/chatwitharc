@@ -2865,21 +2865,37 @@ ${safeCode}
                           </button>
                         </div>
 
-                        {/* Featured App Builder IDE Banner (At the Top!) */}
-                        <div className="mb-4">
+                        {/* Featured Banners: Deep Search & App Builder IDE (At the Top!) */}
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          <button
+                            onClick={() => {
+                              setShowMenu(false);
+                              openSearchMode();
+                            }}
+                            className="flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 group border border-indigo-500/20 hover:border-indigo-500/35 bg-indigo-500/5 hover:bg-indigo-500/10 shadow-[0_0_20px_-5px_rgba(99,102,241,0.1)]"
+                          >
+                            <div className="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0 group-hover:bg-indigo-500/30 transition-colors">
+                              <Search className="h-4.5 w-4.5 text-indigo-400 group-hover:scale-110 transition-transform duration-200" />
+                            </div>
+                            <div className="flex flex-col items-start text-left min-w-0">
+                              <span className="text-xs font-semibold text-white tracking-wide truncate w-full">Deep Search™</span>
+                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 line-clamp-2">Scan the live web with citations</span>
+                            </div>
+                          </button>
+
                           <button
                             onClick={() => {
                               setShowMenu(false);
                               navigate("/build");
                             }}
-                            className="w-full flex items-center gap-4 p-3.5 rounded-2xl transition-all duration-200 group border border-purple-500/20 hover:border-purple-500/35 bg-purple-500/5 hover:bg-purple-500/10 shadow-[0_0_20px_-5px_rgba(168,85,247,0.1)]"
+                            className="flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 group border border-purple-500/20 hover:border-purple-500/35 bg-purple-500/5 hover:bg-purple-500/10 shadow-[0_0_20px_-5px_rgba(168,85,247,0.1)]"
                           >
-                            <div className="w-11 h-11 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0 group-hover:bg-purple-500/30 transition-colors">
-                              <Hammer className="h-5 w-5 text-purple-400 group-hover:rotate-12 transition-transform duration-200" />
+                            <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0 group-hover:bg-purple-500/30 transition-colors">
+                              <Hammer className="h-4.5 w-4.5 text-purple-400 group-hover:rotate-12 transition-transform duration-200" />
                             </div>
-                            <div className="flex flex-col items-start text-left">
-                              <span className="text-xs font-semibold text-white tracking-wide">App Builder IDE</span>
-                              <span className="text-[10px] text-muted-foreground font-normal leading-normal mt-0.5">Build full-scale interactive web apps in one prompt</span>
+                            <div className="flex flex-col items-start text-left min-w-0">
+                              <span className="text-xs font-semibold text-white tracking-wide truncate w-full">App Builder</span>
+                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 line-clamp-2">Build full React apps in one prompt</span>
                             </div>
                           </button>
                         </div>
