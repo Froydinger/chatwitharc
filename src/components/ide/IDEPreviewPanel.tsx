@@ -1,9 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { RefreshCw, Loader2, AlertCircle, ExternalLink, Globe, Monitor, Smartphone } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { RefreshCw, Globe, Monitor, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { VirtualFileSystem } from '@/types/ide';
-import { bundleProject, generatePreviewHtml, initializeEsbuild } from '@/lib/esbuild';
+import { 
+  SandpackProvider, 
+  SandpackPreview, 
+  useSandpack 
+} from '@codesandbox/sandpack-react';
 
 interface IDEPreviewPanelProps {
   files: VirtualFileSystem;
@@ -12,91 +16,75 @@ interface IDEPreviewPanelProps {
 
 type ViewMode = 'desktop' | 'phone';
 
+function SandpackErrorListener({ onError }: { onError?: (error: string) => void }) {
+  const { sandpack } = useSandpack();
+  const { error } = sandpack;
+
+  useEffect(() => {
+    if (error && onError) {
+      const errMsg = error.message || String(error);
+      onError(errMsg);
+    }
+  }, [error, onError]);
+
+  return null;
+}
+
 export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
-  const [html, setHtml] = useState('');
-  const [iframeKey, setIframeKey] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [isBuilding, setIsBuilding] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
-  const [initStatus, setInitStatus] = useState('Initializing build engine…');
   const [viewMode, setViewMode] = useState<ViewMode>('desktop');
-  const buildTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const buildAbortRef = useRef<AbortController>();
+  const [previewKey, setPreviewKey] = useState(0);
 
-  useEffect(() => {
-    const t1 = setTimeout(() => setInitStatus('Downloading build engine (~8 MB)…'), 2000);
-    const t2 = setTimeout(() => setInitStatus('Compiling WASM — almost there…'), 6000);
+  // Map VirtualFileSystem to Sandpack files structure
+  const sandpackFiles = Object.entries(files).reduce((acc, [path, file]) => {
+    const sandpackPath = path.startsWith('/') ? path : `/${path}`;
+    acc[sandpackPath] = file.content;
+    return acc;
+  }, {} as Record<string, string>);
 
-    initializeEsbuild()
-      .then(() => { clearTimeout(t1); clearTimeout(t2); setIsInitializing(false); })
-      .catch((err) => { clearTimeout(t1); clearTimeout(t2); setIsInitializing(false); setError(`Build engine failed: ${err.message}`); });
-
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
-
-  useEffect(() => {
-    if (!onError) return;
-    const handler = (e: MessageEvent) => {
-      if (e.data?.type === 'preview-error' && e.data.error) {
-        onError(e.data.error);
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [onError]);
-
-  const runBuild = useCallback(async () => {
-    if (isInitializing) return;
-    if (buildAbortRef.current) buildAbortRef.current.abort();
-    const controller = new AbortController();
-    buildAbortRef.current = controller;
-
-    setIsBuilding(true);
-    setError(null);
-    try {
-      const bundledCode = await bundleProject(files);
-      if (controller.signal.aborted) return;
-      setHtml(generatePreviewHtml(bundledCode));
-    } catch (err) {
-      if (controller.signal.aborted) return;
-      setError(err instanceof Error ? err.message : 'Build failed');
-    } finally {
-      if (!controller.signal.aborted) setIsBuilding(false);
+  // Add default configurations
+  sandpackFiles['/package.json'] = JSON.stringify({
+    dependencies: {
+      "react": "^18.3.1",
+      "react-dom": "^18.3.1",
+      "react-router-dom": "^6.28.0",
+      "framer-motion": "^11.11.9",
+      "lucide-react": "^0.453.0",
+      "react-icons": "^5.3.0"
     }
-  }, [files, isInitializing]);
+  });
 
-  useEffect(() => {
-    if (isInitializing) return;
-    if (buildTimerRef.current) clearTimeout(buildTimerRef.current);
-    buildTimerRef.current = setTimeout(runBuild, 600);
-    return () => { if (buildTimerRef.current) clearTimeout(buildTimerRef.current); };
-  }, [files, isInitializing, runBuild]);
-
-  const handleIframeLoad = (e: React.SyntheticEvent<HTMLIFrameElement>) => {
-    const iframe = e.currentTarget;
-    try {
-      const iframeUrl = iframe.contentWindow?.location.href;
-      if (iframeUrl && iframeUrl !== 'about:blank' && !iframeUrl.startsWith('about:srcdoc') && !iframeUrl.startsWith('blob:')) {
-        console.warn('Iframe navigated away to:', iframeUrl);
-        setIframeKey(prev => prev + 1);
+  sandpackFiles['/index.html'] = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arc Sandbox Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+        padding: 0;
       }
-    } catch (err) {
-      // Cross-origin navigation is naturally blocked by browser policy and won't load the parent app.
-    }
-  };
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>`;
 
-  const openInNewTab = () => {
-    if (!html) return;
-    const blob = new Blob([html], { type: 'text/html' });
-    window.open(URL.createObjectURL(blob), '_blank');
+  const handleRefresh = () => {
+    setPreviewKey(prev => prev + 1);
   };
 
   return (
     <div className="h-full flex flex-col bg-background">
       <div className="px-3 py-1.5 border-b border-border/30 flex items-center gap-2 shrink-0">
-        <Button size="sm" variant="ghost" onClick={runBuild} disabled={isBuilding || isInitializing}
+        <Button size="sm" variant="ghost" onClick={handleRefresh}
           className="h-7 w-7 p-0 shrink-0" title="Refresh">
-          <RefreshCw className={`h-3 w-3 ${isBuilding ? 'animate-spin' : ''}`} />
+          <RefreshCw className="h-3 w-3" />
         </Button>
         <div className="flex-1 flex items-center gap-1.5 h-7 px-2.5 rounded-md bg-secondary/40 border border-border/30 text-xs text-muted-foreground">
           <Globe className="h-3 w-3 shrink-0" />
@@ -123,41 +111,21 @@ export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
             <Smartphone className="h-3 w-3" />
           </Button>
         </div>
-        {html && (
-          <Button size="sm" variant="ghost" onClick={openInNewTab} className="h-7 w-7 p-0 shrink-0" title="Open in new tab">
-            <ExternalLink className="h-3 w-3" />
-          </Button>
-        )}
       </div>
 
-      <div className="flex-1 relative overflow-hidden">
-        {isInitializing ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center space-y-3 max-w-xs px-4">
-              <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
-              <p className="text-xs text-muted-foreground">{initStatus}</p>
-              <p className="text-[10px] text-muted-foreground/60">Cached for next time</p>
-            </div>
-          </div>
-        ) : error ? (
-          <div className="h-full flex items-center justify-center p-6">
-            <div className="max-w-md text-center space-y-3">
-              <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
-              <h3 className="font-semibold text-sm text-destructive">Build Error</h3>
-              <pre className="text-xs text-left bg-secondary/40 p-3 rounded-lg overflow-auto max-h-40 font-mono text-muted-foreground">{error}</pre>
-              <Button variant="outline" size="sm" onClick={runBuild} className="text-xs">Retry</Button>
-            </div>
-          </div>
-        ) : isBuilding && !html ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <Loader2 className="h-6 w-6 animate-spin text-primary mx-auto" />
-              <p className="text-xs text-muted-foreground">Building…</p>
-            </div>
-          </div>
-        ) : html ? (
-          viewMode === 'phone' ? (
-            <div className="h-full flex items-center justify-center bg-secondary/20 py-4">
+      <div className="flex-1 relative overflow-hidden bg-[#0c0d0e]">
+        <SandpackProvider
+          key={previewKey}
+          template="vite-react-ts"
+          files={sandpackFiles}
+          options={{
+            visibleFiles: ["/src/App.tsx"],
+            activeFile: "/src/App.tsx",
+          }}
+        >
+          <SandpackErrorListener onError={onError} />
+          {viewMode === 'phone' ? (
+            <div className="h-full flex items-center justify-center bg-[#0c0d0e] py-4">
               <div className="relative flex flex-col items-center" style={{ height: '100%', maxHeight: '780px' }}>
                 {/* Phone shell */}
                 <div className="relative bg-zinc-900 rounded-[2.5rem] p-[10px] shadow-2xl ring-1 ring-white/10 flex flex-col"
@@ -171,14 +139,12 @@ export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
                   </div>
                   {/* Screen */}
                   <div className="flex-1 rounded-[1.75rem] overflow-hidden bg-white">
-                      <iframe
-                        key={iframeKey}
-                        srcDoc={html}
-                        className="w-full h-full bg-white"
-                        title="Preview"
-                        sandbox="allow-scripts allow-modals allow-same-origin"
-                        onLoad={handleIframeLoad}
-                      />
+                    <SandpackPreview
+                      showNavigator={false}
+                      showCube={false}
+                      showRestartButton={false}
+                      className="w-full h-full border-none bg-white"
+                    />
                   </div>
                   {/* Home indicator */}
                   <div className="flex justify-center mt-1.5 shrink-0">
@@ -188,10 +154,14 @@ export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
               </div>
             </div>
           ) : (
-             <iframe key={iframeKey} srcDoc={html} className="w-full h-full bg-white" title="Preview"
-               sandbox="allow-scripts allow-modals allow-same-origin" onLoad={handleIframeLoad} />
-          )
-        ) : null}
+            <SandpackPreview
+              showNavigator={false}
+              showCube={false}
+              showRestartButton={false}
+              className="w-full h-full border-none bg-white"
+            />
+          )}
+        </SandpackProvider>
       </div>
     </div>
   );
