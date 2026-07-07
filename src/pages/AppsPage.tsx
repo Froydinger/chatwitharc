@@ -85,7 +85,7 @@ export function AppsPage() {
       const filesData = data?.files ? (data.files as unknown as VirtualFileSystem) : {};
       const filesToLoad = Object.keys(filesData).length > 0 ? filesData : DEFAULT_FILES;
 
-      reopenIDECanvas(id, filesToLoad, (data as any).messages || [], initialPrompt);
+      reopenIDECanvas(id, filesToLoad, data?.messages || [], initialPrompt);
     } catch (err) {
       console.error('Failed to load project:', err);
       toast.error("Failed to load project");

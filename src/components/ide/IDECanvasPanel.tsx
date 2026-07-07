@@ -117,14 +117,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     }
   }, [isAgentRunning]);
 
-  // Auto-run initial prompt on mount if supplied
-  useEffect(() => {
-    if (idePrompt && ideAutoRunPrompt && !didAutoRunInitialPromptRef.current) {
-      didAutoRunInitialPromptRef.current = true;
-      clearIdePrompt();
-      handleChatSend(idePrompt);
-    }
-  }, [idePrompt, ideAutoRunPrompt, handleChatSend, clearIdePrompt]);
+
 
   // Load user projects for the dashboard
   const fetchProjects = useCallback(async () => {
@@ -438,6 +431,15 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     setGeneratingId(assistantId);
     runAgent(message, messagesRef.current, assistantId);
   }, [runAgent, setMessages]);
+
+  // Auto-run initial prompt on mount if supplied
+  useEffect(() => {
+    if (idePrompt && ideAutoRunPrompt && !didAutoRunInitialPromptRef.current) {
+      didAutoRunInitialPromptRef.current = true;
+      clearIdePrompt();
+      handleChatSend(idePrompt);
+    }
+  }, [idePrompt, ideAutoRunPrompt, handleChatSend, clearIdePrompt]);
 
   // Handle compilation errors in preview
   const handlePreviewError = useCallback((error: string) => {
