@@ -43,6 +43,15 @@ export function IDEPreviewPanel({ files, onError }: IDEPreviewPanelProps) {
 
   // Add default configurations
   sandpackFiles['/package.json'] = JSON.stringify({
+    name: "vite-react-ts",
+    private: true,
+    version: "0.0.0",
+    type: "module",
+    scripts: {
+      "dev": "vite",
+      "build": "tsc && vite build",
+      "preview": "vite preview"
+    },
     dependencies: {
       "react": "^18.3.1",
       "react-dom": "^18.3.1",

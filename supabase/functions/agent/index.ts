@@ -9,151 +9,39 @@ const corsHeaders = {
 
 const AI_GATEWAY = "https://api.openai.com/v1/chat/completions";
 const DEFAULT_AGENT_MODEL = "gpt-5.4-mini";
-const MAX_ITERATIONS = 8;
-const MAX_NO_PROGRESS_ITERATIONS = 2;
-const MAX_JSON_RETRIES = 2;
-const AI_REQUEST_TIMEOUT_MS = 70000;
+const AI_REQUEST_TIMEOUT_MS = 90000;
 
-const AGENT_SYSTEM_PROMPT = `You are **Arc Code**, a senior software engineer building production-ready apps inside an existing React + Vite + TypeScript project.
+const AGENT_SYSTEM_PROMPT = `You are **Arc Code**, a senior software engineer building production-ready React web apps.
 
 ━━━ PRIMARY GOAL ━━━
-Implement the user request with the SMALLEST safe set of file changes that compiles and runs.
+Implement the user request by generating the necessary code files for the project.
 
-━━━ TOOL WORKFLOW (REQUIRED) ━━━
-1) Use create_file / modify_file / delete_file tools for every file change
-2) Return COMPLETE file content for each touched file (no truncation)
-3) Call done ONLY after writing all needed files
-4) Never call done before at least one file write
+━━━ OUTPUT FORMAT (CRITICAL) ━━━
+You must output your file changes using markdown headers and code blocks. For each file you want to create or modify, use one of these formats:
 
-━━━ INCREMENTAL CHANGE POLICY (CRITICAL) ━━━
-• If <current-files> is provided, treat it as the source of truth
-• Make surgical edits; do NOT rewrite the whole app unless the user explicitly asks
-• Preserve existing working behavior, routes, and architecture
-• Prefer adding focused files/components over rewriting large files
-• Only delete files when user explicitly asks or replacement is clearly required
+Format A (Preferred):
+### path/to/file.tsx
+\`\`\`tsx
+// complete code content here
+\`\`\`
 
-━━━ CORRECT STACK & CONVENTIONS ━━━
-• React 18 + TypeScript + Vite + Tailwind CSS
-• Use ES module imports (not UMD/global assumptions)
-• Use existing alias imports like @/...
-• You may use dependencies already present in the project
-• Keep syntax valid: no missing braces, no partial arrays/objects, no unfinished code
+Format B:
+[FILEPATH]
+path/to/file.tsx
+[CONTENT]
+\`\`\`tsx
+// complete code content here
+\`\`\`
 
-━━━ RELIABILITY CHECKLIST BEFORE done ━━━
-• Imports/exports are valid
-• Edited code is syntactically complete
-• New files are referenced correctly
-• No placeholders like TODO/"rest of file"
-• Changes match user scope (no unrelated refactors)
+To delete an existing file, output:
+[DELETE] path/to/file.tsx
 
-━━━ RESPONSE STYLE ━━━
-• Do not send plain-text implementation instead of tools
-• Use concise done summary of what changed
-
-━━━ ROUTING (IMPORTANT) ━━━
-The preview includes the official, full-featured **react-router-dom v6** library. It supports:
-• HashRouter, BrowserRouter (which maps automatically to HashRouter behind the scenes), Routes, Route, Link, NavLink, Navigate, Outlet, etc.
-• useNavigate, useLocation, useParams, useSearchParams, and all standard hooks.
-• Dynamic route parameters (e.g. \`/users/:id\`), catch-all wildcard routes (\`*\`), and nested routing layouts using Outlet.
-
-Rules for routing:
-• Always wrap the app in BrowserRouter and Routes/Route.
-• Create separate page components and wire them cleanly.
-• Use local React state or basic client-side localStorage namespace for page data persistence when prototyping. DO NOT build complex authentication loops; focus on making multi-page layouts functional, beautiful, and interactive.`;
-
-const tools = [
-  {
-    type: "function",
-    function: {
-      name: "create_file",
-      description: "Create a new file in the project with complete content. Use this for every file you want to add.",
-      parameters: {
-        type: "object",
-        properties: {
-          path: { type: "string", description: "File path like src/components/Header.tsx" },
-          content: { type: "string", description: "Complete file content — no truncation allowed" },
-        },
-        required: ["path", "content"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "modify_file",
-      description: "Modify an existing file. Return the COMPLETE new file content with all changes applied. Only modify files that actually need changes.",
-      parameters: {
-        type: "object",
-        properties: {
-          path: { type: "string", description: "Path of the existing file to modify" },
-          content: { type: "string", description: "Complete new file content — no truncation allowed" },
-        },
-        required: ["path", "content"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "delete_file",
-      description: "Delete a file from the project.",
-      parameters: {
-        type: "object",
-        properties: {
-          path: { type: "string", description: "File path to delete" },
-        },
-        required: ["path"],
-        additionalProperties: false,
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "done",
-      description: "Call ONLY after you have used create_file or modify_file for every file. Provide a brief summary of what was built.",
-      parameters: {
-        type: "object",
-        properties: {
-          summary: { type: "string", description: "Brief summary of all changes made" },
-        },
-        required: ["summary"],
-        additionalProperties: false,
-      },
-    },
-  },
-];
-
-function parseLooseJson(text: string): any {
-  try {
-    return JSON.parse(text);
-  } catch {
-    const firstBrace = text.indexOf("{");
-    const lastBrace = text.lastIndexOf("}");
-    if (firstBrace >= 0 && lastBrace > firstBrace) {
-      return JSON.parse(text.slice(firstBrace, lastBrace + 1));
-    }
-    throw new Error("Invalid JSON payload");
-  }
-}
-
-function safeToolArgs(raw: unknown): any {
-  if (typeof raw === "object" && raw !== null) return raw;
-  if (typeof raw !== "string") return {};
-
-  try {
-    return JSON.parse(raw);
-  } catch {
-    const cleaned = raw
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/```$/i, "")
-      .trim();
-    return parseLooseJson(cleaned);
-  }
-}
+Rules:
+• Always output the COMPLETE file content in the code blocks — no placeholders, no "rest of code here".
+• Since this is a client-side React App, all routes must be containerized in the main client. If you want navigation, import react-router-dom and set up Routes/Route inside src/App.tsx.
+• Style the interface beautifully using Tailwind CSS classes.
+• Keep all your code functional, valid, and syntactically correct.
+`;
 
 function normalizeMessages(input: any): { role: "user" | "assistant" | "system"; content: string }[] {
   if (!Array.isArray(input)) return [];
@@ -166,11 +54,47 @@ function normalizeMessages(input: any): { role: "user" | "assistant" | "system";
     .filter((m) => m.content.length > 0);
 }
 
+function parseFilesFromMarkdown(text: string): { files: Record<string, string>; deletions: string[] } {
+  const files: Record<string, string> = {};
+  const deletions: string[] = [];
+
+  // Parse deletions: [DELETE] path/to/file.tsx
+  const deleteRegex = /(?:^|\n)\[DELETE\]\s*([a-zA-Z0-9_\-\.\/]+)/gi;
+  let match;
+  while ((match = deleteRegex.exec(text)) !== null) {
+    deletions.push(match[1].trim());
+  }
+
+  // Parse files Format A: ### path/to/file.tsx\n```lang\ncode\n```
+  const sectionRegex = /(?:^|\n)(?:###|##|#)\s*([a-zA-Z0-9_\-\.\/]+)\s*[\r\n]+```[a-zA-Z0-9_-]*[\r\n]+([\s\S]*?)[\r\n]+```/gi;
+  while ((match = sectionRegex.exec(text)) !== null) {
+    const path = match[1].trim();
+    files[path] = match[2];
+  }
+
+  // Parse files Format B: [FILEPATH]\npath\n[CONTENT]\n```...\ncode\n```
+  const filepathRegex = /\[FILEPATH\]\s*([^\n\r]+)\s*\[CONTENT\]\s*```[a-zA-Z0-9_-]*[\r\n]+([\s\S]*?)[\r\n]+```/gi;
+  while ((match = filepathRegex.exec(text)) !== null) {
+    const path = match[1].trim();
+    files[path] = match[2];
+  }
+
+  // Fallback: search for any code blocks that specify a filepath in their header or as a preceding line
+  const fallbackRegex = /(?:file|path):\s*([a-zA-Z0-9_\-\.\/]+)\s*[\r\n]+```[a-zA-Z0-9_-]*[\r\n]+([\s\S]*?)[\r\n]+```/gi;
+  while ((match = fallbackRegex.exec(text)) !== null) {
+    const path = match[1].trim();
+    if (!files[path]) {
+      files[path] = match[2];
+    }
+  }
+
+  return { files, deletions };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Auth guard: require a valid user token
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -225,258 +149,67 @@ serve(async (req) => {
         };
 
         try {
-          send({ type: "status", message: "Analyzing your request…" });
-          const conversationMessages: any[] = [{ role: "system", content: systemPrompt }, ...messages];
-          const accumulatedFiles: Record<string, string> = {};
-          const deletions: string[] = [];
-          let finalSummary = "";
-          let iterations = 0;
-          let filesWritten = 0;
-          let jsonRetries = 0;
-          let noProgressIterations = 0;
+          send({ type: "status", message: "Planning and writing code…" });
+          const conversationMessages = [{ role: "system", content: systemPrompt }, ...messages];
 
-          while (iterations < MAX_ITERATIONS) {
-            iterations++;
-            send({
-              type: "status",
-              message: iterations === 1 ? "Planning and writing code…" : `Continuing… (step ${iterations})`,
+          const targetModel = model || DEFAULT_AGENT_MODEL;
+          const isReasoning = targetModel.startsWith("o1") || targetModel.startsWith("o3") || targetModel.startsWith("gpt-5.");
+
+          const aiAbortController = new AbortController();
+          const aiTimeout = setTimeout(() => aiAbortController.abort(), AI_REQUEST_TIMEOUT_MS);
+
+          let aiResp: Response;
+          try {
+            aiResp = await fetch(AI_GATEWAY, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                model: targetModel,
+                messages: conversationMessages,
+                stream: false,
+                ...(isReasoning
+                  ? { max_completion_tokens: 25000 }
+                  : { max_tokens: 12000, temperature: 0.2 }
+                ),
+              }),
+              signal: aiAbortController.signal,
             });
-
-            const toolChoice = iterations === 1 ? "required" : "auto";
-            const aiAbortController = new AbortController();
-            const aiTimeout = setTimeout(() => aiAbortController.abort(), AI_REQUEST_TIMEOUT_MS);
-
-            // Heartbeat: send a ping every 20s while awaiting the AI so the
-            // client-side inactivity timer doesn't fire during long AI calls.
-            const heartbeat = setInterval(() => {
-              send({ type: "status", message: "Still working…" });
-            }, 20000);
-
-            const targetModel = model || DEFAULT_AGENT_MODEL;
-            const isReasoning = targetModel.startsWith("o1") || targetModel.startsWith("o3") || targetModel.startsWith("gpt-5.");
-
-            let aiResp: Response;
-            try {
-              aiResp = await fetch(AI_GATEWAY, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${OPENAI_API_KEY}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: targetModel,
-                  messages: conversationMessages,
-                  tools,
-                  tool_choice: toolChoice,
-                  stream: false,
-                  ...(isReasoning
-                    ? { max_completion_tokens: 25000 }
-                    : { max_tokens: 12000, temperature: 0.2 }
-                  ),
-                }),
-                signal: aiAbortController.signal,
-              });
-            } catch (fetchErr) {
-              clearTimeout(aiTimeout);
-              clearInterval(heartbeat);
-              if (fetchErr instanceof Error && fetchErr.name === "AbortError") {
-                send({ type: "error", message: "The agent timed out while generating code. Please retry." });
-                break;
-              }
-              throw fetchErr;
-            } finally {
-              clearTimeout(aiTimeout);
-              clearInterval(heartbeat);
+          } catch (fetchErr) {
+            clearTimeout(aiTimeout);
+            if (fetchErr instanceof Error && fetchErr.name === "AbortError") {
+              send({ type: "error", message: "The agent timed out while generating code. Please retry." });
+              return;
             }
-
-            if (!aiResp.ok) {
-              const status = aiResp.status;
-              if (status === 429) {
-                send({ type: "error", message: "Rate limited — please wait and try again." });
-                break;
-              }
-              if (status === 402) {
-                send({ type: "error", message: "AI credits exhausted. Please add funds." });
-                break;
-              }
-              const t = await aiResp.text();
-              console.error("AI gateway error:", status, t);
-              send({ type: "error", message: `AI error (${status}): ${t.slice(0, 100)}` });
-              break;
-            }
-
-            let rawText = "";
-            try {
-              rawText = await aiResp.text();
-            } catch (readErr) {
-              console.error("Failed to read response body:", readErr);
-              if (jsonRetries < MAX_JSON_RETRIES) {
-                jsonRetries++;
-                send({ type: "status", message: `Retrying… (attempt ${jsonRetries})` });
-                continue;
-              }
-              send({ type: "error", message: "Failed to read AI response after retries." });
-              break;
-            }
-
-            let data: any;
-            try {
-              data = parseLooseJson(rawText);
-              jsonRetries = 0;
-            } catch (parseErr) {
-              console.error("Failed to parse AI response JSON:", parseErr, "Raw length:", rawText.length);
-              if (jsonRetries < MAX_JSON_RETRIES) {
-                jsonRetries++;
-                send({ type: "status", message: `JSON parse error, retrying… (attempt ${jsonRetries})` });
-                conversationMessages.push({
-                  role: "user",
-                  content: "Retry now. Output valid tool calls only. Do not output plain text.",
-                });
-                continue;
-              }
-              send({ type: "error", message: "The AI returned malformed data repeatedly. Please retry." });
-              break;
-            }
-
-            const choice = data?.choices?.[0];
-            const msg = choice?.message;
-            if (!msg) {
-              send({ type: "error", message: "No response from AI." });
-              break;
-            }
-
-            conversationMessages.push(msg);
-            const toolCalls = Array.isArray(msg.tool_calls) ? msg.tool_calls : [];
-
-            if (toolCalls.length === 0) {
-              if (filesWritten > 0 || deletions.length > 0) {
-                if (typeof msg.content === "string" && msg.content.trim()) finalSummary = msg.content.trim();
-                break;
-              }
-
-              noProgressIterations++;
-              if (noProgressIterations >= MAX_NO_PROGRESS_ITERATIONS) {
-                send({ type: "error", message: "The agent did not produce file actions. Please retry with a clearer prompt." });
-                break;
-              }
-
-              conversationMessages.push({
-                role: "user",
-                content: "Use create_file/modify_file/delete_file tools now. Do not respond in plain text.",
-              });
-              continue;
-            }
-
-            let calledDone = false;
-            let iterationHadFileMutation = false;
-
-            for (const tc of toolCalls.slice(0, 24)) {
-              const toolCallId = typeof tc?.id === "string" ? tc.id : crypto.randomUUID();
-              let args: any;
-
-              try {
-                args = safeToolArgs(tc?.function?.arguments);
-              } catch (argParseErr) {
-                console.error("Failed to parse tool call arguments:", argParseErr);
-                conversationMessages.push({
-                  role: "tool",
-                  tool_call_id: toolCallId,
-                  content: "Error: Invalid JSON arguments. Retry this tool call with valid JSON.",
-                });
-                continue;
-              }
-
-              const toolName = tc?.function?.name;
-              let result = "";
-
-              switch (toolName) {
-                case "create_file": {
-                  if (typeof args.path !== "string" || typeof args.content !== "string") {
-                    result = "Error: create_file requires string path and content.";
-                    conversationMessages.push({ role: "tool", tool_call_id: toolCallId, content: result });
-                    continue;
-                  }
-
-                  send({ type: "action", action: "creating", path: args.path });
-                  accumulatedFiles[args.path] = args.content;
-                  filesWritten++;
-                  iterationHadFileMutation = true;
-                  result = `Created ${args.path}`;
-                  send({ type: "action_complete", action: "created", path: args.path, success: true });
-                  break;
-                }
-                case "modify_file": {
-                  if (typeof args.path !== "string" || typeof args.content !== "string") {
-                    result = "Error: modify_file requires string path and content.";
-                    conversationMessages.push({ role: "tool", tool_call_id: toolCallId, content: result });
-                    continue;
-                  }
-
-                  send({ type: "action", action: "modifying", path: args.path });
-                  accumulatedFiles[args.path] = args.content;
-                  filesWritten++;
-                  iterationHadFileMutation = true;
-                  result = `Modified ${args.path}`;
-                  send({ type: "action_complete", action: "modified", path: args.path, success: true });
-                  break;
-                }
-                case "delete_file": {
-                  if (typeof args.path !== "string") {
-                    result = "Error: delete_file requires a string path.";
-                    conversationMessages.push({ role: "tool", tool_call_id: toolCallId, content: result });
-                    continue;
-                  }
-
-                  send({ type: "action", action: "deleting", path: args.path });
-                  deletions.push(args.path);
-                  iterationHadFileMutation = true;
-                  result = `Deleted ${args.path}`;
-                  send({ type: "action_complete", action: "deleted", path: args.path, success: true });
-                  break;
-                }
-                case "done": {
-                  if (filesWritten === 0 && deletions.length === 0) {
-                    result = "Error: You must create, modify, or delete at least one file before done.";
-                    conversationMessages.push({ role: "tool", tool_call_id: toolCallId, content: result });
-                    conversationMessages.push({
-                      role: "user",
-                      content: "You called done without file changes. Perform actual file operations first.",
-                    });
-                    continue;
-                  }
-
-                  finalSummary = typeof args.summary === "string" && args.summary.trim()
-                    ? args.summary.trim()
-                    : "Applied file changes.";
-                  calledDone = true;
-                  result = "Done";
-                  break;
-                }
-                default: {
-                  result = `Ignored unknown tool: ${toolName || "unknown"}`;
-                  conversationMessages.push({ role: "tool", tool_call_id: toolCallId, content: result });
-                  continue;
-                }
-              }
-
-              if (toolName !== "done" || calledDone) {
-                conversationMessages.push({ role: "tool", tool_call_id: toolCallId, content: result });
-              }
-
-              if (calledDone) break;
-            }
-
-            if (calledDone) break;
-
-            if (!iterationHadFileMutation) {
-              noProgressIterations++;
-              if (noProgressIterations >= MAX_NO_PROGRESS_ITERATIONS) {
-                send({ type: "error", message: "The agent failed to make concrete file changes. Please retry." });
-                break;
-              }
-            } else {
-              noProgressIterations = 0;
-            }
+            throw fetchErr;
+          } finally {
+            clearTimeout(aiTimeout);
           }
 
-          const hasFileChanges = Object.keys(accumulatedFiles).length > 0 || deletions.length > 0;
+          if (!aiResp.ok) {
+            const status = aiResp.status;
+            if (status === 429) {
+              send({ type: "error", message: "Rate limited — please wait and try again." });
+              return;
+            }
+            if (status === 402) {
+              send({ type: "error", message: "AI credits exhausted. Please add funds." });
+              return;
+            }
+            const t = await aiResp.text();
+            console.error("AI gateway error:", status, t);
+            send({ type: "error", message: `AI error (${status}): ${t.slice(0, 100)}` });
+            return;
+          }
+
+          const data = await aiResp.json();
+          const responseText = data?.choices?.[0]?.message?.content;
+          if (!responseText) {
+            send({ type: "error", message: "The AI did not return any code response." });
+            return;
+          }
+
+          const { files, deletions } = parseFilesFromMarkdown(responseText);
+          const hasFileChanges = Object.keys(files).length > 0 || deletions.length > 0;
 
           if (!hasFileChanges) {
             send({
@@ -487,11 +220,22 @@ serve(async (req) => {
             return;
           }
 
-          send({ type: "files", files: accumulatedFiles, deletions });
-          send({ type: "done", summary: finalSummary || "Applied file changes." });
+          // Send action events for UI feedback
+          for (const path of Object.keys(files)) {
+            send({ type: "action", action: "creating", path });
+            send({ type: "action_complete", action: "created", path, success: true });
+          }
+          for (const path of deletions) {
+            send({ type: "action", action: "deleting", path });
+            send({ type: "action_complete", action: "deleted", path, success: true });
+          }
+
+          // Send final payload
+          send({ type: "files", files, deletions });
+          send({ type: "done", summary: "Successfully generated codebase." });
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         } catch (e) {
-          console.error("Agent loop error:", e);
+          console.error("Agent execution error:", e);
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message: e instanceof Error ? e.message : "Unknown error" })}\n\n`));
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         } finally {
