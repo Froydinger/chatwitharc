@@ -159,45 +159,48 @@ export function IDEPreviewPanel({
             visibleFiles: ["/src/App.tsx"],
             activeFile: "/src/App.tsx",
           }}
+          className="h-full w-full flex flex-col"
         >
           <SandpackErrorListener onError={onError} />
-          {viewMode === 'phone' ? (
-            <div className="h-full flex items-center justify-center bg-[#0c0d0e] py-4">
-              <div className="relative flex flex-col items-center" style={{ height: '100%', maxHeight: '780px' }}>
-                {/* Phone shell */}
-                <div className="relative bg-zinc-900 rounded-[2.5rem] p-[10px] shadow-2xl ring-1 ring-white/10 flex flex-col"
-                  style={{ width: '375px', height: '100%', maxHeight: '780px' }}>
-                  {/* Top notch bar */}
-                  <div className="flex items-center justify-center mb-1 shrink-0">
-                    <div className="w-24 h-5 bg-zinc-800 rounded-full flex items-center justify-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
-                      <div className="w-3 h-3 rounded-full bg-zinc-700" />
-                    </div>
-                  </div>
-                  {/* Screen */}
-                  <div className="flex-1 rounded-[1.75rem] overflow-hidden bg-white">
-                    <SandpackPreview
-                      showNavigator={false}
-                      showCube={false}
-                      showRestartButton={false}
-                      className="w-full h-full border-none bg-white"
-                    />
-                  </div>
-                  {/* Home indicator */}
-                  <div className="flex justify-center mt-1.5 shrink-0">
-                    <div className="w-24 h-1 bg-zinc-600 rounded-full" />
+          
+          <div className="h-full w-full flex items-center justify-center bg-[#0c0d0e] transition-all duration-300">
+            <div 
+              className={cn(
+                "transition-all duration-300 bg-white",
+                viewMode === 'phone' 
+                  ? "w-[375px] h-[780px] rounded-[2.5rem] p-[10px] bg-zinc-900 ring-1 ring-white/10 shadow-2xl flex flex-col" 
+                  : "w-full h-full border-none"
+              )}
+            >
+              {viewMode === 'phone' && (
+                /* Phone top notch speaker/camera elements */
+                <div className="flex items-center justify-center mb-2 shrink-0">
+                  <div className="w-24 h-4 bg-zinc-800 rounded-full flex items-center justify-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                    <div className="w-2 h-2 rounded-full bg-zinc-700" />
                   </div>
                 </div>
+              )}
+              
+              <div className={cn("flex-1 bg-white overflow-hidden", viewMode === 'phone' && "rounded-[1.75rem]")}>
+                <SandpackPreview
+                  showNavigator={false}
+                  showCube={false}
+                  showRestartButton={false}
+                  showOpenInCodeSandbox={false}
+                  className="w-full h-full border-none bg-white"
+                  customStyle={{ height: '100%' }}
+                />
               </div>
+
+              {viewMode === 'phone' && (
+                /* Phone bottom home indicator pill */
+                <div className="flex justify-center mt-2 shrink-0">
+                  <div className="w-20 h-1 bg-zinc-600 rounded-full" />
+                </div>
+              )}
             </div>
-          ) : (
-            <SandpackPreview
-              showNavigator={false}
-              showCube={false}
-              showRestartButton={false}
-              className="w-full h-full border-none bg-white"
-            />
-          )}
+          </div>
         </SandpackProvider>
       </div>
     </div>
