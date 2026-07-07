@@ -10,6 +10,7 @@ import {
 import { GlassCard } from "@/components/ui/glass-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DocArticle {
   id: string;
@@ -25,6 +26,20 @@ export function DocsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
+
+  const handleBack = async () => {
+    const hasHistory = window.history.state && window.history.state.idx > 0;
+    if (hasHistory) {
+      navigate(-1);
+    } else {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/dashboard");
+      } else {
+        navigate("/");
+      }
+    }
+  };
 
   const categories = [
     { id: "all", label: "All Topics", icon: BookOpen },
@@ -376,7 +391,7 @@ export function DocsPage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => navigate(-1)}
+              onClick={handleBack}
               className="rounded-xl border-glass-border glass hover:bg-white/5"
             >
               <ArrowLeft className="h-4 w-4" />
