@@ -58,8 +58,12 @@ const LANDING_FAQ = [
     a: "Yes. Voice mode is available, providing low-latency spoken conversations with multiple natural voices. Unlimited voice mode is included on the Boost tier.",
   },
   {
-    q: "Can ArcAI write code?",
-    a: "Yes. The code canvas generates functional web apps with a live preview. Boost users can also publish their creations online to a public custom link.",
+    q: "Can ArcAI build complete web apps?",
+    a: "Yes! The App Builder (at https://askarc.chat/build) compiles full React web apps using Tailwind CSS, Framer Motion, and React Router DOM v6 in real-time. You can preview them inside a sandbox and publish/host them directly to a Netlify URL with a custom subdomain in one click.",
+  },
+  {
+    q: "What are the limitations of the App Builder?",
+    a: "The App Builder is frontend-only (client-side). It does not support Node.js/Python server-side backends or custom SQL databases. Any data persistence for prototyping is handled via React state or basic localStorage. Additionally, because sandboxed previews run on the same domain, they share localStorage keys unless you namespace them.",
   },
 ];
 

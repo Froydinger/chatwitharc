@@ -326,22 +326,26 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     slug: "free-ai-for-coding",
     title: "The best free AI for coding in your browser",
     description:
-      "ArcAI includes a free code canvas that generates, previews and publishes web apps — powered by GPT-5.4 (Smart).",
-    keywords: ["free AI coding", "AI code generator free", "free Copilot alternative"],
+      "ArcAI includes a free App Builder that generates, previews and publishes React apps — powered by GPT-5.4 (Smart).",
+    keywords: ["free AI coding", "AI code generator free", "free Copilot alternative", "React app builder"],
     updated: UPDATED,
     intro:
-      "ArcAI has a built-in code canvas that generates functional web apps and gives you a live preview — free to use.",
+      "ArcAI has a built-in App Builder that compiles full React web apps with live preview and custom subdomain hosting — free to use.",
     faq: [
       {
-        q: "What is the best free AI for coding?",
-        a: "ArcAI is a strong free option: it has a code canvas powered by GPT-5.4 (Smart), live preview, and free one-tap publishing to a public URL.",
+        q: "What is the App Builder?",
+        a: "ArcAI is a strong option for prototyping: it features a complete App Builder workspace that compiles React, Tailwind CSS, and React Router DOM v6 in real-time, allowing you to design multi-page sandboxed apps and publish them directly to Netlify.",
       },
       {
         q: "Can I publish what I build?",
-        a: "Yes. Every ArcAI account includes one-tap publishing of code creations to a live URL you can share.",
+        a: "Yes. Every ArcAI account includes live publishing of your sandboxed creations to a custom Netlify URL with a custom subdomain in one click.",
+      },
+      {
+        q: "What are the limitations of the App Builder?",
+        a: "The App Builder is client-side (frontend-only). It does not support Node.js/Python server-side backends or custom SQL databases. State persistence is handled using React state or localStorage, which is shared under the askarc.chat origin unless keys are custom-prefixed.",
       },
     ],
-    cta: "Try free AI coding",
+    cta: "Try the App Builder",
   },
   {
     slug: "free-ai-for-writing",

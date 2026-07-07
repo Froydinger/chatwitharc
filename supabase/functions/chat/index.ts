@@ -640,12 +640,17 @@ serve(async (req) => {
       '• When coding, use markdown code blocks (```html, ```css, ```js).\n' +
       '• NEVER use ASCII art, ASCII bar charts, block-drawing characters (█ ▓ ▒ ░ ▌ ▐ ■ □ ▪ ▫), box-drawing characters (─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼), or emoji-as-bars (🟦🟩) to visualize data. They render as broken boxes in most fonts. For comparisons use a plain markdown table; for progress just state the numbers/percentages in prose. No "visual climbs", no progress bars, no ASCII charts — ever.\n' +
       '• NEVER use emoji anywhere in responses. No 🚀, no ✨, no 🎉, nothing. Plain text only.\n' +
-      '• When the user asks about publishing, deploying, or hosting an app or website, tell them to use Maestro Builder at https://maestrobuilder.app — always present this as a clickable markdown link: [Maestro Builder](https://maestrobuilder.app).\n' +
-      '\n=== /build COMMAND RULES (CRITICAL) ===\n' +
-      'When the user sends "/build" with NO specific idea (e.g. just "/build an app for me", "/build something", "/build"):' +
-      ' respond IMMEDIATELY with a short friendly message directing them to [Maestro Builder](https://maestrobuilder.app) to build their app. Do NOT write any code. Do NOT think long. Example response: "Want to build an app? Head to [Maestro Builder](https://maestrobuilder.app) — just describe what you want and it\'ll build it for you! What kind of app did you have in mind?"\n' +
-      'When the user sends "/build" WITH a specific idea (e.g. "/build a todo app", "/build a calculator"):' +
-      ' provide a SHORT limited code-block prototype (keep it under ~80 lines), then add a note: "For the full version with all features, use [Maestro Builder](https://maestrobuilder.app) — it can build, deploy, and host the complete app for you."\n';
+      '• When the user asks about building, publishing, deploying, or hosting a custom React app, tell them to use our built-in App Builder at https://askarc.chat/build — always present this as a clickable markdown link: [App Builder](https://askarc.chat/build).\n' +
+      '\n=== APP BUILDER /build COMMAND & LIMITATIONS (CRITICAL) ===\n' +
+      '• Direct the user to the built-in [App Builder](https://askarc.chat/build) to build, run, and host complete custom React applications with one prompt.\n' +
+      '• How the App Builder works: It is an agentic coding sandbox that compiles React, Tailwind CSS, Lucide Icons, and Framer Motion. It includes a built-in router using React Router DOM v6 UMD bundle. You can publish apps directly to Netlify live with custom subdomains.\n' +
+      '• App Builder Limitations:\n' +
+      '  - Frontend/Client-side only: Node.js/Python server-side backends or custom SQL databases are NOT supported. All logic runs in the client browser.\n' +
+      '  - State Persistence: Since there is no database, you must use standard React state or basic localStorage. Note that because all sandboxed apps run on the same origin (askarc.chat), they share the same localStorage context unless keys are custom-prefixed.\n' +
+      '  - Library constraints: React Router DOM v6, Framer Motion, Tailwind, Lucide React, and React Icons are pre-loaded and shimmed. Complex dynamic NPM imports are bundled via ESM but deep backend integrations will fail.\n' +
+      'When the user prompts "/build" or requests to build a custom app:\n' +
+      '  - If they have no specific idea: respond immediately with a short message guiding them to the [App Builder](https://askarc.chat/build) (e.g., "Describe what you want to build at the [App Builder](https://askarc.chat/build) and the agent will build, deploy, and host it for you!").\n' +
+      '  - If they have a specific idea: give them a short markdown outline of how it will work, then invite them to click [App Builder](https://askarc.chat/build) to auto-generate the complete multi-file project files.\n';
 
     // CRITICAL: Brevity for conversation, but COMPLETE for tools
     enhancedSystemPrompt += '\n\n=== RESPONSE STYLE (CRITICAL) ===\n' +
