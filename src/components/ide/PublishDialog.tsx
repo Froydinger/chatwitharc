@@ -204,6 +204,13 @@ function PublishForm({
         Configure your site before {isUpdate ? 'updating' : 'publishing'} to <strong>{cleanSubdomain || '...'}.{PUBLISH_DOMAIN}</strong>
       </DialogDescription>
 
+      <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2.5 flex items-start gap-2 mt-2">
+        <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+        <p className="text-[10.5px] leading-normal text-amber-500/80">
+          <strong>Beta warning:</strong> Multi-page applications are currently unstable. Please expect temporary routing or layout issues on deployed sites.
+        </p>
+      </div>
+
       <div className="space-y-4 py-2">
         <div className="space-y-2">
           <Label htmlFor="siteTitle">Site Title</Label>
@@ -284,6 +291,7 @@ export function PublishDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Rocket className="h-4 w-4" /> {isPublished ? 'Published Site' : 'Publish to Web'}
+            <span className="text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider select-none">Beta</span>
           </DialogTitle>
         </DialogHeader>
 

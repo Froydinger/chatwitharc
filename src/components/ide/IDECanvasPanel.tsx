@@ -580,9 +580,12 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
             <span>Dashboard</span>
           </Button>
           <div className="h-4 w-[1px] bg-border/20 shrink-0" />
-          <span className="text-xs font-semibold max-w-[200px] truncate">
-            {messages.find(m => m.role === 'user')?.content?.slice(0, 50) || 'Active Workspace'}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold max-w-[200px] truncate">
+              {messages.find(m => m.role === 'user')?.content?.slice(0, 50) || 'Active Workspace'}
+            </span>
+            <span className="text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded uppercase tracking-wider select-none scale-90 origin-left">Beta</span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={handleCopyAll} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">

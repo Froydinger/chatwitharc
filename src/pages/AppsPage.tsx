@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Code2, Search, Rocket, ExternalLink, Layers, Trash2, Plus, Calendar, Loader2, Sparkles } from "lucide-react";
+import { Code2, Search, Rocket, ExternalLink, Layers, Trash2, Plus, Calendar, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -210,7 +210,10 @@ function AppsDashboard() {
             <Sparkles className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-base font-bold tracking-tight">Arc Code Dashboard</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-bold tracking-tight">Arc Code Dashboard</h1>
+              <span className="text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider select-none">Beta</span>
+            </div>
             <p className="text-xs text-muted-foreground mt-0.5">Build and deploy instant React web applications</p>
           </div>
         </div>
@@ -229,6 +232,12 @@ function AppsDashboard() {
               <span>Build a new application</span>
             </h3>
             <p className="text-xs text-muted-foreground">Describe your project idea below to jump right into the workspace</p>
+            <div className="flex items-start gap-2 bg-amber-500/5 border border-amber-500/10 rounded-lg p-2.5 mt-2">
+              <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-[11px] leading-normal text-amber-500/80">
+                <span className="font-semibold text-amber-500">Beta Warning:</span> Multi-page deployments and complex states are currently in active development. Please expect instability. For single-page/single-file scripts, we recommend using <code className="bg-amber-500/10 px-1 py-0.5 rounded text-amber-500 font-mono">/code</code> instead.
+              </p>
+            </div>
           </div>
           <form onSubmit={handleCreateNewAppSubmit} className="flex gap-2 bg-[#121316] border border-border/10 rounded-xl p-2 focus-within:border-primary/45 transition-colors">
             <input
