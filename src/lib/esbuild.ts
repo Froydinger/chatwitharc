@@ -68,7 +68,7 @@ function createVirtualFsPlugin(files: VirtualFileSystem): esbuild.Plugin {
     'react': 'module.exports = window.React;',
     'react-dom': 'module.exports = window.ReactDOM;',
     'react-dom/client': 'module.exports = window.ReactDOM;',
-    'framer-motion': 'module.exports = window.Motion || {};',
+    'framer-motion': 'module.exports = window.Motion || window.FramerMotion || {};',
     'react-router-dom': `
       var RouterDOM = window.ReactRouterDOM || {};
       var BrowserRouterOverride = RouterDOM.HashRouter || function(props) { return null; };
@@ -194,13 +194,13 @@ export function generatePreviewHtml(bundledCode: string): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin><\/script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin><\/script>
-  <script src="https://unpkg.com/@remix-run/router@1.21.0/dist/router.umd.min.js" crossorigin><\/script>
-  <script src="https://unpkg.com/react-router@6.28.0/dist/umd/react-router.production.min.js" crossorigin><\/script>
-  <script src="https://unpkg.com/react-router-dom@6.28.0/dist/umd/react-router-dom.production.min.js" crossorigin><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/@remix-run/router@1.21.0/dist/router.umd.min.js" crossorigin><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/react-router@6.28.0/dist/umd/react-router.production.min.js" crossorigin><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/react-router-dom@6.28.0/dist/umd/react-router-dom.production.min.js" crossorigin><\/script>
   <script src="https://cdn.tailwindcss.com"><\/script>
-  <script src="https://unpkg.com/framer-motion@11/dist/framer-motion.js" crossorigin><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/framer-motion@11.11.9/dist/framer-motion.js" crossorigin><\/script>
   <script>
     (function() {
       try { window.localStorage; } catch(e) {
