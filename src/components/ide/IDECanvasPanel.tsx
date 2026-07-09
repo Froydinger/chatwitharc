@@ -480,7 +480,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   };
 
   // Netlify Publishing
-  const handleDeploy = async (subdomain: string) => {
+  const handleDeploy = async (subdomain: string, siteTitle: string, faviconSvg: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error('Unauthorized');
     if (!projectIdRef.current) throw new Error('Create and save a project first before deploying.');
@@ -489,8 +489,9 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       projectIdRef.current,
       files,
       subdomain,
-      session.access_token,
-      netlifySiteId || undefined
+      netlifySiteId || undefined,
+      siteTitle,
+      faviconSvg
     );
 
     setDeployedUrl(result.url);
