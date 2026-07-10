@@ -49,7 +49,9 @@ async function generateAIPrompts(category: 'chat' | 'create' | 'write' | 'code')
       return generatePromptsByCategory(category);
     }
 
-    const prompts = data?.prompts || generatePromptsByCategory(category);
+    const prompts = Array.isArray(data?.prompts) && data.prompts.length > 0
+      ? data.prompts
+      : generatePromptsByCategory(category);
 
     // Only cache successful API responses, not fallbacks
     if (data?.prompts && data.prompts.length > 0) {

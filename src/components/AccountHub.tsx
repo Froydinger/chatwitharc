@@ -68,7 +68,7 @@ const COLOR_OPTIONS = [
 
 export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   const { user } = useAuth();
-  const { profile, updateProfile, updating } = useProfile();
+  const { profile, updateProfile, updating, refetch } = useProfile();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { accentColor, setAccentColor } = useAccentColor();
@@ -158,8 +158,8 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     if (!file || !user || !supabase || !isSupabaseConfigured) return;
     setIsUploading(true);
     try {
-      const avatarUrl = await uploadAvatar(file);
-      await updateProfile({ avatar_url: avatarUrl });
+      await uploadAvatar(file);
+      await refetch();
       toast({ title: "Photo updated" });
     } catch {
       toast({ title: "Upload failed", variant: "destructive" });

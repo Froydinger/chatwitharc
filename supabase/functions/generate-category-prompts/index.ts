@@ -6,10 +6,47 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const fallbackPrompts = {
+  chat: [
+    { label: "Plan Week", prompt: "Help me plan the rest of my week around what matters most." },
+    { label: "Think Through", prompt: "Help me think through a decision and compare the tradeoffs clearly." },
+    { label: "Explain Simply", prompt: "Explain a topic I am curious about in plain language with examples." },
+    { label: "Reset Focus", prompt: "Help me reset my focus and choose the next useful thing to do." },
+    { label: "Practice Talk", prompt: "Role-play an important conversation so I can practice what to say." },
+    { label: "Fresh Angle", prompt: "Give me a fresh perspective on a situation I am stuck on." },
+  ],
+  create: [
+    { label: "Brand Mark", prompt: "Generate image: a polished logo mark concept for a modern digital product." },
+    { label: "Profile Shot", prompt: "Generate image: a clean cinematic profile picture with strong lighting and personality." },
+    { label: "Product Mockup", prompt: "Generate image: a realistic product mockup in a premium editorial ad style." },
+    { label: "Social Graphic", prompt: "Generate image: a bold social media graphic with a clear focal point and crisp typography space." },
+    { label: "Wallpaper", prompt: "Generate image: a high-resolution wallpaper with rich detail and balanced composition." },
+    { label: "Poster Concept", prompt: "Generate image: a striking poster concept with strong contrast and memorable art direction." },
+  ],
+  write: [
+    { label: "Draft Email", prompt: "Draft a clear email for something I need to send, then make it warmer and more concise." },
+    { label: "Polish Text", prompt: "Improve this writing so it sounds cleaner, sharper, and more natural." },
+    { label: "Outline Piece", prompt: "Help me outline a piece of writing with a strong structure and useful talking points." },
+    { label: "Rewrite Tone", prompt: "Rewrite this in a tone that feels confident, friendly, and professional." },
+    { label: "Meeting Notes", prompt: "Turn rough notes into a clean summary with decisions and next steps." },
+    { label: "Strong Hook", prompt: "Help me write a stronger opening hook for something I am working on." },
+  ],
+  code: [
+    { label: "Mini Tool", prompt: "Code: Build a useful mini tool with HTML, CSS, and JavaScript." },
+    { label: "Landing Page", prompt: "Code: Create a responsive landing page with modern visuals and clear sections." },
+    { label: "Dashboard UI", prompt: "Code: Build a compact dashboard interface with stats, charts, and controls." },
+    { label: "Interactive Demo", prompt: "Code: Create a polished interactive demo using HTML, CSS, and JavaScript." },
+    { label: "Form Flow", prompt: "Code: Build a clean form flow with validation and helpful states." },
+    { label: "Animation Lab", prompt: "Code: Create a smooth animation playground with controls." },
+  ],
+} as const;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+
+  let requestedCategory: keyof typeof fallbackPrompts = 'chat';
 
   // Require signed-in user — this consumes paid AI gateway credits
   const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
@@ -38,6 +75,7 @@ serve(async (req) => {
 
   try {
     const { category } = await req.json();
+    requestedCategory = ['chat', 'create', 'write', 'code'].includes(category) ? category : 'chat';
 
     if (!category || !['chat', 'create', 'write', 'code'].includes(category)) {
       throw new Error('Invalid category');
@@ -130,8 +168,7 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
       throw new Error('OPENAI_API_KEY not configured');
     }
 
-    // Always use GPT-5.6 Terra for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'gpt-5.6-luna';
+    const PROMPT_MODEL = 'gpt-5.4-nano';
     console.log('Using model for category prompts:', PROMPT_MODEL);
 
     const requestBody = {
@@ -140,8 +177,6 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Generate 6 completely unique, never-before-seen ${category} prompts. Be wildly creative! Timestamp: ${timestamp}` }
       ],
-      temperature: 1.0,
-      top_p: 0.95,
       max_completion_tokens: 2000,
     };
 
@@ -159,7 +194,7 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
       const errText = await response.text().catch(() => '');
       console.error('AI gateway error:', response.status, errText);
       return new Response(
-        JSON.stringify({ prompts: [], fallback: true, error: `AI service temporarily unavailable (${response.status})` }),
+        JSON.stringify({ prompts: fallbackPrompts[category as keyof typeof fallbackPrompts], fallback: true, error: `AI service temporarily unavailable (${response.status})` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -222,7 +257,11 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
         const parseMessage = parseError instanceof Error ? parseError.message : 'Unknown parse error';
         console.error('JSON parse error:', parseMessage);
         console.error('Attempted to parse:', jsonMatch[0].substring(0, 500));
-        throw new Error(`Failed to parse AI response JSON: ${parseMessage}`);
+        console.error(`Failed to parse AI response JSON: ${parseMessage}`);
+        return new Response(
+          JSON.stringify({ prompts: fallbackPrompts[category as keyof typeof fallbackPrompts], fallback: true, error: `Failed to parse AI response JSON: ${parseMessage}` }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
     }
 
@@ -235,9 +274,8 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
     console.error('Category prompts error:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ prompts: fallbackPrompts[requestedCategory], fallback: true, error: message }),
       {
-        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );

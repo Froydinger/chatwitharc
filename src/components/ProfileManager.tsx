@@ -14,7 +14,7 @@ import { SmoothImage } from "@/components/ui/smooth-image";
 
 export function ProfileManager() {
   const { user } = useAuth();
-  const { profile, updateProfile } = useProfile();
+  const { profile, updateProfile, refetch } = useProfile();
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -35,8 +35,8 @@ export function ProfileManager() {
 
     setIsUploading(true);
     try {
-      const avatarUrl = await uploadAvatar(file);
-      await updateProfile({ avatar_url: avatarUrl });
+      await uploadAvatar(file);
+      await refetch();
 
       toast({
         title: "Avatar updated",

@@ -89,7 +89,9 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
         return generatePromptsByCategory(category);
       }
 
-      const prompts = data?.prompts || generatePromptsByCategory(category);
+      const prompts = Array.isArray(data?.prompts) && data.prompts.length > 0
+        ? data.prompts
+        : generatePromptsByCategory(category);
       console.log(`✨ Generated ${prompts.length} new ${category} prompts:`, prompts.map(p => p.label));
 
       // Only cache successful API responses, not fallbacks

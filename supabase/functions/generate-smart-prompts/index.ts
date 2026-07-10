@@ -6,6 +6,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const fallbackPrompts = [
+  { label: "Plan Next", prompt: "Help me choose the next useful thing to focus on." },
+  { label: "Draft Email", prompt: "Draft a clear email for something I need to send." },
+  { label: "Fresh Ideas", prompt: "Brainstorm practical ideas for something I am working on." },
+  { label: "Explain This", prompt: "Explain a topic simply with useful examples." },
+  { label: "Polish Writing", prompt: "Improve this writing so it sounds clean and natural." },
+  { label: "Compare Options", prompt: "Help me compare options and make a decision." },
+];
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -21,8 +30,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const context = body?.context || 'general';
 
-    // Always use GPT-5.6 Terra for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'gpt-5.6-luna';
+    const PROMPT_MODEL = 'gpt-5.4-nano';
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -169,13 +177,16 @@ Example format:
             : 'Generate 6 personalized smart prompts for me based on my profile and chat history.' 
           }
         ],
-        temperature: 0.8,
         max_completion_tokens: 1000,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`AI request failed: ${response.status}`);
+      const errText = await response.text().catch(() => '');
+      console.error('AI request failed:', response.status, errText);
+      return new Response(JSON.stringify({ prompts: fallbackPrompts, fallback: true, error: `AI request failed: ${response.status}` }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const data = await response.json();
@@ -241,9 +252,8 @@ Example format:
     console.error('Smart prompts error:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ prompts: fallbackPrompts, fallback: true, error: message }),
       { 
-        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );

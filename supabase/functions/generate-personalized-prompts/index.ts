@@ -9,6 +9,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const fallbackPrompts = [
+  { text: "Plan my next move", fullPrompt: "Help me decide the next useful thing to focus on.", icon: "🎯", category: "chat" },
+  { text: "Draft a clear email", fullPrompt: "Draft a clear email for something I need to send.", icon: "✉️", category: "write" },
+  { text: "Make a quick plan", fullPrompt: "Turn my rough idea into a practical step-by-step plan.", icon: "🧭", category: "chat" },
+  { text: "Polish this writing", fullPrompt: "Improve this writing so it sounds clean, confident, and natural.", icon: "✍️", category: "write" },
+  { text: "Build a mini tool", fullPrompt: "Code: Build a useful mini tool with HTML, CSS, and JavaScript.", icon: "⚙️", category: "code" },
+  { text: "Brainstorm options", fullPrompt: "Help me brainstorm strong options and compare the tradeoffs.", icon: "💡", category: "chat" },
+];
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -63,8 +72,7 @@ serve(async (req) => {
       });
     }
 
-    // Always use GPT-5.6 Terra for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'gpt-5.6-luna';
+    const PROMPT_MODEL = 'gpt-5.4-nano';
     console.log('Using model for personalized prompts:', PROMPT_MODEL);
 
     const requestBody = {
@@ -114,7 +122,6 @@ Keep "text" short (25-35 chars), put full context in "fullPrompt".`
           content: userContext
         }
       ],
-      temperature: 0.8,
       max_completion_tokens: 500,
     };
 
@@ -131,7 +138,7 @@ Keep "text" short (25-35 chars), put full context in "fullPrompt".`
     
     if (!data.choices?.[0]?.message?.content) {
       console.error('Unexpected OpenAI response:', data);
-      return new Response(JSON.stringify({ prompts: [] }), {
+      return new Response(JSON.stringify({ prompts: fallbackPrompts, fallback: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -147,7 +154,7 @@ Keep "text" short (25-35 chars), put full context in "fullPrompt".`
       prompts = JSON.parse(jsonStr);
     } catch (parseError) {
       console.error('Failed to parse AI response:', content, parseError);
-      return new Response(JSON.stringify({ prompts: [] }), {
+      return new Response(JSON.stringify({ prompts: fallbackPrompts, fallback: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -160,10 +167,10 @@ Keep "text" short (25-35 chars), put full context in "fullPrompt".`
     console.error('Error generating personalized prompts:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ 
-      prompts: [],
+      prompts: fallbackPrompts,
+      fallback: true,
       error: message 
     }), {
-      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

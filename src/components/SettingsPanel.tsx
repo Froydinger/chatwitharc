@@ -243,7 +243,7 @@ export function SettingsPanel() {
     setRightPanelTab,
   } = useArcStore();
   const { user } = useAuth();
-  const { profile, updateProfile, updating } = useProfile();
+  const { profile, updateProfile, updating, refetch } = useProfile();
   const {
     hasBoost,
     isAdmin: quotaAdmin,
@@ -320,8 +320,8 @@ export function SettingsPanel() {
     }
     setIsUploading(true);
     try {
-      const avatarUrl = await uploadAvatar(file);
-      await updateProfile({ avatar_url: avatarUrl });
+      await uploadAvatar(file);
+      await refetch();
     } catch (error) {
       console.error("Error uploading avatar:", error);
       toast({ title: "Upload failed", description: "Failed to upload profile picture.", variant: "destructive" });

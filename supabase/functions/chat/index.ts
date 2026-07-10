@@ -222,6 +222,31 @@ interface WebSearchResponse {
   images?: string[];
 }
 
+function getYouTubeVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/watch\?.*v=([a-zA-Z0-9_-]{11})/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function appendFeaturedVideo(content: string, sources: WebSearchResult[]): string {
+  const featuredVideo = sources.find((source) => getYouTubeVideoId(source.url));
+  if (!featuredVideo) return content;
+
+  const videoId = getYouTubeVideoId(featuredVideo.url);
+  if (videoId && content.includes(videoId)) return content;
+  if (content.includes(featuredVideo.url)) return content;
+
+  const title = (featuredVideo.title || 'Watch on YouTube').replace(/\]/g, '\\]');
+  return `${content.trim()}\n\nFeatured video: [${title}](${featuredVideo.url})`;
+}
+
 // Web search using Tavily
 async function webSearch(query: string): Promise<WebSearchResponse> {
   return webSearchTavily(query);
@@ -2114,7 +2139,10 @@ Output the complete, finished writing using the update_canvas tool.`;
     }
     
     // Add tool usage metadata, sources, canvas and code update to the response
-    const responseContent = sanitizedContent;
+    const responseContent = appendFeaturedVideo(sanitizedContent, webSources);
+    if (responseContent !== sanitizedContent) {
+      data.choices[0].message.content = responseContent;
+    }
     const finalResponse = {
       ...data,
       tool_calls_used: toolsUsed,
