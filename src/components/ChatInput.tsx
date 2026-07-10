@@ -61,6 +61,18 @@ import { useImageQuota } from "@/hooks/useImageQuota";
 let cancelRequested = false;
 let currentAbortController: AbortController | null = null;
 
+function shouldForceVideoSearch(message: string): boolean {
+  const text = message.toLowerCase();
+  const asksForVideo =
+    /\b(youtube|youtu\.be|video|clip|watch|play|embed)\b/.test(text) ||
+    /\bshow me\b.*\b(kid|song|scene|video|clip)\b/.test(text);
+  const wantsLookup =
+    /\b(show me|find|look up|search|pull up|get me|link|embed|play|watch)\b/.test(text) ||
+    /\bon youtube\b/.test(text);
+
+  return asksForVideo && wantsLookup;
+}
+
 export const cancelCurrentRequest = () => {
   cancelRequested = true;
   // Abort any ongoing fetch request FIRST to prevent more data arriving
@@ -979,6 +991,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         if (personaMsg) aiMessages.unshift(personaMsg);
 
         let didSearchWeb = false;
+        const shouldSearchForVideo = shouldForceVideoSearch(newContent);
         const { currentSessionId } = useArcStore.getState();
         const result = await ai.sendMessage(
           aiMessages,
@@ -998,6 +1011,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             }
           },
           currentSessionId || undefined,
+          shouldSearchForVideo,
         );
 
         // Clear the loading state
@@ -1956,6 +1970,7 @@ ${safeCode}
         // This ensures the AI uses the correct tool without confusion
         const shouldForceCode = isCodingRequest;
         const shouldForceCanvas = shouldRouteToCanvas && !shouldForceCode;
+        const shouldSearchForVideo = shouldForceVideoSearch(finalMessage);
         const codeContextModelOverride =
           shouldUseCodeContext && !shouldForceCode
             ? getModelForTask('code', getQueryComplexity(finalMessage))
@@ -1969,6 +1984,7 @@ ${safeCode}
           shouldForceCanvas,
           codeContextModelOverride,
           wasSearchMode,
+          shouldSearchForVideo,
         });
 
         // For canvas/code: use streaming with auto-continuation
@@ -2351,7 +2367,7 @@ ${safeCode}
                   }
                 },
                 requestSessionId || undefined,
-                wasSearchMode, // forceWebSearch
+                wasSearchMode || shouldSearchForVideo, // forceWebSearch
                 false, // forceCanvas
                 false, // forceCode
                 false, // forceResearch
