@@ -205,28 +205,22 @@ export function DocsPage() {
     {
       id: "app-builder",
       category: "canvas",
-      title: "Using the React App Builder (/build)",
-      question: "What is the App Builder and how do I use it?",
+      title: "React App Builder status",
+      question: "What is happening with the App Builder?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            The <strong>App Builder</strong> (located at <a href="/build" className="text-primary hover:underline font-semibold">/build</a>) is a dedicated coding workspace that lets you create, compile, preview, and host entire React applications from a single prompt.
+            The <strong>App Builder</strong> IDE is currently paused and marked as coming soon while the workspace is rebuilt.
           </p>
-          <p>Key Features:</p>
+          <p>What to use instead:</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Full Sandbox</strong>: Compiles JSX/TSX React components, styling, animations, and icons in real-time.</li>
-            <li><strong className="text-foreground">Official Routing Support</strong>: Integrates the full <code>react-router-dom</code> library, allowing you to design dynamic multi-page user journeys (e.g. nested routes, layouts). All routing is securely containerized via Hash-routing under the hood.</li>
-            <li><strong className="text-foreground">Instant Hosting</strong>: Deploy your prototype to a live Netlify URL with a custom subdomain in one click.</li>
-          </ul>
-          <p><strong>App Builder Limitations & Constraints:</strong></p>
-          <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Frontend/Client-side Only</strong>: There is no server backend support (no Node.js/Python server scripts or custom SQL databases).</li>
-            <li><strong className="text-foreground">Persistence</strong>: Prototyped data persistence must use local React state or <code>localStorage</code> (which is shared under the askarc.chat origin unless keys are custom-prefixed).</li>
-            <li><strong className="text-foreground">Custom Packages</strong>: Standard frontend styling (Tailwind CSS, Lucide React, Framer Motion, and React Icons) are pre-loaded and highly optimized. Third-party NPM modules are loaded dynamically via ESM.</li>
+            <li><strong className="text-foreground">Code Canvas</strong>: Use <code>/code</code> for single-file HTML, CSS, JavaScript, and compact React-style prototypes.</li>
+            <li><strong className="text-foreground">Chat Follow-ups</strong>: When a code canvas is open, ask follow-up questions or request edits directly in chat.</li>
+            <li><strong className="text-foreground">Saved Artifacts</strong>: Existing IDE artifacts remain visible but read-only until App Builder returns.</li>
           </ul>
         </div>
       ),
-      keywords: ["app builder", "react", "build app", "routing", "deploy", "host", "netlify", "multi-page", "limitations", "database"]
+      keywords: ["app builder", "react", "build app", "ide", "coming soon", "code canvas"]
     },
     {
       id: "memory-bank",

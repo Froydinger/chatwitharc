@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { Code2, Search, Rocket, ExternalLink, Layers, Trash2, ArrowRight } from "lucide-react";
+import { Code2, Search, Rocket, ExternalLink, Layers, Trash2, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -60,11 +59,12 @@ export function AppsPanel() {
   };
 
   const handleOpen = (project: IDEProject) => {
-    // Navigate to the dedicated Apps page
     if (isMobile || window.innerWidth < 1024) {
       setRightPanelOpen(false);
     }
-    window.location.href = `/build/${project.id}`;
+    toast.info("App Builder is coming soon", {
+      description: "Existing app projects are read-only while the IDE workspace is offline.",
+    });
   };
 
   const handleDelete = async (e: React.MouseEvent, projectId: string) => {
@@ -100,17 +100,16 @@ export function AppsPanel() {
           <h2 className="text-3xl font-bold text-foreground">Apps</h2>
         </div>
         <p className="text-muted-foreground text-base">
-          Full apps built with the App Builder IDE
+          App Builder IDE is paused while we rebuild it
         </p>
-        {/* View All link */}
         <Button
           variant="ghost"
           size="sm"
-          className="text-primary hover:text-primary/80 gap-1"
-          onClick={() => window.location.href = '/build'}
+          className="text-amber-500 hover:text-amber-500 gap-1 cursor-not-allowed"
+          disabled
         >
-          View All Apps
-          <ArrowRight className="w-3.5 h-3.5" />
+          Coming Soon
+          <Wrench className="w-3.5 h-3.5" />
         </Button>
         <div className="mx-auto max-w-2xl w-full">
           <div className="relative">
@@ -159,7 +158,7 @@ export function AppsPanel() {
               <GlassCard
                 key={project.id}
                 variant="bubble"
-                className="p-0 cursor-pointer hover:border-primary/50 hover:shadow-lg transition-all group overflow-hidden"
+                className="p-0 cursor-not-allowed opacity-80 transition-all group overflow-hidden"
                 onClick={() => handleOpen(project)}
               >
                 {/* Header bar */}
@@ -211,6 +210,9 @@ export function AppsPanel() {
                       <span>{getFileCount(project.files)} files</span>
                     </div>
                     <span>v{project.version}</span>
+                    <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-500">
+                      Coming soon
+                    </span>
                   </div>
                   {project.netlify_url ? (
                     <a

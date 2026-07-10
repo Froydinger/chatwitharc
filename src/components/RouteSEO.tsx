@@ -89,9 +89,9 @@ const ROUTE_META: Record<string, RouteMeta> = {
       "Thank you for upgrading to ArcAI Boost. Your subscription features are ready.",
   },
   "/build": {
-    title: "ArcAI • App Builder",
+    title: "ArcAI • App Builder Coming Soon",
     description:
-      "Build full-scale interactive web apps in one prompt with the App Builder IDE.",
+      "The App Builder IDE is paused while the workspace is rebuilt.",
   },
 };
 

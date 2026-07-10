@@ -176,7 +176,7 @@ function checkForCodingRequest(message: string): boolean {
   return false;
 }
 
-// App Builder IDE is active — /build navigates to the App Builder IDE
+// App Builder IDE is paused — /build shows a coming-soon notice
 function checkForBuildRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
@@ -1394,11 +1394,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       wasBuildMode = false;
     }
 
-    // BUILD MODE: /build navigates to the App Builder
+    // BUILD MODE: App Builder is paused while the IDE is rebuilt.
     if (wasBuildMode) {
-      const buildPrompt = extractPrefixPrompt(finalMessage);
-      // Navigate to App Builder — the prompt will be handled there
-      navigate(buildPrompt ? `/build?prompt=${encodeURIComponent(buildPrompt)}` : "/build");
+      toast({
+        title: "App Builder is coming soon",
+        description: "Use /code for single-file prototypes while the IDE workspace is offline.",
+      });
       return;
     }
 
@@ -1811,8 +1812,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
         const canvasState = useCanvasStore.getState();
 
-        // CODE MODE: /code now produces inline code blocks via the normal AI flow
-        // (no longer opens IDE — use /build for that)
+        // CODE MODE: /code produces inline code blocks via the normal AI flow.
+        // The App Builder IDE is paused, so /build is handled as coming soon.
         // The isCodingRequest flag flows through to forceCode below
 
         // When writing canvas is open, default to routing there unless the message
@@ -2909,16 +2910,20 @@ ${safeCode}
                           <button
                             onClick={() => {
                               setShowMenu(false);
-                              navigate("/build");
+                              toast({
+                                title: "App Builder is coming soon",
+                                description: "Use /code for single-file prototypes while the IDE workspace is offline.",
+                              });
                             }}
-                            className="flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 group border border-purple-500/20 hover:border-purple-500/35 bg-purple-500/5 hover:bg-purple-500/10 shadow-[0_0_20px_-5px_rgba(168,85,247,0.1)]"
+                            className="flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 group border border-amber-500/20 bg-amber-500/5 shadow-[0_0_20px_-5px_rgba(245,158,11,0.1)] cursor-not-allowed opacity-80"
+                            aria-disabled="true"
                           >
-                            <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0 group-hover:bg-purple-500/30 transition-colors">
-                              <Hammer className="h-4.5 w-4.5 text-purple-400 group-hover:rotate-12 transition-transform duration-200" />
+                            <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                              <Hammer className="h-4.5 w-4.5 text-amber-400" />
                             </div>
                             <div className="flex flex-col items-start text-left min-w-0">
                               <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">App Builder</span>
-                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 line-clamp-2">Build full React apps in one prompt</span>
+                              <span className="text-[9px] text-amber-500 font-semibold leading-tight mt-0.5 line-clamp-2">Coming soon</span>
                             </div>
                           </button>
                         </div>
