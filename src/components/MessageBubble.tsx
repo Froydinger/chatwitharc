@@ -135,12 +135,12 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
     const isUser = message.role === "user";
 
-    const handleOpenImage = (imgUrl: string) => {
+    const handleOpenImage = (imgUrl: string, allowSourceLookup = false) => {
       setSelectedImageUrl(imgUrl);
       
       // Determine original page source URL for search images
       let foundSourceUrl = null;
-      try {
+      if (allowSourceLookup) try {
         const urlObj = new URL(imgUrl);
         const imgDomain = urlObj.hostname.replace('www.', '');
         
@@ -159,10 +159,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           }
         }
         
-        // Fallback: If no match in search sources, just link to the main site of the image URL
-        if (!foundSourceUrl) {
-          foundSourceUrl = `${urlObj.protocol}//${urlObj.hostname}`;
-        }
       } catch (e) {
         console.warn('Could not parse image source URL:', e);
       }
@@ -367,7 +363,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     <div 
                       key={i} 
                       className="relative aspect-video rounded-xl overflow-hidden border border-border/40 group/img cursor-pointer bg-muted/40 shadow-sm hover:scale-[1.02] hover:shadow-md transition-all duration-300"
-                      onClick={() => handleOpenImage(imgUrl)}
+                      onClick={() => handleOpenImage(imgUrl, true)}
                     >
                       <SmoothImage 
                         src={imgUrl} 
