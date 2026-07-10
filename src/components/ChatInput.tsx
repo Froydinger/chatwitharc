@@ -32,7 +32,7 @@ import { useAccentColor } from "@/hooks/useAccentColor";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useModelStore, SOL_MODEL } from "@/store/useModelStore";
+import { useModelStore, SOL_MODEL, TERRA_MODEL } from "@/store/useModelStore";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useStreamingWithContinuation } from "@/hooks/useStreamingWithContinuation";
