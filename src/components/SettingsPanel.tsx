@@ -49,6 +49,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { uploadAvatar } from "@/lib/uploadAvatar";
 
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
@@ -319,12 +320,8 @@ export function SettingsPanel() {
     }
     setIsUploading(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/avatar.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(fileName, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(fileName);
-      await updateProfile({ avatar_url: publicUrl });
+      const avatarUrl = await uploadAvatar(file);
+      await updateProfile({ avatar_url: avatarUrl });
     } catch (error) {
       console.error("Error uploading avatar:", error);
       toast({ title: "Upload failed", description: "Failed to upload profile picture.", variant: "destructive" });

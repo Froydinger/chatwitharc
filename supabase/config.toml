@@ -17,5 +17,6 @@ project_id = "cgvixgyjzswebosfqyll"
     verify_jwt = false
   [functions.receive-email]
     verify_jwt = false
-
+  [functions.upload-avatar]
+    verify_jwt = true
 

@@ -39,6 +39,7 @@ import { signInWithGoogle, signOutCurrentSession } from "@/integrations/auth";
 import { VoiceSelector } from "@/components/VoiceSelector";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useNavigate } from "react-router-dom";
+import { uploadAvatar } from "@/lib/uploadAvatar";
 
 interface AccountHubProps {
   isOpen: boolean;
@@ -157,12 +158,8 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     if (!file || !user || !supabase || !isSupabaseConfigured) return;
     setIsUploading(true);
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/avatar.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(fileName, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(fileName);
-      await updateProfile({ avatar_url: publicUrl });
+      const avatarUrl = await uploadAvatar(file);
+      await updateProfile({ avatar_url: avatarUrl });
       toast({ title: "Photo updated" });
     } catch {
       toast({ title: "Upload failed", variant: "destructive" });
