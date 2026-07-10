@@ -474,6 +474,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     updateMessageMemoryAction,
     upsertCanvasMessage,
     upsertCodeMessage,
+    createNewSession,
   } = useArcStore();
   // Reactive subscription so the input bar updates when a persona is locked/cleared
   const activeSessionPersonaId = useArcStore((s) => {
@@ -1399,6 +1400,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
     // Reset cancellation flag
     cancelRequested = false;
+    const requestSessionId = useArcStore.getState().currentSessionId || createNewSession();
     setLoading(true);
 
     // Track message usage
@@ -1935,8 +1937,6 @@ ${safeCode}
         }
 
         let didSearchWeb = false;
-        const { currentSessionId } = useArcStore.getState();
-
         // Determine explicit mode flags to pass to backend
         // This ensures the AI uses the correct tool without confusion
         const shouldForceCode = isCodingRequest || shouldRouteToCodeCanvas;
@@ -1967,7 +1967,7 @@ ${safeCode}
             profile,
             forceCanvas: shouldForceCanvas,
             forceCode: shouldForceCode,
-            sessionId: currentSessionId || undefined,
+            sessionId: requestSessionId || undefined,
             forceWebSearch: false, // No web search in canvas/code mode
             abortSignal,
             maxContinuations: 3, // Allow up to 3 auto-continuations for long code
@@ -2071,12 +2071,12 @@ ${safeCode}
               }
 
               // Persist to session for canvas/code (use streamedContent, not result.content)
-              const { currentSessionId, updateSessionCanvasContent, chatSessions, generateChatTitle } = useArcStore.getState();
-              if (currentSessionId) {
-                await updateSessionCanvasContent(currentSessionId, streamedContent || result.content);
-                const session = chatSessions.find((s) => s.id === currentSessionId);
+              const { updateSessionCanvasContent, chatSessions, generateChatTitle } = useArcStore.getState();
+              if (requestSessionId) {
+                await updateSessionCanvasContent(requestSessionId, streamedContent || result.content);
+                const session = chatSessions.find((s) => s.id === requestSessionId);
                 if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
-                  generateChatTitle(currentSessionId, useArcStore.getState().messages);
+                  generateChatTitle(requestSessionId, useArcStore.getState().messages);
                 }
               }
             },
@@ -2302,7 +2302,7 @@ ${safeCode}
                   aiMessages,
                   profile,
                   undefined,
-                  currentSessionId || undefined,
+                  requestSessionId || undefined,
                   false,
                   false,
                   false,
@@ -2329,7 +2329,7 @@ ${safeCode}
                     didSearchWeb = true;
                   }
                 },
-                currentSessionId || undefined,
+                requestSessionId || undefined,
                 wasSearchMode, // forceWebSearch
                 false, // forceCanvas
                 false, // forceCode

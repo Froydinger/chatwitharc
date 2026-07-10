@@ -987,9 +987,9 @@ export const useArcStore = create<ArcState>()(
           messages: [],
         }));
 
-
-        // Save to Supabase
-        get().saveChatToSupabase(newSession);
+        // Do not persist an empty shell session. The first addMessage call will
+        // save the session with its initial message; saving the empty shell here
+        // can race and overwrite that first-message save on slow networks.
 
         return sessionId;
       },
