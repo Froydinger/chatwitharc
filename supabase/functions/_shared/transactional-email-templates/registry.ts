@@ -17,6 +17,9 @@ import { template as desktopLink } from './desktop-link.tsx'
 import { template as sharedChatInvite } from './shared-chat-invite.tsx'
 import { template as scheduledTaskComplete } from './scheduled-task-complete.tsx'
 import { template as arcNotification } from './arc-notification.tsx'
+import { template as boostUpgraded } from './boost-upgraded.tsx'
+import { template as boostGranted } from './boost-granted.tsx'
+import { template as boostRevoked } from './boost-revoked.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'welcome': welcome,
@@ -27,4 +30,7 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'shared-chat-invite': sharedChatInvite,
   'scheduled-task-complete': scheduledTaskComplete,
   'arc-notification': arcNotification,
+  'boost-upgraded': boostUpgraded,
+  'boost-granted': boostGranted,
+  'boost-revoked': boostRevoked,
 }

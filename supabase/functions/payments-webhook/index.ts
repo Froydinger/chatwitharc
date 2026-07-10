@@ -22,7 +22,56 @@ function resolvePriceId(item: any): string | null {
     || null;
 }
 
-async function upsertSubscription(subscription: any, env: StripeEnv) {
+async function sendBoostUpgradeEmail(userId: string, subscriptionId: string) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) return;
+
+  const { data: profile } = await getSupabase()
+    .from("profiles")
+    .select("display_name")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${serviceKey}`,
+        "apikey": serviceKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        templateName: "boost-upgraded",
+        recipientUserId: userId,
+        idempotencyKey: `boost-upgraded:${userId}:${subscriptionId}`,
+        templateData: {
+          displayName: profile?.display_name || undefined,
+          planName: "ArcAI Boost",
+          appUrl: "https://askarc.chat",
+          manageUrl: "https://askarc.chat/dashboard/settings?section=plan",
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      console.warn("[payments-webhook] boost upgrade email failed", {
+        userId,
+        subscriptionId,
+        status: response.status,
+        text: await response.text(),
+      });
+    }
+  } catch (error) {
+    console.warn("[payments-webhook] boost upgrade email threw", {
+      userId,
+      subscriptionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+async function upsertSubscription(subscription: any, env: StripeEnv, options?: { sendUpgradeEmail?: boolean }) {
   const userId = subscription.metadata?.userId;
   if (!userId) {
     console.error("[payments-webhook] subscription event with no userId metadata", subscription.id);
@@ -50,6 +99,10 @@ async function upsertSubscription(subscription: any, env: StripeEnv) {
     },
     { onConflict: "stripe_subscription_id" },
   );
+
+  if (options?.sendUpgradeEmail && subscription.status === "active") {
+    await sendBoostUpgradeEmail(userId, subscription.id);
+  }
 }
 
 async function markCanceled(subscription: any, env: StripeEnv) {
@@ -90,6 +143,8 @@ Deno.serve(async (req) => {
 
     switch (event.type) {
       case "customer.subscription.created":
+        await upsertSubscription(event.data.object, env, { sendUpgradeEmail: true });
+        break;
       case "customer.subscription.updated":
         await upsertSubscription(event.data.object, env);
         break;

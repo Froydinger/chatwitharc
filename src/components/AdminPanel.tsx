@@ -360,11 +360,14 @@ export function AdminPanel() {
   const handleGrantBoost = async (user: AdminUser) => {
     if (!supabase) return;
     try {
-      const { error } = await supabase.functions.invoke("admin-users", {
+      const { data, error } = await supabase.functions.invoke("admin-users", {
         body: { action: "grant_boost", userId: user.id },
       });
       if (error) throw error;
-      toast({ title: "Boost subscription granted", description: `Boost has been activated for ${user.display_name || user.email}` });
+      toast({
+        title: "Boost subscription granted",
+        description: `Boost has been activated for ${user.display_name || user.email}${data?.emailSent === false ? " (email not sent)" : ""}`,
+      });
       fetchUsers();
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to grant Boost", variant: "destructive" });
@@ -374,11 +377,14 @@ export function AdminPanel() {
   const handleRevokeBoost = async (user: AdminUser) => {
     if (!supabase) return;
     try {
-      const { error } = await supabase.functions.invoke("admin-users", {
+      const { data, error } = await supabase.functions.invoke("admin-users", {
         body: { action: "revoke_boost", userId: user.id },
       });
       if (error) throw error;
-      toast({ title: "Boost subscription revoked", description: `Boost has been deactivated for ${user.display_name || user.email}` });
+      toast({
+        title: "Boost subscription revoked",
+        description: `Boost has been deactivated for ${user.display_name || user.email}${data?.emailSent === false ? " (email not sent)" : ""}`,
+      });
       fetchUsers();
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to revoke Boost", variant: "destructive" });

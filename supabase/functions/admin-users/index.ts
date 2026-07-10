@@ -11,6 +11,64 @@ const logStep = (step: string, details?: any) => {
   console.log(`[ADMIN-USERS] ${step}${detailsStr}`);
 };
 
+async function sendBoostEmail(options: {
+  templateName: "boost-granted" | "boost-revoked";
+  userId: string;
+  displayName?: string | null;
+  adminEmail?: string | null;
+  idempotencyKey: string;
+}) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceKey) {
+    console.warn("[ADMIN-USERS] Missing Supabase env; skipping Boost email");
+    return false;
+  }
+
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${serviceKey}`,
+        "apikey": serviceKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        templateName: options.templateName,
+        recipientUserId: options.userId,
+        idempotencyKey: options.idempotencyKey,
+        templateData: {
+          displayName: options.displayName || undefined,
+          adminEmail: options.adminEmail || undefined,
+          appUrl: "https://askarc.chat",
+          pricingUrl: "https://askarc.chat/pricing",
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.warn("[ADMIN-USERS] Boost email failed", {
+        templateName: options.templateName,
+        userId: options.userId,
+        status: response.status,
+        text,
+      });
+      return false;
+    }
+
+    logStep("Boost email sent", { templateName: options.templateName, userId: options.userId });
+    return true;
+  } catch (error) {
+    console.warn("[ADMIN-USERS] Boost email threw", {
+      templateName: options.templateName,
+      userId: options.userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -208,6 +266,12 @@ serve(async (req) => {
       const { userId } = params;
       if (!userId) throw new Error("userId required");
 
+      const { data: targetProfile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", userId)
+        .maybeSingle();
+
       await supabase.from("subscriptions").upsert({
         user_id: userId,
         status: "active",
@@ -220,7 +284,15 @@ serve(async (req) => {
       }, { onConflict: "user_id" });
 
       logStep("Granted boost via admin", { userId });
-      return new Response(JSON.stringify({ success: true }), {
+      const emailSent = await sendBoostEmail({
+        templateName: "boost-granted",
+        userId,
+        displayName: targetProfile?.display_name,
+        adminEmail: userData.user?.email,
+        idempotencyKey: `admin-boost-granted:${userId}:${new Date().toISOString().slice(0, 10)}`,
+      });
+
+      return new Response(JSON.stringify({ success: true, emailSent }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -229,10 +301,24 @@ serve(async (req) => {
       const { userId } = params;
       if (!userId) throw new Error("userId required");
 
+      const { data: targetProfile } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("user_id", userId)
+        .maybeSingle();
+
       await supabase.from("subscriptions").delete().eq("user_id", userId);
 
       logStep("Revoked boost via admin", { userId });
-      return new Response(JSON.stringify({ success: true }), {
+      const emailSent = await sendBoostEmail({
+        templateName: "boost-revoked",
+        userId,
+        displayName: targetProfile?.display_name,
+        adminEmail: userData.user?.email,
+        idempotencyKey: `admin-boost-revoked:${userId}:${new Date().toISOString().slice(0, 10)}`,
+      });
+
+      return new Response(JSON.stringify({ success: true, emailSent }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

@@ -62,14 +62,16 @@ Deno.serve(async (req) => {
   let recipientUserId: string | undefined
   let idempotencyKey: string
   let messageId: string
+  let callerProvidedIdempotencyKey = false
   let templateData: Record<string, any> = {}
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
     recipientEmail = body.recipientEmail || body.recipient_email
     recipientUserId = body.recipientUserId || body.recipient_user_id
-    messageId = crypto.randomUUID()
-    idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
+    idempotencyKey = body.idempotencyKey || body.idempotency_key || crypto.randomUUID()
+    callerProvidedIdempotencyKey = !!(body.idempotencyKey || body.idempotency_key)
+    messageId = idempotencyKey
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
     }
@@ -151,6 +153,43 @@ Deno.serve(async (req) => {
 
   // Create Supabase client with service role (bypasses RLS)
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  if (callerProvidedIdempotencyKey) {
+    const { data: alreadySent, error: idempotencyError } = await supabase
+      .from('email_send_log')
+      .select('id')
+      .eq('message_id', messageId)
+      .eq('status', 'sent')
+      .maybeSingle()
+
+    if (idempotencyError) {
+      console.error('Idempotency check failed — refusing to send', {
+        error: idempotencyError,
+        messageId,
+      })
+      return new Response(
+        JSON.stringify({ error: 'Failed to verify idempotency status' }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    if (alreadySent) {
+      console.log('Transactional email already sent for idempotency key', {
+        templateName,
+        messageId,
+      })
+      return new Response(
+        JSON.stringify({ success: true, sent: false, reason: 'already_sent' }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+  }
 
   // 2. Check suppression list (fail-closed: if we can't verify, don't send)
   const { data: suppressed, error: suppressionError } = await supabase
