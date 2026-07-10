@@ -2875,13 +2875,13 @@ ${safeCode}
                         style={{
                           background: "hsl(var(--background))",
                         }}
-                        className="pointer-events-auto w-[min(92vw,440px)] max-h-[85vh] overflow-y-auto p-5 rounded-[28px] shadow-2xl bg-neutral-950/80 backdrop-blur-xl border border-white/10"
+                        className="pointer-events-auto w-[min(92vw,440px)] max-h-[85vh] overflow-y-auto p-5 rounded-[28px] shadow-2xl bg-neutral-950/80 backdrop-blur-xl border border-black/10 dark:border-white/10"
                       >
                         <div className="flex items-center justify-between mb-4 px-1">
-                          <span className="text-sm font-semibold tracking-wide text-white/90">Tools & Actions</span>
+                          <span className="text-sm font-semibold tracking-wide text-foreground">Tools & Actions</span>
                           <button
                             onClick={() => setShowMenu(false)}
-                            className="p-1 rounded-full hover:bg-white/10 transition-colors text-muted-foreground hover:text-white"
+                            className="p-1 rounded-full hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
                             aria-label="Close"
                           >
                             <X className="h-4 w-4" />
@@ -2901,7 +2901,7 @@ ${safeCode}
                               <Search className="h-4.5 w-4.5 text-indigo-400 group-hover:scale-110 transition-transform duration-200" />
                             </div>
                             <div className="flex flex-col items-start text-left min-w-0">
-                              <span className="text-xs font-semibold text-white tracking-wide truncate w-full">Deep Search™</span>
+                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Deep Search™</span>
                               <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 line-clamp-2">Scan the live web with citations</span>
                             </div>
                           </button>
@@ -2917,7 +2917,7 @@ ${safeCode}
                               <Hammer className="h-4.5 w-4.5 text-purple-400 group-hover:rotate-12 transition-transform duration-200" />
                             </div>
                             <div className="flex flex-col items-start text-left min-w-0">
-                              <span className="text-xs font-semibold text-white tracking-wide truncate w-full">App Builder</span>
+                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">App Builder</span>
                               <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 line-clamp-2">Build full React apps in one prompt</span>
                             </div>
                           </button>
@@ -2930,13 +2930,13 @@ ${safeCode}
                               fileInputRef.current?.click();
                               setShowMenu(false);
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.01] hover:bg-white/[0.04] transition-all group border border-white/5 hover:border-white/10"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-blue-500/10 flex items-center justify-center transition-colors">
-                              <Paperclip className="h-4.5 w-4.5 text-slate-400 group-hover:text-blue-400 transition-colors" />
+                            <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-blue-500/10 flex items-center justify-center transition-colors">
+                              <Paperclip className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-blue-400 transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
-                              <span className="text-xs font-semibold text-white/90">Attach</span>
+                              <span className="text-xs font-semibold text-foreground">Attach</span>
                               <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Files, PDFs, Docs</span>
                             </div>
                           </button>
@@ -2948,13 +2948,13 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.01] hover:bg-white/[0.04] transition-all group border border-white/5 hover:border-white/10"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-amber-500/10 flex items-center justify-center transition-colors">
-                              <ImagePlus className="h-4.5 w-4.5 text-slate-400 group-hover:text-amber-400 transition-colors" />
+                            <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-amber-500/10 flex items-center justify-center transition-colors">
+                              <ImagePlus className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-amber-400 transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
-                              <span className="text-xs font-semibold text-white/90">Generate</span>
+                              <span className="text-xs font-semibold text-foreground">Generate</span>
                               <span className="text-[9px] text-muted-foreground font-normal mt-0.5">AI Image Creation</span>
                             </div>
                           </button>
@@ -2966,13 +2966,13 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.01] hover:bg-white/[0.04] transition-all group border border-white/5 hover:border-white/10"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-indigo-500/10 flex items-center justify-center transition-colors">
-                              <Globe className="h-4.5 w-4.5 text-slate-400 group-hover:text-indigo-400 transition-colors" />
+                            <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-indigo-500/10 flex items-center justify-center transition-colors">
+                              <Globe className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-indigo-400 transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
-                              <span className="text-xs font-semibold text-white/90">Search</span>
+                              <span className="text-xs font-semibold text-foreground">Search</span>
                               <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Live Web Results</span>
                             </div>
                           </button>
@@ -2984,13 +2984,13 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.01] hover:bg-white/[0.04] transition-all group border border-white/5 hover:border-white/10"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-emerald-500/10 flex items-center justify-center transition-colors">
-                              <Code2 className="h-4.5 w-4.5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
+                            <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-emerald-500/10 flex items-center justify-center transition-colors">
+                              <Code2 className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-emerald-400 transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
-                              <span className="text-xs font-semibold text-white/90">Code</span>
+                              <span className="text-xs font-semibold text-foreground">Code</span>
                               <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Scripting & logic</span>
                             </div>
                           </button>
@@ -3002,13 +3002,13 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.01] hover:bg-white/[0.04] transition-all group border border-white/5 hover:border-white/10"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-pink-500/10 flex items-center justify-center transition-colors">
-                              <PenLine className="h-4.5 w-4.5 text-slate-400 group-hover:text-pink-400 transition-colors" />
+                            <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-pink-500/10 flex items-center justify-center transition-colors">
+                              <PenLine className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-pink-400 transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
-                              <span className="text-xs font-semibold text-white/90">Draft</span>
+                              <span className="text-xs font-semibold text-foreground">Draft</span>
                               <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Writing & Layouts</span>
                             </div>
                           </button>
@@ -3018,13 +3018,13 @@ ${safeCode}
                               setShowPromptLibrary(true);
                               setShowMenu(false);
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-white/[0.01] hover:bg-white/[0.04] transition-all group border border-white/5 hover:border-white/10"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] group-hover:bg-neutral-500/20 flex items-center justify-center transition-colors">
-                              <ListPlus className="h-4.5 w-4.5 text-slate-400 group-hover:text-white transition-colors" />
+                            <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-neutral-500/20 flex items-center justify-center transition-colors">
+                              <ListPlus className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-foreground transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
-                              <span className="text-xs font-semibold text-white/90">Prompts</span>
+                              <span className="text-xs font-semibold text-foreground">Prompts</span>
                               <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Template library</span>
                             </div>
                           </button>
@@ -3032,7 +3032,7 @@ ${safeCode}
 
                         {/* Personas Carousel (Extremely premium, horizontal, clean scroll) */}
                         {PERSONAS_ENABLED && !activePersona && sortedPersonas.length > 0 && (
-                          <div className="mt-5 pt-4 border-t border-white/5">
+                          <div className="mt-5 pt-4 border-t border-black/10 dark:border-white/5">
                             <div className="px-1 mb-3 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Personas</div>
                             <div className="flex gap-4 overflow-x-auto py-1 px-1 scrollbar-none snap-x">
                               {sortedPersonas.map((p) => {
@@ -3049,17 +3049,17 @@ ${safeCode}
                                   >
                                     <div className="relative">
                                       {p.avatarUrl ? (
-                                        <img src={p.avatarUrl} alt={p.name} loading="lazy" className="w-12 h-12 rounded-full object-cover bg-neutral-900 border border-white/10 group-hover:border-primary-glow/60 group-hover:scale-105 transition-all duration-200 shrink-0" />
+                                        <img src={p.avatarUrl} alt={p.name} loading="lazy" className="w-12 h-12 rounded-full object-cover bg-muted border border-black/10 dark:border-white/10 group-hover:border-primary-glow/60 group-hover:scale-105 transition-all duration-200 shrink-0" />
                                       ) : (
-                                        <div className="w-12 h-12 rounded-full bg-primary/10 border border-white/10 flex items-center justify-center text-primary font-bold text-base group-hover:border-primary-glow/60 group-hover:scale-105 transition-all duration-200 shrink-0">
+                                        <div className="w-12 h-12 rounded-full bg-primary/10 border border-black/10 dark:border-white/10 flex items-center justify-center text-primary font-bold text-base group-hover:border-primary-glow/60 group-hover:scale-105 transition-all duration-200 shrink-0">
                                           {p.name[0].toUpperCase()}
                                         </div>
                                       )}
                                       {isCustom && (
-                                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-primary-glow rounded-full border-2 border-neutral-950" title="Custom" />
+                                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-primary-glow rounded-full border-2 border-background" title="Custom" />
                                       )}
                                     </div>
-                                    <span className="text-[10px] font-medium text-muted-foreground group-hover:text-white transition-colors truncate w-full">
+                                    <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors truncate w-full">
                                       {p.name}
                                     </span>
                                   </button>
@@ -3124,7 +3124,7 @@ ${safeCode}
                                 <button
                                   key={p.id}
                                   onClick={() => selectPersona(p)}
-                                  className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-white/5 text-center relative"
+                                  className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-black/10 dark:border-white/5 text-center relative"
                                 >
                                   {isCustom && (
                                     <span className="absolute top-1.5 right-1.5 text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-semibold">
@@ -3256,7 +3256,7 @@ ${safeCode}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: 15 }}
                   transition={{ type: "spring", stiffness: 350, damping: 28 }}
-                  className="pointer-events-auto w-[min(90vw,420px)] rounded-3xl border border-white/10 bg-background/95 backdrop-blur-2xl shadow-2xl p-6 flex flex-col gap-5 text-foreground relative overflow-hidden"
+                  className="pointer-events-auto w-[min(90vw,420px)] rounded-3xl border border-black/10 dark:border-white/10 bg-background/95 backdrop-blur-2xl shadow-2xl p-6 flex flex-col gap-5 text-foreground relative overflow-hidden"
                 >
                   {/* Close button */}
                   <button
@@ -3279,12 +3279,12 @@ ${safeCode}
 
                   <div className="flex flex-col gap-4 py-1">
                     {/* Active Model Progress Card */}
-                    <div className="space-y-2.5 p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-md">
+                    <div className="space-y-2.5 p-4 rounded-2xl bg-white/5 border border-black/10 dark:border-white/5 backdrop-blur-md">
                       <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">
                         <span>Active model: <strong className="text-foreground">{imageGenModel === 'gpt-image-2' ? 'GPT Image 2' : imageGenModel === 'gpt-image-1-mini' ? 'GPT Image 1 Mini' : 'GPT Image 1'}</strong></span>
                         <span className="tabular-nums text-foreground">{dailyImagesUsed} / {limit} used</span>
                       </div>
-                      <div className="w-full bg-black/30 rounded-full h-2.5 overflow-hidden border border-white/5 p-0.5">
+                      <div className="w-full bg-black/30 rounded-full h-2.5 overflow-hidden border border-black/10 dark:border-white/5 p-0.5">
                         <motion.div
                           className="bg-primary h-full rounded-full"
                           initial={{ width: 0 }}
@@ -3297,15 +3297,15 @@ ${safeCode}
                     {/* Reference Table */}
                     <div className="space-y-1 text-xs">
                       <div className="text-muted-foreground font-semibold px-1 mb-1 text-[11px] uppercase tracking-wider">Model Limits Reference</div>
-                      <div className="flex justify-between items-center px-1 py-2 border-b border-white/5 text-muted-foreground">
+                      <div className="flex justify-between items-center px-1 py-2 border-b border-black/10 dark:border-white/5 text-muted-foreground">
                         <span>GPT Image 1 (Default)</span>
                         <span className="font-semibold text-foreground">10 daily</span>
                       </div>
-                      <div className="flex justify-between items-center px-1 py-2 border-b border-white/5 text-muted-foreground">
+                      <div className="flex justify-between items-center px-1 py-2 border-b border-black/10 dark:border-white/5 text-muted-foreground">
                         <span>GPT Image 1 Mini (Budget)</span>
                         <span className="font-semibold text-foreground">40 daily</span>
                       </div>
-                      <div className="flex justify-between items-center px-1 py-2 border-b border-white/5 text-muted-foreground">
+                      <div className="flex justify-between items-center px-1 py-2 border-b border-black/10 dark:border-white/5 text-muted-foreground">
                         <span>GPT Image 2 (Premium)</span>
                         <span className="font-semibold text-foreground">3 free (Boost: 20)</span>
                       </div>
@@ -3322,7 +3322,7 @@ ${safeCode}
                         setShowLimitsModal(false);
                         navigate("/dashboard/settings");
                       }}
-                      className="flex-1 h-11 rounded-xl text-xs font-medium border border-white/10 hover:bg-white/5 transition-colors cursor-pointer"
+                      className="flex-1 h-11 rounded-xl text-xs font-medium border border-black/10 dark:border-white/10 hover:bg-white/5 transition-colors cursor-pointer"
                     >
                       Detailed Settings
                     </button>
