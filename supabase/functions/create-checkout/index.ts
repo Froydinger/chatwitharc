@@ -60,6 +60,7 @@ Deno.serve(async (req) => {
       userId,
       returnUrl,
       environment,
+      uiMode,
     }: {
       action?: string;
       sessionId?: string;
@@ -68,6 +69,7 @@ Deno.serve(async (req) => {
       userId?: string;
       returnUrl?: string;
       environment?: StripeEnv;
+      uiMode?: "embedded" | "hosted";
     } = body;
 
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
@@ -306,15 +308,27 @@ Deno.serve(async (req) => {
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: 1 }],
       mode: isRecurring ? "subscription" : "payment",
-      success_url: returnUrl,
-      cancel_url: returnUrl.split("?")[0],
       allow_promotion_codes: true,
+      ...(uiMode === "embedded" ? {
+        ui_mode: "embedded",
+        return_url: returnUrl,
+      } : {
+        success_url: returnUrl,
+        cancel_url: returnUrl.split("?")[0],
+      }),
       ...(customerId && { customer: customerId }),
       ...(resolvedUserId && {
         metadata: { userId: resolvedUserId },
         ...(isRecurring && { subscription_data: { metadata: { userId: resolvedUserId } } }),
       }),
     });
+
+    if (uiMode === "embedded") {
+      return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     return new Response(JSON.stringify({ url: session.url }), {
       status: 200,
