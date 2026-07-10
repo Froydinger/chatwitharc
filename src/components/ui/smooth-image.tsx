@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 interface SmoothImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   fallback?: React.ReactNode;
   loadingClassName?: string;
+  imageClassName?: string;
   thumbnail?: boolean; // Optimize for small previews
 }
 
@@ -11,6 +12,7 @@ export const SmoothImage = ({
   src, 
   alt, 
   className, 
+  imageClassName,
   fallback,
   loadingClassName,
   thumbnail = false,
@@ -83,6 +85,7 @@ export const SmoothImage = ({
           loading={thumbnail ? "lazy" : "eager"}
           className={cn(
             "w-full h-full object-cover transition-opacity duration-300",
+            imageClassName,
             isLoaded ? "opacity-100" : "opacity-0"
           )}
           onLoad={handleLoad}
