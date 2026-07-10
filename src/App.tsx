@@ -69,7 +69,7 @@ const FullscreenLoader = () => {
 
   return (
     <motion.div
-      className="fixed inset-0 flex items-center justify-center bg-[#000000] z-[9999]"
+      className="fixed inset-0 flex items-center justify-center bg-background z-[9999]"
       initial={{ opacity: 1 }}
       animate={{ opacity: stage === 'bloop' ? 0 : 1 }}
       transition={{ duration: 0.5, ease: "easeInOut" }}
@@ -107,7 +107,7 @@ const FullscreenLoader = () => {
 
 const FastLoader = () => {
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-[#000000] z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
       <motion.div
         className="h-12 w-12"
         animate={{ rotate: 360 }}
