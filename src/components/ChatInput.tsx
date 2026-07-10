@@ -32,8 +32,8 @@ import { useAccentColor } from "@/hooks/useAccentColor";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useModelStore, SOL_MODEL, TERRA_MODEL } from "@/store/useModelStore";
-import { AIService } from "@/services/ai";
+import { useModelStore, getModelForTask, SOL_MODEL, TERRA_MODEL } from "@/store/useModelStore";
+import { AIService, getQueryComplexity } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useStreamingWithContinuation } from "@/hooks/useStreamingWithContinuation";
 import { detectMemoryCommand, addToMemoryBank } from "@/utils/memoryDetection";
@@ -1821,16 +1821,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           wasCanvasMode ||
           (canvasState.isOpen && canvasState.canvasType === "writing" && !isConversationalMessage(finalMessage));
 
-        // Check if code canvas is open and user is asking to edit it.
+        // Check if code canvas is open and keep it as active context.
         // Also auto-open the canvas from the last code message in chat if it isn't open yet,
         // so follow-up messages work without requiring the user to click the code card first.
         let isCodeCanvasOpen = canvasState.isOpen && canvasState.canvasType === "code";
-        const hasCodeEditIntent =
-          isCodingRequest ||
-          looksLikeCodeEditRequest(finalMessage) ||
-          referencesCodeSurface(finalMessage);
+        const hasCodeReferenceIntent = looksLikeCodeEditRequest(finalMessage) || referencesCodeSurface(finalMessage);
 
-        if (!isCodeCanvasOpen && hasCodeEditIntent) {
+        if (!isCodeCanvasOpen && (isCodingRequest || hasCodeReferenceIntent)) {
           const recentMsgs = useArcStore.getState().messages;
           // First: look for a dedicated code tile message (type === 'code')
           const lastCodeMsg = [...recentMsgs].reverse().find((m) => (m as any).type === "code");
@@ -1859,7 +1856,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             }
           }
         }
-        const shouldRouteToCodeCanvas = isCodeCanvasOpen && hasCodeEditIntent;
+        const shouldUseCodeContext = isCodeCanvasOpen;
 
         // Re-read canvas state after potential openWithContent call above
         const freshCanvasState = useCanvasStore.getState();
@@ -1884,8 +1881,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
         let messageToSend: string;
 
-        if (shouldRouteToCodeCanvas && freshCanvasState.content) {
-          // Code canvas is open and user wants to modify existing code
+        if (isCodingRequest && freshCanvasState.content) {
+          // Explicit /code request with existing code: force a code update.
           const existingCode = freshCanvasState.content;
           const language = freshCanvasState.codeLanguage || "html";
           const userReq = cleanedMessage || finalMessage;
@@ -1921,9 +1918,9 @@ MANDATORY: Output the COMPLETE updated content. Never stop mid-sentence or mid-p
           messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: Use the update_canvas tool to write COMPLETE, FULL markdown content for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE piece from beginning to end - every paragraph, every section, complete thoughts. Never stop mid-sentence:\n\n${cleanedMessage || finalMessage}`;
         } else if (wasSearchMode) {
           messageToSend = `Search the web for: ${cleanedMessage || finalMessage}`;
-        } else if (isCodeCanvasOpen && freshCanvasState.content && !isConversationalMessage(finalMessage)) {
-          // Code canvas is open and user isn't explicitly asking to edit, but also not conversational
-          // Only provide code context for messages that might be related to the code
+        } else if (shouldUseCodeContext && freshCanvasState.content) {
+          // Any request while code is open is grounded in that code. The model
+          // can answer, explain, search, or choose the code tool if an edit is needed.
           const existingCode = freshCanvasState.content;
           const language = freshCanvasState.codeLanguage || "html";
           const userReq = cleanedMessage || finalMessage;
@@ -1931,7 +1928,11 @@ MANDATORY: Output the COMPLETE updated content. Never stop mid-sentence or mid-p
           const safeCode = truncateForContext(existingCode, contextBudget);
           messageToSend = `${userReq}
 
-[CONTEXT: The user has a Code Canvas open with ${language} code (${existingCode.split("\n").length} lines). ONLY modify this code if the user is explicitly asking for changes. For casual conversation like "great!", "looks good", questions about how something works, etc. - just respond conversationally WITHOUT updating the code.]
+[ACTIVE CODE WORKSPACE: The user currently has ${language} code open (${existingCode.split("\n").length} lines). Treat the user's request as being about this open code unless they clearly say otherwise.
+- If they are asking for an edit, produce a code update for this same project.
+- If they are asking a question, answer about this code without changing it.
+- If current external facts, APIs, libraries, or docs are needed, use available research/search tools before answering or changing code.
+- Preserve the current app/page/product concept unless the user explicitly asks to replace it.]
 
 Current code (${existingCode.split("\n").length} lines):
 \`\`\`${language}
@@ -1952,15 +1953,20 @@ ${safeCode}
         let didSearchWeb = false;
         // Determine explicit mode flags to pass to backend
         // This ensures the AI uses the correct tool without confusion
-        const shouldForceCode = isCodingRequest || shouldRouteToCodeCanvas;
+        const shouldForceCode = isCodingRequest;
         const shouldForceCanvas = shouldRouteToCanvas && !shouldForceCode;
+        const codeContextModelOverride =
+          shouldUseCodeContext && !shouldForceCode
+            ? getModelForTask('code', getQueryComplexity(finalMessage))
+            : undefined;
 
         console.log("🎯 Canvas/Code mode detection:", {
           isCodingRequest,
-          shouldRouteToCodeCanvas,
+          shouldUseCodeContext,
           shouldRouteToCanvas,
           shouldForceCode,
           shouldForceCanvas,
+          codeContextModelOverride,
           wasSearchMode,
         });
 
@@ -2111,7 +2117,7 @@ ${safeCode}
 
           try {
             // SMART ROUTING: decide if this can run on local Gemma
-            const route = activePersona ? "cloud-chat" : routeRequest({
+            const route = activePersona || shouldUseCodeContext ? "cloud-chat" : routeRequest({
               forceWebSearch: wasSearchMode,
               forceCanvas: false,
               forceCode: false,
@@ -2321,6 +2327,7 @@ ${safeCode}
                   false,
                   false,
                   isGuestMode,
+                  codeContextModelOverride,
                 );
                 if (cancelRequested) return;
                 await addMessage({
@@ -2348,6 +2355,7 @@ ${safeCode}
                 false, // forceCode
                 false, // forceResearch
                 isGuestMode, // guestMode
+                codeContextModelOverride,
               );
 
               // CRITICAL: If cancelled while waiting for response, discard everything
