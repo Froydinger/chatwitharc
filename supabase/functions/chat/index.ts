@@ -1189,9 +1189,10 @@ Output the complete, finished writing using the update_canvas tool.`;
         body: JSON.stringify({
           model: selectedModel,
           messages: conversationMessages,
-          tools: isReasoning ? undefined : toolsToUse,
-          tool_choice: isReasoning ? undefined : toolChoice,
+          tools: toolsToUse,
+          tool_choice: toolChoice,
           temperature: isReasoning ? undefined : 0.6,
+          reasoning_effort: isReasoning ? 'none' : undefined,
           stream: true,
           ...tokenParam,
         }),
@@ -1535,9 +1536,10 @@ Output the complete, finished writing using the update_canvas tool.`;
         body: JSON.stringify({
           model: selectedModel,
           messages: conversationMessages,
-          tools: isReasoning ? undefined : toolsToUse,
-          tool_choice: isReasoning ? undefined : toolChoice,
+          tools: toolsToUse,
+          tool_choice: toolChoice,
           temperature: isReasoning ? undefined : 0.6,
+          reasoning_effort: isReasoning ? 'none' : undefined,
           ...tokenParam,
         }),
       });
@@ -1560,9 +1562,10 @@ Output the complete, finished writing using the update_canvas tool.`;
           body: JSON.stringify({
             model: actualFallback,
             messages: conversationMessages,
-            tools: (actualFallback === 'gpt-5.6-terra' || actualFallback === 'gpt-5.6-sol') ? undefined : toolsToUse,
-            tool_choice: (actualFallback === 'gpt-5.6-terra' || actualFallback === 'gpt-5.6-sol') ? undefined : toolChoice,
+            tools: toolsToUse,
+            tool_choice: toolChoice,
             temperature: (actualFallback === 'gpt-5.6-terra' || actualFallback === 'gpt-5.6-sol') ? undefined : 0.6,
+            reasoning_effort: (actualFallback === 'gpt-5.6-terra' || actualFallback === 'gpt-5.6-sol') ? 'none' : undefined,
             ...fallbackTokenParam,
           }),
         });
