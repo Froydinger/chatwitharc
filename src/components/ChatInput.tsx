@@ -351,6 +351,14 @@ function looksLikeCodeEditRequest(message: string): boolean {
   return keywords.some((k) => m.includes(k));
 }
 
+function referencesCodeSurface(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  if (isConversationalMessage(m)) return false;
+
+  return /\b(code|coded|html|css|javascript|typescript|react|component|app|website|webpage|page|ui|ux|interface|layout|visuals?|design|style|styles|styling|button|buttons|animation|responsive|mobile|desktop)\b/i.test(m);
+}
+
 // Extract the prompt after the prefix (strips prefix/ or /prefix)
 function extractPrefixPrompt(message: string): string {
   return message
@@ -1817,7 +1825,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         // Also auto-open the canvas from the last code message in chat if it isn't open yet,
         // so follow-up messages work without requiring the user to click the code card first.
         let isCodeCanvasOpen = canvasState.isOpen && canvasState.canvasType === "code";
-        if (!isCodeCanvasOpen && looksLikeCodeEditRequest(finalMessage)) {
+        const hasCodeEditIntent =
+          isCodingRequest ||
+          looksLikeCodeEditRequest(finalMessage) ||
+          referencesCodeSurface(finalMessage);
+
+        if (!isCodeCanvasOpen && hasCodeEditIntent) {
           const recentMsgs = useArcStore.getState().messages;
           // First: look for a dedicated code tile message (type === 'code')
           const lastCodeMsg = [...recentMsgs].reverse().find((m) => (m as any).type === "code");
@@ -1846,7 +1859,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             }
           }
         }
-        const shouldRouteToCodeCanvas = isCodeCanvasOpen && looksLikeCodeEditRequest(finalMessage);
+        const shouldRouteToCodeCanvas = isCodeCanvasOpen && hasCodeEditIntent;
 
         // Re-read canvas state after potential openWithContent call above
         const freshCanvasState = useCanvasStore.getState();
@@ -1879,7 +1892,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           // Budget: 15000 total - instructions (~500) - user request - safety margin
           const codeBudget = Math.max(4000, 14000 - userReq.length - 500);
           const safeCode = truncateForContext(existingCode, codeBudget);
-          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CODE: The user has existing ${language} code (${existingCode.split("\n").length} lines). Modify it based on their request using the update_code tool. You MUST output the COMPLETE, FULL modified code - do NOT truncate, summarize, or cut off mid-way. Write EVERY line.
+          messageToSend = `CRITICAL INSTRUCTION - UPDATE THE EXISTING CODE ONLY: The user has existing ${language} code (${existingCode.split("\n").length} lines). Modify THIS code based on their request using the update_code tool. Preserve the current app/page/product concept, content, structure, and core behavior unless the user explicitly asks to replace them. Do not invent a different app, demo, game, topic, or brand. You MUST output the COMPLETE, FULL modified code - do NOT truncate, summarize, or cut off mid-way. Write EVERY line.
 
 EXISTING CODE TO MODIFY:
 \`\`\`${language}
@@ -1888,7 +1901,7 @@ ${safeCode}
 
 USER'S REQUEST: ${userReq}
 
-MANDATORY: Output the COMPLETE updated code. Never stop mid-sentence or mid-function. Include ALL code from start to finish.`;
+MANDATORY: Output the COMPLETE updated code for the SAME existing project. Never stop mid-sentence or mid-function. Include ALL code from start to finish.`;
         } else if (shouldRouteToCanvas && freshCanvasState.isOpen && freshCanvasState.content) {
           // Writing canvas is open with existing content - include it for modification
           const existingContent = freshCanvasState.content;
