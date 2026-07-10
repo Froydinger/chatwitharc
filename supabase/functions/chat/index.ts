@@ -1179,7 +1179,7 @@ Output the complete, finished writing using the update_canvas tool.`;
       const isCanvasOrCodeMode = wantsCode || wantsCanvas;
       console.log('🌊 Using streaming mode', isCanvasOrCodeMode ? 'for canvas/code' : 'for text');
       
-      const isReasoning = selectedModel === 'gpt-5.6-terra' || selectedModel === 'gpt-5.6-sol';
+      const isReasoning = selectedModel.includes('gpt-5.6') || selectedModel.startsWith('o1') || selectedModel.startsWith('o3');
       const streamResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -1526,7 +1526,7 @@ Output the complete, finished writing using the update_canvas tool.`;
     let usedFallback = false;
     
     try {
-      const isReasoning = selectedModel === 'gpt-5.6-terra' || selectedModel === 'gpt-5.6-sol';
+      const isReasoning = selectedModel.includes('gpt-5.6') || selectedModel.startsWith('o1') || selectedModel.startsWith('o3');
       response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -1564,8 +1564,8 @@ Output the complete, finished writing using the update_canvas tool.`;
             messages: conversationMessages,
             tools: toolsToUse,
             tool_choice: toolChoice,
-            temperature: (actualFallback === 'gpt-5.6-terra' || actualFallback === 'gpt-5.6-sol') ? undefined : 0.6,
-            reasoning_effort: (actualFallback === 'gpt-5.6-terra' || actualFallback === 'gpt-5.6-sol') ? 'none' : undefined,
+            temperature: (actualFallback.includes('gpt-5.6') || actualFallback.startsWith('o1') || actualFallback.startsWith('o3')) ? undefined : 0.6,
+            reasoning_effort: (actualFallback.includes('gpt-5.6') || actualFallback.startsWith('o1') || actualFallback.startsWith('o3')) ? 'none' : undefined,
             ...fallbackTokenParam,
           }),
         });
@@ -2059,7 +2059,7 @@ Output the complete, finished writing using the update_canvas tool.`;
         
         const secondCallModel = validatedModel || 'gpt-5.6-luna';
         const secondTokenParam = { max_completion_tokens: 65536 };
-        const isSecondCallReasoning = secondCallModel === 'gpt-5.6-terra' || secondCallModel === 'gpt-5.6-sol';
+        const isSecondCallReasoning = secondCallModel.includes('gpt-5.6') || secondCallModel.startsWith('o1') || secondCallModel.startsWith('o3');
         response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
