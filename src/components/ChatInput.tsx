@@ -1253,7 +1253,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
       // Add assistant prompt instructing model picker usage
       await addMessage({
-        content: "To switch models, please use the Astro/Nano/Luna/Terra/Sol picker at the top left of the chat window.",
+        content: "To switch models, please use the Auto/Astro/Luna/Terra/Sol picker at the top left of the chat window.",
         role: "assistant",
         type: "text",
         sourceModel: "cloud-chat",

@@ -40,7 +40,7 @@ export function detectComplexQuery(message: string): boolean {
   return false;
 }
 
-// Graded query complexity for Astro model routing (0 simple -> 3 very complex)
+// Graded query complexity for Auto model routing (0 simple -> 3 very complex)
 export function getQueryComplexity(message: string): 0 | 1 | 2 | 3 {
   if (!message) return 0;
   const lower = message.toLowerCase().trim();
@@ -102,7 +102,7 @@ Available pages and links:
 - Memory Page: https://askarc.chat/memory (Alternative link to manage memories)
 
 Key UI Elements & How to Use Them:
-- Model Picker Dropdown: Located at the top left of the chat window. Users can click this to switch between "Astro" (auto-routes each task), "Nano" (GPT-5.4 Nano, default quick chat), "Luna" (GPT-5.6 Luna, quick everyday chat), "Terra" (GPT-5.6 Terra, balanced), and "Sol" (GPT-5.6 Sol, frontier reasoning — requires Boost).
+- Model Picker Dropdown: Located at the top left of the chat window. Users can click this to switch between "Auto" (best for letting Arc choose), "Astro" (best for quick chats), "Luna" (best for quick reasoning), "Terra" (best for code and writing), and "Sol" (best for deep work — requires Boost).
 - Accent Colors: To change colors, users can go to https://askarc.chat/settings?tab=appearance or use the quick-switch picker in the sidebar/right-panel menu.
 - Persona Picker: Users can change personas by using the persona menu button (often shown as an avatar/circle near the input field) or by typing @persona_name in the message input (e.g. "@counselor hello").
 - Voice Mode: Users can click the microphone icon in the chat input or the headphone button to start real-time voice chat.

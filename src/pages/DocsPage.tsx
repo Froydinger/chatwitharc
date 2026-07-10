@@ -66,11 +66,11 @@ export function DocsPage() {
           </p>
           <p>Click the picker to select a chat mode:</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Astro</strong>: Best model is selected automatically based on the complexity of your task (simple prompts go to Nano, moderate chats to Luna, complex work to Terra, and heavy reasoning to Sol).</li>
-            <li><strong className="text-foreground">Nano (GPT-5.4 Nano)</strong>: Default quick chat model for lightweight replies.</li>
-            <li><strong className="text-foreground">Luna (GPT-5.6 Luna)</strong>: High-speed model optimized for quick everyday chat tasks.</li>
-            <li><strong className="text-foreground">Terra (GPT-5.6 Terra)</strong>: Balanced model for complex conversations and multi-turn logic.</li>
-            <li><strong className="text-foreground">Sol (GPT-5.6 Sol)</strong>: Frontier model for coding, math, and your most complex professional work (Requires <a href="/pricing" className="text-primary hover:underline font-semibold">Boost</a>).</li>
+            <li><strong className="text-foreground">Auto</strong>: Best for letting Arc choose the right model for each task.</li>
+            <li><strong className="text-foreground">Astro (GPT-5.4 Nano)</strong>: Best for quick chats and lightweight replies.</li>
+            <li><strong className="text-foreground">Luna (GPT-5.6 Luna)</strong>: Best for quick reasoning and everyday questions that need more depth.</li>
+            <li><strong className="text-foreground">Terra (GPT-5.6 Terra)</strong>: Best for code, writing, and structured work.</li>
+            <li><strong className="text-foreground">Sol (GPT-5.6 Sol)</strong>: Best for deep work, complex planning, and hard problems (Requires <a href="/pricing" className="text-primary hover:underline font-semibold">Boost</a>).</li>
           </ul>
         </div>
       ),

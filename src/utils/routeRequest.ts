@@ -74,7 +74,7 @@ export function routeRequest(ctx: RouteContext): RouteDestination {
  * Human-readable label for the source badge — shows the real model name.
  * `modelUsed` is the exact model id recorded on the message when it was
  * generated; when present it wins over the picker's current selection so
- * badges stay accurate for Astro-mode routing and old messages.
+ * badges stay accurate for Auto-mode routing and old messages.
  */
 export function getRouteLabel(route: RouteDestination, modelUsed?: string): { label: string; icon: 'local' | 'cloud'; tooltip: string } {
   switch (route) {
@@ -96,66 +96,66 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
     case 'cloud-chat':
     case 'cloud-chat-pro': {
       const m = modelUsed || useModelStore.getState().chatModel;
-      const { name, tier } = getModelInfo(m);
-      return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `${tier} mode — OpenAI ${name}.` };
+      const { name, tier, providerName } = getModelInfo(m);
+      return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `${tier} mode — ${providerName}.` };
     }
     case 'cloud-search': {
       const m = modelUsed || useModelStore.getState().chatModel;
-      const { name } = getModelInfo(m);
-      return { label: `Cloud · ${name} (Web)`, icon: 'cloud', tooltip: `Web Search synthesis — OpenAI ${name}.` };
+      const { name, providerName } = getModelInfo(m);
+      return { label: `Cloud · ${name} (Web)`, icon: 'cloud', tooltip: `Web search synthesis — ${providerName}.` };
     }
     case 'cloud-search-tavily': {
       const m = modelUsed || useModelStore.getState().chatModel;
-      const { name } = getModelInfo(m);
-      return { label: `Cloud · ${name} (Web)`, icon: 'cloud', tooltip: `Web Search synthesis — OpenAI ${name}.` };
+      const { name, providerName } = getModelInfo(m);
+      return { label: `Cloud · ${name} (Web)`, icon: 'cloud', tooltip: `Web search synthesis — ${providerName}.` };
     }
     case 'cloud-vision': {
       const m = modelUsed || useModelStore.getState().chatModel;
-      const { name } = getModelInfo(m);
-      return { label: `Cloud · ${name} (Vision)`, icon: 'cloud', tooltip: `Image understanding — OpenAI ${name}.` };
+      const { name, providerName } = getModelInfo(m);
+      return { label: `Cloud · ${name} (Vision)`, icon: 'cloud', tooltip: `Image understanding — ${providerName}.` };
     }
     case 'cloud-document': {
       const m = modelUsed || useModelStore.getState().chatModel;
-      const { name } = getModelInfo(m);
-      return { label: `Cloud · ${name} (Docs)`, icon: 'cloud', tooltip: `Document analysis — OpenAI ${name}.` };
+      const { name, providerName } = getModelInfo(m);
+      return { label: `Cloud · ${name} (Docs)`, icon: 'cloud', tooltip: `Document analysis — ${providerName}.` };
     }
     case 'cloud-voice':
-      return { label: 'Cloud · OpenAI Realtime', icon: 'cloud', tooltip: 'Voice mode — OpenAI Realtime API.' };
+      return { label: 'Cloud · Realtime', icon: 'cloud', tooltip: 'Voice mode — Realtime API.' };
     case 'cloud-code': {
       const m = modelUsed || useModelStore.getState().chatModel;
-      const { name } = getModelInfo(m);
-      return { label: `Cloud · ${name} (Code)`, icon: 'cloud', tooltip: `Code generation — OpenAI ${name}.` };
+      const { name, providerName } = getModelInfo(m);
+      return { label: `Cloud · ${name} (Code)`, icon: 'cloud', tooltip: `Code generation — ${providerName}.` };
     }
     case 'cloud-canvas': {
       const m = modelUsed || useModelStore.getState().chatModel;
-      const { name } = getModelInfo(m);
-      return { label: `Cloud · ${name} (Canvas)`, icon: 'cloud', tooltip: `Long-form writing canvas — OpenAI ${name}.` };
+      const { name, providerName } = getModelInfo(m);
+      return { label: `Cloud · ${name} (Canvas)`, icon: 'cloud', tooltip: `Long-form writing canvas — ${providerName}.` };
     }
 
     case 'cloud-image':
     case 'cloud-image-pro':
-      return { label: 'Cloud · GPT Image 2', icon: 'cloud', tooltip: 'Image generation — OpenAI GPT-Image-2 (medium quality).' };
+      return { label: 'Cloud · GPT Image 2', icon: 'cloud', tooltip: 'Image generation — GPT-Image-2 (medium quality).' };
     case 'cloud-image-edit':
-      return { label: 'Cloud · GPT Image 2 (Edit)', icon: 'cloud', tooltip: 'Image editing — OpenAI GPT-Image-2 (medium quality).' };
+      return { label: 'Cloud · GPT Image 2 (Edit)', icon: 'cloud', tooltip: 'Image editing — GPT-Image-2 (medium quality).' };
     case 'cloud-image-edit-fallback':
       return { label: 'Cloud · Nano Banana 2 (Edit, fallback)', icon: 'cloud', tooltip: 'GPT-Image-2 was unavailable, so this edit was served by Google Gemini Nano Banana 2 as a fallback.' };
     case 'cloud-ide':
-      return { label: 'Cloud · GPT-5.6 Terra (App Builder)', icon: 'cloud', tooltip: 'App Builder agent — OpenAI GPT-5.6 Terra.' };
+      return { label: 'Cloud · GPT-5.6 Terra (App Builder)', icon: 'cloud', tooltip: 'App Builder agent — GPT-5.6 Terra.' };
   }
 }
 
-function getModelInfo(m: string): { name: string; tier: string } {
+function getModelInfo(m: string): { name: string; tier: string; providerName: string } {
   if (m === 'gpt-5.6-sol') {
-    return { name: 'GPT-5.6 Sol', tier: 'Sol' };
+    return { name: 'GPT-5.6 Sol', tier: 'Sol', providerName: 'GPT-5.6 Sol' };
   }
   if (m === 'gpt-5.6-terra') {
-    return { name: 'GPT-5.6 Terra', tier: 'Terra' };
+    return { name: 'GPT-5.6 Terra', tier: 'Terra', providerName: 'GPT-5.6 Terra' };
   }
   if (m === 'gpt-5.6-luna') {
-    return { name: 'GPT-5.6 Luna', tier: 'Luna' };
+    return { name: 'GPT-5.6 Luna', tier: 'Luna', providerName: 'GPT-5.6 Luna' };
   }
   if (m === 'gpt-5.4-nano') {
-    return { name: 'GPT-5.4 Nano', tier: 'Nano' };
+    return { name: 'Astro', tier: 'Astro', providerName: 'GPT-5.4 Nano' };
   }
-  return { name: 'GPT-5.6 Luna', tier: 'Luna' };
+  return { name: 'GPT-5.6 Luna', tier: 'Luna', providerName: 'GPT-5.6 Luna' };
 }

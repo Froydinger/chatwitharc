@@ -39,7 +39,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "We route requests to the GPT-5.6 family: Sol for frontier reasoning, Terra for everyday chats, and Luna for the quickest replies — plus GPT-Image-2 for images, OpenAI Realtime for voice, and Perplexity Sonar for web search. All the power of GPT-5.6, at half the cost.",
+    a: "We route requests across Astro for quick chat, Luna for quick reasoning, Terra for balanced everyday work, and Sol for frontier reasoning — plus GPT-Image-2 for images, OpenAI Realtime for voice, and Perplexity Sonar for web search.",
   },
   {
     q: "Is ArcAI private?",
