@@ -1573,3 +1573,15 @@ All colors MUST be HSL for perfect glass effects.
     transform: scale(0.97);
   }
 }
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: spin-slow 6s linear infinite;
+}

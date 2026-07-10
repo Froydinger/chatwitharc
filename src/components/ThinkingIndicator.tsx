@@ -133,7 +133,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
         <div className="flex flex-col items-center gap-6 p-8">
           <div className="relative flex items-center justify-center" style={{ willChange: 'transform' }}>
             <motion.div
-              className="h-24 w-24"
+              className="h-24 w-24 animate-spin-slow"
               style={{
                 backfaceVisibility: 'hidden',
                 transform: 'translateZ(0)',
@@ -141,12 +141,10 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
               }}
               initial={{ opacity: 0 }}
               animate={{
-                opacity: 1,
-                rotate: 360
+                opacity: 1
               }}
               transition={{
-                opacity: { duration: 0.4, ease: "easeOut" },
-                rotate: { duration: 6, repeat: Infinity, ease: "linear" }
+                opacity: { duration: 0.4, ease: "easeOut" }
               }}
             >
               <ThemedLogo className="h-full w-full opacity-90" alt="Generating" />
@@ -197,7 +195,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
       >
         <div className="relative flex items-center justify-center" style={{ willChange: 'transform' }}>
           <motion.div
-            className="h-10 w-10"
+            className="h-10 w-10 animate-spin-slow"
             style={{
               backfaceVisibility: 'hidden',
               transform: 'translateZ(0)',
@@ -205,12 +203,10 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
             }}
             initial={{ opacity: 0 }}
             animate={{
-              opacity: 1,
-              rotate: 360
+              opacity: 1
             }}
             transition={{
-              opacity: { duration: 0.4, ease: "easeOut" },
-              rotate: { duration: 5, repeat: Infinity, ease: "linear" }
+              opacity: { duration: 0.4, ease: "easeOut" }
             }}
           >
             <ThemedLogo className="h-full w-full" alt="Thinking" />
