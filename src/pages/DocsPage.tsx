@@ -64,10 +64,11 @@ export function DocsPage() {
             You can switch models using the <strong>Model Picker dropdown</strong> located at the 
             <strong> top left of the chat window</strong> (above the chat input).
           </p>
-          <p>Click the picker to select from the GPT-5.6 family:</p>
+          <p>Click the picker to select a chat mode:</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Auto</strong>: Best model is selected automatically based on the complexity of your task (simple prompts go to Luna, everyday work to Terra, and heavy reasoning to Sol).</li>
-            <li><strong className="text-foreground">Luna (GPT-5.6 Luna)</strong>: High-speed, lightweight model optimized for simple, quick chat tasks.</li>
+            <li><strong className="text-foreground">Astro</strong>: Best model is selected automatically based on the complexity of your task (simple prompts go to Nano, moderate chats to Luna, complex work to Terra, and heavy reasoning to Sol).</li>
+            <li><strong className="text-foreground">Nano (GPT-5.4 Nano)</strong>: Default quick chat model for lightweight replies.</li>
+            <li><strong className="text-foreground">Luna (GPT-5.6 Luna)</strong>: High-speed model optimized for quick everyday chat tasks.</li>
             <li><strong className="text-foreground">Terra (GPT-5.6 Terra)</strong>: Balanced model for complex conversations and multi-turn logic.</li>
             <li><strong className="text-foreground">Sol (GPT-5.6 Sol)</strong>: Frontier model for coding, math, and your most complex professional work (Requires <a href="/pricing" className="text-primary hover:underline font-semibold">Boost</a>).</li>
           </ul>

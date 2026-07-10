@@ -5,7 +5,7 @@
  */
 import { useLocalAIStore } from '@/store/useLocalAIStore';
 import { useCorporateModeStore } from '@/store/useCorporateModeStore';
-import { useModelStore, LUNA_MODEL, TERRA_MODEL } from '@/store/useModelStore';
+import { useModelStore } from '@/store/useModelStore';
 import { FAST_MODEL, QUALITY_MODEL, FAST_FALLBACK, IOS_LITE_MODEL, getActiveLocalModelId } from '@/services/localAI';
 import { isMobileLocalDevice } from '@/utils/mobileLocal';
 
@@ -74,7 +74,7 @@ export function routeRequest(ctx: RouteContext): RouteDestination {
  * Human-readable label for the source badge — shows the real model name.
  * `modelUsed` is the exact model id recorded on the message when it was
  * generated; when present it wins over the picker's current selection so
- * badges stay accurate for Auto-mode routing and old messages.
+ * badges stay accurate for Astro-mode routing and old messages.
  */
 export function getRouteLabel(route: RouteDestination, modelUsed?: string): { label: string; icon: 'local' | 'cloud'; tooltip: string } {
   switch (route) {
@@ -150,6 +150,12 @@ function getModelInfo(m: string): { name: string; tier: string } {
   }
   if (m === 'gpt-5.6-terra') {
     return { name: 'GPT-5.6 Terra', tier: 'Terra' };
+  }
+  if (m === 'gpt-5.6-luna') {
+    return { name: 'GPT-5.6 Luna', tier: 'Luna' };
+  }
+  if (m === 'gpt-5.4-nano') {
+    return { name: 'GPT-5.4 Nano', tier: 'Nano' };
   }
   return { name: 'GPT-5.6 Luna', tier: 'Luna' };
 }

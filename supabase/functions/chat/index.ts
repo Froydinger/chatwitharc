@@ -478,7 +478,7 @@ serve(async (req) => {
     const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
 
     console.log('📊 Request details:', {
-      model: model || 'gpt-5.6-terra (default)',
+      model: model || 'gpt-5.4-nano (default)',
       messageCount: messages?.length || 0,
       hasProfile: !!profile,
       sessionId: sessionId || 'none (will not save in background)',
@@ -550,14 +550,14 @@ serve(async (req) => {
     }
 
     // Validate model if provided — only the user-pickable chat models are allowed.
-    // Retired ids from stale clients / saved prefs are mapped to their GPT-5.6 replacement.
+    // Retired ids from stale clients / saved prefs are mapped to their current replacement.
     const legacyModelMap: Record<string, string> = {
-      'gpt-5.4-nano': 'gpt-5.6-luna',
       'gpt-5.4-mini': 'gpt-5.6-terra',
       'gpt-5.4': 'gpt-5.6-sol',
       'gpt-5.5': 'gpt-5.6-sol',
     };
     const allowedModels = [
+      'gpt-5.4-nano',   // default quick chat
       'gpt-5.6-luna',   // quickest
       'gpt-5.6-terra',  // balanced
       'gpt-5.6-sol',    // frontier
@@ -1155,14 +1155,14 @@ Output the complete, finished writing using the update_canvas tool.`;
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
-    // Honor the client's model choice exactly. Auto mode grades complexity
-    // client-side (Luna/Terra for most, GPT-5.6 Sol for heavy asks),
+    // Honor the client's model choice exactly. Astro mode grades complexity
+    // client-side (Nano/Luna/Terra for most, GPT-5.6 Sol for heavy asks),
     // and an explicitly picked model must never be silently up/downgraded.
-    let selectedModel = validatedModel || 'gpt-5.6-luna';
+    let selectedModel = validatedModel || 'gpt-5.4-nano';
     const fallbackModel = 'gpt-5.6-terra'; // Fallback for canvas/code if the primary model times out
 
     if (wantsCode && !validatedModel) {
-      // Code with no model specified floors at Terra rather than Luna
+      // Code with no model specified floors at Terra rather than Nano
       selectedModel = 'gpt-5.6-terra';
       console.log('🔧 Code mode with no model specified: defaulting to GPT-5.6 Terra');
     }
@@ -2057,7 +2057,7 @@ Output the complete, finished writing using the update_canvas tool.`;
         const toolContextSize = synthesisMessages.reduce((acc: number, m: any) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0);
         console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
-        const secondCallModel = validatedModel || 'gpt-5.6-luna';
+        const secondCallModel = validatedModel || 'gpt-5.4-nano';
         const secondTokenParam = { max_completion_tokens: 65536 };
         const isSecondCallReasoning = secondCallModel.includes('gpt-5.6') || secondCallModel.startsWith('o1') || secondCallModel.startsWith('o3');
         response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {

@@ -32,7 +32,7 @@ import { useAccentColor } from "@/hooks/useAccentColor";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useModelStore, LUNA_MODEL, TERRA_MODEL, SOL_MODEL } from "@/store/useModelStore";
+import { useModelStore, SOL_MODEL } from "@/store/useModelStore";
 import { AIService } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useStreamingWithContinuation } from "@/hooks/useStreamingWithContinuation";
@@ -1253,7 +1253,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
       // Add assistant prompt instructing model picker usage
       await addMessage({
-        content: "To switch models, please use the model picker dropdown located at the top left of the chat window.",
+        content: "To switch models, please use the Astro/Nano/Luna/Terra/Sol picker at the top left of the chat window.",
         role: "assistant",
         type: "text",
         sourceModel: "cloud-chat",
