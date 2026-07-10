@@ -92,10 +92,14 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent 
+        hideCloseButton={showCheckout}
         className={cn(
           "max-w-lg border-white/10 p-0 overflow-hidden bg-background/95 backdrop-blur-xl transition-all duration-300",
-          showCheckout && "max-w-xl border-none bg-zinc-950 shadow-none backdrop-blur-none overflow-visible [&>button]:hidden"
+          showCheckout && "max-w-xl border-none bg-zinc-950 shadow-none backdrop-blur-none overflow-visible"
         )}
+        style={showCheckout ? {
+          maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 16px)",
+        } : undefined}
       >
         {!showCheckout ? (
           <div className="p-6 text-center">
@@ -198,14 +202,24 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
             )}
           </div>
         ) : (
-          <div className="relative w-full max-h-[90vh] overflow-y-auto rounded-xl p-4 pt-[calc(3.5rem+env(safe-area-inset-top))] bg-zinc-950 border border-white/10 min-h-[500px]">
+          <div
+            className="relative w-full overflow-y-auto rounded-xl bg-zinc-950 border border-white/10 min-h-[min(500px,calc(100dvh-env(safe-area-inset-top,0px)-env(safe-area-inset-bottom,0px)-16px))]"
+            style={{
+              maxHeight: "calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 16px)",
+              padding: "calc(3.5rem + env(safe-area-inset-top, 0px)) calc(1rem + env(safe-area-inset-right, 0px)) calc(1rem + env(safe-area-inset-bottom, 0px)) calc(1rem + env(safe-area-inset-left, 0px))",
+            }}
+          >
             {/* Absolute custom Back/Close button respecting iOS safe areas */}
             <button
               onClick={() => {
                 setShowCheckout(false);
                 setClientSecret(null);
               }}
-              className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 p-2 rounded-full transition-all border border-white/10 backdrop-blur-md flex items-center justify-center z-50 shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+              className="absolute text-white/80 hover:text-white bg-black/40 hover:bg-black/60 p-2 rounded-full transition-all border border-white/10 backdrop-blur-md flex items-center justify-center z-50 shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+              style={{
+                top: "calc(1rem + env(safe-area-inset-top, 0px))",
+                right: "calc(1rem + env(safe-area-inset-right, 0px))",
+              }}
               aria-label="Back"
             >
               <X className="h-4 w-4" />

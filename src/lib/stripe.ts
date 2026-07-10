@@ -1,4 +1,9 @@
-import { loadStripe, Stripe } from "@stripe/stripe-js";
+import { loadStripe, Stripe } from "@stripe/stripe-js/pure";
+
+// iOS standalone PWAs can occasionally promote Stripe's advanced fraud-signal
+// iframe (m.stripe.network/inner.html) into a top-level document download.
+// Embedded Checkout still works without these optional signals.
+loadStripe.setLoadParameters({ advancedFraudSignals: false });
 
 type StripeEnv = "sandbox" | "live";
 
