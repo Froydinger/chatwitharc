@@ -68,7 +68,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5.4-mini',
+            model: 'gpt-5.6-terra',
             messages: [
               { role: 'system', content: 'You are a precise, concise summarizer. Output exactly one sentence of key facts. Strict maximum of 20 words. No quotes, no markdown, no headings.' },
               { role: 'user', content: prompt }
@@ -195,7 +195,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5.4-mini',
+            model: 'gpt-5.6-terra',
             messages: [
               { role: 'system', content: synthSystem },
               { role: 'user', content: synthUser },

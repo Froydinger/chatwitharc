@@ -792,7 +792,7 @@ export function MobileChatApp() {
     }
 
     // Reset model to Quick for new chat (session only)
-    sessionStorage.setItem("arc_session_model", "gpt-5.4-mini");
+    sessionStorage.setItem("arc_session_model", "gpt-5.6-terra");
   };
 
 

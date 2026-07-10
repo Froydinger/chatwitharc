@@ -4,14 +4,21 @@ import { persist } from 'zustand/middleware';
 export type ModelFamily = 'openai';
 export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-analysis' | 'image-edit' | 'file-gen';
 
-/** User-pickable chat models. */
+/** User-pickable chat models — the GPT-5.6 family, shown under their real names. */
 export const AUTO_MODEL = 'auto';
-export const FASTER_MODEL = 'gpt-5.4-nano';
-export const SMARTER_MODEL = 'gpt-5.4-mini';
-export const THINKING_MODEL = 'gpt-5.4';
-export const DEEP_THINK_MODEL = 'gpt-5.5';
+export const LUNA_MODEL = 'gpt-5.6-luna';
+export const TERRA_MODEL = 'gpt-5.6-terra';
+export const SOL_MODEL = 'gpt-5.6-sol';
 
-export type ChatModel = typeof AUTO_MODEL | typeof FASTER_MODEL | typeof SMARTER_MODEL | typeof THINKING_MODEL | typeof DEEP_THINK_MODEL;
+export type ChatModel = typeof AUTO_MODEL | typeof LUNA_MODEL | typeof TERRA_MODEL | typeof SOL_MODEL;
+
+/** Map retired model ids (persisted picks, DB rows, stale clients) to their GPT-5.6 replacement. */
+export const LEGACY_MODEL_MAP: Record<string, ChatModel> = {
+  'gpt-5.4-nano': LUNA_MODEL,
+  'gpt-5.4-mini': TERRA_MODEL,
+  'gpt-5.4': SOL_MODEL,
+  'gpt-5.5': SOL_MODEL,
+};
 
 interface ModelStore {
   modelFamily: ModelFamily;
@@ -35,6 +42,15 @@ export const useModelStore = create<ModelStore>()(
     }),
     {
       name: 'arc-model-family',
+      version: 1,
+      migrate: (persisted: unknown) => {
+        const state = (persisted ?? {}) as { modelFamily?: ModelFamily; chatModel?: string };
+        const mapped = state.chatModel ? LEGACY_MODEL_MAP[state.chatModel] : undefined;
+        return {
+          modelFamily: 'openai' as const,
+          chatModel: (mapped ?? state.chatModel ?? AUTO_MODEL) as ChatModel,
+        };
+      },
       partialize: (s) => ({ modelFamily: s.modelFamily, chatModel: s.chatModel }),
     }
   )
@@ -45,8 +61,7 @@ import { useImageGenStore, getResolvedImageModel } from './useImageGenStore';
 /**
  * Get the correct model string for a given task.
  * - Auto mode routes by task + graded complexity (0 simple → 3 very complex):
- *   most requests stay on Nano/Mini; complex ones step up to GPT-5.4, and only
- *   genuinely heavyweight ones reach GPT-5.5.
+ *   most requests stay on Luna/Terra; only genuinely heavyweight ones reach Sol.
  * - An explicitly picked model is NEVER silently upgraded or downgraded —
  *   every chat-pipeline task runs exactly what the user selected.
  * - Image gen/edit are bound to the user's selected image model.
@@ -57,26 +72,24 @@ export function getModelForTask(task: ModelTask, complexity: 0 | 1 | 2 | 3 = 0):
   if (chatModel === AUTO_MODEL) {
     switch (task) {
       case 'chat':
-        if (complexity >= 3) return 'gpt-5.5';
-        if (complexity === 2) return 'gpt-5.4';
-        if (complexity === 1) return 'gpt-5.4-mini';
-        return 'gpt-5.4-nano';
+        if (complexity >= 2) return SOL_MODEL;
+        if (complexity === 1) return TERRA_MODEL;
+        return LUNA_MODEL;
       case 'code':
       case 'file-gen':
       case 'deep-chat':
-        // Code, write canvases, and deep chat floor at Mini; heavy asks step up
-        if (complexity >= 3) return 'gpt-5.5';
-        if (complexity === 2) return 'gpt-5.4';
-        return 'gpt-5.4-mini';
+        // Code, write canvases, and deep chat floor at Terra; heavy asks step up
+        if (complexity >= 2) return SOL_MODEL;
+        return TERRA_MODEL;
       case 'image-gen':
       case 'image-edit':
         return getResolvedImageModel(useModelStore.getState().isBoost);
       case 'image-analysis':
       default:
-        return 'gpt-5.4-nano';
+        return LUNA_MODEL;
     }
   }
-  
+
   switch (task) {
     case 'chat':
     case 'deep-chat':

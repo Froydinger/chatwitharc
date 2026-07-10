@@ -65,7 +65,7 @@ Available pages and links:
 - Memory Page: https://askarc.chat/memory (Alternative link to manage memories)
 
 Key UI Elements & How to Use Them:
-- Model Picker Dropdown: Located at the top left of the chat window. Users can click this to switch between "Auto", "Fast" (GPT-5.4 Nano), "Smarter" (GPT-5.4 Mini), "Reasoning" (GPT-5.4 Thinking), and "Deep Reason" (GPT-5.5 Deep Think).
+- Model Picker Dropdown: Located at the top left of the chat window. Users can click this to switch between "Auto", "Luna" (GPT-5.6 Luna, quickest), "Terra" (GPT-5.6 Terra, balanced), and "Sol" (GPT-5.6 Sol, frontier reasoning — requires Boost).
 - Accent Colors: To change colors, users can go to https://askarc.chat/settings?tab=appearance or use the quick-switch picker in the sidebar/right-panel menu.
 - Persona Picker: Users can change personas by using the persona menu button (often shown as an avatar/circle near the input field) or by typing @persona_name in the message input (e.g. "@counselor hello").
 - Voice Mode: Users can click the microphone icon in the chat input or the headphone button to start real-time voice chat.

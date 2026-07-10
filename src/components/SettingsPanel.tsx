@@ -840,8 +840,8 @@ export function SettingsPanel() {
   const UsageCard = (
     <SectionCard icon={Stars} title="Usage & Quotas" subtitle="Quota allowances reset at 00:00 UTC">
       <Tile
-        title="Reasoning Chats (GPT-5.4 / 5.5)"
-        description="Advanced reasoning models"
+        title="Frontier Chats (GPT-5.6 Sol)"
+        description="Frontier reasoning model"
         right={
           quotaAdmin || smarterChatLimit === Infinity ? (
             <span className="font-mono text-primary text-sm">Unlimited</span>

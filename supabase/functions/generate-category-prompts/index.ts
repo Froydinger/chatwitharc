@@ -130,8 +130,8 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
       throw new Error('OPENAI_API_KEY not configured');
     }
 
-    // Always use GPT-5.4 Mini for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'gpt-5.4-mini';
+    // Always use GPT-5.6 Terra for prompt generation - fast, efficient, reliable
+    const PROMPT_MODEL = 'gpt-5.6-terra';
     console.log('Using model for category prompts:', PROMPT_MODEL);
 
     const requestBody = {

@@ -49,7 +49,7 @@ serve(async (req) => {
 
     console.log('Analyzing document:', fileName, 'type:', mimeType);
 
-    // Build multimodal content for GPT-5.4 Mini
+    // Build multimodal content for GPT-5.6 Terra
     const lastMessage = messages[messages.length - 1];
     const userPrompt = lastMessage?.content || `Analyze and summarize this document: ${fileName}`;
 
@@ -92,7 +92,7 @@ serve(async (req) => {
       ];
     }
 
-    const selectedModel = 'gpt-5.4-mini';
+    const selectedModel = 'gpt-5.6-terra';
     console.log('Using model:', selectedModel);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

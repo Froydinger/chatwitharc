@@ -90,14 +90,14 @@ serve(async (req) => {
 
     // Allowlist supported vision models — fall back to default if unknown
     const ALLOWED_MODELS = new Set([
-      'gpt-5.4-mini',
-      'gpt-5.4-mini',
-      'gpt-5.4-mini',
-      'gpt-5.4-mini',
+      'gpt-5.6-terra',
+      'gpt-5.6-terra',
+      'gpt-5.6-terra',
+      'gpt-5.6-terra',
     ]);
     const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
       ? model
-      : 'gpt-5.4-mini';
+      : 'gpt-5.6-terra';
     console.log('Using model for image analysis:', selectedModel);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

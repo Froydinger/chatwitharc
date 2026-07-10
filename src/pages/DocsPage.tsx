@@ -64,17 +64,16 @@ export function DocsPage() {
             You can switch models using the <strong>Model Picker dropdown</strong> located at the 
             <strong> top left of the chat window</strong> (above the chat input).
           </p>
-          <p>Click the picker to select from the following tiers:</p>
+          <p>Click the picker to select from the GPT-5.6 family:</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Auto</strong>: Best model is selected automatically based on the complexity of your task (routes code to GPT-5.5, simple prompts to Fast, complex reasoning to Deep Think).</li>
-            <li><strong className="text-foreground">Fast (GPT-5.4 Nano)</strong>: High-speed, lightweight model optimized for simple, quick chat tasks.</li>
-            <li><strong className="text-foreground">Smarter (GPT-5.4 Mini)</strong>: Balanced model for complex conversations and multi-turn logic.</li>
-            <li><strong className="text-foreground">Reasoning (GPT-5.4 Thinking)</strong>: Deep logic model for coding, math, and long explanation generation (Requires <a href="/pricing" className="text-primary hover:underline font-semibold">Boost</a>).</li>
-            <li><strong className="text-foreground">Deep Reason (GPT-5.5 Deep Think)</strong>: Advanced logical deduction and debugging model (Requires <a href="/pricing" className="text-primary hover:underline font-semibold">Boost</a>).</li>
+            <li><strong className="text-foreground">Auto</strong>: Best model is selected automatically based on the complexity of your task (simple prompts go to Luna, everyday work to Terra, and heavy reasoning to Sol).</li>
+            <li><strong className="text-foreground">Luna (GPT-5.6 Luna)</strong>: High-speed, lightweight model optimized for simple, quick chat tasks.</li>
+            <li><strong className="text-foreground">Terra (GPT-5.6 Terra)</strong>: Balanced model for complex conversations and multi-turn logic.</li>
+            <li><strong className="text-foreground">Sol (GPT-5.6 Sol)</strong>: Frontier model for coding, math, and your most complex professional work (Requires <a href="/pricing" className="text-primary hover:underline font-semibold">Boost</a>).</li>
           </ul>
         </div>
       ),
-      keywords: ["switch model", "change model", "select model", "reasoning", "deep think", "picker", "dropdown", "gpt-5.5", "gpt-5.4", "nano", "mini"]
+      keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "gpt-5.6", "sol", "terra", "luna"]
     },
     {
       id: "model-quotas",
@@ -87,8 +86,8 @@ export function DocsPage() {
             Usage quotas depend on your plan:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Free Tier</strong>: Limited daily image generations and chat limits on standard models. Reasoning models (GPT-5.4 Thinking and GPT-5.5 Deep Think) are paywalled.</li>
-            <li><strong className="text-foreground">Boost Plan ($10/mo or $96/yr)</strong>: Removes daily chat caps, unlocks advanced reasoning models (GPT-5.4 Thinking, GPT-5.5 Deep Think), provides offline local model support, and upgrades image generation quality.</li>
+            <li><strong className="text-foreground">Free Tier</strong>: Limited daily image generations and chat limits on standard models. The frontier model (GPT-5.6 Sol) is paywalled.</li>
+            <li><strong className="text-foreground">Boost Plan ($10/mo or $96/yr)</strong>: Removes daily chat caps, unlocks the frontier model (GPT-5.6 Sol), provides offline local model support, and upgrades image generation quality.</li>
           </ul>
           <p>You can check your current daily usage and remaining limit at <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>
         </div>

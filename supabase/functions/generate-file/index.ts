@@ -151,14 +151,14 @@ CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No expla
 
     // Allowlist supported models — fall back to default if unknown
     const ALLOWED_MODELS = new Set([
-      'gpt-5.4-mini',
-      'gpt-5.4-mini',
-      'gpt-5.4-mini',
-      'gpt-5.4-mini',
+      'gpt-5.6-terra',
+      'gpt-5.6-terra',
+      'gpt-5.6-terra',
+      'gpt-5.6-terra',
     ]);
     const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
       ? model
-      : 'gpt-5.4-mini';
+      : 'gpt-5.6-terra';
     console.log('Using model for file generation:', selectedModel);
 
     const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {

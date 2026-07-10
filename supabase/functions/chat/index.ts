@@ -478,7 +478,7 @@ serve(async (req) => {
     const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
 
     console.log('📊 Request details:', {
-      model: model || 'gpt-5.4-mini (default)',
+      model: model || 'gpt-5.6-terra (default)',
       messageCount: messages?.length || 0,
       hasProfile: !!profile,
       sessionId: sessionId || 'none (will not save in background)',
@@ -550,13 +550,20 @@ serve(async (req) => {
     }
 
     // Validate model if provided — only the user-pickable chat models are allowed.
+    // Retired ids from stale clients / saved prefs are mapped to their GPT-5.6 replacement.
+    const legacyModelMap: Record<string, string> = {
+      'gpt-5.4-nano': 'gpt-5.6-luna',
+      'gpt-5.4-mini': 'gpt-5.6-terra',
+      'gpt-5.4': 'gpt-5.6-sol',
+      'gpt-5.5': 'gpt-5.6-sol',
+    };
     const allowedModels = [
-      'gpt-5.4-nano',   // Faster
-      'gpt-5.4-mini',   // Fast
-      'gpt-5.4',        // Smart
-      'gpt-5.5',        // Smartest
+      'gpt-5.6-luna',   // quickest
+      'gpt-5.6-terra',  // balanced
+      'gpt-5.6-sol',    // frontier
     ];
-    const validatedModel = (model && allowedModels.includes(model)) ? model : null;
+    const requestedModel = model ? (legacyModelMap[model] ?? model) : null;
+    const validatedModel = (requestedModel && allowedModels.includes(requestedModel)) ? requestedModel : null;
     if (model && !validatedModel) {
       console.warn(`⚠️ Model "${model}" not in allowed list, will use default`);
     }
@@ -767,7 +774,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5.4-mini',
+            model: 'gpt-5.6-terra',
             messages: conversationMessages,
             temperature: 0.6,
             max_completion_tokens: 2000,
@@ -808,7 +815,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5.4-mini',
+            model: 'gpt-5.6-terra',
             messages: conversationMessages,
             temperature: 0.3,
             max_completion_tokens: 1200,
@@ -1150,15 +1157,15 @@ Output the complete, finished writing using the update_canvas tool.`;
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
     // Honor the client's model choice exactly. Auto mode grades complexity
-    // client-side (Nano/Mini for most, GPT-5.4 or GPT-5.5 for heavy asks),
+    // client-side (Luna/Terra for most, GPT-5.6 Sol for heavy asks),
     // and an explicitly picked model must never be silently up/downgraded.
-    let selectedModel = validatedModel || 'gpt-5.4-nano';
-    const fallbackModel = 'gpt-5.4-mini'; // Fallback for canvas/code if the primary model times out
+    let selectedModel = validatedModel || 'gpt-5.6-luna';
+    const fallbackModel = 'gpt-5.6-terra'; // Fallback for canvas/code if the primary model times out
 
     if (wantsCode && !validatedModel) {
-      // Code with no model specified floors at Mini rather than Nano
-      selectedModel = 'gpt-5.4-mini';
-      console.log('🔧 Code mode with no model specified: defaulting to GPT-5.4 Mini');
+      // Code with no model specified floors at Terra rather than Luna
+      selectedModel = 'gpt-5.6-terra';
+      console.log('🔧 Code mode with no model specified: defaulting to GPT-5.6 Terra');
     }
     
     // OpenAI models use max_completion_tokens.
@@ -1535,10 +1542,10 @@ Output the complete, finished writing using the update_canvas tool.`;
       });
     } catch (primaryError) {
       // If canvas/code mode with the reasoning model fails, try the fallback.
-      const isReasoningModel = selectedModel === 'gpt-5.4-mini';
+      const isReasoningModel = selectedModel === 'gpt-5.6-terra';
       if (isCanvasOrCodeMode && isReasoningModel) {
-        // Fallback remains GPT-5.4 Mini; no Gemini fallback.
-        const actualFallback = 'gpt-5.4-mini';
+        // Fallback remains GPT-5.6 Terra; no Gemini fallback.
+        const actualFallback = 'gpt-5.6-terra';
         const fallbackTokenParam = { max_completion_tokens: 65536 };
         
         console.log('⚠️ Primary model failed, trying fallback:', actualFallback);
@@ -2046,7 +2053,7 @@ Output the complete, finished writing using the update_canvas tool.`;
         const toolContextSize = synthesisMessages.reduce((acc: number, m: any) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0);
         console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
-        const secondCallModel = validatedModel || 'gpt-5.4-nano';
+        const secondCallModel = validatedModel || 'gpt-5.6-luna';
         const secondTokenParam = { max_completion_tokens: 65536 };
         response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
           method: 'POST',

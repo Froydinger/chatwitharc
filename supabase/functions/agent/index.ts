@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const AI_GATEWAY = "https://api.openai.com/v1/chat/completions";
-const DEFAULT_AGENT_MODEL = "gpt-5.4-mini";
+const DEFAULT_AGENT_MODEL = "gpt-5.6-terra";
 const AI_REQUEST_TIMEOUT_MS = 90000;
 
 const AGENT_SYSTEM_PROMPT = `You are **Arc Code**, a senior software engineer building production-ready React web apps.

@@ -42,7 +42,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI free?",
-        a: "Yes. ArcAI offers a robust free tier with unlimited chats with GPT-5.4 Nano, 20 chats/day with GPT-5.4 Mini, Deep Search, and basic image generation. Upgrading to Boost for $10/month unlocks unlimited premium reasoning models (GPT-5.4 Smart & GPT-5.5 Smartest), unlimited voice mode, custom web publishing, and higher image quotas (20 GPT-Image-2 outputs/day).",
+        a: "Yes. ArcAI offers a robust free tier with unlimited chats with GPT-5.6 Luna, 20 chats/day with GPT-5.6 Terra, Deep Search, and basic image generation. Upgrading to Boost for $10/month unlocks unlimited GPT-5.6 Sol frontier reasoning, unlimited voice mode, custom web publishing, and higher image quotas (20 GPT-Image-2 outputs/day).",
       },
       {
         q: "Do I need an account to use ArcAI?",
@@ -54,7 +54,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which AI models does ArcAI use?",
-        a: "ArcAI routes requests across best-in-class models. Free accounts get GPT-5.4 Nano for quick chats and 20 chats/day with GPT-5.4 Mini. Boost subscribers unlock unlimited GPT-5.4 (Smart) and GPT-5.5 (Smartest) for advanced reasoning. GPT-Image-2 powers images, OpenAI Realtime handles voice, and Perplexity Sonar handles web search.",
+        a: "ArcAI routes requests across the GPT-5.6 family — all the power of GPT-5.6, at half the cost. Free accounts get GPT-5.6 Luna for quick chats and 20 chats/day with GPT-5.6 Terra. Boost subscribers unlock unlimited GPT-5.6 Sol for frontier reasoning. GPT-Image-2 powers images, OpenAI Realtime handles voice, and Perplexity Sonar handles web search.",
       },
     ],
     cta: "Try ArcAI now",
@@ -75,11 +75,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI as good as ChatGPT Plus?",
-        a: "Yes. With a Boost upgrade, ArcAI gives you unlimited access to GPT-5.4 (Smart) and GPT-5.5 (Smartest) models, unlimited voice conversations, and custom web publishing — matching or exceeding ChatGPT Plus features at a fraction of the cost.",
+        a: "Yes. With a Boost upgrade, ArcAI gives you unlimited access to GPT-5.6 Sol, OpenAI's frontier model, plus unlimited voice conversations and custom web publishing — matching or exceeding ChatGPT Plus features at a fraction of the cost.",
       },
       {
         q: "Does the free tier have message limits?",
-        a: "No hard limits on everyday chats using GPT-5.4 Nano. Chats with GPT-5.4 Mini are limited to 20 per day on the free tier, and advanced reasoning models (Smart and Smartest) require a Boost subscription.",
+        a: "No hard limits on everyday chats using GPT-5.6 Luna. Chats with GPT-5.6 Terra are limited to 20 per day on the free tier, and the frontier model (GPT-5.6 Sol) requires a Boost subscription.",
       },
       {
         q: "Can I use ArcAI without signing up?",
@@ -121,15 +121,15 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["GPT-4 alternative", "GPT-4 free", "free GPT"],
     updated: UPDATED,
     intro:
-      "GPT-4 (and now GPT-5) is behind a paywall on most services. ArcAI gives you free access to GPT-5.4 Nano and Mini, and offers unlimited GPT-5.4 (Smart) and GPT-5.5 (Smartest) reasoning via our premium Boost upgrade.",
+      "GPT-4 (and now GPT-5) is behind a paywall on most services. ArcAI gives you free access to GPT-5.6 Luna and Terra, and offers unlimited GPT-5.6 Sol frontier reasoning via our premium Boost upgrade.",
     faq: [
       {
         q: "Is there a free version of GPT-4?",
-        a: "OpenAI's own free tier limits access to GPT-4-class models. ArcAI is a GPT alternative that routes default chats through GPT-5.4 Nano (unlimited) and GPT-5.4 Mini (20/day), while reserving advanced reasoning models (Smart and Smartest) for Boost.",
+        a: "OpenAI's own free tier limits access to GPT-4-class models. ArcAI is a GPT alternative that routes default chats through GPT-5.6 Luna (unlimited) and GPT-5.6 Terra (20/day), while reserving the frontier model (GPT-5.6 Sol) for Boost.",
       },
       {
         q: "What model does ArcAI use for chat?",
-        a: "Default chat runs on GPT-5.4 Nano. Premium reasoning models—GPT-5.4 (Smart) and GPT-5.5 (Smartest)—are available on the Boost tier.",
+        a: "Default chat runs on GPT-5.6 Luna. The frontier model — GPT-5.6 Sol — is available on the Boost tier.",
       },
       {
         q: "Can ArcAI do everything GPT-4 can?",
@@ -326,7 +326,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     slug: "free-ai-for-coding",
     title: "The best free AI for coding in your browser",
     description:
-      "ArcAI includes a free App Builder that generates, previews and publishes React apps — powered by GPT-5.4 (Smart).",
+      "ArcAI includes a free App Builder that generates, previews and publishes React apps — powered by GPT-5.6 Terra.",
     keywords: ["free AI coding", "AI code generator free", "free Copilot alternative", "React app builder"],
     updated: UPDATED,
     intro:
@@ -359,7 +359,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "What is the best free AI for writing?",
-        a: "ArcAI. Its writing canvas is powered by GPT-5.4 (Smart) and includes selection-based edits, tone changes and rewrites — all free.",
+        a: "ArcAI. Its writing canvas is powered by GPT-5.6 Terra and includes selection-based edits, tone changes and rewrites — all free.",
       },
     ],
     cta: "Try free AI writing",
@@ -417,7 +417,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-gpt-4-alternative": {
     angle: "Most people searching for a GPT-4 alternative want strong reasoning without turning every useful feature into a massive monthly bill. ArcAI focuses on GPT-class quality with practical tools around it.",
     useCases: ["reasoning through hard questions", "writing drafts", "debugging code", "summarizing documents", "generating images", "turning ideas into apps"],
-    freeAccess: "Free accounts get GPT-5.4 Nano and Mini, while advanced reasoning (GPT-5.4 Smart and GPT-5.5 Smartest) is unlocked with Boost.",
+    freeAccess: "Free accounts get GPT-5.6 Luna and Terra, while frontier reasoning (GPT-5.6 Sol) is unlocked with Boost.",
     proof: "The result is GPT-style usefulness without needing to choose between chat, voice, images, memory, and code in separate products.",
   },
   "free-claude-alternative": {

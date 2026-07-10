@@ -108,9 +108,12 @@ release: make sure changes build cleanly before pushing.
 
 ## Notes
 
-- Model tiers in the chat picker: Auto, Faster (GPT-5.4 Nano), Fast (GPT-5.4
-  Mini), Smart (GPT-5.4), Smartest (GPT-5.5) — defined in
+- Chat models in the picker use their real GPT-5.6 names (no in-house tier
+  names): Auto, Luna (`gpt-5.6-luna`, moon icon), Terra (`gpt-5.6-terra`,
+  earth icon), Sol (`gpt-5.6-sol`, sun icon, Boost-gated) — defined in
   `src/store/useModelStore.ts`, picker in `src/components/ChatModelPicker.tsx`.
+  Retired GPT-5.4/5.5 ids are alias-mapped in `LEGACY_MODEL_MAP` (client) and
+  `legacyModelMap` in `supabase/functions/chat/index.ts` (server).
 - Accent color: 7 options (`red`, `blue`, `green`, `yellow`, `purple`,
   `orange`, `noir`) defined in `src/hooks/useAccentColor.tsx`, selected in
   `src/components/SettingsPanel.tsx` (Appearance) and quick-switched from the

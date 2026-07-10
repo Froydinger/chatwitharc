@@ -63,8 +63,8 @@ serve(async (req) => {
       });
     }
 
-    // Always use GPT-5.4 Mini for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'gpt-5.4-mini';
+    // Always use GPT-5.6 Terra for prompt generation - fast, efficient, reliable
+    const PROMPT_MODEL = 'gpt-5.6-terra';
     console.log('Using model for personalized prompts:', PROMPT_MODEL);
 
     const requestBody = {

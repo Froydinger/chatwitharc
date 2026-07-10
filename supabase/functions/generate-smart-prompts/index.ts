@@ -21,8 +21,8 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const context = body?.context || 'general';
 
-    // Always use GPT-5.4 Mini for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'gpt-5.4-mini';
+    // Always use GPT-5.6 Terra for prompt generation - fast, efficient, reliable
+    const PROMPT_MODEL = 'gpt-5.6-terra';
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

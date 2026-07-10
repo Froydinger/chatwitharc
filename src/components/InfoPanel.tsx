@@ -14,7 +14,7 @@ export function InfoPanel() {
     {
       icon: MessageSquare,
       title: "Smart Text Chat",
-      description: "Powered by GPT-5.4 Mini for lightning-fast, intelligent conversations"
+      description: "Powered by GPT-5.6 Terra for lightning-fast, intelligent conversations"
     },
     {
       icon: ImagePlus,

@@ -121,7 +121,7 @@ export interface Message {
     | 'cloud-image-edit'
     | 'cloud-image-edit-fallback'
     | 'cloud-ide';
-  // Exact model id that produced this response (e.g. 'gpt-5.4-mini').
+  // Exact model id that produced this response (e.g. 'gpt-5.6-terra').
   // Stored at send time so the badge shows what actually ran, not the
   // picker's current selection.
   modelUsed?: string;
@@ -365,7 +365,7 @@ export const useArcStore = create<ArcState>()(
           };
 
           const ai = new AIService();
-          // Use gpt-5.4-nano specifically for fast and cheap naming
+          // Use gpt-5.6-luna specifically for fast and cheap naming
           const res = await ai.sendMessage(
             [titlePrompt, ...chatMessages.slice(0, 4)],
             undefined,
@@ -376,7 +376,7 @@ export const useArcStore = create<ArcState>()(
             false,
             false,
             false,
-            'gpt-5.4-nano'
+            'gpt-5.6-luna'
           );
 
           const generatedTitle = res.content.trim().replace(/^["']|["']$/g, '').slice(0, 50);

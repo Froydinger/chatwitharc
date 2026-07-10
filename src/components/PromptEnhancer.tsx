@@ -15,7 +15,7 @@ interface PromptEnhancerProps {
 }
 
 /**
- * A tiny "✨ Enhance" chip. Tapping it asks GPT-5.4 Mini to rewrite the current
+ * A tiny "✨ Enhance" chip. Tapping it asks GPT-5.6 Terra to rewrite the current
  * input, then shows the suggestion in a small popover with Accept / Dismiss —
  * the input is only changed if the user accepts. Non-disruptive: it renders
  * nothing until there's a few words of text to work with.

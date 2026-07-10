@@ -5,7 +5,7 @@
  */
 import { useLocalAIStore } from '@/store/useLocalAIStore';
 import { useCorporateModeStore } from '@/store/useCorporateModeStore';
-import { useModelStore, FASTER_MODEL, SMARTER_MODEL } from '@/store/useModelStore';
+import { useModelStore, LUNA_MODEL, TERRA_MODEL } from '@/store/useModelStore';
 import { FAST_MODEL, QUALITY_MODEL, FAST_FALLBACK, IOS_LITE_MODEL, getActiveLocalModelId } from '@/services/localAI';
 import { isMobileLocalDevice } from '@/utils/mobileLocal';
 
@@ -15,15 +15,15 @@ import { isMobileLocalDevice } from '@/utils/mobileLocal';
  */
 export type RouteDestination =
   | 'local'                     // On-device model (label resolved at render)
-  | 'cloud-chat'                // GPT-5.4 Mini — default chat
-  | 'cloud-chat-pro'            // GPT-5.4 Mini — heavier reasoning
+  | 'cloud-chat'                // GPT-5.6 Terra — default chat
+  | 'cloud-chat-pro'            // GPT-5.6 Terra — heavier reasoning
   | 'cloud-search'              // Tavily Advanced retrieval + GPT synthesis
   | 'cloud-search-tavily'       // Legacy alias — same Tavily pipeline
-  | 'cloud-vision'              // GPT-5.4 Mini (image understanding)
-  | 'cloud-document'            // GPT-5.4 Mini (document analysis)
+  | 'cloud-vision'              // GPT-5.6 Terra (image understanding)
+  | 'cloud-document'            // GPT-5.6 Terra (document analysis)
   | 'cloud-voice'               // OpenAI Realtime
-  | 'cloud-code'                // GPT-5.4 Mini — /code, canvas code edits
-  | 'cloud-canvas'              // GPT-5.4 Mini — writing canvas
+  | 'cloud-code'                // GPT-5.6 Terra — /code, canvas code edits
+  | 'cloud-canvas'              // GPT-5.6 Terra — writing canvas
   | 'cloud-image'               // GPT-Image-2 — locked image model
   | 'cloud-image-pro'           // Deprecated alias — also maps to GPT-Image-2
   | 'cloud-image-edit'          // GPT-Image-2 — edit pass
@@ -140,19 +140,16 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
     case 'cloud-image-edit-fallback':
       return { label: 'Cloud · Nano Banana 2 (Edit, fallback)', icon: 'cloud', tooltip: 'GPT-Image-2 was unavailable, so this edit was served by Google Gemini Nano Banana 2 as a fallback.' };
     case 'cloud-ide':
-      return { label: 'Cloud · GPT-5.4 Mini (App Builder)', icon: 'cloud', tooltip: 'App Builder agent — OpenAI GPT-5.4 Mini.' };
+      return { label: 'Cloud · GPT-5.6 Terra (App Builder)', icon: 'cloud', tooltip: 'App Builder agent — OpenAI GPT-5.6 Terra.' };
   }
 }
 
 function getModelInfo(m: string): { name: string; tier: string } {
-  if (m === 'gpt-5.5') {
-    return { name: 'GPT-5.5', tier: 'Smartest' };
+  if (m === 'gpt-5.6-sol') {
+    return { name: 'GPT-5.6 Sol', tier: 'Sol' };
   }
-  if (m === 'gpt-5.4') {
-    return { name: 'GPT-5.4', tier: 'Smart' };
+  if (m === 'gpt-5.6-terra') {
+    return { name: 'GPT-5.6 Terra', tier: 'Terra' };
   }
-  if (m === 'gpt-5.4-mini') {
-    return { name: 'GPT-5.4 Mini', tier: 'Fast' };
-  }
-  return { name: 'GPT-5.4 Nano', tier: 'Faster' };
+  return { name: 'GPT-5.6 Luna', tier: 'Luna' };
 }

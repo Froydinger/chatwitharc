@@ -23,7 +23,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes unlimited chats with GPT-5.4 Nano, 20 chats/day with GPT-5.4 Mini, Deep Search, canvases, memory, and basic image generation. Upgrade to Boost for unlimited advanced reasoning models (GPT-5.4 Smart & GPT-5.5 Smartest), unlimited voice, higher image quotas, and custom web publishing.",
+    a: "Yes. Our free tier includes unlimited chats with GPT-5.6 Luna, 20 chats/day with GPT-5.6 Terra, Deep Search, canvases, memory, and basic image generation. Upgrade to Boost for unlimited GPT-5.6 Sol frontier reasoning, unlimited voice, higher image quotas, and custom web publishing.",
   },
   {
     q: "Is there a paid tier?",
@@ -39,7 +39,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "We route requests to best-in-class models: GPT-5.4 (Smart) and GPT-5.5 (Smartest) for advanced reasoning, GPT-5.4 Nano and Mini for everyday chats, GPT-Image-2 for images, OpenAI Realtime for voice, and Perplexity Sonar for web search.",
+    a: "We route requests to the GPT-5.6 family: Sol for frontier reasoning, Terra for everyday chats, and Luna for the quickest replies — plus GPT-Image-2 for images, OpenAI Realtime for voice, and Perplexity Sonar for web search. All the power of GPT-5.6, at half the cost.",
   },
   {
     q: "Is ArcAI private?",
@@ -201,7 +201,7 @@ export function LandingPage() {
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { category: "Ask", icon: MessageSquare, title: "Advanced Reasoning", body: "Choose between GPT-5.4 (Smart) and GPT-5.5 (Smartest) models to solve your most complex problems with ultimate depth." },
+            { category: "Ask", icon: MessageSquare, title: "GPT-5.6 Inside", body: "All the power of GPT-5.6 — Luna, Terra, and Sol — at half the cost. Step up to Sol for frontier reasoning on your most complex problems." },
             { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
             { category: "Reflect", icon: Brain, title: "Deep Cross-Session Memory", body: "Arc is built to reflect and remember. It automatically builds a persistent Memory Bank of your preferences, goals, and facts across sessions, recalling context so it genuinely knows who you are." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },

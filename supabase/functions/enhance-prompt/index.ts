@@ -2,7 +2,7 @@
 // rewrites it into a clearer, more detailed instruction for an AI.
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
-const MODEL = 'gpt-5.4-mini';
+const MODEL = 'gpt-5.6-terra';
 
 const SYSTEM_CHAT = `You are a PROMPT REWRITER. Your ONLY job is to rewrite the user's prompt into a clearer, more specific, more effective prompt for an AI assistant.
 

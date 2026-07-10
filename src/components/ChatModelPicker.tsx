@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FastForward, StepForward, Brain, BrainCircuit, RefreshCcwDot, Check, ChevronDown, Lock } from 'lucide-react';
-import { useModelStore, AUTO_MODEL, FASTER_MODEL, SMARTER_MODEL, THINKING_MODEL, DEEP_THINK_MODEL, type ChatModel } from '@/store/useModelStore';
+import { Moon, Earth, Sun, RefreshCcwDot, Check, ChevronDown, Lock } from 'lucide-react';
+import { useModelStore, AUTO_MODEL, LUNA_MODEL, TERRA_MODEL, SOL_MODEL, type ChatModel } from '@/store/useModelStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
 
@@ -24,18 +24,15 @@ export function ChatModelPicker({ className }: Props) {
 
   let current = 'Auto';
   let CurrentIcon = RefreshCcwDot;
-  if (chatModel === FASTER_MODEL) {
-    current = 'Faster';
-    CurrentIcon = FastForward;
-  } else if (chatModel === SMARTER_MODEL) {
-    current = 'Fast';
-    CurrentIcon = StepForward;
-  } else if (chatModel === THINKING_MODEL) {
-    current = 'Smart';
-    CurrentIcon = Brain;
-  } else if (chatModel === DEEP_THINK_MODEL) {
-    current = 'Smartest';
-    CurrentIcon = BrainCircuit;
+  if (chatModel === LUNA_MODEL) {
+    current = 'Luna';
+    CurrentIcon = Moon;
+  } else if (chatModel === TERRA_MODEL) {
+    current = 'Terra';
+    CurrentIcon = Earth;
+  } else if (chatModel === SOL_MODEL) {
+    current = 'Sol';
+    CurrentIcon = Sun;
   }
 
   // Compute position when opening, and on resize/scroll while open.
@@ -62,7 +59,7 @@ export function ChatModelPicker({ className }: Props) {
   }, [open]);
 
   const pick = (m: ChatModel) => {
-    if ((m === THINKING_MODEL || m === DEEP_THINK_MODEL) && !hasBoost) {
+    if (m === SOL_MODEL && !hasBoost) {
       openCheckout();
       setOpen(false);
       return;
@@ -113,34 +110,26 @@ export function ChatModelPicker({ className }: Props) {
                   onClick={() => pick(AUTO_MODEL)}
                 />
                 <Row
-                  icon={<FastForward className="h-4 w-4 text-primary" />}
-                  title="Faster"
-                  subtitle="GPT-5.4 Nano · quickest replies"
-                  active={chatModel === FASTER_MODEL}
-                  onClick={() => pick(FASTER_MODEL)}
+                  icon={<Moon className="h-4 w-4 text-primary" />}
+                  title="Luna"
+                  subtitle="GPT-5.6 · quickest replies"
+                  active={chatModel === LUNA_MODEL}
+                  onClick={() => pick(LUNA_MODEL)}
                 />
                 <Row
-                  icon={<StepForward className="h-4 w-4 text-primary" />}
-                  title="Fast"
-                  subtitle="GPT-5.4 Mini · balanced replies"
-                  active={chatModel === SMARTER_MODEL}
-                  onClick={() => pick(SMARTER_MODEL)}
+                  icon={<Earth className="h-4 w-4 text-primary" />}
+                  title="Terra"
+                  subtitle="GPT-5.6 · balanced intelligence and cost"
+                  active={chatModel === TERRA_MODEL}
+                  onClick={() => pick(TERRA_MODEL)}
                 />
                 <Row
-                  icon={<Brain className="h-4 w-4 text-primary" />}
-                  title="Smart"
-                  subtitle="GPT-5.4 · deeper reasoning"
-                  active={chatModel === THINKING_MODEL}
+                  icon={<Sun className="h-4 w-4 text-primary" />}
+                  title="Sol"
+                  subtitle="GPT-5.6 · frontier reasoning"
+                  active={chatModel === SOL_MODEL}
                   gated={!hasBoost}
-                  onClick={() => pick(THINKING_MODEL)}
-                />
-                <Row
-                  icon={<BrainCircuit className="h-4 w-4 text-primary" />}
-                  title="Smartest"
-                  subtitle="GPT-5.5 · ultimate reasoning"
-                  active={chatModel === DEEP_THINK_MODEL}
-                  gated={!hasBoost}
-                  onClick={() => pick(DEEP_THINK_MODEL)}
+                  onClick={() => pick(SOL_MODEL)}
                 />
               </motion.div>
             </>
