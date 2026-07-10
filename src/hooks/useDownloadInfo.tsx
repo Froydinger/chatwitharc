@@ -7,6 +7,11 @@ if (!SUPABASE_URL) {
 }
 const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/download-files`;
 
+const resolveDownloadUrl = (value: string) => {
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${STORAGE_BASE}/${encodeURIComponent(value)}`;
+};
+
 interface PlatformDownload {
   version: string;
   url: string;
@@ -61,18 +66,18 @@ export function useDownloadInfo(): DownloadInfo {
   return {
     mac: {
       version: macVersion,
-      url: `${STORAGE_BASE}/${encodeURIComponent(macFilename)}`,
+      url: resolveDownloadUrl(macFilename),
       filename: macFilename,
     },
     windows: {
       version: winVersion,
-      url: `${STORAGE_BASE}/${encodeURIComponent(winFilename)}`,
+      url: resolveDownloadUrl(winFilename),
       filename: winFilename,
     },
     loading,
     // Backwards compat
     version: macVersion,
-    url: `${STORAGE_BASE}/${macFilename}`,
+    url: resolveDownloadUrl(macFilename),
     filename: macFilename,
   };
 }
