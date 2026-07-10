@@ -131,7 +131,7 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
     }
 
     // Always use GPT-5.6 Terra for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'gpt-5.6-terra';
+    const PROMPT_MODEL = 'gpt-5.6-luna';
     console.log('Using model for category prompts:', PROMPT_MODEL);
 
     const requestBody = {

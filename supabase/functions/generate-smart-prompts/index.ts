@@ -22,7 +22,7 @@ serve(async (req) => {
     const context = body?.context || 'general';
 
     // Always use GPT-5.6 Terra for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'gpt-5.6-terra';
+    const PROMPT_MODEL = 'gpt-5.6-luna';
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

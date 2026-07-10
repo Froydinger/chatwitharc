@@ -1024,7 +1024,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               ? "cloud-search-tavily"
               : "cloud-search"
             : "cloud-chat",
-          modelUsed: useModelStore.getState().chatModel,
+          modelUsed: result.modelUsed,
         });
       } catch (err: any) {
         console.error("Chat error:", err);
@@ -1462,7 +1462,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               role: "assistant",
               type: "text",
               sourceModel: "cloud-document",
-              modelUsed: useModelStore.getState().chatModel,
+              modelUsed: "gpt-5.6-terra",
             });
           }
         } catch (err: any) {
@@ -1472,7 +1472,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             role: "assistant",
             type: "text",
             sourceModel: "cloud-document",
-            modelUsed: useModelStore.getState().chatModel,
+            modelUsed: "gpt-5.6-terra",
           });
         }
         return;
@@ -1621,7 +1621,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             role: "assistant",
             type: "text",
             sourceModel: "cloud-vision",
-            modelUsed: useModelStore.getState().chatModel,
+            modelUsed: "gpt-5.6-terra",
           });
         } catch {
           toast({ title: "Error", description: "Failed to analyze images", variant: "destructive" });
@@ -1630,7 +1630,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             role: "assistant",
             type: "text",
             sourceModel: "cloud-vision",
-            modelUsed: useModelStore.getState().chatModel,
+            modelUsed: "gpt-5.6-terra",
           });
         }
         return;
@@ -2026,7 +2026,7 @@ ${safeCode}
                   const idx = state.messages.findIndex((m) => m.id === codeMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code" } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code", modelUsed: result.modelUsed } as any;
                   return { messages: updated } as any;
                 });
 
@@ -2056,7 +2056,7 @@ ${safeCode}
                   const idx = state.messages.findIndex((m) => m.id === canvasMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas" } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas", modelUsed: result.modelUsed } as any;
                   return { messages: updated } as any;
                 });
 
@@ -2315,6 +2315,7 @@ ${safeCode}
                   role: "assistant",
                   type: "text",
                   sourceModel: "cloud-chat",
+                  modelUsed: result.modelUsed,
                 });
               }
             } else {
@@ -2369,6 +2370,7 @@ ${safeCode}
                     ? "cloud-search-tavily"
                     : "cloud-search"
                   : "cloud-chat",
+                modelUsed: result.modelUsed,
               });
 
               // Intelligently generate a title if it's the first assistant message or still has default title

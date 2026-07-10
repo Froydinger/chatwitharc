@@ -40,6 +40,43 @@ export function detectComplexQuery(message: string): boolean {
   return false;
 }
 
+// Graded query complexity for Auto model routing (0 simple -> 3 very complex)
+export function getQueryComplexity(message: string): 0 | 1 | 2 | 3 {
+  if (!message) return 0;
+  const lower = message.toLowerCase().trim();
+
+  // Genuinely heavyweight requests (complexity 3 -> Smartest / Deep Think, i.e. Sol)
+  if (
+    lower.length > 2000 ||
+    lower.includes("deep think") ||
+    lower.includes("deep-think") ||
+    lower.includes("gpt-5.6-sol") ||
+    lower.includes("smartest model") ||
+    lower.includes("deep reason")
+  ) {
+    return 3;
+  }
+
+  // Complex reasoning/coding requests (complexity 2 -> Smart, i.e. Sol)
+  if (
+    lower.length > 500 ||
+    detectComplexQuery(message) ||
+    lower.includes("thinking model") ||
+    lower.includes("reasoning model") ||
+    lower.includes("gpt-5.6-sol") ||
+    lower.includes("smarter model")
+  ) {
+    return 2;
+  }
+
+  // Moderate requests (complexity 1 -> Fast / Balanced, i.e. Terra)
+  if (lower.length > 150) {
+    return 1;
+  }
+
+  return 0;
+}
+
 interface AIMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -113,6 +150,7 @@ export interface SendMessageResult {
   scheduledTask?: import('@/components/ScheduledTaskCard').ScheduledTaskData;
   notificationDispatch?: import('@/components/NotificationDispatchCard').NotificationDispatchData;
   locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
+  modelUsed?: string;
 }
 
 export class AIService {
@@ -227,15 +265,16 @@ export class AIService {
       const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
       const isComplex = !isCanvasOrCode && detectComplexQuery(lastUserMsg);
       
+      const complexity = getQueryComplexity(lastUserMsg);
       const selectedModel = modelOverride || (forceCode
-        ? getModelForTask('code')
+        ? getModelForTask('code', complexity)
         : forceCanvas
-          ? getModelForTask('file-gen')
+          ? getModelForTask('file-gen', complexity)
           : forceWebSearch
-            ? getModelForTask('chat')
+            ? getModelForTask('chat', complexity)
             : isComplex
-              ? getModelForTask('deep-chat')
-              : getModelForTask('chat'));
+              ? getModelForTask('deep-chat', complexity)
+              : getModelForTask('chat', complexity));
 
       // Use longer timeout for canvas/code generation or complex queries (especially with 3.1 Pro)
       const timeoutMs = (isCanvasOrCode || isComplex) ? this.canvasTimeoutMs : this.defaultTimeoutMs;
@@ -318,6 +357,7 @@ export class AIService {
               latitude: usedLocation.latitude,
               longitude: usedLocation.longitude,
             } : undefined,
+            modelUsed: data.model_used,
           };
         } catch (err: any) {
           lastError = err;
@@ -391,7 +431,7 @@ export class AIService {
     forceCode: boolean = false,
     onStart?: (mode: 'canvas' | 'code' | 'text') => void,
     onDelta?: (content: string) => void,
-    onDone?: (result: { mode: 'canvas' | 'code' | 'text'; content: string; label?: string; language?: string; webSources?: WebSource[] }) => void,
+    onDone?: (result: { mode: 'canvas' | 'code' | 'text'; content: string; label?: string; language?: string; webSources?: WebSource[]; modelUsed?: string }) => void,
     onError?: (error: string) => void,
     sessionId?: string,
     forceWebSearch?: boolean,
@@ -405,15 +445,16 @@ export class AIService {
     const lastUserMsg = messages.filter(m => m.role === 'user').pop()?.content || '';
     const isComplex = !(forceCanvas || forceCode) && detectComplexQuery(lastUserMsg);
     
+    const complexity = getQueryComplexity(lastUserMsg);
     const selectedModel = forceCode
-      ? getModelForTask('code')
+      ? getModelForTask('code', complexity)
       : forceCanvas
-        ? getModelForTask('file-gen')
+        ? getModelForTask('file-gen', complexity)
         : forceWebSearch
-          ? getModelForTask('chat')
+          ? getModelForTask('chat', complexity)
           : isComplex
-            ? getModelForTask('deep-chat')
-            : getModelForTask('chat');
+            ? getModelForTask('deep-chat', complexity)
+            : getModelForTask('chat', complexity);
 
     // Enrich profile with context blocks (same as sendMessage)
     let enrichedProfile = profile || {};
@@ -527,7 +568,8 @@ export class AIService {
                 content: event.content,
                 label: event.label,
                 language: event.language,
-                webSources: event.webSources
+                webSources: event.webSources,
+                modelUsed: event.model_used
               });
             } else if (event.type === 'error') {
               onError?.(event.message);

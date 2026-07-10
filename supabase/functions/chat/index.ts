@@ -815,7 +815,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5.6-terra',
+            model: 'gpt-5.6-luna',
             messages: conversationMessages,
             temperature: 0.3,
             max_completion_tokens: 1200,

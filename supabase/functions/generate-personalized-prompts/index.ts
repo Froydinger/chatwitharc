@@ -64,7 +64,7 @@ serve(async (req) => {
     }
 
     // Always use GPT-5.6 Terra for prompt generation - fast, efficient, reliable
-    const PROMPT_MODEL = 'gpt-5.6-terra';
+    const PROMPT_MODEL = 'gpt-5.6-luna';
     console.log('Using model for personalized prompts:', PROMPT_MODEL);
 
     const requestBody = {
