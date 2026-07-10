@@ -776,8 +776,7 @@ serve(async (req) => {
           body: JSON.stringify({
             model: 'gpt-5.6-terra',
             messages: conversationMessages,
-            temperature: 0.6,
-            max_completion_tokens: 2000,
+            max_completion_tokens: 4096,
           }),
         }
       );
@@ -785,7 +784,7 @@ serve(async (req) => {
       if (!guestResponse.ok) {
         const errorText = await guestResponse.text();
         console.error('Guest AI error:', guestResponse.status, errorText);
-        throw new Error(`AI service error: ${guestResponse.status}`);
+        throw new Error(`AI service error: ${guestResponse.status} - ${errorText}`);
       }
 
       const guestData = await guestResponse.json();
@@ -1180,6 +1179,7 @@ Output the complete, finished writing using the update_canvas tool.`;
       const isCanvasOrCodeMode = wantsCode || wantsCanvas;
       console.log('🌊 Using streaming mode', isCanvasOrCodeMode ? 'for canvas/code' : 'for text');
       
+      const isReasoning = selectedModel === 'gpt-5.6-terra' || selectedModel === 'gpt-5.6-sol';
       const streamResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -1191,7 +1191,7 @@ Output the complete, finished writing using the update_canvas tool.`;
           messages: conversationMessages,
           tools: toolsToUse,
           tool_choice: toolChoice,
-          temperature: 0.6,
+          temperature: isReasoning ? undefined : 0.6,
           stream: true,
           ...tokenParam,
         }),
@@ -1525,6 +1525,7 @@ Output the complete, finished writing using the update_canvas tool.`;
     let usedFallback = false;
     
     try {
+      const isReasoning = selectedModel === 'gpt-5.6-terra' || selectedModel === 'gpt-5.6-sol';
       response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -1536,7 +1537,7 @@ Output the complete, finished writing using the update_canvas tool.`;
           messages: conversationMessages,
           tools: toolsToUse,
           tool_choice: toolChoice,
-          temperature: 0.6,
+          temperature: isReasoning ? undefined : 0.6,
           ...tokenParam,
         }),
       });
@@ -1561,7 +1562,7 @@ Output the complete, finished writing using the update_canvas tool.`;
             messages: conversationMessages,
             tools: toolsToUse,
             tool_choice: toolChoice,
-            temperature: 0.6,
+            temperature: (actualFallback === 'gpt-5.6-terra' || actualFallback === 'gpt-5.6-sol') ? undefined : 0.6,
             ...fallbackTokenParam,
           }),
         });
@@ -2055,6 +2056,7 @@ Output the complete, finished writing using the update_canvas tool.`;
         
         const secondCallModel = validatedModel || 'gpt-5.6-luna';
         const secondTokenParam = { max_completion_tokens: 65536 };
+        const isSecondCallReasoning = secondCallModel === 'gpt-5.6-terra' || secondCallModel === 'gpt-5.6-sol';
         response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -2064,7 +2066,7 @@ Output the complete, finished writing using the update_canvas tool.`;
           body: JSON.stringify({
             model: secondCallModel,
             messages: synthesisMessages,
-            temperature: 0.6,
+            temperature: isSecondCallReasoning ? undefined : 0.6,
             ...secondTokenParam,
           }),
         });
