@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Moon, Earth, Sun, RefreshCcwDot, Check, ChevronDown, Lock } from 'lucide-react';
+import { Moon, Stone, Sun, RefreshCcwDot, Check, ChevronDown, Lock } from 'lucide-react';
 import { useModelStore, AUTO_MODEL, LUNA_MODEL, TERRA_MODEL, SOL_MODEL, type ChatModel } from '@/store/useModelStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
@@ -29,7 +29,7 @@ export function ChatModelPicker({ className }: Props) {
     CurrentIcon = Moon;
   } else if (chatModel === TERRA_MODEL) {
     current = 'Terra';
-    CurrentIcon = Earth;
+    CurrentIcon = Stone;
   } else if (chatModel === SOL_MODEL) {
     current = 'Sol';
     CurrentIcon = Sun;
@@ -117,7 +117,7 @@ export function ChatModelPicker({ className }: Props) {
                   onClick={() => pick(LUNA_MODEL)}
                 />
                 <Row
-                  icon={<Earth className="h-4 w-4 text-primary" />}
+                  icon={<Stone className="h-4 w-4 text-primary" />}
                   title="Terra"
                   subtitle="GPT-5.6 · balanced intelligence and cost"
                   active={chatModel === TERRA_MODEL}
