@@ -131,8 +131,43 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [editContent, setEditContent] = useState(message.content || "");
     const [showActions, setShowActions] = useState(false);
     const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+    const [selectedImageSourceUrl, setSelectedImageSourceUrl] = useState<string | null>(null);
     const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
     const isUser = message.role === "user";
+
+    const handleOpenImage = (imgUrl: string) => {
+      setSelectedImageUrl(imgUrl);
+      
+      // Determine original page source URL for search images
+      let foundSourceUrl = null;
+      try {
+        const urlObj = new URL(imgUrl);
+        const imgDomain = urlObj.hostname.replace('www.', '');
+        
+        // Find matching domain from message's webSources
+        if (message.webSources && message.webSources.length > 0) {
+          const match = message.webSources.find(src => {
+            try {
+              const srcDomain = new URL(src.url).hostname.replace('www.', '');
+              return srcDomain.includes(imgDomain) || imgDomain.includes(srcDomain);
+            } catch {
+              return false;
+            }
+          });
+          if (match) {
+            foundSourceUrl = match.url;
+          }
+        }
+        
+        // Fallback: If no match in search sources, just link to the main site of the image URL
+        if (!foundSourceUrl) {
+          foundSourceUrl = `${urlObj.protocol}//${urlObj.hostname}`;
+        }
+      } catch (e) {
+        console.warn('Could not parse image source URL:', e);
+      }
+      setSelectedImageSourceUrl(foundSourceUrl);
+    };
 
     const activePersonaId = message.personaId || chatSessions.find(s => s.id === currentSessionId)?.personaId;
     const activePersona = usePersonasStore(state =>
@@ -332,7 +367,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     <div 
                       key={i} 
                       className="relative aspect-video rounded-xl overflow-hidden border border-border/40 group/img cursor-pointer bg-muted/40 shadow-sm hover:scale-[1.02] hover:shadow-md transition-all duration-300"
-                      onClick={() => setSelectedImageUrl(imgUrl)}
+                      onClick={() => handleOpenImage(imgUrl)}
                     >
                       <SmoothImage 
                         src={imgUrl} 
@@ -408,7 +443,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                           <div key={index} className="flex flex-col items-center gap-2">
                             <div
                               className="rounded-2xl border border-white/10 bg-white/10 overflow-hidden cursor-pointer hover:border-white/20 transition-colors max-w-sm mx-auto"
-                              onClick={() => setSelectedImageUrl(url)}
+                              onClick={() => handleOpenImage(url)}
                             >
                               <SmoothImage
                                 src={url}
@@ -435,7 +470,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                         <div className="flex flex-col items-center space-y-2">
                           <div 
                             className="rounded-2xl border border-white/10 bg-white/10 overflow-hidden cursor-pointer hover:border-white/20 transition-colors max-w-sm mx-auto"
-                            onClick={() => setSelectedImageUrl(message.imageUrl!)}
+                            onClick={() => handleOpenImage(message.imageUrl!)}
                           >
                             <SmoothImage
                               src={message.imageUrl}
@@ -756,6 +791,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           onClose={() => setSelectedImageUrl(null)}
           imageUrl={selectedImageUrl || ""}
           alt="Image"
+          sourceUrl={selectedImageSourceUrl || undefined}
         />
 
         {/* Image Edit Modal */}

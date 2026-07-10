@@ -31,8 +31,12 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
     if (isOpen) {
       setSelectedPriceId(priceId || BOOST_PRICE_ID);
       setShowCheckout(false);
+    } else {
+      setShowCheckout(false);
     }
   }, [isOpen, priceId]);
+
+  if (!isOpen) return null;
 
   const handleClose = () => {
     setShowCheckout(false);

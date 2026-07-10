@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Download } from "lucide-react";
+import { X, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { useToast } from "@/hooks/use-toast";
@@ -11,9 +11,10 @@ interface ImageModalProps {
   onClose: () => void;
   imageUrl: string;
   alt?: string;
+  sourceUrl?: string;
 }
 
-export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image" }: ImageModalProps) {
+export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl }: ImageModalProps) {
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
   const rightPanelOpen = useArcStore((s) => s.rightPanelOpen);
@@ -96,7 +97,21 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image" }: ImageMo
             style={{ maxWidth: `min(${availableWidth - 32}px, 1100px)` }}
           >
             {/* Action Bar */}
-            <div className="absolute top-4 right-4 z-10 flex gap-2">
+            <div className="absolute top-4 right-4 z-10 flex gap-2 items-center">
+              {sourceUrl && 
+               !sourceUrl.startsWith('blob:') && 
+               !sourceUrl.includes('supabase.co/storage') && 
+               !sourceUrl.includes(window.location.hostname) && (
+                <a
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-4 h-10 rounded-full bg-black/60 hover:bg-black/80 text-white font-medium text-xs backdrop-blur-xl border border-white/30 shadow-[0_2px_12px_rgba(0,0,0,0.5)] transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span>View Source</span>
+                </a>
+              )}
               <Button
                 variant="secondary"
                 size="icon"
