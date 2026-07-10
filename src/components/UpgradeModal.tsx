@@ -198,21 +198,21 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
             )}
           </div>
         ) : (
-          <div className="relative w-full max-h-[90vh] overflow-y-auto rounded-xl p-4 bg-zinc-950 border border-white/10 min-h-[500px]">
-            {/* Absolute custom Back/Close button floating outside the Stripe box */}
+          <div className="relative w-full max-h-[90vh] overflow-y-auto rounded-xl p-4 pt-[calc(3.5rem+env(safe-area-inset-top))] bg-zinc-950 border border-white/10 min-h-[500px]">
+            {/* Absolute custom Back/Close button respecting iOS safe areas */}
             <button
               onClick={() => {
                 setShowCheckout(false);
                 setClientSecret(null);
               }}
-              className="absolute -top-12 right-0 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 p-2 rounded-full transition-all border border-white/10 backdrop-blur-md flex items-center justify-center z-50 shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
+              className="absolute top-[calc(1rem+env(safe-area-inset-top))] right-4 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 p-2 rounded-full transition-all border border-white/10 backdrop-blur-md flex items-center justify-center z-50 shadow-lg hover:scale-105 active:scale-95 cursor-pointer"
               aria-label="Back"
             >
               <X className="h-4 w-4" />
             </button>
             {clientSecret ? (
               <EmbeddedCheckoutProvider stripe={getStripe()} options={{ clientSecret }}>
-                <div className="pt-2">
+                <div>
                   <EmbeddedCheckout />
                 </div>
               </EmbeddedCheckoutProvider>
