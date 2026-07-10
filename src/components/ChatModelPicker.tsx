@@ -128,28 +128,28 @@ export function ChatModelPicker({ className }: Props) {
                 <Row
                   icon={<Rocket className={cn('h-4 w-4', MODEL_ICON_COLORS.astro)} />}
                   title="Astro"
-                  subtitle="Best for quick chats"
+                  subtitle="GPT-5.4 Nano · Best for quick chats"
                   active={chatModel === NANO_MODEL}
                   onClick={() => pick(NANO_MODEL)}
                 />
                 <Row
                   icon={<MoonStar className={cn('h-4 w-4', MODEL_ICON_COLORS.luna)} />}
                   title="Luna"
-                  subtitle="Best for quick reasoning"
+                  subtitle="GPT-5.6 · Best for quick reasoning"
                   active={chatModel === LUNA_MODEL}
                   onClick={() => pick(LUNA_MODEL)}
                 />
                 <Row
                   icon={<Earth className={cn('h-4 w-4', MODEL_ICON_COLORS.terra)} />}
                   title="Terra"
-                  subtitle="Best for code & writing"
+                  subtitle="GPT-5.6 · Best for code & writing"
                   active={chatModel === TERRA_MODEL}
                   onClick={() => pick(TERRA_MODEL)}
                 />
                 <Row
                   icon={<Sun className={cn('h-4 w-4', MODEL_ICON_COLORS.sol)} />}
                   title="Sol"
-                  subtitle="Best for deep work"
+                  subtitle="GPT-5.6 · Best for deep work"
                   active={chatModel === SOL_MODEL}
                   gated={!hasBoost}
                   onClick={() => pick(SOL_MODEL)}
