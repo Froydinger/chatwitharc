@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoonStar, Rocket, Stone, Sun, RefreshCcwDot, Check, ChevronDown, Lock } from 'lucide-react';
+import { MoonStar, Rocket, Earth, Sun, RefreshCcwDot, Check, ChevronDown, Lock } from 'lucide-react';
 import { useModelStore, AUTO_MODEL, NANO_MODEL, LUNA_MODEL, TERRA_MODEL, SOL_MODEL, type ChatModel } from '@/store/useModelStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,14 @@ interface Props {
   placement?: 'up' | 'down';
 }
 
+const MODEL_ICON_COLORS = {
+  auto: 'text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.65)]',
+  astro: 'text-primary',
+  luna: 'text-[#c084fc] drop-shadow-[0_0_8px_rgba(192,132,252,0.7)]',
+  terra: 'text-[#39ff88] drop-shadow-[0_0_8px_rgba(57,255,136,0.65)]',
+  sol: 'text-[#ff8a1f] drop-shadow-[0_0_8px_rgba(255,138,31,0.65)]',
+} as const;
+
 export function ChatModelPicker({ className }: Props) {
   const chatModel = useModelStore((s) => s.chatModel);
   const setChatModel = useModelStore((s) => s.setChatModel);
@@ -24,18 +32,23 @@ export function ChatModelPicker({ className }: Props) {
 
   let current = 'Auto';
   let CurrentIcon = RefreshCcwDot;
+  let currentIconClass = MODEL_ICON_COLORS.auto;
   if (chatModel === NANO_MODEL) {
     current = 'Astro';
     CurrentIcon = Rocket;
+    currentIconClass = MODEL_ICON_COLORS.astro;
   } else if (chatModel === LUNA_MODEL) {
     current = 'Luna';
     CurrentIcon = MoonStar;
+    currentIconClass = MODEL_ICON_COLORS.luna;
   } else if (chatModel === TERRA_MODEL) {
     current = 'Terra';
-    CurrentIcon = Stone;
+    CurrentIcon = Earth;
+    currentIconClass = MODEL_ICON_COLORS.terra;
   } else if (chatModel === SOL_MODEL) {
     current = 'Sol';
     CurrentIcon = Sun;
+    currentIconClass = MODEL_ICON_COLORS.sol;
   }
 
   // Compute position when opening, and on resize/scroll while open.
@@ -84,7 +97,7 @@ export function ChatModelPicker({ className }: Props) {
         aria-label={`Model: ${current}`}
         title={`Model: ${current} — tap to change`}
       >
-        <CurrentIcon className="h-4 w-4 text-primary" />
+        <CurrentIcon className={cn('h-4 w-4', currentIconClass)} />
         <span>{current}</span>
         <ChevronDown className={cn('h-3.5 w-3.5 opacity-60 transition-transform', open && 'rotate-180')} />
       </button>
@@ -106,35 +119,35 @@ export function ChatModelPicker({ className }: Props) {
                 className="fixed z-[9999] w-60 rounded-2xl border border-border/40 glass shadow-2xl p-1.5"
               >
                 <Row
-                  icon={<RefreshCcwDot className="h-4 w-4 text-primary" />}
+                  icon={<RefreshCcwDot className={cn('h-4 w-4', MODEL_ICON_COLORS.auto)} />}
                   title="Auto"
                   subtitle="Best for letting Arc choose"
                   active={chatModel === AUTO_MODEL}
                   onClick={() => pick(AUTO_MODEL)}
                 />
                 <Row
-                  icon={<Rocket className="h-4 w-4 text-primary" />}
+                  icon={<Rocket className={cn('h-4 w-4', MODEL_ICON_COLORS.astro)} />}
                   title="Astro"
                   subtitle="Best for quick chats"
                   active={chatModel === NANO_MODEL}
                   onClick={() => pick(NANO_MODEL)}
                 />
                 <Row
-                  icon={<MoonStar className="h-4 w-4 text-primary" />}
+                  icon={<MoonStar className={cn('h-4 w-4', MODEL_ICON_COLORS.luna)} />}
                   title="Luna"
                   subtitle="Best for quick reasoning"
                   active={chatModel === LUNA_MODEL}
                   onClick={() => pick(LUNA_MODEL)}
                 />
                 <Row
-                  icon={<Stone className="h-4 w-4 text-primary" />}
+                  icon={<Earth className={cn('h-4 w-4', MODEL_ICON_COLORS.terra)} />}
                   title="Terra"
                   subtitle="Best for code & writing"
                   active={chatModel === TERRA_MODEL}
                   onClick={() => pick(TERRA_MODEL)}
                 />
                 <Row
-                  icon={<Sun className="h-4 w-4 text-primary" />}
+                  icon={<Sun className={cn('h-4 w-4', MODEL_ICON_COLORS.sol)} />}
                   title="Sol"
                   subtitle="Best for deep work"
                   active={chatModel === SOL_MODEL}
