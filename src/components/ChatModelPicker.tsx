@@ -119,7 +119,7 @@ export function ChatModelPicker({ className }: Props) {
                 <Row
                   icon={<Stone className="h-4 w-4 text-primary" />}
                   title="Terra"
-                  subtitle="GPT-5.6 · balanced intelligence and cost"
+                  subtitle="GPT-5.6 · balanced intelligence"
                   active={chatModel === TERRA_MODEL}
                   onClick={() => pick(TERRA_MODEL)}
                 />
