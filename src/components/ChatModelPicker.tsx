@@ -16,7 +16,7 @@ interface Props {
 
 const MODEL_ICON_COLORS = {
   auto: 'text-[#38bdf8] drop-shadow-[0_0_8px_rgba(56,189,248,0.65)]',
-  astro: 'text-primary',
+  astro: 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.55)]',
   luna: 'text-[#c084fc] drop-shadow-[0_0_8px_rgba(192,132,252,0.7)]',
   terra: 'text-[#39ff88] drop-shadow-[0_0_8px_rgba(57,255,136,0.65)]',
   sol: 'text-[#ff8a1f] drop-shadow-[0_0_8px_rgba(255,138,31,0.65)]',
