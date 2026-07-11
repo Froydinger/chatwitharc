@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, screen, dialog, systemPreferences, shell, Menu } = require("electron");
+const { app, BrowserWindow, globalShortcut, screen, dialog, shell, Menu } = require("electron");
 
 const ARC_URL = "https://askarc.chat";
 const APP_NAME = "ArcAI";
@@ -27,11 +27,11 @@ function compareVersions(a, b) {
 }
 
 function getPlatformAsset(assets = []) {
-  const names = process.platform === "darwin"
+  const patterns = process.platform === "darwin"
     ? [/arm64\.dmg$/i, /\.dmg$/i]
     : [/setup.*\.exe$/i, /\.exe$/i];
 
-  for (const pattern of names) {
+  for (const pattern of patterns) {
     const match = assets.find((asset) => pattern.test(asset.name || ""));
     if (match?.browser_download_url) return match;
   }
@@ -43,7 +43,7 @@ async function checkForUpdates({ quiet = false } = {}) {
   try {
     const response = await fetch(RELEASES_API_URL, {
       headers: {
-        "Accept": "application/vnd.github+json",
+        Accept: "application/vnd.github+json",
         "User-Agent": "ArcAI-Desktop"
       }
     });
@@ -89,7 +89,7 @@ async function checkForUpdates({ quiet = false } = {}) {
         type: "warning",
         title: "Couldn't check for updates",
         message: "Couldn't check for updates",
-        detail: "ArcAI couldn't reach the GitHub release feed. You can still check the downloads page.",
+        detail: "ArcAI couldn't reach the release feed. You can still check the downloads page.",
         buttons: ["Open Downloads", "OK"],
         defaultId: 0,
         cancelId: 1
@@ -176,17 +176,6 @@ function installMenu() {
   ];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
-}
-
-async function requestPermissions() {
-  if (process.platform !== "darwin") return;
-
-  try {
-    await systemPreferences.askForMediaAccess("microphone");
-    await systemPreferences.askForMediaAccess("camera");
-  } catch (_) {
-    // Permission prompts are best-effort. The web app can still request access later.
-  }
 }
 
 function focusInput(win) {
@@ -321,21 +310,16 @@ function showWelcomeOnce() {
     type: "info",
     title: `${APP_NAME} Desktop`,
     message: "Welcome to ArcAI",
-    detail: `Press ${process.platform === "darwin" ? "Control + Option + Space" : "Control + Alt + Space"} to open the assistant anywhere.\n\n${process.platform === "darwin" ? "Click the Dock icon" : "Launch ArcAI"} to open the full application.`,
+    detail: `Press ${process.platform === "darwin" ? "Control + Option + Space" : "Control + Alt + Space"} to open the floating assistant anywhere.\n\nUse File > New Chat for a fresh chat, Window > Open Full ArcAI for the full app, and ArcAI > Check for Updates when you want the newest build.`,
     buttons: ["OK"]
   }).catch(() => {});
 }
 
-app.whenReady().then(async () => {
+app.whenReady().then(() => {
   installMenu();
-  await requestPermissions();
-  showWelcomeOnce();
-
   globalShortcut.register(SHORTCUT, toggleFloating);
-
-  if (process.platform !== "darwin") {
-    showFull();
-  }
+  showFull();
+  showWelcomeOnce();
 });
 
 app.on("activate", showFull);

@@ -1,6 +1,6 @@
 {
   "name": "arcai-desktop",
-  "version": "5.0.1",
+  "version": "5.1.0",
   "description": "ArcAI desktop assistant",
   "author": "Jake Freudinger",
   "main": "main.js",
@@ -41,8 +41,8 @@
       ],
       "minimumSystemVersion": "12.0",
       "extendInfo": {
-        "CFBundleDisplayName": "ArcAi",
-        "CFBundleName": "ArcAi",
+        "CFBundleDisplayName": "ArcAI",
+        "CFBundleName": "ArcAI",
         "NSHumanReadableCopyright": "Copyright © 2026 Jake Freudinger",
         "NSMicrophoneUsageDescription": "ArcAI uses the microphone for voice chat.",
         "NSCameraUsageDescription": "ArcAI uses the camera for multimodal chat.",
@@ -119,7 +119,7 @@
     }
   },
   "devDependencies": {
-    "electron": "40.8.0",
+    "electron": "35.7.5",
     "electron-builder": "^26.0.12"
   }
 }
