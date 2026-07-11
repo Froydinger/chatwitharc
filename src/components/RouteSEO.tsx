@@ -20,7 +20,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/downloads": {
     title: "ArcAI • Downloads",
     description:
-      "Get ArcAI on every device. Download the desktop and mobile apps for realtime voice, images and chat.",
+      "ArcAI native downloads are coming soon. Use the supported web app in your browser or install it to your home screen or dock.",
   },
   "/dashboard": {
     title: "ArcAI • Dashboard",
