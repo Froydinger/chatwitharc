@@ -27,6 +27,9 @@ export function AdminSettingsPanel() {
   const [updating, setUpdating] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [systemPromptDraft, setSystemPromptDraft] = useState('');
+  const [chatBehaviorPromptDraft, setChatBehaviorPromptDraft] = useState('');
+  const [responseStylePromptDraft, setResponseStylePromptDraft] = useState('');
+  const [groundingPromptDraft, setGroundingPromptDraft] = useState('');
   const [imageRestrictionsDraft, setImageRestrictionsDraft] = useState('');
   const [bannerEnabled, setBannerEnabled] = useState(false);
   const [bannerMessage, setBannerMessage] = useState('');
@@ -55,6 +58,18 @@ export function AdminSettingsPanel() {
       setImageRestrictionsDraft(imageRestrictions);
     }
   }, [settings, imageRestrictionsDraft]);
+
+  useEffect(() => {
+    if (settings.length > 0 && !chatBehaviorPromptDraft) {
+      setChatBehaviorPromptDraft(getSetting('chat_behavior_prompt')?.value || '');
+    }
+    if (settings.length > 0 && !responseStylePromptDraft) {
+      setResponseStylePromptDraft(getSetting('response_style_prompt')?.value || '');
+    }
+    if (settings.length > 0 && !groundingPromptDraft) {
+      setGroundingPromptDraft(getSetting('grounding_prompt')?.value || '');
+    }
+  }, [settings, chatBehaviorPromptDraft, responseStylePromptDraft, groundingPromptDraft]);
 
   // Initialize banner settings when settings load
   useEffect(() => {
@@ -243,6 +258,90 @@ export function AdminSettingsPanel() {
                 className="w-full noir-send-btn"
               >
                 Save System Prompt
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Chat Behavior & Tools Prompt</CardTitle>
+              <CardDescription>
+                Hidden tool behavior for search, memory, reminders, YouTube embeds, and App Builder routing.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="chat-behavior-prompt">Chat Behavior Prompt</Label>
+                <Textarea
+                  id="chat-behavior-prompt"
+                  value={chatBehaviorPromptDraft}
+                  onChange={(e) => setChatBehaviorPromptDraft(e.target.value)}
+                  className="min-h-[260px] font-mono text-xs"
+                  placeholder="Enter hidden chat/tool behavior instructions..."
+                />
+              </div>
+              <Button
+                onClick={() => handleUpdateSetting('chat_behavior_prompt', chatBehaviorPromptDraft)}
+                disabled={updating}
+                className="w-full noir-send-btn"
+              >
+                Save Behavior Prompt
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Response Style & Code Prompt</CardTitle>
+              <CardDescription>
+                Hidden tone, brevity, and complete code/canvas output rules.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="response-style-prompt">Response Style Prompt</Label>
+                <Textarea
+                  id="response-style-prompt"
+                  value={responseStylePromptDraft}
+                  onChange={(e) => setResponseStylePromptDraft(e.target.value)}
+                  className="min-h-[220px] font-mono text-xs"
+                  placeholder="Enter hidden response style instructions..."
+                />
+              </div>
+              <Button
+                onClick={() => handleUpdateSetting('response_style_prompt', responseStylePromptDraft)}
+                disabled={updating}
+                className="w-full noir-send-btn"
+              >
+                Save Style Prompt
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Grounding & Safety Prompt</CardTitle>
+              <CardDescription>
+                Hidden anti-hallucination, uncertainty, and date/time grounding rules.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="grounding-prompt">Grounding Prompt</Label>
+                <Textarea
+                  id="grounding-prompt"
+                  value={groundingPromptDraft}
+                  onChange={(e) => setGroundingPromptDraft(e.target.value)}
+                  className="min-h-[180px] font-mono text-xs"
+                  placeholder="Enter hidden grounding instructions..."
+                />
+              </div>
+              <Button
+                onClick={() => handleUpdateSetting('grounding_prompt', groundingPromptDraft)}
+                disabled={updating}
+                className="w-full noir-send-btn"
+              >
+                Save Grounding Prompt
               </Button>
             </CardContent>
           </Card>

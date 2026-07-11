@@ -588,6 +588,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                         variant="glow"
                         size="sm"
                         onClick={handleSaveEdit}
+                        className="text-foreground"
                       >
                         <Check className="h-3 w-3 mr-1" />
                         Save

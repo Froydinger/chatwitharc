@@ -291,7 +291,7 @@ export function AdminPanel() {
 
   const handleSave = async (key: string) => {
     try {
-      const value = localValues[key] || getSetting(key);
+      const value = localValues[key] !== undefined ? localValues[key] : getSetting(key);
       await updateSetting(key, value);
       toast({ title: "Settings updated", description: "The setting has been saved successfully." });
     } catch (error) {
@@ -1359,6 +1359,72 @@ export function AdminPanel() {
                     />
                     <Button onClick={() => handleSave("system_prompt")} disabled={updating} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
                       Save Core Prompt
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60">
+                <CardHeader>
+                  <CardTitle>Chat Behavior & Tools Prompt</CardTitle>
+                  <CardDescription>Controls hidden tool behavior for search, memory, reminders, YouTube embeds, and App Builder routing</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Textarea
+                      id="mchat_behavior_prompt"
+                      value={getCurrentValue("chat_behavior_prompt")}
+                      onChange={(e) => handleValueChange("chat_behavior_prompt", e.target.value)}
+                      placeholder="Tool and behavior instructions..."
+                      rows={14}
+                      className="font-mono text-xs leading-relaxed"
+                    />
+                    <Button onClick={() => handleSave("chat_behavior_prompt")} disabled={updating} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+                      Save Behavior Prompt
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60">
+                <CardHeader>
+                  <CardTitle>Response Style & Code Prompt</CardTitle>
+                  <CardDescription>Controls conversational tone, brevity, and complete code/canvas output rules</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Textarea
+                      id="mresponse_style_prompt"
+                      value={getCurrentValue("response_style_prompt")}
+                      onChange={(e) => handleValueChange("response_style_prompt", e.target.value)}
+                      placeholder="Tone and output rules..."
+                      rows={10}
+                      className="font-mono text-xs leading-relaxed"
+                    />
+                    <Button onClick={() => handleSave("response_style_prompt")} disabled={updating} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+                      Save Style Prompt
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60">
+                <CardHeader>
+                  <CardTitle>Grounding & Safety Prompt</CardTitle>
+                  <CardDescription>Controls anti-hallucination, uncertainty, and date/time grounding rules</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Textarea
+                      id="mgrounding_prompt"
+                      value={getCurrentValue("grounding_prompt")}
+                      onChange={(e) => handleValueChange("grounding_prompt", e.target.value)}
+                      placeholder="Grounding and safety rules..."
+                      rows={8}
+                      className="font-mono text-xs leading-relaxed"
+                    />
+                    <Button onClick={() => handleSave("grounding_prompt")} disabled={updating} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+                      Save Grounding Prompt
                     </Button>
                   </div>
                 </CardContent>
