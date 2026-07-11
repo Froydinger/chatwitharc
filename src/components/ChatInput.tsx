@@ -3248,12 +3248,18 @@ ${safeCode}
                     requireAuth("voice");
                     return;
                   }
-                  if (isDashboard) {
-                    navigate("/chat");
-                    setTimeout(() => activateVoiceMode(), 100);
-                  } else {
-                    activateVoiceMode();
+                  const arc = useArcStore.getState();
+                  const sessionId = arc.currentSessionId || arc.createNewSession();
+                  const targetPath = `/chat/${sessionId}`;
+
+                  if (window.location.pathname !== targetPath) {
+                    navigate(targetPath);
                   }
+
+                  // Let the route/session settle before opening the realtime
+                  // socket. Starting voice while the welcome route is still
+                  // morphing into a chat route can drop the first connection.
+                  setTimeout(() => activateVoiceMode(), 180);
                 }}
                 className="flex items-center justify-center w-9 h-9 rounded-full bg-muted/40 hover:bg-primary/15 text-foreground hover:text-primary transition-all"
                 title="Voice mode"
