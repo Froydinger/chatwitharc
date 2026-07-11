@@ -8,7 +8,9 @@ const corsHeaders = {
 };
 
 const ALLOWED_VOICES = new Set(['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin']);
-const OPENAI_REALTIME_MODELS = ['gpt-realtime-2.1-mini', 'gpt-realtime-2.1'] as const;
+// Prefer the most capable realtime model for Arc voice mode. Mini remains a
+// fallback if the primary model is temporarily unavailable.
+const OPENAI_REALTIME_MODELS = ['gpt-realtime-2.1', 'gpt-realtime-2.1-mini'] as const;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {

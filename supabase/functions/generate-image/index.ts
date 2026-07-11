@@ -16,7 +16,7 @@ const RETRY_DELAY_MS = 3_000;
 
 // All image generation is locked to OpenAI GPT-Image-2 at medium quality.
 const DEFAULT_IMAGE_MODEL = "gpt-image-1";
-const ALLOWED_IMAGE_MODELS = new Set<string>(["gpt-image-1", "gpt-image-1-mini", "gpt-image-2"]);
+const ALLOWED_IMAGE_MODELS = new Set<string>(["gpt-image-1", "gpt-image-1-mini", "gpt-image-1.5-flash", "gpt-image-2"]);
 function pickImageModel(requested?: unknown): string {
   return typeof requested === "string" && ALLOWED_IMAGE_MODELS.has(requested)
     ? requested
@@ -301,7 +301,18 @@ serve(async (req) => {
     }
 
     console.log(`Generating ${count} image(s) with ${selectedModel} (${size}, medium${isYouTube ? ", 16:9 crop" : ""}) for job ${currentJobId}`);
-    const result = await callImageGateway(prompt, selectedModel, size, count);
+    let result = await callImageGateway(prompt, selectedModel, size, count);
+    let finalModel = selectedModel;
+
+    if (!result.ok && selectedModel === "gpt-image-1.5-flash") {
+      const errorInfo = classifyError(result.status, result.rawText);
+      const canFallback = errorInfo.errorType === "provider_error" || errorInfo.errorType === "timeout" || errorInfo.errorType === "invalid_request";
+      if (canFallback) {
+        console.warn(`Voice flash image model failed (${result.status}); falling back to ${DEFAULT_IMAGE_MODEL}`);
+        finalModel = DEFAULT_IMAGE_MODEL;
+        result = await callImageGateway(prompt, finalModel, size, count);
+      }
+    }
 
     if (!result.ok) {
       const errorInfo = classifyError(result.status, result.rawText);
@@ -344,7 +355,7 @@ serve(async (req) => {
     }
 
     console.log(`Image generated successfully (${imageUrls.length}) for job ${currentJobId}`);
-    await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: imageUrls[0], result_image_urls: imageUrls, error_message: null, error_type: null });
+    await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: imageUrls[0], result_image_urls: imageUrls, preferred_model: finalModel, error_message: null, error_type: null });
     await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: currentJobId, successful_count: imageUrls.length });
     const { data: finalQuota } = await supabaseAdmin
       .from("daily_image_usage")

@@ -11,9 +11,9 @@
   "orientation": "portrait-primary",
   "categories": ["productivity", "utilities"],
   "icons": [
-    { "src": "/icons/apple-touch-icon-180.png", "sizes": "180x180", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/mac512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/mac512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icons/apple-icon-ios.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+    { "src": "/icons/arcai-pwa-icon-180.png?v=7", "sizes": "180x180", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/arcai-pwa-icon-512.png?v=7", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/arcai-pwa-icon-512.png?v=7", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/arcai-pwa-icon-1024.png?v=7", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
   ]
 }

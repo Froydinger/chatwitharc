@@ -61,7 +61,7 @@ const PROACTIVE_REFRESH_MS = 13 * 60 * 1000; // 13 minutes
 
 // Deterministic errors that should NOT trigger reconnect
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
-const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1-mini';
+const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1';
 
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
@@ -299,6 +299,9 @@ type PendingFunctionResult = {
 // Tool calls in flight to prevent duplicate executions
 const toolCallsInFlight = new Map<string, number>();
 const TOOL_CALL_TIMEOUT_MS = 60000;
+let activeToolCallId: string | null = null;
+let queuedToolCalls: Array<{ name: string; call_id: string; arguments?: string }> = [];
+const queuedToolCallIds = new Set<string>();
 
 let responseInProgress = false;
 let pendingFunctionResults: PendingFunctionResult[] = [];
@@ -435,6 +438,12 @@ const resetPendingFunctionResults = () => {
   responseInProgress = false;
 };
 
+const resetToolCallQueue = () => {
+  activeToolCallId = null;
+  queuedToolCalls = [];
+  queuedToolCallIds.clear();
+};
+
 const buildReconnectPrompt = async () => {
   try {
     const updatedPrompt = await optionsRefForReconnect?.current.onSessionExpired?.();
@@ -458,6 +467,7 @@ const cleanupStaleToolCalls = () => {
     if (now - timestamp > TOOL_CALL_TIMEOUT_MS) {
       console.warn('Cleaning up stale tool call:', callId);
       toolCallsInFlight.delete(callId);
+      if (activeToolCallId === callId) activeToolCallId = null;
     }
   }
 };
@@ -672,6 +682,23 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             console.log('Tool call already in flight, ignoring:', call_id);
             return;
           }
+          if (queuedToolCallIds.has(call_id)) {
+            console.log('Tool call already queued, ignoring:', call_id);
+            return;
+          }
+          if (activeToolCallId && activeToolCallId !== call_id) {
+            queuedToolCalls.push({ name, call_id, arguments: argsStr });
+            queuedToolCallIds.add(call_id);
+            logVoiceDiagnostic({
+              event_type: 'tool_call_queued',
+              message: `Realtime requested ${name} while another tool was active`,
+              tool_name: name,
+              tool_call_id: call_id,
+              details: { activeToolCallId, queuedCount: queuedToolCalls.length },
+            });
+            return;
+          }
+          activeToolCallId = call_id;
           toolCallsInFlight.set(call_id, Date.now());
           console.log('Function call received:', { name, call_id, argsStr });
           logVoiceDiagnostic({
@@ -684,6 +711,17 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
           const cleanupToolCall = () => {
             toolCallsInFlight.delete(call_id);
+            if (activeToolCallId === call_id) activeToolCallId = null;
+            const nextToolCall = queuedToolCalls.shift();
+            if (nextToolCall) {
+              queuedToolCallIds.delete(nextToolCall.call_id);
+              window.setTimeout(() => {
+                handleServerEvent({
+                  type: 'response.output_item.done',
+                  item: { type: 'function_call', ...nextToolCall },
+                });
+              }, 0);
+            }
           };
           
           if (name === 'generate_image') {
@@ -1322,7 +1360,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 {
                 type: 'function',
                 name: 'generate_image',
-                description: 'Generate an image based on user description. Use when user asks to create, generate, show, draw, or make an image or picture of something. ALWAYS pay attention to size/shape requests - "wide", "widescreen", "landscape", "banner" = 16:9. "Tall", "portrait", "vertical", "phone wallpaper" = 9:16. "Square" or no preference = 1:1.',
+                description: 'Generate a NEW image based on user description. Use when user asks to create, generate, show, draw, or make a new image or picture of something. Do NOT use this to edit, modify, restyle, or change an existing image; tell the user to use the on-screen image editor/chat controls for edits. ALWAYS pay attention to size/shape requests - "wide", "widescreen", "landscape", "banner" = 16:9. "Tall", "portrait", "vertical", "phone wallpaper" = 9:16. "Square" or no preference = 1:1.',
                 parameters: {
                   type: 'object',
                   properties: {
@@ -1477,6 +1515,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         sessionReady = false;
         forceFlushTurnOrderingBuffer();
         toolCallsInFlight.clear();
+        resetToolCallQueue();
         resetPendingFunctionResults();
         // Tear down per-connection intervals so they don't accumulate across reconnects
         clearConnectionTimers();
@@ -1522,6 +1561,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       globalSessionId = null;
       forceFlushTurnOrderingBuffer();
       toolCallsInFlight.clear();
+      resetToolCallQueue();
       resetPendingFunctionResults();
       logVoiceDiagnostic({
         event_type: 'connect_failed',
@@ -1556,6 +1596,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     sessionReady = false;
     resetTurnOrderingBuffer();
     toolCallsInFlight.clear();
+    resetToolCallQueue();
     resetPendingFunctionResults();
     setIsConnected(false);
     setStatus('idle');
@@ -1591,6 +1632,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     clearConnectionTimers();
     forceFlushTurnOrderingBuffer();
     toolCallsInFlight.clear();
+    resetToolCallQueue();
     resetPendingFunctionResults();
     await connect(await buildReconnectPrompt());
   }, [connect]);

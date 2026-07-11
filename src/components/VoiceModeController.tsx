@@ -199,7 +199,7 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
     voicePrompt += `\n\n--- VOICE TOOLS ---
 CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
 
-• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. When done, use close_image if user is done with it.
+• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. Voice can create NEW images only. If the user asks to edit/modify/change an existing image, do NOT use generate_image; tell them image editing is available from the on-screen image editor/chat controls, not voice. When done, use close_image if user is done with it.
 • WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search. Summarize results conversationally after — the user already sees a result card, so don't repeat it verbatim.
   IMPORTANT: Listen carefully to exact names and titles. If unsure, confirm before searching.
 • WEATHER: For ANY weather question (current weather, temperature, forecast, conditions for a city), use get_weather — NOT web_search. Say "Let me check" first, then call get_weather. A weather card appears for the user; just give a short, casual spoken summary.
@@ -220,10 +220,9 @@ When the user shares their camera or attaches an image:
 • For attached images, offer to analyze specific parts if needed
 • Be helpful but not overly verbose about what you see
 
-If a user says something like "edit this" or asks to modify an image:
-• Ask what changes they'd like if not specified
-• Use generate_image with a prompt that describes the desired edit
-• The image editing system can handle style changes, modifications, additions, etc.`;
+If a user says something like "edit this" or asks to modify an existing image:
+• Do NOT call generate_image for edits
+• Briefly say voice mode can make new images, but edits need the on-screen editor/chat controls`;
 
     return voicePrompt;
   } catch (error) {
@@ -323,7 +322,7 @@ export function VoiceModeController() {
     setIsGeneratingImage(true);
     
     try {
-      const urls = await aiService.generateImage(prompt, undefined, aspectRatio);
+      const urls = await aiService.generateImage(prompt, 'gpt-image-1.5-flash', aspectRatio);
       const imageUrl = urls[0];
       console.log('VoiceModeController: Image generated:', imageUrl);
       setGeneratedImage(imageUrl);
@@ -645,14 +644,14 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
       prompt += `\n\n--- VOICE TOOLS ---
 CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
 
-• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image.
+• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image for NEW images only. Do not edit or modify existing images in voice mode; tell the user to use the on-screen image editor/chat controls for edits.
 • WEB SEARCH: Say "Let me look that up" FIRST, then use web_search.
 • WEATHER: Use get_weather (not web_search) for any weather question.
 • SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.
 • MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember about them. Use delete_memory when they say "forget that" or want a memory removed. When correcting an old memory, pass \`replaces\` with keywords from the outdated one. CRITICAL: Give exactly ONE short spoken confirmation per memory action — either before calling the tool OR after it returns, never both. Tool results like "OK_SAVED" / "OK_DELETED" are silent acknowledgments; do NOT speak again after seeing them if you already confirmed before the call.`;
 
       prompt += `\n\n--- VISION CAPABILITIES ---
-When the user shares their camera or attaches an image, describe what you see naturally and conversationally.`;
+When the user shares their camera or attaches an image, describe what you see naturally and conversationally. If they ask to edit that image, do not call generate_image; voice mode cannot edit images.`;
 
       return prompt;
     } catch (err) {
