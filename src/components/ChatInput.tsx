@@ -2777,11 +2777,10 @@ ${safeCode}
 
       <div
         ref={inputBarRef}
-        data-voice-input-anchor="true"
         className={cn(
-          "relative flex flex-col gap-2 p-0.5 transition-all duration-300",
+          "relative flex max-h-[360px] origin-bottom flex-col gap-2 p-0.5 transition-all duration-300 ease-out",
           isActive ? "opacity-100" : "opacity-95",
-          isVoiceActive && "opacity-0 pointer-events-none select-none",
+          isVoiceActive && "max-h-0 translate-y-3 scale-95 overflow-hidden p-0 opacity-0 pointer-events-none select-none",
         )}
         aria-hidden={isVoiceActive}
       >

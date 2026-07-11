@@ -209,7 +209,6 @@ export function VoiceModeOverlay() {
   const [voicePickerOpen, setVoicePickerOpen] = useState(false);
   const [pendingVoiceSwitch, setPendingVoiceSwitch] = useState<VoiceName | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
-  const [anchorRect, setAnchorRect] = useState<{ left: number; top: number; width: number } | null>(null);
 
   // File input ref for attachments
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -414,43 +413,6 @@ export function VoiceModeOverlay() {
     setPendingVoiceSwitch(null);
   }, []);
 
-  useEffect(() => {
-    if (!isActive) return;
-
-    const updateAnchor = () => {
-      const anchor = document.querySelector('[data-voice-input-anchor="true"]') as HTMLElement | null;
-      if (!anchor) {
-        setAnchorRect(null);
-        return;
-      }
-      const rect = anchor.getBoundingClientRect();
-      setAnchorRect({
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-      });
-    };
-
-    updateAnchor();
-
-    const anchor = document.querySelector('[data-voice-input-anchor="true"]') as HTMLElement | null;
-    const resizeObserver = anchor && 'ResizeObserver' in window
-      ? new ResizeObserver(updateAnchor)
-      : null;
-    if (anchor && resizeObserver) resizeObserver.observe(anchor);
-
-    window.addEventListener('resize', updateAnchor);
-    window.addEventListener('scroll', updateAnchor, true);
-    const interval = window.setInterval(updateAnchor, 250);
-
-    return () => {
-      resizeObserver?.disconnect();
-      window.removeEventListener('resize', updateAnchor);
-      window.removeEventListener('scroll', updateAnchor, true);
-      window.clearInterval(interval);
-    };
-  }, [isActive]);
-
   if (!isActive) return null;
 
   const amplitude = status === 'speaking' ? outputAmplitude : (isMuted ? 0 : inputAmplitude);
@@ -490,8 +452,7 @@ export function VoiceModeOverlay() {
     <AnimatePresence>
       {isActive && (
         <div
-          className={anchorRect ? "fixed z-[100] pointer-events-none" : "fixed inset-x-0 bottom-0 z-[100] pointer-events-none px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]"}
-          style={anchorRect ? { left: anchorRect.left, top: anchorRect.top, width: anchorRect.width } : undefined}
+          className="fixed inset-x-0 bottom-0 z-[100] pointer-events-none px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]"
         >
           <input
             ref={fileInputRef}
@@ -501,7 +462,7 @@ export function VoiceModeOverlay() {
             onChange={handleFileChange}
           />
 
-          <div className={anchorRect ? "w-full pointer-events-auto" : "mx-auto w-[min(760px,calc(100vw-1.5rem))] pointer-events-auto"}>
+          <div className="mx-auto w-[min(760px,calc(100vw-1.5rem))] pointer-events-auto">
             <AnimatePresence>
               {isCameraActive && (
                 <motion.div
