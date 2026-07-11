@@ -8,6 +8,7 @@ interface UseOpenAIRealtimeOptions {
   onError?: (error: string) => void;
   onInterrupt?: () => void;
   onImageGenerate?: (prompt: string, aspectRatio?: string) => Promise<string>;
+  onImageRevise?: (prompt: string, aspectRatio?: string) => Promise<string>;
   onImageDismiss?: () => void;
   onWebSearch?: (query: string) => Promise<string>;
   onSearchPastChats?: (query: string) => Promise<string>;
@@ -313,6 +314,17 @@ const deliverFunctionResult = (
   result: string,
   reasoningEffort: ReasoningEffort = 'low'
 ): boolean => {
+  const voiceState = useVoiceModeStore.getState();
+  if (
+    responseInProgress ||
+    voiceState.hasPendingSpeech ||
+    voiceState.status === 'thinking' ||
+    voiceState.status === 'speaking'
+  ) {
+    queueFunctionResult(callId, result, reasoningEffort);
+    return false;
+  }
+
   if (!toolCallsInFlight.has(callId) && !pendingFunctionResultCallIds.has(callId)) {
     logVoiceDiagnostic({
       event_type: 'stale_tool_result_dropped',
@@ -381,7 +393,13 @@ const deliverFunctionResult = (
 };
 
 const flushPendingFunctionResults = (force = false) => {
-  if (responseInProgress && !force) return;
+  const voiceState = useVoiceModeStore.getState();
+  const isUserTurnActive =
+    voiceState.hasPendingSpeech ||
+    voiceState.status === 'thinking' ||
+    voiceState.status === 'speaking';
+
+  if ((responseInProgress || isUserTurnActive) && !force) return;
 
   if (pendingFunctionFlushTimer) {
     clearTimeout(pendingFunctionFlushTimer);
@@ -420,12 +438,15 @@ const queueFunctionResult = (
   if (pendingFunctionFlushTimer) clearTimeout(pendingFunctionFlushTimer);
   pendingFunctionFlushTimer = setTimeout(() => {
     logVoiceDiagnostic({
-      event_type: 'tool_result_queue_timeout',
-      message: 'Tool result waited too long for response.done; force flushing',
+      event_type: 'tool_result_queue_retry',
+      message: 'Retrying queued tool result after waiting for realtime turn to settle',
       details: { pendingCount: pendingFunctionResults.length, responseInProgress },
     });
-    flushPendingFunctionResults(true);
-  }, 4000);
+    flushPendingFunctionResults(false);
+    if (pendingFunctionResults.length > 0 && !pendingFunctionFlushTimer) {
+      pendingFunctionFlushTimer = setTimeout(() => flushPendingFunctionResults(false), 5000);
+    }
+  }, 5000);
 };
 
 const resetPendingFunctionResults = () => {
@@ -539,10 +560,16 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     result: string,
     reasoningEffort: ReasoningEffort = 'low'
   ) => {
-    // Tool calls can finish before the model emits response.done. Calling
-    // response.create during that tiny overlap is a common realtime crash path,
-    // especially for fast tools like weather. Queue until response.done.
-    if (responseInProgress) {
+    // Tool calls can finish while the model is talking or while the user is
+    // interrupting. Queue until the turn is settled so Realtime never gets a
+    // second response.create while it is already handling one.
+    const voiceState = useVoiceModeStore.getState();
+    if (
+      responseInProgress ||
+      voiceState.hasPendingSpeech ||
+      voiceState.status === 'thinking' ||
+      voiceState.status === 'speaking'
+    ) {
       queueFunctionResult(callId, result, reasoningEffort);
       return;
     }
@@ -768,6 +795,54 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               console.error('Failed to parse function args:', e);
               sendFunctionResult(call_id, JSON.stringify({ 
                 success: false, 
+                error: 'Invalid function arguments'
+              }));
+              cleanupToolCall();
+            }
+          } else if (name === 'revise_image') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const prompt = args.prompt || '';
+              const aspectRatio = args.aspect_ratio || '1:1';
+              console.log('Revising current image with prompt:', prompt, 'aspect ratio:', aspectRatio);
+
+              if (optionsRef.current.onImageRevise) {
+                withToolTimeout('revise_image', call_id, optionsRef.current.onImageRevise(prompt, aspectRatio), 60000)
+                  .then(() => {
+                    console.log('Image revised successfully');
+                    logVoiceDiagnostic({ event_type: 'tool_call_completed', tool_name: name, tool_call_id: call_id });
+                    sendFunctionResult(call_id, JSON.stringify({
+                      success: true,
+                      message: `Updated image generated and displayed to user. Briefly describe what changed based on: "${prompt}"`
+                    }));
+                    cleanupToolCall();
+                  })
+                  .catch((error) => {
+                    console.error('Image revision failed:', error);
+                    logVoiceDiagnostic({
+                      event_type: 'tool_call_failed',
+                      message: error?.message || 'Image revision failed',
+                      tool_name: name,
+                      tool_call_id: call_id,
+                      details: { errorName: error?.name },
+                    });
+                    sendFunctionResult(call_id, JSON.stringify({
+                      success: false,
+                      error: error.message || 'Failed to revise image'
+                    }));
+                    cleanupToolCall();
+                  });
+              } else {
+                sendFunctionResult(call_id, JSON.stringify({
+                  success: false,
+                  error: 'No current generated image is available to revise. Ask the user to generate an image first.'
+                }));
+                cleanupToolCall();
+              }
+            } catch (e) {
+              console.error('Failed to parse image revision args:', e);
+              sendFunctionResult(call_id, JSON.stringify({
+                success: false,
                 error: 'Invalid function arguments'
               }));
               cleanupToolCall();
@@ -1271,7 +1346,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           clearInterval(keepaliveInterval);
         }
         keepaliveInterval = setInterval(() => {
-          if (globalWs?.readyState === WebSocket.OPEN && sessionReady) {
+          if (
+            globalWs?.readyState === WebSocket.OPEN &&
+            sessionReady &&
+            !activeToolCallId &&
+            !responseInProgress
+          ) {
             sendRealtimeEvent({ type: 'session.update', session: { type: 'realtime' } });
           }
         }, 20000);
@@ -1286,6 +1366,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         watchdogInterval = setInterval(() => {
           if (!globalWs || globalWs.readyState !== WebSocket.OPEN) return;
           const silentFor = Date.now() - lastServerEventAt;
+          if (activeToolCallId || pendingFunctionResults.length > 0) {
+            lastServerEventAt = Date.now();
+            return;
+          }
           if (silentFor > ZOMBIE_TIMEOUT_MS) {
             console.warn(`Zombie WebSocket detected (${silentFor}ms silent) — forcing reconnect`);
             logVoiceDiagnostic({
@@ -1360,7 +1444,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 {
                 type: 'function',
                 name: 'generate_image',
-                description: 'Generate a NEW image based on user description. Use when user asks to create, generate, show, draw, or make a new image or picture of something. Do NOT use this to edit, modify, restyle, or change an existing image; tell the user to use the on-screen image editor/chat controls for edits. ALWAYS pay attention to size/shape requests - "wide", "widescreen", "landscape", "banner" = 16:9. "Tall", "portrait", "vertical", "phone wallpaper" = 9:16. "Square" or no preference = 1:1.',
+                description: 'Generate a NEW image based on user description. Use when user asks to create, generate, show, draw, or make a new image or picture of something. For changes to the currently displayed generated image, use revise_image instead. ALWAYS pay attention to size/shape requests - "wide", "widescreen", "landscape", "banner" = 16:9. "Tall", "portrait", "vertical", "phone wallpaper" = 9:16. "Square" or no preference = 1:1.',
                 parameters: {
                   type: 'object',
                   properties: {
@@ -1372,6 +1456,26 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                       type: 'string',
                       enum: ['1:1', '16:9', '9:16', '4:3', '3:4'],
                       description: 'REQUIRED aspect ratio. MUST be specified based on user request: "wide"/"widescreen"/"landscape"/"banner"/"cinematic" = "16:9". "tall"/"portrait"/"vertical"/"phone wallpaper" = "9:16". "square" or unspecified = "1:1". Listen carefully for size/shape words!'
+                    }
+                  },
+                  required: ['prompt', 'aspect_ratio']
+                }
+              },
+              {
+                type: 'function',
+                name: 'revise_image',
+                description: 'Create a revised version of the currently displayed generated image. Use only after Arc has already generated an image in this voice session and the user asks to update it, change it, make another version, adjust style, add/remove details, or otherwise revise the photo/image. If no generated image is currently visible, ask the user to generate one first.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    prompt: {
+                      type: 'string',
+                      description: 'Detailed instruction for how to revise the current generated image'
+                    },
+                    aspect_ratio: {
+                      type: 'string',
+                      enum: ['1:1', '16:9', '9:16', '4:3', '3:4'],
+                      description: 'Aspect ratio for the revised image. Keep the current shape unless the user asks to change it.'
                     }
                   },
                   required: ['prompt', 'aspect_ratio']

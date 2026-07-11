@@ -7,7 +7,7 @@ import { persist } from 'zustand/middleware';
  */
 export type ImageModelId = 'gpt-image-1' | 'gpt-image-1-mini' | 'gpt-image-2';
 
-export const DEFAULT_IMAGE_MODEL: ImageModelId = 'gpt-image-1';
+export const DEFAULT_IMAGE_MODEL: ImageModelId = 'gpt-image-2';
 
 export const ALLOWED_IMAGE_MODELS: ImageModelId[] = [
   'gpt-image-1',
@@ -20,8 +20,8 @@ export type ImageAspectRatio = '1:1' | '3:2' | '2:3' | '16:9';
 export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb: string; pro?: boolean }> = [
   {
     id: 'gpt-image-1',
-    label: 'GPT Image 1 (Default)',
-    blurb: 'Balanced quality · Free standard (10/day)',
+    label: 'GPT Image 1',
+    blurb: 'Legacy standard model',
   },
   {
     id: 'gpt-image-1-mini',
@@ -30,8 +30,8 @@ export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb
   },
   {
     id: 'gpt-image-2',
-    label: 'GPT Image 2 (Premium)',
-    blurb: 'Ultra high-fidelity detail (3 free/day · Boost: 20/day)',
+    label: 'GPT Image 2 (Default)',
+    blurb: 'High-fidelity detail · generation and edits',
     pro: true,
   },
 ];
@@ -75,8 +75,9 @@ export const useImageGenStore = create<ImageGenState>()(
       name: 'arc-image-gen-prefs',
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        if (!ALLOWED_IMAGE_MODELS.includes(state.model)) {
+        if (!ALLOWED_IMAGE_MODELS.includes(state.model) || state.model !== 'gpt-image-2') {
           state.model = DEFAULT_IMAGE_MODEL;
+          state.hasExplicitlyChosenModel = false;
         }
         const validAspects: ImageAspectRatio[] = ['1:1', '3:2', '2:3', '16:9'];
         if (!validAspects.includes(state.aspectRatio)) {
@@ -105,7 +106,7 @@ export function getResolvedImageModel(isBoost: boolean): ImageModelId {
   if (state.hasExplicitlyChosenModel) {
     return state.model;
   }
-  return isBoost ? 'gpt-image-2' : 'gpt-image-1';
+  return 'gpt-image-2';
 }
 
 // React hook to resolve the image model dynamically based on subscription state
@@ -119,5 +120,5 @@ export function useResolvedImageModel(): ImageModelId {
   if (hasExplicit) {
     return model;
   }
-  return hasBoost ? 'gpt-image-2' : 'gpt-image-1';
+  return 'gpt-image-2';
 }
