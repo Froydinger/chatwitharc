@@ -2745,7 +2745,8 @@ ${safeCode}
         })()}
 
       {/* Prompt enhancer chip — floats above input (portal) */}
-      {inputValue.trim().split(/\s+/).filter(Boolean).length >= 2 &&
+      {!isVoiceActive &&
+        inputValue.trim().split(/\s+/).filter(Boolean).length >= 2 &&
         portalRoot &&
         (() => {
           const rect = inputBarRef.current?.getBoundingClientRect();
@@ -2774,38 +2775,14 @@ ${safeCode}
           );
         })()}
 
-      {/* Usage Meter for Voice — anchored above input (portal) when no images/docs previews are active */}
-      {!inline &&
-        isVoiceActive &&
-        !shouldShowBanana &&
-        selectedImages.length === 0 &&
-        selectedDocuments.length === 0 &&
-        portalRoot &&
-        (() => {
-          const rect = inputBarRef.current?.getBoundingClientRect();
-          const bottom = rect
-            ? `${Math.max(12, window.innerHeight - rect.top + 12)}px`
-            : `calc(110px + env(safe-area-inset-bottom, 0px))`;
-          const anchored = rect ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom } : { bottom };
-          return createPortal(
-            <div
-              className={rect ? "fixed z-[32] pointer-events-none" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[32] pointer-events-none"}
-              style={anchored}
-            >
-              <div className="px-1 flex justify-end mx-auto max-w-[760px]">
-                <UsageMeter kind="voice" className="pointer-events-auto" />
-              </div>
-            </div>,
-            portalRoot,
-          );
-        })()}
-
       <div
         ref={inputBarRef}
         className={cn(
           "relative flex flex-col gap-2 p-0.5 transition-all duration-300",
           isActive ? "opacity-100" : "opacity-95",
+          isVoiceActive && "opacity-0 pointer-events-none select-none",
         )}
+        aria-hidden={isVoiceActive}
       >
         <div className="flex items-end gap-2 relative">
           {/* Main Input Wrapper */}
