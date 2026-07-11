@@ -280,7 +280,7 @@ let savedTurnIndex = 0;
 
 export function VoiceModeController() {
   const { toast } = useToast();
-  const { addMessage, messages } = useArcStore();
+  const { addMessage, messages, createNewSession } = useArcStore();
   const { profile, updateProfile } = useProfile();
   const {
     isActive,
@@ -963,6 +963,9 @@ When the user shares their camera or attaches an image, describe what you see na
         try {
           console.log('Initializing voice mode...');
 
+          const sessionId = useArcStore.getState().currentSessionId || createNewSession();
+          console.log('Voice mode bound to chat session:', sessionId);
+
           const recentChatSummary = summarizeRecentChats(messagesRef.current);
           const voiceSystemPrompt = await buildVoiceSystemPrompt(profileRef.current, recentChatSummary);
           console.log('Voice mode using unified system prompt with dynamic chat search');
@@ -1024,7 +1027,7 @@ When the user shares their camera or attaches an image, describe what you see na
         savedTurnIndex = 0;
       });
     }
-  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, toast, deactivateVoiceMode, saveNewTurns]);
+  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, toast, deactivateVoiceMode, saveNewTurns, createNewSession]);
 
   // Periodic auto-save every 30s during active voice mode (reduced from 60s to
   // minimise data loss if a crash occurs between saves)

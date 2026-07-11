@@ -2777,6 +2777,7 @@ ${safeCode}
 
       <div
         ref={inputBarRef}
+        data-voice-input-anchor="true"
         className={cn(
           "relative flex flex-col gap-2 p-0.5 transition-all duration-300",
           isActive ? "opacity-100" : "opacity-95",
