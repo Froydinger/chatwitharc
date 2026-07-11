@@ -45,6 +45,7 @@ export function shouldReserveDesktopTrafficLightSpace(): boolean {
     ((navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform === "macOS");
   const isElectron = /electron/i.test(navigator.userAgent);
   if (!isMac && !isElectron) return false;
+  if (isMac && isElectron) return true;
 
   const macOSMajor = getReliableMacOSMajorVersion();
 

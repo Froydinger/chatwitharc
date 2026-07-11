@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, screen, dialog, shell, Menu } = require("electron");
+const { app, BrowserWindow, globalShortcut, screen, dialog, shell, Menu, session, systemPreferences } = require("electron");
 
 const ARC_URL = "https://askarc.chat";
 const APP_NAME = "ArcAI";
@@ -12,6 +12,20 @@ let floating = null;
 let full = null;
 let lastBounds = null;
 let showedWelcome = false;
+
+const TRUSTED_ORIGINS = new Set([
+  new URL(ARC_URL).origin,
+  "https://chatwitharc.com",
+  "https://www.chatwitharc.com"
+]);
+
+function isTrustedUrl(value = "") {
+  try {
+    return TRUSTED_ORIGINS.has(new URL(value).origin);
+  } catch (_) {
+    return false;
+  }
+}
 
 function compareVersions(a, b) {
   const left = String(a).replace(/^v/i, "").split(".").map((part) => Number.parseInt(part, 10) || 0);
@@ -178,6 +192,62 @@ function installMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+async function requestMacMediaAccess(mediaTypes = []) {
+  if (process.platform !== "darwin") return true;
+
+  const prompts = [];
+  if (mediaTypes.includes("audio")) prompts.push(systemPreferences.askForMediaAccess("microphone"));
+  if (mediaTypes.includes("video")) prompts.push(systemPreferences.askForMediaAccess("camera"));
+  if (prompts.length === 0) return true;
+
+  try {
+    const results = await Promise.all(prompts);
+    return results.every(Boolean);
+  } catch (_) {
+    return false;
+  }
+}
+
+function configurePermissions() {
+  const allowedPermissions = new Set([
+    "clipboard-read",
+    "clipboard-sanitized-write",
+    "display-capture",
+    "fullscreen",
+    "geolocation",
+    "media",
+    "mediaKeySystem",
+    "midi",
+    "midiSysex",
+    "notifications",
+    "pointerLock",
+    "speaker-selection",
+    "storage-access",
+    "window-management"
+  ]);
+
+  session.defaultSession.setPermissionRequestHandler(async (webContents, permission, callback, details = {}) => {
+    const requestUrl = details.requestingUrl || webContents.getURL();
+    if (!isTrustedUrl(requestUrl) || !allowedPermissions.has(permission)) {
+      callback(false);
+      return;
+    }
+
+    if (permission === "media") {
+      const granted = await requestMacMediaAccess(details.mediaTypes || []);
+      callback(granted);
+      return;
+    }
+
+    callback(true);
+  });
+
+  session.defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details = {}) => {
+    const requestUrl = requestingOrigin || details.requestingUrl || webContents?.getURL();
+    return isTrustedUrl(requestUrl) && allowedPermissions.has(permission);
+  });
+}
+
 function focusInput(win) {
   if (!win || win.isDestroyed()) return;
   win.webContents.executeJavaScript(
@@ -317,6 +387,7 @@ function showWelcomeOnce() {
 
 app.whenReady().then(() => {
   installMenu();
+  configurePermissions();
   globalShortcut.register(SHORTCUT, toggleFloating);
   showFull();
   showWelcomeOnce();

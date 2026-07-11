@@ -1,6 +1,6 @@
 {
   "name": "arcai-desktop",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "description": "ArcAI desktop assistant",
   "author": "Jake Freudinger",
   "main": "main.js",
@@ -47,6 +47,8 @@
         "NSMicrophoneUsageDescription": "ArcAI uses the microphone for voice chat.",
         "NSCameraUsageDescription": "ArcAI uses the camera for multimodal chat.",
         "NSAudioCaptureUsageDescription": "ArcAI uses audio capture for voice mode.",
+        "NSLocationWhenInUseUsageDescription": "ArcAI uses your location only when you ask for local weather, places, or location-aware help.",
+        "NSLocationUsageDescription": "ArcAI uses your location only when you ask for local weather, places, or location-aware help.",
         "NSBluetoothAlwaysUsageDescription": "ArcAI may use Bluetooth audio devices.",
         "NSBluetoothPeripheralUsageDescription": "ArcAI may use Bluetooth audio devices.",
         "NSPrefersDisplaySafeAreaCompatibilityMode": false,
