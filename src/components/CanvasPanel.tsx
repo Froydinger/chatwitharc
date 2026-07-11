@@ -42,6 +42,7 @@ import { toast as sonnerToast } from "sonner";
 import { PublishModal } from "@/components/PublishModal";
 import { SiteManageModal } from "@/components/SiteManageModal";
 import { savePublishedSite, PublishedSite } from "@/lib/publishedSites";
+import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -120,13 +121,12 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   useEffect(() => {
     const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
                   (window.navigator as any).standalone === true;
-    const isElectron = /electron/i.test(navigator.userAgent);
     const isIOSDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
                         (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
     setIsIOS(isIOSDevice);
     setIsIOSPWA(isIOSDevice && isPWA);
-    // Mac PWA or Electron — floating traffic lights need extra headroom
-    setIsStandaloneApp((isPWA || isElectron) && !isIOSDevice);
+    // macOS 26 and earlier desktop standalone apps need traffic-light headroom.
+    setIsStandaloneApp(shouldReserveDesktopTrafficLightSpace());
   }, []);
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -139,6 +139,10 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
   const isCodeMode = canvasType === 'code';
   const supportsPreview = isCodeMode && canPreview(codeLanguage);
+
+  useEffect(() => {
+    (window as any).__arcaiLiveCanvasContent = content;
+  }, [content, canvasType]);
 
   // Track elapsed time when AI is writing
   useEffect(() => {
@@ -190,6 +194,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       const md = editorGetMarkdown(ed as ReturnType<typeof useEditor>);
       if (md !== undefined && md !== content) {
         setContent(md, false);
+        (window as any).__arcaiLiveCanvasContent = md;
         lastSyncedContent.current = md;
       }
     },
@@ -212,6 +217,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       // Set flag BEFORE setContent to prevent onUpdate from firing back
       isApplyingRemoteUpdateRef.current = true;
       editor.commands.setContent(content, { contentType: 'markdown' });
+      (window as any).__arcaiLiveCanvasContent = content;
       lastSyncedContent.current = content;
       // Clear flag after microtask (after onUpdate would have fired)
       queueMicrotask(() => {
@@ -229,6 +235,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       if (content && content !== lastSyncedContent.current) {
         isApplyingRemoteUpdateRef.current = true;
         editor.commands.setContent(content, { contentType: 'markdown' });
+        (window as any).__arcaiLiveCanvasContent = content;
         lastSyncedContent.current = content;
         queueMicrotask(() => {
           isApplyingRemoteUpdateRef.current = false;
@@ -687,7 +694,10 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
             <CanvasCodeEditor
               code={content}
               language={codeLanguage}
-              onChange={(code) => setContent(code, false)}
+              onChange={(code) => {
+                setContent(code, false);
+                (window as any).__arcaiLiveCanvasContent = code;
+              }}
               readOnly={isAIWriting}
               className="flex-1"
             />

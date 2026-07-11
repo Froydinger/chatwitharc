@@ -1432,6 +1432,50 @@ export function AdminPanel() {
 
               <Card className="border-border/60">
                 <CardHeader>
+                  <CardTitle>Writing Canvas Mode Prompt</CardTitle>
+                  <CardDescription>Focused prompt used when Arc is forced into writing-canvas editing/generation mode</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Textarea
+                      id="mcanvas_mode_prompt"
+                      value={getCurrentValue("canvas_mode_prompt")}
+                      onChange={(e) => handleValueChange("canvas_mode_prompt", e.target.value)}
+                      placeholder="Writing canvas mode instructions..."
+                      rows={10}
+                      className="font-mono text-xs leading-relaxed"
+                    />
+                    <Button onClick={() => handleSave("canvas_mode_prompt")} disabled={updating} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+                      Save Canvas Mode Prompt
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60">
+                <CardHeader>
+                  <CardTitle>Code Canvas Mode Prompt</CardTitle>
+                  <CardDescription>Focused prompt used when Arc is forced into code-canvas editing/generation mode</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Textarea
+                      id="mcode_mode_prompt"
+                      value={getCurrentValue("code_mode_prompt")}
+                      onChange={(e) => handleValueChange("code_mode_prompt", e.target.value)}
+                      placeholder="Code canvas mode instructions..."
+                      rows={9}
+                      className="font-mono text-xs leading-relaxed"
+                    />
+                    <Button onClick={() => handleSave("code_mode_prompt")} disabled={updating} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
+                      Save Code Mode Prompt
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60">
+                <CardHeader>
                   <CardTitle>Image Generation Content Restrictions</CardTitle>
                   <CardDescription>Set parameters and negative prompts to constrain image generation models</CardDescription>
                 </CardHeader>

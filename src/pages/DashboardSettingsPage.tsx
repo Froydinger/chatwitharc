@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { useAdminBanner } from "@/components/AdminBanner";
+import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 
 export function DashboardSettingsPage() {
   const navigate = useNavigate();
@@ -15,11 +16,7 @@ export function DashboardSettingsPage() {
 
   const [isDesktopStandalone, setIsDesktopStandalone] = useState(false);
   useEffect(() => {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
-    const isElectron = /electron/i.test(navigator.userAgent);
-    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    setIsDesktopStandalone((isStandalone || isElectron) && !isMobileDevice);
+    setIsDesktopStandalone(shouldReserveDesktopTrafficLightSpace());
   }, []);
 
   useEffect(() => {

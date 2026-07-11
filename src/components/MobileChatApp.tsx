@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { usePromptPreload } from "@/hooks/usePromptPreload";
 import { useAdminBanner } from "@/components/AdminBanner";
+import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { VoiceModeController } from "@/components/VoiceModeController";
@@ -245,20 +246,10 @@ export function MobileChatApp() {
   // Model family is now managed by useModelStore - no sessionStorage needed
 
   // Track if running as PWA or Electron app
-  const [isPWAMode, setIsPWAMode] = useState(false);
-  const [isElectronApp, setIsElectronApp] = useState(false);
   const [isDesktopStandalone, setIsDesktopStandalone] = useState(false);
 
   useEffect(() => {
-    const checkPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                     (window.navigator as any).standalone === true;
-    const checkElectron = /electron/i.test(navigator.userAgent);
-    // Detect if this is a mobile device (iOS/Android) - these don't need the traffic light gap
-    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
-                           (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
-    setIsPWAMode(checkPWA);
-    setIsElectronApp(checkElectron);
-    setIsDesktopStandalone((checkPWA || checkElectron) && !isMobileDevice);
+    setIsDesktopStandalone(shouldReserveDesktopTrafficLightSpace());
   }, []);
 
   // Listen for open-context-panel events from MemoryIndicator and settings

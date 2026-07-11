@@ -37,6 +37,7 @@ import { canPreview, getLanguageDisplay, getLanguageColor } from "@/utils/codeUt
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { DeploysPanel } from "@/components/DeploysPanel";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
+import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 
 type DashboardTab = "overview" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -128,11 +129,7 @@ export function DashboardPage() {
 // Detect desktop standalone (PWA/Electron) for traffic light safe area
 const [isDesktopStandalone, setIsDesktopStandalone] = useState(false);
 useEffect(() => {
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true;
-  const isElectron = /electron/i.test(navigator.userAgent);
-  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  setIsDesktopStandalone((isStandalone || isElectron) && !isMobileDevice);
+  setIsDesktopStandalone(shouldReserveDesktopTrafficLightSpace());
 }, []);
   const { accentColor } = useAccentColor();
   const isMobile = useIsMobile();

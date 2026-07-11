@@ -281,6 +281,37 @@ const DEFAULT_GROUNDING_PROMPT = `=== GROUNDING RULES (CRITICAL) ===
 • If you are not sure, ask a short clarifying question instead of guessing.
 • Use the "Current date and time" above as the only source of truth for "today" / "now". Never reference a different year or month from memory.`;
 
+const DEFAULT_CODE_MODE_PROMPT = `You are Arc AI. Generate COMPLETE, FULL code as requested. Use the update_code tool.
+
+CRITICAL CODE GUIDELINES:
+1. Always output the ENTIRE code from start to finish. Never truncate.
+2. For HTML: Include ALL CSS in <style> and ALL JS in <script> tags in one file.
+3. When modifying code: PRESERVE all existing styles, animations, and features.
+4. KEEP IT SIMPLE AND CONCISE. Aim for clean, minimal implementations.
+   - For a timer: ~100-200 lines max, not 1000 lines
+   - For a todo app: ~150-250 lines max
+   - Focus on core functionality first, keep styling elegant but minimal
+   - Don't over-engineer with unnecessary features unless asked
+5. Make apps unique and polished, but not bloated. Quality over quantity.`;
+
+const DEFAULT_CANVAS_MODE_PROMPT = `You are Arc AI, a helpful writing assistant. The user has requested written content.
+
+YOUR TASK: Write the ACTUAL content they requested (blog post, essay, article, email, etc.).
+DO NOT output instructions, prompts, outlines, or meta-content about what to write.
+DO NOT include placeholder text like "[insert X here]" or notes to yourself.
+WRITE the actual finished piece of writing, ready to read.
+If existing canvas content is provided, treat it as the latest source of truth, including any user edits typed directly into the editor. If the user says they updated the canvas, filled in one answer, wants you to go, fill the rest, finish it, or similar, use the provided canvas text and produce the completed piece instead of asking them to paste it again.
+
+Use proper markdown formatting:
+- # for main title
+- ## and ### for subheadings
+- **bold** for emphasis
+- *italic* for subtle emphasis
+- - or * for bullet lists
+- Proper paragraph breaks
+
+Output the complete, finished writing using the update_canvas tool.`;
+
 function getYouTubeVideoId(url: string): string | null {
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
@@ -672,6 +703,8 @@ serve(async (req) => {
         'chat_behavior_prompt',
         'response_style_prompt',
         'grounding_prompt',
+        'code_mode_prompt',
+        'canvas_mode_prompt',
       ]);
 
     const settings = settingsData?.reduce((acc, setting) => {
@@ -685,6 +718,8 @@ serve(async (req) => {
     const chatBehaviorPrompt = settings.chat_behavior_prompt || DEFAULT_CHAT_BEHAVIOR_PROMPT;
     const responseStylePrompt = settings.response_style_prompt || DEFAULT_RESPONSE_STYLE_PROMPT;
     const groundingPrompt = settings.grounding_prompt || DEFAULT_GROUNDING_PROMPT;
+    const codeModePrompt = settings.code_mode_prompt || DEFAULT_CODE_MODE_PROMPT;
+    const canvasModePrompt = settings.canvas_mode_prompt || DEFAULT_CANVAS_MODE_PROMPT;
 
     // Check if this is a wellness check or step-by-step type request
     const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
@@ -1177,35 +1212,7 @@ serve(async (req) => {
     // For canvas/code mode, use a trimmed system prompt for better performance
     if (isCanvasOrCodeMode) {
       // Replace the long system prompt with a focused one for code/canvas
-      const focusedPrompt = wantsCode 
-        ? `You are Arc AI. Generate COMPLETE, FULL code as requested. Use the update_code tool.
-
-CRITICAL CODE GUIDELINES:
-1. Always output the ENTIRE code from start to finish. Never truncate.
-2. For HTML: Include ALL CSS in <style> and ALL JS in <script> tags in one file.
-3. When modifying code: PRESERVE all existing styles, animations, and features.
-4. KEEP IT SIMPLE AND CONCISE. Aim for clean, minimal implementations.
-   - For a timer: ~100-200 lines max, not 1000 lines
-   - For a todo app: ~150-250 lines max
-   - Focus on core functionality first, keep styling elegant but minimal
-   - Don't over-engineer with unnecessary features unless asked
-5. Make apps unique and polished, but not bloated. Quality over quantity.`
-        : `You are Arc AI, a helpful writing assistant. The user has requested written content.
-
-YOUR TASK: Write the ACTUAL content they requested (blog post, essay, article, email, etc.).
-DO NOT output instructions, prompts, outlines, or meta-content about what to write.
-DO NOT include placeholder text like "[insert X here]" or notes to yourself.
-WRITE the actual finished piece of writing, ready to read.
-
-Use proper markdown formatting:
-- # for main title
-- ## and ### for subheadings  
-- **bold** for emphasis
-- *italic* for subtle emphasis
-- - or * for bullet lists
-- Proper paragraph breaks
-
-Output the complete, finished writing using the update_canvas tool.`;
+      const focusedPrompt = wantsCode ? codeModePrompt : canvasModePrompt;
       
       // Replace system message with focused version
       conversationMessages[0] = { role: 'system', content: focusedPrompt };

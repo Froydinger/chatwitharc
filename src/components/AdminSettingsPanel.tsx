@@ -30,6 +30,8 @@ export function AdminSettingsPanel() {
   const [chatBehaviorPromptDraft, setChatBehaviorPromptDraft] = useState('');
   const [responseStylePromptDraft, setResponseStylePromptDraft] = useState('');
   const [groundingPromptDraft, setGroundingPromptDraft] = useState('');
+  const [canvasModePromptDraft, setCanvasModePromptDraft] = useState('');
+  const [codeModePromptDraft, setCodeModePromptDraft] = useState('');
   const [imageRestrictionsDraft, setImageRestrictionsDraft] = useState('');
   const [bannerEnabled, setBannerEnabled] = useState(false);
   const [bannerMessage, setBannerMessage] = useState('');
@@ -69,7 +71,13 @@ export function AdminSettingsPanel() {
     if (settings.length > 0 && !groundingPromptDraft) {
       setGroundingPromptDraft(getSetting('grounding_prompt')?.value || '');
     }
-  }, [settings, chatBehaviorPromptDraft, responseStylePromptDraft, groundingPromptDraft]);
+    if (settings.length > 0 && !canvasModePromptDraft) {
+      setCanvasModePromptDraft(getSetting('canvas_mode_prompt')?.value || '');
+    }
+    if (settings.length > 0 && !codeModePromptDraft) {
+      setCodeModePromptDraft(getSetting('code_mode_prompt')?.value || '');
+    }
+  }, [settings, chatBehaviorPromptDraft, responseStylePromptDraft, groundingPromptDraft, canvasModePromptDraft, codeModePromptDraft]);
 
   // Initialize banner settings when settings load
   useEffect(() => {
@@ -342,6 +350,62 @@ export function AdminSettingsPanel() {
                 className="w-full noir-send-btn"
               >
                 Save Grounding Prompt
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Writing Canvas Mode Prompt</CardTitle>
+              <CardDescription>
+                Focused prompt used when Arc is forced into writing-canvas editing/generation mode.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="canvas-mode-prompt">Canvas Mode Prompt</Label>
+                <Textarea
+                  id="canvas-mode-prompt"
+                  value={canvasModePromptDraft}
+                  onChange={(e) => setCanvasModePromptDraft(e.target.value)}
+                  className="min-h-[220px] font-mono text-xs"
+                  placeholder="Enter focused writing canvas instructions..."
+                />
+              </div>
+              <Button
+                onClick={() => handleUpdateSetting('canvas_mode_prompt', canvasModePromptDraft)}
+                disabled={updating}
+                className="w-full noir-send-btn"
+              >
+                Save Canvas Mode Prompt
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Code Canvas Mode Prompt</CardTitle>
+              <CardDescription>
+                Focused prompt used when Arc is forced into code-canvas editing/generation mode.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="code-mode-prompt">Code Mode Prompt</Label>
+                <Textarea
+                  id="code-mode-prompt"
+                  value={codeModePromptDraft}
+                  onChange={(e) => setCodeModePromptDraft(e.target.value)}
+                  className="min-h-[200px] font-mono text-xs"
+                  placeholder="Enter focused code canvas instructions..."
+                />
+              </div>
+              <Button
+                onClick={() => handleUpdateSetting('code_mode_prompt', codeModePromptDraft)}
+                disabled={updating}
+                className="w-full noir-send-btn"
+              >
+                Save Code Mode Prompt
               </Button>
             </CardContent>
           </Card>

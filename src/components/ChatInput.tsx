@@ -221,6 +221,12 @@ function isConversationalMessage(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
 
+  const actionableCanvasLanguage =
+    /\b(canvas|draft|doc|document|agenda|outline|post|article|email|letter|script|copy)\b/i.test(m) &&
+    /\b(i\s+(filled|updated|changed|edited|added|wrote)|filled\s+in|fill\s+(in\s+)?(the\s+)?rest|finish|complete|continue|go\s+nuts|just\s+go|use\s+what|take\s+what)\b/i.test(m);
+
+  if (actionableCanvasLanguage) return false;
+
   // Short messages (under 30 chars) that are questions or reactions are usually conversational
   const isShort = m.length < 30;
 
@@ -294,6 +300,20 @@ function looksLikeCanvasEditRequest(message: string): boolean {
   if (isConversationalMessage(m)) return false;
 
   const keywords = [
+    "i filled",
+    "filled in",
+    "i updated",
+    "updated the canvas",
+    "changed the canvas",
+    "edited the canvas",
+    "fill in the rest",
+    "fill the rest",
+    "finish it",
+    "complete it",
+    "continue",
+    "just go",
+    "go nuts",
+    "use what i",
     "format",
     "reformat",
     "rewrite",
@@ -321,6 +341,11 @@ function looksLikeCanvasEditRequest(message: string): boolean {
     "markdown",
   ];
   return keywords.some((k) => m.includes(k));
+}
+
+function referencesCanvasSurface(message: string): boolean {
+  if (!message) return false;
+  return /\b(canvas|draft|doc|document|agenda|outline|piece|article|post|email|letter)\b/i.test(message);
 }
 
 // Heuristic for when the Code Canvas is open and user is asking to modify/enhance the code
@@ -1832,9 +1857,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
         // When writing canvas is open, default to routing there unless the message
         // is clearly conversational (e.g. "nice!", "thanks", "how does this work?")
+        const hasCanvasReferenceIntent =
+          looksLikeCanvasEditRequest(finalMessage) || referencesCanvasSurface(finalMessage);
         const shouldRouteToCanvas =
           wasCanvasMode ||
-          (canvasState.isOpen && canvasState.canvasType === "writing" && !isConversationalMessage(finalMessage));
+          (canvasState.isOpen &&
+            canvasState.canvasType === "writing" &&
+            (hasCanvasReferenceIntent || !isConversationalMessage(finalMessage)));
 
         // Check if code canvas is open and keep it as active context.
         // Also auto-open the canvas from the last code message in chat if it isn't open yet,
@@ -1875,6 +1904,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
         // Re-read canvas state after potential openWithContent call above
         const freshCanvasState = useCanvasStore.getState();
+        const liveCanvasContent =
+          typeof window !== "undefined" && typeof (window as any).__arcaiLiveCanvasContent === "string"
+            ? (window as any).__arcaiLiveCanvasContent
+            : "";
+        const freshestCanvasContent =
+          liveCanvasContent.trim().length > 0 ? liveCanvasContent : freshCanvasState.content;
 
         const cleanedMessage = extractPrefixPrompt(finalMessage);
 
@@ -1896,9 +1931,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
         let messageToSend: string;
 
-        if (isCodingRequest && freshCanvasState.content) {
+        if (isCodingRequest && freshestCanvasContent) {
           // Explicit /code request with existing code: force a code update.
-          const existingCode = freshCanvasState.content;
+          const existingCode = freshestCanvasContent;
           const language = freshCanvasState.codeLanguage || "html";
           const userReq = cleanedMessage || finalMessage;
           // Budget: 15000 total - instructions (~500) - user request - safety margin
@@ -1914,13 +1949,15 @@ ${safeCode}
 USER'S REQUEST: ${userReq}
 
 MANDATORY: Output the COMPLETE updated code for the SAME existing project. Never stop mid-sentence or mid-function. Include ALL code from start to finish.`;
-        } else if (shouldRouteToCanvas && freshCanvasState.isOpen && freshCanvasState.content) {
+        } else if (shouldRouteToCanvas && freshCanvasState.isOpen && freshestCanvasContent) {
           // Writing canvas is open with existing content - include it for modification
-          const existingContent = freshCanvasState.content;
+          const existingContent = freshestCanvasContent;
           const userReq = cleanedMessage || finalMessage;
           const canvasBudget = Math.max(4000, 14000 - userReq.length - 500);
           const safeContent = truncateForContext(existingContent, canvasBudget);
-          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: The user has existing writing in the canvas. Modify it based on their request using the update_canvas tool. You MUST output the COMPLETE, FULL modified markdown content - do NOT truncate, summarize, or cut off mid-way. Write EVERY paragraph.
+          messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: The user has existing writing open in the canvas. The canvas content below is the latest source of truth, including any text the user manually typed before sending this chat message. Modify it based on their request using the update_canvas tool. You MUST output the COMPLETE, FULL modified markdown content - do NOT truncate, summarize, or cut off mid-way. Write EVERY paragraph.
+
+If the canvas is an intake form, questionnaire, outline, or partially filled draft and the user says they filled something in, updated the canvas, wants you to "go", "fill the rest", "finish it", or similar: use the filled-in canvas details exactly, infer reasonable remaining content, and produce a complete polished result. Do not ask them to paste the canvas text again.
 
 EXISTING CANVAS CONTENT TO MODIFY:
 ${safeContent}
@@ -1933,10 +1970,10 @@ MANDATORY: Output the COMPLETE updated content. Never stop mid-sentence or mid-p
           messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: Use the update_canvas tool to write COMPLETE, FULL markdown content for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE piece from beginning to end - every paragraph, every section, complete thoughts. Never stop mid-sentence:\n\n${cleanedMessage || finalMessage}`;
         } else if (wasSearchMode) {
           messageToSend = `Search the web for: ${cleanedMessage || finalMessage}`;
-        } else if (shouldUseCodeContext && freshCanvasState.content) {
+        } else if (shouldUseCodeContext && freshestCanvasContent) {
           // Any request while code is open is grounded in that code. The model
           // can answer, explain, search, or choose the code tool if an edit is needed.
-          const existingCode = freshCanvasState.content;
+          const existingCode = freshestCanvasContent;
           const language = freshCanvasState.codeLanguage || "html";
           const userReq = cleanedMessage || finalMessage;
           const contextBudget = Math.max(4000, 14000 - userReq.length - 500);

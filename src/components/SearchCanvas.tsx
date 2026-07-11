@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useSearchStore, SearchResult, SavedLink } from "@/store/useSearchStore";
+import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
@@ -87,15 +88,10 @@ export function SearchCanvas() {
   ];
 
   // Track if running as PWA or Electron app for traffic lights spacing
-  const [isPWAMode, setIsPWAMode] = useState(false);
-  const [isElectronApp, setIsElectronApp] = useState(false);
+  const [reserveTrafficLightSpace, setReserveTrafficLightSpace] = useState(false);
 
   useEffect(() => {
-    const checkPWA =
-      window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
-    const checkElectron = /electron/i.test(navigator.userAgent);
-    setIsPWAMode(checkPWA);
-    setIsElectronApp(checkElectron);
+    setReserveTrafficLightSpace(shouldReserveDesktopTrafficLightSpace());
   }, []);
 
   // Get active session
@@ -543,11 +539,9 @@ export function SearchCanvas() {
     <div
       className="flex flex-col h-full w-full bg-background"
       style={{
-        paddingTop: isElectronApp
+        paddingTop: reserveTrafficLightSpace
           ? "calc(env(safe-area-inset-top, 0px) + 30px)"
-          : isPWAMode
-            ? "env(safe-area-inset-top, 0px)"
-            : undefined,
+          : "env(safe-area-inset-top, 0px)",
       }}
     >
       {/* Header */}

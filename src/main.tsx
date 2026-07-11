@@ -4,6 +4,7 @@ import App from './App.tsx'
 import './index.css'
 import 'katex/dist/katex.min.css'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
+import { shouldReserveDesktopTrafficLightSpace } from './utils/platform.ts'
 
 // Device detection for iPad PWA
 const isIpad = () => {
@@ -25,6 +26,7 @@ const isStandalone = () => {
 const applyDeviceClasses = () => {
   if (isStandalone()) {
     document.body.classList.add('standalone-app');
+    document.body.classList.toggle('reserve-traffic-lights', shouldReserveDesktopTrafficLightSpace());
     console.log('Applied standalone-app class');
   }
   if (isIpad()) {

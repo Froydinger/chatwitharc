@@ -1327,7 +1327,7 @@ All colors MUST be HSL for perfect glass effects.
     display: none;
   }
 
-  .standalone-app .arcai-drag-bar {
+  .standalone-app.reserve-traffic-lights .arcai-drag-bar {
     display: block;
     position: fixed;
     top: 0;

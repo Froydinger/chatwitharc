@@ -37,6 +37,7 @@ import {
 import { ChatHistoryPanel } from "@/components/ChatHistoryPanel";
 import { QuotePanel } from "@/components/QuotePanel";
 import { cn } from "@/lib/utils";
+import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
@@ -137,13 +138,7 @@ export function RightPanel({
   };
 
   useEffect(() => {
-    const isPWA =
-      window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true;
-    const isElectron = /electron/i.test(navigator.userAgent);
-    const isMobileDevice =
-      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
-      (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
-    setIsStandaloneApp((isPWA || isElectron) && !isMobileDevice);
+    setIsStandaloneApp(shouldReserveDesktopTrafficLightSpace());
   }, []);
 
   useEffect(() => {

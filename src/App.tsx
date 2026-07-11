@@ -30,6 +30,7 @@ import { LiquidFilter } from "@/components/ui/liquid-filter";
 import { useCorporateModeEnforcer } from "@/hooks/useCorporateMode";
 import { useLocalModelPersistence } from "@/hooks/useLocalModelPersistence";
 import { CorporateMemoryConsentGate } from "@/components/CorporateMemoryConsentModal";
+import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 import { Index } from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { AdminPage } from "./pages/AdminPage";
@@ -167,8 +168,10 @@ const detectStandaloneMode = () => {
   
   if (isPWA || isElectron) {
     document.body.classList.add('standalone-app');
+    document.body.classList.toggle('reserve-traffic-lights', shouldReserveDesktopTrafficLightSpace());
   } else {
     document.body.classList.remove('standalone-app');
+    document.body.classList.remove('reserve-traffic-lights');
   }
 };
 
