@@ -1,0 +1,125 @@
+{
+  "name": "arcai-desktop",
+  "version": "5.0.1",
+  "description": "ArcAI desktop assistant",
+  "author": "Jake Freudinger",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "pack:mac": "electron-builder --mac dmg --arm64",
+    "pack:win": "electron-builder --win nsis portable --x64",
+    "pack:all": "electron-builder --mac dmg --arm64 --win nsis portable --x64"
+  },
+  "build": {
+    "appId": "chat.askarc.desktop",
+    "productName": "ArcAI",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "package.json",
+      "assets/**/*"
+    ],
+    "asar": true,
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "identity": "Breeze Signing",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "minimumSystemVersion": "12.0",
+      "extendInfo": {
+        "CFBundleDisplayName": "ArcAi",
+        "CFBundleName": "ArcAi",
+        "NSHumanReadableCopyright": "Copyright © 2026 Jake Freudinger",
+        "NSMicrophoneUsageDescription": "ArcAI uses the microphone for voice chat.",
+        "NSCameraUsageDescription": "ArcAI uses the camera for multimodal chat.",
+        "NSAudioCaptureUsageDescription": "ArcAI uses audio capture for voice mode.",
+        "NSBluetoothAlwaysUsageDescription": "ArcAI may use Bluetooth audio devices.",
+        "NSBluetoothPeripheralUsageDescription": "ArcAI may use Bluetooth audio devices.",
+        "NSPrefersDisplaySafeAreaCompatibilityMode": false,
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsLocalNetworking": true,
+          "NSExceptionDomains": {
+            "localhost": {
+              "NSIncludesSubdomains": false,
+              "NSTemporaryExceptionAllowsInsecureHTTPLoads": true,
+              "NSTemporaryExceptionAllowsInsecureHTTPSLoads": false,
+              "NSTemporaryExceptionMinimumTLSVersion": "1.0",
+              "NSTemporaryExceptionRequiresForwardSecrecy": false
+            },
+            "127.0.0.1": {
+              "NSIncludesSubdomains": false,
+              "NSTemporaryExceptionAllowsInsecureHTTPLoads": true,
+              "NSTemporaryExceptionAllowsInsecureHTTPSLoads": false,
+              "NSTemporaryExceptionMinimumTLSVersion": "1.0",
+              "NSTemporaryExceptionRequiresForwardSecrecy": false
+            }
+          }
+        }
+      }
+    },
+    "dmg": {
+      "title": "ArcAI ${version}",
+      "icon": "build/icon.icns",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "artifactName": "ArcAI Setup ${version}.${ext}",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ArcAI"
+    },
+    "portable": {
+      "artifactName": "ArcAI Portable ${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "40.8.0",
+    "electron-builder": "^26.0.12"
+  }
+}
