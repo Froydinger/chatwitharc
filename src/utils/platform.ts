@@ -15,7 +15,7 @@ export function isMobileLikeDevice(): boolean {
   );
 }
 
-function getMacOSMajorVersion(): number | null {
+function getReliableMacOSMajorVersion(): number | null {
   if (typeof navigator === "undefined") return null;
 
   const uaData = (navigator as Navigator & {
@@ -27,16 +27,14 @@ function getMacOSMajorVersion(): number | null {
     if (Number.isFinite(major)) return major;
   }
 
-  const uaMatch = navigator.userAgent.match(/Mac OS X\s+(\d+)[_.](\d+)/i);
+  const uaMatch = navigator.userAgent.match(/Mac OS X\s+([2-9]\d)[_.]/i);
   if (!uaMatch) return null;
 
   const major = Number.parseInt(uaMatch[1] || "", 10);
-  const minor = Number.parseInt(uaMatch[2] || "", 10);
   if (!Number.isFinite(major)) return null;
 
-  // Safari often reports old "10_x" style versions. Sonoma 14 maps from 10_14,
-  // Sequoia 15 from 10_15, and so on.
-  if (major === 10 && Number.isFinite(minor) && minor >= 14) return minor;
+  // Modern Safari can still report a frozen "10_15" UA on much newer macOS.
+  // Only trust explicit 20+ major versions here; otherwise leave spacing off.
   return major;
 }
 
@@ -48,8 +46,7 @@ export function shouldReserveDesktopTrafficLightSpace(): boolean {
   const isElectron = /electron/i.test(navigator.userAgent);
   if (!isMac && !isElectron) return false;
 
-  const macOSMajor = getMacOSMajorVersion();
-  if (macOSMajor === null) return true;
+  const macOSMajor = getReliableMacOSMajorVersion();
 
-  return macOSMajor <= 26;
+  return macOSMajor !== null && macOSMajor <= 26;
 }
