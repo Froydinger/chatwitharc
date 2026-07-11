@@ -15,6 +15,8 @@ import {
   MessageSquare,
   Check,
   Palette,
+  Share2,
+  CircleGauge,
 } from "lucide-react";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useAccentStore, type AccentColor } from "@/store/useAccentStore";
@@ -63,6 +65,11 @@ interface RightPanelProps {
   onToggleDock?: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  canShareChat?: boolean;
+  onShareChat?: () => void;
+  canShowUsage?: boolean;
+  onOpenUsage?: () => void;
+  usageTitle?: string;
 }
 
 export function RightPanel({
@@ -74,6 +81,11 @@ export function RightPanel({
   onToggleDock,
   onMouseEnter,
   onMouseLeave,
+  canShareChat = false,
+  onShareChat,
+  canShowUsage = false,
+  onOpenUsage,
+  usageTitle = "Usage limits",
 }: RightPanelProps) {
   const [isStandaloneApp, setIsStandaloneApp] = useState(false);
   const isAdminBannerActive = useAdminBanner();
@@ -345,6 +357,36 @@ export function RightPanel({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          {(canShareChat || canShowUsage) && (
+            <div className="px-3 py-2 border-b border-border/40">
+              <div className="grid grid-cols-2 gap-2">
+                {canShareChat && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onShareChat}
+                    className="h-9 justify-start gap-2 rounded-xl bg-muted/30 hover:bg-primary/10 hover:text-primary"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    <span className="text-xs font-semibold">Share</span>
+                  </Button>
+                )}
+                {canShowUsage && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onOpenUsage}
+                    title={usageTitle}
+                    className="h-9 justify-start gap-2 rounded-xl bg-muted/30 hover:bg-primary/10 hover:text-primary"
+                  >
+                    <CircleGauge className="h-4 w-4" />
+                    <span className="text-xs font-semibold">Usage</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Content */}
           <div className="flex-1 overflow-hidden">

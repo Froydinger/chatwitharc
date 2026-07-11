@@ -510,6 +510,7 @@ export function MobileChatApp() {
   const [canvasWidthPercent, setCanvasWidthPercent] = useState(50);
   const [showLibrary, setShowLibrary] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isHeaderTight, setIsHeaderTight] = useState(false);
   const canvasResizingRef = useRef(false);
   const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
@@ -522,6 +523,13 @@ export function MobileChatApp() {
     isPlaying: isMusicPlaying,
     currentTrack,
   } = useMusicStore();
+
+  useEffect(() => {
+    const update = () => setIsHeaderTight(window.innerWidth < 860);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -850,6 +858,11 @@ export function MobileChatApp() {
   const sessionCanvas = currentSession?.canvasContent ?? '';
   const hasCanvas = (canvasContent || sessionCanvas).trim().length > 0;
   const canReopenCanvas = !isCanvasOpen && hasCanvas;
+  const canShareChat = Boolean(currentSessionId && messages.length > 0);
+  const canShowUsage = Boolean(user && !isAnonymous);
+  const usageTitle = `Image Quota: ${remainingImages === Infinity ? "Unlimited" : `${remainingImages} / ${limit} remaining`}`;
+  const openUsage = () => window.dispatchEvent(new CustomEvent("open-image-limits-modal"));
+  const showHeaderUtilityButtons = !isMobile && !isHeaderTight;
 
   // Main chat interface - Desktop with canvas uses PanelGroup for resizable layout
   const isDesktopCanvasMode = !isMobile && isCanvasOpen;
@@ -937,7 +950,7 @@ export function MobileChatApp() {
               }}
             >
               {/* Share Button */}
-              {currentSessionId && messages.length > 0 && (
+              {showHeaderUtilityButtons && canShareChat && (
                 <motion.div 
                   whileHover={{ scale: 1.1, y: -2 }} 
                   whileTap={{ scale: 0.95 }} 
@@ -959,19 +972,19 @@ export function MobileChatApp() {
 
 
               {/* Image Quota Circular Gauge Button */}
-              {user && !isAnonymous && (
+              {showHeaderUtilityButtons && canShowUsage && (
                 <motion.div 
                   whileHover={{ scale: 1.1, y: -2 }} 
                   whileTap={{ scale: 0.95 }} 
                   transition={{ type: "spring", damping: 15, stiffness: 300 }}
                   className="cursor-pointer"
-                  onClick={() => window.dispatchEvent(new CustomEvent("open-image-limits-modal"))}
+                  onClick={openUsage}
                 >
                   <Button
                     variant="outline"
                     size="icon"
                     className="rounded-full glass-shimmer transition-all pointer-events-none flex items-center justify-center"
-                    title={`Image Quota: ${remainingImages === Infinity ? "Unlimited" : `${remainingImages} / ${limit} remaining`}`}
+                    title={usageTitle}
                   >
                     <CircleGauge className="h-4 w-4 text-primary" />
                   </Button>
@@ -1336,6 +1349,11 @@ export function MobileChatApp() {
           onToggleDock={toggleDock}
           onMouseEnter={cancelPanelClose}
           onMouseLeave={schedulePanelClose}
+          canShareChat={canShareChat}
+          onShareChat={() => setIsShareDialogOpen(true)}
+          canShowUsage={canShowUsage}
+          onOpenUsage={openUsage}
+          usageTitle={usageTitle}
         />
 
         {/* Hover edge trigger — desktop only, opens panel preview without docking */}
