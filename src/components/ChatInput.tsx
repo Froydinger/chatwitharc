@@ -3225,11 +3225,15 @@ ${safeCode}
               <Textarea
                 ref={textareaRef}
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={(e) => {
+                  if (isVoiceActive) return;
+                  setInputValue(e.target.value);
+                }}
                 onKeyDown={handleKeyPress}
                 onPaste={handlePaste}
                 onFocus={handleInputFocus}
-                placeholder={isLoading ? "Thinking..." : "Message Arc..."}
+                disabled={isVoiceActive}
+                placeholder={isVoiceActive ? "Voice mode is listening..." : isLoading ? "Thinking..." : "Message Arc..."}
                 className="flex-1 min-h-[28px] max-h-[200px] border-0 bg-transparent py-1 pr-4 focus-visible:ring-0 resize-none text-base placeholder:text-muted-foreground/60 scrollbar-hide"
                 rows={1}
               />

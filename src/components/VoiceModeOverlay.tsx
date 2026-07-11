@@ -451,6 +451,250 @@ export function VoiceModeOverlay() {
   return (
     <AnimatePresence>
       {isActive && (
+        <div className="fixed inset-x-0 bottom-0 z-[100] pointer-events-none px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          <div className="mx-auto w-[min(760px,calc(100vw-1.5rem))] pointer-events-auto">
+            <AnimatePresence>
+              {isCameraActive && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                  className="mb-2 flex justify-end"
+                >
+                  <div className="relative w-36 overflow-hidden rounded-2xl border border-primary/30 bg-background/80 shadow-xl backdrop-blur-xl">
+                    <video
+                      ref={(el) => {
+                        if (globalVideoRef && el) {
+                          // @ts-ignore - connected through the controller
+                          globalVideoRef.current = el;
+                        }
+                      }}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="aspect-[4/3] w-full object-cover"
+                      style={{ transform: cameraFacingMode === 'user' ? 'scaleX(-1)' : 'none' }}
+                    />
+                    <button
+                      onClick={handleCameraSwitch}
+                      className="absolute bottom-1.5 right-1.5 rounded-full bg-background/85 p-1.5 shadow-sm"
+                      aria-label="Switch camera"
+                    >
+                      <SwitchCamera className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {attachedImagePreview && !isCameraActive && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                  className="mb-2 flex justify-end"
+                >
+                  <div className="relative max-w-36 rounded-2xl border border-primary/30 bg-background/80 p-1 shadow-xl backdrop-blur-xl">
+                    <img src={attachedImagePreview} alt="Attached" className="max-h-28 rounded-xl object-contain" />
+                    <button
+                      onClick={clearAttachment}
+                      className="absolute -right-1.5 -top-1.5 rounded-full border border-border bg-background p-1 shadow-sm"
+                      aria-label="Remove attachment"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 24, scale: 0.98 }}
+              className="rounded-[2rem] border border-border/50 bg-background/88 px-3 py-2 shadow-2xl backdrop-blur-2xl"
+            >
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleMuteToggle}
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${
+                    isMuted ? 'bg-destructive/15 text-destructive' : 'bg-muted/70 text-foreground hover:bg-muted'
+                  }`}
+                  aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
+                >
+                  {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                </button>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-semibold text-foreground">{getStatusText()}</span>
+                    {isLoading || status === 'connecting' ? (
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
+                    ) : (
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.75)]" />
+                    )}
+                  </div>
+                  <div className="mt-1 flex h-5 items-center gap-[3px]" aria-hidden="true">
+                    {Array.from({ length: 22 }).map((_, i) => (
+                      <WaveformBar
+                        key={i}
+                        index={i}
+                        total={22}
+                        amplitude={amplitude}
+                        status={status}
+                        isMuted={isMuted}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="hidden shrink-0 sm:block">
+                  <UsageMeter kind="voice" />
+                </div>
+
+                <button
+                  onClick={handleAttachClick}
+                  disabled={!!attachedImage}
+                  className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors xs:flex ${
+                    attachedImage ? 'bg-primary/15 text-primary' : 'bg-muted/60 text-foreground hover:bg-muted'
+                  }`}
+                  aria-label="Attach image"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </button>
+
+                <button
+                  onClick={handleCameraToggle}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
+                    isCameraActive ? 'bg-primary/15 text-primary' : 'bg-muted/60 text-foreground hover:bg-muted'
+                  }`}
+                  aria-label={isCameraActive ? "Turn off camera" : "Turn on camera"}
+                >
+                  {isCameraActive ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+                </button>
+
+                <button
+                  onClick={handleReconnect}
+                  className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted/60 text-foreground transition-colors hover:bg-muted sm:flex"
+                  aria-label="Reconnect voice mode"
+                >
+                  <RotateCw className={`h-4 w-4 ${status === 'connecting' ? 'animate-spin' : ''}`} />
+                </button>
+
+                {showInterruptButton ? (
+                  <button
+                    onClick={handleInterrupt}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg"
+                    aria-label="Interrupt Arc"
+                  >
+                    <Hand className="h-4 w-4" />
+                  </button>
+                ) : null}
+
+                <Popover open={voicePickerOpen} onOpenChange={(open) => {
+                  setVoicePickerOpen(open);
+                  if (!open) setPendingVoiceSwitch(null);
+                }}>
+                  <PopoverTrigger asChild>
+                    <button
+                      disabled={isSwitching}
+                      className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-primary/40 bg-black shadow-sm"
+                      aria-label="Switch voice"
+                    >
+                      <img
+                        src={VOICE_AVATARS[selectedVoice]}
+                        alt={VOICES.find(v => v.id === selectedVoice)?.name || 'Voice'}
+                        className="h-full w-full object-cover"
+                      />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="top"
+                    align="end"
+                    sideOffset={12}
+                    className="z-[110] w-[min(360px,calc(100vw-1.5rem))] rounded-2xl border border-border/30 p-4 glass-panel"
+                  >
+                    {pendingVoiceSwitch && pendingVoiceInfo ? (
+                      <div className="flex flex-col items-center gap-4 py-2">
+                        <div className="h-16 w-16 overflow-hidden rounded-full bg-black shadow-[0_0_12px_4px_hsl(var(--primary)/0.5)]">
+                          <img src={VOICE_AVATARS[pendingVoiceSwitch]} alt={pendingVoiceInfo.name} className="h-full w-full object-cover" />
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm font-medium">Switch to {pendingVoiceInfo.name}?</p>
+                          <p className="mt-1 text-xs text-muted-foreground">This saves the current voice turns and reconnects.</p>
+                        </div>
+                        <div className="flex w-full gap-3">
+                          <button onClick={handleCancelVoiceSwitch} className="flex-1 rounded-xl bg-muted/50 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted">
+                            Cancel
+                          </button>
+                          <button onClick={handleConfirmVoiceSwitch} className="flex-1 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">
+                            Switch
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="mb-3 text-xs font-medium text-muted-foreground">Switch voice</p>
+                        <div className="flex max-h-[340px] flex-col gap-1.5 overflow-y-auto pr-1">
+                          {REALTIME_VOICES.map((voice) => {
+                            const isSelected = selectedVoice === voice.id;
+                            return (
+                              <button
+                                key={voice.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (voice.id !== selectedVoice) setPendingVoiceSwitch(voice.id);
+                                }}
+                                className={`flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition-all ${
+                                  isSelected ? 'bg-primary/10' : 'hover:bg-muted/50'
+                                }`}
+                              >
+                                <div className={`h-10 w-10 shrink-0 overflow-hidden rounded-full bg-black ${
+                                  isSelected ? 'shadow-[0_0_12px_4px_hsl(var(--primary)/0.5)]' : ''
+                                }`}>
+                                  <img src={VOICE_AVATARS[voice.id]} alt={voice.name} className="h-full w-full object-cover" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <span className="text-sm font-medium">{voice.name}</span>
+                                  <p className="truncate text-[11px] text-muted-foreground">{voice.description}</p>
+                                </div>
+                                {isSelected && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </PopoverContent>
+                </Popover>
+
+                <button
+                  onClick={deactivateVoiceMode}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted/60 text-foreground transition-colors hover:bg-muted"
+                  aria-label="Close voice mode"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
+  return (
+    <AnimatePresence>
+      {isActive && (
         <>
           {/* Backdrop */}
           <motion.div

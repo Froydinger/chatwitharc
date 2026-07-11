@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AIService } from '@/services/ai';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
+import { detectsLocationIntent, formatLocationForContext, getCachedLocation, getUserLocation, UserLocation } from '@/lib/userLocation';
 import { 
   setGlobalInterruptHandler, 
   setGlobalMuteHandoffHandler, 
@@ -19,6 +20,14 @@ import {
 } from './VoiceModeOverlay';
 
 const aiService = new AIService();
+
+function isCurrentLocationRequest(text: string): boolean {
+  return /\b(near\s*me|nearby|around\s*(me|here)|my\s*(area|city|town|region|location)|current\s*location|where\s*i\s*am|here|local\b|locally)\b/i.test(text || '');
+}
+
+function locationLabel(loc: UserLocation): string {
+  return [loc.city, loc.region, loc.country].filter(Boolean).join(', ') || `${loc.latitude}, ${loc.longitude}`;
+}
 
 // Fast database-level search through past chat sessions
 async function searchAllPastChats(query: string): Promise<string> {
@@ -200,9 +209,9 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
 CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
 
 • IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. For changes to the currently displayed generated image, use revise_image instead. When done, use close_image if user is done with it.
-• WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search. Summarize results conversationally after — the user already sees a result card, so don't repeat it verbatim.
+• WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search. Results and sources appear directly in the chat thread, so summarize naturally.
   IMPORTANT: Listen carefully to exact names and titles. If unsure, confirm before searching.
-• WEATHER: For ANY weather question (current weather, temperature, forecast, conditions for a city), use get_weather — NOT web_search. Say "Let me check" first, then call get_weather. A weather card appears for the user; just give a short, casual spoken summary.
+• WEATHER: For ANY weather question (current weather, temperature, forecast, conditions for a city), use get_weather — NOT web_search. Say "Let me check" first, then call get_weather. Weather appears directly in the chat thread; give a short, casual spoken summary.
 • SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats when they ask about:
   - Something they mentioned before
   - Their preferences, interests, or patterns
@@ -277,6 +286,7 @@ export function VoiceModeController() {
     isActive,
     selectedVoice,
     setSelectedVoice,
+    conversationTurns,
     deactivateVoiceMode,
     activateVoiceMode,
     setGeneratedImage,
@@ -326,7 +336,15 @@ export function VoiceModeController() {
       const imageUrl = urls[0];
       console.log('VoiceModeController: Image generated:', imageUrl);
       setGeneratedImage(imageUrl);
-      setLastGeneratedImageUrl(imageUrl);
+      setLastGeneratedImageUrl(null);
+      await addMessage({
+        content: prompt || 'Generated image',
+        role: 'assistant',
+        type: 'image',
+        imageUrl,
+        sourceModel: 'cloud-image',
+        modelUsed: 'gpt-image-2',
+      });
       setIsGeneratingImage(false);
       return imageUrl;
     } catch (error) {
@@ -334,7 +352,7 @@ export function VoiceModeController() {
       setIsGeneratingImage(false);
       throw error;
     }
-  }, [setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
+  }, [addMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
 
   // Image revision handler: voice edits always go through the Image 2 edit path.
   const handleImageRevise = useCallback(async (prompt: string, aspectRatio?: string): Promise<string> => {
@@ -351,7 +369,15 @@ export function VoiceModeController() {
       const imageUrl = urls[0];
       console.log('VoiceModeController: Image revised:', imageUrl);
       setGeneratedImage(imageUrl);
-      setLastGeneratedImageUrl(imageUrl);
+      setLastGeneratedImageUrl(null);
+      await addMessage({
+        content: prompt || 'Revised image',
+        role: 'assistant',
+        type: 'image',
+        imageUrl,
+        sourceModel: 'cloud-image-edit',
+        modelUsed: 'gpt-image-2',
+      });
       setIsGeneratingImage(false);
       return imageUrl;
     } catch (error) {
@@ -359,7 +385,7 @@ export function VoiceModeController() {
       setIsGeneratingImage(false);
       throw error;
     }
-  }, [setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
+  }, [addMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
 
   // Image dismiss handler
   const handleImageDismiss = useCallback(() => {
@@ -385,9 +411,24 @@ export function VoiceModeController() {
         abortControllerRef.current?.abort();
       }, 30000);
       
+      let searchQuery = query;
+      let locationUsed: UserLocation | null = null;
+      if (detectsLocationIntent(query)) {
+        locationUsed = getCachedLocation();
+        if (!locationUsed) {
+          locationUsed = await getUserLocation();
+        }
+        if (locationUsed) {
+          searchQuery = `${query}\n\n${formatLocationForContext(locationUsed)}`;
+        } else if (isCurrentLocationRequest(query)) {
+          setIsSearching(false);
+          return "I need your location for that one. Please allow location access and ask me again.";
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
-          messages: [{ role: 'user', content: query }],
+          messages: [{ role: 'user', content: searchQuery }],
           forceWebSearch: true
         }
       });
@@ -424,7 +465,29 @@ export function VoiceModeController() {
         .trim()
         .slice(0, 320);
       
-      setSearchSummary({ query, summary: cleanSummary, sources });
+      setSearchSummary(null);
+      await addMessage({
+        content: response,
+        role: 'assistant',
+        type: 'text',
+        webSources: sources,
+        memoryAction: sources.length > 0 ? {
+          type: 'web_searched',
+          content: response,
+          sources,
+          query,
+          searchProvider: data?.search_provider || 'tavily',
+        } : undefined,
+        locationUsed: locationUsed ? {
+          city: locationUsed.city,
+          region: locationUsed.region,
+          country: locationUsed.country,
+          latitude: locationUsed.latitude,
+          longitude: locationUsed.longitude,
+        } : undefined,
+        sourceModel: 'cloud-search',
+        modelUsed: data?.model_used,
+      });
       console.log('VoiceModeController: Web search complete');
       return response;
     } catch (error: any) {
@@ -436,7 +499,7 @@ export function VoiceModeController() {
       }
       return `I ran into a problem searching for that: ${error.message || 'Unknown error'}. Want me to try again?`;
     }
-  }, [setIsSearching, setSearchSummary]);
+  }, [addMessage, setIsSearching, setSearchSummary]);
 
   // Weather handler
   const handleGetWeather = useCallback(async (location: string): Promise<string> => {
@@ -444,8 +507,20 @@ export function VoiceModeController() {
     if (!useVoiceModeStore.getState().isActive) return 'Cancelled.';
     setIsFetchingWeather(true);
     try {
+      let weatherLocation = location;
+      let locationUsed: UserLocation | null = null;
+      if (!location?.trim() || isCurrentLocationRequest(location) || detectsLocationIntent(location)) {
+        locationUsed = getCachedLocation() || await getUserLocation();
+        if (locationUsed) {
+          weatherLocation = locationLabel(locationUsed);
+        } else if (!location?.trim() || isCurrentLocationRequest(location)) {
+          setIsFetchingWeather(false);
+          return "I need your location for that weather check. Please allow location access and ask me again.";
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke('get-weather', {
-        body: { location },
+        body: { location: weatherLocation },
       });
       setIsFetchingWeather(false);
       if (error) {
@@ -454,14 +529,29 @@ export function VoiceModeController() {
       }
       if (data?.error) return `I couldn't find weather for "${location}": ${data.error}`;
       
-      setWeatherData(data);
+      setWeatherData(null);
+      await addMessage({
+        content: `Weather in ${data.location}: ${data.temperature}°F, ${data.condition}. High ${data.high}°, low ${data.low}°.`,
+        role: 'assistant',
+        type: 'text',
+        weatherData: data,
+        locationUsed: locationUsed ? {
+          city: locationUsed.city,
+          region: locationUsed.region,
+          country: locationUsed.country,
+          latitude: locationUsed.latitude,
+          longitude: locationUsed.longitude,
+        } : undefined,
+        sourceModel: 'cloud-voice',
+        modelUsed: 'gpt-realtime-2.1',
+      });
       return `Weather in ${data.location}: ${data.temperature}°F (feels like ${data.feelsLike}°F), ${data.condition}. High ${data.high}°, low ${data.low}°. Humidity ${data.humidity}%, wind ${data.wind} mph. Briefly tell the user what it's like — keep it casual and short.`;
     } catch (e: any) {
       console.error('Weather lookup failed:', e);
       setIsFetchingWeather(false);
       return `Weather lookup failed: ${e?.message || 'Unknown error'}`;
     }
-  }, [setIsFetchingWeather, setWeatherData]);
+  }, [addMessage, setIsFetchingWeather, setWeatherData]);
 
   // Memory: save
   const handleSaveMemory = useCallback(async (memory: string, replaces?: string[]): Promise<string> => {
@@ -670,8 +760,8 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
 CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
 
 • IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image for new images. If the user asks to update/revise/change the current generated image, use revise_image instead.
-• WEB SEARCH: Say "Let me look that up" FIRST, then use web_search.
-• WEATHER: Use get_weather (not web_search) for any weather question.
+• WEB SEARCH: Say "Let me look that up" FIRST, then use web_search. Results and sources are added to the chat thread.
+• WEATHER: Use get_weather (not web_search) for any weather question. Weather is added to the chat thread.
 • SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.
 • MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember about them. Use delete_memory when they say "forget that" or want a memory removed. When correcting an old memory, pass \`replaces\` with keywords from the outdated one. CRITICAL: Give exactly ONE short spoken confirmation per memory action — either before calling the tool OR after it returns, never both. Tool results like "OK_SAVED" / "OK_DELETED" are silent acknowledgments; do NOT speak again after seeing them if you already confirmed before the call.`;
 
@@ -954,6 +1044,18 @@ When the user shares their camera or attaches an image, describe what you see na
       };
     }
   }, [isActive, saveNewTurns]);
+
+  // Save finalized voice transcripts into the normal chat thread shortly after
+  // each turn lands so voice mode feels like the regular chat, not a separate UI.
+  useEffect(() => {
+    if (!isActive || conversationTurns.length === 0) return;
+    const timer = setTimeout(() => {
+      saveNewTurns(false).catch((error) => {
+        console.error('Failed to save live voice turns:', error);
+      });
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [conversationTurns, isActive, saveNewTurns]);
 
   // Emergency save on page hide (iOS kills backgrounded tabs)
   useEffect(() => {

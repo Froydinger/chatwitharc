@@ -98,6 +98,7 @@ export interface Message {
   ideFileCount?: number; // Number of files generated
   ideProjectId?: string; // Database project ID for cloud persistence
   memoryAction?: MemoryAction; // Track memory/search actions
+  webSources?: Array<{ url: string; title?: string; snippet?: string }>; // Inline web citations
   weatherData?: import('@/components/WeatherCard').WeatherData; // Inline weather card
   scheduledTask?: import('@/components/ScheduledTaskCard').ScheduledTaskData;
   notificationDispatch?: import('@/components/NotificationDispatchCard').NotificationDispatchData;
