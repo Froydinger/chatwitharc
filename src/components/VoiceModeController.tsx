@@ -208,10 +208,11 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
     voicePrompt += `\n\n--- VOICE TOOLS ---
 CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
 
-• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. For changes to the currently displayed generated image, use revise_image instead. When done, use close_image if user is done with it.
+• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. Image results and generating states appear directly in the chat thread. For changes like "edit that", "make it darker", "change the last one", or follow-ups after an image, use revise_image; it edits the latest generated/chat image. Do not mention internal retries unless the tool fully fails.
 • WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search. Results and sources appear directly in the chat thread, so summarize naturally.
   IMPORTANT: Listen carefully to exact names and titles. If unsure, confirm before searching.
 • WEATHER: For ANY weather question (current weather, temperature, forecast, conditions for a city), use get_weather — NOT web_search. Say "Let me check" first, then call get_weather. Weather appears directly in the chat thread; give a short, casual spoken summary.
+• REMINDERS / SCHEDULED TASKS: You CAN create reminders. For "remind me...", "set a reminder", "schedule this", "in five minutes", "tomorrow", or recurring reminders, say "I'll set that" FIRST, then use create_scheduled_task. The reminder confirmation card appears directly in the chat thread.
 • SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats when they ask about:
   - Something they mentioned before
   - Their preferences, interests, or patterns
@@ -229,7 +230,7 @@ When the user shares their camera or attaches an image:
 • For attached images, offer to analyze specific parts if needed
 • Be helpful but not overly verbose about what you see
 
-If a user asks to update, revise, change, or make another version of the currently displayed generated image:
+If a user asks to update, revise, change, or make another version of the latest generated/chat image:
 • Use revise_image with a clear edit instruction
 • Keep the same aspect ratio unless they ask for a different shape`;
 
@@ -280,7 +281,7 @@ let savedTurnIndex = 0;
 
 export function VoiceModeController() {
   const { toast } = useToast();
-  const { addMessage, messages, createNewSession } = useArcStore();
+  const { addMessage, replaceMessage, messages, createNewSession } = useArcStore();
   const { profile, updateProfile } = useProfile();
   const {
     isActive,
@@ -292,10 +293,15 @@ export function VoiceModeController() {
     setGeneratedImage,
     setIsGeneratingImage,
     setLastGeneratedImageUrl,
+    isGeneratingImage,
     setIsSearching,
+    isSearching,
     setSearchSummary,
     setIsFetchingWeather,
+    isFetchingWeather,
     setWeatherData,
+    isSchedulingTask,
+    setIsSchedulingTask,
   } = useVoiceModeStore();
 
   // Sync preferred_voice from profile on mount
@@ -325,19 +331,97 @@ export function VoiceModeController() {
 
   // Audio playback for AI responses
   const { queueAudio, stopPlayback, clearQueue } = useAudioPlayback();
+  const toolPulseAudioRef = useRef<AudioContext | null>(null);
+  const toolPulseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const shouldPulse = isActive && (isGeneratingImage || isSearching || isFetchingWeather || isSchedulingTask);
+
+    const stopPulse = () => {
+      if (toolPulseTimerRef.current) {
+        clearInterval(toolPulseTimerRef.current);
+        toolPulseTimerRef.current = null;
+      }
+    };
+
+    if (!shouldPulse) {
+      stopPulse();
+      return;
+    }
+
+    const playTick = () => {
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = toolPulseAudioRef.current || new AudioCtx();
+        toolPulseAudioRef.current = ctx;
+        if (ctx.state === 'suspended') void ctx.resume();
+
+        [0, 0.11, 0.22].forEach((offset, index) => {
+          const start = ctx.currentTime + offset;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          const filter = ctx.createBiquadFilter();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(520 + index * 44, start);
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(1200, start);
+          gain.gain.setValueAtTime(0.0001, start);
+          gain.gain.exponentialRampToValueAtTime(0.035, start + 0.012);
+          gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.09);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(start);
+          osc.stop(start + 0.1);
+        });
+      } catch (error) {
+        console.warn('Voice tool pulse failed:', error);
+        stopPulse();
+      }
+    };
+
+    if (!toolPulseTimerRef.current) {
+      playTick();
+      toolPulseTimerRef.current = setInterval(playTick, 2400);
+    }
+
+    return stopPulse;
+  }, [isActive, isGeneratingImage, isSearching, isFetchingWeather, isSchedulingTask]);
+
+  const getLastChatImageUrl = useCallback(() => {
+    const currentMessages = useArcStore.getState().messages;
+    for (let i = currentMessages.length - 1; i >= 0; i -= 1) {
+      const message = currentMessages[i];
+      if (message.type !== 'image') continue;
+      if (message.imageUrl) return message.imageUrl;
+      if (message.imageUrls?.length) return message.imageUrls[message.imageUrls.length - 1];
+    }
+    return null;
+  }, []);
 
   // Image generation handler
   const handleImageGenerate = useCallback(async (prompt: string, aspectRatio?: string): Promise<string> => {
     console.log('VoiceModeController: Generating image with prompt:', prompt, 'aspect ratio:', aspectRatio);
     setIsGeneratingImage(true);
+    const placeholderId = await addMessage({
+      content: `Generating image: ${prompt}`,
+      role: 'assistant',
+      type: 'image-generating',
+      imagePrompt: prompt,
+      sourceModel: 'cloud-image',
+      modelUsed: 'gpt-image-2',
+    });
     
     try {
       const urls = await aiService.generateImage(prompt, 'gpt-image-2', aspectRatio);
       const imageUrl = urls[0];
       console.log('VoiceModeController: Image generated:', imageUrl);
       setGeneratedImage(imageUrl);
-      setLastGeneratedImageUrl(null);
-      await addMessage({
+      setLastGeneratedImageUrl(imageUrl);
+      await replaceMessage(placeholderId, {
         content: prompt || 'Generated image',
         role: 'assistant',
         type: 'image',
@@ -349,28 +433,43 @@ export function VoiceModeController() {
       return imageUrl;
     } catch (error) {
       console.error('VoiceModeController: Image generation failed:', error);
+      await replaceMessage(placeholderId, {
+        content: "I couldn't finish that image generation. Try a simpler prompt and I'll take another swing.",
+        role: 'assistant',
+        type: 'text',
+        sourceModel: 'cloud-image',
+        modelUsed: 'gpt-image-2',
+      });
       setIsGeneratingImage(false);
       throw error;
     }
-  }, [addMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
+  }, [addMessage, replaceMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
 
   // Image revision handler: voice edits always go through the Image 2 edit path.
   const handleImageRevise = useCallback(async (prompt: string, aspectRatio?: string): Promise<string> => {
-    const baseImageUrl = useVoiceModeStore.getState().generatedImage;
+    const baseImageUrl = useVoiceModeStore.getState().generatedImage || getLastChatImageUrl();
     if (!baseImageUrl) {
-      throw new Error('No generated image is currently visible to revise.');
+      throw new Error('No recent chat image is available to edit.');
     }
 
     console.log('VoiceModeController: Revising image with prompt:', prompt, 'aspect ratio:', aspectRatio);
     setIsGeneratingImage(true);
+    const placeholderId = await addMessage({
+      content: `Editing image: ${prompt}`,
+      role: 'assistant',
+      type: 'image-generating',
+      imagePrompt: prompt,
+      sourceModel: 'cloud-image-edit',
+      modelUsed: 'gpt-image-2',
+    });
 
     try {
       const urls = await aiService.editImage(prompt, baseImageUrl, 'gpt-image-2', aspectRatio);
       const imageUrl = urls[0];
       console.log('VoiceModeController: Image revised:', imageUrl);
       setGeneratedImage(imageUrl);
-      setLastGeneratedImageUrl(null);
-      await addMessage({
+      setLastGeneratedImageUrl(imageUrl);
+      await replaceMessage(placeholderId, {
         content: prompt || 'Revised image',
         role: 'assistant',
         type: 'image',
@@ -382,10 +481,17 @@ export function VoiceModeController() {
       return imageUrl;
     } catch (error) {
       console.error('VoiceModeController: Image revision failed:', error);
+      await replaceMessage(placeholderId, {
+        content: "I couldn't finish that image edit. Try a simpler edit and I'll run it again.",
+        role: 'assistant',
+        type: 'text',
+        sourceModel: 'cloud-image-edit',
+        modelUsed: 'gpt-image-2',
+      });
       setIsGeneratingImage(false);
       throw error;
     }
-  }, [addMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
+  }, [addMessage, getLastChatImageUrl, replaceMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
 
   // Image dismiss handler
   const handleImageDismiss = useCallback(() => {
@@ -552,6 +658,43 @@ export function VoiceModeController() {
       return `Weather lookup failed: ${e?.message || 'Unknown error'}`;
     }
   }, [addMessage, setIsFetchingWeather, setWeatherData]);
+
+  const handleCreateScheduledTask = useCallback(async (request: string): Promise<string> => {
+    const cleanRequest = request?.trim();
+    if (!cleanRequest) return 'No reminder request provided.';
+    if (!useVoiceModeStore.getState().isActive) return 'Reminder cancelled.';
+
+    setIsSchedulingTask(true);
+    try {
+      const result = await aiService.sendMessage(
+        [{ role: 'user', content: cleanRequest }],
+        profile || undefined,
+        undefined,
+        useArcStore.getState().currentSessionId || undefined,
+      );
+
+      await addMessage({
+        content: result.content || 'Reminder set.',
+        role: 'assistant',
+        type: 'text',
+        scheduledTask: result.scheduledTask,
+        notificationDispatch: result.notificationDispatch,
+        locationUsed: result.locationUsed,
+        memoryAction: result.memorySaved ? { type: 'context_saved', content: result.memorySaved.content } : undefined,
+        sourceModel: 'cloud-voice',
+        modelUsed: result.modelUsed,
+      });
+
+      return result.scheduledTask
+        ? 'Reminder created and shown in the chat thread. Say one short confirmation.'
+        : (result.content || 'I tried to set that reminder, but did not get a confirmation card back.');
+    } catch (error: any) {
+      console.error('VoiceModeController: Reminder scheduling failed:', error);
+      return `Reminder scheduling failed: ${error?.message || 'Unknown error'}`;
+    } finally {
+      setIsSchedulingTask(false);
+    }
+  }, [addMessage, profile, setIsSchedulingTask]);
 
   // Memory: save
   const handleSaveMemory = useCallback(async (memory: string, replaces?: string[]): Promise<string> => {
@@ -759,14 +902,15 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
       prompt += `\n\n--- VOICE TOOLS ---
 CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
 
-• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image for new images. If the user asks to update/revise/change the current generated image, use revise_image instead.
+• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image for new images. Image results and generating states appear directly in the chat thread. If the user asks to update/revise/change/edit "that" or follows up after an image, use revise_image against the latest generated/chat image. Do not mention internal retries unless the tool fully fails.
 • WEB SEARCH: Say "Let me look that up" FIRST, then use web_search. Results and sources are added to the chat thread.
 • WEATHER: Use get_weather (not web_search) for any weather question. Weather is added to the chat thread.
+• REMINDERS / SCHEDULED TASKS: You CAN create reminders. For "remind me...", "set a reminder", "schedule this", "in five minutes", "tomorrow", or recurring reminders, say "I'll set that" FIRST, then use create_scheduled_task. The reminder confirmation card is added to the chat thread.
 • SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.
 • MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember about them. Use delete_memory when they say "forget that" or want a memory removed. When correcting an old memory, pass \`replaces\` with keywords from the outdated one. CRITICAL: Give exactly ONE short spoken confirmation per memory action — either before calling the tool OR after it returns, never both. Tool results like "OK_SAVED" / "OK_DELETED" are silent acknowledgments; do NOT speak again after seeing them if you already confirmed before the call.`;
 
       prompt += `\n\n--- VISION CAPABILITIES ---
-When the user shares their camera or attaches an image, describe what you see naturally and conversationally. revise_image only applies to the currently displayed generated image from this voice session.`;
+When the user shares their camera or attaches an image, describe what you see naturally and conversationally. revise_image edits the latest generated/chat image when the user says things like "edit that" or gives a follow-up image change.`;
 
       return prompt;
     } catch (err) {
@@ -806,6 +950,7 @@ When the user shares their camera or attaches an image, describe what you see na
     onWebSearch: handleWebSearch,
     onSearchPastChats: handleSearchPastChats,
     onGetWeather: handleGetWeather,
+    onCreateScheduledTask: handleCreateScheduledTask,
     onSaveMemory: handleSaveMemory,
     onRecallMemory: handleRecallMemory,
     onDeleteMemory: handleDeleteMemory,
@@ -851,6 +996,7 @@ When the user shares their camera or attaches an image, describe what you see na
     store.setIsAudioPlaying(false);
     store.setIsGeneratingImage(false);
     store.setIsSearching(false);
+    store.setIsSchedulingTask(false);
   }, [cancelResponse, clearQueue, stopPlayback]);
 
   // Register the interrupt handler globally

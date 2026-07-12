@@ -13,6 +13,7 @@ interface UseOpenAIRealtimeOptions {
   onWebSearch?: (query: string) => Promise<string>;
   onSearchPastChats?: (query: string) => Promise<string>;
   onGetWeather?: (location: string) => Promise<string>;
+  onCreateScheduledTask?: (request: string) => Promise<string>;
   onSaveMemory?: (memory: string, replaces?: string[]) => Promise<string>;
   onRecallMemory?: (query?: string) => Promise<string>;
   onDeleteMemory?: (keywords: string[]) => Promise<string>;
@@ -759,13 +760,13 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               console.log('Generating image with prompt:', prompt, 'aspect ratio:', aspectRatio);
               
               if (optionsRef.current.onImageGenerate) {
-                withToolTimeout('generate_image', call_id, optionsRef.current.onImageGenerate(prompt, aspectRatio), 45000)
+                withToolTimeout('generate_image', call_id, optionsRef.current.onImageGenerate(prompt, aspectRatio), 90000)
                   .then(() => {
                     console.log('Image generated successfully');
                     logVoiceDiagnostic({ event_type: 'tool_call_completed', tool_name: name, tool_call_id: call_id });
                     sendFunctionResult(call_id, JSON.stringify({ 
                       success: true, 
-                      message: `Image generated and displayed to user. Describe what you created based on: "${prompt}"`
+                      message: `Image generated in the chat thread. Briefly acknowledge it, but do not mention retries or previous failures.`
                     }));
                     cleanupToolCall();
                   })
@@ -813,7 +814,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                     logVoiceDiagnostic({ event_type: 'tool_call_completed', tool_name: name, tool_call_id: call_id });
                     sendFunctionResult(call_id, JSON.stringify({
                       success: true,
-                      message: `Updated image generated and displayed to user. Briefly describe what changed based on: "${prompt}"`
+                      message: `Updated image generated in the chat thread. Briefly acknowledge the edit, but do not mention retries or previous failures.`
                     }));
                     cleanupToolCall();
                   })
@@ -1010,6 +1011,41 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 success: false,
                 error: 'Invalid location'
               }));
+              cleanupToolCall();
+            }
+          } else if (name === 'create_scheduled_task') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const request = (args.request || '').trim();
+              if (!request || !optionsRef.current.onCreateScheduledTask) {
+                sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'No reminder request provided or handler missing' }));
+                cleanupToolCall();
+              } else {
+                withToolTimeout('create_scheduled_task', call_id, optionsRef.current.onCreateScheduledTask(request), 25000)
+                  .then((result) => {
+                    logVoiceDiagnostic({
+                      event_type: 'tool_call_completed',
+                      tool_name: name,
+                      tool_call_id: call_id,
+                      details: { resultLength: result?.length || 0 },
+                    });
+                    sendFunctionResult(call_id, JSON.stringify({ success: true, result }));
+                    cleanupToolCall();
+                  })
+                  .catch((error) => {
+                    logVoiceDiagnostic({
+                      event_type: 'tool_call_failed',
+                      tool_name: name,
+                      tool_call_id: call_id,
+                      message: error?.message || 'Scheduled task failed',
+                      details: { errorName: error?.name },
+                    });
+                    sendFunctionResult(call_id, JSON.stringify({ success: false, error: error?.message || 'Failed to create reminder' }));
+                    cleanupToolCall();
+                  });
+              }
+            } catch (e) {
+              sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'Invalid reminder request' }));
               cleanupToolCall();
             }
           } else if (name === 'save_memory') {
@@ -1419,7 +1455,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           type: 'session.update',
           session: {
             type: 'realtime',
-            instructions: systemPrompt || `You're Arc — a calm, laid-back, friendly voice companion. Talk like a real person hanging out: relaxed, natural, a little playful, genuinely curious. Be warm but never gushy. Avoid sycophantic openers like "Great question!", "Absolutely!", "I'd love to", "What a great idea", or over-the-top enthusiasm. Skip filler praise. Don't perform — just talk. Be creative and thoughtful when it fits, concise by default. Use contractions, casual phrasing, occasional dry humor. CRITICAL RULE: NEVER speak unless the user has spoken first. Do NOT say things like "no rush", "take your time", "I'm here whenever you're ready", or any filler during silence. Just wait quietly. When generating an image, say something low-key first like "one sec, cooking that up" or "alright, on it" before calling generate_image.`,
+            instructions: systemPrompt || `You're Arc — a calm, laid-back, friendly voice companion. Talk like a real person hanging out: relaxed, natural, a little playful, genuinely curious. Be warm but never gushy. Avoid sycophantic openers like "Great question!", "Absolutely!", "I'd love to", "What a great idea", or over-the-top enthusiasm. Skip filler praise. Don't perform — just talk. Be creative and thoughtful when it fits, concise by default. Use contractions, casual phrasing, occasional dry humor. CRITICAL RULE: NEVER speak unless the user has spoken first. Do NOT say things like "no rush", "take your time", "I'm here whenever you're ready", or any filler during silence. Just wait quietly. Tool results appear directly in the chat thread. When generating an image, say something low-key first like "one sec, cooking that up" or "alright, on it" before calling generate_image. Use revise_image for "edit that" or follow-up image edits. Use create_scheduled_task for reminders.`,
             output_modalities: ['audio'],
             audio: {
               input: {
@@ -1444,7 +1480,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 {
                 type: 'function',
                 name: 'generate_image',
-                description: 'Generate a NEW image based on user description. Use when user asks to create, generate, show, draw, or make a new image or picture of something. For changes to the currently displayed generated image, use revise_image instead. ALWAYS pay attention to size/shape requests - "wide", "widescreen", "landscape", "banner" = 16:9. "Tall", "portrait", "vertical", "phone wallpaper" = 9:16. "Square" or no preference = 1:1.',
+                description: 'Generate a NEW image based on user description. Use when user asks to create, generate, show, draw, or make a new image or picture of something. For changes to the latest generated/chat image, use revise_image instead. ALWAYS pay attention to size/shape requests - "wide", "widescreen", "landscape", "banner" = 16:9. "Tall", "portrait", "vertical", "phone wallpaper" = 9:16. "Square" or no preference = 1:1.',
                 parameters: {
                   type: 'object',
                   properties: {
@@ -1464,7 +1500,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               {
                 type: 'function',
                 name: 'revise_image',
-                description: 'Create a revised version of the currently displayed generated image. Use only after Arc has already generated an image in this voice session and the user asks to update it, change it, make another version, adjust style, add/remove details, or otherwise revise the photo/image. If no generated image is currently visible, ask the user to generate one first.',
+                description: 'Create a revised version of the latest generated/chat image. Use after Arc has generated or shown an image and the user asks to "edit that", update it, change it, make another version, adjust style, add/remove details, or otherwise revise the photo/image. The app will use the latest available image in the chat.',
                 parameters: {
                   type: 'object',
                   properties: {
@@ -1533,6 +1569,21 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                     }
                   },
                   required: ['location']
+                }
+              },
+              {
+                type: 'function',
+                name: 'create_scheduled_task',
+                description: 'Create a reminder, timed task, alarm-like reminder, or recurring scheduled task for the user. Use when the user says things like "remind me in five minutes", "remind me tomorrow", "set a reminder", "schedule this", or asks Arc to notify them later. The reminder card is added directly to the chat thread.',
+                parameters: {
+                  type: 'object',
+                  properties: {
+                    request: {
+                      type: 'string',
+                      description: 'The full reminder request exactly as the user intended, including what to remind them about and when.'
+                    }
+                  },
+                  required: ['request']
                 }
               },
               {

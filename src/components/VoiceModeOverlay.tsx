@@ -2,7 +2,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Mic, MicOff, Volume2, Loader2, ImageIcon, Search, Hand, Ear, Camera, CameraOff, Paperclip, SwitchCamera, Check, Cloud, CloudRain, CloudSnow, CloudLightning, Sun, Moon, CloudFog, CloudDrizzle, ExternalLink, RotateCw } from "lucide-react";
 import { WeatherCard } from "@/components/WeatherCard";
 import { useVoiceModeStore, VoiceName } from "@/store/useVoiceModeStore";
-import { useMusicStore } from "@/store/useMusicStore";
 import { useCallback, useRef, useEffect, useMemo, useState } from "react";
 import { VOICES, REALTIME_VOICES, VOICE_AVATARS } from "@/constants/voices";
 import { useProfile } from "@/hooks/useProfile";
@@ -190,6 +189,7 @@ export function VoiceModeOverlay() {
     isFetchingWeather,
     weatherData,
     setWeatherData,
+    isSchedulingTask,
     selectedVoice,
     setSelectedVoice,
     // Camera state
@@ -213,59 +213,6 @@ export function VoiceModeOverlay() {
   // File input ref for attachments
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Track whether we started elevator music so we only stop what we started
-  const startedElevatorMusicRef = useRef(false);
-  const previousTrackRef = useRef<string | null>(null);
-  const wasPlayingRef = useRef(false);
-
-  // Auto-play elevator music during search and image generation
-  useEffect(() => {
-    const isTasking = isSearching || isGeneratingImage || isFetchingWeather;
-    
-    if (isTasking && !startedElevatorMusicRef.current) {
-      const { currentTrack, isPlaying, handleTrackChange, setIsPlaying, audioRef } = useMusicStore.getState();
-      previousTrackRef.current = currentTrack;
-      wasPlayingRef.current = isPlaying;
-      startedElevatorMusicRef.current = true;
-      
-      handleTrackChange('elevator');
-      setTimeout(() => {
-        const { audioRef: audio } = useMusicStore.getState();
-        if (audio) {
-          audio.volume = 0.3;
-          audio.play().then(() => {
-            useMusicStore.getState().setIsPlaying(true);
-          }).catch(() => {});
-        }
-      }, 150);
-    } else if (!isTasking && startedElevatorMusicRef.current) {
-      startedElevatorMusicRef.current = false;
-      const { audioRef, handleTrackChange, setIsPlaying, volume } = useMusicStore.getState();
-      
-      if (audioRef) {
-        audioRef.pause();
-        audioRef.volume = volume;
-      }
-      setIsPlaying(false);
-      
-      if (previousTrackRef.current) {
-        handleTrackChange(previousTrackRef.current);
-        if (wasPlayingRef.current) {
-          setTimeout(() => {
-            const { audioRef: audio } = useMusicStore.getState();
-            if (audio) {
-              audio.play().then(() => {
-                useMusicStore.getState().setIsPlaying(true);
-              }).catch(() => {});
-            }
-          }, 150);
-        }
-      }
-      previousTrackRef.current = null;
-      wasPlayingRef.current = false;
-    }
-  }, [isSearching, isGeneratingImage, isFetchingWeather]);
-
   // Handle interrupt button press
   const handleInterrupt = useCallback(() => {
     if (globalInterruptHandler) {
@@ -432,6 +379,7 @@ export function VoiceModeOverlay() {
     if (isSwitching) return 'Switching voice...';
     if (isSearching) return 'Searching the web...';
     if (isGeneratingImage) return 'Generating image...';
+    if (isSchedulingTask) return 'Setting reminder...';
     if (isMuted) return 'Muted';
     switch (status) {
       case 'connecting': return 'Connecting...';
@@ -442,7 +390,7 @@ export function VoiceModeOverlay() {
     }
   };
   
-  const isLoading = isGeneratingImage || isSearching;
+  const isLoading = isGeneratingImage || isSearching || isFetchingWeather || isSchedulingTask;
 
   const pendingVoiceInfo = pendingVoiceSwitch 
     ? REALTIME_VOICES.find(v => v.id === pendingVoiceSwitch) 

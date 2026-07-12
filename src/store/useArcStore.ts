@@ -166,6 +166,7 @@ export interface ArcState {
   // Current Chat State
   messages: Message[];
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<string>;
+  replaceMessage: (messageId: string, message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   replaceLastMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => void;
   updateMessageMemoryAction: (messageId: string, memoryAction: MemoryAction) => void;
@@ -1295,6 +1296,60 @@ export const useArcStore = create<ArcState>()(
         });
         
         return messageId;
+      },
+
+      replaceMessage: async (messageId, message) => {
+        const newMessage = {
+          ...message,
+          id: messageId,
+          timestamp: new Date(),
+          sourceModel: message.role === 'assistant' ? (message.sourceModel || 'cloud-chat') : undefined
+        };
+
+        set((state) => {
+          const messageIndex = state.messages.findIndex(m => m.id === messageId);
+          if (messageIndex === -1) return state;
+
+          const activePersonaId = state.currentSessionId
+            ? state.chatSessions.find(s => s.id === state.currentSessionId)?.personaId
+            : undefined;
+          const messageForSession = activePersonaId && !newMessage.personaId
+            ? { ...newMessage, personaId: activePersonaId }
+            : newMessage;
+
+          const updatedMessages = [...state.messages];
+          updatedMessages[messageIndex] = messageForSession;
+
+          let updatedSessions = state.chatSessions;
+          let sessionToSave: ChatSession | null = null;
+
+          if (state.currentSessionId) {
+            const existingSession = state.chatSessions.find(s => s.id === state.currentSessionId);
+            if (existingSession) {
+              sessionToSave = {
+                ...existingSession,
+                lastMessageAt: new Date(),
+                messages: updatedMessages,
+                messageCount: updatedMessages.length,
+              };
+
+              updatedSessions = state.chatSessions.map(session =>
+                session.id === state.currentSessionId ? sessionToSave! : session
+              );
+            }
+          }
+
+          if (sessionToSave) {
+            get().saveChatToSupabase(sessionToSave).catch(error => {
+              console.error('❌ Failed to replace message in Supabase:', error);
+            });
+          }
+
+          return {
+            messages: updatedMessages,
+            chatSessions: updatedSessions,
+          };
+        });
       },
       
       replaceLastMessage: async (message) => {

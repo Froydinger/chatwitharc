@@ -56,6 +56,9 @@ interface VoiceModeState {
     wind: number;
     isDay: boolean;
   } | null;
+
+  // Reminder/task state
+  isSchedulingTask: boolean;
   
   // Track if user has spoken since unmuting (for mute-to-handoff)
   hasPendingSpeech: boolean;
@@ -94,6 +97,7 @@ interface VoiceModeState {
   setSearchSummary: (summary: VoiceModeState['searchSummary']) => void;
   setIsFetchingWeather: (fetching: boolean) => void;
   setWeatherData: (data: VoiceModeState['weatherData']) => void;
+  setIsSchedulingTask: (scheduling: boolean) => void;
   clearToolPanels: () => void;
   setHasPendingSpeech: (pending: boolean) => void;
   setIsVoiceSwapping: (swapping: boolean) => void;
@@ -127,6 +131,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   searchSummary: null,
   isFetchingWeather: false,
   weatherData: null,
+  isSchedulingTask: false,
   hasPendingSpeech: false,
   isVoiceSwapping: false,
   
@@ -154,6 +159,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       searchSummary: null,
       isFetchingWeather: false,
       weatherData: null,
+      isSchedulingTask: false,
       hasPendingSpeech: false,
       isVoiceSwapping: false,
       // Reset camera/attachment on new session
@@ -180,6 +186,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       searchSummary: null,
       isFetchingWeather: false,
       weatherData: null,
+      isSchedulingTask: false,
       hasPendingSpeech: false,
       isVoiceSwapping: false,
       // Clean up camera/attachment
@@ -295,6 +302,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
     generatedImage: data ? null : (get() as any).generatedImage,
     searchSummary: data ? null : (get() as any).searchSummary,
   }),
+
+  setIsSchedulingTask: (scheduling) => set({ isSchedulingTask: scheduling }),
   
   clearToolPanels: () => set({
     generatedImage: null,
@@ -303,6 +312,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
     searchSummary: null,
     isFetchingWeather: false,
     weatherData: null,
+    isSchedulingTask: false,
   }),
   
   setHasPendingSpeech: (pending) => set({ hasPendingSpeech: pending }),
