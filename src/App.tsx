@@ -53,6 +53,7 @@ import { LandingPage } from "./pages/LandingPage";
 import CheckoutReturnPage from "./pages/CheckoutReturnPage";
 import { BlogIndexPage } from "./pages/BlogIndexPage";
 import { BlogPostPage } from "./pages/BlogPostPage";
+import { DesktopAuthCallbackPage } from "./pages/DesktopAuthCallbackPage";
 import { useAuth } from "@/hooks/useAuth";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { motion } from "framer-motion";
@@ -260,6 +261,7 @@ const App = () => {
                     <Route path="/tasks" element={<TasksPage />} />
                     <Route path="/shared" element={<SharedChatsPage />} />
                     <Route path="/shared/:chatId" element={<SharedChatRoomPage />} />
+                    <Route path="/desktop-auth-callback" element={<DesktopAuthCallbackPage />} />
                     <Route path="/checkout/return" element={<CheckoutReturnPage />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="/terms" element={<TermsPage />} />

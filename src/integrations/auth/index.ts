@@ -4,11 +4,19 @@ export function getAuthRedirectUrl(path = "") {
   return `${window.location.origin}${path}`;
 }
 
+function isDesktopApp() {
+  return /electron/i.test(window.navigator.userAgent);
+}
+
+function getDesktopAuthRedirectUrl() {
+  return getAuthRedirectUrl("/desktop-auth-callback?port=48879");
+}
+
 export function signInWithGoogle(redirectTo = getAuthRedirectUrl()) {
   return supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo,
+      redirectTo: isDesktopApp() ? getDesktopAuthRedirectUrl() : redirectTo,
       queryParams: { prompt: "select_account" },
     },
   });

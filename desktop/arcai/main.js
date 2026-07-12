@@ -1,4 +1,5 @@
 const path = require("node:path");
+const http = require("node:http");
 const { app, BrowserWindow, globalShortcut, screen, dialog, shell, Menu, session, systemPreferences } = require("electron");
 const { autoUpdater } = require("electron-updater");
 
@@ -7,8 +8,7 @@ const APP_NAME = "ArcAI";
 const DOWNLOADS_URL = `${ARC_URL}/downloads`;
 const SHORTCUT = "Control+Alt+Space";
 const WINDOW_ICON = path.join(__dirname, "assets", "icon.png");
-const DESKTOP_USER_AGENT =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+const DESKTOP_AUTH_PORT = 48879;
 
 app.setName(APP_NAME);
 
@@ -17,7 +17,7 @@ let full = null;
 let lastBounds = null;
 let showedWelcome = false;
 let checkingForUpdate = false;
-let authWindow = null;
+let authServer = null;
 
 const TRUSTED_ORIGINS = new Set([
   new URL(ARC_URL).origin,
@@ -47,76 +47,82 @@ function isAuthUrl(value = "") {
   }
 }
 
-function isAuthCallbackUrl(value = "") {
+function isDesktopAuthCallback(value = "") {
   try {
     const url = new URL(value);
-    return TRUSTED_ORIGINS.has(url.origin) && (url.hash.includes("access_token") || url.searchParams.has("code"));
+    return TRUSTED_ORIGINS.has(url.origin) && url.pathname === "/desktop-auth-callback";
   } catch (_) {
     return false;
   }
 }
 
-function refreshAppWindows() {
+function loadAuthCallbackInApp(href) {
+  let target = ARC_URL;
+  try {
+    const url = new URL(href);
+    if (url.hash.includes("access_token")) {
+      target = `${ARC_URL}/${url.hash}`;
+    }
+  } catch (_) {
+    target = ARC_URL;
+  }
+
   for (const win of [full, floating]) {
     if (!win || win.isDestroyed()) continue;
-    win.loadURL(ARC_URL).catch(() => {});
+    win.loadURL(target).catch(() => {});
+    win.show();
+    win.focus();
   }
 }
 
-function openAuthWindow(url) {
-  if (authWindow && !authWindow.isDestroyed()) {
-    authWindow.loadURL(url, { userAgent: DESKTOP_USER_AGENT }).catch(() => {});
-    authWindow.show();
-    authWindow.focus();
-    return;
-  }
+function startDesktopAuthBridge() {
+  if (authServer) return;
 
-  authWindow = new BrowserWindow({
-    width: 520,
-    height: 720,
-    title: "Sign in to ArcAI",
-    parent: full && !full.isDestroyed() ? full : undefined,
-    modal: false,
-    resizable: true,
-    movable: true,
-    icon: WINDOW_ICON,
-    backgroundColor: "#0f1116",
-    webPreferences: {
-      contextIsolation: true,
-      autoplayPolicy: "no-user-gesture-required"
+  authServer = http.createServer((req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", ARC_URL);
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
     }
-  });
 
-  authWindow.webContents.setUserAgent(DESKTOP_USER_AGENT);
-  authWindow.webContents.setWindowOpenHandler(({ url: nextUrl }) => {
-    if (isAuthUrl(nextUrl) || isTrustedUrl(nextUrl)) {
-      authWindow.loadURL(nextUrl, { userAgent: DESKTOP_USER_AGENT }).catch(() => {});
-    } else {
-      shell.openExternal(nextUrl);
+    if (req.method !== "POST" || req.url !== "/auth-callback") {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: false }));
+      return;
     }
-    return { action: "deny" };
+
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+      if (body.length > 1024 * 1024) req.destroy();
+    });
+    req.on("end", () => {
+      try {
+        const payload = JSON.parse(body || "{}");
+        if (typeof payload.href !== "string" || !isDesktopAuthCallback(payload.href)) {
+          throw new Error("Invalid auth callback");
+        }
+        loadAuthCallbackInApp(payload.href);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (error) {
+        console.error("Desktop auth callback failed:", error);
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false }));
+      }
+    });
   });
 
-  const finishIfCallback = (nextUrl) => {
-    if (!isAuthCallbackUrl(nextUrl)) return false;
-    setTimeout(refreshAppWindows, 350);
-    if (authWindow && !authWindow.isDestroyed()) authWindow.close();
-    return true;
-  };
-
-  authWindow.webContents.on("will-navigate", (event, nextUrl) => {
-    if (finishIfCallback(nextUrl)) event.preventDefault();
+  authServer.listen(DESKTOP_AUTH_PORT, "127.0.0.1", () => {
+    console.log(`ArcAI desktop auth bridge listening on ${DESKTOP_AUTH_PORT}`);
   });
-
-  authWindow.webContents.on("did-navigate", (_event, nextUrl) => {
-    finishIfCallback(nextUrl);
+  authServer.on("error", (error) => {
+    console.error("Desktop auth bridge failed:", error);
   });
-
-  authWindow.on("closed", () => {
-    authWindow = null;
-  });
-
-  authWindow.loadURL(url, { userAgent: DESKTOP_USER_AGENT }).catch(() => {});
 }
 
 async function checkForUpdates({ quiet = false } = {}) {
@@ -355,11 +361,9 @@ function addDragZone(win) {
 }
 
 function attachWindowHandlers(win, shouldFocusInput = false) {
-  win.webContents.setUserAgent(DESKTOP_USER_AGENT);
-
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (isAuthUrl(url)) {
-      openAuthWindow(url);
+      shell.openExternal(url);
     } else {
       shell.openExternal(url);
     }
@@ -370,7 +374,7 @@ function attachWindowHandlers(win, shouldFocusInput = false) {
     if (isTrustedUrl(url)) return;
     event.preventDefault();
     if (isAuthUrl(url)) {
-      openAuthWindow(url);
+      shell.openExternal(url);
     } else {
       shell.openExternal(url);
     }
@@ -499,6 +503,7 @@ app.whenReady().then(() => {
   installMenu();
   configureAutoUpdater();
   configurePermissions();
+  startDesktopAuthBridge();
   globalShortcut.register(SHORTCUT, toggleFloating);
   showFull();
   showWelcomeOnce();
@@ -511,5 +516,6 @@ app.on("window-all-closed", (event) => {
 });
 
 app.on("will-quit", () => {
+  if (authServer) authServer.close();
   globalShortcut.unregisterAll();
 });
