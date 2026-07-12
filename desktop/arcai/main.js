@@ -7,6 +7,8 @@ const APP_NAME = "ArcAI";
 const DOWNLOADS_URL = `${ARC_URL}/downloads`;
 const SHORTCUT = "Control+Alt+Space";
 const WINDOW_ICON = path.join(__dirname, "assets", "icon.png");
+const DESKTOP_USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 app.setName(APP_NAME);
 
@@ -15,6 +17,7 @@ let full = null;
 let lastBounds = null;
 let showedWelcome = false;
 let checkingForUpdate = false;
+let authWindow = null;
 
 const TRUSTED_ORIGINS = new Set([
   new URL(ARC_URL).origin,
@@ -28,6 +31,92 @@ function isTrustedUrl(value = "") {
   } catch (_) {
     return false;
   }
+}
+
+function isAuthUrl(value = "") {
+  try {
+    const url = new URL(value);
+    return (
+      url.hostname === "accounts.google.com" ||
+      url.hostname === "oauth2.googleapis.com" ||
+      url.hostname.endsWith(".supabase.co") ||
+      (url.hostname === "askarc.chat" && (url.hash.includes("access_token") || url.searchParams.has("code")))
+    );
+  } catch (_) {
+    return false;
+  }
+}
+
+function isAuthCallbackUrl(value = "") {
+  try {
+    const url = new URL(value);
+    return TRUSTED_ORIGINS.has(url.origin) && (url.hash.includes("access_token") || url.searchParams.has("code"));
+  } catch (_) {
+    return false;
+  }
+}
+
+function refreshAppWindows() {
+  for (const win of [full, floating]) {
+    if (!win || win.isDestroyed()) continue;
+    win.loadURL(ARC_URL).catch(() => {});
+  }
+}
+
+function openAuthWindow(url) {
+  if (authWindow && !authWindow.isDestroyed()) {
+    authWindow.loadURL(url, { userAgent: DESKTOP_USER_AGENT }).catch(() => {});
+    authWindow.show();
+    authWindow.focus();
+    return;
+  }
+
+  authWindow = new BrowserWindow({
+    width: 520,
+    height: 720,
+    title: "Sign in to ArcAI",
+    parent: full && !full.isDestroyed() ? full : undefined,
+    modal: false,
+    resizable: true,
+    movable: true,
+    icon: WINDOW_ICON,
+    backgroundColor: "#0f1116",
+    webPreferences: {
+      contextIsolation: true,
+      autoplayPolicy: "no-user-gesture-required"
+    }
+  });
+
+  authWindow.webContents.setUserAgent(DESKTOP_USER_AGENT);
+  authWindow.webContents.setWindowOpenHandler(({ url: nextUrl }) => {
+    if (isAuthUrl(nextUrl) || isTrustedUrl(nextUrl)) {
+      authWindow.loadURL(nextUrl, { userAgent: DESKTOP_USER_AGENT }).catch(() => {});
+    } else {
+      shell.openExternal(nextUrl);
+    }
+    return { action: "deny" };
+  });
+
+  const finishIfCallback = (nextUrl) => {
+    if (!isAuthCallbackUrl(nextUrl)) return false;
+    setTimeout(refreshAppWindows, 350);
+    if (authWindow && !authWindow.isDestroyed()) authWindow.close();
+    return true;
+  };
+
+  authWindow.webContents.on("will-navigate", (event, nextUrl) => {
+    if (finishIfCallback(nextUrl)) event.preventDefault();
+  });
+
+  authWindow.webContents.on("did-navigate", (_event, nextUrl) => {
+    finishIfCallback(nextUrl);
+  });
+
+  authWindow.on("closed", () => {
+    authWindow = null;
+  });
+
+  authWindow.loadURL(url, { userAgent: DESKTOP_USER_AGENT }).catch(() => {});
 }
 
 async function checkForUpdates({ quiet = false } = {}) {
@@ -266,9 +355,25 @@ function addDragZone(win) {
 }
 
 function attachWindowHandlers(win, shouldFocusInput = false) {
+  win.webContents.setUserAgent(DESKTOP_USER_AGENT);
+
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (isAuthUrl(url)) {
+      openAuthWindow(url);
+    } else {
+      shell.openExternal(url);
+    }
     return { action: "deny" };
+  });
+
+  win.webContents.on("will-navigate", (event, url) => {
+    if (isTrustedUrl(url)) return;
+    event.preventDefault();
+    if (isAuthUrl(url)) {
+      openAuthWindow(url);
+    } else {
+      shell.openExternal(url);
+    }
   });
 
   win.webContents.once("did-finish-load", () => {
