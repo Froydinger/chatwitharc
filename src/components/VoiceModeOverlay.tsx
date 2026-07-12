@@ -55,7 +55,7 @@ function WaveformBar({ index, total, amplitude, status, isMuted }: {
   isMuted: boolean;
 }) {
   const minHeight = 4;
-  const maxHeight = 80;
+  const maxHeight = 34;
   
   const center = total / 2;
   const distFromCenter = Math.abs(index - center) / center;
@@ -82,7 +82,7 @@ function WaveformBar({ index, total, amplitude, status, isMuted }: {
         className="rounded-full"
         style={{ width: 3, background: 'hsl(var(--primary))' }}
         animate={{
-          height: [minHeight, 32, minHeight],
+          height: [minHeight, 24, minHeight],
           opacity: [0.3, 1, 0.3],
         }}
         transition={{
@@ -101,7 +101,7 @@ function WaveformBar({ index, total, amplitude, status, isMuted }: {
         className="rounded-full"
         style={{ width: 3, background: 'hsl(var(--primary))' }}
         animate={{
-          height: [minHeight + 6, minHeight + 16, minHeight + 6],
+          height: [minHeight + 4, minHeight + 14, minHeight + 4],
           opacity: [0.4, 0.8, 0.4],
         }}
         transition={{
@@ -118,8 +118,8 @@ function WaveformBar({ index, total, amplitude, status, isMuted }: {
     const baseEnergy = 0.35;
     const amp = Math.max(amplitude, baseEnergy);
     const variance = Math.sin(index * 1.8) * 0.4 + 0.6;
-    const peakHeight = Math.min(minHeight + amp * 70 * variance + (1 - distFromCenter) * 20, maxHeight);
-    const midHeight = Math.min(minHeight + amp * 30 * variance + (1 - distFromCenter) * 10, maxHeight * 0.6);
+    const peakHeight = Math.min(minHeight + amp * 34 * variance + (1 - distFromCenter) * 10, maxHeight);
+    const midHeight = Math.min(minHeight + amp * 18 * variance + (1 - distFromCenter) * 6, maxHeight * 0.6);
     
     return (
       <motion.div
@@ -144,7 +144,7 @@ function WaveformBar({ index, total, amplitude, status, isMuted }: {
   
   // Listening state
   const wave = Math.sin((index / total) * Math.PI * 2) * 0.5 + 0.5;
-  const barHeight = Math.min(minHeight + (amplitude * 60 * wave) + (1 - distFromCenter) * 10, maxHeight);
+  const barHeight = Math.min(minHeight + (amplitude * 30 * wave) + (1 - distFromCenter) * 6, maxHeight);
   
   return (
     <motion.div
@@ -184,6 +184,7 @@ export function VoiceModeOverlay() {
     isGeneratingImage,
     setGeneratedImage,
     isSearching,
+    isSearchingPastChats,
     searchSummary,
     setSearchSummary,
     isFetchingWeather,
@@ -377,6 +378,7 @@ export function VoiceModeOverlay() {
 
   const getStatusText = () => {
     if (isSwitching) return 'Switching voice...';
+    if (isSearchingPastChats) return 'Checking past chats...';
     if (isSearching) return 'Searching the web...';
     if (isGeneratingImage) return 'Generating image...';
     if (isSchedulingTask) return 'Setting reminder...';
@@ -390,7 +392,7 @@ export function VoiceModeOverlay() {
     }
   };
   
-  const isLoading = isGeneratingImage || isSearching || isFetchingWeather || isSchedulingTask;
+  const isLoading = isGeneratingImage || isSearching || isSearchingPastChats || isFetchingWeather || isSchedulingTask;
 
   const pendingVoiceInfo = pendingVoiceSwitch 
     ? REALTIME_VOICES.find(v => v.id === pendingVoiceSwitch) 

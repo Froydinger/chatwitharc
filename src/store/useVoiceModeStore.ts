@@ -40,6 +40,7 @@ interface VoiceModeState {
   
   // Web search state
   isSearching: boolean;
+  isSearchingPastChats: boolean;
   searchSummary: { query: string; summary: string; sources: { url: string; title: string }[] } | null;
   
   // Weather state
@@ -94,6 +95,7 @@ interface VoiceModeState {
   setLastGeneratedImageUrl: (url: string | null) => void;
   attachImageToLastAssistantTurn: () => void;
   setIsSearching: (searching: boolean) => void;
+  setIsSearchingPastChats: (searching: boolean) => void;
   setSearchSummary: (summary: VoiceModeState['searchSummary']) => void;
   setIsFetchingWeather: (fetching: boolean) => void;
   setWeatherData: (data: VoiceModeState['weatherData']) => void;
@@ -128,6 +130,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   isGeneratingImage: false,
   lastGeneratedImageUrl: null,
   isSearching: false,
+  isSearchingPastChats: false,
   searchSummary: null,
   isFetchingWeather: false,
   weatherData: null,
@@ -156,6 +159,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       isGeneratingImage: false,
       lastGeneratedImageUrl: null,
       isSearching: false,
+      isSearchingPastChats: false,
       searchSummary: null,
       isFetchingWeather: false,
       weatherData: null,
@@ -183,6 +187,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
       isGeneratingImage: false,
       lastGeneratedImageUrl: null,
       isSearching: false,
+      isSearchingPastChats: false,
       searchSummary: null,
       isFetchingWeather: false,
       weatherData: null,
@@ -286,6 +291,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
     generatedImage: searching ? null : state.generatedImage,
     weatherData: searching ? null : state.weatherData,
   })),
+
+  setIsSearchingPastChats: (searching) => set({ isSearchingPastChats: searching }),
   
   setSearchSummary: (summary) => set({
     searchSummary: summary,
@@ -309,6 +316,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
     generatedImage: null,
     isGeneratingImage: false,
     isSearching: false,
+    isSearchingPastChats: false,
     searchSummary: null,
     isFetchingWeather: false,
     weatherData: null,

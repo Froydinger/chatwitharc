@@ -35,6 +35,7 @@ let hasRealTranscription = false;
 
 // Track when we explicitly request a response via sendFunctionResult
 let awaitingToolResponse = false;
+let suppressInterruptedResponseAudio = false;
 
 // Auto-reconnect state
 let reconnectAttempts = 0;
@@ -614,14 +615,22 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'input_audio_buffer.speech_started':
         console.log('VAD: User speech detected');
         userSpokeAfterLastResponse = true;
+        const voiceStateAtSpeechStart = useVoiceModeStore.getState();
+        const isBargeIn = responseInProgress || voiceStateAtSpeechStart.status === 'speaking' || voiceStateAtSpeechStart.isAudioPlaying;
+        suppressInterruptedResponseAudio = isBargeIn;
         useVoiceModeStore.getState().setHasPendingSpeech(true);
         // Natural interruption: if AI is currently speaking, stop playback
         // immediately so the user isn't talked over. Server VAD has
         // interrupt_response:true so it will also cancel the response.
-        try {
-          optionsRef.current.onInterrupt?.();
-        } catch (err) {
-          console.warn('onInterrupt handler threw:', err);
+        if (isBargeIn && globalWs?.readyState === WebSocket.OPEN) {
+          sendRealtimeEvent({ type: 'response.cancel' });
+        }
+        if (isBargeIn) {
+          try {
+            optionsRef.current.onInterrupt?.();
+          } catch (err) {
+            console.warn('onInterrupt handler threw:', err);
+          }
         }
         break;
 
@@ -657,6 +666,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'response.audio_transcript.delta':
       case 'response.output_audio_transcript.delta':
+        if (suppressInterruptedResponseAudio) return;
         setStatus('speaking');
         const partialTranscript = event.delta || '';
         // Accumulate AI transcript separately — reset on each new response
@@ -667,6 +677,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'response.audio_transcript.done':
       case 'response.output_audio_transcript.done':
+        if (suppressInterruptedResponseAudio) return;
         const aiTranscript = event.transcript || '';
         if (!aiTranscript.trim()) return;
         console.log('AI said:', aiTranscript);
@@ -688,6 +699,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'response.audio.delta':
       case 'response.output_audio.delta':
+        if (suppressInterruptedResponseAudio) return;
         if (event.delta) {
           const binaryString = atob(event.delta);
           const bytes = new Uint8Array(binaryString.length);
@@ -1156,6 +1168,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'response.done':
         responseInProgress = false;
+        suppressInterruptedResponseAudio = false;
         flushPendingFunctionResults();
         setCurrentTranscript('');
         
@@ -1529,7 +1542,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               {
                 type: 'function',
                 name: 'web_search',
-                description: 'Search the web for real-time information. Use when user asks about current events, news, recent movies, sports scores, latest updates, breaking news, or anything that requires up-to-date information from the internet. For WEATHER questions, use get_weather instead. IMPORTANT: Listen carefully to exact names - "Win the Night" is different from "Wind of Change". Repeat back the exact search term you heard before searching.',
+                description: 'Search the web for real-time public internet information. Use when the user asks about current events, news, recent movies, sports scores, latest updates, breaking news, videos, places, products, or anything that truly requires up-to-date information from the internet. DO NOT use this for personal questions, the user\'s vibe/preferences, memories, or "based on our past chats" — use search_past_chats or memory tools for those. For WEATHER questions, use get_weather instead. IMPORTANT: Listen carefully to exact names - "Win the Night" is different from "Wind of Change". Repeat back the exact search term you heard before searching.',
                 parameters: {
                   type: 'object',
                   properties: {

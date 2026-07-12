@@ -209,7 +209,7 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
 CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
 
 • IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. Image results and generating states appear directly in the chat thread. For changes like "edit that", "make it darker", "change the last one", or follow-ups after an image, use revise_image; it edits the latest generated/chat image. Do not mention internal retries unless the tool fully fails.
-• WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search. Results and sources appear directly in the chat thread, so summarize naturally.
+• WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search ONLY for current/public internet facts, news, videos, places, products, or live information. Do NOT use web_search for personal questions, the user's vibe/preferences, or "based on our chats" — use search_past_chats or memory tools for those. Results and sources appear directly in the chat thread, so summarize naturally.
   IMPORTANT: Listen carefully to exact names and titles. If unsure, confirm before searching.
 • WEATHER: For ANY weather question (current weather, temperature, forecast, conditions for a city), use get_weather — NOT web_search. Say "Let me check" first, then call get_weather. Weather appears directly in the chat thread; give a short, casual spoken summary.
 • REMINDERS / SCHEDULED TASKS: You CAN create reminders. For "remind me...", "set a reminder", "schedule this", "in five minutes", "tomorrow", or recurring reminders, say "I'll set that" FIRST, then use create_scheduled_task. The reminder confirmation card appears directly in the chat thread.
@@ -297,6 +297,8 @@ export function VoiceModeController() {
     setIsSearching,
     isSearching,
     setSearchSummary,
+    isSearchingPastChats,
+    setIsSearchingPastChats,
     setIsFetchingWeather,
     isFetchingWeather,
     setWeatherData,
@@ -333,9 +335,12 @@ export function VoiceModeController() {
   const { queueAudio, stopPlayback, clearQueue } = useAudioPlayback();
   const toolPulseAudioRef = useRef<AudioContext | null>(null);
   const toolPulseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const latestWebSearchRunRef = useRef<symbol | null>(null);
+  const latestPastChatSearchRunRef = useRef<symbol | null>(null);
+  const latestImageRunRef = useRef<symbol | null>(null);
 
   useEffect(() => {
-    const shouldPulse = isActive && (isGeneratingImage || isSearching || isFetchingWeather || isSchedulingTask);
+    const shouldPulse = isActive && (isGeneratingImage || isSearching || isSearchingPastChats || isFetchingWeather || isSchedulingTask);
 
     const stopPulse = () => {
       if (toolPulseTimerRef.current) {
@@ -389,7 +394,19 @@ export function VoiceModeController() {
     }
 
     return stopPulse;
-  }, [isActive, isGeneratingImage, isSearching, isFetchingWeather, isSchedulingTask]);
+  }, [isActive, isGeneratingImage, isSearching, isSearchingPastChats, isFetchingWeather, isSchedulingTask]);
+
+  const withTimeout = useCallback(<T,>(promise: Promise<T>, ms: number, message: string): Promise<T> => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), ms);
+      }),
+    ]).finally(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+    });
+  }, []);
 
   const getLastChatImageUrl = useCallback(() => {
     const currentMessages = useArcStore.getState().messages;
@@ -405,6 +422,8 @@ export function VoiceModeController() {
   // Image generation handler
   const handleImageGenerate = useCallback(async (prompt: string, aspectRatio?: string): Promise<string> => {
     console.log('VoiceModeController: Generating image with prompt:', prompt, 'aspect ratio:', aspectRatio);
+    const runId = Symbol('voice-image-generate');
+    latestImageRunRef.current = runId;
     setIsGeneratingImage(true);
     const placeholderId = await addMessage({
       content: `Generating image: ${prompt}`,
@@ -418,9 +437,12 @@ export function VoiceModeController() {
     try {
       const urls = await aiService.generateImage(prompt, 'gpt-image-2', aspectRatio);
       const imageUrl = urls[0];
+      if (latestImageRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
+        return imageUrl;
+      }
       console.log('VoiceModeController: Image generated:', imageUrl);
       setGeneratedImage(imageUrl);
-      setLastGeneratedImageUrl(imageUrl);
+      setLastGeneratedImageUrl(null);
       await replaceMessage(placeholderId, {
         content: prompt || 'Generated image',
         role: 'assistant',
@@ -433,6 +455,7 @@ export function VoiceModeController() {
       return imageUrl;
     } catch (error) {
       console.error('VoiceModeController: Image generation failed:', error);
+      if (latestImageRunRef.current !== runId) return '';
       await replaceMessage(placeholderId, {
         content: "I couldn't finish that image generation. Try a simpler prompt and I'll take another swing.",
         role: 'assistant',
@@ -453,6 +476,8 @@ export function VoiceModeController() {
     }
 
     console.log('VoiceModeController: Revising image with prompt:', prompt, 'aspect ratio:', aspectRatio);
+    const runId = Symbol('voice-image-revise');
+    latestImageRunRef.current = runId;
     setIsGeneratingImage(true);
     const placeholderId = await addMessage({
       content: `Editing image: ${prompt}`,
@@ -466,9 +491,12 @@ export function VoiceModeController() {
     try {
       const urls = await aiService.editImage(prompt, baseImageUrl, 'gpt-image-2', aspectRatio);
       const imageUrl = urls[0];
+      if (latestImageRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
+        return imageUrl;
+      }
       console.log('VoiceModeController: Image revised:', imageUrl);
       setGeneratedImage(imageUrl);
-      setLastGeneratedImageUrl(imageUrl);
+      setLastGeneratedImageUrl(null);
       await replaceMessage(placeholderId, {
         content: prompt || 'Revised image',
         role: 'assistant',
@@ -481,6 +509,7 @@ export function VoiceModeController() {
       return imageUrl;
     } catch (error) {
       console.error('VoiceModeController: Image revision failed:', error);
+      if (latestImageRunRef.current !== runId) return '';
       await replaceMessage(placeholderId, {
         content: "I couldn't finish that image edit. Try a simpler edit and I'll run it again.",
         role: 'assistant',
@@ -502,6 +531,8 @@ export function VoiceModeController() {
   // Web search handler with abort support
   const handleWebSearch = useCallback(async (query: string): Promise<string> => {
     console.log('VoiceModeController: Web search for:', query);
+    const runId = Symbol('voice-web-search');
+    latestWebSearchRunRef.current = runId;
     
     if (!useVoiceModeStore.getState().isActive) {
       console.log('Voice mode inactive, aborting search');
@@ -513,10 +544,6 @@ export function VoiceModeController() {
     abortControllerRef.current = new AbortController();
     
     try {
-      const timeoutId = setTimeout(() => {
-        abortControllerRef.current?.abort();
-      }, 30000);
-      
       let searchQuery = query;
       let locationUsed: UserLocation | null = null;
       if (detectsLocationIntent(query)) {
@@ -532,19 +559,21 @@ export function VoiceModeController() {
         }
       }
 
-      const { data, error } = await supabase.functions.invoke('chat', {
-        body: {
-          messages: [{ role: 'user', content: searchQuery }],
-          forceWebSearch: true
-        }
-      });
+      const { data, error } = await withTimeout(
+        supabase.functions.invoke('chat', {
+          body: {
+            messages: [{ role: 'user', content: searchQuery }],
+            forceWebSearch: true
+          }
+        }),
+        22000,
+        'Web search took too long.'
+      );
       
-      clearTimeout(timeoutId);
-      
-      if (!useVoiceModeStore.getState().isActive) {
+      if (latestWebSearchRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
         console.log('Voice mode deactivated during search, discarding results');
         setIsSearching(false);
-        return 'Search completed but voice mode ended.';
+        return 'Search cancelled.';
       }
       
       setIsSearching(false);
@@ -598,14 +627,16 @@ export function VoiceModeController() {
       return response;
     } catch (error: any) {
       console.error('VoiceModeController: Web search failed:', error);
-      setIsSearching(false);
+      if (latestWebSearchRunRef.current === runId) {
+        setIsSearching(false);
+      }
       
       if (error.name === 'AbortError') {
         return 'The search took too long and was cancelled. Would you like me to try a simpler search?';
       }
       return `I ran into a problem searching for that: ${error.message || 'Unknown error'}. Want me to try again?`;
     }
-  }, [addMessage, setIsSearching, setSearchSummary]);
+  }, [addMessage, setIsSearching, setSearchSummary, withTimeout]);
 
   // Weather handler
   const handleGetWeather = useCallback(async (location: string): Promise<string> => {
@@ -775,25 +806,37 @@ export function VoiceModeController() {
   // Past chats search handler
   const handleSearchPastChats = useCallback(async (query: string): Promise<string> => {
     console.log('VoiceModeController: Searching past chats for:', query);
+    const runId = Symbol('voice-past-chat-search');
+    latestPastChatSearchRunRef.current = runId;
 
     if (!useVoiceModeStore.getState().isActive) {
       console.log('Voice mode inactive, aborting past chat search');
       return 'Search cancelled.';
     }
 
-    setIsSearching(true);
+    setIsSearchingPastChats(true);
 
     try {
-      const results = await searchAllPastChats(query);
+      const results = await withTimeout(
+        searchAllPastChats(query),
+        22000,
+        'Past chat search took too long.'
+      );
+      if (latestPastChatSearchRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
+        setIsSearchingPastChats(false);
+        return 'Past chat search cancelled.';
+      }
       console.log('VoiceModeController: Past chat search complete');
-      setIsSearching(false);
+      setIsSearchingPastChats(false);
       return results;
     } catch (error: any) {
       console.error('VoiceModeController: Past chat search failed:', error);
-      setIsSearching(false);
+      if (latestPastChatSearchRunRef.current === runId) {
+        setIsSearchingPastChats(false);
+      }
       return `I had trouble searching through past conversations: ${error.message || 'Unknown error'}`;
     }
-  }, [setIsSearching]);
+  }, [setIsSearchingPastChats, withTimeout]);
 
   // Incremental save: persist new turns since last save
   const saveNewTurns = useCallback(async (final: boolean = false) => {
@@ -903,7 +946,7 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
 CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
 
 • IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image for new images. Image results and generating states appear directly in the chat thread. If the user asks to update/revise/change/edit "that" or follows up after an image, use revise_image against the latest generated/chat image. Do not mention internal retries unless the tool fully fails.
-• WEB SEARCH: Say "Let me look that up" FIRST, then use web_search. Results and sources are added to the chat thread.
+• WEB SEARCH: Say "Let me look that up" FIRST, then use web_search ONLY for current/public internet facts, news, videos, places, products, or live information. Do NOT use web_search for personal questions, the user's vibe/preferences, or "based on our chats" — use search_past_chats or memory tools for those. Results and sources are added to the chat thread.
 • WEATHER: Use get_weather (not web_search) for any weather question. Weather is added to the chat thread.
 • REMINDERS / SCHEDULED TASKS: You CAN create reminders. For "remind me...", "set a reminder", "schedule this", "in five minutes", "tomorrow", or recurring reminders, say "I'll set that" FIRST, then use create_scheduled_task. The reminder confirmation card is added to the chat thread.
 • SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.
@@ -996,6 +1039,7 @@ When the user shares their camera or attaches an image, describe what you see na
     store.setIsAudioPlaying(false);
     store.setIsGeneratingImage(false);
     store.setIsSearching(false);
+    store.setIsSearchingPastChats(false);
     store.setIsSchedulingTask(false);
   }, [cancelResponse, clearQueue, stopPlayback]);
 
