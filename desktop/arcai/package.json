@@ -1,6 +1,6 @@
 {
   "name": "arcai-desktop",
-  "version": "5.1.1",
+  "version": "5.1.2",
   "description": "ArcAI desktop assistant",
   "author": "Jake Freudinger",
   "main": "main.js",
@@ -8,7 +8,7 @@
   "scripts": {
     "start": "electron .",
     "pack:mac": "electron-builder --mac dmg --arm64",
-    "pack:win": "electron-builder --win nsis portable --x64",
+    "pack:win": "electron-builder --win nsis portable --x64 --config.extraMetadata.version=1.1.0",
     "pack:all": "electron-builder --mac dmg --arm64 --win nsis portable --x64"
   },
   "build": {
@@ -34,6 +34,12 @@
       "target": [
         {
           "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
           "arch": [
             "arm64"
           ]
@@ -91,7 +97,7 @@
       ]
     },
     "win": {
-      "icon": "build/icon.png",
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -109,7 +115,7 @@
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
-      "artifactName": "ArcAI Setup ${version}.${ext}",
+      "artifactName": "ArcAI-Setup-${version}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
@@ -117,11 +123,21 @@
       "shortcutName": "ArcAI"
     },
     "portable": {
-      "artifactName": "ArcAI Portable ${version}.${ext}"
-    }
+      "artifactName": "ArcAI-Portable-${version}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Froydinger",
+        "repo": "chatwitharc"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
   },
   "devDependencies": {
-    "electron": "35.7.5",
-    "electron-builder": "^26.0.12"
+    "electron": "43.1.0",
+    "electron-builder": "^26.15.3"
   }
 }

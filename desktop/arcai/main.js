@@ -1,10 +1,12 @@
+const path = require("node:path");
 const { app, BrowserWindow, globalShortcut, screen, dialog, shell, Menu, session, systemPreferences } = require("electron");
+const { autoUpdater } = require("electron-updater");
 
 const ARC_URL = "https://askarc.chat";
 const APP_NAME = "ArcAI";
-const RELEASES_API_URL = "https://api.github.com/repos/Froydinger/chatwitharc/releases/latest";
 const DOWNLOADS_URL = `${ARC_URL}/downloads`;
 const SHORTCUT = "Control+Alt+Space";
+const WINDOW_ICON = path.join(__dirname, "assets", "icon.png");
 
 app.setName(APP_NAME);
 
@@ -12,6 +14,7 @@ let floating = null;
 let full = null;
 let lastBounds = null;
 let showedWelcome = false;
+let checkingForUpdate = false;
 
 const TRUSTED_ORIGINS = new Set([
   new URL(ARC_URL).origin,
@@ -27,83 +30,74 @@ function isTrustedUrl(value = "") {
   }
 }
 
-function compareVersions(a, b) {
-  const left = String(a).replace(/^v/i, "").split(".").map((part) => Number.parseInt(part, 10) || 0);
-  const right = String(b).replace(/^v/i, "").split(".").map((part) => Number.parseInt(part, 10) || 0);
-  const length = Math.max(left.length, right.length);
-
-  for (let index = 0; index < length; index += 1) {
-    const delta = (left[index] || 0) - (right[index] || 0);
-    if (delta !== 0) return delta;
-  }
-
-  return 0;
-}
-
-function getPlatformAsset(assets = []) {
-  const patterns = process.platform === "darwin"
-    ? [/arm64\.dmg$/i, /\.dmg$/i]
-    : [/setup.*\.exe$/i, /\.exe$/i];
-
-  for (const pattern of patterns) {
-    const match = assets.find((asset) => pattern.test(asset.name || ""));
-    if (match?.browser_download_url) return match;
-  }
-
-  return null;
-}
-
 async function checkForUpdates({ quiet = false } = {}) {
+  if (checkingForUpdate) return;
+  checkingForUpdate = true;
+
   try {
-    const response = await fetch(RELEASES_API_URL, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        "User-Agent": "ArcAI-Desktop"
-      }
-    });
-
-    if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
-
-    const latest = await response.json();
-    const latestVersion = String(latest.tag_name || "").replace(/^v/i, "");
-    const currentVersion = app.getVersion();
-
-    if (!latestVersion || compareVersions(latestVersion, currentVersion) <= 0) {
+    if (!app.isPackaged) {
       if (!quiet) {
         await dialog.showMessageBox({
           type: "info",
-          title: "ArcAI is up to date",
-          message: "ArcAI is up to date",
-          detail: `You're running ArcAI ${currentVersion}.`,
+          title: "Updates are checked in the installed app",
+          message: "Updates are checked in the installed app",
+          detail: "Run the signed ArcAI app from Applications to test the update installer flow.",
           buttons: ["OK"]
         });
       }
       return;
     }
 
-    const asset = getPlatformAsset(latest.assets);
-    const result = await dialog.showMessageBox({
+    const updateCheck = await autoUpdater.checkForUpdates();
+    const updateInfo = updateCheck?.updateInfo;
+
+    if (!updateInfo?.version) {
+      throw new Error("No update metadata returned");
+    }
+
+    if (updateInfo.version === app.getVersion()) {
+      if (!quiet) {
+        await dialog.showMessageBox({
+          type: "info",
+          title: "ArcAI is up to date",
+          message: "ArcAI is up to date",
+          detail: `You're running ArcAI ${app.getVersion()}.`,
+          buttons: ["OK"]
+        });
+      }
+      return;
+    }
+
+    const choice = await dialog.showMessageBox({
       type: "info",
       title: "ArcAI update available",
-      message: `ArcAI ${latestVersion} is available`,
-      detail: `You're running ${currentVersion}. Download the latest installer now?`,
-      buttons: ["Download Update", "View Downloads", "Later"],
+      message: `ArcAI ${updateInfo.version} is available`,
+      detail: `You're running ${app.getVersion()}. ArcAI will download the update, install it, and restart into the new version.`,
+      buttons: ["Install and Restart", "Later"],
       defaultId: 0,
-      cancelId: 2
+      cancelId: 1
     });
 
-    if (result.response === 0) {
-      shell.openExternal(asset?.browser_download_url || DOWNLOADS_URL);
-    } else if (result.response === 1) {
-      shell.openExternal(DOWNLOADS_URL);
+    if (choice.response === 0) {
+      await autoUpdater.downloadUpdate();
+      const ready = await dialog.showMessageBox({
+        type: "info",
+        title: "ArcAI update ready",
+        message: "ArcAI update ready",
+        detail: "ArcAI will restart now to finish installing the update.",
+        buttons: ["Restart Now"],
+        defaultId: 0
+      });
+      if (ready.response === 0) autoUpdater.quitAndInstall(false, true);
     }
   } catch (error) {
+    console.error("Update check failed:", error);
     if (!quiet) {
       await dialog.showMessageBox({
         type: "warning",
         title: "Couldn't check for updates",
         message: "Couldn't check for updates",
-        detail: "ArcAI couldn't reach the release feed. You can still check the downloads page.",
+        detail: "ArcAI couldn't reach the updater feed. You can still install the newest build from the downloads page.",
         buttons: ["Open Downloads", "OK"],
         defaultId: 0,
         cancelId: 1
@@ -111,7 +105,16 @@ async function checkForUpdates({ quiet = false } = {}) {
         if (result.response === 0) shell.openExternal(DOWNLOADS_URL);
       });
     }
+  } finally {
+    checkingForUpdate = false;
   }
+}
+
+function configureAutoUpdater() {
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowDowngrade = false;
+  autoUpdater.allowPrerelease = false;
 }
 
 function installMenu() {
@@ -298,6 +301,7 @@ function createFloating() {
     resizable: true,
     movable: true,
     alwaysOnTop: true,
+    icon: WINDOW_ICON,
     backgroundColor: "#0f1116",
     webPreferences: {
       contextIsolation: true,
@@ -347,6 +351,7 @@ function createFull() {
     frame: process.platform === "darwin" ? false : true,
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : undefined,
     trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 10 } : undefined,
+    icon: WINDOW_ICON,
     resizable: true,
     movable: true,
     backgroundColor: "#0f1116",
@@ -387,6 +392,7 @@ function showWelcomeOnce() {
 
 app.whenReady().then(() => {
   installMenu();
+  configureAutoUpdater();
   configurePermissions();
   globalShortcut.register(SHORTCUT, toggleFloating);
   showFull();
