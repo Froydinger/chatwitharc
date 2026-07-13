@@ -2149,7 +2149,7 @@ ${safeCode}
                 await updateSessionCanvasContent(requestSessionId, streamedContent || result.content);
                 const session = chatSessions.find((s) => s.id === requestSessionId);
                 if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
-                  generateChatTitle(requestSessionId, useArcStore.getState().messages);
+                  await generateChatTitle(requestSessionId, useArcStore.getState().messages);
                 }
               }
             },
@@ -2361,7 +2361,7 @@ ${safeCode}
                 if (sId) {
                   const session = cSessions.find((s) => s.id === sId);
                   if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
-                    generateChatTitle(sId, useArcStore.getState().messages);
+                    await generateChatTitle(sId, useArcStore.getState().messages);
                   }
                 }
 
@@ -2453,7 +2453,7 @@ ${safeCode}
               if (sId) {
                 const session = cSessions.find((s) => s.id === sId);
                 if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
-                  generateChatTitle(sId, useArcStore.getState().messages);
+                  await generateChatTitle(sId, useArcStore.getState().messages);
                 }
               }
 

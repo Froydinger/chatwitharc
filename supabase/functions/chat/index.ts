@@ -908,7 +908,10 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5.6-luna',
+            // Respect the caller's validated model override. Chat titles use
+            // Astro explicitly; other enhancement callers can still choose a
+            // supported model. Astro is the safe default.
+            model: validatedModel || 'gpt-5.4-nano',
             messages: conversationMessages,
             temperature: 0.3,
             max_completion_tokens: 1200,
@@ -1221,10 +1224,21 @@ serve(async (req) => {
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
-    // Honor the client's model choice exactly. Astro mode grades complexity
-    // client-side (Nano/Luna/Terra for most, GPT-5.6 Sol for heavy asks),
-    // and an explicitly picked model must never be silently up/downgraded.
+    // Honor the client's conversational model choice. Auto grades complexity
+    // client-side; memory/recall is the intentional exception and always uses
+    // the dedicated Astro path below.
     let selectedModel = validatedModel || 'gpt-5.4-nano';
+    const astroModel = 'gpt-5.4-nano';
+    const explicitMemoryIntent = /\b(remember (?:this|that|what|when|how|my)|save (?:this|that) (?:to|in) (?:memory|memories)|do you remember|can you remember|recall|past (?:chat|chats|conversation|conversations)|we (?:talked|spoke|discussed)|i (?:told|mentioned) you)\b/i.test(lastUserMessage);
+
+    // Memory is a dedicated Astro subsystem. This also applies when the user
+    // explicitly picked another conversational model: the surrounding chat
+    // can use that model, but save/recall work is delegated to Astro.
+    if (toolChoice === "auto" && explicitMemoryIntent) {
+      selectedModel = astroModel;
+      console.log('🧠 Explicit memory/recall intent: routing through Astro');
+    }
+    let finalResponseModel = selectedModel;
     const fallbackModel = 'gpt-5.6-terra'; // Fallback for canvas/code if the primary model times out
 
     if (wantsCode && !validatedModel) {
@@ -1659,6 +1673,62 @@ serve(async (req) => {
 
     let data = await response.json();
     let assistantMessage = data.choices[0].message;
+
+    // If a non-Astro conversational model decided a memory tool is needed,
+    // have Astro regenerate that tool call before execution. This keeps the
+    // selected model for ordinary conversation while ensuring the actual
+    // recall query / saved-memory wording always comes from Astro.
+    const memoryToolNames = new Set(['search_past_chats', 'save_memory']);
+    const requestedMemoryCalls = (assistantMessage.tool_calls || []).filter(
+      (tc: any) => memoryToolNames.has(tc.function?.name),
+    );
+    if (requestedMemoryCalls.length > 0 && selectedModel !== astroModel) {
+      const replacements = new Map<string, any>();
+      for (const originalCall of requestedMemoryCalls) {
+        const toolName = originalCall.function.name;
+        const memoryTool = tools.find((tool: any) => tool.function.name === toolName);
+        if (!memoryTool) continue;
+
+        try {
+          const astroToolResponse = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openaiApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: astroModel,
+              messages: conversationMessages,
+              tools: [memoryTool],
+              tool_choice: { type: 'function', function: { name: toolName } },
+              temperature: 0.2,
+              max_completion_tokens: 1200,
+            }),
+          });
+
+          if (astroToolResponse.ok) {
+            const astroToolData = await astroToolResponse.json();
+            const astroCall = astroToolData.choices?.[0]?.message?.tool_calls?.find(
+              (tc: any) => tc.function?.name === toolName,
+            );
+            if (astroCall) replacements.set(originalCall.id, astroCall);
+          } else {
+            console.warn(`Astro ${toolName} delegation failed with ${astroToolResponse.status}; using original tool call`);
+          }
+        } catch (error) {
+          console.warn(`Astro ${toolName} delegation failed; using original tool call`, error);
+        }
+      }
+
+      if (replacements.size > 0) {
+        assistantMessage = {
+          ...assistantMessage,
+          tool_calls: assistantMessage.tool_calls.map((tc: any) => replacements.get(tc.id) || tc),
+        };
+        finalResponseModel = astroModel;
+        console.log(`🧠 Delegated ${replacements.size} memory tool call(s) to Astro`);
+      }
+    }
 
     // Log if response was truncated due to token limit
     const finishReason = data.choices[0]?.finish_reason;
@@ -2123,7 +2193,9 @@ serve(async (req) => {
         const toolContextSize = synthesisMessages.reduce((acc: number, m: any) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0);
         console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
-        const secondCallModel = validatedModel || 'gpt-5.4-nano';
+        const usedMemoryTool = toolsUsed.some(name => memoryToolNames.has(name));
+        const secondCallModel = usedMemoryTool ? astroModel : (validatedModel || astroModel);
+        if (usedMemoryTool) finalResponseModel = astroModel;
         const secondTokenParam = { max_completion_tokens: 65536 };
         const isSecondCallReasoning = secondCallModel.includes('gpt-5.6') || secondCallModel.startsWith('o1') || secondCallModel.startsWith('o3');
         response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
@@ -2196,7 +2268,7 @@ serve(async (req) => {
       weather_data: weatherData,
       scheduled_task: scheduledTask,
       notification_dispatch: notificationDispatch,
-      model_used: selectedModel,
+      model_used: finalResponseModel,
     };
     
     // NOTE: We no longer save from the backend - the frontend handles all persistence.

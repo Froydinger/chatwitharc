@@ -367,7 +367,7 @@ export const useArcStore = create<ArcState>()(
           };
 
           const ai = new AIService();
-          // Use gpt-5.6-luna specifically for fast and cheap naming
+          // Astro is the dedicated fast path for chat naming.
           const res = await ai.sendMessage(
             [titlePrompt, ...chatMessages.slice(0, 4)],
             undefined,
@@ -378,7 +378,7 @@ export const useArcStore = create<ArcState>()(
             false,
             false,
             false,
-            'gpt-5.6-luna'
+            'gpt-5.4-nano'
           );
 
           const generatedTitle = res.content.trim().replace(/^["']|["']$/g, '').slice(0, 50);
@@ -1243,9 +1243,10 @@ export const useArcStore = create<ArcState>()(
             } catch { /* ignore */ }
             sessionToSave = {
               id: currentSessionId,
-              title: message.role === 'user' ? 
-                (message.content.length > 30 ? message.content.substring(0, 30) + '...' : message.content) : 
-                "New Chat",
+              // Keep the sentinel title until Astro replaces it. Using a
+              // clipped user message here made the title-generation trigger
+              // think the chat had already been named.
+              title: "New Chat",
               createdAt: new Date(),
               lastMessageAt: new Date(),
               messages: updatedMessages,
@@ -1260,9 +1261,7 @@ export const useArcStore = create<ArcState>()(
             const existingSession = state.chatSessions.find(s => s.id === currentSessionId);
             sessionToSave = {
               id: currentSessionId,
-              title: existingSession?.title === "New Chat" && message.role === 'user' ? 
-                (message.content.length > 30 ? message.content.substring(0, 30) + '...' : message.content) : 
-                (existingSession?.title || "New Chat"),
+              title: existingSession?.title || "New Chat",
               createdAt: existingSession?.createdAt || new Date(),
               lastMessageAt: new Date(),
               messages: updatedMessages,

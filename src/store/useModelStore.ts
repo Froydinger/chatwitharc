@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 export type ModelFamily = 'openai';
 export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-analysis' | 'image-edit' | 'file-gen';
 
-/** User-pickable chat models. Auto is the smart router; concrete picks run exactly as selected. */
+/** User-pickable chat models. Auto is the smart router; concrete picks control the conversational response model. */
 export const AUTO_MODEL = 'auto';
 export const NANO_MODEL = 'gpt-5.4-nano';
 export const LUNA_MODEL = 'gpt-5.6-luna';
@@ -62,8 +62,8 @@ import { useImageGenStore, getResolvedImageModel } from './useImageGenStore';
  * Get the correct model string for a given task.
  * - Auto mode routes by task + graded complexity (0 simple → 3 very complex):
  *   simple chats use Astro (GPT-5.4 Nano), moderate chats use Luna, complex work uses Terra, and only heavyweight asks reach Sol.
- * - An explicitly picked model is NEVER silently upgraded or downgraded —
- *   every chat-pipeline task runs exactly what the user selected.
+ * - An explicitly picked model controls normal conversational work. Dedicated
+ *   subsystems such as memory/recall and chat naming may use Astro.
  * - Image gen/edit are bound to the user's selected image model.
  */
 export function getModelForTask(task: ModelTask, complexity: 0 | 1 | 2 | 3 = 0): string {
