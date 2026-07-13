@@ -174,6 +174,13 @@ export function MediaLibraryPanel() {
         return;
       }
 
+      // Delete new generated/edited objects from R2. Legacy Supabase-hosted
+      // images still fall through to the storage cleanup below.
+      const { error: r2DeleteError } = await supabase.functions.invoke('delete-r2-image', {
+        body: { url: image.url },
+      });
+      if (r2DeleteError) throw r2DeleteError;
+
       // Extract filename from URL
       const urlParts = image.url.split('/');
       const fileName = urlParts[urlParts.length - 1];

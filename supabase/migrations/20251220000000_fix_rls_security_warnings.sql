@@ -10,6 +10,7 @@
 -- ==========================================
 -- Users should be able to delete their own profile data for GDPR/CCPA compliance
 
+DROP POLICY IF EXISTS "Users can delete their own profile" ON public.profiles;
 CREATE POLICY "Users can delete their own profile"
   ON public.profiles FOR DELETE
   USING (auth.uid() = user_id);

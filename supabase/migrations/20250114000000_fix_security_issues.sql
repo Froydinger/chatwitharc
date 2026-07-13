@@ -1,31 +1,30 @@
--- Fix security issues in admin_users and generated_files tables
+-- This historical security patch predates the migrations that create these
+-- tables. Guard it so the complete migration chain is replayable from zero.
+-- Later migrations recreate and further harden both policy sets.
+do $$
+begin
+  if to_regclass('public.admin_users') is not null then
+    execute 'drop policy if exists "Admin users can view admin records" on public.admin_users';
+    execute 'drop policy if exists "Admin users can view their own admin record" on public.admin_users';
+    execute $policy$
+      create policy "Admin users can view their own admin record"
+        on public.admin_users for select
+        using (
+          auth.uid() = user_id
+          and exists (
+            select 1 from public.admin_users where user_id = auth.uid()
+          )
+        )
+    $policy$;
+  end if;
 
--- Issue 1: Restrict admin_users table access to prevent email harvesting
--- Admins should only be able to view their own admin record, not all admin emails
-DROP POLICY IF EXISTS "Admin users can view admin records" ON public.admin_users;
-DROP POLICY IF EXISTS "Admin users can view their own admin record" ON public.admin_users;
-
--- New policy: Admins can only view their own admin record
-CREATE POLICY "Admin users can view their own admin record"
-  ON public.admin_users
-  FOR SELECT
-  USING (
-    auth.uid() = user_id AND
-    EXISTS (
-      SELECT 1 FROM public.admin_users
-      WHERE user_id = auth.uid()
-    )
-  );
-
--- Keep other admin_users policies as-is for insert/update/delete
--- (they already require is_admin_user() which is properly secured)
-
-
--- Issue 2: Add UPDATE policy for generated_files table
--- Users should be able to update their own file records (e.g., increment download counts)
-CREATE POLICY "Users can update their own files"
-  ON public.generated_files
-  FOR UPDATE
-  TO authenticated
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  if to_regclass('public.generated_files') is not null then
+    execute $policy$
+      create policy "Users can update their own files"
+        on public.generated_files for update to authenticated
+        using (auth.uid() = user_id)
+        with check (auth.uid() = user_id)
+    $policy$;
+  end if;
+end
+$$;

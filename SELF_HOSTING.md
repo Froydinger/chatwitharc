@@ -3,7 +3,8 @@
 ArcAI's active stack is now:
 
 - Netlify-compatible Vite/React frontend
-- Supabase Auth, Postgres, Storage, scheduled jobs, and Edge Functions
+- Supabase Auth, Postgres, scheduled jobs, and Edge Functions
+- Cloudflare R2 for generated and edited image files
 - OpenAI for chat, voice, files, and image generation/editing
 - Tavily for live web search
 
@@ -19,6 +20,19 @@ npm run dev
 The browser must only receive the Supabase URL and publishable key. OpenAI,
 Tavily, VAPID, cron, and future payment/email secrets belong in Supabase Edge
 Function secrets, never in a `VITE_*` variable.
+
+Generated and edited images require these Supabase Edge Function secrets:
+
+```text
+R2_WORKER_URL
+R2_WORKER_SECRET
+```
+
+The Worker in `cloudflare/r2-images-worker` is bound directly to the bucket, so
+it needs no S3 access keys. Store the same random secret as the Worker's
+`ARC_IMAGE_SECRET` and the Supabase `R2_WORKER_SECRET`; never expose it to the
+frontend. Public reads use the Worker URL. A custom domain can replace that URL
+later without changing the bucket.
 
 ## Netlify
 

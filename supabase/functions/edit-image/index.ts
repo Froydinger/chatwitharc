@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { Image, decode } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
+import { uploadImageToR2 } from "../_shared/r2.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 
@@ -136,9 +137,11 @@ async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob;
     }
   }
 
+  const blobBytes = new Uint8Array(bytes.byteLength);
+  blobBytes.set(bytes);
   const b64 = bytesToB64(bytes);
   return {
-    blob: new Blob([bytes], { type: sniffed.mime }),
+    blob: new Blob([blobBytes.buffer], { type: sniffed.mime }),
     filename: `input-${idx}.${sniffed.ext}`,
     b64,
     mime: sniffed.mime,
@@ -211,31 +214,6 @@ function extractOpenAIImageUrls(parsed: any): string[] {
   return out;
 }
 
-async function uploadDataUrlsToStorage(supabase: any, userId: string, urls: string[]): Promise<string[]> {
-  const out: string[] = [];
-  for (const url of urls) {
-    if (!url.startsWith('data:')) { out.push(url); continue; }
-    try {
-      const commaIdx = url.indexOf(',');
-      const meta = url.slice(5, commaIdx);
-      const mime = meta.split(';')[0] || 'image/png';
-      const b64 = url.slice(commaIdx + 1);
-      const bin = atob(b64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const ext = mime.split('/')[1] || 'png';
-      const name = `${userId}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from('avatars').upload(name, new Blob([bytes], { type: mime }), { contentType: mime, upsert: false });
-      if (error) { out.push(url); continue; }
-      const { data: pub } = supabase.storage.from('avatars').getPublicUrl(name);
-      out.push(pub?.publicUrl || url);
-    } catch {
-      out.push(url);
-    }
-  }
-  return out;
-}
-
 async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], size: string, count: number, selectedModel: string, isYouTube: boolean) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   let successfulCount = 0;
@@ -277,7 +255,13 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
       }));
     }
 
-    const finalUrls = await uploadDataUrlsToStorage(supabase, userId, urls);
+    const finalUrls = await Promise.all(
+      urls.map((url, index) => uploadImageToR2(url, {
+        userId,
+        kind: 'edited',
+        index,
+      })),
+    );
     await updateJob(supabase, jobId, {
       status: 'completed',
       result_image_url: finalUrls[0],
@@ -342,7 +326,9 @@ serve(async (req) => {
         user_id: user.id,
         job_type: 'edit',
         prompt,
-        base_image_urls: imageArray,
+        // Source images are only needed by this invocation. Persisting data URLs
+        // here stores megabytes of base64 in Postgres and can exhaust the DB disk.
+        base_image_urls: null,
         aspect_ratio: aspect,
         preferred_model: selectedModel,
         status: 'processing',

@@ -1,1 +1,2 @@
-SELECT cron.alter_job(2, schedule => '*/5 * * * *');
+-- Historical environment-specific change to cron job ID 2. Job IDs are not
+-- portable across projects; later migrations create named jobs idempotently.

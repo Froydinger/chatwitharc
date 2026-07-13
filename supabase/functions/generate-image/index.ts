@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Image, decode } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
+import { uploadImageToR2 } from "../_shared/r2.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -354,8 +355,16 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Image generated successfully (${imageUrls.length}) for job ${currentJobId}`);
-    await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: imageUrls[0], result_image_urls: imageUrls, preferred_model: finalModel, error_message: null, error_type: null });
+    const persistedImageUrls = await Promise.all(
+      imageUrls.map((url, index) => uploadImageToR2(url, {
+        userId: user.id,
+        kind: "generated",
+        index,
+      })),
+    );
+
+    console.log(`Image generated and stored in R2 (${persistedImageUrls.length}) for job ${currentJobId}`);
+    await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: persistedImageUrls[0], result_image_urls: persistedImageUrls, preferred_model: finalModel, error_message: null, error_type: null });
     await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: currentJobId, successful_count: imageUrls.length });
     const { data: finalQuota } = await supabaseAdmin
       .from("daily_image_usage")
@@ -367,8 +376,8 @@ serve(async (req) => {
       jobId: currentJobId,
       status: "completed",
       success: true,
-      imageUrl: imageUrls[0],
-      imageUrls,
+      imageUrl: persistedImageUrls[0],
+      imageUrls: persistedImageUrls,
       quota: quota?.isAdmin ? quota : { ...quota, used: finalQuota?.used_count ?? quota?.used, remaining: Math.max(0, 20 - (finalQuota?.used_count ?? quota?.used ?? 0)) },
     });
   } catch (error) {

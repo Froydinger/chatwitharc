@@ -1,1 +1,2 @@
-ALTER TABLE public.personas ADD COLUMN IF NOT EXISTS avatar_url text;
+-- Historical out-of-order patch. The later personas creation migration already
+-- includes avatar_url, so this is intentionally a no-op on clean rebuilds.

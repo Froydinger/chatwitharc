@@ -1,4 +1,4 @@
-project_id = "cgvixgyjzswebosfqyll"
+project_id = "jpqtoixhjnfdubvqshwk"
 
 [functions]
   [functions.auth-email-hook]
@@ -19,4 +19,5 @@ project_id = "cgvixgyjzswebosfqyll"
     verify_jwt = false
   [functions.upload-avatar]
     verify_jwt = true
-
+  [functions.delete-r2-image]
+    verify_jwt = true
