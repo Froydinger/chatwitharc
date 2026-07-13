@@ -4,7 +4,7 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { signInWithGoogle } from "@/integrations/auth";
+import { getAuthRedirectUrl, signInWithGoogle } from "@/integrations/auth";
 import { Mail, Lock, Eye, EyeOff, X, Sparkles, Mic, ImagePlus, Globe, Code2, PenLine, Music, Paperclip, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GatedFeature, AuthGateDetail } from "@/hooks/useRequireAuth";
@@ -158,6 +158,26 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
       if (error) throw error;
     } catch (error: unknown) {
       toast({ title: "Error", description: error instanceof Error ? error.message : "An error occurred with Google sign in", variant: "destructive" });
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      toast({ title: "Enter your email", description: "Type your email above, then request the reset link." });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: getAuthRedirectUrl("/auth/reset-password"),
+      });
+      if (error) throw error;
+      toast({ title: "Check your email", description: "We sent you a link to choose a new password." });
+    } catch (error: unknown) {
+      toast({ title: "Reset failed", description: error instanceof Error ? error.message : "Could not send the reset link", variant: "destructive" });
+    } finally {
       setLoading(false);
     }
   };
@@ -335,7 +355,19 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                         </div>
 
                         <div className="space-y-2">
-                          <label htmlFor="password" className={cn("text-sm font-medium", isLight ? "text-zinc-700" : "text-white/80")}>Password</label>
+                          <div className="flex items-center justify-between">
+                            <label htmlFor="password" className={cn("text-sm font-medium", isLight ? "text-zinc-700" : "text-white/80")}>Password</label>
+                            {isLogin && (
+                              <button
+                                type="button"
+                                onClick={handlePasswordReset}
+                                disabled={loading}
+                                className={cn("text-xs font-medium transition-colors", t.textSubtle, isLight ? "hover:text-zinc-800" : "hover:text-white/70")}
+                              >
+                                Forgot password?
+                              </button>
+                            )}
+                          </div>
                           <div className="relative group">
                             <Lock className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors group-focus-within:text-blue-400", t.textFaint)} />
                             <input
