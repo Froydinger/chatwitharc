@@ -18,7 +18,6 @@ app.setName(APP_NAME);
 let floating = null;
 let full = null;
 let lastBounds = null;
-let showedWelcome = false;
 let checkingForUpdate = false;
 let authServer = null;
 let desktopNotificationDeviceId = null;
@@ -355,7 +354,7 @@ function installMenu() {
     {
       label: "Help",
       submenu: [
-        { label: "Keyboard Shortcut Guide...", click: () => showShortcutGuide({ force: true }) },
+        { label: "Keyboard Shortcut Guide...", click: () => showShortcutGuide() },
         { type: "separator" },
         { label: "Check for Updates...", click: () => checkForUpdates() },
         { label: "Downloads", click: () => shell.openExternal(DOWNLOADS_URL) }
@@ -551,6 +550,13 @@ function createFull() {
 
   full.loadURL(ARC_URL);
   attachWindowHandlers(full);
+  full.webContents.once("did-finish-load", () => {
+    full.show();
+    full.focus();
+    showShortcutGuide().catch((error) => {
+      console.error("Could not show shortcut guide:", error);
+    });
+  });
 
   full.on("closed", () => {
     full = null;
@@ -566,32 +572,22 @@ function showFull() {
   }
 }
 
-async function showShortcutGuide({ force = false, shortcutReady = globalShortcut.isRegistered(SHORTCUT) } = {}) {
-  const dismissedPath = path.join(app.getPath("userData"), "shortcut-guide-dismissed");
-  if (!force && (showedWelcome || fs.existsSync(dismissedPath))) return;
-  showedWelcome = true;
-
+async function showShortcutGuide({ shortcutReady = globalShortcut.isRegistered(SHORTCUT) } = {}) {
   const unavailableNote = shortcutReady
     ? ""
     : `\n\nThe shortcut is currently being used by another app. Quit that app or change its shortcut, then restart ArcAI. You can always use Window → Open Floating ArcAI.`;
-  const result = await dialog.showMessageBox({
+  const options = {
     type: "info",
     title: "Your ArcAI keyboard shortcut",
     message: `Press ${SHORTCUT_LABEL} from anywhere`,
     detail: `1. Keep ArcAI running in the background.\n2. While using any app, press ${SHORTCUT_LABEL}.\n3. The floating ArcAI assistant appears instantly—type or speak your request.\n4. Press the shortcut again to hide it and return to what you were doing.\n\nYou can also choose Window → Open Floating ArcAI from the menu.${unavailableNote}`,
     buttons: ["Got it"],
     defaultId: 0,
-    checkboxLabel: "Don't show this at startup again",
-    checkboxChecked: false,
-  }).catch(() => null);
-
-  if (result?.checkboxChecked) {
-    try {
-      fs.writeFileSync(dismissedPath, "dismissed\n", { mode: 0o600 });
-    } catch (error) {
-      console.error("Could not save shortcut guide preference:", error);
-    }
+  };
+  if (full && !full.isDestroyed()) {
+    return dialog.showMessageBox(full, options);
   }
+  return dialog.showMessageBox(options);
 }
 
 app.whenReady().then(() => {
@@ -603,11 +599,8 @@ app.whenReady().then(() => {
   configureAutoUpdater();
   configurePermissions();
   startDesktopAuthBridge();
-  const shortcutReady = globalShortcut.register(SHORTCUT, toggleFloating);
+  globalShortcut.register(SHORTCUT, toggleFloating);
   showFull();
-  showShortcutGuide({ shortcutReady }).catch((error) => {
-    console.error("Could not show shortcut guide:", error);
-  });
 });
 
 app.on("activate", showFull);
