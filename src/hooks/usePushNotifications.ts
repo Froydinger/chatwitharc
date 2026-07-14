@@ -12,6 +12,55 @@ function urlBase64ToUint8Array(base64String: string) {
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+type DesktopNotificationBridge = {
+  getDeviceId: () => Promise<string>;
+  enable: () => Promise<{ ok: boolean; error?: string }>;
+  show: (payload: { title: string; body?: string; url?: string; tag?: string }) => Promise<{ ok: boolean; error?: string }>;
+};
+
+const DESKTOP_NOTIFICATIONS_KEY = "arcai-desktop-notifications-enabled";
+let desktopNotificationPollTimer: number | null = null;
+
+function getDesktopNotificationBridge(): DesktopNotificationBridge | null {
+  if (typeof window === "undefined" || !/ArcAIInternalAuth\//i.test(navigator.userAgent)) return null;
+  return (window as typeof window & {
+    arcaiDesktop?: { notifications?: DesktopNotificationBridge };
+  }).arcaiDesktop?.notifications ?? null;
+}
+
+async function pollDesktopNotifications() {
+  const bridge = getDesktopNotificationBridge();
+  if (!bridge || localStorage.getItem(DESKTOP_NOTIFICATIONS_KEY) !== "true") return;
+
+  const client = supabase as any;
+  const { data: pending } = await client
+    .from("desktop_notifications")
+    .select("id,title,body,url,tag")
+    .is("delivered_at", null)
+    .order("created_at", { ascending: true })
+    .limit(10);
+
+  for (const item of pending ?? []) {
+    const { data: claimed } = await client
+      .from("desktop_notifications")
+      .update({ delivered_at: new Date().toISOString() })
+      .eq("id", item.id)
+      .is("delivered_at", null)
+      .select("id")
+      .maybeSingle();
+    if (!claimed) continue;
+    await bridge.show(item).catch(() => null);
+  }
+}
+
+function startDesktopNotificationPolling() {
+  if (desktopNotificationPollTimer !== null || !getDesktopNotificationBridge()) return;
+  void pollDesktopNotifications();
+  desktopNotificationPollTimer = window.setInterval(() => {
+    void pollDesktopNotifications();
+  }, 10000);
+}
+
 let vapidPublicKeyPromise: Promise<string> | null = null;
 
 async function getVapidPublicKey() {
@@ -152,6 +201,7 @@ export function usePushNotifications() {
 
   const computeAvailability = useCallback((): PushAvailabilityReason => {
     if (typeof window === "undefined") return "unsupported-browser";
+    if (getDesktopNotificationBridge()) return "ready";
     const hasSW = "serviceWorker" in navigator;
     const hasPush = "PushManager" in window;
     const hasNotif = "Notification" in window;
@@ -167,6 +217,28 @@ export function usePushNotifications() {
 
   const refresh = useCallback(async () => {
     if (typeof window === "undefined") return;
+    const desktopBridge = getDesktopNotificationBridge();
+    if (desktopBridge) {
+      const enabled = localStorage.getItem(DESKTOP_NOTIFICATIONS_KEY) === "true";
+      setAvailabilityReason("ready");
+      setSupported(true);
+      setPermission(enabled ? "granted" : "default");
+      setSubscribed(enabled);
+      if (enabled) {
+        startDesktopNotificationPolling();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const deviceId = await desktopBridge.getDeviceId();
+          await (supabase as any).from("desktop_notification_devices").upsert({
+            device_id: deviceId,
+            user_id: user.id,
+            enabled: true,
+            last_seen_at: new Date().toISOString(),
+          });
+        }
+      }
+      return;
+    }
     const reason = computeAvailability();
     setAvailabilityReason(reason);
     const ok = reason !== "unsupported-browser";
@@ -198,6 +270,27 @@ export function usePushNotifications() {
   const subscribe = useCallback(async () => {
     setLoading(true);
     try {
+      const desktopBridge = getDesktopNotificationBridge();
+      if (desktopBridge) {
+        const result = await desktopBridge.enable();
+        if (!result?.ok) throw new Error(result?.error || "macOS did not enable notifications.");
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Sign in before enabling notifications.");
+        const deviceId = await desktopBridge.getDeviceId();
+        const { error } = await (supabase as any).from("desktop_notification_devices").upsert({
+          device_id: deviceId,
+          user_id: user.id,
+          enabled: true,
+          last_seen_at: new Date().toISOString(),
+        });
+        if (error) throw error;
+        localStorage.setItem(DESKTOP_NOTIFICATIONS_KEY, "true");
+        setPermission("granted");
+        setSubscribed(true);
+        startDesktopNotificationPolling();
+        return true;
+      }
+
       const reason = computeAvailability();
       setAvailabilityReason(reason);
       if (reason === "unsupported-browser") {
@@ -282,6 +375,18 @@ export function usePushNotifications() {
   const unsubscribe = useCallback(async () => {
     setLoading(true);
     try {
+      const desktopBridge = getDesktopNotificationBridge();
+      if (desktopBridge) {
+        const deviceId = await desktopBridge.getDeviceId();
+        await (supabase as any)
+          .from("desktop_notification_devices")
+          .delete()
+          .eq("device_id", deviceId);
+        localStorage.removeItem(DESKTOP_NOTIFICATIONS_KEY);
+        setPermission("default");
+        setSubscribed(false);
+        return;
+      }
       const reg = await navigator.serviceWorker.getRegistration("/");
       const sub = await reg?.pushManager.getSubscription();
       if (sub) {

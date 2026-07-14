@@ -140,6 +140,36 @@ Deno.serve(async (req) => {
       });
     }
 
+    // The native Mac wrapper cannot use Chromium Web Push reliably. Queue the
+    // same payload for active ArcAI desktop devices; the running/hidden app
+    // claims these rows and displays them through macOS Notification Center.
+    let desktopDeviceQuery = admin
+      .from("desktop_notification_devices")
+      .select("user_id")
+      .eq("enabled", true)
+      .gte("last_seen_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+    if (userIds.length) desktopDeviceQuery = desktopDeviceQuery.in("user_id", userIds);
+    const { data: desktopDevices, error: desktopDeviceError } = await desktopDeviceQuery;
+    if (desktopDeviceError) {
+      console.error("desktop notification device lookup failed", desktopDeviceError.message);
+    } else {
+      const desktopUserIds = [...new Set((desktopDevices ?? []).map((device: any) => device.user_id))];
+      if (desktopUserIds.length) {
+        const { error: desktopQueueError } = await admin.from("desktop_notifications").insert(
+          desktopUserIds.map((userId) => ({
+            user_id: userId,
+            title: String(payload.title),
+            body: String(payload.body ?? ""),
+            url: String(payload.url ?? "/dashboard"),
+            tag: payload.tag ? String(payload.tag) : null,
+          })),
+        );
+        if (desktopQueueError) {
+          console.error("desktop notification queue failed", desktopQueueError.message);
+        }
+      }
+    }
+
     const appServer = await getAppServer();
     const json = JSON.stringify(payload);
 

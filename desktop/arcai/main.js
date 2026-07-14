@@ -1,6 +1,8 @@
 const path = require("node:path");
 const http = require("node:http");
-const { app, BrowserWindow, globalShortcut, screen, dialog, shell, Menu, session, systemPreferences } = require("electron");
+const fs = require("node:fs");
+const crypto = require("node:crypto");
+const { app, BrowserWindow, globalShortcut, screen, dialog, shell, Menu, session, systemPreferences, ipcMain, Notification } = require("electron");
 const { autoUpdater } = require("electron-updater");
 
 const ARC_URL = "https://askarc.chat";
@@ -18,6 +20,7 @@ let lastBounds = null;
 let showedWelcome = false;
 let checkingForUpdate = false;
 let authServer = null;
+let desktopNotificationDeviceId = null;
 
 const TRUSTED_ORIGINS = new Set([
   new URL(ARC_URL).origin,
@@ -86,6 +89,63 @@ function loadAuthCallbackInApp(href) {
   });
   targetWindow.show();
   targetWindow.focus();
+}
+
+function getDesktopNotificationDeviceId() {
+  if (desktopNotificationDeviceId) return desktopNotificationDeviceId;
+  const idPath = path.join(app.getPath("userData"), "notification-device-id");
+  try {
+    desktopNotificationDeviceId = fs.readFileSync(idPath, "utf8").trim();
+  } catch (_) {
+    desktopNotificationDeviceId = crypto.randomUUID();
+    fs.mkdirSync(path.dirname(idPath), { recursive: true });
+    fs.writeFileSync(idPath, desktopNotificationDeviceId, { mode: 0o600 });
+  }
+  return desktopNotificationDeviceId;
+}
+
+function showNativeNotification({ title, body = "", url = "/dashboard", tag } = {}) {
+  if (!Notification.isSupported() || !title) {
+    return Promise.resolve({ ok: false, error: "macOS notifications are unavailable." });
+  }
+
+  return new Promise((resolve) => {
+    const notification = new Notification({
+      title: String(title),
+      body: String(body),
+      id: tag ? String(tag) : undefined,
+      icon: WINDOW_ICON,
+    });
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+    notification.once("failed", (_event, error) => finish({ ok: false, error }));
+    notification.once("show", () => finish({ ok: true }));
+    notification.on("click", () => {
+      showFull();
+      const target = new URL(String(url || "/dashboard"), ARC_URL).toString();
+      if (isTrustedUrl(target) && full && !full.isDestroyed()) full.loadURL(target);
+    });
+    notification.show();
+    setTimeout(() => finish({
+      ok: false,
+      error: "macOS did not respond to the notification request. Check System Settings → Notifications → ArcAI.",
+    }), 30000);
+  });
+}
+
+function registerDesktopNotificationHandlers() {
+  ipcMain.handle("arcai:notifications:device-id", () => getDesktopNotificationDeviceId());
+  ipcMain.handle("arcai:notifications:show", (_event, payload) => showNativeNotification(payload));
+  ipcMain.handle("arcai:notifications:enable", () => showNativeNotification({
+    title: "ArcAI notifications are on",
+    body: "Scheduled tasks and mentions can now reach this Mac.",
+    url: "/dashboard",
+    tag: "arcai-notifications-enabled",
+  }));
 }
 
 function startDesktopAuthBridge() {
@@ -428,6 +488,7 @@ function createFloating() {
     backgroundColor: "#0f1116",
     webPreferences: {
       contextIsolation: true,
+      preload: path.join(__dirname, "preload.js"),
       autoplayPolicy: "no-user-gesture-required"
     }
   });
@@ -480,6 +541,7 @@ function createFull() {
     backgroundColor: "#0f1116",
     webPreferences: {
       contextIsolation: true,
+      preload: path.join(__dirname, "preload.js"),
       autoplayPolicy: "no-user-gesture-required"
     }
   });
@@ -517,6 +579,7 @@ app.whenReady().then(() => {
   session.defaultSession.setUserAgent(
     `${session.defaultSession.getUserAgent()} ArcAIInternalAuth/1`
   );
+  registerDesktopNotificationHandlers();
   installMenu();
   configureAutoUpdater();
   configurePermissions();
