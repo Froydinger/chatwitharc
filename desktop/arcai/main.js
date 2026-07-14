@@ -536,24 +536,14 @@ function createFloating() {
 function getFloatingOffscreenBounds(destination) {
   const workArea = screen.getDisplayMatching(destination).workArea;
   const centerX = destination.x + destination.width / 2;
-  const centerY = destination.y + destination.height / 2;
-  const leftThreshold = workArea.x + workArea.width / 3;
-  const rightThreshold = workArea.x + (workArea.width * 2) / 3;
+  const displayMidpoint = workArea.x + workArea.width / 2;
   const margin = 18;
 
-  if (centerX < leftThreshold) {
+  if (centerX < displayMidpoint) {
     return { ...destination, x: workArea.x - destination.width - margin };
   }
 
-  if (centerX > rightThreshold) {
-    return { ...destination, x: workArea.x + workArea.width + margin };
-  }
-
-  if (centerY < workArea.y + workArea.height / 2) {
-    return { ...destination, y: workArea.y - destination.height - margin };
-  }
-
-  return { ...destination, y: workArea.y + workArea.height + margin };
+  return { ...destination, x: workArea.x + workArea.width + margin };
 }
 
 function runFloatingSlide({ from, to, direction, duration, easing, onComplete }) {
