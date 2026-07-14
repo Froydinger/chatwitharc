@@ -1,13 +1,13 @@
 {
   "name": "arcai-desktop",
-  "version": "5.1.5",
+  "version": "5.1.6",
   "description": "ArcAI desktop assistant",
   "author": "Jake Freudinger",
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
-    "pack:mac": "electron-builder --mac dmg --arm64",
+    "pack:mac": "electron-builder --mac dmg zip --arm64",
     "pack:win": "electron-builder --win nsis portable --x64 --config.extraMetadata.version=1.1.0",
     "pack:all": "electron-builder --mac dmg --arm64 --win nsis portable --x64"
   },
