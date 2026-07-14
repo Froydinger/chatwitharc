@@ -8,10 +8,10 @@
     :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif; }
     * { box-sizing: border-box; }
     html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
-    body { display: grid; place-items: center; padding: 22px; -webkit-font-smoothing: antialiased; }
+    body { display: grid; place-items: center; -webkit-font-smoothing: antialiased; }
     .shell {
       position: relative; width: 100%; height: 100%; overflow: hidden;
-      border: 1px solid rgba(255,255,255,.16); border-radius: 34px;
+      border: 1px solid rgba(255,255,255,.16); border-radius: 30px;
       background: linear-gradient(145deg, rgba(16,18,24,.98), rgba(5,6,10,.98));
       box-shadow: 0 34px 90px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.08);
       animation: arrive .52s cubic-bezier(.16,1,.3,1) both;
@@ -21,8 +21,7 @@
     .glow.two { right:-210px; bottom:-260px; background:#38bdf8; animation:drift 8s ease-in-out infinite alternate-reverse; }
     .content { position:relative; z-index:2; height:100%; padding:32px 42px 28px; display:flex; flex-direction:column; align-items:center; text-align:center; }
     .brand { display:flex; align-items:center; gap:10px; color:rgba(255,255,255,.64); font-size:13px; font-weight:650; letter-spacing:.08em; text-transform:uppercase; }
-    .mark { width:25px; height:25px; border:2px solid #fff; border-radius:50%; position:relative; box-shadow:0 0 28px rgba(255,255,255,.22); }
-    .mark::after { content:""; position:absolute; inset:4px; border:1px solid rgba(255,255,255,.72); border-radius:50%; }
+    .brand-logo { width:28px; height:28px; border-radius:50%; object-fit:cover; box-shadow:0 0 28px rgba(255,255,255,.2); }
     h1 { margin:18px 0 5px; font-size:35px; line-height:1.05; letter-spacing:-.04em; color:#fff; }
     .sub { margin:0; max-width:440px; color:rgba(255,255,255,.58); font-size:16px; line-height:1.45; }
     .keys { display:flex; align-items:center; justify-content:center; gap:10px; margin:23px 0 20px; }
@@ -38,8 +37,9 @@
     .demo { width:100%; display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:2px; }
     .step { position:relative; min-height:69px; padding:23px 18px 17px; text-align:left; border-radius:21px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.045); overflow:hidden; }
     .step strong { display:block; color:#fff; font-size:15px; }
-    .orb { position:absolute; right:16px; top:16px; width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.5); animation:pulse 2.2s ease-in-out infinite; }
-    .mini { position:absolute; right:13px; top:16px; width:36px; height:56px; border-radius:12px; border:1px solid rgba(255,255,255,.22); background:rgba(255,255,255,.08); animation:slideMini 3.2s cubic-bezier(.16,1,.3,1) infinite; }
+    .orb { position:absolute; right:16px; top:16px; width:34px; height:34px; border-radius:50%; object-fit:cover; animation:pulse 2.2s ease-in-out infinite; }
+    .mini { position:absolute; right:13px; top:10px; width:42px; height:56px; border-radius:12px; border:1px solid rgba(255,255,255,.22); background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.035)); display:grid; place-items:center; animation:slideMini 3.2s cubic-bezier(.16,1,.3,1) infinite; }
+    .mini img { width:24px; height:24px; border-radius:50%; object-fit:cover; }
     .status { min-height:16px; margin:10px 0 8px; color:#fca5a5; font-size:11px; }
     button { width:100%; height:54px; border:0; border-radius:17px; cursor:pointer; color:#07080b; font:700 16px inherit; background:linear-gradient(135deg,#fff,#dbeafe); box-shadow:0 14px 34px rgba(147,197,253,.16); transition:transform .2s ease,filter .2s ease; }
     button:hover { transform:translateY(-2px); filter:brightness(1.06); }
@@ -57,7 +57,7 @@
   <main class="shell" id="shell">
     <div class="glow one"></div><div class="glow two"></div>
     <section class="content">
-      <div class="brand"><span class="mark"></span> ArcAI Desktop</div>
+      <div class="brand"><img class="brand-logo" src="assets/icon.png" alt="" /> ArcAI Desktop</div>
       <h1>ArcAI. Anywhere.</h1>
       <p class="sub">Press to show. Press again to hide.</p>
       <div class="keys" aria-label="Control plus Option plus Space">
@@ -66,8 +66,8 @@
         <div class="key">Space</div>
       </div>
       <div class="demo">
-        <div class="step"><div class="orb"></div><strong>Once: show ArcAI</strong></div>
-        <div class="step"><div class="mini"></div><strong>Again: hide it</strong></div>
+        <div class="step"><img class="orb" src="assets/icon.png" alt="" /><strong>Once: show ArcAI</strong></div>
+        <div class="step"><div class="mini"><img src="assets/icon.png" alt="" /></div><strong>Again: hide it</strong></div>
       </div>
       <div class="status" id="status"></div>
       <button id="continue">Got it</button>

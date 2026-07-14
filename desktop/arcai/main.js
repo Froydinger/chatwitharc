@@ -22,6 +22,9 @@ let checkingForUpdate = false;
 let authServer = null;
 let desktopNotificationDeviceId = null;
 let shortcutGuide = null;
+let floatingAnimation = null;
+let animatingFloating = false;
+let floatingTargetBounds = null;
 
 const TRUSTED_ORIGINS = new Set([
   new URL(ARC_URL).origin,
@@ -487,6 +490,8 @@ function createFloating() {
     resizable: true,
     movable: true,
     alwaysOnTop: true,
+    show: false,
+    opacity: 0,
     icon: WINDOW_ICON,
     backgroundColor: "#0f1116",
     webPreferences: {
@@ -495,17 +500,85 @@ function createFloating() {
       autoplayPolicy: "no-user-gesture-required"
     }
   });
+  floatingTargetBounds = floating.getBounds();
 
   floating.loadURL(ARC_URL);
   attachWindowHandlers(floating, true);
 
+  floating.once("ready-to-show", () => {
+    animateFloatingIn();
+  });
+
   floating.on("move", () => {
-    lastBounds = floating.getBounds();
+    if (!animatingFloating) {
+      lastBounds = floating.getBounds();
+      floatingTargetBounds = lastBounds;
+    }
+  });
+
+  floating.on("resize", () => {
+    if (!animatingFloating) {
+      lastBounds = floating.getBounds();
+      floatingTargetBounds = lastBounds;
+    }
   });
 
   floating.on("closed", () => {
+    if (floatingAnimation) clearTimeout(floatingAnimation);
+    floatingAnimation = null;
+    animatingFloating = false;
+    floatingTargetBounds = null;
     floating = null;
   });
+}
+
+function animateFloatingIn() {
+  if (!floating || floating.isDestroyed()) return;
+
+  if (floatingAnimation) clearTimeout(floatingAnimation);
+  const destination = floatingTargetBounds || lastBounds || floating.getBounds();
+  const startX = destination.x + 72;
+  const startY = destination.y + 8;
+  const duration = 260;
+  const startedAt = Date.now();
+
+  animatingFloating = true;
+  floating.setBounds({ ...destination, x: startX, y: startY }, false);
+  floating.setOpacity(0);
+  floating.show();
+  floating.focus();
+
+  const frame = () => {
+    if (!floating || floating.isDestroyed()) {
+      floatingAnimation = null;
+      animatingFloating = false;
+      return;
+    }
+
+    const progress = Math.min(1, (Date.now() - startedAt) / duration);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    floating.setPosition(
+      Math.round(startX + (destination.x - startX) * eased),
+      Math.round(startY + (destination.y - startY) * eased),
+      false
+    );
+    floating.setOpacity(eased);
+
+    if (progress < 1) {
+      floatingAnimation = setTimeout(frame, 16);
+      return;
+    }
+
+    floating.setBounds(destination, false);
+    floating.setOpacity(1);
+    floatingAnimation = null;
+    animatingFloating = false;
+    lastBounds = destination;
+    floating.focus();
+    focusInput(floating);
+  };
+
+  frame();
 }
 
 function toggleFloating() {
@@ -515,11 +588,14 @@ function toggleFloating() {
   }
 
   if (floating.isVisible()) {
+    if (floatingAnimation) clearTimeout(floatingAnimation);
+    floatingAnimation = null;
+    animatingFloating = false;
+    if (floatingTargetBounds) floating.setBounds(floatingTargetBounds, false);
+    floating.setOpacity(1);
     floating.hide();
   } else {
-    floating.show();
-    floating.focus();
-    focusInput(floating);
+    animateFloatingIn();
   }
 }
 
@@ -577,7 +653,7 @@ async function showShortcutGuide({ shortcutReady = globalShortcut.isRegistered(S
     width: 620,
     height: 480,
     parent: full && !full.isDestroyed() ? full : undefined,
-    modal: Boolean(full && !full.isDestroyed()),
+    modal: false,
     frame: false,
     transparent: true,
     resizable: false,
