@@ -21,6 +21,7 @@ let lastBounds = null;
 let checkingForUpdate = false;
 let authServer = null;
 let desktopNotificationDeviceId = null;
+let shortcutGuide = null;
 
 const TRUSTED_ORIGINS = new Set([
   new URL(ARC_URL).origin,
@@ -550,13 +551,6 @@ function createFull() {
 
   full.loadURL(ARC_URL);
   attachWindowHandlers(full);
-  full.webContents.once("did-finish-load", () => {
-    full.show();
-    full.focus();
-    showShortcutGuide().catch((error) => {
-      console.error("Could not show shortcut guide:", error);
-    });
-  });
 
   full.on("closed", () => {
     full = null;
@@ -573,21 +567,44 @@ function showFull() {
 }
 
 async function showShortcutGuide({ shortcutReady = globalShortcut.isRegistered(SHORTCUT) } = {}) {
-  const unavailableNote = shortcutReady
-    ? ""
-    : `\n\nThe shortcut is currently being used by another app. Quit that app or change its shortcut, then restart ArcAI. You can always use Window → Open Floating ArcAI.`;
-  const options = {
-    type: "info",
-    title: "Your ArcAI keyboard shortcut",
-    message: `Press ${SHORTCUT_LABEL} from anywhere`,
-    detail: `1. Keep ArcAI running in the background.\n2. While using any app, press ${SHORTCUT_LABEL}.\n3. The floating ArcAI assistant appears instantly—type or speak your request.\n4. Press the shortcut again to hide it and return to what you were doing.\n\nYou can also choose Window → Open Floating ArcAI from the menu.${unavailableNote}`,
-    buttons: ["Got it"],
-    defaultId: 0,
-  };
-  if (full && !full.isDestroyed()) {
-    return dialog.showMessageBox(full, options);
+  if (shortcutGuide && !shortcutGuide.isDestroyed()) {
+    shortcutGuide.show();
+    shortcutGuide.focus();
+    return;
   }
-  return dialog.showMessageBox(options);
+
+  shortcutGuide = new BrowserWindow({
+    width: 620,
+    height: 480,
+    parent: full && !full.isDestroyed() ? full : undefined,
+    modal: Boolean(full && !full.isDestroyed()),
+    frame: false,
+    transparent: true,
+    resizable: false,
+    maximizable: false,
+    minimizable: false,
+    show: false,
+    hasShadow: true,
+    backgroundColor: "#00000000",
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  shortcutGuide.loadFile(path.join(__dirname, "shortcut-guide.html"), {
+    query: {
+      shortcut: SHORTCUT_LABEL,
+      ready: shortcutReady ? "1" : "0",
+    },
+  });
+  shortcutGuide.once("ready-to-show", () => {
+    shortcutGuide?.show();
+    shortcutGuide?.focus();
+  });
+  shortcutGuide.on("closed", () => {
+    shortcutGuide = null;
+  });
 }
 
 app.whenReady().then(() => {
@@ -601,6 +618,20 @@ app.whenReady().then(() => {
   startDesktopAuthBridge();
   globalShortcut.register(SHORTCUT, toggleFloating);
   showFull();
+  const showStartupShortcutGuide = () => {
+    if (full && !full.isDestroyed()) {
+      full.show();
+      full.focus();
+    }
+    showShortcutGuide().catch((error) => {
+      console.error("Could not show shortcut guide:", error);
+    });
+  };
+  if (full && !full.isDestroyed() && full.webContents.isLoadingMainFrame()) {
+    full.webContents.once("did-finish-load", showStartupShortcutGuide);
+  } else {
+    showStartupShortcutGuide();
+  }
 });
 
 app.on("activate", showFull);

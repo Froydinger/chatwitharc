@@ -1,6 +1,6 @@
 {
   "name": "arcai-desktop",
-  "version": "5.1.10",
+  "version": "5.1.11",
   "description": "ArcAI desktop assistant",
   "author": "Jake Freudinger",
   "main": "main.js",
@@ -22,6 +22,7 @@
     "files": [
       "main.js",
       "preload.js",
+      "shortcut-guide.html",
       "package.json",
       "assets/**/*"
     ],
