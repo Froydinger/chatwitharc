@@ -376,21 +376,22 @@ function addDragZone(win) {
 function attachWindowHandlers(win, shouldFocusInput = false) {
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (isAuthUrl(url)) {
-      shell.openExternal(url);
-    } else {
-      shell.openExternal(url);
+      return { action: "allow" };
     }
+    shell.openExternal(url);
     return { action: "deny" };
   });
 
   win.webContents.on("will-navigate", (event, url) => {
-    if (isTrustedUrl(url)) return;
+    // OAuth must remain in this session so Supabase can recover the PKCE
+    // verifier and persist the returned ArcAI session.
+    if (isTrustedUrl(url) || isAuthUrl(url)) return;
     event.preventDefault();
-    if (isAuthUrl(url)) {
-      shell.openExternal(url);
-    } else {
-      shell.openExternal(url);
-    }
+    shell.openExternal(url);
+  });
+
+  win.webContents.on("did-create-window", (child) => {
+    attachWindowHandlers(child);
   });
 
   win.webContents.once("did-finish-load", () => {
@@ -513,6 +514,9 @@ function showWelcomeOnce() {
 }
 
 app.whenReady().then(() => {
+  session.defaultSession.setUserAgent(
+    `${session.defaultSession.getUserAgent()} ArcAIInternalAuth/1`
+  );
   installMenu();
   configureAutoUpdater();
   configurePermissions();

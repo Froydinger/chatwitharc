@@ -6,8 +6,8 @@ if (!SUPABASE_URL) {
   throw new Error('VITE_SUPABASE_URL is not configured');
 }
 const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/download-files`;
-const CURRENT_MAC_VERSION = '5.1.6';
-const CURRENT_MAC_DOWNLOAD = 'https://github.com/Froydinger/chatwitharc/releases/download/v5.1.6/ArcAI-5.1.6-arm64.dmg';
+const CURRENT_MAC_VERSION = '5.1.7';
+const CURRENT_MAC_DOWNLOAD = 'https://github.com/Froydinger/chatwitharc/releases/download/v5.1.7/ArcAI-5.1.7-arm64.dmg';
 
 const resolveDownloadUrl = (value: string) => {
   if (/^https?:\/\//i.test(value)) return value;

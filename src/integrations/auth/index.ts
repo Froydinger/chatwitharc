@@ -4,7 +4,10 @@ export function getAuthRedirectUrl(path = "") {
   return `${window.location.origin}${path}`;
 }
 
-function isDesktopApp() {
+function usesLegacyDesktopAuthBridge() {
+  // ArcAI 5.1.7+ keeps OAuth in its own Electron session. Older desktop
+  // builds still need the localhost handoff until they can update.
+  if (/ArcAIInternalAuth\//i.test(window.navigator.userAgent)) return false;
   return /electron/i.test(window.navigator.userAgent);
 }
 
@@ -16,7 +19,7 @@ export function signInWithGoogle(redirectTo = getAuthRedirectUrl("/auth/callback
   return supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: isDesktopApp() ? getDesktopAuthRedirectUrl() : redirectTo,
+      redirectTo: usesLegacyDesktopAuthBridge() ? getDesktopAuthRedirectUrl() : redirectTo,
       queryParams: { prompt: "select_account" },
     },
   });
