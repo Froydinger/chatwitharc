@@ -60,19 +60,32 @@ function loadAuthCallbackInApp(href) {
   let target = ARC_URL;
   try {
     const url = new URL(href);
-    if (url.hash.includes("access_token")) {
-      target = `${ARC_URL}/${url.hash}`;
+    const callback = new URL("/auth/callback", ARC_URL);
+
+    // Supabase's PKCE flow returns a one-time `code` to the external browser.
+    // The verifier that can exchange it is stored in Electron's session, so
+    // forward the code back into the app instead of dropping it and loading
+    // the landing page. Keep implicit-flow token hashes working as well.
+    for (const key of ["code", "error", "error_code", "error_description"]) {
+      const value = url.searchParams.get(key);
+      if (value) callback.searchParams.set(key, value);
     }
+    callback.hash = url.hash;
+    target = callback.toString();
   } catch (_) {
     target = ARC_URL;
   }
 
-  for (const win of [full, floating]) {
-    if (!win || win.isDestroyed()) continue;
-    win.loadURL(target).catch(() => {});
-    win.show();
-    win.focus();
-  }
+  // A PKCE authorization code is single-use. Let one window exchange it
+  // rather than racing the full and floating windows against each other.
+  const targetWindow = [full, floating].find((win) => win && !win.isDestroyed());
+  if (!targetWindow) return;
+
+  targetWindow.loadURL(target).catch((error) => {
+    console.error("Failed to load desktop auth callback:", error);
+  });
+  targetWindow.show();
+  targetWindow.focus();
 }
 
 function startDesktopAuthBridge() {
