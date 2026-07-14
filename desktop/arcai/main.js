@@ -25,6 +25,7 @@ let shortcutGuide = null;
 let floatingAnimation = null;
 let animatingFloating = false;
 let floatingTargetBounds = null;
+let floatingAnimationDirection = null;
 
 const TRUSTED_ORIGINS = new Set([
   new URL(ARC_URL).origin,
@@ -491,7 +492,6 @@ function createFloating() {
     movable: true,
     alwaysOnTop: true,
     show: false,
-    opacity: 0,
     icon: WINDOW_ICON,
     backgroundColor: "#0f1116",
     webPreferences: {
@@ -528,57 +528,116 @@ function createFloating() {
     floatingAnimation = null;
     animatingFloating = false;
     floatingTargetBounds = null;
+    floatingAnimationDirection = null;
     floating = null;
   });
 }
 
-function animateFloatingIn() {
+function getFloatingOffscreenBounds(destination) {
+  const workArea = screen.getDisplayMatching(destination).workArea;
+  const centerX = destination.x + destination.width / 2;
+  const centerY = destination.y + destination.height / 2;
+  const leftThreshold = workArea.x + workArea.width / 3;
+  const rightThreshold = workArea.x + (workArea.width * 2) / 3;
+  const margin = 18;
+
+  if (centerX < leftThreshold) {
+    return { ...destination, x: workArea.x - destination.width - margin };
+  }
+
+  if (centerX > rightThreshold) {
+    return { ...destination, x: workArea.x + workArea.width + margin };
+  }
+
+  if (centerY < workArea.y + workArea.height / 2) {
+    return { ...destination, y: workArea.y - destination.height - margin };
+  }
+
+  return { ...destination, y: workArea.y + workArea.height + margin };
+}
+
+function runFloatingSlide({ from, to, direction, duration, easing, onComplete }) {
   if (!floating || floating.isDestroyed()) return;
-
   if (floatingAnimation) clearTimeout(floatingAnimation);
-  const destination = floatingTargetBounds || lastBounds || floating.getBounds();
-  const startX = destination.x + 72;
-  const startY = destination.y + 8;
-  const duration = 260;
-  const startedAt = Date.now();
 
+  const startedAt = Date.now();
   animatingFloating = true;
-  floating.setBounds({ ...destination, x: startX, y: startY }, false);
-  floating.setOpacity(0);
-  floating.show();
-  floating.focus();
+  floatingAnimationDirection = direction;
 
   const frame = () => {
     if (!floating || floating.isDestroyed()) {
       floatingAnimation = null;
       animatingFloating = false;
+      floatingAnimationDirection = null;
       return;
     }
 
     const progress = Math.min(1, (Date.now() - startedAt) / duration);
-    const eased = 1 - Math.pow(1 - progress, 3);
+    const eased = easing(progress);
     floating.setPosition(
-      Math.round(startX + (destination.x - startX) * eased),
-      Math.round(startY + (destination.y - startY) * eased),
+      Math.round(from.x + (to.x - from.x) * eased),
+      Math.round(from.y + (to.y - from.y) * eased),
       false
     );
-    floating.setOpacity(eased);
 
     if (progress < 1) {
       floatingAnimation = setTimeout(frame, 16);
       return;
     }
 
-    floating.setBounds(destination, false);
-    floating.setOpacity(1);
+    floating.setBounds(to, false);
     floatingAnimation = null;
     animatingFloating = false;
-    lastBounds = destination;
-    floating.focus();
-    focusInput(floating);
+    floatingAnimationDirection = null;
+    onComplete();
   };
 
   frame();
+}
+
+function animateFloatingIn() {
+  if (!floating || floating.isDestroyed()) return;
+
+  const destination = floatingTargetBounds || lastBounds || floating.getBounds();
+  const start = floating.isVisible() ? floating.getBounds() : getFloatingOffscreenBounds(destination);
+  floating.setBounds(start, false);
+  if (!floating.isVisible()) floating.show();
+  floating.focus();
+
+  runFloatingSlide({
+    from: start,
+    to: destination,
+    direction: "in",
+    duration: 360,
+    easing: (progress) => 1 - Math.pow(1 - progress, 4),
+    onComplete: () => {
+      lastBounds = destination;
+      floating.focus();
+      focusInput(floating);
+    },
+  });
+}
+
+function animateFloatingOut() {
+  if (!floating || floating.isDestroyed() || !floating.isVisible()) return;
+
+  const destination = floatingTargetBounds || lastBounds || floating.getBounds();
+  const start = floating.getBounds();
+  const offscreen = getFloatingOffscreenBounds(destination);
+
+  runFloatingSlide({
+    from: start,
+    to: offscreen,
+    direction: "out",
+    duration: 320,
+    easing: (progress) => Math.pow(progress, 3),
+    onComplete: () => {
+      if (!floating || floating.isDestroyed()) return;
+      floating.hide();
+      floating.setBounds(destination, false);
+      lastBounds = destination;
+    },
+  });
 }
 
 function toggleFloating() {
@@ -587,13 +646,10 @@ function toggleFloating() {
     return;
   }
 
-  if (floating.isVisible()) {
-    if (floatingAnimation) clearTimeout(floatingAnimation);
-    floatingAnimation = null;
-    animatingFloating = false;
-    if (floatingTargetBounds) floating.setBounds(floatingTargetBounds, false);
-    floating.setOpacity(1);
-    floating.hide();
+  if (floatingAnimationDirection === "out") {
+    animateFloatingIn();
+  } else if (floating.isVisible()) {
+    animateFloatingOut();
   } else {
     animateFloatingIn();
   }
