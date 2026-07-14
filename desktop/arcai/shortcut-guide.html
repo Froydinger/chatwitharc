@@ -59,11 +59,7 @@
       <div class="brand"><img class="brand-logo" src="assets/icon.png" alt="" /> ArcAI Desktop</div>
       <h1>ArcAI. Anywhere.</h1>
       <p class="sub">Press to show. Press again to hide.</p>
-      <div class="keys" aria-label="Control plus Option plus Space">
-        <div class="key">Control</div><span class="plus">+</span>
-        <div class="key">Option</div><span class="plus">+</span>
-        <div class="key">Space</div>
-      </div>
+      <div class="keys" id="keys"></div>
       <div class="demo">
         <div class="step"><img class="orb" src="assets/icon.png" alt="" /><strong>Once: show ArcAI</strong></div>
         <div class="step"><div class="mini"><img src="assets/icon.png" alt="" /></div><strong>Again: hide it</strong></div>
@@ -74,6 +70,21 @@
   </main>
   <script>
     const params = new URLSearchParams(location.search);
+    const shortcutParts = (params.get('shortcut') || 'Control + Alt + Space').split(' + ');
+    const keys = document.getElementById('keys');
+    keys.setAttribute('aria-label', shortcutParts.join(' plus '));
+    shortcutParts.forEach((label, index) => {
+      const key = document.createElement('div');
+      key.className = 'key';
+      key.textContent = label;
+      keys.appendChild(key);
+      if (index < shortcutParts.length - 1) {
+        const plus = document.createElement('span');
+        plus.className = 'plus';
+        plus.textContent = '+';
+        keys.appendChild(plus);
+      }
+    });
     if (params.get('ready') !== '1') {
       document.getElementById('status').textContent = 'This shortcut is currently used by another app. You can still open ArcAI from the Window menu.';
     }

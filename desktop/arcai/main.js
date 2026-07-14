@@ -12,8 +12,15 @@ const SHORTCUT = "Control+Alt+Space";
 const SHORTCUT_LABEL = process.platform === "darwin" ? "Control + Option + Space" : "Control + Alt + Space";
 const WINDOW_ICON = path.join(__dirname, "assets", "icon.png");
 const DESKTOP_AUTH_PORT = 48879;
+const DEVICE_NAME = process.platform === "darwin" ? "Mac" : process.platform === "win32" ? "Windows PC" : "computer";
+const NOTIFICATION_SETTINGS_HINT = process.platform === "darwin"
+  ? "Check System Settings → Notifications → ArcAI."
+  : process.platform === "win32"
+    ? "Check Settings → System → Notifications → ArcAI."
+    : "Check your system notification settings for ArcAI.";
 
 app.setName(APP_NAME);
+if (process.platform === "win32") app.setAppUserModelId("chat.askarc.desktop");
 
 let floating = null;
 let full = null;
@@ -26,6 +33,7 @@ let floatingAnimation = null;
 let animatingFloating = false;
 let floatingTargetBounds = null;
 let floatingAnimationDirection = null;
+let floatingAnimationGeneration = 0;
 
 const TRUSTED_ORIGINS = new Set([
   new URL(ARC_URL).origin,
@@ -111,7 +119,7 @@ function getDesktopNotificationDeviceId() {
 
 function showNativeNotification({ title, body = "", url = "/dashboard", tag } = {}) {
   if (!Notification.isSupported() || !title) {
-    return Promise.resolve({ ok: false, error: "macOS notifications are unavailable." });
+    return Promise.resolve({ ok: false, error: `${DEVICE_NAME} notifications are unavailable.` });
   }
 
   return new Promise((resolve) => {
@@ -137,7 +145,7 @@ function showNativeNotification({ title, body = "", url = "/dashboard", tag } = 
     notification.show();
     setTimeout(() => finish({
       ok: false,
-      error: "macOS did not respond to the notification request. Check System Settings → Notifications → ArcAI.",
+      error: `${DEVICE_NAME} did not respond to the notification request. ${NOTIFICATION_SETTINGS_HINT}`,
     }), 30000);
   });
 }
@@ -147,7 +155,7 @@ function registerDesktopNotificationHandlers() {
   ipcMain.handle("arcai:notifications:show", (_event, payload) => showNativeNotification(payload));
   ipcMain.handle("arcai:notifications:enable", () => showNativeNotification({
     title: "ArcAI notifications are on",
-    body: "Scheduled tasks and mentions can now reach this Mac.",
+    body: `Scheduled tasks and mentions can now reach this ${DEVICE_NAME}.`,
     url: "/dashboard",
     tag: "arcai-notifications-enabled",
   }));
@@ -510,27 +518,62 @@ function createFloating() {
   });
 
   floating.on("move", () => {
-    if (!animatingFloating) {
-      lastBounds = floating.getBounds();
-      floatingTargetBounds = lastBounds;
-    }
+    captureFloatingRestingBounds();
   });
 
   floating.on("resize", () => {
-    if (!animatingFloating) {
-      lastBounds = floating.getBounds();
-      floatingTargetBounds = lastBounds;
-    }
+    captureFloatingRestingBounds();
   });
 
   floating.on("closed", () => {
     if (floatingAnimation) clearTimeout(floatingAnimation);
     floatingAnimation = null;
+    floatingAnimationGeneration += 1;
     animatingFloating = false;
     floatingTargetBounds = null;
     floatingAnimationDirection = null;
     floating = null;
   });
+}
+
+function isValidWindowBounds(bounds) {
+  return Boolean(bounds)
+    && [bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite)
+    && Math.abs(bounds.x) < 100000
+    && Math.abs(bounds.y) < 100000
+    && bounds.width > 0
+    && bounds.width < 100000
+    && bounds.height > 0
+    && bounds.height < 100000;
+}
+
+function isBoundsCenteredOnDisplay(bounds) {
+  if (!isValidWindowBounds(bounds)) return false;
+  const workArea = screen.getDisplayMatching(bounds).workArea;
+  const centerX = bounds.x + bounds.width / 2;
+  const centerY = bounds.y + bounds.height / 2;
+  return centerX >= workArea.x
+    && centerX <= workArea.x + workArea.width
+    && centerY >= workArea.y
+    && centerY <= workArea.y + workArea.height;
+}
+
+function captureFloatingRestingBounds() {
+  if (!floating || floating.isDestroyed() || animatingFloating || !floating.isVisible()) return;
+  const bounds = floating.getBounds();
+  if (!isBoundsCenteredOnDisplay(bounds)) return;
+  lastBounds = { ...bounds };
+  floatingTargetBounds = { ...bounds };
+}
+
+function getFloatingTargetBounds() {
+  for (const candidate of [floatingTargetBounds, lastBounds]) {
+    if (isValidWindowBounds(candidate) && isBoundsCenteredOnDisplay(candidate)) return { ...candidate };
+  }
+
+  if (!floating || floating.isDestroyed()) return null;
+  const current = floating.getBounds();
+  return isValidWindowBounds(current) ? { ...current } : null;
 }
 
 function getFloatingOffscreenBounds(destination) {
@@ -549,12 +592,18 @@ function getFloatingOffscreenBounds(destination) {
 function runFloatingSlide({ from, to, direction, duration, easing, onComplete }) {
   if (!floating || floating.isDestroyed()) return;
   if (floatingAnimation) clearTimeout(floatingAnimation);
+  if (!isValidWindowBounds(from) || !isValidWindowBounds(to)) {
+    console.error("ArcAI skipped an invalid floating-window animation.", { from, to });
+    return;
+  }
 
   const startedAt = Date.now();
+  const generation = ++floatingAnimationGeneration;
   animatingFloating = true;
   floatingAnimationDirection = direction;
 
   const frame = () => {
+    if (generation !== floatingAnimationGeneration) return;
     if (!floating || floating.isDestroyed()) {
       floatingAnimation = null;
       animatingFloating = false;
@@ -564,11 +613,25 @@ function runFloatingSlide({ from, to, direction, duration, easing, onComplete })
 
     const progress = Math.min(1, (Date.now() - startedAt) / duration);
     const eased = easing(progress);
-    floating.setPosition(
-      Math.round(from.x + (to.x - from.x) * eased),
-      Math.round(from.y + (to.y - from.y) * eased),
-      false
-    );
+    const nextX = Math.round(from.x + (to.x - from.x) * eased);
+    const nextY = Math.round(from.y + (to.y - from.y) * eased);
+    if (!Number.isSafeInteger(nextX) || !Number.isSafeInteger(nextY) || Math.abs(nextX) >= 100000 || Math.abs(nextY) >= 100000) {
+      console.error("ArcAI stopped an invalid floating-window animation frame.", { from, to, progress });
+      floatingAnimation = null;
+      animatingFloating = false;
+      floatingAnimationDirection = null;
+      return;
+    }
+
+    try {
+      floating.setPosition(nextX, nextY, false);
+    } catch (error) {
+      console.error("ArcAI could not position the floating window.", error);
+      floatingAnimation = null;
+      animatingFloating = false;
+      floatingAnimationDirection = null;
+      return;
+    }
 
     if (progress < 1) {
       floatingAnimation = setTimeout(frame, 16);
@@ -577,9 +640,9 @@ function runFloatingSlide({ from, to, direction, duration, easing, onComplete })
 
     floating.setBounds(to, false);
     floatingAnimation = null;
+    onComplete();
     animatingFloating = false;
     floatingAnimationDirection = null;
-    onComplete();
   };
 
   frame();
@@ -588,7 +651,8 @@ function runFloatingSlide({ from, to, direction, duration, easing, onComplete })
 function animateFloatingIn() {
   if (!floating || floating.isDestroyed()) return;
 
-  const destination = floatingTargetBounds || lastBounds || floating.getBounds();
+  const destination = getFloatingTargetBounds();
+  if (!destination) return;
   const start = floating.isVisible() ? floating.getBounds() : getFloatingOffscreenBounds(destination);
   floating.setBounds(start, false);
   if (!floating.isVisible()) floating.show();
@@ -601,7 +665,8 @@ function animateFloatingIn() {
     duration: 360,
     easing: (progress) => 1 - Math.pow(1 - progress, 4),
     onComplete: () => {
-      lastBounds = destination;
+      lastBounds = { ...destination };
+      floatingTargetBounds = { ...destination };
       floating.focus();
       focusInput(floating);
     },
@@ -611,7 +676,8 @@ function animateFloatingIn() {
 function animateFloatingOut() {
   if (!floating || floating.isDestroyed() || !floating.isVisible()) return;
 
-  const destination = floatingTargetBounds || lastBounds || floating.getBounds();
+  const destination = getFloatingTargetBounds();
+  if (!destination) return;
   const start = floating.getBounds();
   const offscreen = getFloatingOffscreenBounds(destination);
 
@@ -625,7 +691,8 @@ function animateFloatingOut() {
       if (!floating || floating.isDestroyed()) return;
       floating.hide();
       floating.setBounds(destination, false);
-      lastBounds = destination;
+      lastBounds = { ...destination };
+      floatingTargetBounds = { ...destination };
     },
   });
 }
