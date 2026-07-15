@@ -969,8 +969,10 @@ When the user shares their camera or attaches an image, describe what you see na
     },
     onInterrupt: () => {
       console.log('User interrupted — stopping playback and listening');
+      // clearQueue stops every scheduled Web Audio source and briefly blocks
+      // late audio deltas from the cancelled response. Calling stopPlayback
+      // immediately afterward used to clear that protection too early.
       clearQueue();
-      stopPlayback();
       const store = useVoiceModeStore.getState();
       store.setStatus('listening');
       store.setIsAudioPlaying(false);
@@ -1033,7 +1035,6 @@ When the user shares their camera or attaches an image, describe what you see na
     console.log('Manual interrupt triggered via button');
     cancelResponse();
     clearQueue();
-    stopPlayback();
     const store = useVoiceModeStore.getState();
     store.setStatus('listening');
     store.setIsAudioPlaying(false);
@@ -1041,7 +1042,7 @@ When the user shares their camera or attaches an image, describe what you see na
     store.setIsSearching(false);
     store.setIsSearchingPastChats(false);
     store.setIsSchedulingTask(false);
-  }, [cancelResponse, clearQueue, stopPlayback]);
+  }, [cancelResponse, clearQueue]);
 
   // Register the interrupt handler globally
   useLayoutEffect(() => {

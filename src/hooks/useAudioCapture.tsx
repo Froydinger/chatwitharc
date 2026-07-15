@@ -99,18 +99,19 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
         
         // Only capture audio when ALL of these are true:
         // - Not muted by user
-        // - Status is 'listening' (not speaking, thinking, connecting, or idle)
+        // - Status is listening, or output audio is playing so the user can
+        //   naturally interrupt Arc mid-sentence (barge-in)
         // - No image generation in progress
         // - No web search in progress
-        // - No audio currently playing
+        // Browser echo cancellation plus server VAD filters Arc's own output.
         // Note: We intentionally do NOT check document.visibilityState here
         // so that iOS PWA can continue voice conversations in background
-        const shouldCapture = 
-          !isMuted && 
-          status === 'listening' && 
-          !isGeneratingImage && 
-          !isSearching && 
-          !isAudioPlaying;
+        const canListenForSpeech = status === 'listening' || status === 'speaking' || isAudioPlaying;
+        const shouldCapture =
+          !isMuted &&
+          canListenForSpeech &&
+          !isGeneratingImage &&
+          !isSearching;
         
         if (!shouldCapture) return;
         

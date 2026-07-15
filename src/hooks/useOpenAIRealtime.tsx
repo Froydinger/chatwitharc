@@ -619,18 +619,19 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         const isBargeIn = responseInProgress || voiceStateAtSpeechStart.status === 'speaking' || voiceStateAtSpeechStart.isAudioPlaying;
         suppressInterruptedResponseAudio = isBargeIn;
         useVoiceModeStore.getState().setHasPendingSpeech(true);
-        // Natural interruption: if AI is currently speaking, stop playback
-        // immediately so the user isn't talked over. Server VAD has
-        // interrupt_response:true so it will also cancel the response.
+        // For WebSocket Realtime sessions, speech_started is the authoritative
+        // barge-in signal. Always ask the client to stop local playback here;
+        // UI/store flags can lag behind scheduled Web Audio sources.
+        try {
+          optionsRef.current.onInterrupt?.();
+        } catch (err) {
+          console.warn('onInterrupt handler threw:', err);
+        }
+
+        // Server VAD also cancels with interrupt_response:true. Keep the
+        // explicit cancel as a harmless fallback for an in-flight response.
         if (isBargeIn && globalWs?.readyState === WebSocket.OPEN) {
           sendRealtimeEvent({ type: 'response.cancel' });
-        }
-        if (isBargeIn) {
-          try {
-            optionsRef.current.onInterrupt?.();
-          } catch (err) {
-            console.warn('onInterrupt handler threw:', err);
-          }
         }
         break;
 
@@ -1476,8 +1477,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 transcription: { model: 'gpt-4o-transcribe', language: 'en' },
                 turn_detection: {
                   type: 'server_vad',
-                  threshold: 0.5,
-                  prefix_padding_ms: 300,
+                  // Require clearer speech so keyboard clicks and other short
+                  // room noises are much less likely to open a voice turn.
+                  threshold: 0.7,
+                  prefix_padding_ms: 240,
                   silence_duration_ms: 700,
                   create_response: true,
                   interrupt_response: true,
