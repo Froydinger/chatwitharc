@@ -213,7 +213,9 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   setCurrentTranscript: (transcript) => set({ currentTranscript: transcript }),
   
   addConversationTurn: (turn) => set((state) => {
-    const MAX_TURNS = 50;
+    // Keep enough transcript history to survive a legitimate long-session
+    // Realtime reconnect without forgetting the topic from earlier in the call.
+    const MAX_TURNS = 120;
     const newTurns = [...state.conversationTurns, turn];
     const trimmedTurns = newTurns.length > MAX_TURNS
       ? newTurns.slice(-MAX_TURNS)
@@ -224,7 +226,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   // Insert a late-arriving user turn in conversational order.
   // If the latest turn is assistant, place user right before that latest assistant only.
   addUserTurnOrdered: (turn) => set((state) => {
-    const MAX_TURNS = 50;
+    const MAX_TURNS = 120;
     const turns = [...state.conversationTurns];
 
     if (turns.length > 0 && turns[turns.length - 1].role === 'assistant') {

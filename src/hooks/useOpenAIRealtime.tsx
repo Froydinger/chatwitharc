@@ -39,12 +39,12 @@ let suppressInterruptedResponseAudio = false;
 
 // Auto-reconnect state
 let reconnectAttempts = 0;
-// Allow many reconnects — OpenAI Realtime sessions are capped at ~15–30 minutes,
-// so a long voice chat WILL hit at least one forced disconnect. We must keep
-// the overlay alive through it instead of tearing the user back to chat.
+// Allow recovery from transient network failures and the finite Realtime
+// session-duration boundary without tearing the user back to chat.
 const MAX_RECONNECT_ATTEMPTS = 20;
 let lastSystemPrompt: string | null = null;
 let sessionReady = false; // Gate: true after session.created received
+let connectionOpenedAt = 0;
 
 // Keepalive: OpenAI may idle-disconnect long sessions during silence or
 // long-running tool calls. Send a lightweight ping every 20s.
@@ -53,14 +53,16 @@ let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
 // but no server events have arrived in a long time. Forces a clean reconnect.
 let watchdogInterval: ReturnType<typeof setInterval> | null = null;
 let lastServerEventAt: number = 0;
-const ZOMBIE_TIMEOUT_MS = 35000; // No server activity for 35s = zombie
+// Give a healthy connection room for OS timer throttling and ordinary pauses.
+// A 35s cutoff was aggressive enough to replace sessions that were not dead.
+const ZOMBIE_TIMEOUT_MS = 90000;
 // Cleanup interval reference (single source of truth — prevents duplicates on reconnect)
 let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
-// Proactive session refresh: OpenAI Realtime sessions expire after ~15 minutes.
-// We schedule a reconnect at 13 minutes so the user never hits the hard limit.
+// Realtime sessions support up to 60 minutes. Refresh shortly before that
+// boundary rather than needlessly replacing a healthy session every 13 min.
 let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
-const PROACTIVE_REFRESH_MS = 13 * 60 * 1000; // 13 minutes
+const PROACTIVE_REFRESH_MS = 55 * 60 * 1000;
 
 // Deterministic errors that should NOT trigger reconnect
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
@@ -1233,11 +1235,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           return;
         }
 
-        // Session expired — OpenAI hard-kills sessions after ~15 minutes.
+        // Session expired — Realtime sessions have a finite maximum duration.
         // This is expected during long calls. Reconnect seamlessly without
         // tearing down the overlay or losing conversation history.
         if (event.error?.code === 'session_expired') {
-          console.warn('OpenAI session expired (15-min limit) — reconnecting seamlessly');
+          console.warn('OpenAI session expired — reconnecting seamlessly');
           // The WebSocket will close immediately after this error event.
           // onclose will handle the reconnect; we just need to make sure
           // reconnectAttempts is low enough to allow it.
@@ -1380,6 +1382,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         });
         globalConnecting = false;
         reconnectAttempts = 0;
+        connectionOpenedAt = Date.now();
         setIsConnected(true);
         setStatus('listening');
         
@@ -1434,8 +1437,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }, 10000);
 
         // Proactive session refresh: schedule a reconnect just before the
-        // 15-minute hard limit so the user never experiences a forced drop.
-        // We close the current WS cleanly at 13 minutes; onclose then
+        // 60-minute hard limit so the user never experiences a forced drop.
+        // We close the current WS cleanly at 55 minutes; onclose then
         // reconnects with an updated system prompt that includes conversation
         // context so the AI remembers what was discussed.
         if (proactiveRefreshTimer) {
@@ -1446,7 +1449,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           const { isActive } = useVoiceModeStore.getState();
           if (!isActive || !globalWs || globalWs.readyState !== WebSocket.OPEN) return;
 
-          console.log('Proactive session refresh at 13-min mark — reconnecting before expiry');
+          console.log('Proactive session refresh at 55-min mark — reconnecting before expiry');
 
           // Ask the controller for an updated system prompt that includes
           // a summary of the conversation so far.
@@ -1469,7 +1472,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           type: 'session.update',
           session: {
             type: 'realtime',
-            instructions: systemPrompt || `You're Arc — a calm, laid-back, friendly voice companion. Talk like a real person hanging out: relaxed, natural, a little playful, genuinely curious. Be warm but never gushy. Avoid sycophantic openers like "Great question!", "Absolutely!", "I'd love to", "What a great idea", or over-the-top enthusiasm. Skip filler praise. Don't perform — just talk. Be creative and thoughtful when it fits, concise by default. Use contractions, casual phrasing, occasional dry humor. CRITICAL RULE: NEVER speak unless the user has spoken first. Do NOT say things like "no rush", "take your time", "I'm here whenever you're ready", or any filler during silence. Just wait quietly. Tool results appear directly in the chat thread. When generating an image, say something low-key first like "one sec, cooking that up" or "alright, on it" before calling generate_image. Use revise_image for "edit that" or follow-up image edits. Use create_scheduled_task for reminders.`,
+            instructions: systemPrompt || lastSystemPrompt || `You are Arc, the AI companion inside the ArcAI app by Win The Night. You know ArcAI includes live voice, regular chat, memory, past-chat search, web search, weather, images, reminders, and vision tools. Never claim you do not know which app you are part of. Talk like a real person: relaxed, concise, warm, and lightly playful. CRITICAL: Never speak unless the user has spoken first; silence needs no filler.`,
             output_modalities: ['audio'],
             audio: {
               input: {
@@ -1678,7 +1681,16 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           event_type: 'websocket_close',
           message: event.reason || '(no reason)',
           connection_state: 'closed',
-          details: { code: event.code, reason: event.reason, wasClean: event.wasClean, reconnectAttempts },
+          details: {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean,
+            reconnectAttempts,
+            sessionAgeMs: connectionOpenedAt ? Date.now() - connectionOpenedAt : null,
+            responseInProgress,
+            activeToolCallId,
+            conversationTurnCount: useVoiceModeStore.getState().conversationTurns.length,
+          },
         });
         globalConnecting = false;
         globalWs = null;

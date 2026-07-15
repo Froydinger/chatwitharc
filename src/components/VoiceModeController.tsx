@@ -144,6 +144,13 @@ async function fallbackSearch(query: string, userId: string): Promise<string> {
     : `No conversations found about "${query}".`;
 }
 
+const ARC_VOICE_IDENTITY_CONTEXT = `=== ARC IDENTITY AND PRODUCT CONTEXT (CRITICAL) ===
+You are Arc, the AI companion inside the ArcAI app by Win The Night. ArcAI is the app the user is currently using to talk with you. Speak about ArcAI and its capabilities in the first person ("I can…", "my memory…", "our chat…"). Never claim you have no idea which app or interface you are part of.
+
+ArcAI includes regular chat, this live voice mode, saved memories, searchable past chats, web search, weather, image generation and editing, reminders, and camera/image vision. Those capabilities are real and available through your tools. When the user refers to something from their memories or earlier chats, use recall_memory or search_past_chats instead of claiming you cannot access it or asking them to repeat it.
+
+Be precise about the boundary: you know you are Arc inside ArcAI and you know the product capabilities, but you do not automatically see the user's exact screen layout or other apps unless they share an image/camera view. Never turn that visual limitation into a claim that you lack ArcAI product context.`;
+
 async function buildVoiceSystemPrompt(
   profile: { display_name?: string | null; context_info?: string | null; memory_info?: string | null } | null,
   recentChatSummary: string
@@ -170,10 +177,10 @@ async function buildVoiceSystemPrompt(
       return acc;
     }, {} as Record<string, string>) || {};
 
-    let basePrompt = settings.system_prompt || 'You are Arc AI, a helpful assistant.';
+    const basePrompt = settings.system_prompt || 'You are Arc AI, a helpful assistant.';
     const globalContext = settings.global_context || '';
 
-    let voicePrompt = basePrompt;
+    let voicePrompt = `${basePrompt}\n\n${ARC_VOICE_IDENTITY_CONTEXT}`;
     
     voicePrompt += `\n\n--- VOICE MODE ---
 This is a chill voice chat. Drop the formality, just talk like you're hanging with a friend:
@@ -237,7 +244,7 @@ If a user asks to update, revise, change, or make another version of the latest 
     return voicePrompt;
   } catch (error) {
     console.error('Failed to fetch voice system prompt:', error);
-    return `You're Arc - a calm, friendly voice assistant. Be warm, conversational, and keep responses concise.`;
+    return `${ARC_VOICE_IDENTITY_CONTEXT}\n\nYou're a calm, friendly voice companion. Be warm, conversational, and keep responses concise.`;
   }
 }
 
@@ -260,20 +267,20 @@ function summarizeRecentChats(messages: Message[], maxMessages = 20): string {
 /**
  * Build a brief summary of the current voice conversation turns so it can be
  * injected into the system prompt of a fresh session after a reconnect. This
- * lets the AI maintain conversational continuity across the 15-minute session
- * boundary without losing context.
+ * lets the AI maintain conversational continuity across a transport reconnect
+ * or the Realtime session-duration boundary without losing context.
  */
-function summarizeVoiceTurns(turns: Array<{ role: string; transcript: string }>, maxTurns = 30): string {
+function summarizeVoiceTurns(turns: Array<{ role: string; transcript: string }>, maxTurns = 80): string {
   if (!turns || turns.length === 0) return '';
   const recent = turns.slice(-maxTurns);
   const lines = recent.map(t => {
     const role = t.role === 'user' ? 'User' : 'You';
-    const content = t.transcript.length > 300
-      ? t.transcript.substring(0, 300) + '...'
+    const content = t.transcript.length > 500
+      ? t.transcript.substring(0, 500) + '...'
       : t.transcript;
     return `${role}: ${content}`;
   }).join('\n');
-  return `--- VOICE CONVERSATION SO FAR (session resumed) ---\nYou are continuing a voice conversation. Here is what was discussed before the session refreshed:\n${lines}\n--- END OF PRIOR CONTEXT ---`;
+  return `--- VOICE CONVERSATION SO FAR (AUTHORITATIVE CONTINUATION) ---\nThe transport reconnected silently, but this is the SAME conversation, not a new chat. Continue the exact topic naturally and do not say you lost context or ask the user to repeat information already shown here:\n${lines}\n--- END OF PRIOR CONTEXT ---`;
 }
 
 // How many turns we've already persisted (incremental save pointer)
@@ -916,7 +923,7 @@ export function VoiceModeController() {
         return acc;
       }, {});
 
-      let prompt = settings.system_prompt || 'You are Arc AI, a helpful assistant.';
+      let prompt = `${settings.system_prompt || 'You are Arc AI, a helpful assistant.'}\n\n${ARC_VOICE_IDENTITY_CONTEXT}`;
       const globalContext = settings.global_context || '';
 
       prompt += `\n\n--- VOICE MODE ---
