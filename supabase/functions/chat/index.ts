@@ -342,20 +342,22 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
   return webSearchTavily(query);
 }
 
-// Tavily search (fallback)
+// Tavily search
 async function webSearchTavily(query: string): Promise<WebSearchResponse> {
   const tavilyApiKey = Deno.env.get('TAVILY_API_KEY');
   if (!tavilyApiKey) {
-    return { summary: "Web search is not configured. Please add PERPLEXITY_API_KEY or TAVILY_API_KEY.", sources: [], searchProvider: 'tavily' };
+    return { summary: "Web search is not configured. Please add TAVILY_API_KEY.", sources: [], searchProvider: 'tavily' };
   }
 
   try {
     console.log('🔍 Performing Tavily search for:', query);
     const response = await fetch('https://api.tavily.com/search', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${tavilyApiKey}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        api_key: tavilyApiKey,
         query: query,
         search_depth: 'advanced',
         max_results: 6,

@@ -116,9 +116,11 @@ serve(async (req) => {
     // 1. Tavily search — research-grade settings (advanced depth, deep chunks, raw content, advanced answer)
     const tavilyResp = await fetch('https://api.tavily.com/search', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${TAVILY_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        api_key: TAVILY_API_KEY,
         query: userQuery,
         search_depth: 'advanced',
         chunks_per_source: 3,
