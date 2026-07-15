@@ -132,7 +132,15 @@ export function AdminPanel() {
       setUsers(data.users || []);
     } catch (err: any) {
       console.error("Failed to fetch users:", err);
-      toast({ title: "Error", description: "Failed to load users", variant: "destructive" });
+      let description = err?.message || "Failed to load users";
+      try {
+        const response = err?.context as Response | undefined;
+        const payload = response ? await response.clone().json() : null;
+        if (payload?.error) description = payload.error;
+      } catch {
+        // Keep the SDK error when the response body is unavailable.
+      }
+      toast({ title: "Error", description, variant: "destructive" });
     } finally {
       setUsersLoading(false);
     }
@@ -816,7 +824,7 @@ export function AdminPanel() {
                     <CardDescription>{users.length} registered profiles in total</CardDescription>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <Button variant="outline" size="sm" onClick={fetchUsers} disabled={usersLoading} className="border-border/60">
+                    <Button variant="outline" size="sm" onClick={() => fetchUsers()} disabled={usersLoading} className="border-border/60">
                       <RefreshCw className={cn("h-3.5 w-3.5 mr-2", usersLoading && "animate-spin")} />
                       Refresh
                     </Button>

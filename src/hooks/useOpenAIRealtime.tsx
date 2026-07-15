@@ -49,13 +49,6 @@ let connectionOpenedAt = 0;
 // Keepalive: OpenAI may idle-disconnect long sessions during silence or
 // long-running tool calls. Send a lightweight ping every 20s.
 let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
-// Watchdog: detect zombie WebSockets where the connection appears open
-// but no server events have arrived in a long time. Forces a clean reconnect.
-let watchdogInterval: ReturnType<typeof setInterval> | null = null;
-let lastServerEventAt: number = 0;
-// Give a healthy connection room for OS timer throttling and ordinary pauses.
-// A 35s cutoff was aggressive enough to replace sessions that were not dead.
-const ZOMBIE_TIMEOUT_MS = 90000;
 // Cleanup interval reference (single source of truth — prevents duplicates on reconnect)
 let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -527,10 +520,6 @@ const clearConnectionTimers = () => {
     clearTimeout(proactiveRefreshTimer);
     proactiveRefreshTimer = null;
   }
-  if (watchdogInterval) {
-    clearInterval(watchdogInterval);
-    watchdogInterval = null;
-  }
 };
 
 const sendRealtimeEvent = (payload: Record<string, unknown>): boolean => {
@@ -590,7 +579,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   }, []);
 
   const handleServerEvent = useCallback((event: any) => {
-    lastServerEventAt = Date.now();
     const { setStatus, setCurrentTranscript } = useVoiceModeStore.getState();
     
     switch (event.type) {
@@ -1408,33 +1396,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             sendRealtimeEvent({ type: 'session.update', session: { type: 'realtime' } });
           }
         }, 20000);
-
-        // Watchdog: if no server events arrive for 35s, the WebSocket is a
-        // zombie (connection appears OPEN but the relay is dead). Force-close
-        // it so onclose triggers a clean reconnect with full context.
-        lastServerEventAt = Date.now();
-        if (watchdogInterval) {
-          clearInterval(watchdogInterval);
-        }
-        watchdogInterval = setInterval(() => {
-          if (!globalWs || globalWs.readyState !== WebSocket.OPEN) return;
-          const silentFor = Date.now() - lastServerEventAt;
-          if (activeToolCallId || pendingFunctionResults.length > 0) {
-            lastServerEventAt = Date.now();
-            return;
-          }
-          if (silentFor > ZOMBIE_TIMEOUT_MS) {
-            console.warn(`Zombie WebSocket detected (${silentFor}ms silent) — forcing reconnect`);
-            logVoiceDiagnostic({
-              event_type: 'zombie_ws_detected',
-              message: `No server events for ${silentFor}ms — forcing reconnect`,
-              details: { silentMs: silentFor },
-            });
-            // Reset attempts so onclose reconnects immediately.
-            reconnectAttempts = 0;
-            try { globalWs.close(4002, 'zombie_watchdog'); } catch {}
-          }
-        }, 10000);
 
         // Proactive session refresh: schedule a reconnect just before the
         // 60-minute hard limit so the user never experiences a forced drop.
