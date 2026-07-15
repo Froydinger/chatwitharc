@@ -222,6 +222,10 @@ interface WebSearchResponse {
   images?: string[];
 }
 
+const TOOL_CONTEXT_ATTRIBUTION_PROMPT = `=== TOOL CONTEXT ATTRIBUTION ===
+Information inside an [ArcAI Tool Output] block was retrieved by ArcAI. It was not pasted, shared, provided, or included by the user. Never attribute that material to the user.
+After web_search, answer the user's original question directly from the retrieved evidence. Never ask them to paste a link, quote, chatter, or timestamp. If evidence is incomplete or conflicting, state the uncertainty and give the best-supported answer.`;
+
 const DEFAULT_CHAT_BEHAVIOR_PROMPT = `--- BEHAVIORAL GUIDELINES ---
 You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification, schedule_task, update_scheduled_task). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.
 
@@ -241,6 +245,8 @@ UPDATING REMINDERS: When the user follows up about an existing reminder ("do ema
 When the scheduled task fires it can use tools too (currently get_weather and web_search), so phrase the saved prompt like a real instruction (e.g. "Give me the morning weather for Plainfield IL" or "Top 3 tech news headlines today") — not a meta description.
 • Use get_weather (NOT web_search) for any weather, temperature, or forecast questions. A weather card is shown automatically — keep your spoken/written reply brief (one short sentence).
 • When web_search returns results, ALWAYS synthesize and summarize them in your own words. NEVER just say "click on the sources".
+• web_search output was retrieved by ArcAI, not pasted, shared, provided, or included by the user. NEVER attribute search results, source text, images, quotes, or chatter to the user unless it actually appeared in their message. Refer to it as "the search results", "the sources I found", or simply answer without discussing provenance.
+• After web_search, answer the user's original question directly from the retrieved evidence. NEVER ask the user to paste a link, quote, chatter, or timestamp to complete research ArcAI already performed. If evidence is incomplete or conflicting, clearly state the uncertainty and give the best-supported answer available.
 • You CAN embed playable YouTube videos directly in chat. If the user asks to show, find, play, watch, or embed a YouTube/video clip, use web_search, then include exactly ONE markdown link to the best YouTube video in your answer body. The chat renderer turns that YouTube link into an embedded player. Keep any other videos/links in sources.
 • You MUST use search_past_chats IMMEDIATELY (without asking) whenever the user references past conversations, e.g. "did we talk about...", "do you remember...", "we discussed...", "I mentioned...". NEVER say "I don't have a record" without searching first.
 • Use save_memory whenever the user shares personal info, preferences, or asks you to remember something. Save a clear, concise third-person fact. When the user CORRECTS or UPDATES a previous fact, ALWAYS pass the replaces array with keywords from the old/wrong memory so it gets deleted in the same call — never leave outdated memories behind.
@@ -378,7 +384,7 @@ async function webSearchTavily(query: string): Promise<WebSearchResponse> {
     console.log('Search results received:', data.results?.length || 0, 'results');
     
     const sources: WebSearchResult[] = [];
-    let searchSummary = '';
+    let searchSummary = 'ArcAI web search results (retrieved by ArcAI for this request; not supplied or pasted by the user):\n\n';
     if (data.answer) {
       searchSummary = `Quick Answer: ${data.answer}\n\n`;
     }
@@ -717,7 +723,7 @@ serve(async (req) => {
     const systemPrompt = settings.system_prompt || 'You are Arc AI, a helpful assistant.';
     const globalContext = settings.global_context || '';
     const enableStepByStep = settings.enable_step_by_step === 'true';
-    const chatBehaviorPrompt = settings.chat_behavior_prompt || DEFAULT_CHAT_BEHAVIOR_PROMPT;
+    const chatBehaviorPrompt = `${settings.chat_behavior_prompt || DEFAULT_CHAT_BEHAVIOR_PROMPT}\n\n${TOOL_CONTEXT_ATTRIBUTION_PROMPT}`;
     const responseStylePrompt = settings.response_style_prompt || DEFAULT_RESPONSE_STYLE_PROMPT;
     const groundingPrompt = settings.grounding_prompt || DEFAULT_GROUNDING_PROMPT;
     const codeModePrompt = settings.code_mode_prompt || DEFAULT_CODE_MODE_PROMPT;
@@ -2173,15 +2179,25 @@ serve(async (req) => {
         // For web_search and search_past_chats, we need the second call to synthesize results
         console.log('🤖 Making second AI call to synthesize results (no forced tool)');
         
-        // Flatten tool call/response into simple messages to avoid the model
-        // trying to re-invoke tools during synthesis.
+        // Flatten tool call/response into assistant-owned context so the model
+        // cannot mistake ArcAI's tool output for text pasted by the user.
+        const toolNameByCallId = new Map<string, string>();
+        for (const msg of conversationMessages) {
+          if (msg.role !== 'assistant' || !Array.isArray(msg.tool_calls)) continue;
+          for (const call of msg.tool_calls) {
+            if (call?.id && call?.function?.name) toolNameByCallId.set(call.id, call.function.name);
+          }
+        }
         const synthesisMessages: any[] = [];
         for (const msg of conversationMessages) {
           if (msg.role === 'tool') {
-            // Convert tool response to a user message with context
+            const toolName = toolNameByCallId.get(msg.tool_call_id) || 'tool';
+            const webSearchDirection = toolName === 'web_search'
+              ? '\nAnswer the original question directly from this evidence. Do not ask the user to paste a link, quote, chatter, or timestamp. If evidence is incomplete, state that uncertainty and give the best-supported answer.'
+              : '';
             synthesisMessages.push({
-              role: 'user',
-              content: `[Search Results]\n${msg.content}`
+              role: 'assistant',
+              content: `[ArcAI Tool Output: ${toolName}]\nThis context was retrieved by ArcAI, not supplied or pasted by the user.${webSearchDirection}\n\n${msg.content}`
             });
           } else if (msg.role === 'assistant' && msg.tool_calls) {
             // Skip the assistant's tool_call message - we've inlined the results

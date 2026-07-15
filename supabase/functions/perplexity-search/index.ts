@@ -185,9 +185,9 @@ serve(async (req) => {
 
       const tavilyAnswer = tavilyData.answer ? `\n\nQuick answer (reference only, do not cite directly): ${tavilyData.answer}` : '';
 
-      const synthSystem = `You are an expert research analyst. Produce a thorough, well-structured answer to the user's query using ONLY the provided sources. Synthesize across sources — compare, contrast, and reconcile differences. Use clear markdown headings, short paragraphs, and bullet points where helpful. Aim for depth and nuance, not just summary. CITATION RULES: Cite inline with [1], [2] etc. matching source numbers. Use a MINIMUM of 4 and MAXIMUM of 8 distinct sources. Never invent source numbers or write full URLs inline. Do not mention which search engine or AI was used.`;
+      const synthSystem = `You are an expert research analyst. Produce a thorough, well-structured answer to the user's query using ONLY the retrieved sources. These sources were found by ArcAI; they were NOT pasted, shared, provided, or included by the user. Never attribute source material to the user. Answer the query directly and do not ask the user to paste a link, quote, or timestamp. If evidence is incomplete or conflicting, state the uncertainty and provide the best-supported answer. Synthesize across sources — compare, contrast, and reconcile differences. Use clear markdown headings, short paragraphs, and bullet points where helpful. Aim for depth and nuance, not just summary. CITATION RULES: Cite inline with [1], [2] etc. matching source numbers. Use a MINIMUM of 4 and MAXIMUM of 8 distinct sources. Never invent source numbers or write full URLs inline. Do not mention which search engine or AI was used.`;
 
-      const synthUser = `Query: ${userQuery}\n\nSources:\n${sourceBlock}${tavilyAnswer}\n\nWrite the comprehensive cited research answer now.`;
+      const synthUser = `Query: ${userQuery}\n\nArcAI-retrieved sources (not user-provided):\n${sourceBlock}${tavilyAnswer}\n\nWrite the comprehensive cited research answer now.`;
 
       try {
         const aiResp = await fetch('https://api.openai.com/v1/chat/completions', {
