@@ -128,18 +128,20 @@ async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob;
     bytes = new Uint8Array(await res.arrayBuffer());
   }
 
-  // Sniff actual format; if unrecognized, re-encode through imagescript to PNG so OpenAI accepts it.
-  let sniffed = sniffImageMime(bytes);
-  if (!sniffed) {
-    try {
-      const decoded = await decode(bytes) as Image;
-      const out = await decoded.encode();
-      bytes = out;
-      sniffed = { mime: 'image/png', ext: 'png' };
-    } catch (e) {
-      throw new Error(`Unsupported source image format (not PNG/JPEG/WebP and could not be re-encoded): ${e instanceof Error ? e.message : 'decode failed'}`);
-    }
+  // Always decode and re-encode source images. Browser/camera uploads can be
+  // valid JPEG/PNG files while still using a color mode, metadata layout, or
+  // encoding variant rejected by the Images edit endpoint. A fresh ImageScript
+  // PNG gives OpenAI predictable RGBA pixels regardless of the source format.
+  const originalFormat = sniffImageMime(bytes);
+  try {
+    const decoded = await decode(bytes) as Image;
+    bytes = await decoded.encode();
+  } catch (e) {
+    throw new Error(
+      `Source image could not be normalized${originalFormat ? ` from ${originalFormat.mime}` : ''}: ${e instanceof Error ? e.message : 'decode failed'}`,
+    );
   }
+  const sniffed = { mime: 'image/png', ext: 'png' };
 
   const blobBytes = new Uint8Array(bytes.byteLength);
   blobBytes.set(bytes);
@@ -191,11 +193,14 @@ async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: st
     form.append('size', size);
     form.append('quality', 'low');
     form.append('n', String(count));
-    // OpenAI's multipart Images API expects an image array, encoded as repeated
-    // `image[]` fields. Repeating a plain `image` field causes multi-image
-    // requests to be parsed as the wrong positional input.
-    for (const { blob, filename } of blobs) {
-      form.append('image[]', blob, filename);
+    // The multipart endpoint accepts a scalar for one source and an array for
+    // multi-source composition. Preserve both shapes explicitly.
+    if (blobs.length === 1) {
+      form.append('image', blobs[0].blob, blobs[0].filename);
+    } else {
+      for (const { blob, filename } of blobs) {
+        form.append('image[]', blob, filename);
+      }
     }
     const response = await fetch(endpoint, { method: 'POST', headers, body: form, signal: controller.signal });
     const rawText = await response.text();
