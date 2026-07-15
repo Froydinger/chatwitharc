@@ -55,7 +55,11 @@ function classifyError(status: number, rawText: string) {
     if (lower.includes('safety') || lower.includes('content policy') || lower.includes('blocked') || lower.includes('responsible ai')) {
       return { errorType: 'content_violation', errorMessage: 'Blocked by content safety filters. Try rephrasing your prompt.', debugDetail };
     }
-    if (lower.includes('invalid_argument') || lower.includes('unable to process input image')) {
+    if (
+      lower.includes('invalid_argument') ||
+      lower.includes('unable to process input image') ||
+      lower.includes('invalid image file or mode')
+    ) {
       return { errorType: 'invalid_input_image', errorMessage: "The source image couldn't be processed. Try a different image.", debugDetail };
     }
   } catch { /* not JSON */ }
@@ -187,9 +191,11 @@ async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: st
     form.append('size', size);
     form.append('quality', 'low');
     form.append('n', String(count));
-    // OpenAI's /v1/images/edits takes the `image` field repeated for multi-source.
+    // OpenAI's multipart Images API expects an image array, encoded as repeated
+    // `image[]` fields. Repeating a plain `image` field causes multi-image
+    // requests to be parsed as the wrong positional input.
     for (const { blob, filename } of blobs) {
-      form.append('image', blob, filename);
+      form.append('image[]', blob, filename);
     }
     const response = await fetch(endpoint, { method: 'POST', headers, body: form, signal: controller.signal });
     const rawText = await response.text();

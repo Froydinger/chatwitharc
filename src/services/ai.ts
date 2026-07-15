@@ -713,7 +713,7 @@ export class AIService {
 
     try {
       const images = Array.isArray(baseImageUrls) ? baseImageUrls : [baseImageUrls];
-      if (images.length > 14) throw new Error('Maximum 14 images allowed for combining');
+      if (images.length > 10) throw new Error('Maximum 10 images allowed for combining');
 
       const modelToUse = imageModel || 'gpt-image-2';
       const safeCount = Math.max(1, Math.min(3, Math.floor(count) || 1));
