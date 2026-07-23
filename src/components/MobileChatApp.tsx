@@ -178,53 +178,86 @@ const ACCENT_SWATCHES: { id: AccentColor; label: string; gradient: string; admin
 function ArcInputEffects({
   isNewChat = false,
   isWorking = false,
+  active,
   theme,
   children,
 }: {
   isNewChat?: boolean;
   isWorking?: boolean;
+  active?: boolean;
   theme: "dark" | "light" | "auto";
   children: ReactNode;
 }) {
-  const shouldGlow = isNewChat || isWorking;
+  const shouldGlow = Boolean(active ?? (isNewChat || isWorking));
+  const [visible, setVisible] = useState(shouldGlow);
+  const [renderBeam, setRenderBeam] = useState(shouldGlow);
+
+  useEffect(() => {
+    if (shouldGlow) {
+      setRenderBeam(true);
+      const frame = requestAnimationFrame(() => {
+        setVisible(true);
+      });
+      return () => cancelAnimationFrame(frame);
+    } else {
+      setVisible(false);
+      const timer = setTimeout(() => {
+        setRenderBeam(false);
+      }, 750);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldGlow]);
+
   const fill = { width: "100%", height: "100%" } as const;
   return (
     <div className="arc-input-shell">
       {/* Beam layer BEHIND the opaque dock: rainbow halo spills past on new chat or when Arc is thinking */}
-      <div className="arc-input-fx arc-input-fx--beam" aria-hidden="true">
-        <BorderBeam
-          active={shouldGlow}
-          size="pulse-outside"
-          colorVariant="colorful"
-          theme={theme}
-          strength={isWorking ? 0.85 : 0.65}
-          duration={isWorking ? 1.6 : 2.4}
-          borderRadius={9999}
-          className="arc-input-effects"
-          style={fill}
+      {renderBeam && (
+        <div
+          className="arc-input-fx arc-input-fx--beam transition-opacity duration-700 ease-out"
+          style={{ opacity: visible ? 1 : 0 }}
+          aria-hidden="true"
         >
-          <span className="arc-input-fx-host" style={fill} />
-        </BorderBeam>
-      </div>
+          <BorderBeam
+            active={true}
+            size="pulse-outside"
+            colorVariant="colorful"
+            theme={theme}
+            strength={isWorking ? 0.85 : 0.65}
+            duration={isWorking ? 1.6 : 2.4}
+            borderRadius={9999}
+            className="arc-input-effects"
+            style={fill}
+          >
+            <span className="arc-input-fx-host" style={fill} />
+          </BorderBeam>
+        </div>
+      )}
 
       {children}
 
       {/* Metal ring layer ON TOP */}
-      <div className="arc-input-fx arc-input-fx--metal" aria-hidden="true">
-        <MetalFx
-          preset="silver"
-          strength={isWorking ? 0.35 : isNewChat ? 0.2 : 0}
-          paused={!shouldGlow}
-          disableGlow
-          theme={theme}
-          borderRadius={9999}
-          normalizeHostStyles={false}
-          className="arc-input-metal"
-          style={fill}
+      {renderBeam && (
+        <div
+          className="arc-input-fx arc-input-fx--metal transition-opacity duration-700 ease-out"
+          style={{ opacity: visible ? 1 : 0 }}
+          aria-hidden="true"
         >
-          <span className="arc-input-fx-host" style={fill} />
-        </MetalFx>
-      </div>
+          <MetalFx
+            preset="silver"
+            strength={isWorking ? 0.35 : isNewChat ? 0.2 : 0}
+            paused={!visible}
+            disableGlow
+            theme={theme}
+            borderRadius={9999}
+            normalizeHostStyles={false}
+            className="arc-input-metal"
+            style={fill}
+          >
+            <span className="arc-input-fx-host" style={fill} />
+          </MetalFx>
+        </div>
+      )}
     </div>
   );
 }
@@ -1730,7 +1763,7 @@ export function MobileChatApp() {
           background: hsl(var(--card));
           border: 1px solid hsl(var(--border) / 0.4);
           box-shadow: none;
-          transition: border-color 0.2s ease;
+          transition: border-color 0.5s ease, background 0.7s ease, box-shadow 0.7s ease;
           cursor: text;
         }
         .glass-dock[data-arc-working="true"]{
