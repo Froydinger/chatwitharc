@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, LayoutDashboard, Share2, Lock, MoreHorizontal, Monitor, Check, Palette, CircleGauge } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { BorderBeam } from "border-beam";
+import { MetalFx } from "metal-fx";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
 import { usePersonasStore } from "@/store/usePersonasStore";
@@ -156,6 +158,32 @@ const ACCENT_SWATCHES: { id: AccentColor; label: string; gradient: string; admin
   { id: "gold",   label: "Gold",   gradient: "linear-gradient(135deg, hsl(40,78%,42%), hsl(46,92%,64%) 50%, hsl(43,82%,48%))", adminOnly: true },
 ];
 
+function ArcInputEffects({ active, children }: { active: boolean; children: ReactNode }) {
+  return (
+    <BorderBeam
+      active={active}
+      size="pulse-outside"
+      colorVariant="ocean"
+      theme="auto"
+      strength={0.62}
+      duration={2.1}
+      borderRadius={9999}
+      className="arc-input-effects"
+    >
+      <MetalFx
+        preset="silver"
+        strength={0.25}
+        paused={!active}
+        borderRadius={9999}
+        normalizeHostStyles={false}
+        className="arc-input-metal"
+      >
+        {children}
+      </MetalFx>
+    </BorderBeam>
+  );
+}
+
 export function MobileChatApp() {
   const navigate = useNavigate();
   const accent = useAccentStore((s) => s.accentColor);
@@ -172,6 +200,7 @@ export function MobileChatApp() {
     isGeneratingImage,
     isSearchingChats,
     isAccessingMemory,
+    isSearchingWeb,
     createNewSession,
     startChatWithMessage,
     currentSessionId,
@@ -186,6 +215,7 @@ export function MobileChatApp() {
     loadSession,
     refreshSessionFromSupabase,
   } = useArcStore();
+  const isArcWorking = isLoading || isGeneratingImage || isSearchingChats || isAccessingMemory || isSearchingWeb;
   const { profile } = useProfile();
   const { dailyImagesUsed, remainingImages, limit } = useImageQuota();
   const { user, isAnonymous } = useAuth();
@@ -1099,9 +1129,11 @@ export function MobileChatApp() {
                       isLoading={isLoading}
                     />
                   </div>
-                  <div className="glass-dock">
-                    <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false} />
-                  </div>
+                  <ArcInputEffects active={isArcWorking}>
+                    <div className="glass-dock" data-arc-working={isArcWorking}>
+                      <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false} />
+                    </div>
+                  </ArcInputEffects>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1218,6 +1250,7 @@ export function MobileChatApp() {
                             isGeneratingImage={false}
                             searchingChats={isSearchingChats}
                             accessingMemory={isAccessingMemory}
+                            searchingWeb={isSearchingWeb}
                           />
                         </motion.div>
                       )}
@@ -1285,6 +1318,7 @@ export function MobileChatApp() {
                     isGeneratingImage={isGeneratingImage}
                     searchingChats={isSearchingChats}
                     accessingMemory={isAccessingMemory}
+                    searchingWeb={isSearchingWeb}
                   />
                 </motion.div>
               )}
@@ -1305,17 +1339,20 @@ export function MobileChatApp() {
                 </motion.div>
               )}
 
-              <motion.div
-                className="pointer-events-auto glass-dock"
-                data-has-images={hasSelectedImages}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 12 }}
-                transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-                style={{ willChange: 'transform, opacity' }}
-              >
-                <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
-              </motion.div>
+              <ArcInputEffects active={isArcWorking}>
+                <motion.div
+                  className="pointer-events-auto glass-dock"
+                  data-has-images={hasSelectedImages}
+                  data-arc-working={isArcWorking}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 12 }}
+                  transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ willChange: 'transform, opacity' }}
+                >
+                  <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
+                </motion.div>
+              </ArcInputEffects>
               {/* Quick Prompts - below input bar on empty state */}
               {messages.length === 0 && (
                 <div className="pointer-events-auto mt-4 flex justify-center">
@@ -1597,6 +1634,18 @@ export function MobileChatApp() {
         }
 
         /* —— Flat Luxe Input Bar —— */
+        .arc-input-effects,
+        .arc-input-metal{
+          width: 100%;
+          max-width: 760px;
+          margin: 0 auto;
+        }
+        .arc-input-metal{
+          display: flex !important;
+        }
+        .arc-input-metal > .glass-dock{
+          width: 100%;
+        }
         .glass-dock{
           position: relative;
           margin: 0 auto;
@@ -1609,6 +1658,17 @@ export function MobileChatApp() {
           box-shadow: none;
           transition: border-color 0.2s ease;
           cursor: text;
+        }
+        .glass-dock[data-arc-working="true"]{
+          background:
+            linear-gradient(115deg, hsl(var(--primary) / 0.07), transparent 38%, hsl(var(--primary) / 0.05)),
+            hsl(var(--card) / 0.88);
+          backdrop-filter: blur(22px) saturate(125%);
+          -webkit-backdrop-filter: blur(22px) saturate(125%);
+          border-color: hsl(var(--primary) / 0.36);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.12),
+            0 0 28px hsl(var(--primary) / 0.09);
         }
         .glass-dock::before{ display: none; }
         .glass-dock:hover{
