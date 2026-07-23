@@ -950,6 +950,17 @@ export function SettingsPanel() {
             Win the Night Productions
           </a>
         </div>
+        <p className="text-[11px] text-muted-foreground/60 opacity-60 pt-1">
+          UI &amp; animations inspired by{" "}
+          <a
+            href="https://x.com/Jakubantalik"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-primary-glow transition-colors"
+          >
+            Jakub Antalik (@Jakubantalik)
+          </a>
+        </p>
       </div>
     </div>
   );
@@ -1075,6 +1086,17 @@ export function SettingsPanel() {
                 className="hover:text-primary-glow underline"
               >
                 WTN
+              </a>
+            </div>
+            <div className="text-[10px] text-muted-foreground/60 opacity-60 pt-0.5">
+              UI &amp; animations by{" "}
+              <a
+                href="https://x.com/Jakubantalik"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-primary-glow transition-colors"
+              >
+                Jakub Antalik (@Jakubantalik)
               </a>
             </div>
           </div>

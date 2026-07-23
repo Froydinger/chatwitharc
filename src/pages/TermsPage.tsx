@@ -164,10 +164,21 @@ export default function TermsPage() {
           </div>
         </div>
 
-        <div className="text-center mt-8">
-          <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <div className="text-center mt-8 space-y-2">
+          <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors block">
             Read the Privacy Notice →
           </Link>
+          <p className="text-xs text-muted-foreground/60">
+            UI &amp; animation design inspired by{" "}
+            <a
+              href="https://x.com/Jakubantalik"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground transition-colors"
+            >
+              Jakub Antalik (@Jakubantalik)
+            </a>
+          </p>
         </div>
       </div>
     </div>
