@@ -169,7 +169,7 @@ export default function TermsPage() {
             Read the Privacy Notice →
           </Link>
           <p className="text-xs text-muted-foreground/60">
-            UI &amp; animation design inspired by{" "}
+            Some animations by{" "}
             <a
               href="https://x.com/Jakubantalik"
               target="_blank"
