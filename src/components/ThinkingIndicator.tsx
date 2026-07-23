@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Sparkles, Music } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemedLogo } from "@/components/ThemedLogo";
+import { ThinkingOrb } from "thinking-orbs";
 
 interface ThinkingIndicatorProps {
   isLoading: boolean;
@@ -119,6 +120,8 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
     return ARC_PUNS[currentPunIndex];
   };
 
+  const orbState = searchingWeb || searchingChats ? "searching" : "working";
+
   // Full-size loader for image generation
   if (fullSize && isGeneratingImage) {
     return (
@@ -193,42 +196,16 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
         className="inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-muted/50 border border-border/40 backdrop-blur-sm"
         aria-live="polite"
       >
-        <div className="relative flex items-center justify-center" style={{ willChange: 'transform' }}>
-          <motion.div
-            className="h-10 w-10 animate-spin-slow"
-            style={{
-              backfaceVisibility: 'hidden',
-              transform: 'translateZ(0)',
-              willChange: 'transform'
-            }}
-            initial={{ opacity: 0 }}
-            animate={{
-              opacity: 1
-            }}
-            transition={{
-              opacity: { duration: 0.4, ease: "easeOut" }
-            }}
-          >
-            <ThemedLogo className="h-full w-full" alt="Thinking" />
-          </motion.div>
-          <motion.div
-            className="absolute inset-0 rounded-full bg-primary/30"
-            style={{
-              filter: 'blur(16px)',
-              backfaceVisibility: 'hidden',
-              transform: 'translateZ(0)',
-              willChange: 'transform, opacity'
-            }}
-            initial={{ opacity: 0 }}
-            animate={{
-              scale: [0.8, 1.2, 0.8],
-              opacity: [0.3, 0.6, 0.3]
-            }}
-            transition={{
-              opacity: { duration: 0.4, ease: "easeOut" },
-              scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
-            }}
+        <div className="relative flex h-10 w-10 items-center justify-center">
+          <ThinkingOrb
+            state={orbState}
+            size={64}
+            theme="auto"
+            aria-label={orbState === "searching" ? "Arc is searching" : "Arc is thinking"}
+            className="h-10 w-10"
+            style={{ width: 40, height: 40 }}
           />
+          <div className="absolute inset-1 -z-10 rounded-full bg-primary/25 blur-xl" aria-hidden="true" />
         </div>
         <div className="relative flex items-center min-w-0">
           <AnimatePresence mode="wait">
