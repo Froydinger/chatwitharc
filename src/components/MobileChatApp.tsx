@@ -1352,20 +1352,29 @@ export function MobileChatApp() {
                 </motion.div>
               )}
 
-              <ArcInputEffects active={isArcWorking} theme={effectTheme}>
-                <motion.div
-                  className="pointer-events-auto glass-dock"
-                  data-has-images={hasSelectedImages}
-                  data-arc-working={isArcWorking}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 12 }}
-                  transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-                  style={{ willChange: 'transform, opacity' }}
-                >
-                  <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
-                </motion.div>
-              </ArcInputEffects>
+              {/* Entrance animation lives on the OUTER wrapper so the element
+                  MetalFx measures (the .glass-dock below) is never mid-transform.
+                  Framer rewrites `style.transform` every frame, and MetalFx
+                  re-measures on every style mutation of its host — animating the
+                  host directly is what made the input flicker and collapse. */}
+              <motion.div
+                className="pointer-events-auto"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 12 }}
+                transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+                style={{ willChange: 'transform, opacity' }}
+              >
+                <ArcInputEffects active={isArcWorking} theme={effectTheme}>
+                  <div
+                    className="glass-dock"
+                    data-has-images={hasSelectedImages}
+                    data-arc-working={isArcWorking}
+                  >
+                    <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
+                  </div>
+                </ArcInputEffects>
+              </motion.div>
               {/* Quick Prompts - below input bar on empty state */}
               {messages.length === 0 && (
                 <div className="pointer-events-auto mt-4 flex justify-center">
@@ -1647,8 +1656,13 @@ export function MobileChatApp() {
         }
 
         /* —— Flat Luxe Input Bar —— */
+        /* The effect wrappers (BorderBeam + MetalFx) size themselves to their
+           child, so we give the wrapper chain a DEFINITE block width. Without
+           this, MetalFx's inline-flex root wraps the child tightly and any
+           measurement wobble collapses the whole input. */
         .arc-input-effects,
         .arc-input-metal{
+          display: block;
           width: 100%;
           max-width: 760px;
           margin: 0 auto;
@@ -1657,14 +1671,23 @@ export function MobileChatApp() {
           display: flex !important;
           background: transparent !important;
         }
-        .arc-input-metal > .metal-fx-content,
+        .arc-input-metal > .metal-fx-content{
+          width: 100%;
+        }
         .arc-input-metal > .metal-fx-content > .glass-dock{
           width: 100%;
         }
         .glass-dock{
           position: relative;
           margin: 0 auto;
+          width: 100%;
           max-width: 760px;
+          /* Height floor: MetalFx measures this element via Resize/Mutation
+             observers. A stable min-height guarantees the measured box never
+             collapses to zero during mount, remount (e.g. leaving voice mode),
+             or the thinking-state toggle — which is what made the input vanish. */
+          min-height: 56px;
+          box-sizing: border-box;
           padding: 10px;
           border-radius: 9999px;
           overflow: visible;
@@ -1675,11 +1698,12 @@ export function MobileChatApp() {
           cursor: text;
         }
         .glass-dock[data-arc-working="true"]{
+          /* Fully OPAQUE base is required by BorderBeam's pulse-outside, whose
+             colored core renders BEHIND the child (z-index:-1). A translucent
+             base let that core bleed through as a horizontal glow bar. */
           background:
             linear-gradient(115deg, hsl(var(--primary) / 0.07), transparent 38%, hsl(var(--primary) / 0.05)),
-            hsl(var(--card) / 0.88);
-          backdrop-filter: blur(22px) saturate(125%);
-          -webkit-backdrop-filter: blur(22px) saturate(125%);
+            hsl(var(--card));
           border-color: hsl(var(--primary) / 0.36);
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,0.12),
