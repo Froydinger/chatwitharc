@@ -27,7 +27,7 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
         ref={ref}
         className={cn(
           baseClasses,
-          "liquid-metal-surface",
+          "relative liquid-metal-surface",
           variantClasses[variant],
           glowClass,
           floatClass,

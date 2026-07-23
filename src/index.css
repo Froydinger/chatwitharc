@@ -1592,7 +1592,13 @@ All colors MUST be HSL for perfect glass effects.
    ============================================================ */
 
 .liquid-metal-surface {
-  position: relative;
+  /* NOTE: intentionally does NOT set `position`. It used to force
+     `position: relative`, which overrode the `fixed` on Dialog/AlertDialog
+     content (equal specificity, declared later) — that dropped the modal out
+     of the viewport and it rendered off-screen at the bottom of the page.
+     Each consumer owns its own positioning (Dialog/AlertDialog: `fixed`;
+     GlassCard/Popover: `relative`); any positioned ancestor is a valid
+     containing block for the absolute overlay frame. */
   isolation: isolate;
 }
 
