@@ -541,7 +541,9 @@ export class AIService {
     // reader would await forever and the thinking indicator would spin with no
     // resolution. If no bytes arrive for STREAM_INACTIVITY_MS, we abort the
     // read so onError (and any auto-continuation) can recover instead of hanging.
-    const STREAM_INACTIVITY_MS = 60000;
+    // 4 minutes is a healthy ceiling for slow write/code generations; the UI
+    // shows a "hang tight" note after 60s so the wait is never silent.
+    const STREAM_INACTIVITY_MS = 240000;
     let sawAnyData = false;
     let watchdogTimedOut = false;
 

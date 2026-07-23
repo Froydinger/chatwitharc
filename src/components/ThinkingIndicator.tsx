@@ -63,24 +63,31 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   const showThinking = isLoading || isGeneratingImage || accessingMemory || searchingChats || searchingWeb;
   const [currentPunIndex, setCurrentPunIndex] = useState(0);
   const [showMusicButton, setShowMusicButton] = useState(false);
+  const [showHangTight, setShowHangTight] = useState(false);
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const thinkingStartTime = useRef<number | null>(null);
 
-  // Show music button after 3 seconds of thinking
+  // Show the music button after 3s, and a "hang tight" note after 60s so the
+  // user knows a slow write/code generation is still going (the stream now
+  // waits up to 240s before giving up).
   useEffect(() => {
     if (showThinking) {
       thinkingStartTime.current = Date.now();
       setShowMusicButton(false);
-      
-      const timer = setTimeout(() => {
-        setShowMusicButton(true);
-      }, 3000);
+      setShowHangTight(false);
 
-      return () => clearTimeout(timer);
+      const musicTimer = setTimeout(() => setShowMusicButton(true), 3000);
+      const hangTightTimer = setTimeout(() => setShowHangTight(true), 60000);
+
+      return () => {
+        clearTimeout(musicTimer);
+        clearTimeout(hangTightTimer);
+      };
     } else {
       // Reset when thinking stops
       setShowMusicButton(false);
+      setShowHangTight(false);
       thinkingStartTime.current = null;
     }
   }, [showThinking]);
@@ -272,6 +279,21 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
             <Music className="h-3 w-3" />
             <span>{isPlayingMusic ? "stop the tunes" : "taking too long? listen to some tunes"}</span>
           </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Reassurance note - appears after 60 seconds of a slow generation */}
+      <AnimatePresence>
+        {showHangTight && (
+          <motion.span
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.2 }}
+            className="text-[10px] text-muted-foreground/70 ml-1"
+          >
+            hang tight, Arc is still thinking...
+          </motion.span>
         )}
       </AnimatePresence>
     </motion.div>
