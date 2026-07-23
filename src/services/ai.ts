@@ -536,10 +536,36 @@ export class AIService {
     const decoder = new TextDecoder();
     let buffer = '';
 
+    // Inactivity watchdog: canvas/code streams can stall silently if the model
+    // hangs or the edge function is killed mid-generation. Without this the
+    // reader would await forever and the thinking indicator would spin with no
+    // resolution. If no bytes arrive for STREAM_INACTIVITY_MS, we abort the
+    // read so onError (and any auto-continuation) can recover instead of hanging.
+    const STREAM_INACTIVITY_MS = 60000;
+    let sawAnyData = false;
+    let watchdogTimedOut = false;
+
+    const readWithTimeout = () => new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        watchdogTimedOut = true;
+        // Cancelling the reader rejects the pending read below.
+        reader.cancel().catch(() => {});
+        reject(new Error(sawAnyData
+          ? 'Stream stalled — the response stopped partway through.'
+          : 'Stream timed out before any response arrived.'));
+      }, STREAM_INACTIVITY_MS);
+      reader.read().then(
+        (result) => { clearTimeout(timer); resolve(result); },
+        (err) => { clearTimeout(timer); reject(err); },
+      );
+    });
+
     try {
       while (true) {
-        const { done, value } = await reader.read();
+        if (abortSignal?.aborted) break;
+        const { done, value } = await readWithTimeout();
         if (done) break;
+        sawAnyData = true;
 
         buffer += decoder.decode(value, { stream: true });
 
@@ -580,6 +606,11 @@ export class AIService {
         }
       }
     } catch (error) {
+      // User-initiated cancels surface as an aborted signal — stay silent so we
+      // don't show an error toast for something the user did on purpose.
+      if (abortSignal?.aborted && !watchdogTimedOut) {
+        return;
+      }
       console.error('Stream reading error:', error);
       onError?.(error instanceof Error ? error.message : 'Stream error');
     }

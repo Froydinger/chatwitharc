@@ -13,6 +13,39 @@ interface ThinkingIndicatorProps {
   fullSize?: boolean;
 }
 
+/**
+ * Resolve the app's active theme to a concrete "dark" | "light".
+ *
+ * We hand this to <ThinkingOrb theme=...> instead of "auto" on purpose: in
+ * "auto" mode the orb installs its own MutationObserver on documentElement with
+ * `subtree: true`, so its theme-recompute callback fires on EVERY class change
+ * anywhere in the document. During a streaming response the app mutates classes
+ * constantly (Framer Motion, hover pulses, the rotating pun text), and each one
+ * runs that callback on the main thread — stealing frames from the orb's canvas
+ * loop and producing the periodic "blip" during steady thinking. Passing a fixed
+ * theme skips the observer entirely; here we watch only the root's own class
+ * attribute (no subtree) so theme switches still update instantly without the
+ * per-mutation cost.
+ */
+function useResolvedOrbTheme(): "dark" | "light" {
+  const [theme, setTheme] = useState<"dark" | "light">(() =>
+    typeof document !== "undefined" && document.documentElement.classList.contains("light")
+      ? "light"
+      : "dark"
+  );
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const read = () => setTheme(root.classList.contains("light") ? "light" : "dark");
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  return theme;
+}
+
 const ARC_PUNS = [
   "Arc is thinking...",
   "Arc is arcing around...",
@@ -120,7 +153,8 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
     return ARC_PUNS[currentPunIndex];
   };
 
-  const orbState = searchingWeb || searchingChats ? "searching" : "working";
+  const orbState = searchingWeb || searchingChats ? "searching" : "listening";
+  const orbTheme = useResolvedOrbTheme();
 
   // Full-size loader for image generation
   if (fullSize && isGeneratingImage) {
@@ -200,7 +234,8 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
           <ThinkingOrb
             state={orbState}
             size={64}
-            theme="auto"
+            speed={0.75}
+            theme={orbTheme}
             aria-label={orbState === "searching" ? "Arc is searching" : "Arc is thinking"}
             className="h-10 w-10"
             style={{ width: 40, height: 40 }}

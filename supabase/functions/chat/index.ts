@@ -377,69 +377,102 @@ async function webSearch(query: string): Promise<WebSearchResponse> {
   return webSearchTavily(query);
 }
 
-// Tavily search
+// Tavily search — one HTTP attempt at a given depth/timeout.
+async function tavilyFetch(
+  apiKey: string,
+  query: string,
+  depth: 'basic' | 'advanced',
+  timeoutMs: number,
+): Promise<Response> {
+  return fetch('https://api.tavily.com/search', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: query,
+      search_depth: depth,
+      max_results: 6,
+      include_answer: true,
+      include_raw_content: false,
+      include_images: true,
+    }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+}
+
+// Tavily search. Tries a rich "advanced" pass first, then transparently
+// retries once on the faster "basic" depth if the first pass errors or times
+// out. This keeps search from failing outright when advanced depth is slow.
 async function webSearchTavily(query: string): Promise<WebSearchResponse> {
   const tavilyApiKey = Deno.env.get('TAVILY_API_KEY');
   if (!tavilyApiKey) {
     return { summary: "Web search is not configured. Please add TAVILY_API_KEY.", sources: [], searchProvider: 'tavily' };
   }
 
-  try {
-    console.log('🔍 Performing Tavily search for:', query);
-    const response = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${tavilyApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: query,
-        search_depth: 'advanced',
-        max_results: 6,
-        include_answer: true,
-        include_raw_content: false,
-        include_images: true,
-      }),
-      signal: AbortSignal.timeout(10000),
-    });
+  // Ordered attempts: give advanced depth a generous window, then fall back
+  // to a quick basic pass so a slow crawl doesn't leave the user empty-handed.
+  const attempts: Array<{ depth: 'basic' | 'advanced'; timeoutMs: number }> = [
+    { depth: 'advanced', timeoutMs: 18000 },
+    { depth: 'basic', timeoutMs: 9000 },
+  ];
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Tavily API error:', response.status, errorText);
-      return { summary: `Search failed: ${response.status}`, sources: [], searchProvider: 'tavily', images: [] };
-    }
+  let lastFailure = 'Search error: request did not complete.';
 
-    const data = await response.json();
-    console.log('Search results received:', data.results?.length || 0, 'results');
-    
-    const sources: WebSearchResult[] = [];
-    let searchSummary = 'ArcAI web search results (retrieved by ArcAI for this request; not supplied or pasted by the user):\n\n';
-    if (data.answer) {
-      searchSummary = `Quick Answer: ${data.answer}\n\n`;
-    }
-    
-    if (data.results && data.results.length > 0) {
-      searchSummary += 'Search Results:\n';
-      data.results.forEach((result: any, idx: number) => {
-        searchSummary += `${idx + 1}. ${result.title}\n`;
-        const pageContent = (result.content || '').slice(0, 1200);
-        searchSummary += `   ${pageContent}\n`;
-        searchSummary += `   Source: ${result.url}\n\n`;
-        sources.push({ title: result.title, url: result.url, content: (result.content || '').slice(0, 200) });
-      });
-    }
+  for (let i = 0; i < attempts.length; i++) {
+    const { depth, timeoutMs } = attempts[i];
+    try {
+      console.log(`🔍 Performing Tavily search (${depth}, ${timeoutMs}ms) for:`, query);
+      const response = await tavilyFetch(tavilyApiKey, query, depth, timeoutMs);
 
-    const images = (data.images || []).map((img: any) => {
-      if (typeof img === 'string') return img;
-      return img?.url || '';
-    }).filter(Boolean);
-    
-    return { summary: searchSummary || 'No relevant results found.', sources, searchProvider: 'tavily', images };
-  } catch (error: unknown) {
-    console.error('Web search error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return { summary: `Search error: ${message}`, sources: [], searchProvider: 'tavily', images: [] };
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Tavily API error (${depth}):`, response.status, errorText);
+        lastFailure = `Search failed: ${response.status}`;
+        continue; // Try the next (faster) attempt.
+      }
+
+      const data = await response.json();
+      console.log(`Search results received (${depth}):`, data.results?.length || 0, 'results');
+      return buildTavilyResponse(data);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      const timedOut = error instanceof Error && (error.name === 'TimeoutError' || /timeout|timed out|aborted/i.test(message));
+      console.error(`Web search error (${depth})${timedOut ? ' [timeout]' : ''}:`, message);
+      lastFailure = `Search error: ${message}`;
+      // Fall through to the next attempt.
+    }
   }
+
+  return { summary: lastFailure, sources: [], searchProvider: 'tavily', images: [] };
+}
+
+// Shape a raw Tavily payload into our WebSearchResponse.
+function buildTavilyResponse(data: any): WebSearchResponse {
+  const sources: WebSearchResult[] = [];
+  let searchSummary = 'ArcAI web search results (retrieved by ArcAI for this request; not supplied or pasted by the user):\n\n';
+  if (data.answer) {
+    searchSummary = `Quick Answer: ${data.answer}\n\n`;
+  }
+
+  if (data.results && data.results.length > 0) {
+    searchSummary += 'Search Results:\n';
+    data.results.forEach((result: any, idx: number) => {
+      searchSummary += `${idx + 1}. ${result.title}\n`;
+      const pageContent = (result.content || '').slice(0, 1200);
+      searchSummary += `   ${pageContent}\n`;
+      searchSummary += `   Source: ${result.url}\n\n`;
+      sources.push({ title: result.title, url: result.url, content: (result.content || '').slice(0, 200) });
+    });
+  }
+
+  const images = (data.images || []).map((img: any) => {
+    if (typeof img === 'string') return img;
+    return img?.url || '';
+  }).filter(Boolean);
+
+  return { summary: searchSummary || 'No relevant results found.', sources, searchProvider: 'tavily', images };
 }
 
 // Search past chats tool - Fast database-level search + AI-powered analysis
