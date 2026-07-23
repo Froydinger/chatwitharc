@@ -1177,44 +1177,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       return;
     }
 
-    // Detect @mention context: returns {isActive, searchTerm} if user is typing @personaname
     let finalMessage = userMessage;
-    const personaMention = PERSONAS_ENABLED ? parsePersonaPrefixFromList(userMessage, personas) : null;
-    if (personaMention) {
-      const { persona, remaining } = personaMention;
-      if (persona) {
-        // Lock this conversation to the selected persona
-        let { currentSessionId } = useArcStore.getState();
-        if (!currentSessionId) currentSessionId = useArcStore.getState().createNewSession();
-        if (currentSessionId) {
-          useArcStore.setState((state) => ({
-            chatSessions: state.chatSessions.map((s) =>
-              s.id === currentSessionId ? { ...s, personaId: persona.id } : s
-            ),
-          }));
-        }
-        finalMessage = remaining;
-        toast({
-          title: `Switched to ${persona.name}`,
-          description: "This conversation is now locked to this persona.",
-        });
-        if (!finalMessage.trim() && images.length === 0 && documents.length === 0) {
-          toast({
-            title: `Chatting with ${persona.name}`,
-            description: "Type your message after the persona name, then send.",
-          });
-          setInputValue(`@${persona.name} `);
-          setTimeout(() => textareaRef.current?.focus(), 0);
-          return;
-        }
-      } else {
-        toast({
-          title: "Persona not found",
-          description: "That persona doesn't exist. Pick one from the persona menu.",
-          variant: "destructive",
-        });
-      }
-    }
 
     // Capture mode states BEFORE clearing UI (they're needed in handleSendMessage)
     let wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(finalMessage);
@@ -2032,7 +1995,7 @@ ${safeCode}
 
           try {
             // SMART ROUTING: decide if this can run on local Gemma
-            const route = activePersona || shouldUseCodeContext ? "cloud-chat" : routeRequest({
+            const route = shouldUseCodeContext ? "cloud-chat" : routeRequest({
               forceWebSearch: wasSearchMode,
               forceCanvas: false,
               forceCode: false,
@@ -2897,44 +2860,7 @@ ${safeCode}
                           </button>
                         </div>
 
-                        {/* Personas Carousel (Extremely premium, horizontal, clean scroll) */}
-                        {PERSONAS_ENABLED && !activePersona && sortedPersonas.length > 0 && (
-                          <div className="mt-5 pt-4 border-t border-black/10 dark:border-white/5">
-                            <div className="px-1 mb-3 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Personas</div>
-                            <div className="flex gap-4 overflow-x-auto py-1 px-1 scrollbar-none snap-x">
-                              {sortedPersonas.map((p) => {
-                                const isCustom = !p.id.startsWith('builtin-');
-                                return (
-                                  <button
-                                    key={p.id}
-                                    type="button"
-                                    onClick={() => {
-                                      selectPersona(p);
-                                      setShowMenu(false);
-                                    }}
-                                    className="flex flex-col items-center gap-1.5 snap-start shrink-0 w-16 group cursor-pointer text-center"
-                                  >
-                                    <div className="relative">
-                                      {p.avatarUrl ? (
-                                        <img src={p.avatarUrl} alt={p.name} loading="lazy" className="w-12 h-12 rounded-full object-cover bg-muted border border-black/10 dark:border-white/10 group-hover:border-primary-glow/60 group-hover:scale-105 transition-all duration-200 shrink-0" />
-                                      ) : (
-                                        <div className="w-12 h-12 rounded-full bg-primary/10 border border-black/10 dark:border-white/10 flex items-center justify-center text-primary font-bold text-base group-hover:border-primary-glow/60 group-hover:scale-105 transition-all duration-200 shrink-0">
-                                          {p.name[0].toUpperCase()}
-                                        </div>
-                                      )}
-                                      {isCustom && (
-                                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-primary-glow rounded-full border-2 border-background" title="Custom" />
-                                      )}
-                                    </div>
-                                    <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors truncate w-full">
-                                      {p.name}
-                                    </span>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
+
                       </motion.div>
                       </div>
                     </>
@@ -2944,87 +2870,7 @@ ${safeCode}
                 )}
               </div>
 
-              {/* Persona Mentions Suggestions — centered modal like Tools menu */}
-              {createPortal(
-                <AnimatePresence>
-                  {showingPersonaSuggestions && filteredPersonas.length > 0 && (
-                    <>
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[400] bg-black/50 backdrop-blur-sm"
-                        onClick={() => {
-                          const lastAtIndex = inputValue.lastIndexOf("@");
-                          if (lastAtIndex >= 0) setInputValue(inputValue.slice(0, lastAtIndex));
-                        }}
-                      />
-                      <div className="fixed inset-0 z-[401] flex items-center justify-center p-4 pointer-events-none">
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                          style={{
-                            background: "hsl(var(--background))",
-                            border: "1px solid hsl(var(--border))",
-                          }}
-                          className="pointer-events-auto w-[min(92vw,480px)] max-h-[85vh] overflow-y-auto p-4 rounded-3xl shadow-2xl"
-                        >
-                          <div className="flex items-center justify-between mb-3 px-1">
-                            <span className="text-sm font-semibold">Summon a Persona</span>
-                            <button
-                              onClick={() => {
-                                const lastAtIndex = inputValue.lastIndexOf("@");
-                                if (lastAtIndex >= 0) setInputValue(inputValue.slice(0, lastAtIndex));
-                              }}
-                              className="p-1 rounded-lg hover:bg-white/10 transition-colors"
-                              aria-label="Close"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {filteredPersonas.map((p) => {
-                              const isCustom = !p.id.startsWith('builtin-');
-                              return (
-                                <button
-                                  key={p.id}
-                                  onClick={() => selectPersona(p)}
-                                  className="flex flex-col items-center gap-2 p-4 rounded-2xl hover:bg-white/10 transition-colors group border border-black/10 dark:border-white/5 text-center relative"
-                                >
-                                  {isCustom && (
-                                    <span className="absolute top-1.5 right-1.5 text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-primary/15 text-primary font-semibold">
-                                      Custom
-                                    </span>
-                                  )}
-                                  {p.avatarUrl ? (
-                                    <img
-                                      src={p.avatarUrl}
-                                      alt={p.name}
-                                      loading="lazy"
-                                      className="w-12 h-12 rounded-xl object-cover bg-white"
-                                    />
-                                  ) : (
-                                    <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center text-primary font-bold text-lg">
-                                      {p.name[0].toUpperCase()}
-                                    </div>
-                                  )}
-                                  <div className="flex flex-col items-center min-w-0 w-full">
-                                    <span className="text-sm font-semibold truncate w-full">{p.name}</span>
-                                    <span className="text-[10px] text-muted-foreground font-normal line-clamp-2">{p.description || ''}</span>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      </div>
-                    </>
-                  )}
-                </AnimatePresence>,
-                document.body,
-              )}
+
 
 
 
