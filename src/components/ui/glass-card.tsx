@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { LiquidMetalOverlay } from "@/components/ui/liquid-metal-overlay";
 
 export interface GlassCardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'default' | 'strong' | 'bubble';
@@ -26,6 +27,7 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
         ref={ref}
         className={cn(
           baseClasses,
+          "liquid-metal-surface",
           variantClasses[variant],
           glowClass,
           floatClass,
@@ -33,6 +35,7 @@ const GlassCard = React.forwardRef<HTMLDivElement, GlassCardProps>(
         )}
         {...props}
       >
+        <LiquidMetalOverlay />
         {children}
       </div>
     );

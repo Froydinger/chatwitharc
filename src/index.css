@@ -1585,3 +1585,68 @@ All colors MUST be HSL for perfect glass effects.
 .animate-spin-slow {
   animation: spin-slow 6s linear infinite;
 }
+
+/* ============================================================
+   LIQUID METAL SURFACES
+   Real metal-fx on structural glass; lightweight pulse on controls.
+   ============================================================ */
+
+.liquid-metal-surface {
+  position: relative;
+  isolation: isolate;
+}
+
+.liquid-metal-overlay-frame {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.liquid-metal-overlay {
+  display: flex !important;
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  border-radius: inherit !important;
+  background: transparent !important;
+  pointer-events: none !important;
+}
+
+.liquid-metal-overlay > .metal-fx-content,
+.liquid-metal-overlay-host {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: inherit !important;
+  pointer-events: none !important;
+}
+
+@keyframes liquid-glass-control-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 0 hsl(var(--primary) / 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 5px hsl(var(--primary) / 0.18));
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :is(.glass, .glass-shimmer, .glass-btn, .glass-panel, .glass-card)
+    :is(button, a, input, textarea, select):is(:hover, :focus-visible),
+  :is(button, a, input, textarea, select):is(.glass, .glass-shimmer, .glass-btn):is(:hover, :focus-visible),
+  :is(.glass, .glass-panel, .glass-card):not(.liquid-metal-surface):is(:hover, :focus-within) {
+    animation: liquid-glass-control-pulse 2.4s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-metal-overlay {
+    opacity: 0.72;
+  }
+}
