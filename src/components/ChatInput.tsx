@@ -404,57 +404,7 @@ function extractPrefixPrompt(message: string): string {
     .trim();
 }
 
-// Detect @mention context: returns {isActive, searchTerm} if user is typing @personaname
-function detectPersonaMention(text: string): { isActive: boolean; searchTerm: string } {
-  const match = text.match(/@([\w\s]*)$/);
-  if (match) {
-    return { isActive: true, searchTerm: match[1].trim() };
-  }
-  return { isActive: false, searchTerm: "" };
-}
 
-// Feature flag: personas are temporarily hidden/disabled in the UI while the
-// persona send flow is being fixed. All persona logic and the store remain
-// intact — flip this to `true` to re-enable the entire feature.
-const PERSONAS_ENABLED = true;
-
-function parsePersonaPrefixFromList(text: string, personaList: Array<{ id: string; name: string }>) {
-  const trimmed = text.trimStart();
-  if (!trimmed.startsWith("@")) return null;
-  const afterAt = trimmed.slice(1);
-  const match = [...personaList]
-    .sort((a, b) => b.name.length - a.name.length)
-    .find((p) => {
-      const lowerName = p.name.toLowerCase();
-      const lowerAfter = afterAt.toLowerCase();
-      return lowerAfter === lowerName || lowerAfter.startsWith(`${lowerName} `);
-    });
-  if (!match) return null;
-  return {
-    persona: match,
-    remaining: afterAt.slice(match.name.length).trimStart(),
-  };
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-// Build a system message for the active persona of the current session, if any.
-// Returns null when no persona is locked. Used to prepend to the AI message list
-// so the model actually behaves as the persona (and any tools/reminders run in that voice).
-function buildPersonaSystemMessage(): { role: "system" | "user" | "assistant"; content: string } | null {
-  if (!PERSONAS_ENABLED) return null;
-  const { currentSessionId, chatSessions } = useArcStore.getState();
-  const session = chatSessions.find((s) => s.id === currentSessionId);
-  if (!session?.personaId) return null;
-  const persona = usePersonasStore.getState().getPersonaById(session.personaId);
-  if (!persona) return null;
-  // [PERSONA_OVERLAY] marker tells the chat edge function to strip the Arc identity
-  // but keep tools + memories wired so the persona stays grounded and on-track.
-  const content = `[PERSONA_OVERLAY]\nYou ARE "${persona.name}". This is your entire identity. You are not Arc, not an assistant, not an AI wrapper — you are this character. Never mention Arc, ArcAI, askarc.chat, chatwitharc.com, or any underlying assistant. If asked who you are, answer as ${persona.name}. Acknowledge being an AI only if the character itself would. Tools (memory, web search, past-chat search, canvas, code, files, images, scheduling, notifications) are available and should be used silently in-character when helpful — never break character to explain them.\n\n=== WHO YOU ARE ===\n${persona.systemPrompt}\n=== END ===`;
-  return { role: "system" as const, content };
-}
 
 function extractImagePrompt(message: string): string {
   let prompt = (message || "").trim();
@@ -502,7 +452,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const isGuestMode = !user || isAnonymous;
   const requireAuth = useRequireAuth();
   const { hasBoost, canSendSmarterChat, openCheckout, recordSmarterChat } = useSubscription();
-  const { personas, fetchPersonas } = usePersonasStore();
 
   const {
     messages,
@@ -521,14 +470,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     upsertCodeMessage,
     createNewSession,
   } = useArcStore();
-  // Reactive subscription so the input bar updates when a persona is locked/cleared
-  const activeSessionPersonaId = useArcStore((s) => {
-    const sid = s.currentSessionId;
-    return sid ? s.chatSessions.find((x) => x.id === sid)?.personaId ?? null : null;
-  });
-  const activePersona = PERSONAS_ENABLED && activeSessionPersonaId
-    ? personas.find((p) => p.id === activeSessionPersonaId) ?? null
-    : null;
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
   const { openSearchMode } = useSearchStore();
@@ -648,81 +589,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
   // Voice mode store
   const { activateVoiceMode, isActive: isVoiceActive } = useVoiceModeStore();
-
-  // Fetch personas on mount
-  useEffect(() => {
-    fetchPersonas();
-  }, [fetchPersonas]);
-
-  // Detect @mentions as user types — suppressed when a persona is already active
-  // (multi-persona chats are not supported yet).
-  const rawMention = detectPersonaMention(inputValue);
-  const showingPersonaSuggestions = PERSONAS_ENABLED && rawMention.isActive && !activePersona;
-  const searchTerm = rawMention.searchTerm;
-  const sortedPersonas = [...personas].sort((a, b) => {
-    const aCustom = !a.id.startsWith('builtin-');
-    const bCustom = !b.id.startsWith('builtin-');
-    if (aCustom !== bCustom) return aCustom ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
-  const filteredPersonas = showingPersonaSuggestions
-    ? sortedPersonas
-        .filter(p => p.name.toLowerCase().startsWith(searchTerm.toLowerCase()))
-    : [];
-  const personaMention = PERSONAS_ENABLED ? parsePersonaPrefixFromList(inputValue, personas) : null;
-
-  // If the user types @ in a chat that already has a persona, strip it and warn.
-  useEffect(() => {
-    if (rawMention.isActive && activePersona) {
-      const activePrefix = new RegExp(`^@${escapeRegExp(activePersona.name)}(?:\\s|$)`, "i");
-      if (activePrefix.test(inputValue.trimStart())) return;
-      const lastAtIndex = inputValue.lastIndexOf("@");
-      if (lastAtIndex >= 0) {
-        setInputValue(inputValue.slice(0, lastAtIndex));
-      }
-      toast({
-        title: "One persona per chat",
-        description: "Multi-persona chats are not yet available. Start a new chat to switch.",
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawMention.isActive, !!activePersona]);
-
-  // Activate a persona on the current (or new) session. Avatar appears over the +
-  // menu as a pending-tool style chip; the X next to it clears the persona.
-  const selectPersona = (persona: { id: string; name: string }) => {
-    const arc = useArcStore.getState();
-    let sessionId = arc.currentSessionId;
-    if (!sessionId) {
-      sessionId = arc.createNewSession();
-    }
-    useArcStore.setState((state) => ({
-      chatSessions: state.chatSessions.map((s) =>
-        s.id === sessionId ? { ...s, personaId: persona.id } : s
-      ),
-    }));
-    setInputValue(`@${persona.name} `);
-    setShowMenu(false);
-    toast({
-      title: `Chatting with ${persona.name}`,
-      description: "Type your message — this whole chat is now in character.",
-    });
-    setTimeout(() => textareaRef.current?.focus(), 0);
-  };
-
-  const clearActivePersona = () => {
-    const arc = useArcStore.getState();
-    const sessionId = arc.currentSessionId;
-    if (!sessionId) return;
-    useArcStore.setState((state) => ({
-      chatSessions: state.chatSessions.map((s) =>
-        s.id === sessionId ? { ...s, personaId: undefined } : s
-      ),
-    }));
-    if (activePersona) {
-      setInputValue((v) => v.replace(new RegExp(`^@${escapeRegExp(activePersona.name)}\\s+`, "i"), ""));
-    }
-  };
 
   // Navigation (for activating voice from non-chat pages like Dashboard)
   const navigate = useNavigate();
@@ -1012,8 +878,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           }));
 
         // Prepend persona system prompt so the AI behaves as the locked persona
-        const personaMsg = buildPersonaSystemMessage();
-        if (personaMsg) aiMessages.unshift(personaMsg);
+
 
         let didSearchWeb = false;
         const shouldSearchForVideo = shouldForceVideoSearch(newContent);
@@ -1500,9 +1365,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             });
 
             const analysisPrompt = finalMessage || `Analyze and summarize this document: ${doc.name}`;
-            const personaMsg = buildPersonaSystemMessage();
             const response = await ai.sendMessageWithDocument(
-              [...(personaMsg ? [personaMsg] : []), { role: "user", content: analysisPrompt }],
+              [{ role: "user", content: analysisPrompt }],
               fileData,
               doc.name,
               doc.type || "application/octet-stream",
@@ -1664,8 +1528,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           const analysisPrompt = isSvgRequest
             ? `You are an SVG artist. Carefully analyze this image and recreate it as a complete, valid SVG. Use shapes (rect, circle, ellipse, path, polygon), gradients, and accurate colors to faithfully represent the image. Set a viewBox and width/height attributes. Output ONLY the SVG markup inside a single \`\`\`svg code block with absolutely no other text, explanation, or commentary outside the code block.`
             : finalMessage || `What do you see in ${images.length > 1 ? "these images" : "this image"}?`;
-          const personaMsg = buildPersonaSystemMessage();
-          const response = await ai.sendMessageWithImage([...(personaMsg ? [personaMsg] : []), { role: "user", content: analysisPrompt }], base64s);
+          const response = await ai.sendMessageWithImage([{ role: "user", content: analysisPrompt }], base64s);
           await addMessage({
             content: response,
             role: "assistant",
@@ -1843,8 +1706,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           messages.filter((m) => m.type === "text").map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
 
         // Prepend persona system prompt so the AI behaves as the locked persona
-        const personaMsg = buildPersonaSystemMessage();
-        if (personaMsg) aiMessages.unshift(personaMsg);
+
 
         // Strip the code/ prefix if present
         const isCodingRequest = wasCodingMode;
@@ -2811,28 +2673,12 @@ ${safeCode}
                   }}
                   className={cn(
                     "ci-menu-btn flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
-                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowBuildMode || showCanvasIndicator || personaMention || activePersona) && !showMenu && "text-primary"
+                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowBuildMode || showCanvasIndicator) && !showMenu && "text-primary"
                   )}
-                  aria-label={activePersona ? `Chatting with ${activePersona.name}` : "Add content"}
-                  title={activePersona ? `Chatting with ${activePersona.name}` : undefined}
+                  aria-label="Add content"
                 >
                   {showMenu ? (
                     <X className="h-4 w-4 transition-transform duration-300" />
-                  ) : activePersona ? (
-                    activePersona.avatarUrl ? (
-                      <img
-                        src={activePersona.avatarUrl}
-                        alt={activePersona.name}
-                        loading="lazy"
-                        className="w-8 h-8 rounded-full object-cover bg-white ring-2 ring-primary/60"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold ring-2 ring-primary/60">
-                        {activePersona.name[0].toUpperCase()}
-                      </div>
-                    )
-                  ) : personaMention ? (
-                    <Sparkles className="h-4 w-4 text-primary" />
                   ) : shouldShowSearchMode ? (
                     <Globe className="h-4 w-4 text-indigo-400" />
                   ) : shouldShowBanana ? (
@@ -2848,25 +2694,8 @@ ${safeCode}
                   )}
                 </button>
 
-                {/* Clear active persona badge */}
-                {!showMenu && activePersona && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      clearActivePersona();
-                      toast({ title: "Persona cleared", description: "Back to a normal chat." });
-                    }}
-                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-foreground/80 text-background flex items-center justify-center shadow-md hover:bg-foreground transition-colors z-10"
-                    aria-label="Clear persona"
-                    title="Clear persona"
-                  >
-                    <X className="w-2.5 h-2.5" strokeWidth={3} />
-                  </button>
-                )}
-
                 {/* Clear active tool badge */}
-                {!showMenu && !activePersona && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode || shouldShowBuildMode) && (
+                {!showMenu && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode || shouldShowBuildMode) && (
                   <button
                     type="button"
                     onClick={(e) => {

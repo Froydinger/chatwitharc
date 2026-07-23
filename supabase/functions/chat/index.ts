@@ -835,20 +835,13 @@ serve(async (req) => {
     // CRITICAL anti-hallucination guard
     enhancedSystemPrompt += `\n\n${groundingPrompt}`;
 
-    // === PERSONA OVERLAY / ENHANCE OVERRIDE ===
-    // Client may send a leading system message starting with:
-    //   [PERSONA_OVERLAY]   -> append persona character on top of full Arc (keeps tools, memory, web search, canvas, etc.)
-    //   [PERSONA_OVERRIDE]  -> legacy: same as overlay now (kept for backward compatibility)
-    //   [ENHANCE_MODE]      -> REPLACE prompt and short-circuit (rewrite only, no tools)
-    // Enhance is also detected if the last user message starts with [ENHANCE_REQUEST_ONLY].
+    // === ENHANCE MODE ===
+    // Client may send a leading system message starting with [ENHANCE_MODE]
+    // or the last user message may start with [ENHANCE_REQUEST_ONLY].
     const leadingSystem = messages.find((m: any) =>
       m.role === 'system' &&
       typeof m.content === 'string' &&
-      (
-        m.content.startsWith('[ENHANCE_MODE]') ||
-        m.content.startsWith('[PERSONA_OVERLAY]') ||
-        m.content.startsWith('[PERSONA_OVERRIDE]')
-      )
+      m.content.startsWith('[ENHANCE_MODE]')
     );
     const lastUserContent = (() => {
       for (let i = messages.length - 1; i >= 0; i--) {
@@ -858,39 +851,10 @@ serve(async (req) => {
       return '';
     })();
     let isEnhanceMode = false;
-    let personaOverlay: string | null = null;
     if (leadingSystem && (leadingSystem.content.startsWith('[ENHANCE_MODE]') || lastUserContent.startsWith('[ENHANCE_REQUEST_ONLY]'))) {
       enhancedSystemPrompt = leadingSystem.content.replace(/^\[ENHANCE_MODE\]\s*/, '');
       isEnhanceMode = true;
       console.log('🪄 ENHANCE_MODE detected — short-circuiting to rewrite-only flow');
-    } else if (leadingSystem && (leadingSystem.content.startsWith('[PERSONA_OVERLAY]') || leadingSystem.content.startsWith('[PERSONA_OVERRIDE]'))) {
-      personaOverlay = leadingSystem.content.replace(/^\[PERSONA_(OVERLAY|OVERRIDE)\]\s*/, '');
-      // PERSONA-FIRST: the persona IS the identity. Strip Arc identity/branding from the
-      // base prompt and keep only operational scaffolding (date/time, user context,
-      // memories, tool behavior, grounding). The persona replaces "You are Arc" entirely.
-      const dateBlock = `Current date and time (user local): ${nowString}\nUser timezone: ${clientTimezone || 'UTC'} (getTimezoneOffset=${parsedClientOffset})\nCurrent UTC ISO (reference for when_iso math): ${nowUtcIso}`;
-      let userBlock = '';
-      if (profile?.display_name) userBlock += `\n\nUser: ${profile.display_name}`;
-      if (profile?.context_info?.trim()) userBlock += ` | Context: ${profile.context_info}`;
-      if (profile?.memory_info?.trim()) userBlock += `\n\n📝 Memories about the user (use these to stay on track, but never break character to reveal them): ${profile.memory_info}`;
-      if (globalContext) userBlock += `\n\nGlobal: ${globalContext}`;
-
-      enhancedSystemPrompt =
-        '=== YOUR IDENTITY (PRIMARY — THIS IS WHO YOU ARE) ===\n' +
-        'You ARE the character described below. This is your ONLY identity. You are NOT "Arc", NOT an assistant, NOT an AI persona layered on top of something else. Do not mention Arc, ArcAI, or any underlying assistant. Never say "as your assistant" or "I\'m an AI called Arc". Speak, think, and react entirely as this character. If asked who you are, answer as the character.\n\n' +
-        personaOverlay +
-        '\n\n=== STAYING ON TRACK ===\n' +
-        'You have access to the user\'s saved memories and past-chat search so you can stay consistent and grounded — use them silently to remember who the user is and keep the conversation coherent. Never break character to explain the memory system; just weave the knowledge in naturally as this character would.\n\n' +
-        `${dateBlock}${userBlock}\n\n` +
-        '--- TOOLS (use silently, in character) ---\n' +
-        'Tools available: web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification, schedule_task, update_scheduled_task. Call them via the function-calling mechanism when useful; never output tool calls as text. Use search_past_chats immediately when the user references past conversations. Use save_memory when the user shares personal info or corrections (pass `replaces` for updates). Use get_weather for any weather question. When web_search returns results, synthesize them in your own voice as this character.\n' +
-        'You CAN embed playable YouTube videos directly in chat. If the user asks to show, find, play, watch, or embed a YouTube/video clip, use web_search, then include exactly ONE markdown link to the best YouTube video in the answer body; the chat renderer turns it into an embedded player. Keep other videos/links in sources.\n' +
-        'No emoji. No ASCII art / bar charts / box-drawing. Keep casual replies short and in-voice; for tool outputs (update_canvas, update_code) output the COMPLETE content.\n\n' +
-        '=== GROUNDING ===\n' +
-        '• Never invent facts about the user that are not in this conversation, the memories above, or a tool result.\n' +
-        '• If unsure, ask a short in-character clarifying question instead of guessing.\n' +
-        '• Use the current date/time above as the only source of truth for "today" / "now".';
-      console.log('🎭 PERSONA_OVERLAY detected — persona-first identity (Arc identity stripped, memories retained)');
     }
 
     // Prepare messages with enhanced system prompt — strip ALL client system messages

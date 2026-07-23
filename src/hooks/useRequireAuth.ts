@@ -5,7 +5,6 @@ export type GatedFeature =
   | "menu"
   | "music"
   | "tools"
-  | "personas"
   | "voice"
   | "image-gen"
   | "files"

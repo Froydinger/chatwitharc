@@ -8,7 +8,6 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { Message } from "@/store/useArcStore";
 import { useArcStore } from "@/store/useArcStore";
-import { usePersonasStore } from "@/store/usePersonasStore";
 import { useProfile } from "@/hooks/useProfile";
 
 import { GlassButton } from "@/components/ui/glass-button";
@@ -164,11 +163,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
       }
       setSelectedImageSourceUrl(foundSourceUrl);
     };
-
-    const activePersonaId = message.personaId || chatSessions.find(s => s.id === currentSessionId)?.personaId;
-    const activePersona = usePersonasStore(state =>
-      activePersonaId ? state.personas.find(p => p.id === activePersonaId) : undefined,
-    );
 
 
     // One-shot logo handoff pulse for the latest assistant message
@@ -733,16 +727,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     if (e.animationName === "arc-logo-handoff") setLogoPulse(false);
                   }}
                 >
-                  {activePersona?.avatarUrl ? (
-                    <img
-                      src={activePersona.avatarUrl}
-                      alt={activePersona.name}
-                      className="h-10 w-10 rounded-full object-cover bg-white border border-border/50"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <ThemedLogo className="h-10 w-10" alt="Arc" />
-                  )}
+                  <ThemedLogo className="h-10 w-10" alt="Arc" />
                 </div>
                 {isThinking && (
                   <motion.div
@@ -762,23 +747,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             </motion.div>
           )}
 
-          {/* User avatar - only shown when a persona is active in this chat */}
-          {isUser && activePersona && (
-            <div className="flex items-center justify-end mt-2 mr-1 h-8">
-              {profile?.avatar_url ? (
-                <img
-                  src={profile.avatar_url}
-                  alt={profile.display_name || 'You'}
-                  className="h-8 w-8 rounded-full object-cover border border-border/50"
-                  loading="lazy"
-                />
-              ) : (
-                <div className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center text-primary text-xs font-semibold">
-                  {(profile?.display_name?.[0] || 'Y').toUpperCase()}
-                </div>
-              )}
-            </div>
-          )}
+
 
         </div>
 

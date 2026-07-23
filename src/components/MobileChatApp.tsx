@@ -6,7 +6,6 @@ import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
-import { usePersonasStore } from "@/store/usePersonasStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { MessageBubble } from "@/components/MessageBubble";
@@ -1222,28 +1221,7 @@ export function MobileChatApp() {
                 <div
                   className="space-y-4 chat-messages w-full max-w-xl" // Messages only, now max-w-xl
                 >
-                  {(() => {
-                    const session = chatSessions.find(s => s.id === currentSessionId);
-                    const persona = session?.personaId ? getPersonaById(session.personaId) : null;
 
-                    return persona ? (
-                      <div className="flex justify-center mb-2 sticky top-0 z-10">
-                        <div className="inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-primary/10 border border-primary/30 text-xs font-medium text-primary backdrop-blur-sm">
-                          {persona.avatarUrl ? (
-                            <img
-                              src={persona.avatarUrl}
-                              alt={persona.name}
-                              loading="lazy"
-                              className="w-5 h-5 rounded-full object-cover bg-white"
-                            />
-                          ) : (
-                            <Lock className="h-3 w-3 ml-1.5" />
-                          )}
-                          <span>Chatting with {persona.name}</span>
-                        </div>
-                      </div>
-                    ) : null;
-                  })()}
 
                   <AnimatePresence mode="popLayout" initial={false}>
                     {messages.map((message, index) => {

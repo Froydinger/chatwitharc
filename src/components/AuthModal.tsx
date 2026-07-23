@@ -20,7 +20,6 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
   menu: { title: "Sign in to continue", subtitle: "Chats and settings need an account.", icon: Sparkles },
   music: { title: "Sign in for music", subtitle: "Lofi & YouTube, free with an account.", icon: Music },
   tools: { title: "Sign in to use tools", subtitle: "Search, images, code, canvas.", icon: Sparkles },
-  personas: { title: "Sign in for personas", subtitle: "Chat with custom AI personalities.", icon: Sparkles },
   voice: { title: "Sign in for voice mode", subtitle: "Real-time speech with Arc.", icon: Mic },
   "image-gen": { title: "Sign in to make images", subtitle: "Generate & edit with GPT Image 2.", icon: ImagePlus },
   files: { title: "Sign in to attach files", subtitle: "PDFs, docs, images.", icon: Paperclip },
