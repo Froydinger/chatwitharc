@@ -1,5 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ThinkingOrb } from "thinking-orbs";
+import { useResolvedOrbTheme } from "@/components/ThinkingIndicator";
 import {
   Search,
   Loader2,
@@ -77,6 +79,7 @@ export function SearchCanvas() {
   const [smartSuggestions, setSmartSuggestions] = useState<Array<{ label: string; prompt: string }>>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [selectedImageUrlForModal, setSelectedImageUrlForModal] = useState<string | null>(null);
+  const orbTheme = useResolvedOrbTheme();
   const HISTORY_PAGE_SIZE = 5;
 
   // Default fallback suggestions for research
@@ -1363,13 +1366,15 @@ export function SearchCanvas() {
               >
                 <div className="relative w-20 h-20 mx-auto mb-6">
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
-                  <motion.div
-                    className="absolute inset-0 flex items-center justify-center"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  >
-                    <Globe className="w-10 h-10 text-primary" />
-                  </motion.div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <ThinkingOrb
+                      state="solving"
+                      size={64}
+                      speed={0.75}
+                      theme={orbTheme}
+                      aria-label="Searching the web"
+                    />
+                  </div>
                 </div>
 
                 <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Searching the web...</h2>

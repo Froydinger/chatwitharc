@@ -27,7 +27,7 @@ interface ThinkingIndicatorProps {
  * attribute (no subtree) so theme switches still update instantly without the
  * per-mutation cost.
  */
-function useResolvedOrbTheme(): "dark" | "light" {
+export function useResolvedOrbTheme(): "dark" | "light" {
   const [theme, setTheme] = useState<"dark" | "light">(() =>
     typeof document !== "undefined" && document.documentElement.classList.contains("light")
       ? "light"
