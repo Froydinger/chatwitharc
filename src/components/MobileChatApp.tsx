@@ -177,27 +177,29 @@ const ACCENT_SWATCHES: { id: AccentColor; label: string; gradient: string; admin
  * LiquidMetalOverlay pattern used on dialogs/cards.
  */
 function ArcInputEffects({
-  active,
+  isNewChat = false,
+  isWorking = false,
   theme,
   children,
 }: {
-  active: boolean;
+  isNewChat?: boolean;
+  isWorking?: boolean;
   theme: "dark" | "light" | "auto";
   children: ReactNode;
 }) {
+  const shouldGlow = isNewChat || isWorking;
   const fill = { width: "100%", height: "100%" } as const;
   return (
     <div className="arc-input-shell">
-      {/* Beam layer BEHIND the opaque dock: only its outward rainbow halo spills past
-          the pill; the inner core stays hidden behind the input. */}
+      {/* Beam layer BEHIND the opaque dock: rainbow halo spills past on new chat or when Arc is thinking */}
       <div className="arc-input-fx arc-input-fx--beam" aria-hidden="true">
         <BorderBeam
-          active={true}
+          active={shouldGlow}
           size="pulse-outside"
           colorVariant="colorful"
           theme={theme}
-          strength={active ? 0.85 : 0.65}
-          duration={active ? 1.6 : 2.4}
+          strength={isWorking ? 0.85 : 0.65}
+          duration={isWorking ? 1.6 : 2.4}
           borderRadius={9999}
           className="arc-input-effects"
           style={fill}
@@ -208,13 +210,12 @@ function ArcInputEffects({
 
       {children}
 
-      {/* Metal ring layer ON TOP: MetalFx punches a hole through the centre, so
-          the input shows through and only the ring rides the pill's edge. */}
+      {/* Metal ring layer ON TOP */}
       <div className="arc-input-fx arc-input-fx--metal" aria-hidden="true">
         <MetalFx
           preset="silver"
-          strength={active ? 0.35 : 0.2}
-          paused={false}
+          strength={isWorking ? 0.35 : isNewChat ? 0.2 : 0}
+          paused={!shouldGlow}
           disableGlow
           theme={theme}
           borderRadius={9999}
@@ -1398,7 +1399,11 @@ export function MobileChatApp() {
                 transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
                 style={{ willChange: 'transform, opacity' }}
               >
-                <ArcInputEffects active={isArcWorking} theme={effectTheme}>
+                <ArcInputEffects
+                  isNewChat={messages.length === 0}
+                  isWorking={isArcWorking}
+                  theme={effectTheme}
+                >
                   <div
                     className="glass-dock"
                     data-has-images={hasSelectedImages}
