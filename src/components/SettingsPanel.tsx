@@ -953,12 +953,12 @@ export function SettingsPanel() {
         <p className="text-[11px] text-muted-foreground/60 opacity-60 pt-1">
           Some animations by{" "}
           <a
-            href="https://x.com/Jakubantalik"
+            href="https://github.com/Jakubantalik"
             target="_blank"
             rel="noopener noreferrer"
             className="underline hover:text-primary-glow transition-colors"
           >
-            Jakub Antalik (@Jakubantalik)
+            Jakub Antalik
           </a>
         </p>
       </div>
@@ -1091,12 +1091,12 @@ export function SettingsPanel() {
             <div className="text-[10px] text-muted-foreground/60 opacity-60 pt-0.5">
               Some animations by{" "}
               <a
-                href="https://x.com/Jakubantalik"
+                href="https://github.com/Jakubantalik"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-primary-glow transition-colors"
               >
-                Jakub Antalik (@Jakubantalik)
+                Jakub Antalik
               </a>
             </div>
           </div>

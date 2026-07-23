@@ -171,13 +171,14 @@ export default function TermsPage() {
           <p className="text-xs text-muted-foreground/60">
             Some animations by{" "}
             <a
-              href="https://x.com/Jakubantalik"
+              href="https://github.com/Jakubantalik"
               target="_blank"
               rel="noopener noreferrer"
               className="underline hover:text-foreground transition-colors"
             >
-              Jakub Antalik (@Jakubantalik)
+              Jakub Antalik
             </a>
+            {" — border-beam & metal-fx components"}
           </p>
         </div>
       </div>
