@@ -1,14 +1,18 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export function getAuthRedirectUrl(path = "") {
-  return `${window.location.origin}${path}`;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const basePath = `${origin}${path}`;
+  const sep = basePath.includes("?") ? "&" : "?";
+  return `${basePath}${sep}return_origin=${encodeURIComponent(origin)}`;
 }
 
 function usesLegacyDesktopAuthBridge() {
-  // ArcAI 5.1.7+ keeps OAuth in its own Electron session. Older desktop
-  // builds still need the localhost handoff until they can update.
+  // ArcAI 5.1.7+ keeps OAuth in its own Electron session. Generic Electron-based
+  // browsers (e.g. Breeze) or web app/PWA instances must use standard web OAuth (/auth/callback).
+  // Only legacy ArcAI desktop builds explicitly marked with ArcAILegacyDesktop should use the localhost bridge.
   if (/ArcAIInternalAuth\//i.test(window.navigator.userAgent)) return false;
-  return /electron/i.test(window.navigator.userAgent);
+  return /ArcAILegacyDesktop\//i.test(window.navigator.userAgent);
 }
 
 function getDesktopAuthRedirectUrl() {

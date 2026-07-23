@@ -1664,9 +1664,9 @@ useEffect(() => {
                         height: 20,
                         color: bubbleHoverIdx === i
                           ? 'hsl(var(--primary))'
-                          : 'hsl(var(--muted-foreground) / 0.5)',
-                        filter: bubbleHoverIdx === i ? 'drop-shadow(0 0 4px hsl(var(--primary)))' : 'none',
-                        opacity: (!isMobile && bubbleHoverIdx === i) ? 0.2 : 1,
+                          : 'hsl(var(--muted-foreground))',
+                        filter: bubbleHoverIdx === i ? 'drop-shadow(0 0 12px hsl(var(--primary) / 0.7))' : 'none',
+                        opacity: 1,
                       }}
                     />
                   </div>

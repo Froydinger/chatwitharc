@@ -2778,11 +2778,15 @@ ${safeCode}
       <div
         ref={inputBarRef}
         className={cn(
-          "relative flex max-h-[360px] origin-bottom flex-col gap-2 p-0.5 transition-all duration-300 ease-out",
+          "relative flex max-h-[360px] origin-bottom flex-col gap-2 p-0.5 transition-all duration-300 ease-out cursor-text",
           isActive ? "opacity-100" : "opacity-95",
           isVoiceActive && "max-h-0 translate-y-3 scale-95 overflow-hidden p-0 opacity-0 pointer-events-none select-none",
         )}
         aria-hidden={isVoiceActive}
+        onClick={(e) => {
+          if ((e.target as HTMLElement).closest('button, input, a, [role="button"]')) return;
+          textareaRef.current?.focus();
+        }}
       >
         <div className="flex items-end gap-2 relative">
           {/* Main Input Wrapper */}

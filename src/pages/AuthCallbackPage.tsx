@@ -31,6 +31,26 @@ export function AuthCallbackPage() {
         const session = await recoverReturnedSession();
         if (!active) return;
         if (!session) throw new Error("Google returned successfully, but no ArcAI session was created.");
+
+        const query = new URLSearchParams(window.location.search);
+        const returnOrigin = query.get("return_origin") || query.get("origin");
+
+        if (returnOrigin) {
+          try {
+            const targetUrl = new URL(returnOrigin);
+            if (targetUrl.origin !== window.location.origin) {
+              const hashParams = new URLSearchParams();
+              if (session.access_token) hashParams.set("access_token", session.access_token);
+              if (session.refresh_token) hashParams.set("refresh_token", session.refresh_token);
+              const targetCallback = `${targetUrl.origin}/auth/callback#${hashParams.toString()}`;
+              window.location.replace(targetCallback);
+              return;
+            }
+          } catch (_) {
+            // Ignore invalid returnOrigin and proceed normally
+          }
+        }
+
         window.history.replaceState({}, document.title, "/auth/callback");
         window.location.replace("/dashboard");
       } catch (cause) {

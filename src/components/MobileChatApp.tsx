@@ -188,16 +188,16 @@ function ArcInputEffects({
   const fill = { width: "100%", height: "100%" } as const;
   return (
     <div className="arc-input-shell">
-      {/* Beam layer BEHIND the opaque dock: only its outward halo spills past
+      {/* Beam layer BEHIND the opaque dock: only its outward rainbow halo spills past
           the pill; the inner core stays hidden behind the input. */}
       <div className="arc-input-fx arc-input-fx--beam" aria-hidden="true">
         <BorderBeam
-          active={active}
+          active={true}
           size="pulse-outside"
-          colorVariant="ocean"
+          colorVariant="colorful"
           theme={theme}
-          strength={0.62}
-          duration={2.1}
+          strength={active ? 0.85 : 0.65}
+          duration={active ? 1.6 : 2.4}
           borderRadius={9999}
           className="arc-input-effects"
           style={fill}
@@ -213,8 +213,8 @@ function ArcInputEffects({
       <div className="arc-input-fx arc-input-fx--metal" aria-hidden="true">
         <MetalFx
           preset="silver"
-          strength={0.25}
-          paused={!active}
+          strength={active ? 0.35 : 0.2}
+          paused={false}
           disableGlow
           theme={theme}
           borderRadius={9999}
@@ -1700,10 +1700,17 @@ export function MobileChatApp() {
           max-width: 760px;
           margin: 0 auto;
         }
+        .arc-input-fx,
+        .arc-input-fx *,
+        .arc-input-effects,
+        .arc-input-effects *,
+        .arc-input-metal,
+        .arc-input-metal * {
+          pointer-events: none !important;
+        }
         .arc-input-fx{
           position: absolute;
           inset: 0;
-          pointer-events: none;
           border-radius: 9999px;
         }
         .arc-input-fx--beam{ z-index: 0; }   /* behind the opaque dock */
