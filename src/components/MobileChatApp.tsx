@@ -158,6 +158,24 @@ const ACCENT_SWATCHES: { id: AccentColor; label: string; gradient: string; admin
   { id: "gold",   label: "Gold",   gradient: "linear-gradient(135deg, hsl(40,78%,42%), hsl(46,92%,64%) 50%, hsl(43,82%,48%))", adminOnly: true },
 ];
 
+/**
+ * Wraps the chat input with the liquid-metal ring + border beam WITHOUT ever
+ * wrapping/measuring the input itself.
+ *
+ * The old approach fed the live input (a Framer motion.div) straight into
+ * MetalFx + BorderBeam, which measure their child via Resize/Mutation
+ * observers and, per metal-fx's own contract, tight-wrap an inline-flex root
+ * with no intrinsic size. Any measurement wobble (thinking toggle, route
+ * change on send, leaving voice mode) collapsed the measured child — so the
+ * input vanished and only the glow remained.
+ *
+ * Here the input renders in normal flow as a stable, always-sized element, and
+ * the effects sit ON TOP as an absolutely-positioned, pointer-events-none
+ * overlay wrapping a zero-content spacer sized to the shell. The effects can
+ * mis-measure or remount all they like; the input's layout is completely
+ * independent, so it can never disappear. This mirrors the repo's own
+ * LiquidMetalOverlay pattern used on dialogs/cards.
+ */
 function ArcInputEffects({
   active,
   theme,
@@ -167,32 +185,47 @@ function ArcInputEffects({
   theme: "dark" | "light" | "auto";
   children: ReactNode;
 }) {
+  const fill = { width: "100%", height: "100%" } as const;
   return (
-    <BorderBeam
-      active={active}
-      size="pulse-outside"
-      colorVariant="ocean"
-      theme={theme}
-      strength={0.62}
-      duration={2.1}
-      borderRadius={9999}
-      className="arc-input-effects"
-      style={{ width: "100%" }}
-    >
-      <MetalFx
-        preset="silver"
-        strength={0.25}
-        paused={!active}
-        disableGlow
-        theme={theme}
-        borderRadius={9999}
-        normalizeHostStyles={false}
-        className="arc-input-metal"
-        style={{ width: "100%" }}
-      >
-        {children}
-      </MetalFx>
-    </BorderBeam>
+    <div className="arc-input-shell">
+      {/* Beam layer BEHIND the opaque dock: only its outward halo spills past
+          the pill; the inner core stays hidden behind the input. */}
+      <div className="arc-input-fx arc-input-fx--beam" aria-hidden="true">
+        <BorderBeam
+          active={active}
+          size="pulse-outside"
+          colorVariant="ocean"
+          theme={theme}
+          strength={0.62}
+          duration={2.1}
+          borderRadius={9999}
+          className="arc-input-effects"
+          style={fill}
+        >
+          <span className="arc-input-fx-host" style={fill} />
+        </BorderBeam>
+      </div>
+
+      {children}
+
+      {/* Metal ring layer ON TOP: MetalFx punches a hole through the centre, so
+          the input shows through and only the ring rides the pill's edge. */}
+      <div className="arc-input-fx arc-input-fx--metal" aria-hidden="true">
+        <MetalFx
+          preset="silver"
+          strength={0.25}
+          paused={!active}
+          disableGlow
+          theme={theme}
+          borderRadius={9999}
+          normalizeHostStyles={false}
+          className="arc-input-metal"
+          style={fill}
+        >
+          <span className="arc-input-fx-host" style={fill} />
+        </MetalFx>
+      </div>
+    </div>
   );
 }
 
@@ -1656,36 +1689,50 @@ export function MobileChatApp() {
         }
 
         /* —— Flat Luxe Input Bar —— */
-        /* The effect wrappers (BorderBeam + MetalFx) size themselves to their
-           child, so we give the wrapper chain a DEFINITE block width. Without
-           this, MetalFx's inline-flex root wraps the child tightly and any
-           measurement wobble collapses the whole input. */
+        /* Overlay architecture: .arc-input-shell is the sized/centered box that
+           holds the REAL input (.glass-dock, normal flow) plus an absolutely
+           positioned .arc-input-fx layer that carries the metal ring + beam.
+           The effects never wrap or measure the input, so the input can never
+           collapse no matter what the effect layer does. */
+        .arc-input-shell{
+          position: relative;
+          width: 100%;
+          max-width: 760px;
+          margin: 0 auto;
+        }
+        .arc-input-fx{
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          border-radius: 9999px;
+        }
+        .arc-input-fx--beam{ z-index: 0; }   /* behind the opaque dock */
+        .arc-input-fx--metal{ z-index: 2; }  /* above the dock, ring only */
         .arc-input-effects,
         .arc-input-metal{
           display: block;
           width: 100%;
-          max-width: 760px;
-          margin: 0 auto;
+          height: 100%;
         }
         .arc-input-metal{
-          display: flex !important;
           background: transparent !important;
         }
         .arc-input-metal > .metal-fx-content{
           width: 100%;
+          height: 100%;
         }
-        .arc-input-metal > .metal-fx-content > .glass-dock{
+        .arc-input-fx-host{
+          display: block;
           width: 100%;
+          height: 100%;
         }
         .glass-dock{
           position: relative;
+          z-index: 1;              /* sits above the .arc-input-fx overlay */
           margin: 0 auto;
           width: 100%;
-          max-width: 760px;
-          /* Height floor: MetalFx measures this element via Resize/Mutation
-             observers. A stable min-height guarantees the measured box never
-             collapses to zero during mount, remount (e.g. leaving voice mode),
-             or the thinking-state toggle — which is what made the input vanish. */
+          /* Height floor so the pill always has presence even before the
+             textarea has laid out its first line. */
           min-height: 56px;
           box-sizing: border-box;
           padding: 10px;
