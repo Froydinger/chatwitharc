@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -31,31 +31,34 @@ import { useCorporateModeEnforcer } from "@/hooks/useCorporateMode";
 import { useLocalModelPersistence } from "@/hooks/useLocalModelPersistence";
 import { CorporateMemoryConsentGate } from "@/components/CorporateMemoryConsentModal";
 import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
-import { Index } from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import { AdminPage } from "./pages/AdminPage";
-import { DownloadPage } from "./pages/DownloadPage";
-import { PricingPage } from "./pages/PricingPage";
-import { UpgradePage } from "./pages/UpgradePage";
-import { AppsPage } from "./pages/AppsPage";
-import { DashboardPage } from "./pages/DashboardPage";
-import { DashboardSettingsPage } from "./pages/DashboardSettingsPage";
-import UnsubscribePage from "./pages/UnsubscribePage";
-import { SupportPage } from "./pages/SupportPage";
-import { DocsPage } from "./pages/DocsPage";
-import TermsPage from "./pages/TermsPage";
-import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
-import { SharedChatPage } from "./pages/SharedChatPage";
-import { TasksPage } from "./pages/TasksPage";
-import { SharedChatsPage } from "./pages/SharedChatsPage";
-import { SharedChatRoomPage } from "./pages/SharedChatRoomPage";
-import { LandingPage } from "./pages/LandingPage";
-import CheckoutReturnPage from "./pages/CheckoutReturnPage";
-import { BlogIndexPage } from "./pages/BlogIndexPage";
-import { BlogPostPage } from "./pages/BlogPostPage";
-import { DesktopAuthCallbackPage } from "./pages/DesktopAuthCallbackPage";
-import { AuthCallbackPage } from "./pages/AuthCallbackPage";
-import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+// Route pages are lazy-loaded so the initial bundle stays small and the app
+// paints (the FastLoader) almost immediately instead of showing a black screen
+// while ~MBs of JS for every page download and parse up front.
+const Index = lazy(() => import("./pages/Index").then((m) => ({ default: m.Index })));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const AdminPage = lazy(() => import("./pages/AdminPage").then((m) => ({ default: m.AdminPage })));
+const DownloadPage = lazy(() => import("./pages/DownloadPage").then((m) => ({ default: m.DownloadPage })));
+const PricingPage = lazy(() => import("./pages/PricingPage").then((m) => ({ default: m.PricingPage })));
+const UpgradePage = lazy(() => import("./pages/UpgradePage").then((m) => ({ default: m.UpgradePage })));
+const AppsPage = lazy(() => import("./pages/AppsPage").then((m) => ({ default: m.AppsPage })));
+const DashboardPage = lazy(() => import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const DashboardSettingsPage = lazy(() => import("./pages/DashboardSettingsPage").then((m) => ({ default: m.DashboardSettingsPage })));
+const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
+const SupportPage = lazy(() => import("./pages/SupportPage").then((m) => ({ default: m.SupportPage })));
+const DocsPage = lazy(() => import("./pages/DocsPage").then((m) => ({ default: m.DocsPage })));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
+const SharedChatPage = lazy(() => import("./pages/SharedChatPage").then((m) => ({ default: m.SharedChatPage })));
+const TasksPage = lazy(() => import("./pages/TasksPage").then((m) => ({ default: m.TasksPage })));
+const SharedChatsPage = lazy(() => import("./pages/SharedChatsPage").then((m) => ({ default: m.SharedChatsPage })));
+const SharedChatRoomPage = lazy(() => import("./pages/SharedChatRoomPage").then((m) => ({ default: m.SharedChatRoomPage })));
+const LandingPage = lazy(() => import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })));
+const CheckoutReturnPage = lazy(() => import("./pages/CheckoutReturnPage"));
+const BlogIndexPage = lazy(() => import("./pages/BlogIndexPage").then((m) => ({ default: m.BlogIndexPage })));
+const BlogPostPage = lazy(() => import("./pages/BlogPostPage").then((m) => ({ default: m.BlogPostPage })));
+const DesktopAuthCallbackPage = lazy(() => import("./pages/DesktopAuthCallbackPage").then((m) => ({ default: m.DesktopAuthCallbackPage })));
+const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage").then((m) => ({ default: m.AuthCallbackPage })));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
 import { useAuth } from "@/hooks/useAuth";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { motion } from "framer-motion";
@@ -242,6 +245,7 @@ const App = () => {
                 <ScrollToTop />
                 <RouteSEO />
                 <PageTransition>
+                  <Suspense fallback={<FastLoader />}>
                   <Routes>
                     <Route path="/" element={<RootGate />} />
                     <Route path="/welcome" element={<LandingPage />} />
@@ -273,6 +277,7 @@ const App = () => {
                     <Route path="/refund-policy" element={<Navigate to="/terms" replace />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
+                  </Suspense>
                 </PageTransition>
               </BrowserRouter>
               <GlobalMusicPlayer />
