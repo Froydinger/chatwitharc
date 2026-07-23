@@ -267,7 +267,6 @@ export function MobileChatApp() {
   const { user, isAnonymous } = useAuth();
   const requireAuth = useRequireAuth();
   const canUseSidebar = !!user && !isAnonymous;
-  const getPersonaById = usePersonasStore(s => s.getPersonaById);
   const isMobile = useIsMobile();
   const isAdminBannerActive = useAdminBanner();
   

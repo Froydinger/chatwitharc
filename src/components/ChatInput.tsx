@@ -54,7 +54,6 @@ import { PromptEnhancer } from "@/components/PromptEnhancer";
 // ChatModelPicker now lives in the chat header (MobileChatApp), not the input bar.
 import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore, useResolvedImageModel } from "@/store/useImageGenStore";
-import { usePersonasStore } from "@/store/usePersonasStore";
 import { useImageQuota } from "@/hooks/useImageQuota";
 
 // Global cancellation flag and AbortController
