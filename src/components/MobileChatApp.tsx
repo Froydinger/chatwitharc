@@ -158,25 +158,37 @@ const ACCENT_SWATCHES: { id: AccentColor; label: string; gradient: string; admin
   { id: "gold",   label: "Gold",   gradient: "linear-gradient(135deg, hsl(40,78%,42%), hsl(46,92%,64%) 50%, hsl(43,82%,48%))", adminOnly: true },
 ];
 
-function ArcInputEffects({ active, children }: { active: boolean; children: ReactNode }) {
+function ArcInputEffects({
+  active,
+  theme,
+  children,
+}: {
+  active: boolean;
+  theme: "dark" | "light" | "auto";
+  children: ReactNode;
+}) {
   return (
     <BorderBeam
       active={active}
       size="pulse-outside"
       colorVariant="ocean"
-      theme="auto"
+      theme={theme}
       strength={0.62}
       duration={2.1}
       borderRadius={9999}
       className="arc-input-effects"
+      style={{ width: "100%" }}
     >
       <MetalFx
         preset="silver"
         strength={0.25}
         paused={!active}
+        disableGlow
+        theme={theme}
         borderRadius={9999}
         normalizeHostStyles={false}
         className="arc-input-metal"
+        style={{ width: "100%" }}
       >
         {children}
       </MetalFx>
@@ -191,6 +203,7 @@ export function MobileChatApp() {
   const { isAdmin } = useAdminSettings();
   const accentSwatches = ACCENT_SWATCHES.filter((s) => !s.adminOnly || isAdmin);
   const themeMode = useAccentStore((s) => s.themeMode);
+  const effectTheme = themeMode === "system" ? "auto" : themeMode;
   const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
   const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
   const themeLabel = themeMode === "light" ? "Light" : themeMode === "system" ? "System" : "Dark";
@@ -1129,7 +1142,7 @@ export function MobileChatApp() {
                       isLoading={isLoading}
                     />
                   </div>
-                  <ArcInputEffects active={isArcWorking}>
+                  <ArcInputEffects active={isArcWorking} theme={effectTheme}>
                     <div className="glass-dock" data-arc-working={isArcWorking}>
                       <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false} />
                     </div>
@@ -1339,7 +1352,7 @@ export function MobileChatApp() {
                 </motion.div>
               )}
 
-              <ArcInputEffects active={isArcWorking}>
+              <ArcInputEffects active={isArcWorking} theme={effectTheme}>
                 <motion.div
                   className="pointer-events-auto glass-dock"
                   data-has-images={hasSelectedImages}
@@ -1642,8 +1655,10 @@ export function MobileChatApp() {
         }
         .arc-input-metal{
           display: flex !important;
+          background: transparent !important;
         }
-        .arc-input-metal > .glass-dock{
+        .arc-input-metal > .metal-fx-content,
+        .arc-input-metal > .metal-fx-content > .glass-dock{
           width: 100%;
         }
         .glass-dock{
