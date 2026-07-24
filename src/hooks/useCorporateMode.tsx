@@ -5,8 +5,7 @@ import { isMobileLocalDevice } from '@/utils/mobileLocal';
 
 /**
  * Mounted once at the app root. Watches the Corporate Mode flag and:
- *   • Locks the accent to "noir" while enabled.
- *   • Snapshots the previous accent and restores it when disabled.
+ *   • Keeps the shared Noir palette applied while enabled.
  *
  * The store itself drives gating in routeRequest, ChatInput, useChatSync etc.
  * This hook is purely the visual + restoration side-effect.
@@ -35,17 +34,17 @@ export function useCorporateModeEnforcer() {
       return;
     }
 
-    // ON transition — snapshot previous accent (if not noir) then force noir.
+    // ON transition — retain legacy state only for backwards-compatible
+    // persistence, then force Noir.
     if (enabled && !wasEnabled.current) {
       const snapshot: AccentColor | null = accent !== 'noir' ? accent : prevAccent;
       setEnabled(true, snapshot);
       if (accent !== 'noir') setAccent('noir');
     }
 
-    // OFF transition — restore the snapshotted accent.
+    // OFF transition — Noir remains the global palette.
     if (!enabled && wasEnabled.current) {
-      const restore = prevAccent && prevAccent !== 'noir' ? prevAccent : 'blue';
-      setAccent(restore);
+      setAccent('noir');
     }
 
     wasEnabled.current = enabled;

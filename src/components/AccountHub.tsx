@@ -21,14 +21,13 @@ import {
 } from "@/components/ui/dialog";
 import {
   ExternalLink, Heart, Crown, MessageSquare, Brain, Image,
-  Sparkles, RefreshCw, Calendar, Loader2, User, Palette, Mic,
-  Check, Shield, Settings, LogOut, Trash2, AlertTriangle,
+  Sparkles, RefreshCw, Calendar, Loader2, User, Mic,
+  Shield, Settings, LogOut, Trash2, AlertTriangle,
   Mail, Key, Download, Cloud, CloudOff, WifiOff, Camera, Save, RotateCcw, Zap,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { useArcStore } from "@/store/useArcStore";
 
@@ -56,22 +55,11 @@ interface UserStats {
 
 type HubTab = "overview" | "preferences" | "account";
 
-const COLOR_OPTIONS = [
-  { id: "red", label: "Red", gradient: "linear-gradient(135deg, hsl(0,85%,60%), hsl(0,85%,70%))" },
-  { id: "blue", label: "Blue", gradient: "linear-gradient(135deg, hsl(200,95%,55%), hsl(200,90%,65%))" },
-  { id: "green", label: "Green", gradient: "linear-gradient(135deg, hsl(142,76%,42%), hsl(142,76%,52%))" },
-  { id: "yellow", label: "Yellow", gradient: "linear-gradient(135deg, hsl(48,85%,55%), hsl(48,85%,65%))" },
-  { id: "purple", label: "Purple", gradient: "linear-gradient(135deg, hsl(270,75%,60%), hsl(270,75%,70%))" },
-  { id: "orange", label: "Orange", gradient: "linear-gradient(135deg, hsl(25,90%,58%), hsl(25,90%,68%))" },
-  { id: "noir", label: "Noir", gradient: "linear-gradient(135deg, hsl(0,0%,95%), hsl(0,0%,70%))" },
-];
-
 export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   const { user } = useAuth();
   const { profile, updateProfile, updating, refetch } = useProfile();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { accentColor, setAccentColor } = useAccentColor();
   const { isAdmin } = useAdminSettings();
   const { clearAllSessions, createNewSession, lastSyncAt } = useArcStore();
   
@@ -415,29 +403,6 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                   >
                     <Brain className="h-4 w-4 mr-2" /> View Memory
                   </Button>
-                </Section>
-
-                {/* Accent Color */}
-                <Section icon={<Palette className="h-4 w-4" />} title="Accent Color" desc="Customize your theme color">
-                  <div className="grid grid-cols-7 gap-3">
-                    {COLOR_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.id}
-                        onClick={() => setAccentColor(opt.id as AccentColor)}
-                        className={cn(
-                          "aspect-square rounded-xl relative transition-all",
-                          opt.id === "noir" && "accent-swatch-noir",
-                          accentColor === opt.id
-                            ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110"
-                            : "hover:scale-105"
-                        )}
-                        style={opt.id === "noir" ? undefined : { background: opt.gradient }}
-                        aria-label={`Select ${opt.label}`}
-                      >
-                        {accentColor === opt.id && <Check className="absolute inset-0 m-auto h-4 w-4 text-white drop-shadow-lg" />}
-                      </button>
-                    ))}
-                  </div>
                 </Section>
 
                 {/* Voice */}

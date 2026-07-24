@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
-import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { useAuth } from "./useAuth";
+import { useEffect } from "react";
 import { useAccentStore, type AccentColor } from "@/store/useAccentStore";
 
 export type { AccentColor } from "@/store/useAccentStore";
@@ -115,48 +113,12 @@ const accentColorConfigs = {
 };
 
 export function useAccentColor() {
-  const { user } = useAuth();
   const accentColor = useAccentStore((s) => s.accentColor);
-  const setAccentColorLocal = useAccentStore((s) => s.setAccentColorLocal);
-  const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
-
-
-  // Load accent color from profile on mount
-  useEffect(() => {
-    if (!user) {
-      setLoadedUserId(null);
-      return;
-    }
-    if (loadedUserId === user.id || !supabase || !isSupabaseConfigured) {
-      return;
-    }
-
-    const loadAccentColor = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("accent_color")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (data?.accent_color && accentColorConfigs[data.accent_color as AccentColor]) {
-          const nextAccent = data.accent_color as AccentColor;
-          setAccentColorLocal(nextAccent);
-        }
-        setLoadedUserId(user.id);
-      } catch (err) {
-        console.error("Failed to load accent color:", err);
-        setLoadedUserId(user.id);
-      }
-    };
-
-    loadAccentColor();
-  }, [user, loadedUserId, setAccentColorLocal]);
 
   // Apply CSS variables whenever accent color changes OR theme changes
   useEffect(() => {
     const applyAccentColors = () => {
-      // Fallback to blue if accent color is invalid
+      // The store normalizes legacy state to Noir before this hook runs.
       const validAccentColor = accentColorConfigs[accentColor] ? accentColor : "noir";
       const config = accentColorConfigs[validAccentColor];
       const root = document.documentElement;
@@ -380,21 +342,7 @@ export function useAccentColor() {
     return () => observer.disconnect();
   }, [accentColor]);
 
-  const setAccentColor = async (color: AccentColor) => {
-    // Update shared local state immediately (this drives CSS + UI everywhere)
-    setAccentColorLocal(color);
-
-    // Save to profile if user is logged in and backend is configured
-    if (user && supabase && isSupabaseConfigured) {
-      try {
-        await supabase.from("profiles").update({ accent_color: color }).eq("user_id", user.id);
-      } catch (err) {
-        console.error("Failed to save accent color to profile:", err);
-      }
-    }
-  };
-
-  return { accentColor, setAccentColor };
+  return { accentColor };
 }
 
 // Helper to convert HSL to RGB for selection styles

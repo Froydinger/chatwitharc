@@ -30,7 +30,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/dashboard/settings": {
     title: "ArcAI • Settings",
     description:
-      "Manage your ArcAI account, accent color, voice, memory and usage preferences.",
+      "Manage your ArcAI account, theme, voice, memory and usage preferences.",
   },
   "/support": {
     title: "ArcAI • Support",

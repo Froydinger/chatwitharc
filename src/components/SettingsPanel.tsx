@@ -33,7 +33,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAccentColor, AccentColor } from "@/hooks/useAccentColor";
 import { useAccentStore } from "@/store/useAccentStore";
 import { AVAILABLE_FONTS, getStoredCustomFont, setStoredCustomFont, type CustomFontId } from "@/hooks/useCustomFont";
 
@@ -256,7 +255,6 @@ export function SettingsPanel() {
     currentPeriodEnd,
   } = useSubscription();
   const { toast } = useToast();
-  const { accentColor, setAccentColor } = useAccentColor();
   const themeMode = useAccentStore((s) => s.themeMode);
 
 
@@ -409,19 +407,6 @@ export function SettingsPanel() {
   };
 
   const { icon: SyncIcon, color: syncColor, text: syncText } = getSyncStatus();
-
-  const allColorOptions: { id: AccentColor; label: string; gradient: string; adminOnly?: boolean }[] = [
-    { id: "red",    label: "Red",    gradient: "linear-gradient(135deg, hsl(0,90%,48%), hsl(0,90%,58%))" },
-    { id: "blue",   label: "Blue",   gradient: "linear-gradient(135deg, hsl(205,100%,48%), hsl(205,95%,58%))" },
-    { id: "green",  label: "Green",  gradient: "linear-gradient(135deg, hsl(145,82%,35%), hsl(145,80%,45%))" },
-    { id: "yellow", label: "Yellow", gradient: "linear-gradient(135deg, hsl(45,100%,48%), hsl(45,100%,58%))" },
-    { id: "purple", label: "Purple", gradient: "linear-gradient(135deg, hsl(268,85%,52%), hsl(268,82%,62%))" },
-    { id: "orange", label: "Orange", gradient: "linear-gradient(135deg, hsl(22,100%,50%), hsl(22,98%,60%))" },
-    { id: "noir",   label: "Noir",   gradient: "linear-gradient(135deg, hsl(0,0%,4%), hsl(0,0%,18%))" },
-    { id: "gold",   label: "Gold",   gradient: "linear-gradient(135deg, hsl(40,78%,42%), hsl(46,92%,64%) 50%, hsl(43,82%,48%))", adminOnly: true },
-  ];
-  const colorOptions = allColorOptions.filter((opt) => !opt.adminOnly || isAdmin);
-
 
   // ----- Section renderers -----
 
@@ -630,35 +615,6 @@ export function SettingsPanel() {
       />
     </SectionCard>
   ) : null;
-
-  const AccentColorCard = (
-    <SectionCard icon={Palette} title="Accent Color" subtitle="Personalize your app accent" className="lg:col-span-2">
-      <Tile>
-        <div className="grid grid-cols-7 gap-3">
-          {colorOptions.map((opt) => {
-            const isActive = accentColor === opt.id;
-            return (
-              <button
-                key={opt.id}
-                onClick={() => setAccentColor(opt.id)}
-                className={`aspect-square rounded-xl relative transition-all ${
-                  opt.id === "noir" ? "accent-swatch-noir " : ""
-                }${
-                  isActive
-                    ? "ring-2 ring-offset-2 ring-offset-background ring-primary scale-110"
-                    : "hover:scale-105"
-                }`}
-                style={opt.id === "noir" ? undefined : { background: opt.gradient }}
-                aria-label={`Select ${opt.label} accent color`}
-              >
-                {isActive && <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-lg" />}
-              </button>
-            );
-          })}
-        </div>
-      </Tile>
-    </SectionCard>
-  );
 
   const [customFont, setCustomFont] = useState<CustomFontId>(() => getStoredCustomFont());
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
@@ -876,7 +832,6 @@ export function SettingsPanel() {
       case "appearance":
         return (
           <>
-            {AccentColorCard}
             {StarfieldCard}
             {FontCard}
           </>

@@ -265,18 +265,17 @@ export function DocsPage() {
     {
       id: "appearance-colors",
       category: "settings",
-      title: "Changing Theme & Accent Colors",
-      question: "How do I change the look, theme, or color accent of Arc?",
+      title: "Changing Arc's Theme",
+      question: "How do I change between Arc's light and dark themes?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            ArcAI features a beautiful glass-morphism interface with highly customizable theme options.
+            ArcAI uses a focused black-and-white Noir palette in both light and dark themes.
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li>Go to <a href="/settings?tab=appearance" className="text-primary hover:underline font-semibold">Settings &gt; Appearance tab</a>.</li>
-            <li>Choose your base theme (<strong>Dark</strong>, <strong>Light</strong>, or <strong>System Default</strong>).</li>
-            <li>Select an accent tint: <span className="text-red-400">Red</span>, <span className="text-blue-400">Blue</span>, <span className="text-green-400">Green</span>, <span className="text-yellow-400">Yellow</span>, <span className="text-purple-400">Purple</span>, <span className="text-orange-400">Orange</span>, or <strong className="text-foreground">Noir</strong>.</li>
-            <li>You can also click the quick-accent palette in the sidebar/right-panel menu to switch colors immediately.</li>
+            <li>Choose your base theme: <strong>Dark</strong>, <strong>Light</strong>, or <strong>System Default</strong>.</li>
+            <li>The Noir palette is applied consistently for everyone.</li>
           </ul>
         </div>
       ),

@@ -3,19 +3,6 @@ import { create } from "zustand";
 export type AccentColor = "red" | "blue" | "green" | "yellow" | "purple" | "orange" | "noir" | "gold";
 export type ThemeMode = "light" | "dark" | "system";
 
-function isAccentColor(value: unknown): value is AccentColor {
-  return (
-    value === "red" ||
-    value === "blue" ||
-    value === "green" ||
-    value === "yellow" ||
-    value === "purple" ||
-    value === "orange" ||
-    value === "noir" ||
-    value === "gold"
-  );
-}
-
 function isThemeMode(value: unknown): value is ThemeMode {
   return value === "light" || value === "dark" || value === "system";
 }
@@ -33,8 +20,10 @@ const THEME_CYCLE: ThemeMode[] = ["dark", "light", "system"];
 export const useAccentStore = create<AccentStore>((set, get) => ({
   accentColor: (() => {
     try {
-      const saved = localStorage.getItem("accentColor");
-      return isAccentColor(saved) ? saved : "noir";
+      // Accent selection has been retired. Normalize legacy browser state as
+      // soon as Arc starts so every session uses the black-and-white palette.
+      localStorage.setItem("accentColor", "noir");
+      return "noir";
     } catch {
       return "noir";
     }
@@ -55,13 +44,13 @@ export const useAccentStore = create<AccentStore>((set, get) => ({
     }
   })(),
 
-  setAccentColorLocal: (color) => {
+  setAccentColorLocal: (_color) => {
     try {
-      localStorage.setItem("accentColor", color);
+      localStorage.setItem("accentColor", "noir");
     } catch {
       // ignore
     }
-    set({ accentColor: color });
+    set({ accentColor: "noir" });
   },
   setThemeMode: (mode) => {
     try {

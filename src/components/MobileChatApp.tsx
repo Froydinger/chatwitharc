@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, LayoutDashboard, Share2, Lock, MoreHorizontal, Monitor, Check, Palette, CircleGauge } from "lucide-react";
+import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, LayoutDashboard, Share2, Lock, MoreHorizontal, Monitor, CircleGauge } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
@@ -44,9 +44,7 @@ import { useImageQuota } from "@/hooks/useImageQuota";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
-import { useAccentStore, type AccentColor } from "@/store/useAccentStore";
-import { useAccentColor } from "@/hooks/useAccentColor";
-import { useAdminSettings } from "@/hooks/useAdminSettings";
+import { useAccentStore } from "@/store/useAccentStore";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -145,17 +143,6 @@ function getDaypartGreeting(d: Date = new Date()): string {
   const randomIndex = Math.floor((Math.random() * 1000 + Date.now()) % greetings.length);
   return greetings[randomIndex];
 }
-
-const ACCENT_SWATCHES: { id: AccentColor; label: string; gradient: string; adminOnly?: boolean }[] = [
-  { id: "red",    label: "Red",    gradient: "linear-gradient(135deg, hsl(0,90%,48%), hsl(0,90%,58%))" },
-  { id: "blue",   label: "Blue",   gradient: "linear-gradient(135deg, hsl(205,100%,48%), hsl(205,95%,58%))" },
-  { id: "green",  label: "Green",  gradient: "linear-gradient(135deg, hsl(145,82%,35%), hsl(145,80%,45%))" },
-  { id: "yellow", label: "Yellow", gradient: "linear-gradient(135deg, hsl(45,100%,48%), hsl(45,100%,58%))" },
-  { id: "purple", label: "Purple", gradient: "linear-gradient(135deg, hsl(268,85%,52%), hsl(268,82%,62%))" },
-  { id: "orange", label: "Orange", gradient: "linear-gradient(135deg, hsl(22,100%,50%), hsl(22,98%,60%))" },
-  { id: "noir",   label: "Noir",   gradient: "linear-gradient(135deg, hsl(0,0%,4%), hsl(0,0%,18%))" },
-  { id: "gold",   label: "Gold",   gradient: "linear-gradient(135deg, hsl(40,78%,42%), hsl(46,92%,64%) 50%, hsl(43,82%,48%))", adminOnly: true },
-];
 
 /**
  * Wraps the chat input with the liquid-metal ring + border beam WITHOUT ever
@@ -264,10 +251,6 @@ function ArcInputEffects({
 
 export function MobileChatApp() {
   const navigate = useNavigate();
-  const accent = useAccentStore((s) => s.accentColor);
-  const { setAccentColor } = useAccentColor();
-  const { isAdmin } = useAdminSettings();
-  const accentSwatches = ACCENT_SWATCHES.filter((s) => !s.adminOnly || isAdmin);
   const themeMode = useAccentStore((s) => s.themeMode);
   const effectTheme = themeMode === "system" ? "auto" : themeMode;
   const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
