@@ -308,7 +308,7 @@ export function RightPanel({
 
           {(canShareChat || canShowUsage) && (
             <div className="px-3 py-2 border-b border-border/40">
-              <div className="grid grid-cols-2 gap-2">
+              <div className={cn("grid gap-2", canShareChat && canShowUsage ? "grid-cols-2" : "grid-cols-1")}>
                 {canShareChat && (
                   <Button
                     variant="outline"
