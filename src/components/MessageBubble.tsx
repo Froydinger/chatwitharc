@@ -691,25 +691,26 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             )}
           </div>
           
-          {/* Memory/Search Action Indicator - persistent in chat */}
-          {/* Compact metadata tile: icons by default, expands on click */}
-          {!isUser && message.type !== 'image-generating' && (
-            <MessageMetadata message={message} />
-          )}
-          
-          {/* Arc / Persona avatar - latest assistant message */}
-          {!isUser && isLatestAssistant && (
+          {/* Keep reply metadata and the Arc mark in one layout-aware footer.
+              As streamed text wraps, this moves the whole footer with the
+              response instead of snapping each element to its next line. */}
+          {!isUser && (message.type !== 'image-generating' || isLatestAssistant) && (
             <motion.div
-              className="flex items-center justify-start mt-2 ml-2 h-10"
-              layout
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{
-                opacity: { duration: 0.3, ease: "easeOut" },
-                layout: { duration: 0.2, ease: "easeOut" }
-              }}
+              className="w-full"
+              layout="position"
+              transition={{ layout: { duration: 0.18, ease: [0.22, 1, 0.36, 1] } }}
             >
+              {message.type !== 'image-generating' && <MessageMetadata message={message} />}
+
+              {/* Arc / Persona avatar - latest assistant message */}
+              {isLatestAssistant && (
+                <motion.div
+                  className="flex items-center justify-start mt-2 ml-2 h-10"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ opacity: { duration: 0.3, ease: "easeOut" } }}
+                >
               <motion.div
                 className="relative"
                 animate={{
@@ -744,6 +745,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   />
                 )}
               </motion.div>
+                </motion.div>
+              )}
             </motion.div>
           )}
 
