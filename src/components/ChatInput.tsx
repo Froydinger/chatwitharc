@@ -57,6 +57,7 @@ import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore, useResolvedImageModel, useEditImageModel } from "@/store/useImageGenStore";
 import { useVideoGenStore, orientationForDimensions } from "@/store/useVideoGenStore";
 import { useVideoAccess } from "@/hooks/useVideoAccess";
+import { AnimateAttachmentModal } from "@/components/AnimateAttachmentModal";
 import { useImageQuota } from "@/hooks/useImageQuota";
 
 // Global cancellation flag and AbortController
@@ -554,6 +555,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [animateAttachmentOpen, setAnimateAttachmentOpen] = useState(false);
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
   const [allImagesEditMode, setAllImagesEditMode] = useState(false);
   const [showLimitsModal, setShowLimitsModal] = useState(false);
@@ -1276,6 +1278,45 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   };
 
   runVideoGenerationRef.current = runVideoGeneration;
+
+  /**
+   * Animate an image the user attached (rather than one Arc generated).
+   *
+   * The file has to be uploaded first: the edge function fetches the source
+   * server-side, and the preview is a `blob:` URL that only exists in this
+   * tab. Storing a data URL on the message instead would work but would bloat
+   * the chat row, since messages persist as JSONB.
+   */
+  const handleAnimateAttachment = async (file: File, prompt: string) => {
+    if (useArcStore.getState().isGeneratingImage) return;
+
+    let sourceUrl: string;
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) throw new Error("Not signed in");
+      const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+      const name = `${currentUser.id}/animate-source-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(name, file, {
+        contentType: file.type || "image/png",
+        upsert: false,
+      });
+      if (error) throw error;
+      const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
+      if (!pub?.publicUrl) throw new Error("No public URL returned");
+      sourceUrl = pub.publicUrl;
+    } catch (err) {
+      console.error("Animate attachment upload failed:", err);
+      toast({
+        title: "Couldn't upload that image",
+        description: "The image needs to be uploaded before it can be animated. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    clearSelected();
+    await runVideoGeneration(prompt, prompt, sourceUrl);
+  };
 
   const handleSend = async (messageOverride?: string) => {
     const messageToSend = messageOverride ?? inputValue;
@@ -2769,6 +2810,17 @@ ${safeCode}
                     >
                       {allImagesEditMode ? `Mode: Edit ✏️` : `Mode: Analyze 🔍`}
                     </button>
+                    {canGenerateVideo && (
+                      <button
+                        type="button"
+                        onClick={() => setAnimateAttachmentOpen(true)}
+                        disabled={isGeneratingImage}
+                        className="mt-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 flex items-center justify-center gap-1.5"
+                      >
+                        <Clapperboard className="w-3.5 h-3.5" />
+                        Animate{selectedImages.length > 1 ? " an image" : ""}
+                      </button>
+                    )}
                   </div>
                 )}
                 {(shouldShowBanana || allImagesEditMode) && (
@@ -3300,6 +3352,16 @@ ${safeCode}
           )}
         </AnimatePresence>,
         document.body
+      )}
+
+      {canGenerateVideo && (
+        <AnimateAttachmentModal
+          isOpen={animateAttachmentOpen}
+          onClose={() => setAnimateAttachmentOpen(false)}
+          images={selectedImages.map((file, i) => ({ file, previewUrl: imagePreviewUrls[i] }))
+            .filter((c) => !!c.previewUrl)}
+          onAnimate={handleAnimateAttachment}
+        />
       )}
     </div>
   );
