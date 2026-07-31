@@ -11,6 +11,12 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const VIDEO_ACCESS_EMAILS = new Set([
+  "jkrd09@gmail.com",
+  "jakefroydinger@gmail.com",
+  "j@froydinger.com",
+]);
+const DAILY_SECONDS_LIMIT = 60;
 
 /**
  * Product cap, deliberately below what the provider allows. Sora bills
@@ -31,6 +37,97 @@ function jsonResponse(body: unknown, status = 200) {
 
 function normalizeOrientation(value: unknown, fallback: VideoOrientation = "landscape"): VideoOrientation {
   return value === "portrait" || value === "landscape" ? value : fallback;
+}
+
+type VideoQuota = {
+  allowed: boolean;
+  usedSeconds: number;
+  remainingSeconds: number;
+  limitSeconds: number;
+  hasAccess: boolean;
+  resetAt: string;
+  error?: string;
+};
+
+/**
+ * Compatibility path for a deployed database that still has the original
+ * one-address allowlist. The edge function has already authenticated the user
+ * and verified their email against the same private list before this runs.
+ * The forward migration remains the canonical fix; this keeps video usable if
+ * a database migration deploy lags behind the edge-function deploy.
+ */
+async function reserveAllowlistedQuotaFallback(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  userId: string,
+  jobId: string,
+  seconds: number,
+): Promise<VideoQuota> {
+  const usageDate = new Date().toISOString().slice(0, 10);
+  const resetAt = new Date(`${usageDate}T00:00:00.000Z`);
+  resetAt.setUTCDate(resetAt.getUTCDate() + 1);
+
+  const { error: seedError } = await supabaseAdmin
+    .from("daily_video_usage")
+    .upsert(
+      { user_id: userId, usage_date: usageDate, used_seconds: 0 },
+      { onConflict: "user_id,usage_date", ignoreDuplicates: true },
+    );
+  if (seedError) throw seedError;
+
+  const { data: usage, error: usageError } = await supabaseAdmin
+    .from("daily_video_usage")
+    .select("used_seconds")
+    .eq("user_id", userId)
+    .eq("usage_date", usageDate)
+    .single();
+  if (usageError || !usage) throw usageError ?? new Error("Video usage row was not created");
+
+  const used = Number(usage.used_seconds) || 0;
+  if (used + seconds > DAILY_SECONDS_LIMIT) {
+    return {
+      allowed: false,
+      usedSeconds: used,
+      remainingSeconds: Math.max(0, DAILY_SECONDS_LIMIT - used),
+      limitSeconds: DAILY_SECONDS_LIMIT,
+      hasAccess: true,
+      resetAt: resetAt.toISOString(),
+    };
+  }
+
+  const { data: reservedJob, error: reserveError } = await supabaseAdmin
+    .from("video_generation_jobs")
+    .update({ quota_reserved_seconds: seconds, quota_reserved_date: usageDate })
+    .eq("id", jobId)
+    .eq("user_id", userId)
+    .eq("quota_reserved_seconds", 0)
+    .select("id")
+    .maybeSingle();
+  if (reserveError || !reservedJob) {
+    throw reserveError ?? new Error("Video quota was already reserved for this job");
+  }
+
+  const nextUsed = used + seconds;
+  const { error: incrementError } = await supabaseAdmin
+    .from("daily_video_usage")
+    .update({ used_seconds: nextUsed })
+    .eq("user_id", userId)
+    .eq("usage_date", usageDate);
+  if (incrementError) {
+    await supabaseAdmin
+      .from("video_generation_jobs")
+      .update({ quota_reserved_seconds: 0, quota_reserved_date: null })
+      .eq("id", jobId);
+    throw incrementError;
+  }
+
+  return {
+    allowed: true,
+    usedSeconds: nextUsed,
+    remainingSeconds: Math.max(0, DAILY_SECONDS_LIMIT - nextUsed),
+    limitSeconds: DAILY_SECONDS_LIMIT,
+    hasAccess: true,
+    resetAt: resetAt.toISOString(),
+  };
 }
 
 /**
@@ -105,6 +202,15 @@ serve(async (req) => {
     return jsonResponse({ success: false, error: "Create an account to generate videos.", errorType: "account_required" });
   }
 
+  const normalizedEmail = user.email?.trim().toLowerCase() ?? "";
+  if (!VIDEO_ACCESS_EMAILS.has(normalizedEmail)) {
+    return jsonResponse({
+      success: false,
+      error: "Video generation is not enabled on this account.",
+      errorType: "not_enabled",
+    });
+  }
+
   let jobId: string | null = null;
 
   try {
@@ -163,7 +269,7 @@ serve(async (req) => {
     // Boost/admin gating and the per-second daily allowance both live in this
     // RPC. Failures return 200 with success:false, matching generate-image —
     // a non-2xx reaches the client as supabase-js's opaque wrapper error.
-    const { data: quota, error: quotaError } = await supabaseAdmin.rpc("reserve_video_quota", {
+    const { data: quotaData, error: quotaError } = await supabaseAdmin.rpc("reserve_video_quota", {
       target_user_id: user.id,
       target_job_id: currentJobId,
       requested_seconds: seconds,
@@ -175,6 +281,23 @@ serve(async (req) => {
         .update({ status: "failed", error_message: "Could not reserve video quota", error_type: "quota_error" })
         .eq("id", currentJobId);
       return jsonResponse({ success: false, error: "Could not check today's video allowance.", errorType: "quota_error" });
+    }
+
+    let quota = quotaData as VideoQuota | null;
+    const staleDatabaseAllowlist = quota?.hasAccess === false || (
+      quota?.hasAccess == null && /boost feature|not enabled/i.test(quota?.error ?? "")
+    );
+    if (!quota?.allowed && staleDatabaseAllowlist) {
+      try {
+        quota = await reserveAllowlistedQuotaFallback(supabaseAdmin, user.id, currentJobId, seconds);
+        console.warn(`[video job ${currentJobId}] used edge allowlist fallback for ${normalizedEmail}`);
+      } catch (fallbackError) {
+        console.error("Video quota fallback error:", fallbackError);
+        await supabaseAdmin.from("video_generation_jobs")
+          .update({ status: "failed", error_message: "Could not reserve video quota", error_type: "quota_error" })
+          .eq("id", currentJobId);
+        return jsonResponse({ success: false, error: "Could not check today's video allowance.", errorType: "quota_error" });
+      }
     }
 
     if (!quota?.allowed) {

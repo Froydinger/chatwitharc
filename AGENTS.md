@@ -110,10 +110,10 @@ release: make sure changes build cleanly before pushing.
 
 - **Private, not a plan feature.** Access is a hard **email allowlist**, not
   Boost — the provider shuts down 2026-09-24, so this isn't sold to anyone.
-  The list lives in TWO places that must match: `public.user_can_generate_video`
-  (`supabase/migrations/20260731130000_restrict_video_to_allowlist.sql`) and
-  `src/hooks/useVideoAccess.tsx`. The server is the real gate; the client copy
-  only decides whether UI is offered. For accounts without access the feature
+  The list lives in THREE places that must match: `public.user_can_generate_video`
+  (the latest forward migration), `supabase/functions/generate-video/index.ts`,
+  and `src/hooks/useVideoAccess.tsx`. The server copies are the real gate; the
+  client copy only decides whether UI is offered. For accounts without access the feature
   is *invisible* — the Animate button doesn't render and video phrasing falls
   through to normal chat rather than surfacing an upsell.
 - Metered in **seconds** (not clips) because the provider bills per second —
