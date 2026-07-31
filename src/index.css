@@ -1665,31 +1665,33 @@ All colors MUST be HSL for perfect glass effects.
    button's centre. Change --gamecube-r alone to resize the whole cluster; the
    proportions cannot drift apart.
 
-   The cluster sits fully inside the window. It does not overhang the corner:
-   that needs a transparent window with the page vacating its own top-left,
-   which shifts the layout and clips the bottom dock.
+   The kidney is pushed out to 1.85-2.66 radii so it reaches the corner and is
+   trimmed by the window's own rounded corner — that trim is what reads as
+   "hugging". Sitting it fully inside leaves a visible diagonal gap, because a
+   rounded corner curves away from a button that only clears the top and left
+   edges.
 
    --gamecube-origin-x/y place the GREEN button's centre relative to the window
-   corner. The SVG's own origin is offset from its top-left by (2.45, 2.55)
-   radii, so the container is positioned back by that much. Everything else
-   follows from the art, so only these three values need touching.
+   corner. The SVG's own origin is offset from its top-left by (3.15, 3.4)
+   radii, so the container is positioned back by that much and legitimately
+   starts at negative coordinates. Everything else follows from the art, so
+   only these three values need touching.
 --------------------------------------------------------------------------- */
 body.arcai-mac-gamecube-controls {
   --gamecube-r: 13px;
-  /* Green centre, from the window's top-left corner. Far enough in that the
-     kidney (which reaches 2.14r left and 2.35r up) clears the edges. */
-  --gamecube-origin-x: 34px;
-  --gamecube-origin-y: 36px;
+  /* Green centre, from the window's top-left corner. */
+  --gamecube-origin-x: 29px;
+  --gamecube-origin-y: 31px;
   /* Cluster bottom lands at origin-y + 1r; leave a little breathing room. */
-  --arcai-desktop-titlebar-safe-area: 52px;
+  --arcai-desktop-titlebar-safe-area: 48px;
 }
 
 .gamecube-window-controls {
   position: fixed;
-  top: calc(var(--gamecube-origin-y) - 2.55 * var(--gamecube-r));
-  left: calc(var(--gamecube-origin-x) - 2.45 * var(--gamecube-r));
-  width: calc(5 * var(--gamecube-r));
-  height: calc(3.8 * var(--gamecube-r));
+  top: calc(var(--gamecube-origin-y) - 3.4 * var(--gamecube-r));
+  left: calc(var(--gamecube-origin-x) - 3.15 * var(--gamecube-r));
+  width: calc(5.8 * var(--gamecube-r));
+  height: calc(4.6 * var(--gamecube-r));
   z-index: 10020;
   pointer-events: none;
   -webkit-app-region: no-drag;
@@ -1734,23 +1736,22 @@ body.arcai-mac-gamecube-controls {
 .gamecube-hit:active { transform: scale(0.94); }
 
 .gamecube-hit--minimize {
-  left: calc(0.72 * var(--gamecube-r));
-  top: calc(0.52 * var(--gamecube-r));
-  width: calc(1.75 * var(--gamecube-r));
-  height: calc(1.5 * var(--gamecube-r));
-  transform-origin: center;
+  left: calc(0.98 * var(--gamecube-r));
+  top: calc(0.79 * var(--gamecube-r));
+  width: calc(1.6 * var(--gamecube-r));
+  height: calc(1.65 * var(--gamecube-r));
 }
 
 .gamecube-hit--maximize {
-  left: calc(1.45 * var(--gamecube-r));
-  top: calc(1.55 * var(--gamecube-r));
+  left: calc(2.15 * var(--gamecube-r));
+  top: calc(2.4 * var(--gamecube-r));
   width: calc(2 * var(--gamecube-r));
   height: calc(2 * var(--gamecube-r));
 }
 
 .gamecube-hit--close {
-  left: calc(3.77 * var(--gamecube-r));
-  top: calc(2.04 * var(--gamecube-r));
+  left: calc(4.468 * var(--gamecube-r));
+  top: calc(2.885 * var(--gamecube-r));
   width: calc(1.02 * var(--gamecube-r));
   height: calc(1.02 * var(--gamecube-r));
 }
