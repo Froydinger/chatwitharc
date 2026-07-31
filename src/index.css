@@ -1660,23 +1660,27 @@ All colors MUST be HSL for perfect glass effects.
 /* ---------------------------------------------------------------------------
    GameCube window controls (macOS desktop shell)
 
-   Refined geometry matched to 3D reference art (Image 2):
-   - Yellow kidney bean hugging and straddling the top-left rounded corner radius
-   - Large tactile green button with diagonal split-square resize icon
-   - Smaller red close button with burgundy X icon
+   Every offset is `unit * --gamecube-r`, where the units come straight from
+   MacWindowControls.tsx and are measured in green-button radii from the green
+   button's centre. Change --gamecube-r alone to resize the whole cluster; the
+   proportions cannot drift apart.
+
+   The kidney overhangs the top-left corner onto the desktop gutter.
 --------------------------------------------------------------------------- */
 body.arcai-mac-gamecube-controls {
-  --gamecube-r: 16px;
-  /* Transparent band along top & left for yellow kidney overhang */
-  --gamecube-gutter: 18px;
-  /* Green button centre relative to top-left of window */
-  --gamecube-origin-x: 38px;
-  --gamecube-origin-y: 38px;
-  --arcai-desktop-titlebar-safe-area: 50px;
+  --gamecube-r: 13px;
+  /* Transparent band along the top and left that the kidney overhangs into. */
+  --gamecube-gutter: 16px;
+  /* Green centre, from the WINDOW's top-left (not the app surface). */
+  --gamecube-origin-x: 32px;
+  --gamecube-origin-y: 31px;
+  --arcai-desktop-titlebar-safe-area: 46px;
   background: transparent !important;
 }
 
-/* App surface inset leaving gutter */
+/* The app surface, inset to leave the gutter. Full-height utilities are
+   remapped to this box so nothing lays out against the taller window and
+   overshoots the dock by the gutter's height. */
 body.arcai-mac-gamecube-controls #root {
   position: fixed;
   top: var(--gamecube-gutter);
@@ -1684,7 +1688,7 @@ body.arcai-mac-gamecube-controls #root {
   width: calc(100vw - var(--gamecube-gutter));
   height: calc(100vh - var(--gamecube-gutter));
   overflow: hidden;
-  border-top-left-radius: 24px;
+  border-top-left-radius: 10px;
   background: hsl(var(--background));
   box-shadow: 0 10px 34px rgb(0 0 0 / 0.34);
 }
@@ -1694,10 +1698,10 @@ body.arcai-mac-gamecube-controls .min-h-screen { min-height: 100%; }
 
 .gamecube-window-controls {
   position: fixed;
-  top: calc(var(--gamecube-origin-y) - 2.1 * var(--gamecube-r));
-  left: calc(var(--gamecube-origin-x) - 2.0 * var(--gamecube-r));
-  width: calc(4.2 * var(--gamecube-r));
-  height: calc(3.2 * var(--gamecube-r));
+  top: calc(var(--gamecube-origin-y) - 2.55 * var(--gamecube-r));
+  left: calc(var(--gamecube-origin-x) - 2.45 * var(--gamecube-r));
+  width: calc(5.0 * var(--gamecube-r));
+  height: calc(3.8 * var(--gamecube-r));
   z-index: 10020;
   pointer-events: none;
   -webkit-app-region: no-drag;
@@ -1712,7 +1716,8 @@ body.arcai-mac-gamecube-controls .min-h-screen { min-height: 100%; }
   overflow: visible;
 }
 
-/* Hit targets */
+/* Hit targets. The art is one SVG so the shapes stay in exact relation; these
+   sit on top to keep the three buttons independently clickable. */
 .gamecube-hit {
   position: absolute;
   appearance: none;
@@ -1731,22 +1736,22 @@ body.arcai-mac-gamecube-controls .min-h-screen { min-height: 100%; }
 .gamecube-hit:active { transform: scale(0.94); }
 
 .gamecube-hit--minimize {
-  left: calc(0.4 * var(--gamecube-r));
-  top: calc(0.4 * var(--gamecube-r));
-  width: calc(1.7 * var(--gamecube-r));
-  height: calc(1.6 * var(--gamecube-r));
+  left: calc(0.72 * var(--gamecube-r));
+  top: calc(0.52 * var(--gamecube-r));
+  width: calc(1.75 * var(--gamecube-r));
+  height: calc(1.5 * var(--gamecube-r));
 }
 
 .gamecube-hit--maximize {
-  left: calc(1.25 * var(--gamecube-r));
-  top: calc(1.45 * var(--gamecube-r));
+  left: calc(1.45 * var(--gamecube-r));
+  top: calc(1.55 * var(--gamecube-r));
   width: calc(2 * var(--gamecube-r));
   height: calc(2 * var(--gamecube-r));
 }
 
 .gamecube-hit--close {
-  left: calc(3.43 * var(--gamecube-r));
-  top: calc(1.93 * var(--gamecube-r));
-  width: calc(1.04 * var(--gamecube-r));
-  height: calc(1.04 * var(--gamecube-r));
+  left: calc(3.77 * var(--gamecube-r));
+  top: calc(2.04 * var(--gamecube-r));
+  width: calc(1.02 * var(--gamecube-r));
+  height: calc(1.02 * var(--gamecube-r));
 }
