@@ -1666,13 +1666,13 @@ All colors MUST be HSL for perfect glass effects.
    - Smaller red close button with burgundy X icon
 --------------------------------------------------------------------------- */
 body.arcai-mac-gamecube-controls {
-  --gamecube-r: 17px;
+  --gamecube-r: 16px;
   /* Transparent band along top & left for yellow kidney overhang */
-  --gamecube-gutter: 20px;
+  --gamecube-gutter: 18px;
   /* Green button centre relative to top-left of window */
-  --gamecube-origin-x: 42px;
-  --gamecube-origin-y: 42px;
-  --arcai-desktop-titlebar-safe-area: 52px;
+  --gamecube-origin-x: 38px;
+  --gamecube-origin-y: 38px;
+  --arcai-desktop-titlebar-safe-area: 50px;
   background: transparent !important;
 }
 
@@ -1684,7 +1684,7 @@ body.arcai-mac-gamecube-controls #root {
   width: calc(100vw - var(--gamecube-gutter));
   height: calc(100vh - var(--gamecube-gutter));
   overflow: hidden;
-  border-top-left-radius: 28px;
+  border-top-left-radius: 24px;
   background: hsl(var(--background));
   box-shadow: 0 10px 34px rgb(0 0 0 / 0.34);
 }
@@ -1694,10 +1694,10 @@ body.arcai-mac-gamecube-controls .min-h-screen { min-height: 100%; }
 
 .gamecube-window-controls {
   position: fixed;
-  top: calc(var(--gamecube-origin-y) - 2.45 * var(--gamecube-r));
-  left: calc(var(--gamecube-origin-x) - 2.25 * var(--gamecube-r));
-  width: calc(4.7 * var(--gamecube-r));
-  height: calc(3.6 * var(--gamecube-r));
+  top: calc(var(--gamecube-origin-y) - 2.1 * var(--gamecube-r));
+  left: calc(var(--gamecube-origin-x) - 2.0 * var(--gamecube-r));
+  width: calc(4.2 * var(--gamecube-r));
+  height: calc(3.2 * var(--gamecube-r));
   z-index: 10020;
   pointer-events: none;
   -webkit-app-region: no-drag;
