@@ -701,7 +701,7 @@ export class AIService {
       const data: any = await invokeEdgeFunction('generate-image', {
         prompt,
         preferredModel: modelToUse,
-        aspectRatio: aspectRatio || '1:1',
+        aspectRatio: aspectRatio || '3:2',
         count: safeCount,
       });
 

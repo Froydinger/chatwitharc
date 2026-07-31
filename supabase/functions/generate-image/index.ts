@@ -115,7 +115,8 @@ function classifyError(status: number, rawText: string): ErrorInfo {
 }
 
 function normalizeAspectRatio(aspectRatio?: unknown) {
-  return typeof aspectRatio === "string" && aspectRatio.trim() ? aspectRatio.trim() : "1:1";
+  // Landscape is the product default when a caller doesn't specify one.
+  return typeof aspectRatio === "string" && aspectRatio.trim() ? aspectRatio.trim() : "3:2";
 }
 
 async function updateJob(supabase: any, jobId: string, values: Record<string, unknown>) {

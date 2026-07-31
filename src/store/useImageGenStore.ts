@@ -25,6 +25,9 @@ export const ALLOWED_IMAGE_MODELS: ImageModelId[] = [
 
 export type ImageAspectRatio = '1:1' | '3:2' | '2:3' | '16:9';
 
+/** What you get before picking anything. */
+export const DEFAULT_ASPECT_RATIO: ImageAspectRatio = '3:2';
+
 export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb: string; pro?: boolean }> = [
   {
     id: 'gpt-image-1',
@@ -64,7 +67,7 @@ function normalizeAspect(value: unknown): ImageAspectRatio {
   if (raw === '21:9') return '16:9';
   if (raw === '3:4' || raw === '9:16') return '2:3';
   if (raw === '4:3') return '3:2';
-  return '1:1';
+  return DEFAULT_ASPECT_RATIO;
 }
 
 function normalizeCount(value: unknown): ImageCount {
@@ -87,7 +90,7 @@ export const useImageGenStore = create<ImageGenState>()(
   persist(
     (set) => ({
       quick: false,
-      aspectRatio: '1:1',
+      aspectRatio: DEFAULT_ASPECT_RATIO,
       count: 1,
       setQuick: (q) => set({ quick: !!q }),
       setAspectRatio: (a) => set({ aspectRatio: a }),
