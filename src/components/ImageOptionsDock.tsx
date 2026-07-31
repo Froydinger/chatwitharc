@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Ratio, Sparkles, Check, Images } from "lucide-react";
+import { ChevronDown, Ratio, Check, Images, Zap } from "lucide-react";
 import {
   useImageGenStore,
-  IMAGE_MODEL_OPTIONS,
   IMAGE_ASPECT_OPTIONS,
-  type ImageModelId,
   type ImageAspectRatio,
   type ImageCount,
 } from "@/store/useImageGenStore";
@@ -24,29 +22,27 @@ interface ImageOptionsDockProps {
   widthPx?: number;
 }
 
-import { useSubscription } from "@/hooks/useSubscription";
-import { useResolvedImageModel } from "@/store/useImageGenStore";
-
 /**
- * Inner controls (model + aspect + usage meter). Can be rendered inline
- * inside another panel (e.g. the Selected Images preview) or wrapped by
- * <ImageOptionsDock /> for its own floating dock.
+ * Inner controls (quick toggle + aspect + count + usage meter). Can be
+ * rendered inline inside another panel (e.g. the Selected Images preview) or
+ * wrapped by <ImageOptionsDock /> for its own floating dock.
+ *
+ * `editMode` disables Quick: GPT Image 2 is the only model that can edit.
  */
-export function ImageOptionsContent({ showUsage = true }: { showUsage?: boolean }) {
-  const { aspectRatio, count, setModel, setAspectRatio, setCount } = useImageGenStore();
-  const model = useResolvedImageModel();
-  const { hasBoost } = useSubscription();
+export function ImageOptionsContent({
+  showUsage = true,
+  editMode = false,
+}: {
+  showUsage?: boolean;
+  editMode?: boolean;
+}) {
+  const { aspectRatio, count, quick, setQuick, setAspectRatio, setCount } = useImageGenStore();
 
-  const [openMenu, setOpenMenu] = useState<null | "model" | "aspect" | "count">(null);
+  const [openMenu, setOpenMenu] = useState<null | "aspect" | "count">(null);
 
-  const activeModel = IMAGE_MODEL_OPTIONS.find((m) => m.id === model) ?? IMAGE_MODEL_OPTIONS[0];
   const activeAspect = IMAGE_ASPECT_OPTIONS.find((a) => a.id === aspectRatio) ?? IMAGE_ASPECT_OPTIONS[0];
   const effectiveCount: ImageCount = count || 1;
-
-  const handlePickModel = (m: ImageModelId) => {
-    setModel(m);
-    setOpenMenu(null);
-  };
+  const quickOn = quick && !editMode;
 
   const handlePickAspect = (a: ImageAspectRatio) => {
     setAspectRatio(a);
@@ -64,50 +60,50 @@ export function ImageOptionsContent({ showUsage = true }: { showUsage?: boolean 
       )}
 
       <div className="flex flex-wrap items-end gap-3">
-        {/* Model picker */}
-        {hasBoost && (
-          <div className="relative flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Model</span>
-            <button
-              type="button"
-              onClick={() => setOpenMenu(openMenu === "model" ? null : "model")}
+        {/* Quick toggle — GPT Image 1 Mini for fast generation. Edits are
+            GPT Image 2 only, so this is disabled in edit mode. */}
+        <div className="relative flex flex-col gap-1">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Speed</span>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={quickOn}
+            aria-label="Quick generation"
+            disabled={editMode}
+            onClick={() => setQuick(!quick)}
+            title={
+              editMode
+                ? "Quick is unavailable for edits — only GPT Image 2 can edit images."
+                : quickOn
+                  ? "Quick on · GPT Image 1 Mini"
+                  : "Quick off · GPT Image 2"
+            }
+            className={cn(
+              "flex items-center gap-2 px-3 h-9 rounded-full border transition-colors text-sm",
+              editMode
+                ? "border-border/40 bg-muted/20 text-muted-foreground/60 cursor-not-allowed"
+                : quickOn
+                  ? "border-primary/50 bg-primary/15 text-foreground hover:bg-primary/20"
+                  : "border-border/50 bg-muted/30 text-foreground hover:bg-muted/50",
+            )}
+          >
+            <Zap className={cn("h-3.5 w-3.5", quickOn && !editMode ? "text-primary" : "text-muted-foreground")} />
+            <span className="font-medium">Quick</span>
+            <span
               className={cn(
-                "flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
+                "ml-0.5 inline-flex h-4 w-7 items-center rounded-full p-0.5 transition-colors",
+                quickOn && !editMode ? "bg-primary/70" : "bg-muted-foreground/25",
               )}
             >
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              <span className="font-medium">{activeModel.label}</span>
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-
-            {openMenu === "model" && (
-              <div className="absolute bottom-full mb-2 left-0 w-64 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
-                {IMAGE_MODEL_OPTIONS.map((m) => {
-                  const isActive = m.id === model;
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => handlePickModel(m.id)}
-                      className={cn(
-                        "w-full flex items-start gap-2 px-3 py-2 rounded-xl text-left transition-colors",
-                        isActive ? "bg-primary/10" : "hover:bg-muted/40",
-                      )}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-sm font-medium text-foreground truncate">{m.label}</span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{m.blurb}</p>
-                      </div>
-                      {isActive && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+              <span
+                className={cn(
+                  "h-3 w-3 rounded-full bg-background shadow transition-transform",
+                  quickOn && !editMode ? "translate-x-3" : "translate-x-0",
+                )}
+              />
+            </span>
+          </button>
+        </div>
 
         {/* Aspect ratio picker */}
         <div className="relative flex flex-col gap-1">

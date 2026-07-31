@@ -31,7 +31,7 @@ export function ChatModelPicker({ className }: Props) {
 
   let current = 'Auto';
   let CurrentIcon = RefreshCcwDot;
-  let currentIconClass = MODEL_ICON_COLORS.auto;
+  let currentIconClass: string = MODEL_ICON_COLORS.auto;
   if (chatModel === LUNA_MODEL) {
     current = 'Luna';
     CurrentIcon = MoonStar;

@@ -303,19 +303,26 @@ serve(async (req) => {
     return jsonResponse({ success: false, error: 'Image editing backend not configured.', errorType: 'configuration_error' });
   }
 
+  // All failures return 200 with success:false. A non-2xx reaches the client as
+  // supabase-js's opaque "Edge Function returned a non-2xx status code", which
+  // buries the actual reason; errorType carries the semantics instead.
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return jsonResponse({ error: 'Missing authorization header' }, 401);
+  if (!authHeader) {
+    return jsonResponse({ success: false, error: 'You need to be signed in to edit images.', errorType: 'auth_error' });
+  }
 
   const token = authHeader.replace('Bearer ', '');
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return jsonResponse({ error: 'Invalid or expired token' }, 401);
+  if (authError || !user) {
+    return jsonResponse({ success: false, error: 'Your session expired. Please sign in again.', errorType: 'auth_error' });
+  }
   if (user.is_anonymous) {
     return jsonResponse({
       success: false,
       error: 'Create a free account to edit images.',
       errorType: 'account_required',
-    }, 403);
+    });
   }
 
   try {
@@ -362,7 +369,7 @@ serve(async (req) => {
     });
     if (quotaError) {
       await updateJob(supabase, jobId, { status: 'failed', error_message: 'Could not reserve image quota', error_type: 'quota_error' });
-      return jsonResponse({ success: false, error: "Could not check today's image allowance.", errorType: 'quota_error' }, 500);
+      return jsonResponse({ success: false, error: "Could not check today's image allowance.", errorType: 'quota_error' });
     }
     if (!quota?.allowed) {
       await updateJob(supabase, jobId, { status: 'failed', error_message: 'Daily image limit reached', error_type: 'daily_limit' });
@@ -371,7 +378,7 @@ serve(async (req) => {
         error: `Daily image limit reached. ${quota?.remaining ?? 0} of 20 remaining.`,
         errorType: 'daily_limit',
         quota,
-      }, 429);
+      });
     }
     const isYouTube = aspect === '16:9';
     const editPrompt = buildEditPrompt(prompt, imageArray.length, isYouTube);

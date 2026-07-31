@@ -53,7 +53,7 @@ import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptions
 import { PromptEnhancer } from "@/components/PromptEnhancer";
 // ChatModelPicker now lives in the chat header (MobileChatApp), not the input bar.
 import { UsageMeter } from "@/components/UsageMeter";
-import { useImageGenStore, useResolvedImageModel } from "@/store/useImageGenStore";
+import { useImageGenStore, useResolvedImageModel, useEditImageModel } from "@/store/useImageGenStore";
 import { useImageQuota } from "@/hooks/useImageQuota";
 
 // Global cancellation flag and AbortController
@@ -558,6 +558,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Persisted user-chosen image model + aspect ratio (for /image, "draw…", etc.)
   const { aspectRatio: imageGenAspect, count: imageGenCount } = useImageGenStore();
   const imageGenModel = useResolvedImageModel();
+  // Edits are GPT Image 2 only — never send the Quick (mini) model to an edit.
+  const imageEditModel = useEditImageModel();
 
   // When a /write canvas is open, auto-show canvas mode indicator so user knows
   // their messages will modify the canvas (not go to chat)
@@ -1422,7 +1424,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrls = await ai.editImage(finalMessage, imageUrls, imageGenModel, imageGenAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
+            const editedUrls = await ai.editImage(finalMessage, imageUrls, imageEditModel, imageGenAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
             const {
               data: { user },
             } = await supabase.auth.getUser();
@@ -1608,7 +1610,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrls = await ai.editImage(finalMessage, sourceImageUrls, imageGenModel, imageGenAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
+            const editedUrls = await ai.editImage(finalMessage, sourceImageUrls, imageEditModel, imageGenAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
             const {
               data: { user },
             } = await supabase.auth.getUser();
@@ -2559,7 +2561,7 @@ ${safeCode}
                 )}
                 {(shouldShowBanana || allImagesEditMode) && (
                   <div className="mt-3 pt-2 border-t border-border/30">
-                    <ImageOptionsContent />
+                    <ImageOptionsContent editMode={allImagesEditMode} />
                   </div>
                 )}
               </div>
@@ -3004,7 +3006,7 @@ ${safeCode}
                     {/* Active Model Progress Card */}
                     <div className="space-y-2.5 p-4 rounded-2xl bg-white/5 border border-black/10 dark:border-white/5 backdrop-blur-md">
                       <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">
-                        <span>Active model: <strong className="text-foreground">{imageGenModel === 'gpt-image-2' ? 'GPT Image 2' : imageGenModel === 'gpt-image-1-mini' ? 'GPT Image 1 Mini' : 'GPT Image 1'}</strong></span>
+                        <span>Active model: <strong className="text-foreground">{imageGenModel === 'gpt-image-1-mini' ? 'GPT Image 1 Mini (Quick)' : 'GPT Image 2'}</strong></span>
                         <span className="tabular-nums text-foreground">{dailyImagesUsed} / {limit} used</span>
                       </div>
                       <div className="w-full bg-black/30 rounded-full h-2.5 overflow-hidden border border-black/10 dark:border-white/5 p-0.5">

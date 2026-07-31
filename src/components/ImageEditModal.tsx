@@ -12,9 +12,8 @@ import {
   useImageGenStore,
   IMAGE_MODEL_OPTIONS,
   IMAGE_ASPECT_OPTIONS,
-  type ImageModelId,
   type ImageAspectRatio,
-  useResolvedImageModel,
+  useEditImageModel,
 } from "@/store/useImageGenStore";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
 import { cn } from "@/lib/utils";
@@ -50,26 +49,14 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { addMessage } = useArcStore();
   const { toast } = useToast();
   
-  const { aspectRatio: selectedAspect, count: selectedCount, setModel, setAspectRatio } = useImageGenStore();
-  const selectedModel = useResolvedImageModel();
-  const [openMenu, setOpenMenu] = useState<null | "model" | "aspect">(null);
-
-  // If a lastUsedModel was passed and it differs from the current store, prime the store once on open.
-  useEffect(() => {
-    if (!isOpen) return;
-    if (lastUsedModel && IMAGE_MODEL_OPTIONS.some((m) => m.id === lastUsedModel) && lastUsedModel !== selectedModel) {
-      setModel(lastUsedModel as ImageModelId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+  const { aspectRatio: selectedAspect, count: selectedCount, setAspectRatio } = useImageGenStore();
+  // Edits are GPT Image 2 only — the Quick (mini) model can't edit, so there is
+  // no model choice to make here.
+  const selectedModel = useEditImageModel();
+  const [openMenu, setOpenMenu] = useState<null | "aspect">(null);
 
   const activeModel = IMAGE_MODEL_OPTIONS.find((m) => m.id === selectedModel) ?? IMAGE_MODEL_OPTIONS[0];
   const activeAspect = IMAGE_ASPECT_OPTIONS.find((a) => a.id === selectedAspect) ?? IMAGE_ASPECT_OPTIONS[0];
-
-  const handlePickModel = (m: ImageModelId) => {
-    setModel(m);
-    setOpenMenu(null);
-  };
 
   const handlePickAspect = (a: ImageAspectRatio) => {
     setAspectRatio(a);
@@ -338,46 +325,15 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
             <div>
               <label className="text-sm font-medium mb-2 block">Output options</label>
               <div className="flex flex-wrap items-center gap-2">
-                {/* Model picker */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setOpenMenu(openMenu === "model" ? null : "model")}
-                    disabled={isSubmitting}
-                    className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
-                    <span className="font-medium">{activeModel.label}</span>
-                    {activeModel.pro && <Crown className="h-3 w-3 text-primary" />}
-                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-                  {openMenu === "model" && (
-                    <div className="absolute bottom-full mb-2 left-0 w-64 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
-                      {IMAGE_MODEL_OPTIONS.map((m) => {
-                        const isActive = m.id === selectedModel;
-                        return (
-                          <button
-                            key={m.id}
-                            type="button"
-                            onClick={() => handlePickModel(m.id)}
-                            className={cn(
-                              "w-full flex items-start gap-2 px-3 py-2 rounded-xl text-left transition-colors",
-                              isActive ? "bg-primary/10" : "hover:bg-muted/40",
-                            )}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-sm font-medium text-foreground truncate">{m.label}</span>
-                                {m.pro && <Crown className="h-3 w-3 text-primary shrink-0" />}
-                              </div>
-                              <p className="text-[11px] text-muted-foreground mt-0.5">{m.blurb}</p>
-                            </div>
-                            {isActive && <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                {/* Model is fixed for edits — GPT Image 2 is the only model
+                    that can edit, so this is a label, not a picker. */}
+                <div
+                  className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/20 text-sm text-muted-foreground"
+                  title="Edits always use GPT Image 2 — Quick (GPT Image 1 Mini) can only generate new images."
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium text-foreground">{activeModel.label}</span>
+                  {activeModel.pro && <Crown className="h-3 w-3 text-primary" />}
                 </div>
 
                 {/* Aspect picker */}

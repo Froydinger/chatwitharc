@@ -9,6 +9,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
+
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -213,6 +215,119 @@ async function cropTo16x9(imageUrl: string): Promise<string> {
   return `data:image/png;base64,${btoa(binary)}`;
 }
 
+/**
+ * Runs the actual generation off the request path. The edge runtime kills a
+ * request long before our 180s client timeout can fire, so anything slow —
+ * n=3, medium quality, a 16:9 crop — used to die as an opaque non-2xx. This
+ * mirrors the background-job pattern edit-image already uses: the handler
+ * returns a jobId immediately and the client polls image-job-status.
+ */
+async function processGenerateJob(
+  supabaseAdmin: any,
+  jobId: string,
+  userId: string,
+  prompt: string,
+  selectedModel: string,
+  size: string,
+  count: number,
+  isYouTube: boolean,
+) {
+  try {
+    console.log(`[job ${jobId}] generating ${count} image(s) with ${selectedModel} (${size}, medium${isYouTube ? ", 16:9 crop" : ""})`);
+    let result = await callImageGateway(prompt, selectedModel, size, count);
+    let finalModel = selectedModel;
+
+    if (!result.ok && selectedModel === "gpt-image-1.5-flash") {
+      const errorInfo = classifyError(result.status, result.rawText);
+      const canFallback = errorInfo.errorType === "provider_error" || errorInfo.errorType === "timeout" || errorInfo.errorType === "invalid_request";
+      if (canFallback) {
+        console.warn(`[job ${jobId}] voice flash model failed (${result.status}); falling back to ${DEFAULT_IMAGE_MODEL}`);
+        finalModel = DEFAULT_IMAGE_MODEL;
+        result = await callImageGateway(prompt, finalModel, size, count);
+      }
+    }
+
+    // Any non-flash model that hit a transient provider error or timeout gets
+    // one retry on the default model before we give up on the job.
+    if (!result.ok && finalModel !== DEFAULT_IMAGE_MODEL && selectedModel !== "gpt-image-1.5-flash") {
+      const errorInfo = classifyError(result.status, result.rawText);
+      if (errorInfo.errorType === "provider_error" || errorInfo.errorType === "timeout") {
+        console.warn(`[job ${jobId}] ${finalModel} failed (${result.status}); retrying on ${DEFAULT_IMAGE_MODEL}`);
+        const retry = await callImageGateway(prompt, DEFAULT_IMAGE_MODEL, size, count);
+        if (retry.ok) {
+          result = retry;
+          finalModel = DEFAULT_IMAGE_MODEL;
+        }
+      }
+    }
+
+    if (!result.ok) {
+      const errorInfo = classifyError(result.status, result.rawText);
+      console.error(`[job ${jobId}] image gen failed: ${errorInfo.errorType} (${result.status}) ${errorInfo.debugDetail.slice(0, 240)}`);
+      await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: errorInfo.errorMessage, error_type: errorInfo.errorType });
+      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
+      return;
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(result.rawText);
+    } catch {
+      await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: "Failed to parse model response", error_type: "parse_error" });
+      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
+      return;
+    }
+
+    let imageUrls = extractImageUrls(parsed);
+    if (imageUrls.length === 0) {
+      await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: "No image returned from model", error_type: "no_image_returned" });
+      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
+      return;
+    }
+
+    if (isYouTube) {
+      imageUrls = await Promise.all(
+        imageUrls.map(async (u) => {
+          try { return await cropTo16x9(u); } catch (e) { console.error(`[job ${jobId}] 16:9 crop failed:`, e); return u; }
+        })
+      );
+    }
+
+    // A failed R2 upload must not lose the whole batch — keep whatever landed.
+    const uploads = await Promise.allSettled(
+      imageUrls.map((url, index) => uploadImageToR2(url, { userId, kind: "generated", index })),
+    );
+    const persistedImageUrls = uploads
+      .filter((u): u is PromiseFulfilledResult<string> => u.status === "fulfilled")
+      .map((u) => u.value);
+    const failedUploads = uploads.length - persistedImageUrls.length;
+    if (failedUploads > 0) console.error(`[job ${jobId}] ${failedUploads} R2 upload(s) failed`);
+
+    if (persistedImageUrls.length === 0) {
+      await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: "Generated image could not be stored. Please try again.", error_type: "storage_error" });
+      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
+      return;
+    }
+
+    console.log(`[job ${jobId}] completed (${persistedImageUrls.length} image${persistedImageUrls.length === 1 ? "" : "s"})`);
+    await updateJob(supabaseAdmin, jobId, {
+      status: "completed",
+      result_image_url: persistedImageUrls[0],
+      result_image_urls: persistedImageUrls,
+      preferred_model: finalModel,
+      fallback_model: finalModel !== selectedModel ? finalModel : null,
+      error_message: null,
+      error_type: null,
+    });
+    await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: persistedImageUrls.length });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error(`[job ${jobId}] processing error:`, error);
+    await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: message, error_type: "processing_error" });
+    await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -223,18 +338,22 @@ serve(async (req) => {
   }
 
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return jsonResponse({ error: "Missing authorization header" }, 401);
+  if (!authHeader) {
+    return jsonResponse({ success: false, error: "You need to be signed in to generate images.", errorType: "auth_error" });
+  }
 
   const token = authHeader.replace("Bearer ", "");
   const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-  if (authError || !user) return jsonResponse({ error: "Invalid or expired token" }, 401);
+  if (authError || !user) {
+    return jsonResponse({ success: false, error: "Your session expired. Please sign in again.", errorType: "auth_error" });
+  }
   if (user.is_anonymous) {
     return jsonResponse({
       success: false,
       error: "Create a free account to generate images.",
       errorType: "account_required",
-    }, 403);
+    });
   }
 
   let jobId: string | null = null;
@@ -256,7 +375,7 @@ serve(async (req) => {
       : rawPrompt;
 
     if (!rawPrompt) {
-      return jsonResponse({ success: false, error: "Prompt is required.", errorType: "invalid_request" }, 400);
+      return jsonResponse({ success: false, error: "Prompt is required.", errorType: "invalid_request" });
     }
 
     const { data: jobData, error: jobError } = await supabaseAdmin
@@ -287,9 +406,12 @@ serve(async (req) => {
       target_job_id: currentJobId,
       requested_count: count,
     });
+    // These return 200 with success:false — like every other failure path in
+    // this function. A non-2xx would reach the client as supabase-js's opaque
+    // "Edge Function returned a non-2xx status code" and bury the real reason.
     if (quotaError) {
       await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "Could not reserve image quota", error_type: "quota_error" });
-      return jsonResponse({ success: false, error: "Could not check today's image allowance.", errorType: "quota_error" }, 500);
+      return jsonResponse({ success: false, error: "Could not check today's image allowance.", errorType: "quota_error" });
     }
     if (!quota?.allowed) {
       await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "Daily image limit reached", error_type: "daily_limit" });
@@ -298,88 +420,29 @@ serve(async (req) => {
         error: `Daily image limit reached. ${quota?.remaining ?? 0} of 20 remaining.`,
         errorType: "daily_limit",
         quota,
-      }, 429);
-    }
-
-    console.log(`Generating ${count} image(s) with ${selectedModel} (${size}, medium${isYouTube ? ", 16:9 crop" : ""}) for job ${currentJobId}`);
-    let result = await callImageGateway(prompt, selectedModel, size, count);
-    let finalModel = selectedModel;
-
-    if (!result.ok && selectedModel === "gpt-image-1.5-flash") {
-      const errorInfo = classifyError(result.status, result.rawText);
-      const canFallback = errorInfo.errorType === "provider_error" || errorInfo.errorType === "timeout" || errorInfo.errorType === "invalid_request";
-      if (canFallback) {
-        console.warn(`Voice flash image model failed (${result.status}); falling back to ${DEFAULT_IMAGE_MODEL}`);
-        finalModel = DEFAULT_IMAGE_MODEL;
-        result = await callImageGateway(prompt, finalModel, size, count);
-      }
-    }
-
-    if (!result.ok) {
-      const errorInfo = classifyError(result.status, result.rawText);
-      console.log(`Image gen failed: ${errorInfo.errorType} (${result.status})`);
-      await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: errorInfo.errorMessage, error_type: errorInfo.errorType });
-      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: currentJobId, successful_count: 0 });
-      return jsonResponse({
-        jobId: currentJobId,
-        status: "failed",
-        success: false,
-        error: errorInfo.errorMessage,
-        errorType: errorInfo.errorType,
-        debugDetail: errorInfo.debugDetail,
-        fallback: result.status >= 500 || result.status === 408,
       });
     }
 
-    let parsed: any;
-    try {
-      parsed = JSON.parse(result.rawText);
-    } catch {
-      await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "Failed to parse model response", error_type: "parse_error" });
-      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: currentJobId, successful_count: 0 });
-      return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: "Failed to parse model response", errorType: "parse_error", debugDetail: result.rawText.slice(0, 200) });
-    }
-
-    let imageUrls = extractImageUrls(parsed);
-    if (imageUrls.length === 0) {
-      await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "No image returned from model", error_type: "no_image_returned" });
-      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: currentJobId, successful_count: 0 });
-      return jsonResponse({ jobId: currentJobId, status: "failed", success: false, error: "No image returned from model", errorType: "no_image_returned", debugDetail: result.rawText.slice(0, 500) });
-    }
-
-    if (isYouTube) {
-      imageUrls = await Promise.all(
-        imageUrls.map(async (u) => {
-          try { return await cropTo16x9(u); } catch (e) { console.error("16:9 crop failed:", e); return u; }
-        })
-      );
-    }
-
-    const persistedImageUrls = await Promise.all(
-      imageUrls.map((url, index) => uploadImageToR2(url, {
-        userId: user.id,
-        kind: "generated",
-        index,
-      })),
+    // Kick off processing in the background and respond immediately, so a slow
+    // generation can never be killed mid-flight by the edge runtime.
+    const task = processGenerateJob(
+      supabaseAdmin,
+      currentJobId,
+      user.id,
+      prompt,
+      selectedModel,
+      size,
+      count,
+      isYouTube,
     );
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      EdgeRuntime.waitUntil(task);
+    } else {
+      // Local/dev runtime without waitUntil — don't leave it unhandled.
+      task.catch((e) => console.error("Background generate job failed:", e));
+    }
 
-    console.log(`Image generated and stored in R2 (${persistedImageUrls.length}) for job ${currentJobId}`);
-    await updateJob(supabaseAdmin, currentJobId, { status: "completed", result_image_url: persistedImageUrls[0], result_image_urls: persistedImageUrls, preferred_model: finalModel, error_message: null, error_type: null });
-    await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: currentJobId, successful_count: imageUrls.length });
-    const { data: finalQuota } = await supabaseAdmin
-      .from("daily_image_usage")
-      .select("used_count")
-      .eq("user_id", user.id)
-      .eq("usage_date", new Date().toISOString().slice(0, 10))
-      .maybeSingle();
-    return jsonResponse({
-      jobId: currentJobId,
-      status: "completed",
-      success: true,
-      imageUrl: persistedImageUrls[0],
-      imageUrls: persistedImageUrls,
-      quota: quota?.isAdmin ? quota : { ...quota, used: finalQuota?.used_count ?? quota?.used, remaining: Math.max(0, 20 - (finalQuota?.used_count ?? quota?.used ?? 0)) },
-    });
+    return jsonResponse({ jobId: currentJobId, status: "pending", success: true, quota });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error("Error in generate-image function:", error);

@@ -697,35 +697,38 @@ export class AIService {
 
       console.log('generateImage called with:', { prompt, preferredModel, aspectRatio, modelToUse, count: safeCount });
 
-      const { data, error } = await supabase.functions.invoke('generate-image', {
-        body: {
-          prompt,
-          preferredModel: modelToUse,
-          aspectRatio: aspectRatio || '1:1',
-          count: safeCount,
-        }
+      const { invokeEdgeFunction } = await import('@/lib/invokeEdgeFunction');
+      const data: any = await invokeEdgeFunction('generate-image', {
+        prompt,
+        preferredModel: modelToUse,
+        aspectRatio: aspectRatio || '1:1',
+        count: safeCount,
       });
 
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error(`Image generation error: ${error.message}`);
-      }
+      if (data?.debugDetail) console.warn('🖼️ Image generation debug:', data.debugDetail);
 
-      if (data.error) {
-        const errorObj: any = new Error(data.error);
-        errorObj.errorType = data.errorType || 'unknown';
-        if (data.debugDetail) {
-          errorObj.debugDetail = data.debugDetail;
-          console.warn('🖼️ Image generation debug:', data.debugDetail);
+      // Async path: the function enqueues and returns { jobId, status: 'pending' }
+      // so a slow generation can't be killed mid-request by the edge runtime.
+      if (data?.jobId && data?.status !== 'completed') {
+        const { pollImageJob } = await import('@/lib/pollImageJob');
+        const result = await pollImageJob(data.jobId);
+        if (result.fallbackModel) {
+          console.info(`🖼️ Generation fell back to ${result.fallbackModel}`);
+          try {
+            (window as any).__lastImageFallback = result.fallbackModel;
+            window.dispatchEvent(new CustomEvent('imageFallbackUsed', { detail: { model: result.fallbackModel } }));
+          } catch {}
         }
-        throw errorObj;
+        window.dispatchEvent(new Event('arc-image-quota-changed'));
+        return result.imageUrls;
       }
 
-      const urls: string[] = Array.isArray(data.imageUrls) && data.imageUrls.length > 0
+      // Legacy synchronous path (still supported)
+      const urls: string[] = Array.isArray(data?.imageUrls) && data.imageUrls.length > 0
         ? data.imageUrls
-        : (data.imageUrl ? [data.imageUrl] : []);
+        : (data?.imageUrl ? [data.imageUrl] : []);
 
-      if (!data.success || urls.length === 0) {
+      if (!data?.success || urls.length === 0) {
         throw new Error('Failed to generate image');
       }
 
@@ -746,22 +749,22 @@ export class AIService {
       const images = Array.isArray(baseImageUrls) ? baseImageUrls : [baseImageUrls];
       if (images.length > 10) throw new Error('Maximum 10 images allowed for combining');
 
-      const modelToUse = imageModel || 'gpt-image-2';
+      // GPT Image 2 is the only model that can edit. Quick mode (mini) and the
+      // legacy model are silently upgraded rather than failing at the API.
+      const modelToUse = 'gpt-image-2';
+      if (imageModel && imageModel !== modelToUse) {
+        console.info(`🖼️ Edit requested with ${imageModel}; using ${modelToUse} (only model that can edit).`);
+      }
       const safeCount = Math.max(1, Math.min(3, Math.floor(count) || 1));
 
-      const { data, error } = await supabase.functions.invoke('edit-image', {
-        body: { prompt, baseImageUrls: images, imageModel: modelToUse, aspectRatio, count: safeCount },
+      const { invokeEdgeFunction } = await import('@/lib/invokeEdgeFunction');
+      const data: any = await invokeEdgeFunction('edit-image', {
+        prompt,
+        baseImageUrls: images,
+        imageModel: modelToUse,
+        aspectRatio,
+        count: safeCount,
       });
-
-      if (error) {
-        console.error('Supabase function error:', error);
-        throw new Error(`Image editing error: ${error.message}`);
-      }
-      if (data?.error) {
-        const errorObj: any = new Error(data.error);
-        errorObj.errorType = data.errorType || 'unknown';
-        throw errorObj;
-      }
 
       // Async path: enqueue returns { jobId, status: 'pending' }
       if (data?.jobId && data?.status !== 'completed') {
