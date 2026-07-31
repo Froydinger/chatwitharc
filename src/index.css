@@ -1665,21 +1665,29 @@ All colors MUST be HSL for perfect glass effects.
    button's centre. Change --gamecube-r alone to resize the whole cluster; the
    proportions cannot drift apart.
 
-   The cluster intentionally overhangs the app's rounded corner, so the shell
-   runs a transparent window with a --gamecube-inset gutter around the painted
-   surface for the kidney to spill into.
+   The cluster sits fully inside the window. It does not overhang the corner:
+   that needs a transparent window with the page vacating its own top-left,
+   which shifts the layout and clips the bottom dock.
+
+   --gamecube-origin-x/y place the GREEN button's centre relative to the window
+   corner. The SVG's own origin is offset from its top-left by (2.45, 2.55)
+   radii, so the container is positioned back by that much. Everything else
+   follows from the art, so only these three values need touching.
 --------------------------------------------------------------------------- */
 body.arcai-mac-gamecube-controls {
   --gamecube-r: 13px;
-  --gamecube-inset: 10px;
-  /* Was 118px for the oversized cluster; the compact one needs far less. */
-  --arcai-desktop-titlebar-safe-area: 44px;
+  /* Green centre, from the window's top-left corner. Far enough in that the
+     kidney (which reaches 2.14r left and 2.35r up) clears the edges. */
+  --gamecube-origin-x: 34px;
+  --gamecube-origin-y: 36px;
+  /* Cluster bottom lands at origin-y + 1r; leave a little breathing room. */
+  --arcai-desktop-titlebar-safe-area: 52px;
 }
 
 .gamecube-window-controls {
   position: fixed;
-  top: 0;
-  left: 0;
+  top: calc(var(--gamecube-origin-y) - 2.55 * var(--gamecube-r));
+  left: calc(var(--gamecube-origin-x) - 2.45 * var(--gamecube-r));
   width: calc(5 * var(--gamecube-r));
   height: calc(3.8 * var(--gamecube-r));
   z-index: 10020;

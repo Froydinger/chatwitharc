@@ -752,16 +752,14 @@ function createFull() {
     x,
     y,
     frame: process.platform === "darwin" ? false : true,
-    // The GameCube minimise kidney deliberately overhangs the app's rounded
-    // corner. A window can't paint outside its own bounds, so on macOS the
-    // window is transparent and the page paints its own corner and shadow
-    // inside a small gutter. Costs the native window shadow; the CSS one in
-    // index.css stands in for it.
-    transparent: process.platform === "darwin",
+    // Deliberately NOT transparent. Letting the minimise kidney overhang the
+    // corner needs the page to vacate its own top-left, which shifts the whole
+    // layout down-right and pushes full-height children past the bottom edge,
+    // clipping the dock. The cluster sits inside the corner instead.
     icon: WINDOW_ICON,
     resizable: true,
     movable: true,
-    backgroundColor: process.platform === "darwin" ? "#00000000" : "#0f1116",
+    backgroundColor: "#0f1116",
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
