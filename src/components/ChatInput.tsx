@@ -556,7 +556,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const shouldShowBuildMode = forceBuildMode || (!!inputValue && checkForBuildRequest(inputValue));
 
   // Persisted user-chosen image model + aspect ratio (for /image, "draw…", etc.)
-  const { aspectRatio: imageGenAspect, count: imageGenCount } = useImageGenStore();
+  const { aspectRatio: imageGenAspect, editAspectRatio: imageEditAspect, count: imageGenCount } = useImageGenStore();
   const imageGenModel = useResolvedImageModel();
   // Edits are GPT Image 2 only — never send the Quick (mini) model to an edit.
   const imageEditModel = useEditImageModel();
@@ -1424,7 +1424,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrls = await ai.editImage(finalMessage, imageUrls, imageEditModel, imageGenAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
+            const editedUrls = await ai.editImage(finalMessage, imageUrls, imageEditModel, imageEditAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
             const {
               data: { user },
             } = await supabase.auth.getUser();
@@ -1610,7 +1610,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrls = await ai.editImage(finalMessage, sourceImageUrls, imageEditModel, imageGenAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
+            const editedUrls = await ai.editImage(finalMessage, sourceImageUrls, imageEditModel, imageEditAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
             const {
               data: { user },
             } = await supabase.auth.getUser();

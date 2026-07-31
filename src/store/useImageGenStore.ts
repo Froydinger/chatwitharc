@@ -28,6 +28,22 @@ export type ImageAspectRatio = '1:1' | '3:2' | '2:3' | '16:9';
 /** What you get before picking anything. */
 export const DEFAULT_ASPECT_RATIO: ImageAspectRatio = '3:2';
 
+/**
+ * Edits carry their own shape choice, defaulting to "source" — keep whatever
+ * the image being edited already is. Sharing the generation aspect here would
+ * restretch a square image to landscape just because that's the gen default.
+ */
+export type EditAspectRatio = 'source' | ImageAspectRatio;
+export const DEFAULT_EDIT_ASPECT: EditAspectRatio = 'source';
+
+export const EDIT_ASPECT_OPTIONS: Array<{ id: EditAspectRatio; label: string }> = [
+  { id: 'source', label: 'Match original' },
+  { id: '1:1', label: 'Square' },
+  { id: '3:2', label: 'Landscape' },
+  { id: '2:3', label: 'Portrait' },
+  { id: '16:9', label: '16:9 (YouTube)' },
+];
+
 export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb: string; pro?: boolean }> = [
   {
     id: 'gpt-image-1',
@@ -70,6 +86,12 @@ function normalizeAspect(value: unknown): ImageAspectRatio {
   return DEFAULT_ASPECT_RATIO;
 }
 
+function normalizeEditAspect(value: unknown): EditAspectRatio {
+  if (value === 'source') return 'source';
+  if (VALID_ASPECTS.includes(value as ImageAspectRatio)) return value as ImageAspectRatio;
+  return DEFAULT_EDIT_ASPECT;
+}
+
 function normalizeCount(value: unknown): ImageCount {
   const n = Math.floor(Number(value));
   if (!Number.isFinite(n) || n < 1 || n > MAX_IMAGE_COUNT) return 1;
@@ -80,9 +102,12 @@ interface ImageGenState {
   /** When true, initial generation uses the fast mini model. */
   quick: boolean;
   aspectRatio: ImageAspectRatio;
+  /** Shape for edits. 'source' keeps the original image's shape. */
+  editAspectRatio: EditAspectRatio;
   count: ImageCount;
   setQuick: (q: boolean) => void;
   setAspectRatio: (a: ImageAspectRatio) => void;
+  setEditAspectRatio: (a: EditAspectRatio) => void;
   setCount: (c: ImageCount) => void;
 }
 
@@ -91,9 +116,11 @@ export const useImageGenStore = create<ImageGenState>()(
     (set) => ({
       quick: false,
       aspectRatio: DEFAULT_ASPECT_RATIO,
+      editAspectRatio: DEFAULT_EDIT_ASPECT,
       count: 1,
       setQuick: (q) => set({ quick: !!q }),
       setAspectRatio: (a) => set({ aspectRatio: a }),
+      setEditAspectRatio: (a) => set({ editAspectRatio: a }),
       setCount: (c) => set({ count: (c >= 1 && c <= 3 ? c : 1) as ImageCount }),
     }),
     {
@@ -108,6 +135,7 @@ export const useImageGenStore = create<ImageGenState>()(
         return {
           quick: state.model === QUICK_IMAGE_MODEL,
           aspectRatio: normalizeAspect(state.aspectRatio),
+          editAspectRatio: DEFAULT_EDIT_ASPECT,
           count: normalizeCount(state.count),
         };
       },
@@ -115,6 +143,7 @@ export const useImageGenStore = create<ImageGenState>()(
         if (!state) return;
         state.aspectRatio = normalizeAspect(state.aspectRatio);
         state.count = normalizeCount(state.count);
+        state.editAspectRatio = normalizeEditAspect(state.editAspectRatio);
       },
     }
   )

@@ -759,7 +759,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             try {
               const args = JSON.parse(argsStr || '{}');
               const prompt = args.prompt || '';
-              const aspectRatio = args.aspect_ratio || '1:1';
+              const aspectRatio = args.aspect_ratio || '3:2';
               console.log('Generating image with prompt:', prompt, 'aspect ratio:', aspectRatio);
               
               if (optionsRef.current.onImageGenerate) {
@@ -807,7 +807,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             try {
               const args = JSON.parse(argsStr || '{}');
               const prompt = args.prompt || '';
-              const aspectRatio = args.aspect_ratio || '1:1';
+              const aspectRatio = args.aspect_ratio || '3:2';
               console.log('Revising current image with prompt:', prompt, 'aspect ratio:', aspectRatio);
 
               if (optionsRef.current.onImageRevise) {
@@ -1470,8 +1470,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                     },
                     aspect_ratio: {
                       type: 'string',
-                      enum: ['1:1', '16:9', '9:16', '4:3', '3:4'],
-                      description: 'REQUIRED aspect ratio. MUST be specified based on user request: "wide"/"widescreen"/"landscape"/"banner"/"cinematic" = "16:9". "tall"/"portrait"/"vertical"/"phone wallpaper" = "9:16". "square" or unspecified = "1:1". Listen carefully for size/shape words!'
+                      enum: ['3:2', '1:1', '16:9', '9:16', '4:3', '3:4'],
+                      description: 'REQUIRED aspect ratio. MUST be specified based on user request: "square" = "1:1". "tall"/"portrait"/"vertical"/"phone wallpaper" = "9:16". "widescreen"/"cinematic"/"banner"/"YouTube thumbnail" = "16:9". Anything else, including plain "landscape" and any request that does not mention a size or shape at all, = "3:2" (the default). Listen carefully for size/shape words!'
                     }
                   },
                   required: ['prompt', 'aspect_ratio']
@@ -1490,8 +1490,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                     },
                     aspect_ratio: {
                       type: 'string',
-                      enum: ['1:1', '16:9', '9:16', '4:3', '3:4'],
-                      description: 'Aspect ratio for the revised image. Keep the current shape unless the user asks to change it.'
+                      enum: ['source', '3:2', '1:1', '16:9', '9:16', '4:3', '3:4'],
+                      description: 'Aspect ratio for the revised image. Use "source" — which keeps the shape of the image being revised — unless the user explicitly asks for a different shape.'
                     }
                   },
                   required: ['prompt', 'aspect_ratio']

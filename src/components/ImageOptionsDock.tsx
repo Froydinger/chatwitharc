@@ -4,7 +4,9 @@ import { ChevronDown, Ratio, Check, Images, Zap } from "lucide-react";
 import {
   useImageGenStore,
   IMAGE_ASPECT_OPTIONS,
+  EDIT_ASPECT_OPTIONS,
   type ImageAspectRatio,
+  type EditAspectRatio,
   type ImageCount,
 } from "@/store/useImageGenStore";
 import { cn } from "@/lib/utils";
@@ -36,16 +38,30 @@ export function ImageOptionsContent({
   showUsage?: boolean;
   editMode?: boolean;
 }) {
-  const { aspectRatio, count, quick, setQuick, setAspectRatio, setCount } = useImageGenStore();
+  const {
+    aspectRatio,
+    editAspectRatio,
+    count,
+    quick,
+    setQuick,
+    setAspectRatio,
+    setEditAspectRatio,
+    setCount,
+  } = useImageGenStore();
 
   const [openMenu, setOpenMenu] = useState<null | "aspect" | "count">(null);
 
-  const activeAspect = IMAGE_ASPECT_OPTIONS.find((a) => a.id === aspectRatio) ?? IMAGE_ASPECT_OPTIONS[0];
+  // Edits get their own shape list, including "Match original" — the default,
+  // so an edit doesn't inherit the generation aspect and restretch the source.
+  const aspectOptions = editMode ? EDIT_ASPECT_OPTIONS : IMAGE_ASPECT_OPTIONS;
+  const currentAspect: EditAspectRatio = editMode ? editAspectRatio : aspectRatio;
+  const activeAspect = aspectOptions.find((a) => a.id === currentAspect) ?? aspectOptions[0];
   const effectiveCount: ImageCount = count || 1;
   const quickOn = quick && !editMode;
 
-  const handlePickAspect = (a: ImageAspectRatio) => {
-    setAspectRatio(a);
+  const handlePickAspect = (a: EditAspectRatio) => {
+    if (editMode) setEditAspectRatio(a);
+    else setAspectRatio(a as ImageAspectRatio);
     setOpenMenu(null);
   };
 
@@ -114,14 +130,14 @@ export function ImageOptionsContent({
             className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
           >
             <Ratio className="h-3.5 w-3.5 text-primary" />
-            <span className="font-medium">{activeAspect.id}</span>
+            <span className="font-medium">{activeAspect.id === 'source' ? 'Original' : activeAspect.id}</span>
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
 
           {openMenu === "aspect" && (
             <div className="absolute bottom-full mb-2 left-0 w-56 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
-              {IMAGE_ASPECT_OPTIONS.map((a) => {
-                const isActive = a.id === aspectRatio;
+              {aspectOptions.map((a) => {
+                const isActive = a.id === currentAspect;
                 return (
                   <button
                     key={a.id}

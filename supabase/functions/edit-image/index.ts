@@ -36,6 +36,22 @@ function aspectToSize(aspectRatio: string): string {
   return '1536x1024';
 }
 
+/**
+ * "source" means: keep the shape of the image being edited. An edit should not
+ * silently restretch someone's square image into landscape just because that's
+ * the generation default.
+ */
+const SOURCE_ASPECT = 'source';
+
+function sizeFromDimensions(width: number, height: number): string {
+  if (!width || !height) return '1024x1024';
+  const ratio = width / height;
+  // ~7% tolerance around square keeps near-square crops from tipping over.
+  if (ratio > 1.07) return '1536x1024';
+  if (ratio < 0.93) return '1024x1536';
+  return '1024x1024';
+}
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -114,7 +130,7 @@ function bytesToB64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob; filename: string; b64: string; mime: string }> {
+async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob; filename: string; b64: string; mime: string; width: number; height: number }> {
   let bytes: Uint8Array;
   if (url.startsWith('data:')) {
     const commaIdx = url.indexOf(',');
@@ -133,8 +149,14 @@ async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob;
   // encoding variant rejected by the Images edit endpoint. A fresh ImageScript
   // PNG gives OpenAI predictable RGBA pixels regardless of the source format.
   const originalFormat = sniffImageMime(bytes);
+  let width = 0;
+  let height = 0;
   try {
     const decoded = await decode(bytes) as Image;
+    // We already decode here for normalization, so the source dimensions are
+    // free — they're what "keep the original shape" resolves against.
+    width = decoded.width;
+    height = decoded.height;
     bytes = await decoded.encode();
   } catch (e) {
     throw new Error(
@@ -151,6 +173,8 @@ async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob;
     filename: `input-${idx}.${sniffed.ext}`,
     b64,
     mime: sniffed.mime,
+    width,
+    height,
   };
 }
 
@@ -225,11 +249,21 @@ function extractOpenAIImageUrls(parsed: any): string[] {
   return out;
 }
 
-async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], size: string, count: number, selectedModel: string, isYouTube: boolean) {
+async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], aspect: string, count: number, selectedModel: string, isYouTube: boolean) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   let successfulCount = 0;
   try {
     const sources = await Promise.all(imageArray.map((url, i) => fetchImageAsBlob(url, i)));
+
+    // "source" resolves against the first image's real dimensions, so an edit
+    // keeps the shape it started with. An explicit pick always wins.
+    const size = aspect === SOURCE_ASPECT
+      ? sizeFromDimensions(sources[0]?.width ?? 0, sources[0]?.height ?? 0)
+      : aspectToSize(aspect);
+    if (aspect === SOURCE_ASPECT) {
+      console.log(`[job ${jobId}] matching source shape ${sources[0]?.width}x${sources[0]?.height} -> ${size}`);
+    }
+
     console.log(`[job ${jobId}] OpenAI edit attempt (${size}, n=${count}${isYouTube ? ', youtube' : ''})`);
     const primary = await callOpenAIEdits(prompt, sources, selectedModel, size, count);
 
@@ -328,8 +362,10 @@ serve(async (req) => {
   try {
     const { prompt, baseImageUrl, baseImageUrls, aspectRatio, imageModel, count } = await req.json();
     const selectedModel = pickModel(imageModel);
-    const aspect = (typeof aspectRatio === 'string' && aspectRatio.trim()) ? aspectRatio.trim() : '1:1';
-    const size = aspectToSize(aspect);
+    // Edits default to keeping the source image's shape. Only an explicit,
+    // recognized aspect ratio overrides that.
+    const rawAspect = (typeof aspectRatio === 'string' && aspectRatio.trim()) ? aspectRatio.trim() : SOURCE_ASPECT;
+    const aspect = rawAspect === SOURCE_ASPECT || rawAspect === 'auto' ? SOURCE_ASPECT : rawAspect;
     const requestedCount = Math.max(1, Math.min(3, Math.floor(Number(count) || 1)));
 
     if (!prompt) return jsonResponse({ error: 'Prompt is required', errorType: 'invalid_request', success: false });
@@ -385,7 +421,7 @@ serve(async (req) => {
 
     // Kick off processing in background; respond immediately so we never get killed
     // by the platform's per-request wall timeout.
-    const task = processEditJob(jobId, user.id, editPrompt, imageArray, size, requestedCount, selectedModel, isYouTube);
+    const task = processEditJob(jobId, user.id, editPrompt, imageArray, aspect, requestedCount, selectedModel, isYouTube);
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
       EdgeRuntime.waitUntil(task);
     } else {

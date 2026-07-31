@@ -11,8 +11,8 @@ import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import {
   useImageGenStore,
   IMAGE_MODEL_OPTIONS,
-  IMAGE_ASPECT_OPTIONS,
-  type ImageAspectRatio,
+  EDIT_ASPECT_OPTIONS,
+  type EditAspectRatio,
   useEditImageModel,
 } from "@/store/useImageGenStore";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
@@ -49,16 +49,16 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { addMessage } = useArcStore();
   const { toast } = useToast();
   
-  const { aspectRatio: selectedAspect, count: selectedCount, setAspectRatio } = useImageGenStore();
+  const { editAspectRatio: selectedAspect, count: selectedCount, setEditAspectRatio: setAspectRatio } = useImageGenStore();
   // Edits are GPT Image 2 only — the Quick (mini) model can't edit, so there is
   // no model choice to make here.
   const selectedModel = useEditImageModel();
   const [openMenu, setOpenMenu] = useState<null | "aspect">(null);
 
   const activeModel = IMAGE_MODEL_OPTIONS.find((m) => m.id === selectedModel) ?? IMAGE_MODEL_OPTIONS[0];
-  const activeAspect = IMAGE_ASPECT_OPTIONS.find((a) => a.id === selectedAspect) ?? IMAGE_ASPECT_OPTIONS[0];
+  const activeAspect = EDIT_ASPECT_OPTIONS.find((a) => a.id === selectedAspect) ?? EDIT_ASPECT_OPTIONS[0];
 
-  const handlePickAspect = (a: ImageAspectRatio) => {
+  const handlePickAspect = (a: EditAspectRatio) => {
     setAspectRatio(a);
     setOpenMenu(null);
   };
@@ -345,12 +345,12 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
                     className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
                   >
                     <Ratio className="h-3.5 w-3.5 text-primary" />
-                    <span className="font-medium">{activeAspect.id}</span>
+                    <span className="font-medium">{activeAspect.id === 'source' ? 'Original' : activeAspect.id}</span>
                     <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                   </button>
                   {openMenu === "aspect" && (
                     <div className="absolute bottom-full mb-2 left-0 w-56 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20 max-h-72 overflow-y-auto">
-                      {IMAGE_ASPECT_OPTIONS.map((a) => {
+                      {EDIT_ASPECT_OPTIONS.map((a) => {
                         const isActive = a.id === selectedAspect;
                         return (
                           <button
