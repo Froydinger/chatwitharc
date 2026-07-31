@@ -1333,7 +1333,7 @@ All colors MUST be HSL for perfect glass effects.
     top: 0;
     left: 0;
     right: 0;
-    height: 30px;
+    height: var(--arcai-desktop-titlebar-safe-area, 30px);
     z-index: 9999;
     -webkit-app-region: drag;
     background: transparent;
@@ -1524,6 +1524,164 @@ All colors MUST be HSL for perfect glass effects.
 
   .chat-prose a:hover {
     color: hsl(var(--primary) / 0.8);
+  }
+}
+
+/*
+ * ArcAI macOS Electron controls, modeled on the Nintendo GameCube button
+ * cluster. They never render in the browser, PWA, iPad app, or Windows build.
+ */
+body.arcai-mac-gamecube-controls {
+  --arcai-desktop-titlebar-safe-area: 118px;
+}
+
+.gamecube-window-controls {
+  display: block;
+  position: fixed;
+  top: 9px;
+  left: 12px;
+  width: 184px;
+  height: 104px;
+  z-index: 10020;
+  pointer-events: none;
+  -webkit-app-region: no-drag;
+  isolation: isolate;
+}
+
+.gamecube-window-control {
+  appearance: none;
+  position: absolute;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  cursor: default;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  transform-origin: center;
+  transition: filter 120ms ease, transform 120ms ease;
+}
+
+.gamecube-window-control::after {
+  content: "";
+  position: absolute;
+  inset: 4%;
+  border-radius: inherit;
+  background: radial-gradient(circle at 38% 22%, rgb(255 255 255 / 0.28), transparent 42%);
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.gamecube-window-control svg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.gamecube-window-control--minimize {
+  top: 4px;
+  left: 10px;
+  width: 72px;
+  height: 28px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 42% 12%, #ffe26c 0%, transparent 36%),
+    linear-gradient(145deg, #ffd84e 0%, #ffbd31 63%, #efa018 100%);
+  box-shadow:
+    0 0 0 2px #f09b16,
+    0 6px 9px rgb(17 20 48 / 0.32),
+    inset 0 2px 3px rgb(255 255 255 / 0.58),
+    inset 0 -4px 7px rgb(196 113 7 / 0.28);
+  transform: rotate(-41deg);
+}
+
+.gamecube-window-control--minimize svg {
+  transform: rotate(41deg);
+}
+
+.gamecube-window-control--minimize .gamecube-window-symbol {
+  fill: #7f5812;
+  filter: drop-shadow(0 2px 1px rgb(255 223 108 / 0.28));
+}
+
+.gamecube-window-control--maximize {
+  top: 31px;
+  left: 54px;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 42% 22%, #69da7a 0%, transparent 38%),
+    linear-gradient(150deg, #52cd69 0%, #39b957 55%, #249740 100%);
+  box-shadow:
+    0 0 0 2px #159d35,
+    0 8px 11px rgb(17 20 48 / 0.34),
+    inset 0 3px 4px rgb(255 255 255 / 0.38),
+    inset 0 -6px 10px rgb(7 106 37 / 0.32);
+}
+
+.gamecube-window-control--maximize .gamecube-window-symbol {
+  fill: #12672a;
+  filter: drop-shadow(0 2px 1px rgb(102 228 124 / 0.22));
+}
+
+.gamecube-window-control--close {
+  top: 49px;
+  left: 146px;
+  width: 43px;
+  height: 43px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 40% 20%, #ff7874 0%, transparent 38%),
+    linear-gradient(150deg, #ff5e59 0%, #fb4542 58%, #dc302f 100%);
+  box-shadow:
+    0 0 0 2px #ed3435,
+    0 6px 9px rgb(17 20 48 / 0.34),
+    inset 0 2px 3px rgb(255 255 255 / 0.4),
+    inset 0 -4px 7px rgb(151 25 27 / 0.32);
+}
+
+.gamecube-window-control--close .gamecube-window-symbol {
+  fill: none;
+  stroke: #842526;
+  stroke-width: 16;
+  stroke-linecap: round;
+  filter: drop-shadow(0 2px 1px rgb(255 116 111 / 0.24));
+}
+
+.gamecube-window-control:hover {
+  filter: brightness(1.07) saturate(1.04);
+}
+
+.gamecube-window-control--minimize:hover {
+  transform: rotate(-41deg) scale(1.035);
+}
+
+.gamecube-window-control:active {
+  filter: brightness(0.94) saturate(1.08);
+}
+
+.gamecube-window-control--minimize:active {
+  transform: rotate(-41deg) scale(0.96);
+}
+
+.gamecube-window-control--maximize:active,
+.gamecube-window-control--close:active {
+  transform: scale(0.94);
+}
+
+.gamecube-window-control:focus-visible {
+  outline: 3px solid hsl(var(--foreground) / 0.8);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gamecube-window-control {
+    transition: none;
   }
 }
 

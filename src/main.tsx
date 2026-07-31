@@ -4,7 +4,7 @@ import App from './App.tsx'
 import './index.css'
 import 'katex/dist/katex.min.css'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
-import { shouldReserveDesktopTrafficLightSpace } from './utils/platform.ts'
+import { isMacDesktopRuntime, shouldReserveDesktopTrafficLightSpace } from './utils/platform.ts'
 
 // Device detection for iPad PWA
 const isIpad = () => {
@@ -19,6 +19,7 @@ const isIpad = () => {
 const isStandalone = () => {
   return window.matchMedia('(display-mode: standalone)').matches ||
          (window.navigator as any).standalone === true ||
+         /electron/i.test(navigator.userAgent) ||
          document.referrer.includes('android-app://');
 };
 
@@ -27,6 +28,7 @@ const applyDeviceClasses = () => {
   if (isStandalone()) {
     document.body.classList.add('standalone-app');
     document.body.classList.toggle('reserve-traffic-lights', shouldReserveDesktopTrafficLightSpace());
+    document.body.classList.toggle('arcai-mac-gamecube-controls', isMacDesktopRuntime());
     console.log('Applied standalone-app class');
   }
   if (isIpad()) {

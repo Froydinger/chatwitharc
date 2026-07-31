@@ -543,7 +543,7 @@ export function SearchCanvas() {
       className="flex flex-col h-full w-full bg-background"
       style={{
         paddingTop: reserveTrafficLightSpace
-          ? "calc(env(safe-area-inset-top, 0px) + 30px)"
+          ? "calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 30px))"
           : "env(safe-area-inset-top, 0px)",
       }}
     >

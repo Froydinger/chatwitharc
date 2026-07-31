@@ -30,7 +30,8 @@ import { LiquidFilter } from "@/components/ui/liquid-filter";
 import { useCorporateModeEnforcer } from "@/hooks/useCorporateMode";
 import { useLocalModelPersistence } from "@/hooks/useLocalModelPersistence";
 import { CorporateMemoryConsentGate } from "@/components/CorporateMemoryConsentModal";
-import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
+import { MacWindowControls } from "@/components/MacWindowControls";
+import { isMacDesktopRuntime, shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 // Route pages are lazy-loaded so the initial bundle stays small and the app
 // paints (the FastLoader) almost immediately instead of showing a black screen
 // while ~MBs of JS for every page download and parse up front.
@@ -182,9 +183,11 @@ const detectStandaloneMode = () => {
   if (isPWA || isElectron) {
     document.body.classList.add('standalone-app');
     document.body.classList.toggle('reserve-traffic-lights', shouldReserveDesktopTrafficLightSpace());
+    document.body.classList.toggle('arcai-mac-gamecube-controls', isMacDesktopRuntime());
   } else {
     document.body.classList.remove('standalone-app');
     document.body.classList.remove('reserve-traffic-lights');
+    document.body.classList.remove('arcai-mac-gamecube-controls');
   }
 };
 
@@ -226,6 +229,7 @@ const App = () => {
         <SubscriptionProvider>
           <ImageQuotaProvider>
             <TooltipProvider>
+              <MacWindowControls />
               <div className="arcai-drag-bar" />
               <LiquidFilter />
               <BackgroundGradients />
