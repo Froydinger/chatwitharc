@@ -28,6 +28,7 @@ export type RouteDestination =
   | 'cloud-image-pro'           // Deprecated alias — also maps to GPT-Image-2
   | 'cloud-image-edit'          // GPT-Image-2 — edit pass
   | 'cloud-image-edit-fallback' // Edit served by Gemini fallback when GPT-Image-2 failed
+  | 'cloud-video'               // Sora 2 video generation
   | 'cloud-ide';                // Paused App Builder / IDE agent
 
 
@@ -139,8 +140,14 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
       return { label: 'Cloud · GPT Image 2 (Edit)', icon: 'cloud', tooltip: 'Image editing — GPT-Image-2 (medium quality).' };
     case 'cloud-image-edit-fallback':
       return { label: 'Cloud · Nano Banana 2 (Edit, fallback)', icon: 'cloud', tooltip: 'GPT-Image-2 was unavailable, so this edit was served by Google Gemini Nano Banana 2 as a fallback.' };
+    case 'cloud-video':
+      return { label: 'Cloud · Sora 2 (Video)', icon: 'cloud', tooltip: 'Video generation — Sora 2.' };
     case 'cloud-ide':
       return { label: 'App Builder · Coming soon', icon: 'cloud', tooltip: 'The App Builder IDE is paused while the workspace is rebuilt.' };
+    default:
+      // Persisted conversations can outlive route names. Never let an unknown
+      // legacy value crash the entire message list while rendering metadata.
+      return { label: 'Cloud', icon: 'cloud', tooltip: 'Generated in the cloud.' };
   }
 }
 
