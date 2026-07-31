@@ -367,7 +367,7 @@ export const useArcStore = create<ArcState>()(
           };
 
           const ai = new AIService();
-          // Astro is the dedicated fast path for chat naming.
+          // Luna is the dedicated fast path for chat naming.
           const res = await ai.sendMessage(
             [titlePrompt, ...chatMessages.slice(0, 4)],
             undefined,
@@ -378,7 +378,7 @@ export const useArcStore = create<ArcState>()(
             false,
             false,
             false,
-            'gpt-5.4-nano'
+            'gpt-5.6-luna'
           );
 
           const generatedTitle = res.content.trim().replace(/^["']|["']$/g, '').slice(0, 50);
@@ -1243,7 +1243,7 @@ export const useArcStore = create<ArcState>()(
             } catch { /* ignore */ }
             sessionToSave = {
               id: currentSessionId,
-              // Keep the sentinel title until Astro replaces it. Using a
+              // Keep the sentinel title until Luna replaces it. Using a
               // clipped user message here made the title-generation trigger
               // think the chat had already been named.
               title: "New Chat",

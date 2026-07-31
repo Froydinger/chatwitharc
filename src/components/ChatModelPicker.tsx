@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoonStar, Rocket, Earth, Sun, RefreshCcwDot, Check, ChevronDown, Lock } from 'lucide-react';
-import { useModelStore, AUTO_MODEL, NANO_MODEL, LUNA_MODEL, TERRA_MODEL, SOL_MODEL, type ChatModel } from '@/store/useModelStore';
+import { MoonStar, Earth, Sun, RefreshCcwDot, Check, ChevronDown, Lock } from 'lucide-react';
+import { useModelStore, AUTO_MODEL, LUNA_MODEL, TERRA_MODEL, SOL_MODEL, type ChatModel } from '@/store/useModelStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
 
@@ -16,7 +16,6 @@ interface Props {
 
 const MODEL_ICON_COLORS = {
   auto: 'text-primary',
-  astro: 'text-black dark:text-white drop-shadow-[0_0_8px_rgba(0,0,0,0.18)] dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.55)]',
   luna: 'text-[#c084fc] drop-shadow-[0_0_8px_rgba(192,132,252,0.7)]',
   terra: 'text-[#39ff88] drop-shadow-[0_0_8px_rgba(57,255,136,0.65)]',
   sol: 'text-[#ff8a1f] drop-shadow-[0_0_8px_rgba(255,138,31,0.65)]',
@@ -33,11 +32,7 @@ export function ChatModelPicker({ className }: Props) {
   let current = 'Auto';
   let CurrentIcon = RefreshCcwDot;
   let currentIconClass = MODEL_ICON_COLORS.auto;
-  if (chatModel === NANO_MODEL) {
-    current = 'Astro';
-    CurrentIcon = Rocket;
-    currentIconClass = MODEL_ICON_COLORS.astro;
-  } else if (chatModel === LUNA_MODEL) {
+  if (chatModel === LUNA_MODEL) {
     current = 'Luna';
     CurrentIcon = MoonStar;
     currentIconClass = MODEL_ICON_COLORS.luna;
@@ -126,16 +121,9 @@ export function ChatModelPicker({ className }: Props) {
                   onClick={() => pick(AUTO_MODEL)}
                 />
                 <Row
-                  icon={<Rocket className={cn('h-4 w-4', MODEL_ICON_COLORS.astro)} />}
-                  title="Astro"
-                  subtitle="GPT-5.4 Nano · Best for quick chats"
-                  active={chatModel === NANO_MODEL}
-                  onClick={() => pick(NANO_MODEL)}
-                />
-                <Row
                   icon={<MoonStar className={cn('h-4 w-4', MODEL_ICON_COLORS.luna)} />}
                   title="Luna"
-                  subtitle="GPT-5.6 · Best for quick reasoning"
+                  subtitle="GPT-5.6 · Best for quick chats & reasoning"
                   active={chatModel === LUNA_MODEL}
                   onClick={() => pick(LUNA_MODEL)}
                 />

@@ -101,7 +101,7 @@ Available pages and links:
 - Memory Page: https://askarc.chat/memory (Alternative link to manage memories)
 
 Key UI Elements & How to Use Them:
-- Model Picker Dropdown: Located at the top left of the chat window. Users can click this to switch between "Auto" (best for letting Arc choose), "Astro" (best for quick chats), "Luna" (best for quick reasoning), "Terra" (best for code and writing), and "Sol" (best for deep work — requires Boost).
+- Model Picker Dropdown: Located at the top left of the chat window. Users can click this to switch between "Auto" (best for letting Arc choose), "Luna" (best for quick chats and reasoning), "Terra" (best for code and writing), and "Sol" (best for deep work — requires Boost).
 - Theme: Arc uses a fixed black-and-white Noir palette. Users can switch between light, dark, and system themes from the chat controls or Appearance settings.
 - Voice Mode: Users can click the microphone icon in the chat input or the headphone button to start real-time voice chat.
 - Canvas Mode: Activates automatically for code or long-form writing, showing an editor panel on the right side of the screen.

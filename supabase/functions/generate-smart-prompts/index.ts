@@ -30,7 +30,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const context = body?.context || 'general';
 
-    const PROMPT_MODEL = 'gpt-5.4-nano';
+    const PROMPT_MODEL = 'gpt-5.6-luna';
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

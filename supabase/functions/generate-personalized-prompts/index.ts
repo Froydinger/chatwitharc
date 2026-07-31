@@ -72,7 +72,7 @@ serve(async (req) => {
       });
     }
 
-    const PROMPT_MODEL = 'gpt-5.4-nano';
+    const PROMPT_MODEL = 'gpt-5.6-luna';
     console.log('Using model for personalized prompts:', PROMPT_MODEL);
 
     const requestBody = {

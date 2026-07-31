@@ -154,8 +154,5 @@ function getModelInfo(m: string): { name: string; tier: string; providerName: st
   if (m === 'gpt-5.6-luna') {
     return { name: 'GPT-5.6 Luna', tier: 'Luna', providerName: 'GPT-5.6 Luna' };
   }
-  if (m === 'gpt-5.4-nano') {
-    return { name: 'Astro', tier: 'Astro', providerName: 'GPT-5.4 Nano' };
-  }
   return { name: 'GPT-5.6 Luna', tier: 'Luna', providerName: 'GPT-5.6 Luna' };
 }

@@ -114,6 +114,12 @@ release: make sure changes build cleanly before pushing.
   `src/store/useModelStore.ts`, picker in `src/components/ChatModelPicker.tsx`.
   Retired GPT-5.4/5.5 ids are alias-mapped in `LEGACY_MODEL_MAP` (client) and
   `legacyModelMap` in `supabase/functions/chat/index.ts` (server).
+- **Luna is the base model everywhere** — the entire GPT-5.4 line (including
+  Nano, formerly branded "Astro") is retired and must not be reintroduced.
+  Luna is the server default, the Auto floor for simple + moderate chat, and
+  the dedicated model for memory/recall, chat naming, prompt enhancement, and
+  the `generate-*-prompts` edge functions. Note Luna is a `gpt-5.6` reasoning
+  model, so calls must send `reasoning_effort` instead of `temperature`.
 - Accent color: 7 options (`red`, `blue`, `green`, `yellow`, `purple`,
   `orange`, `noir`) defined in `src/hooks/useAccentColor.tsx`, selected in
   `src/components/SettingsPanel.tsx` (Appearance) and quick-switched from the

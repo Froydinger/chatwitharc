@@ -39,7 +39,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "We route requests across Astro for quick chat, Luna for quick reasoning, Terra for balanced everyday work, and Sol for frontier reasoning — plus GPT-Image-2 for images, OpenAI Realtime for voice, and Perplexity Sonar for web search.",
+    a: "We route requests across Luna for quick chat and reasoning, Terra for balanced everyday work, and Sol for frontier reasoning — plus GPT-Image-2 for images, OpenAI Realtime for voice, and Perplexity Sonar for web search.",
   },
   {
     q: "Is ArcAI private?",
