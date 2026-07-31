@@ -752,14 +752,17 @@ function createFull() {
     x,
     y,
     frame: process.platform === "darwin" ? false : true,
-    // Deliberately NOT transparent. Letting the minimise kidney overhang the
-    // corner needs the page to vacate its own top-left, which shifts the whole
-    // layout down-right and pushes full-height children past the bottom edge,
-    // clipping the dock. The cluster sits inside the corner instead.
+    // Transparent so the minimise kidney can sit OUTSIDE the app surface, in
+    // the gutter index.css leaves along the top and left. The page paints its
+    // own surface, corner and shadow inside that gutter; see the
+    // .arcai-mac-gamecube-controls block, which also remaps h-screen so
+    // full-height children track the inset surface instead of the window and
+    // stop overshooting the dock.
+    transparent: process.platform === "darwin",
     icon: WINDOW_ICON,
     resizable: true,
     movable: true,
-    backgroundColor: "#0f1116",
+    backgroundColor: process.platform === "darwin" ? "#00000000" : "#0f1116",
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),

@@ -32,21 +32,21 @@ function getDesktopBridge(): DesktopBridge | undefined {
  */
 
 const BEAN_PATH =
-  "M -2.256,-1.410 " +
-  "A 2.66,2.66 0 0 1 -0.822,-2.530 " +
-  "A 0.405,0.405 0 0 1 -0.572,-1.759 " +
-  "A 1.85,1.85 0 0 0 -1.569,-0.981 " +
-  "A 0.405,0.405 0 0 1 -2.256,-1.410 Z";
+  "M -1.738,-1.087 " +
+  "A 2.05,2.05 0 0 1 -0.634,-1.949 " +
+  "A 0.405,0.405 0 0 1 -0.383,-1.179 " +
+  "A 1.24,1.24 0 0 0 -1.052,-0.657 " +
+  "A 0.405,0.405 0 0 1 -1.738,-1.087 Z";
 
 // Centre of the minus glyph, at the kidney's mid-radius and mid-angle.
-const DASH = { x: -1.389, y: -1.777, w: 0.443, h: 0.13, rot: -8 };
+const DASH = { x: -1.013, y: -1.296, w: 0.443, h: 0.13, rot: -8 };
 const RED = { x: 1.828, y: -0.005, r: 0.51, arm: 0.167, stroke: 0.125 };
 const GLYPH = { size: 0.495, radius: 0.073, gap: 0.073 };
 
 // Room for the cluster plus its stroke, in the same radius units. The kidney
-// runs past the window's top-left, so the box extends beyond it and the
-// window's own rounded corner trims the overhang.
-const VIEW = { x: -3.15, y: -3.4, w: 5.8, h: 4.6 };
+// reaches back past the app surface into the gutter, where it renders against
+// the desktop rather than being trimmed.
+const VIEW = { x: -2.45, y: -2.55, w: 5.0, h: 3.8 };
 
 export function MacWindowControls() {
   const bridge = getDesktopBridge();
