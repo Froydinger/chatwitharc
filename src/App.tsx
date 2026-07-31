@@ -60,6 +60,7 @@ const DesktopAuthCallbackPage = lazy(() => import("./pages/DesktopAuthCallbackPa
 const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage").then((m) => ({ default: m.AuthCallbackPage })));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
 import { useAuth } from "@/hooks/useAuth";
+import { GUEST_CHAT_ENABLED } from "@/lib/features";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { motion } from "framer-motion";
 
@@ -130,12 +131,13 @@ const FastLoader = () => {
 };
 
 /**
- * Signed-out visitors get the marketing lander. Real accounts and guests both
- * get the chat app — guests reach it only by explicitly choosing "Chat without
- * logging in", and every non-chat feature gates them via useRequireAuth.
+ * Signed-out visitors get the marketing lander. Real accounts always get the
+ * chat app; guests do too, but only while GUEST_CHAT_ENABLED is on — with it
+ * off, a leftover anonymous session falls back to the lander rather than
+ * landing in a half-working app.
  */
 const RootGate = () => {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isAnonymous } = useAuth();
   const [showSessionLoader, setShowSessionLoader] = useState(() => {
     if (typeof window === 'undefined') return false;
     const shown = sessionStorage.getItem('arc:sessionLoaderShown') === 'true';
@@ -165,7 +167,8 @@ const RootGate = () => {
 
   if (authLoading) return <FastLoader />;
 
-  return user ? <Index /> : <LandingPage />;
+  const canEnterApp = !!user && (GUEST_CHAT_ENABLED || !isAnonymous);
+  return canEnterApp ? <Index /> : <LandingPage />;
 };
 
 const queryClient = new QueryClient();

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AuthModal } from "@/components/AuthModal";
+import { GUEST_CHAT_ENABLED } from "@/lib/features";
 import { useAuth } from "@/hooks/useAuth";
 import type { AuthGateDetail, GatedFeature } from "@/hooks/useRequireAuth";
 
@@ -56,7 +57,7 @@ export function GlobalAuthGate() {
   // The chat app also lives at "/", so the path alone isn't enough — the
   // lander is specifically "/" with nobody signed in. Once a guest session
   // exists, `user` is set and the offer correctly disappears.
-  const showGuestOption = allowGuest && !user;
+  const showGuestOption = GUEST_CHAT_ENABLED && allowGuest && !user;
 
   return (
     <AuthModal
