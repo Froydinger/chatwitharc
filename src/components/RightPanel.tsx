@@ -203,7 +203,10 @@ export function RightPanel({
           })`,
         }}
       >
-        <div className="flex flex-col h-full" style={{ paddingTop: isStandaloneApp ? "30px" : undefined }}>
+        <div
+          className="flex flex-col h-full"
+          style={{ paddingTop: isStandaloneApp ? "var(--arcai-desktop-titlebar-safe-area, 30px)" : undefined }}
+        >
           {/* Header — minimal: dock/close · segmented tabs · theme + overflow */}
           <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50">
             {DockOrClose}

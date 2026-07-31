@@ -161,6 +161,35 @@ function registerDesktopNotificationHandlers() {
   }));
 }
 
+function registerWindowControlHandlers() {
+  const senderWindow = (event) => {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    return win && !win.isDestroyed() ? win : null;
+  };
+
+  ipcMain.handle("arcai:window:minimize", (event) => {
+    const win = senderWindow(event);
+    if (!win) return { ok: false };
+    win.minimize();
+    return { ok: true };
+  });
+
+  ipcMain.handle("arcai:window:toggle-maximize", (event) => {
+    const win = senderWindow(event);
+    if (!win) return { ok: false, maximized: false };
+    if (win.isMaximized()) win.unmaximize();
+    else win.maximize();
+    return { ok: true, maximized: win.isMaximized() };
+  });
+
+  ipcMain.handle("arcai:window:close", (event) => {
+    const win = senderWindow(event);
+    if (!win) return { ok: false };
+    win.close();
+    return { ok: true };
+  });
+}
+
 function startDesktopAuthBridge() {
   if (authServer) return;
 
@@ -494,8 +523,6 @@ function createFloating() {
     x,
     y,
     frame: false,
-    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : undefined,
-    trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 10 } : undefined,
     resizable: true,
     movable: true,
     alwaysOnTop: true,
@@ -725,12 +752,16 @@ function createFull() {
     x,
     y,
     frame: process.platform === "darwin" ? false : true,
-    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : undefined,
-    trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 10 } : undefined,
+    // The GameCube minimise kidney deliberately overhangs the app's rounded
+    // corner. A window can't paint outside its own bounds, so on macOS the
+    // window is transparent and the page paints its own corner and shadow
+    // inside a small gutter. Costs the native window shadow; the CSS one in
+    // index.css stands in for it.
+    transparent: process.platform === "darwin",
     icon: WINDOW_ICON,
     resizable: true,
     movable: true,
-    backgroundColor: "#0f1116",
+    backgroundColor: process.platform === "darwin" ? "#00000000" : "#0f1116",
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
@@ -801,6 +832,7 @@ app.whenReady().then(() => {
     `${session.defaultSession.getUserAgent()} ArcAIInternalAuth/1`
   );
   registerDesktopNotificationHandlers();
+  registerWindowControlHandlers();
   installMenu();
   configureAutoUpdater();
   configurePermissions();

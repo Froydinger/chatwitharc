@@ -374,8 +374,10 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
     <div className={cn("flex flex-col h-full bg-background", className)}>
       {/* Header - Glassy style */}
       <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/20 bg-gradient-to-r from-background/80 via-background/60 to-background/80 backdrop-blur-xl" style={{
-        paddingTop: (isIOSPWA || isStandaloneApp)
-          ? 'calc(env(safe-area-inset-top, 0px) + 14px)'  // iOS PWA (Dynamic Island) + Mac PWA (traffic lights)
+        paddingTop: isStandaloneApp
+          ? 'calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 30px))'
+          : isIOSPWA
+          ? 'calc(env(safe-area-inset-top, 0px) + 14px)'  // iOS PWA (Dynamic Island)
           : isIOS
           ? 'env(safe-area-inset-top, 0px)'                // iOS browser (viewport-fit=cover)
           : undefined                                        // Android / desktop

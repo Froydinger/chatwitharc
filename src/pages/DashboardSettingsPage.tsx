@@ -29,7 +29,7 @@ export function DashboardSettingsPage() {
     <div
       className="min-h-screen overflow-y-auto relative z-10 touch-pan-y"
       style={{
-        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
+        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
       }}
     >
       <div className="w-full px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-10">

@@ -314,7 +314,7 @@ export function SharedChatRoomPage() {
   if (authLoading || !user) return null;
 
   return (
-    <div className="min-h-screen w-full text-foreground flex flex-col" style={{ paddingTop: "calc(env(safe-area-inset-top) + 30px)" }}>
+    <div className="min-h-screen w-full text-foreground flex flex-col" style={{ paddingTop: "calc(env(safe-area-inset-top) + var(--arcai-desktop-titlebar-safe-area, 30px))" }}>
       <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-4 flex-1 flex flex-col min-h-0">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 mb-4">
