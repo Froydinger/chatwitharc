@@ -523,13 +523,14 @@ function createFloating() {
     x,
     y,
     frame: false,
-    transparent: process.platform === "darwin",
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : undefined,
+    trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 10 } : undefined,
     resizable: true,
     movable: true,
     alwaysOnTop: true,
     show: false,
     icon: WINDOW_ICON,
-    backgroundColor: process.platform === "darwin" ? "#00000000" : "#0f1116",
+    backgroundColor: "#0f1116",
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),
@@ -753,17 +754,12 @@ function createFull() {
     x,
     y,
     frame: process.platform === "darwin" ? false : true,
-    // Transparent so the minimise kidney can sit OUTSIDE the app surface, in
-    // the gutter index.css leaves along the top and left. The page paints its
-    // own surface, corner and shadow inside that gutter; see the
-    // .arcai-mac-gamecube-controls block, which also remaps h-screen so
-    // full-height children track the inset surface instead of the window and
-    // stop overshooting the dock.
-    transparent: process.platform === "darwin",
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : undefined,
+    trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 10 } : undefined,
     icon: WINDOW_ICON,
     resizable: true,
     movable: true,
-    backgroundColor: process.platform === "darwin" ? "#00000000" : "#0f1116",
+    backgroundColor: "#0f1116",
     webPreferences: {
       contextIsolation: true,
       preload: path.join(__dirname, "preload.js"),

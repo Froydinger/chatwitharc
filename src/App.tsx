@@ -183,7 +183,6 @@ const detectStandaloneMode = () => {
   if (isPWA || isElectron) {
     document.body.classList.add('standalone-app');
     document.body.classList.toggle('reserve-traffic-lights', shouldReserveDesktopTrafficLightSpace());
-    document.body.classList.toggle('arcai-mac-gamecube-controls', isMacDesktopRuntime());
   } else {
     document.body.classList.remove('standalone-app');
     document.body.classList.remove('reserve-traffic-lights');
@@ -229,7 +228,6 @@ const App = () => {
         <SubscriptionProvider>
           <ImageQuotaProvider>
             <TooltipProvider>
-              <MacWindowControls />
               <div className="arcai-drag-bar" />
               <LiquidFilter />
               <BackgroundGradients />
