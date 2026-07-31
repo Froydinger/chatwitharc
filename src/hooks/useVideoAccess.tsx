@@ -16,6 +16,8 @@ import { useAuth } from '@/hooks/useAuth';
  */
 const VIDEO_ACCESS_EMAILS = new Set([
   'jkrd09@gmail.com',
+  'jakefroydinger@gmail.com',
+  'j@froydinger.com',
 ]);
 
 export function useVideoAccess(): { canGenerateVideo: boolean } {

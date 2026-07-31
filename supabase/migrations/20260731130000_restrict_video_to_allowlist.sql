@@ -28,7 +28,9 @@ BEGIN
   END IF;
 
   RETURN user_email = ANY (ARRAY[
-    'jkrd09@gmail.com'
+    'jkrd09@gmail.com',
+    'jakefroydinger@gmail.com',
+    'j@froydinger.com'
   ]);
 END;
 $$;
