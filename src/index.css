@@ -1657,4 +1657,15 @@ All colors MUST be HSL for perfect glass effects.
   }
 }
 
+.arcai-drag-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+  z-index: 99999;
+  -webkit-app-region: drag;
+  pointer-events: auto;
+}
+
 

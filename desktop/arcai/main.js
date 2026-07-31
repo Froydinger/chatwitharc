@@ -472,8 +472,10 @@ function focusInput(win) {
 
 function addDragZone(win) {
   if (!win || win.isDestroyed()) return;
+  const isFloatingWindow = win === floating;
+  const dragHeight = isFloatingWindow ? "14px" : "34px";
   win.webContents.executeJavaScript(
-    "(()=>{if(document.getElementById('arcai-desktop-drag-zone'))return;const d=document.createElement('div');d.id='arcai-desktop-drag-zone';d.style.position='fixed';d.style.top='0';d.style.left='0';d.style.right='0';d.style.height='34px';d.style.webkitAppRegion='drag';d.style.zIndex='9999';d.style.pointerEvents='none';document.body.appendChild(d)})()"
+    `(()=>{if(document.getElementById('arcai-desktop-drag-zone'))return;const d=document.createElement('div');d.id='arcai-desktop-drag-zone';d.style.position='fixed';d.style.top='0';d.style.left='0';d.style.right='0';d.style.height='${dragHeight}';d.style.webkitAppRegion='drag';d.style.zIndex='9999';d.style.pointerEvents='none';document.body.appendChild(d)})()`
   ).catch(() => {});
 }
 
@@ -523,8 +525,6 @@ function createFloating() {
     x,
     y,
     frame: false,
-    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : undefined,
-    trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 10 } : undefined,
     resizable: true,
     movable: true,
     alwaysOnTop: true,
@@ -539,7 +539,7 @@ function createFloating() {
   });
   floatingTargetBounds = floating.getBounds();
 
-  floating.loadURL(ARC_URL);
+  floating.loadURL(`${ARC_URL}?floating=1`);
   attachWindowHandlers(floating, true);
 
   floating.once("ready-to-show", () => {

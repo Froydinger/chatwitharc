@@ -49,6 +49,12 @@ function getReliableMacOSMajorVersion(): number | null {
 export function shouldReserveDesktopTrafficLightSpace(): boolean {
   if (!isStandaloneRuntime() || isMobileLikeDevice()) return false;
 
+  if (typeof window !== "undefined") {
+    const isFloating = window.location.search.includes("floating=1") ||
+      (window as Window & { arcaiDesktop?: { isFloating?: boolean } }).arcaiDesktop?.isFloating === true;
+    if (isFloating) return false;
+  }
+
   const isMac = /Macintosh|Mac OS X/i.test(navigator.userAgent) ||
     ((navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform === "macOS");
   const isElectron = /electron/i.test(navigator.userAgent);
