@@ -161,35 +161,6 @@ function registerDesktopNotificationHandlers() {
   }));
 }
 
-function registerWindowControlHandlers() {
-  const senderWindow = (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender);
-    return win && !win.isDestroyed() ? win : null;
-  };
-
-  ipcMain.handle("arcai:window:minimize", (event) => {
-    const win = senderWindow(event);
-    if (!win) return { ok: false };
-    win.minimize();
-    return { ok: true };
-  });
-
-  ipcMain.handle("arcai:window:toggle-maximize", (event) => {
-    const win = senderWindow(event);
-    if (!win) return { ok: false, maximized: false };
-    if (win.isMaximized()) win.unmaximize();
-    else win.maximize();
-    return { ok: true, maximized: win.isMaximized() };
-  });
-
-  ipcMain.handle("arcai:window:close", (event) => {
-    const win = senderWindow(event);
-    if (!win) return { ok: false };
-    win.close();
-    return { ok: true };
-  });
-}
-
 function startDesktopAuthBridge() {
   if (authServer) return;
 
@@ -523,6 +494,8 @@ function createFloating() {
     x,
     y,
     frame: false,
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : undefined,
+    trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 10 } : undefined,
     resizable: true,
     movable: true,
     alwaysOnTop: true,
@@ -752,6 +725,8 @@ function createFull() {
     x,
     y,
     frame: process.platform === "darwin" ? false : true,
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : undefined,
+    trafficLightPosition: process.platform === "darwin" ? { x: 16, y: 10 } : undefined,
     icon: WINDOW_ICON,
     resizable: true,
     movable: true,
@@ -826,7 +801,6 @@ app.whenReady().then(() => {
     `${session.defaultSession.getUserAgent()} ArcAIInternalAuth/1`
   );
   registerDesktopNotificationHandlers();
-  registerWindowControlHandlers();
   installMenu();
   configureAutoUpdater();
   configurePermissions();

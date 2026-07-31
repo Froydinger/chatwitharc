@@ -15,14 +15,6 @@ export function isMobileLikeDevice(): boolean {
   );
 }
 
-export function isMacDesktopRuntime(): boolean {
-  if (typeof window === "undefined") return false;
-  const bridge = (window as Window & {
-    arcaiDesktop?: { platform?: string };
-  }).arcaiDesktop;
-  return /electron/i.test(navigator.userAgent) && bridge?.platform === "darwin";
-}
-
 function getReliableMacOSMajorVersion(): number | null {
   if (typeof navigator === "undefined") return null;
 

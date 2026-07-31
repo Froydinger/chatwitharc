@@ -953,7 +953,7 @@ export function MobileChatApp() {
     <div
       className="h-screen flex relative overflow-hidden"
       style={{
-        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
+        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'})`,
       }}
     >
 
@@ -974,7 +974,7 @@ export function MobileChatApp() {
                 isMobile && !headerVisible && "-translate-y-24",
               )}
               style={{
-                top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
+                top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'} + 8px)`,
               }}
             >
               <motion.div 
@@ -1028,7 +1028,7 @@ export function MobileChatApp() {
                 isMobile && !headerVisible && "-translate-y-24",
               )}
               style={{
-                top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
+                top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? '30px' : '0px'} + 8px)`,
               }}
             >
               {/* Share Button */}

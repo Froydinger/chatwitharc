@@ -668,14 +668,14 @@ export function VoiceModeOverlay() {
               transition={{ delay: 0.1 }}
               onClick={deactivateVoiceMode}
               className="absolute right-6 z-10 p-3 rounded-full glass-shimmer hover:bg-muted/50 transition-colors"
-              style={{ top: 'calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1.5rem)' }}
+              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' }}
               aria-label="Close voice mode"
             >
               <X className="w-6 h-6 text-foreground" />
             </motion.button>
 
             {/* Top-right action buttons: Camera, Attachment */}
-            <div className="absolute right-20 z-10 flex items-center gap-2" style={{ top: 'calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1.5rem)' }}>
+            <div className="absolute right-20 z-10 flex items-center gap-2" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' }}>
               {/* Attachment button */}
               <motion.button
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -720,7 +720,7 @@ export function VoiceModeOverlay() {
                 Mobile: centered below the top button row.
                 sm+: inline between the left/right top clusters. */}
             <div
-              className="absolute z-10 flex justify-center pointer-events-none left-0 right-0 top-[calc(env(safe-area-inset-top,0px)+var(--arcai-desktop-titlebar-safe-area,0px)+5.25rem)] sm:left-[9rem] sm:right-[14rem] sm:top-[calc(env(safe-area-inset-top,0px)+var(--arcai-desktop-titlebar-safe-area,0px)+1.75rem)]"
+              className="absolute z-10 flex justify-center pointer-events-none left-0 right-0 top-[calc(env(safe-area-inset-top,0px)+5.25rem)] sm:left-[9rem] sm:right-[14rem] sm:top-[calc(env(safe-area-inset-top,0px)+1.75rem)]"
             >
               <div className="pointer-events-auto min-w-0 max-w-full [&>*]:max-w-full [&>*]:truncate">
                 <UsageMeter kind="voice" />
@@ -748,7 +748,7 @@ export function VoiceModeOverlay() {
                   ? 'bg-destructive/20 hover:bg-destructive/30'
                   : 'hover:bg-muted/50'
               }`}
-              style={{ top: 'calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1.5rem)' }}
+              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' }}
               aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
             >
               {isMuted ? (
@@ -766,7 +766,7 @@ export function VoiceModeOverlay() {
               transition={{ delay: 0.16 }}
               onClick={handleReconnect}
               className="absolute left-20 z-10 p-3 rounded-full glass-shimmer hover:bg-muted/50 transition-colors"
-              style={{ top: 'calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1.5rem)' }}
+              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' }}
               aria-label="Reconnect voice mode"
             >
               <RotateCw className={`w-5 h-5 text-foreground ${status === 'connecting' ? 'animate-spin' : ''}`} />

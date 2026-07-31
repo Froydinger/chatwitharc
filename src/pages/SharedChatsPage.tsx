@@ -93,7 +93,7 @@ export function SharedChatsPage() {
   if (authLoading || !user) return null;
 
   return (
-    <div className="min-h-screen w-full text-foreground" style={{ paddingTop: "calc(env(safe-area-inset-top) + var(--arcai-desktop-titlebar-safe-area, 30px))" }}>
+    <div className="min-h-screen w-full text-foreground" style={{ paddingTop: "calc(env(safe-area-inset-top) + 30px)" }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="gap-2 mb-4">
           <ArrowLeft className="h-4 w-4" /> Dashboard
