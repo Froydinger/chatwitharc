@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 
@@ -20,6 +20,11 @@ interface AuthContextType {
   needsOnboarding: boolean;
   /** True when the active session is an anonymous Supabase user (guest mode). */
   isAnonymous: boolean;
+  /**
+   * Start a guest session. Chat works; everything else routes through
+   * useRequireAuth and prompts for a real account.
+   */
+  continueAsGuest: () => Promise<{ error: Error | null }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,6 +34,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   needsOnboarding: false,
   isAnonymous: false,
+  continueAsGuest: async () => ({ error: null }),
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -206,6 +212,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isAnonymous = !!user?.is_anonymous;
 
+  const continueAsGuest = useCallback(async () => {
+    try {
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) throw error;
+      return { error: null };
+    } catch (e) {
+      console.error('Guest sign-in failed:', e);
+      return { error: e instanceof Error ? e : new Error('Guest sign-in failed') };
+    }
+  }, []);
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -214,6 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       needsOnboarding,
       isAnonymous,
+      continueAsGuest,
     }}>
       {children}
     </AuthContext.Provider>

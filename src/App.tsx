@@ -129,9 +129,13 @@ const FastLoader = () => {
   );
 };
 
-/** Show marketing lander to signed-out/anonymous visitors, chat to real accounts only. */
+/**
+ * Signed-out visitors get the marketing lander. Real accounts and guests both
+ * get the chat app — guests reach it only by explicitly choosing "Chat without
+ * logging in", and every non-chat feature gates them via useRequireAuth.
+ */
 const RootGate = () => {
-  const { user, loading: authLoading, isAnonymous } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [showSessionLoader, setShowSessionLoader] = useState(() => {
     if (typeof window === 'undefined') return false;
     const shown = sessionStorage.getItem('arc:sessionLoaderShown') === 'true';
@@ -161,7 +165,7 @@ const RootGate = () => {
 
   if (authLoading) return <FastLoader />;
 
-  return user && !isAnonymous ? <Index /> : <LandingPage />;
+  return user ? <Index /> : <LandingPage />;
 };
 
 const queryClient = new QueryClient();

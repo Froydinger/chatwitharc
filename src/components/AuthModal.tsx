@@ -8,12 +8,19 @@ import { getAuthRedirectUrl, signInWithGoogle } from "@/integrations/auth";
 import { Mail, Lock, Eye, EyeOff, X, Sparkles, Mic, ImagePlus, Globe, Code2, PenLine, Music, Paperclip, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { GatedFeature, AuthGateDetail } from "@/hooks/useRequireAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   /** Optional contextual feature that triggered the modal */
   gatedFeature?: GatedFeature;
+  /**
+   * Show the "Chat without logging in" escape hatch beneath the modal. Only
+   * true on the landing page — once inside the app, a gate means the feature
+   * genuinely needs an account, so offering guest mode there would dead-end.
+   */
+  allowGuest?: boolean;
 }
 
 const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon: React.ComponentType<{ className?: string }> }> = {
@@ -30,7 +37,7 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
   generic: { title: "Welcome to ArcAI", subtitle: "Sign in to unlock everything.", icon: Sparkles },
 };
 
-export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState("");
@@ -38,6 +45,23 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { continueAsGuest } = useAuth();
+  const [guestLoading, setGuestLoading] = useState(false);
+
+  const handleContinueAsGuest = async () => {
+    setGuestLoading(true);
+    const { error } = await continueAsGuest();
+    setGuestLoading(false);
+    if (error) {
+      toast({
+        title: "Couldn't start guest chat",
+        description: "Please try again, or sign in to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+    onClose();
+  };
 
   const feature = gatedFeature ?? "generic";
   const copy = FEATURE_COPY[feature];
@@ -429,6 +453,35 @@ export function AuthModal({ isOpen, onClose, gatedFeature }: AuthModalProps) {
                 </>
               </motion.div>
             </div>
+
+            {/* Guest escape hatch — landing page only, deliberately outside the
+                glass card so it reads as a way past the modal, not a third
+                sign-in option competing with Google/email. */}
+            {allowGuest && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15, duration: 0.3 }}
+                className="mt-4 flex flex-col items-center gap-1.5"
+              >
+                <button
+                  type="button"
+                  onClick={handleContinueAsGuest}
+                  disabled={guestLoading}
+                  className={cn(
+                    "text-sm font-medium underline underline-offset-4 transition-opacity disabled:opacity-50",
+                    isLight
+                      ? "text-zinc-700 hover:text-zinc-900 decoration-zinc-400"
+                      : "text-white/70 hover:text-white decoration-white/40",
+                  )}
+                >
+                  {guestLoading ? "Starting…" : "Chat without logging in"}
+                </button>
+                <span className={cn("text-[11px]", isLight ? "text-zinc-500" : "text-white/40")}>
+                  Chat only — no history, images, or voice
+                </span>
+              </motion.div>
+            )}
           </motion.div>
         </DialogContent>
       </Dialog>
