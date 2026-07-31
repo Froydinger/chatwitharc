@@ -20,6 +20,7 @@ import {
   FileText,
   ListPlus,
   Hammer,
+  Clapperboard,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
@@ -3001,6 +3002,25 @@ ${safeCode}
                               <span className="text-[9px] text-muted-foreground font-normal mt-0.5">AI Image Creation</span>
                             </div>
                           </button>
+
+                          {canGenerateVideo && (
+                            <button
+                              onClick={() => {
+                                setInputValue("video/ ");
+                                setShowMenu(false);
+                                textareaRef.current?.focus();
+                              }}
+                              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
+                            >
+                              <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-violet-500/10 flex items-center justify-center transition-colors">
+                                <Clapperboard className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-violet-400 transition-colors" />
+                              </div>
+                              <div className="flex flex-col items-center text-center">
+                                <span className="text-xs font-semibold text-foreground">Video</span>
+                                <span className="text-[9px] text-muted-foreground font-normal mt-0.5">AI Video Creation</span>
+                              </div>
+                            </button>
+                          )}
 
                           <button
                             onClick={() => {
