@@ -54,6 +54,8 @@ import { PromptEnhancer } from "@/components/PromptEnhancer";
 // ChatModelPicker now lives in the chat header (MobileChatApp), not the input bar.
 import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore, useResolvedImageModel, useEditImageModel } from "@/store/useImageGenStore";
+import { useVideoGenStore, orientationForDimensions } from "@/store/useVideoGenStore";
+import { useVideoAccess } from "@/hooks/useVideoAccess";
 import { useImageQuota } from "@/hooks/useImageQuota";
 
 // Global cancellation flag and AbortController
@@ -148,6 +150,77 @@ function checkForImageRequest(message: string): boolean {
   )
     return true;
   return false;
+}
+
+/**
+ * Video is Boost-only and costs ~$0.40 a clip, so detection is deliberately
+ * narrower than the image equivalent — an explicit prefix or an unambiguous
+ * "make a video of ..." phrasing. Vague verbs like "create" or "render" on
+ * their own stay on the image path.
+ */
+function checkForVideoRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  if (/^(video|animate)\//.test(m) || /^\/(video|animate)\b/.test(m)) return true;
+  if (
+    /^(can\s+you\s+)?(please\s+)?(generate|create|make|render|produce)\s+(me\s+)?(an?\s+)?(short\s+)?(video|clip|animation|gif)\b/i.test(m)
+  )
+    return true;
+  if (/\b(make|create|generate|turn\s+this\s+into)\s+(it\s+|this\s+|that\s+)?(an?\s+)?(video|animation|clip)\b/i.test(m) && m.length < 200)
+    return true;
+  return false;
+}
+
+/** "animate this", "make this image move" — an edit-style follow-up on a still. */
+function isAnimateImageRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  if (/^(animate|\/animate|animate\/)\b/.test(m)) return true;
+  return /\b(animate|bring\s+(this|it)\s+to\s+life|make\s+(this|it)\s+(move|animated)|turn\s+(this|it)\s+into\s+a\s+(video|clip|animation))\b/i.test(m);
+}
+
+/**
+ * Strips the request scaffolding down to the subject. Returns "" when the
+ * message was pure directive ("animate this"), so callers can fall back to a
+ * sensible default instead of feeding the model the instruction verbatim.
+ */
+function extractVideoPrompt(message: string): string {
+  let prompt = (message || "").trim();
+  prompt = prompt.replace(/^(video|animate)\/\s*/i, "").replace(/^\/(video|animate)\s*/i, "").trim();
+  prompt = prompt.replace(/^(please\s+)?(?:can|could|would)\s+you\s+/i, "").trim();
+  prompt = prompt
+    .replace(
+      /^(?:generate|create|make|render|produce)\s+(?:me\s+)?(?:an?\s+)?(?:short\s+)?(?:video|clip|animation)?\s*(?:of|showing)?\s*/i,
+      "",
+    )
+    .trim();
+  // Bare animate directives carry no subject — drop them entirely rather than
+  // sending "animate this" to the model as the scene description.
+  prompt = prompt
+    .replace(
+      /^(?:animate|bring)\s+(?:this|it|that)(?:\s+image)?(?:\s+to\s+life)?\s*/i,
+      "",
+    )
+    .replace(/^(?:make|turn)\s+(?:this|it|that)\s+(?:move|animated|into\s+an?\s+(?:video|clip|animation))\s*/i, "")
+    .trim();
+  return prompt;
+}
+
+/**
+ * The model only renders 1280x720 or 720x1280, so a still being animated is
+ * matched to whichever is closer to its own shape — a square or landscape
+ * image would otherwise get centre-cropped into portrait. Defaults to
+ * landscape if the image can't be measured.
+ */
+async function orientationForImageUrl(url: string): Promise<'landscape' | 'portrait'> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const done = (o: 'landscape' | 'portrait') => resolve(o);
+    img.onload = () => done(orientationForDimensions(img.naturalWidth, img.naturalHeight));
+    img.onerror = () => done('landscape');
+    img.crossOrigin = 'anonymous';
+    img.src = url;
+  });
 }
 
 function extractSubjectForImageRequest(message: string): string {
@@ -497,6 +570,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
   // Ref to always point to latest handleExternalImageEdit (avoids stale closures in event listeners)
   const handleExternalImageEditRef = useRef<(...args: any[]) => void>(() => {});
+  // Same pattern as the image-edit ref: the listener is registered once, so it
+  // has to reach the current closure rather than the one from mount.
+  const runVideoGenerationRef = useRef<(...args: any[]) => void>(() => {});
 
   // Tiles menu
   const [showMenu, setShowMenu] = useState(false);
@@ -560,6 +636,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const imageGenModel = useResolvedImageModel();
   // Edits are GPT Image 2 only — never send the Quick (mini) model to an edit.
   const imageEditModel = useEditImageModel();
+
+  // Video is allowlisted by email rather than sold with Boost — see
+  // useVideoAccess for why. The server enforces the same list.
+  const { seconds: videoSeconds, orientation: videoOrientation } = useVideoGenStore();
+  const { canGenerateVideo } = useVideoAccess();
 
   // When a /write canvas is open, auto-show canvas mode indicator so user knows
   // their messages will modify the canvas (not go to chat)
@@ -1002,15 +1083,23 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       if (!e?.detail) return;
       handleEditedMessage(e.detail.content, e.detail.editedMessageId);
     };
+    const animateHandler = (ev: Event) => {
+      const e = ev as CustomEvent<{ imageUrl: string; prompt?: string }>;
+      if (!e?.detail?.imageUrl) return;
+      const prompt = e.detail.prompt?.trim() || "Bring this image to life with subtle, natural motion";
+      runVideoGenerationRef.current("Animate this image", prompt, e.detail.imageUrl);
+    };
     window.addEventListener("quickPromptSelected", quickHandler as EventListener);
     window.addEventListener("arcai:triggerPrompt", quickHandler as EventListener);
     window.addEventListener("processImageEdit", editHandler as EventListener);
     window.addEventListener("processEditedMessage", editedMessageHandler as EventListener);
+    window.addEventListener("processAnimateImage", animateHandler as EventListener);
     return () => {
       window.removeEventListener("quickPromptSelected", quickHandler as EventListener);
       window.removeEventListener("arcai:triggerPrompt", quickHandler as EventListener);
       window.removeEventListener("processImageEdit", editHandler as EventListener);
       window.removeEventListener("processEditedMessage", editedMessageHandler as EventListener);
+      window.removeEventListener("processAnimateImage", animateHandler as EventListener);
     };
   }, [handleEditedMessage]);
 
@@ -1099,6 +1188,94 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Keep ref in sync so event listeners always call the latest version
   handleExternalImageEditRef.current = handleExternalImageEdit;
 
+  /* ---------- Video generation (Boost/admin only) ---------- */
+
+  /**
+   * Renders a clip and drops it in the chat. Two shapes: text-to-video, or
+   * animating an existing still when `sourceImageUrl` is given.
+   *
+   * The finished MP4 lands in the browser's IndexedDB and nowhere else — the
+   * message row only carries the job id. That keeps Supabase from filling up
+   * with video, at the cost of the clip being device-local, which is why the
+   * completion copy says so out loud.
+   */
+  const runVideoGeneration = async (
+    userMessage: string,
+    videoPrompt: string,
+    sourceImageUrl?: string,
+  ) => {
+    if (useArcStore.getState().isGeneratingImage) return;
+
+    // Backstop only. Callers already gate on canGenerateVideo, and the server
+    // enforces the real allowlist, so reaching this means something upstream
+    // is wrong rather than a user hitting a limit.
+    if (!canGenerateVideo) {
+      toast({
+        title: "Video isn't enabled on this account",
+        description: "Video generation is limited while the provider is being replaced.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await addMessage({
+      content: userMessage,
+      role: "user",
+      type: sourceImageUrl ? "image" : "text",
+      ...(sourceImageUrl ? { imageUrl: sourceImageUrl, imageUrls: [sourceImageUrl] } : {}),
+    });
+
+    await addMessage({
+      content: sourceImageUrl ? `Animating image: ${videoPrompt}` : `Generating video: ${videoPrompt}`,
+      role: "assistant",
+      type: "video-generating",
+      videoPrompt,
+      videoSourceImageUrl: sourceImageUrl,
+      sourceModel: "cloud-video",
+    });
+
+    setGeneratingImage(true);
+
+    try {
+      const ai = new AIService();
+      // A still keeps its own shape; text-to-video follows the saved pref.
+      const orientation = sourceImageUrl
+        ? await orientationForImageUrl(sourceImageUrl)
+        : videoOrientation;
+
+      const result = await ai.generateVideo(videoPrompt, {
+        seconds: videoSeconds,
+        orientation,
+        sourceImageUrl,
+      });
+
+      await replaceLastMessage({
+        content: sourceImageUrl
+          ? `Animated your image — saved on this device only, so download it if you want to keep it.`
+          : `Here's your ${result.seconds}s video — saved on this device only, so download it if you want to keep it.`,
+        role: "assistant",
+        type: "video",
+        videoJobId: result.jobId,
+        videoPrompt,
+        videoSeconds: result.seconds,
+        videoSize: result.size,
+        videoSourceImageUrl: sourceImageUrl,
+        sourceModel: "cloud-video",
+      });
+    } catch (err: any) {
+      await replaceLastMessage({
+        content: err?.message || "Video generation failed. Please try again.",
+        role: "assistant",
+        type: "text",
+        sourceModel: "cloud-video",
+      });
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
+  runVideoGenerationRef.current = runVideoGeneration;
+
   const handleSend = async (messageOverride?: string) => {
     const messageToSend = messageOverride ?? inputValue;
     if (!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) return;
@@ -1184,7 +1361,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     // Capture mode states BEFORE clearing UI (they're needed in handleSendMessage)
     let wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(finalMessage);
     let wasCodingMode = shouldShowCodeMode || checkForCodingRequest(finalMessage);
-    let wasImageMode = shouldShowBanana || checkForImageRequest(finalMessage);
+    // Video is checked before image so "make a video of a cat" doesn't get
+    // claimed by the (much broader) image matcher. Gated on access up front so
+    // the feature is genuinely invisible to everyone else — a video request
+    // from another account falls through to normal chat rather than getting
+    // told about a feature it can't use.
+    let wasVideoMode = canGenerateVideo && checkForVideoRequest(finalMessage);
+    let wasImageMode = !wasVideoMode && (shouldShowBanana || checkForImageRequest(finalMessage));
     let wasSearchMode = shouldShowSearchMode || checkForSearchRequest(finalMessage);
     let wasBuildMode = checkForBuildRequest(finalMessage);
 
@@ -1245,6 +1428,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         wasCanvasMode ||
         wasCodingMode ||
         wasImageMode ||
+        wasVideoMode ||
         wasSearchMode ||
         wasBuildMode
       ) {
@@ -1258,6 +1442,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       wasCanvasMode = false;
       wasCodingMode = false;
       wasImageMode = false;
+      wasVideoMode = false;
       wasSearchMode = false;
       wasBuildMode = false;
     }
@@ -1516,6 +1701,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       // Canvas mode - let the regular text flow handle it via AI's update_canvas tool
       // The AI will be instructed to use update_canvas and the response will add a canvas message inline
 
+      // Text-to-video. Checked before the image branch so a video request
+      // isn't swallowed by the broader image matcher.
+      if (wasVideoMode) {
+        const videoPrompt = extractVideoPrompt(finalMessage || "") || "a short cinematic clip";
+        await runVideoGeneration(finalMessage || videoPrompt, videoPrompt);
+        return;
+      }
+
       // No images: Banana => generate; else text
       if (wasImageMode) {
         // Strip the prefix (image/, draw/, create/, /image, etc.) and use the rest as prompt
@@ -1583,6 +1776,24 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(false);
         }
         return;
+      }
+
+      // Auto-detect "animate this" on the last generated still. Checked ahead
+      // of the edit path because "make this move" reads as an edit directive
+      // too, and animating is what was actually asked for.
+      if (canGenerateVideo && !wasCanvasMode && !wasCodingMode && !wasSearchMode) {
+        const lastMsg = messages[messages.length - 1];
+        if (
+          lastMsg?.role === "assistant" &&
+          lastMsg.type === "image" &&
+          (lastMsg.imageUrl || (lastMsg.imageUrls && lastMsg.imageUrls.length > 0)) &&
+          isAnimateImageRequest(finalMessage)
+        ) {
+          const sourceImageUrl = lastMsg.imageUrls?.[0] || lastMsg.imageUrl!;
+          const videoPrompt = extractVideoPrompt(finalMessage) || "Bring this image to life with subtle natural motion";
+          await runVideoGeneration(finalMessage, videoPrompt, sourceImageUrl);
+          return;
+        }
       }
 
       // Auto-detect follow-up image edit: if last assistant message was an image

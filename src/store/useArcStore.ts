@@ -81,10 +81,19 @@ export interface Message {
   content: string;
   role: 'user' | 'assistant';
   timestamp: Date;
-  type: 'text' | 'image' | 'image-generating' | 'file' | 'canvas' | 'code' | 'ide';
+  type: 'text' | 'image' | 'image-generating' | 'video' | 'video-generating' | 'file' | 'canvas' | 'code' | 'ide';
   imageUrl?: string;
   imageUrls?: string[]; // Support for multiple images
   imagePrompt?: string; // For image generation placeholders
+  // Video messages store only a job id — the MP4 itself lives in the
+  // browser's IndexedDB (src/lib/videoStorage.ts), never in Supabase. On a
+  // device that didn't render the clip, MessageBubble shows an
+  // "unavailable" placeholder instead.
+  videoJobId?: string;
+  videoPrompt?: string;
+  videoSeconds?: number;
+  videoSize?: string;
+  videoSourceImageUrl?: string; // Still that was animated, when applicable
   fileUrl?: string; // For file attachments
   fileName?: string;
   fileType?: string;
@@ -121,6 +130,7 @@ export interface Message {
     | 'cloud-image-pro'
     | 'cloud-image-edit'
     | 'cloud-image-edit-fallback'
+    | 'cloud-video'
     | 'cloud-ide';
   // Exact model id that produced this response (e.g. 'gpt-5.6-terra').
   // Stored at send time so the badge shows what actually ran, not the

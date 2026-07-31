@@ -795,6 +795,50 @@ export class AIService {
     }
   }
 
+  /**
+   * Generate a video (Boost/admin only). Pass `sourceImageUrl` to animate an
+   * existing still instead of rendering from text alone.
+   *
+   * Resolves once the clip is finished AND cached in the browser. Nothing is
+   * uploaded to Supabase — see src/lib/videoStorage.ts for why, and for what
+   * that means when the same chat is opened on another device.
+   */
+  async generateVideo(
+    prompt: string,
+    opts: {
+      seconds?: number;
+      orientation?: 'landscape' | 'portrait';
+      sourceImageUrl?: string;
+      onProgress?: (progress: number) => void;
+    } = {},
+  ): Promise<{ jobId: string; seconds: number; size: string; byteSize: number }> {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('Video generation service is not available. Please configure Supabase.');
+    }
+
+    try {
+      const { invokeEdgeFunction } = await import('@/lib/invokeEdgeFunction');
+      const data: any = await invokeEdgeFunction('generate-video', {
+        prompt,
+        seconds: opts.seconds,
+        orientation: opts.orientation,
+        sourceImageUrl: opts.sourceImageUrl,
+      });
+
+      if (!data?.jobId) {
+        throw new Error(data?.error || 'Failed to start video generation');
+      }
+
+      const { pollVideoJob } = await import('@/lib/pollVideoJob');
+      const result = await pollVideoJob(data.jobId, { onProgress: opts.onProgress });
+      window.dispatchEvent(new Event('arc-video-quota-changed'));
+      return result;
+    } catch (error) {
+      console.error('Video generation error:', error);
+      window.dispatchEvent(new Event('arc-video-quota-changed'));
+      throw error;
+    }
+  }
 
   async generateFile(fileType: string, prompt: string): Promise<{ fileUrl: string; fileName: string; mimeType: string; fileSize?: number }> {
     if (!supabase || !isSupabaseConfigured) {

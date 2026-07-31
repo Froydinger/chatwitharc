@@ -15,6 +15,9 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ImageGenerationPlaceholder } from "@/components/ImageGenerationPlaceholder";
+import { VideoGenerationPlaceholder } from "@/components/VideoGenerationPlaceholder";
+import { VideoAttachment } from "@/components/VideoAttachment";
+import { AnimateImageButton } from "@/components/AnimateImageButton";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { TypewriterMarkdown } from "@/components/TypewriterMarkdown";
 import { WordStreamMarkdown } from "@/components/WordStreamMarkdown";
@@ -305,6 +308,26 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 />
               )}
 
+              {/* Video Generating */}
+              {message.type === "video-generating" && (
+                <VideoGenerationPlaceholder
+                  prompt={message.videoPrompt || message.content}
+                  fromImage={!!message.videoSourceImageUrl}
+                />
+              )}
+
+              {/* Video — played from local IndexedDB, never from Supabase */}
+              {message.type === "video" && message.videoJobId && (
+                <div className="mb-2">
+                  <VideoAttachment
+                    jobId={message.videoJobId}
+                    prompt={message.videoPrompt}
+                    seconds={message.videoSeconds}
+                    size={message.videoSize}
+                  />
+                </div>
+              )}
+
               {/* Weather Card */}
               {!isUser && message.weatherData && (
                 <motion.div
@@ -442,16 +465,19 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                 loadingClassName="w-full h-48"
                               />
                             </div>
-                            <Button
-                              size="sm"
-                              className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shadow-sm h-8 px-4"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditImageUrls([url]);
-                              }}
-                            >
-                              Edit Image
-                            </Button>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shadow-sm h-8 px-4"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditImageUrls([url]);
+                                }}
+                              >
+                                Edit Image
+                              </Button>
+                              <AnimateImageButton imageUrl={url} />
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -471,16 +497,19 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                           </div>
                           
                           {/* Edit button below image for AI-generated images */}
-                          <Button
-                            size="sm"
-                            className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shadow-sm h-8 px-4"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditImageUrls([message.imageUrl!]);
-                            }}
-                          >
-                            Edit Image
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shadow-sm h-8 px-4"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditImageUrls([message.imageUrl!]);
+                              }}
+                            >
+                              Edit Image
+                            </Button>
+                            <AnimateImageButton imageUrl={message.imageUrl!} />
+                          </div>
                         </div>
                       )
                     )}
@@ -560,7 +589,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               )}
 
               {/* Text */}
-              {message.type !== "image-generating" &&
+              {message.type !== "image-generating" && message.type !== "video-generating" &&
                 (isEditing ? (
                   <div key="text-edit" className="space-y-2 relative z-10">
                     <Input
@@ -694,13 +723,13 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           {/* Keep reply metadata and the Arc mark in one layout-aware footer.
               As streamed text wraps, this moves the whole footer with the
               response instead of snapping each element to its next line. */}
-          {!isUser && (message.type !== 'image-generating' || isLatestAssistant) && (
+          {!isUser && ((message.type !== 'image-generating' && message.type !== 'video-generating') || isLatestAssistant) && (
             <motion.div
               className="w-full"
               layout="position"
               transition={{ layout: { duration: 0.18, ease: [0.22, 1, 0.36, 1] } }}
             >
-              {message.type !== 'image-generating' && <MessageMetadata message={message} />}
+              {message.type !== 'image-generating' && message.type !== 'video-generating' && <MessageMetadata message={message} />}
 
               {/* Arc / Persona avatar - latest assistant message */}
               {isLatestAssistant && (
