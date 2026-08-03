@@ -124,13 +124,13 @@ async function updateJob(supabase: any, jobId: string, values: Record<string, un
   if (error) console.error("Failed to update image job:", jobId, error);
 }
 
-async function callImageGateway(prompt: string, model: string, size: string, count: number) {
+async function callImageGatewaySingle(prompt: string, model: string, size: string) {
   const requestBody = JSON.stringify({
     model,
     prompt,
     size,
     quality: "medium",
-    n: count,
+    n: 1,
   });
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -167,6 +167,39 @@ async function callImageGateway(prompt: string, model: string, size: string, cou
   }
 
   return { ok: false, status: 429, rawText: "Rate limit retry failed" };
+}
+
+async function callImageGateway(prompt: string, model: string, size: string, count: number) {
+  if (count <= 1) {
+    return callImageGatewaySingle(prompt, model, size);
+  }
+
+  // Issue parallel requests for count > 1 to avoid serial OpenAI 60s+ gateway timeouts
+  const results = await Promise.all(
+    Array.from({ length: count }, () => callImageGatewaySingle(prompt, model, size))
+  );
+
+  const successful = results.filter((r) => r.ok);
+  if (successful.length > 0) {
+    const combinedData: any[] = [];
+    for (const res of successful) {
+      try {
+        const parsed = JSON.parse(res.rawText);
+        if (Array.isArray(parsed?.data)) {
+          combinedData.push(...parsed.data);
+        }
+      } catch {
+        // Failed to parse response chunk; skip
+      }
+    }
+    return {
+      ok: true,
+      status: 200,
+      rawText: JSON.stringify({ data: combinedData }),
+    };
+  }
+
+  return results[0];
 }
 
 function extractImageUrls(parsed: any): string[] {

@@ -188,16 +188,16 @@ export function SharedChatRoomPage() {
   async function generateSharedImage(prompt: string) {
     setAiThinking(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-image", { body: { prompt } });
-      if (error || !data?.success || !data?.imageUrl) {
-        throw new Error(data?.error || error?.message || "Image generation failed");
-      }
+      const ai = new AIService();
+      const urls = await ai.generateImage(prompt);
+      const imageUrl = urls[0];
+      if (!imageUrl) throw new Error("No image was generated");
       await supabase.from("shared_chat_messages").insert({
         chat_id: chatId,
         author_user_id: null,
         role: "assistant",
         content: `🎨 ${prompt}`,
-        attachments: [{ type: "image", url: data.imageUrl }],
+        attachments: [{ type: "image", url: imageUrl }],
       });
     } catch (e: any) {
       toast({ title: "Image generation failed", description: String(e?.message ?? e), variant: "destructive" });

@@ -121,6 +121,58 @@ function sniffImageMime(bytes: Uint8Array): { mime: string; ext: string } | null
   return null;
 }
 
+function parseImageDimensions(bytes: Uint8Array): { width: number; height: number } | null {
+  try {
+    // PNG: IHDR at offset 16 (width), 20 (height)
+    if (bytes.length >= 24 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      const width = view.getUint32(16, false);
+      const height = view.getUint32(20, false);
+      if (width > 0 && height > 0) return { width, height };
+    }
+    // JPEG: scan SOF markers (0xFF 0xC0 .. 0xC3)
+    if (bytes.length >= 4 && bytes[0] === 0xff && bytes[1] === 0xd8) {
+      let offset = 2;
+      while (offset < bytes.length - 8) {
+        if (bytes[offset] !== 0xff) { offset++; continue; }
+        const marker = bytes[offset + 1];
+        if (marker >= 0xc0 && marker <= 0xc3) {
+          const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+          const height = view.getUint16(offset + 5, false);
+          const width = view.getUint16(offset + 7, false);
+          if (width > 0 && height > 0) return { width, height };
+        }
+        const len = (bytes[offset + 2] << 8) | bytes[offset + 3];
+        offset += 2 + len;
+      }
+    }
+    // WebP
+    if (bytes.length >= 30 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+        bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) {
+      const tag = String.fromCharCode(bytes[12], bytes[13], bytes[14], bytes[15]);
+      if (tag === 'VP8X' && bytes.length >= 30) {
+        const width = 1 + (bytes[24] | (bytes[25] << 8) | (bytes[26] << 16));
+        const height = 1 + (bytes[27] | (bytes[28] << 8) | (bytes[29] << 16));
+        return { width, height };
+      }
+      if (tag === 'VP8 ' && bytes.length >= 30) {
+        const width = ((bytes[27] << 8) | bytes[26]) & 0x3fff;
+        const height = ((bytes[29] << 8) | bytes[28]) & 0x3fff;
+        return { width, height };
+      }
+      if (tag === 'VP8L' && bytes.length >= 25) {
+        const b0 = bytes[21], b1 = bytes[22], b2 = bytes[23], b3 = bytes[24];
+        const width = 1 + (b0 | ((b1 & 0x3f) << 8));
+        const height = 1 + (((b1 >> 6) | (b2 << 2) | ((b3 & 0xf) << 10)));
+        return { width, height };
+      }
+    }
+  } catch {
+    // Header parsing failed; fall through to decoding
+  }
+  return null;
+}
+
 function bytesToB64(bytes: Uint8Array): string {
   let binary = '';
   const chunk = 0x8000;
@@ -144,35 +196,47 @@ async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob;
     bytes = new Uint8Array(await res.arrayBuffer());
   }
 
-  // Always decode and re-encode source images. Browser/camera uploads can be
-  // valid JPEG/PNG files while still using a color mode, metadata layout, or
-  // encoding variant rejected by the Images edit endpoint. A fresh ImageScript
-  // PNG gives OpenAI predictable RGBA pixels regardless of the source format.
-  const originalFormat = sniffImageMime(bytes);
+  const sniffed = sniffImageMime(bytes);
   let width = 0;
   let height = 0;
-  try {
-    const decoded = await decode(bytes) as Image;
-    // We already decode here for normalization, so the source dimensions are
-    // free — they're what "keep the original shape" resolves against.
-    width = decoded.width;
-    height = decoded.height;
-    bytes = await decoded.encode();
-  } catch (e) {
-    throw new Error(
-      `Source image could not be normalized${originalFormat ? ` from ${originalFormat.mime}` : ''}: ${e instanceof Error ? e.message : 'decode failed'}`,
-    );
-  }
-  const sniffed = { mime: 'image/png', ext: 'png' };
 
+  if (sniffed) {
+    // Fast path: valid PNG/JPEG/WEBP image, parse header dimensions in <1ms!
+    const dims = parseImageDimensions(bytes);
+    if (dims) {
+      width = dims.width;
+      height = dims.height;
+    }
+  }
+
+  // Fallback if sniffing failed or dimensions could not be read: use ImageScript ONLY for dimensions/format fix
+  if (!sniffed || !width || !height) {
+    try {
+      const decoded = (await decode(bytes)) as Image;
+      width = decoded.width;
+      height = decoded.height;
+      if (!sniffed) {
+        // Only re-encode if format was unrecognized by magic bytes
+        bytes = await decoded.encode();
+      }
+    } catch (e) {
+      throw new Error(
+        `Source image could not be normalized${sniffed ? ` from ${sniffed.mime}` : ''}: ${e instanceof Error ? e.message : 'decode failed'}`,
+      );
+    }
+  }
+
+  const finalMime = sniffed ? sniffed.mime : 'image/png';
+  const finalExt = sniffed ? sniffed.ext : 'png';
   const blobBytes = new Uint8Array(bytes.byteLength);
   blobBytes.set(bytes);
   const b64 = bytesToB64(bytes);
+
   return {
-    blob: new Blob([blobBytes.buffer], { type: sniffed.mime }),
-    filename: `input-${idx}.${sniffed.ext}`,
+    blob: new Blob([blobBytes.buffer], { type: finalMime }),
+    filename: `input-${idx}.${finalExt}`,
     b64,
-    mime: sniffed.mime,
+    mime: finalMime,
     width,
     height,
   };
@@ -203,7 +267,7 @@ async function cropTo16x9(imageUrl: string): Promise<string> {
   return `data:image/png;base64,${bytesToB64(out)}`;
 }
 
-async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, size: string, count: number) {
+async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, size: string) {
   const endpoint = 'https://api.openai.com/v1/images/edits';
   const headers = { 'Authorization': `Bearer ${OPENAI_API_KEY}` };
   const modelName = toOpenAIModel(model);
@@ -216,9 +280,7 @@ async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: st
     form.append('prompt', prompt);
     form.append('size', size);
     form.append('quality', 'low');
-    form.append('n', String(count));
-    // The multipart endpoint accepts a scalar for one source and an array for
-    // multi-source composition. Preserve both shapes explicitly.
+    form.append('n', '1');
     if (blobs.length === 1) {
       form.append('image', blobs[0].blob, blobs[0].filename);
     } else {
@@ -235,6 +297,41 @@ async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: st
     if (err instanceof Error && err.name === 'AbortError') return { ok: false, status: 408, rawText: 'Request timeout' };
     return { ok: false, status: 500, rawText: err instanceof Error ? err.message : 'Unknown fetch error' };
   }
+}
+
+async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, size: string, count: number) {
+  if (count <= 1) {
+    return callOpenAIEditsSingle(prompt, blobs, model, size);
+  }
+
+  // Issue parallel requests for count > 1 to avoid serial OpenAI 60s+ gateway timeouts
+  const results = await Promise.all(
+    Array.from({ length: count }, () => callOpenAIEditsSingle(prompt, blobs, model, size))
+  );
+
+  const successful = results.filter((r) => r.ok);
+  if (successful.length > 0) {
+    // Combine data arrays from all successful responses
+    const combinedData: any[] = [];
+    for (const res of successful) {
+      try {
+        const parsed = JSON.parse(res.rawText);
+        if (Array.isArray(parsed?.data)) {
+          combinedData.push(...parsed.data);
+        }
+      } catch {
+        // Failed to parse chunk response; continue with next chunk
+      }
+    }
+    return {
+      ok: true,
+      status: 200,
+      rawText: JSON.stringify({ data: combinedData }),
+    };
+  }
+
+  // If all failed, return the first error
+  return results[0];
 }
 
 function extractOpenAIImageUrls(parsed: any): string[] {

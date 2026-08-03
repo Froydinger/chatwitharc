@@ -1142,30 +1142,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       });
 
       const effectiveCount = Math.max(1, Math.min(3, Math.floor(Number(countOverride ?? imageGenCount) || 1)));
-      const editedUrls = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio, effectiveCount);
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      const finalUrls = await Promise.all(
-        editedUrls.map(async (url) => {
-          try {
-            const resp = await fetch(url);
-            const blob = await resp.blob();
-            if (!user) return url;
-            const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-            const { error } = await supabase.storage.from("avatars").upload(name, blob, {
-              contentType: "image/png",
-              upsert: false,
-            });
-            if (error) return url;
-            const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-            return pub.publicUrl || url;
-          } catch {
-            return url;
-          }
-        })
-      );
+      const finalUrls = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio, effectiveCount);
 
       const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
       await replaceLastMessage({
@@ -1651,24 +1628,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrls = await ai.editImage(finalMessage, imageUrls, imageEditModel, imageEditAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
-            const {
-              data: { user },
-            } = await supabase.auth.getUser();
-            const finalUrls = await Promise.all(
-              editedUrls.map(async (url) => {
-                try {
-                  const resp = await fetch(url);
-                  const blob = await resp.blob();
-                  if (!user) return url;
-                  const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-                  const { error } = await supabase.storage.from("avatars").upload(name, blob, { contentType: "image/png", upsert: false });
-                  if (error) return url;
-                  const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-                  return pub.publicUrl || url;
-                } catch { return url; }
-              })
-            );
+            const finalUrls = await ai.editImage(finalMessage, imageUrls, imageEditModel, imageEditAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
             const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
             await replaceLastMessage({
               content: finalUrls.length > 1 ? `Edited ${finalUrls.length} images: ${finalMessage}` : `Edited image: ${finalMessage}`,
@@ -1770,40 +1730,16 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           const requestedCount = Math.max(1, Math.min(3, imageGenCount || 1));
           const genUrls = await ai.generateImage(apiPrompt, imageGenModel, imageGenAspect, requestedCount);
 
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-
-          const uploaded = await Promise.all(
-            genUrls.map(async (genUrl) => {
-              try {
-                const resp = await fetch(genUrl);
-                const blob = await resp.blob();
-                if (!user) return genUrl;
-                const name = `${user.id}/generated-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-                const { error } = await supabase.storage.from("avatars").upload(name, blob, {
-                  contentType: "image/png",
-                  upsert: false,
-                });
-                if (error) return genUrl;
-                const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-                return pub.publicUrl || genUrl;
-              } catch {
-                return genUrl;
-              }
-            })
-          );
-
           // Replace placeholder with a single message containing all generated images
           // (renders as an inline grid via MessageBubble's imageUrls path)
           await replaceLastMessage({
-            content: uploaded.length > 1
-              ? `Generated ${uploaded.length} images: ${imagePrompt}`
+            content: genUrls.length > 1
+              ? `Generated ${genUrls.length} images: ${imagePrompt}`
               : `Generated image: ${imagePrompt}`,
             role: "assistant",
             type: "image",
-            imageUrl: uploaded[0],
-            imageUrls: uploaded,
+            imageUrl: genUrls[0],
+            imageUrls: genUrls,
             sourceModel: "cloud-image",
           });
         } catch (err: any) {
@@ -1863,24 +1799,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           setGeneratingImage(true);
 
           try {
-            const editedUrls = await ai.editImage(finalMessage, sourceImageUrls, imageEditModel, imageEditAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
-            const {
-              data: { user },
-            } = await supabase.auth.getUser();
-            const finalUrls = await Promise.all(
-              editedUrls.map(async (url) => {
-                try {
-                  const resp = await fetch(url);
-                  const blob = await resp.blob();
-                  if (!user) return url;
-                  const name = `${user.id}/edited-${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
-                  const { error } = await supabase.storage.from("avatars").upload(name, blob, { contentType: "image/png", upsert: false });
-                  if (error) return url;
-                  const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-                  return pub.publicUrl || url;
-                } catch { return url; }
-              })
-            );
+            const finalUrls = await ai.editImage(finalMessage, sourceImageUrls, imageEditModel, imageEditAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
             const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
             await replaceLastMessage({
               content: finalUrls.length > 1 ? `Edited ${finalUrls.length} images: ${finalMessage}` : `Edited image: ${finalMessage}`,
