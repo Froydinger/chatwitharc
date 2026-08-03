@@ -143,9 +143,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
       const hasMultipleImages = totalImageCount > 1;
 
       // Compose a clean edit prompt for the transcript
-      const editPrompt = originalPrompt
-        ? `Edit ${hasMultipleImages ? 'these images' : 'this image'} (originally: "${originalPrompt}"): ${textWithChips}`
-        : `Edit ${hasMultipleImages ? 'these images' : 'this image'}: ${textWithChips}`;
+      const editPrompt = textWithChips;
 
       // Signal ChatInput to do the actual edit
       const editEvent = new CustomEvent("processImageEdit", {

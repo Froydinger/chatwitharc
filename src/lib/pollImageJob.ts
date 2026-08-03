@@ -24,7 +24,13 @@ export async function pollImageJob(jobId: string, opts: PollOptions = {}): Promi
       body: { jobId },
     });
 
-    if (error) {
+    if (error || data?.error) {
+      const status = error?.status || error?.context?.status;
+      if (status === 404 || status === 403 || status === 401 || data?.error) {
+        const err: any = new Error(data?.error || error?.message || "Failed to check job status");
+        err.errorType = data?.errorType || "job_error";
+        throw err;
+      }
       // Network blip — back off and try again
       await sleep(intervalMs);
       continue;

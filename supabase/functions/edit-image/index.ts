@@ -200,8 +200,7 @@ async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob;
   let width = 0;
   let height = 0;
 
-  if (sniffed) {
-    // Fast path: valid PNG/JPEG/WEBP image, parse header dimensions in <1ms!
+  if (sniffed?.mime === 'image/png') {
     const dims = parseImageDimensions(bytes);
     if (dims) {
       width = dims.width;
@@ -209,37 +208,47 @@ async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob;
     }
   }
 
-  // Fallback if sniffing failed or dimensions could not be read: use ImageScript ONLY for dimensions/format fix
-  if (!sniffed || !width || !height) {
-    try {
-      const decoded = (await decode(bytes)) as Image;
-      width = decoded.width;
-      height = decoded.height;
-      if (!sniffed) {
-        // Only re-encode if format was unrecognized by magic bytes
-        bytes = await decoded.encode();
-      }
-    } catch (e) {
-      throw new Error(
-        `Source image could not be normalized${sniffed ? ` from ${sniffed.mime}` : ''}: ${e instanceof Error ? e.message : 'decode failed'}`,
-      );
-    }
+  // Fast path: if source is already a PNG and <= 1024x1024, pass directly!
+  if (sniffed?.mime === 'image/png' && width > 0 && width <= 1024 && height > 0 && height <= 1024) {
+    const blobBytes = new Uint8Array(bytes.byteLength);
+    blobBytes.set(bytes);
+    return {
+      blob: new Blob([blobBytes.buffer], { type: 'image/png' }),
+      filename: `input-${idx}.png`,
+      b64: bytesToB64(bytes),
+      mime: 'image/png',
+      width,
+      height,
+    };
   }
 
-  const finalMime = sniffed ? sniffed.mime : 'image/png';
-  const finalExt = sniffed ? sniffed.ext : 'png';
-  const blobBytes = new Uint8Array(bytes.byteLength);
-  blobBytes.set(bytes);
-  const b64 = bytesToB64(bytes);
+  // OpenAI /v1/images/edits ONLY accepts PNG format. Convert JPEG/WebP or resize oversized PNG to <=1024x1024 PNG.
+  try {
+    const decoded = (await decode(bytes)) as Image;
+    width = decoded.width;
+    height = decoded.height;
 
-  return {
-    blob: new Blob([blobBytes.buffer], { type: finalMime }),
-    filename: `input-${idx}.${finalExt}`,
-    b64,
-    mime: finalMime,
-    width,
-    height,
-  };
+    let target = decoded;
+    if (width > 1024 || height > 1024) {
+      const scale = Math.min(1024 / width, 1024 / height);
+      target = decoded.resize(Math.round(width * scale), Math.round(height * scale));
+    }
+    const pngBytes = await target.encode();
+    const blobBytes = new Uint8Array(pngBytes.byteLength);
+    blobBytes.set(pngBytes);
+    return {
+      blob: new Blob([blobBytes.buffer], { type: 'image/png' }),
+      filename: `input-${idx}.png`,
+      b64: bytesToB64(pngBytes),
+      mime: 'image/png',
+      width: target.width,
+      height: target.height,
+    };
+  } catch (e) {
+    throw new Error(
+      `Source image could not be converted to PNG: ${e instanceof Error ? e.message : 'decode failed'}`,
+    );
+  }
 }
 
 // Crop a 3:2 (1536x1024) image to true 16:9 (1536x864) by removing equal
@@ -267,7 +276,7 @@ async function cropTo16x9(imageUrl: string): Promise<string> {
   return `data:image/png;base64,${bytesToB64(out)}`;
 }
 
-async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, size: string) {
+async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, _size: string) {
   const endpoint = 'https://api.openai.com/v1/images/edits';
   const headers = { 'Authorization': `Bearer ${OPENAI_API_KEY}` };
   const modelName = toOpenAIModel(model);
@@ -278,16 +287,11 @@ async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filena
     const form = new FormData();
     form.append('model', modelName);
     form.append('prompt', prompt);
-    form.append('size', size);
-    form.append('quality', 'low');
+    // /v1/images/edits only accepts 1024x1024, 512x512, 256x256. Do NOT pass quality parameter.
+    form.append('size', '1024x1024');
     form.append('n', '1');
-    if (blobs.length === 1) {
-      form.append('image', blobs[0].blob, blobs[0].filename);
-    } else {
-      for (const { blob, filename } of blobs) {
-        form.append('image[]', blob, filename);
-      }
-    }
+    form.append('image', blobs[0].blob, 'image.png');
+
     const response = await fetch(endpoint, { method: 'POST', headers, body: form, signal: controller.signal });
     const rawText = await response.text();
     clearTimeout(timeoutId);
