@@ -25,6 +25,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
+import { predictActivity } from "@/lib/activityPrediction";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useToast } from "@/hooks/use-toast";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
@@ -38,7 +39,7 @@ import { AIService, getQueryComplexity } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useStreamingWithContinuation } from "@/hooks/useStreamingWithContinuation";
 import { detectMemoryCommand, addToMemoryBank } from "@/utils/memoryDetection";
-import { addContextBlockDirect } from "@/hooks/useContextBlocks";
+import { addContextBlockDirect, useContextBlocks } from "@/hooks/useContextBlocks";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { useCanvasStore } from "@/store/useCanvasStore";
@@ -674,6 +675,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
   // Voice mode store
   const { activateVoiceMode, isActive: isVoiceActive } = useVoiceModeStore();
+  // Only claim "accessing memories" when memories were actually attached to
+  // the request — with none, a self-referential question is just a question.
+  const { blocks: memoryBlocks } = useContextBlocks();
 
   // Navigation (for activating voice from non-chat pages like Dashboard)
   const navigate = useNavigate();
@@ -1489,6 +1493,19 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     cancelRequested = false;
     const requestSessionId = useArcStore.getState().currentSessionId || createNewSession();
     setLoading(true);
+
+    // Show the right animation NOW rather than after the response reports what
+    // ran. For these inputs the server has already fixed its tool choice from
+    // the same message text (see activityPrediction.ts), so this is not a guess
+    // — and anything the model picks on its own still falls through to the
+    // response-reported tools below, which stay authoritative.
+    const predicted = predictActivity(finalMessage, {
+      forceWebSearch: wasSearchMode,
+      hasMemoryContext: memoryBlocks.length > 0,
+    });
+    if (predicted === "web") setSearchingWeb(true);
+    else if (predicted === "chats") setSearchingChats(true);
+    else if (predicted === "memory") setAccessingMemory(true);
 
     // Track message usage
     if (isGuestMode) {
@@ -2521,6 +2538,12 @@ ${safeCode}
       if (!cancelRequested) {
         setLoading(false);
       }
+      // The predicted activity is set before the request and there is no other
+      // clear on this path, so it must be released here or a memory/web query
+      // would leave its indicator latched on for the rest of the session.
+      setSearchingChats(false);
+      setAccessingMemory(false);
+      setSearchingWeb(false);
     }
   };
 
