@@ -36,8 +36,15 @@ from here:
 ## Branching & deploys
 
 Commit work directly to **`main`** — no feature branches or PRs needed.
-**Pushing to `main` deploys**, including edge functions, so treat a push as a
-release: make sure changes build cleanly before pushing.
+**Pushing to `main` deploys**, including edge functions **and SQL migrations in
+`supabase/migrations/`**, so treat a push as a release: make sure changes build
+cleanly before pushing.
+
+Migrations apply automatically. This runs through Supabase's own GitHub
+integration, which is configured in the Supabase dashboard rather than in this
+repo — so there is no workflow file to find, and the absence of `.github/` does
+NOT mean migrations need applying by hand. Netlify only builds the frontend; it
+is not the thing deploying edge functions or migrations.
 
 ## Common commands
 
