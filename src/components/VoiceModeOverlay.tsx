@@ -8,6 +8,9 @@ import { useProfile } from "@/hooks/useProfile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { UsageMeter } from "@/components/UsageMeter";
+import { ThinkingOrb } from "thinking-orbs";
+import { useResolvedOrbTheme } from "@/components/ThinkingIndicator";
+import { useVoiceOrbConfig, type VoicePhase } from "@/hooks/useThinkingOrbConfig";
 
 // Global ref to allow interrupt from overlay - set by VoiceModeController
 let globalInterruptHandler: (() => void) | null = null;
@@ -364,6 +367,8 @@ export function VoiceModeOverlay() {
   if (!isActive) return null;
 
   const amplitude = status === 'speaking' ? outputAmplitude : (isMuted ? 0 : inputAmplitude);
+  const voiceOrbConfig = useVoiceOrbConfig();
+  const orbTheme = useResolvedOrbTheme();
   const showInterruptButton = status === 'speaking' || isAudioPlaying;
 
   const getStatusIcon = () => {
@@ -393,6 +398,13 @@ export function VoiceModeOverlay() {
   };
   
   const isLoading = isGeneratingImage || isSearching || isSearchingPastChats || isFetchingWeather || isSchedulingTask;
+
+  // 'idle' never renders the bar, so it has no configured orb — fall back to the
+  // listening animation rather than leaving the slot empty mid-teardown.
+  const voiceOrbState = voiceOrbConfig[status as VoicePhase] ?? voiceOrbConfig.listening;
+  // Louder input or output spins the animation faster; the range is deliberately
+  // narrow so a noisy room doesn't make it frantic.
+  const orbSpeed = 0.6 + Math.min(1, amplitude * 1.5) * 0.7;
 
   const pendingVoiceInfo = pendingVoiceSwitch 
     ? REALTIME_VOICES.find(v => v.id === pendingVoiceSwitch) 
@@ -473,8 +485,23 @@ export function VoiceModeOverlay() {
               initial={{ opacity: 0, y: 24, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24, scale: 0.98 }}
-              className="rounded-[2rem] border border-border/50 bg-background/88 px-2.5 py-1.5 shadow-2xl backdrop-blur-2xl"
+              className="relative overflow-hidden rounded-[2rem] border border-primary/25 bg-background/88 px-2.5 py-1.5 shadow-2xl backdrop-blur-2xl"
+              style={{
+                // Ring brightness tracks the live level, so the bar visibly
+                // breathes with whoever is talking.
+                boxShadow: `0 0 0 1px hsl(var(--primary) / ${0.1 + Math.min(1, amplitude * 1.4) * 0.3}), 0 18px 48px hsl(0 0% 0% / 0.55)`,
+              }}
             >
+              {/* Level sheen sweeping the pill, brightest while speaking. */}
+              <div
+                className="pointer-events-none absolute inset-0 -z-10 transition-opacity duration-300"
+                style={{
+                  opacity: status === 'speaking' ? 0.5 : status === 'listening' ? 0.28 : 0.12,
+                  background:
+                    'linear-gradient(115deg, hsl(var(--primary) / 0.16), transparent 42%, hsl(var(--primary) / 0.1))',
+                }}
+                aria-hidden="true"
+              />
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleMuteToggle}
@@ -485,6 +512,26 @@ export function VoiceModeOverlay() {
                 >
                   {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                 </button>
+
+                {/* Phase orb — the admin picks a different animation for
+                    connecting / listening / thinking / speaking, and it rides
+                    the live audio level so the bar reacts to the room. */}
+                <div className="relative flex h-11 w-11 shrink-0 items-center justify-center">
+                  <ThinkingOrb
+                    state={voiceOrbState}
+                    size={64}
+                    speed={orbSpeed}
+                    theme={orbTheme}
+                    paused={isMuted && status === 'listening'}
+                    aria-label={`Arc is ${status}`}
+                    style={{ width: 40, height: 40 }}
+                  />
+                  <div
+                    className="absolute inset-1.5 -z-10 rounded-full bg-primary/30 blur-lg transition-opacity duration-200"
+                    style={{ opacity: 0.35 + Math.min(1, amplitude * 1.4) * 0.65 }}
+                    aria-hidden="true"
+                  />
+                </div>
 
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">

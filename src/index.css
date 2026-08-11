@@ -546,6 +546,18 @@ All colors MUST be HSL for perfect glass effects.
     color: white !important;
   }
 
+  /* img-fx wrapper sizing.
+     img-fx renders `.image-gen-root` as an inline-block that shrink-wraps its
+     child, so a `w-full` child measures ~0 and three.js ends up with a 4x4
+     canvas and no visible effect. Same trap metal-fx sets (see .arc-input-metal
+     in MobileChatApp): stretch the effect root to the host box so the child has
+     a real width to resolve against. */
+  .arc-imgfx,
+  .arc-imgfx .image-gen-root {
+    display: block;
+    width: 100%;
+  }
+
   /* Free-floating glass dock for chat input — flat solid pill, no gradient/ring */
   .glass-dock {
     padding: 0 0.375rem;

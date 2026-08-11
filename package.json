@@ -64,6 +64,7 @@
     "embla-carousel-react": "^8.6.0",
     "esbuild-wasm": "^0.27.3",
     "framer-motion": "^12.23.12",
+    "img-fx": "^0.5.0",
     "input-otp": "^1.4.2",
     "jszip": "^3.10.1",
     "katex": "^0.16.47",
@@ -88,6 +89,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "thinking-orbs": "^0.2.0",
+    "three": "^0.180.0",
     "vaul": "^0.9.9",
     "zod": "^3.25.76",
     "zustand": "^5.0.8"

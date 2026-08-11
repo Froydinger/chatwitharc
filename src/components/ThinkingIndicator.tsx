@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { ThinkingOrb, type OrbState } from "thinking-orbs";
 import { useThinkingOrbConfig } from "@/hooks/useThinkingOrbConfig";
+import { useArcStore } from "@/store/useArcStore";
+import { ImageGenerationFx } from "@/components/ImageGenerationFx";
 
 interface ThinkingIndicatorProps {
   isLoading: boolean;
@@ -84,6 +86,10 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   // changes the hook count between renders.
   const orbTheme = useResolvedOrbTheme();
   const orbConfig = useThinkingOrbConfig();
+  const storeActiveTask = useArcStore((s) => s.activeTask);
+  // The admin preview drives the state through props, so it must not also pick
+  // up whatever the live store happens to be doing.
+  const activeTask = orbStateOverride ? null : storeActiveTask;
 
   // Show the music button after 3s, and a "hang tight" note after 60s so the
   // user knows a slow write/code generation is still going (the stream now
@@ -178,7 +184,9 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   };
 
   // Same precedence as getMessage() above, so the animation and the caption
-  // always describe the same activity.
+  // always describe the same activity. activeTask sits last because it only
+  // qualifies the plain "thinking" case — a search or image job that happens to
+  // run inside a Canvas should still read as a search or an image job.
   const orbState = orbStateOverride ?? (isGeneratingImage
     ? orbConfig.image
     : searchingWeb
@@ -187,13 +195,18 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
         ? orbConfig.chats
         : accessingMemory
           ? orbConfig.memory
-          : orbConfig.thinking);
+          : activeTask === "code"
+            ? orbConfig.code
+            : activeTask === "writing"
+              ? orbConfig.writing
+              : orbConfig.thinking);
 
   // Full-size loader for image generation
   if (fullSize && isGeneratingImage) {
     return (
+      <ImageGenerationFx className="w-full max-w-sm mx-auto">
       <motion.div
-        className="w-full max-w-sm mx-auto bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center"
+        className="w-full bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center"
         style={{ aspectRatio: '1 / 1', minHeight: '320px' }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -248,6 +261,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
           </motion.span>
         </div>
       </motion.div>
+      </ImageGenerationFx>
     );
   }
 

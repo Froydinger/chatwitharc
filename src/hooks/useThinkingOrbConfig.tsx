@@ -10,7 +10,14 @@ import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
  * configurable (searching for web/chat lookups, listening for everything else)
  * — so an untouched install looks exactly as it did.
  */
-export type ThinkingActivity = 'thinking' | 'web' | 'chats' | 'memory' | 'image';
+export type ThinkingActivity =
+  | 'thinking'
+  | 'web'
+  | 'chats'
+  | 'memory'
+  | 'image'
+  | 'code'
+  | 'writing';
 
 export interface ThinkingActivityMeta {
   id: ThinkingActivity;
@@ -61,8 +68,24 @@ export const THINKING_ACTIVITIES: readonly ThinkingActivityMeta[] = [
     key: 'thinking_orb_image',
     label: 'Creating an image',
     sampleMessage: 'Creating your image',
-    description: 'Image generation and editing. The full-size loader uses the Arc logo instead.',
+    description: 'Image generation and editing. The full-size loader uses the img-fx effect.',
     defaultState: 'listening',
+  },
+  {
+    id: 'code',
+    key: 'thinking_orb_code',
+    label: 'Writing code',
+    sampleMessage: 'Arc is thinking...',
+    description: 'The request resolved to a code Canvas — Arc is generating code.',
+    defaultState: 'solving',
+  },
+  {
+    id: 'writing',
+    key: 'thinking_orb_writing',
+    label: 'Drafting prose',
+    sampleMessage: 'Arc is thinking...',
+    description: 'The request resolved to a writing Canvas — Arc is drafting long-form text.',
+    defaultState: 'composing',
   },
 ] as const;
 
@@ -89,6 +112,107 @@ export const DEFAULT_ORB_CONFIG: ThinkingOrbConfig = THINKING_ACTIVITIES.reduce(
 );
 
 // -----------------------------------------------------------------------------
+// Voice mode
+// -----------------------------------------------------------------------------
+
+/** The four VoiceStatus values that actually show an indicator ('idle' doesn't). */
+export type VoicePhase = 'connecting' | 'listening' | 'thinking' | 'speaking';
+
+export const VOICE_PHASES: readonly {
+  id: VoicePhase;
+  key: string;
+  label: string;
+  sampleMessage: string;
+  description: string;
+  defaultState: OrbState;
+}[] = [
+  {
+    id: 'connecting',
+    key: 'voice_orb_connecting',
+    label: 'Connecting',
+    sampleMessage: 'Connecting...',
+    description: 'Opening the realtime session, before the mic goes live.',
+    defaultState: 'connecting',
+  },
+  {
+    id: 'listening',
+    key: 'voice_orb_listening',
+    label: 'Listening',
+    sampleMessage: 'Listening',
+    description: 'Mic is live and Arc is waiting for the user to speak.',
+    defaultState: 'listening',
+  },
+  {
+    id: 'thinking',
+    key: 'voice_orb_thinking',
+    label: 'Thinking',
+    sampleMessage: 'Thinking...',
+    description: 'The turn ended and Arc is composing its reply.',
+    defaultState: 'working',
+  },
+  {
+    id: 'speaking',
+    key: 'voice_orb_speaking',
+    label: 'Speaking',
+    sampleMessage: 'Speaking',
+    description: 'Arc is talking back — the orb rides the output level.',
+    defaultState: 'composing',
+  },
+] as const;
+
+export type VoiceOrbConfig = Record<VoicePhase, OrbState>;
+
+export const DEFAULT_VOICE_CONFIG: VoiceOrbConfig = VOICE_PHASES.reduce(
+  (acc, p) => ({ ...acc, [p.id]: p.defaultState }),
+  {} as VoiceOrbConfig,
+);
+
+// -----------------------------------------------------------------------------
+// img-fx image generation effect
+// -----------------------------------------------------------------------------
+
+export type ImgFxPreset = 'pixels-organic' | 'pixels-mechanic' | 'sweep-gradient';
+
+export const IMGFX_PRESETS: readonly { id: ImgFxPreset; label: string; description: string }[] = [
+  {
+    id: 'pixels-organic',
+    label: 'Chromium Flow',
+    description: 'Soft organic pixel mosaic that drifts and blooms',
+  },
+  {
+    id: 'pixels-mechanic',
+    label: 'Nebula',
+    description: 'Tighter mechanical mosaic, colder and more regular',
+  },
+  {
+    id: 'sweep-gradient',
+    label: 'Gradient Sweep',
+    description: 'Diagonal band sweeps top-left → bottom-right with cell flicker',
+  },
+] as const;
+
+export interface ImgFxConfig {
+  enabled: boolean;
+  preset: ImgFxPreset;
+  /** Cell-size multiplier: 0.5 = finer grid, 2 = chunkier. */
+  pixelScale: number;
+}
+
+export const IMGFX_KEYS = {
+  enabled: 'imgfx_enabled',
+  preset: 'imgfx_preset',
+  pixelScale: 'imgfx_pixel_scale',
+} as const;
+
+export const DEFAULT_IMGFX_CONFIG: ImgFxConfig = {
+  enabled: true,
+  preset: 'pixels-organic',
+  pixelScale: 1,
+};
+
+const VALID_PRESETS = new Set<string>(IMGFX_PRESETS.map((p) => p.id));
+
+// -----------------------------------------------------------------------------
 // Shared cache + pub/sub, deliberately mirroring useAdminBanner.
 //
 // This config is read by every chat view but changes roughly never, so it gets
@@ -98,9 +222,15 @@ export const DEFAULT_ORB_CONFIG: ThinkingOrbConfig = THINKING_ACTIVITIES.reduce(
 // single admin edits by hand.
 // -----------------------------------------------------------------------------
 
-const ORB_KEYS = THINKING_ACTIVITIES.map((a) => a.key);
+const ALL_KEYS = [
+  ...THINKING_ACTIVITIES.map((a) => a.key),
+  ...VOICE_PHASES.map((p) => p.key),
+  ...Object.values(IMGFX_KEYS),
+];
 
 let cachedConfig: ThinkingOrbConfig = DEFAULT_ORB_CONFIG;
+let cachedVoiceConfig: VoiceOrbConfig = DEFAULT_VOICE_CONFIG;
+let cachedImgFx: ImgFxConfig = DEFAULT_IMGFX_CONFIG;
 let inFlight: Promise<void> | null = null;
 let lastFetchedAt = 0;
 const subscribers = new Set<() => void>();
@@ -125,7 +255,7 @@ async function fetchConfigOnce(force = false): Promise<void> {
       const { data, error } = await supabase
         .from('admin_settings')
         .select('key, value')
-        .in('key', ORB_KEYS);
+        .in('key', ALL_KEYS);
 
       if (error) throw error;
 
@@ -134,14 +264,36 @@ async function fetchConfigOnce(force = false): Promise<void> {
         return acc;
       }, {});
 
+      // Unknown values fall back rather than reaching the orb: a typo in the DB
+      // would otherwise render nothing at all.
       cachedConfig = THINKING_ACTIVITIES.reduce((acc, activity) => {
         const stored = byKey[activity.key];
-        // Unknown values fall back rather than reaching the orb: a typo in the
-        // DB would otherwise render nothing at all.
         acc[activity.id] =
           stored && VALID_STATES.has(stored) ? (stored as OrbState) : activity.defaultState;
         return acc;
       }, {} as ThinkingOrbConfig);
+
+      cachedVoiceConfig = VOICE_PHASES.reduce((acc, phase) => {
+        const stored = byKey[phase.key];
+        acc[phase.id] =
+          stored && VALID_STATES.has(stored) ? (stored as OrbState) : phase.defaultState;
+        return acc;
+      }, {} as VoiceOrbConfig);
+
+      const storedPreset = byKey[IMGFX_KEYS.preset];
+      const storedScale = Number.parseFloat(byKey[IMGFX_KEYS.pixelScale] ?? '');
+      cachedImgFx = {
+        // Absent means "never configured", which should keep the effect on.
+        enabled: byKey[IMGFX_KEYS.enabled] !== 'false',
+        preset:
+          storedPreset && VALID_PRESETS.has(storedPreset)
+            ? (storedPreset as ImgFxPreset)
+            : DEFAULT_IMGFX_CONFIG.preset,
+        pixelScale:
+          Number.isFinite(storedScale) && storedScale > 0
+            ? Math.min(4, Math.max(0.25, storedScale))
+            : DEFAULT_IMGFX_CONFIG.pixelScale,
+      };
 
       lastFetchedAt = Date.now();
       notify();
@@ -161,14 +313,18 @@ export function refreshThinkingOrbConfig(): Promise<void> {
   return fetchConfigOnce(true);
 }
 
-/** Read the configured orb state for every activity. */
-export function useThinkingOrbConfig(): ThinkingOrbConfig {
-  const [config, setConfig] = useState<ThinkingOrbConfig>(cachedConfig);
+/**
+ * Subscribe to the shared cache, projecting out just the slice a caller needs so
+ * a voice-only consumer doesn't re-render when the image settings change.
+ */
+function useConfigSlice<T>(read: () => T): T {
+  const [value, setValue] = useState<T>(read);
 
   useEffect(() => {
-    const update = () => setConfig(cachedConfig);
+    const update = () => setValue(read());
     subscribers.add(update);
     void fetchConfigOnce();
+    update();
 
     const onFocus = () => void fetchConfigOnce();
     window.addEventListener('focus', onFocus);
@@ -177,7 +333,25 @@ export function useThinkingOrbConfig(): ThinkingOrbConfig {
       subscribers.delete(update);
       window.removeEventListener('focus', onFocus);
     };
+    // `read` closes over nothing but module state; re-subscribing per render
+    // would thrash the subscriber set for no benefit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return config;
+  return value;
+}
+
+/** Read the configured orb state for every chat activity. */
+export function useThinkingOrbConfig(): ThinkingOrbConfig {
+  return useConfigSlice(() => cachedConfig);
+}
+
+/** Read the configured orb state for every voice-mode phase. */
+export function useVoiceOrbConfig(): VoiceOrbConfig {
+  return useConfigSlice(() => cachedVoiceConfig);
+}
+
+/** Read the img-fx image-generation effect settings. */
+export function useImgFxConfig(): ImgFxConfig {
+  return useConfigSlice(() => cachedImgFx);
 }

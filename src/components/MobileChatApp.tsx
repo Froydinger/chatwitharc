@@ -7,6 +7,7 @@ import { MetalFx } from "metal-fx";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
 import { useCanvasStore } from "@/store/useCanvasStore";
+import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput, cancelCurrentRequest, type ChatInputRef } from "@/components/ChatInput";
@@ -278,6 +279,7 @@ export function MobileChatApp() {
     refreshSessionFromSupabase,
   } = useArcStore();
   const isArcWorking = isLoading || isGeneratingImage || isSearchingChats || isAccessingMemory || isSearchingWeb;
+  const isVoiceActive = useVoiceModeStore((s) => s.isActive);
   const { profile } = useProfile();
   const { dailyImagesUsed, remainingImages, limit } = useImageQuota();
   const { user, isAnonymous } = useAuth();
@@ -1176,7 +1178,7 @@ export function MobileChatApp() {
 
             {/* Mobile canvas input bar (hideable) */}
             <AnimatePresence>
-              {showMobileCanvasInput && (
+              {showMobileCanvasInput && !isVoiceActive && (
                 <motion.div
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1379,11 +1381,17 @@ export function MobileChatApp() {
                 </motion.div>
               )}
 
-              {/* Entrance animation lives on the OUTER wrapper so the element
-                  MetalFx measures (the .glass-dock below) is never mid-transform.
-                  Framer rewrites `style.transform` every frame, and MetalFx
-                  re-measures on every style mutation of its host — animating the
-                  host directly is what made the input flicker and collapse. */}
+              {/* Voice mode replaces the dock outright rather than collapsing
+                  ChatInput inside it. Collapsing left the pill, the border beam
+                  and the metal ring still painting underneath VoiceModeOverlay's
+                  bar, which sits at the same width and offset — so their edges
+                  showed through as the voice bar grew and moved while listening. */}
+              {!isVoiceActive && (
+              /* Entrance animation lives on the OUTER wrapper so the element
+                 MetalFx measures (the .glass-dock below) is never mid-transform.
+                 Framer rewrites `style.transform` every frame, and MetalFx
+                 re-measures on every style mutation of its host — animating the
+                 host directly is what made the input flicker and collapse. */
               <motion.div
                 className="pointer-events-auto"
                 initial={{ opacity: 0, y: 20 }}
@@ -1406,6 +1414,7 @@ export function MobileChatApp() {
                   </div>
                 </ArcInputEffects>
               </motion.div>
+              )}
               {/* Quick Prompts - below input bar on empty state */}
               {messages.length === 0 && (
                 <div className="pointer-events-auto mt-4 flex justify-center">
