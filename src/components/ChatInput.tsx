@@ -984,6 +984,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               setSearchingWeb(true);
               didSearchWeb = true;
             }
+            // save_memory was never wired up, so setAccessingMemory(true) had no
+            // caller anywhere in the cloud path and the memory indicator could
+            // never appear — only ever be switched off.
+            if (tools.includes("save_memory")) {
+              setAccessingMemory(true);
+            }
           },
           currentSessionId || undefined,
           shouldSearchForVideo,
