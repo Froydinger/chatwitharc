@@ -24,6 +24,7 @@ interface OpenSession extends SessionMeta {
 export function ChatAudit() {
   const [sessions, setSessions] = useState<SessionMeta[]>([]);
   const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
+  const [userEmails, setUserEmails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -42,6 +43,7 @@ export function ChatAudit() {
       if (res?.error) throw new Error(res.error);
       setSessions(res.sessions ?? []);
       setDisplayNames(res.displayNames ?? {});
+      setUserEmails(res.userEmails ?? {});
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -78,9 +80,10 @@ export function ChatAudit() {
       (s) =>
         (s.title ?? "").toLowerCase().includes(q) ||
         s.user_id.toLowerCase().includes(q) ||
-        (displayNames[s.user_id] ?? "").toLowerCase().includes(q),
+        (displayNames[s.user_id] ?? "").toLowerCase().includes(q) ||
+        (userEmails[s.user_id] ?? "").toLowerCase().includes(q),
     );
-  }, [sessions, query, displayNames]);
+  }, [sessions, query, displayNames, userEmails]);
 
   const byUser = useMemo(() => {
     const map = new Map<string, SessionMeta[]>();
@@ -141,7 +144,7 @@ export function ChatAudit() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filter by title, user id or display name..."
+              placeholder="Filter by title, email, display name or user ID..."
               className="pl-9"
             />
           </div>
@@ -151,19 +154,27 @@ export function ChatAudit() {
           )}
 
           <div className="space-y-4">
-            {byUser.map(([userId, list]) => (
-              <div key={userId} className="rounded-2xl border border-border/40 bg-muted/10 p-4">
-                <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold truncate">
-                      {displayNames[userId] || userId}
-                    </div>
-                    {displayNames[userId] && (
-                      <div className="text-[10px] text-muted-foreground font-mono truncate">
-                        {userId}
+            {byUser.map(([userId, list]) => {
+              const email = userEmails[userId];
+              const name = displayNames[userId];
+              const headerTitle = email || name || userId;
+
+              return (
+                <div key={userId} className="rounded-2xl border border-border/40 bg-muted/10 p-4">
+                  <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold truncate flex items-center gap-2">
+                        <span className="text-foreground">{headerTitle}</span>
+                        {name && email && (
+                          <span className="text-xs font-normal text-muted-foreground">
+                            ({name})
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </div>
+                      <div className="text-[10px] text-muted-foreground/70 font-mono truncate">
+                        ID: {userId}
+                      </div>
+                    </div>
                   <Badge variant="outline" className="text-[10px] shrink-0">
                     {list.length} chats
                   </Badge>

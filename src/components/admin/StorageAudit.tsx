@@ -21,6 +21,7 @@ interface FileEntry {
 interface ListResponse {
   files: FileEntry[];
   displayNames: Record<string, string>;
+  userEmails?: Record<string, string>;
   bucketErrors: Record<string, string>;
   totalBytes: number;
 }
@@ -75,10 +76,13 @@ export function StorageAudit() {
     return data.files.filter((f) => {
       if (kind !== "all" && f.kind !== kind) return false;
       if (!q) return true;
+      const email = data.userEmails?.[f.userId] ?? "";
+      const name = data.displayNames?.[f.userId] ?? "";
       return (
         f.name.toLowerCase().includes(q) ||
         f.userId.toLowerCase().includes(q) ||
-        (data.displayNames[f.userId] ?? "").toLowerCase().includes(q)
+        email.toLowerCase().includes(q) ||
+        name.toLowerCase().includes(q)
       );
     });
   }, [data, query, kind]);
@@ -163,7 +167,7 @@ export function StorageAudit() {
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Filter by filename, user id or display name..."
+                placeholder="Filter by filename, user email, name or ID..."
                 className="pl-9"
               />
             </div>
@@ -192,19 +196,27 @@ export function StorageAudit() {
           )}
 
           <div className="space-y-4">
-            {byUser.map(([userId, files]) => (
-              <div key={userId} className="rounded-2xl border border-border/40 bg-muted/10 p-4">
-                <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold truncate">
-                      {data?.displayNames[userId] || userId}
-                    </div>
-                    {data?.displayNames[userId] && (
-                      <div className="text-[10px] text-muted-foreground font-mono truncate">
-                        {userId}
+            {byUser.map(([userId, files]) => {
+              const email = data?.userEmails?.[userId];
+              const name = data?.displayNames?.[userId];
+              const headerTitle = email || name || userId;
+
+              return (
+                <div key={userId} className="rounded-2xl border border-border/40 bg-muted/10 p-4">
+                  <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold truncate flex items-center gap-2">
+                        <span className="text-foreground">{headerTitle}</span>
+                        {name && email && (
+                          <span className="text-xs font-normal text-muted-foreground">
+                            ({name})
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </div>
+                      <div className="text-[10px] text-muted-foreground/70 font-mono truncate">
+                        ID: {userId}
+                      </div>
+                    </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Badge variant="outline" className="text-[10px]">
                       {files.length} files ·{" "}

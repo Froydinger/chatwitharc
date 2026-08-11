@@ -74,18 +74,33 @@ serve(async (req) => {
 
       const userIds = [...new Set((sessions ?? []).map((s) => s.user_id))];
       const displayNames: Record<string, string> = {};
+      const userEmails: Record<string, string> = {};
+
       if (userIds.length) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, display_name")
-          .in("id", userIds);
-        for (const p of profiles ?? []) {
-          if (p.display_name) displayNames[p.id] = p.display_name;
+        const [{ data: authData }, { data: profiles }] = await Promise.all([
+          supabase.auth.admin.listUsers({ perPage: 1000 }),
+          supabase.from("profiles").select("id, user_id, display_name"),
+        ]);
+
+        const authUserMap = new Map((authData?.users || []).map((u) => [u.id, u.email]));
+        const profileMap = new Map<string, string>();
+        for (const p of profiles || []) {
+          if (p.display_name) {
+            if (p.user_id) profileMap.set(p.user_id, p.display_name);
+            if (p.id) profileMap.set(p.id, p.display_name);
+          }
+        }
+
+        for (const id of userIds) {
+          const email = authUserMap.get(id);
+          const name = profileMap.get(id);
+          if (email) userEmails[id] = email;
+          if (name) displayNames[id] = name;
         }
       }
 
       logStep("Listed sessions", { count: sessions?.length ?? 0 });
-      return new Response(JSON.stringify({ sessions: sessions ?? [], displayNames }), {
+      return new Response(JSON.stringify({ sessions: sessions ?? [], displayNames, userEmails }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
