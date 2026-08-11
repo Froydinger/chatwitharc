@@ -18,6 +18,12 @@ All colors MUST be HSL for perfect glass effects.
     --surface: 240 6% 10%;
     --surface-foreground: 240 4% 92%;
 
+    /* Chat input pill fill — deliberately darker than --card so the bar reads
+       as black rather than grey against the near-black canvas. Must stay fully
+       opaque: BorderBeam's pulse-outside renders its colored core BEHIND the
+       dock, and a translucent fill lets that bleed through as a glow bar. */
+    --input-bar: 240 8% 7%;
+
     /* Primary Brand Color */
     --primary: 205 100% 48%;
     --primary-foreground: 240 10% 98%;
@@ -88,6 +94,7 @@ All colors MUST be HSL for perfect glass effects.
     --foreground: 0 0% 8%;
     --card: 0 0% 99%;
     --card-foreground: 0 0% 10%;
+    --input-bar: 0 0% 99%;
     --surface: 0 0% 97%;
     --surface-foreground: 0 0% 12%;
     --secondary: 0 0% 92%;
@@ -296,6 +303,7 @@ All colors MUST be HSL for perfect glass effects.
   :root.dark[data-accent="noir"] {
     --background: 0 0% 0%;
     --card: 0 0% 11.8%;
+    --input-bar: 0 0% 7%;
     --surface: 0 0% 8.6%;
     --muted: 0 0% 10%;
     --accent: 0 0% 14.1%;
@@ -315,6 +323,7 @@ All colors MUST be HSL for perfect glass effects.
     --foreground: 0 0% 4%;
     --card: 0 0% 100%;
     --card-foreground: 0 0% 4%;
+    --input-bar: 0 0% 100%;
     --surface: 0 0% 99%;
     --surface-foreground: 0 0% 6%;
     --muted: 0 0% 98%;
@@ -542,7 +551,7 @@ All colors MUST be HSL for perfect glass effects.
     padding: 0 0.375rem;
     border-radius: 9999px !important;
     overflow: visible !important;
-    background: hsl(var(--card));
+    background: hsl(var(--input-bar));
     border: 1px solid hsl(var(--border) / 0.4);
     box-shadow: none;
     transition:
@@ -553,13 +562,13 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   .glass-dock:hover {
-    background: hsl(var(--card));
+    background: hsl(var(--input-bar));
     border-color: hsl(var(--border) / 0.6);
     box-shadow: none;
   }
 
   .glass-dock:focus-within {
-    background: hsl(var(--card));
+    background: hsl(var(--input-bar));
     border-color: hsl(var(--primary) / 0.4);
     box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15);
   }

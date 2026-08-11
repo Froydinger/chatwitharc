@@ -1743,7 +1743,7 @@ export function MobileChatApp() {
           padding: 10px;
           border-radius: 9999px;
           overflow: visible;
-          background: hsl(var(--card));
+          background: hsl(var(--input-bar));
           border: 1px solid hsl(var(--border) / 0.4);
           box-shadow: none;
           transition: border-color 0.5s ease, background 0.7s ease, box-shadow 0.7s ease;
@@ -1755,7 +1755,7 @@ export function MobileChatApp() {
              base let that core bleed through as a horizontal glow bar. */
           background:
             linear-gradient(115deg, hsl(var(--primary) / 0.07), transparent 38%, hsl(var(--primary) / 0.05)),
-            hsl(var(--card));
+            hsl(var(--input-bar));
           border-color: hsl(var(--primary) / 0.36);
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,0.12),

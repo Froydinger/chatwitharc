@@ -176,7 +176,7 @@ export default function PrivacyPolicyPage() {
             >
               Jakub Antalik
             </a>
-            {" — border-beam & metal-fx components"}
+            {" — border-beam, metal-fx & thinking-orbs components"}
           </p>
         </div>
       </div>
