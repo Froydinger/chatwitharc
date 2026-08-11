@@ -228,15 +228,82 @@ const ALL_KEYS = [
   ...Object.values(IMGFX_KEYS),
 ];
 
-let cachedConfig: ThinkingOrbConfig = DEFAULT_ORB_CONFIG;
-let cachedVoiceConfig: VoiceOrbConfig = DEFAULT_VOICE_CONFIG;
-let cachedImgFx: ImgFxConfig = DEFAULT_IMGFX_CONFIG;
+/**
+ * Last-known config, mirrored to localStorage.
+ *
+ * Without this the first indicator of a session always rendered the defaults:
+ * the network read resolves in a few hundred ms, but a fast reply can start AND
+ * finish inside that window, so the admin's choice never got a chance to show.
+ * Seeding from localStorage means the correct animation is up on the very first
+ * frame, and the network read just confirms or corrects it.
+ */
+const STORAGE_KEY = 'arc:orbConfig:v1';
+
+interface PersistedConfig {
+  orb: ThinkingOrbConfig;
+  voice: VoiceOrbConfig;
+  imgFx: ImgFxConfig;
+}
+
+function readPersisted(): PersistedConfig | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PersistedConfig>;
+    if (!parsed.orb || !parsed.voice || !parsed.imgFx) return null;
+    // Validate every value: a stale entry written by an older build could name
+    // an activity or state this build no longer has.
+    const orb = THINKING_ACTIVITIES.reduce((acc, a) => {
+      const v = parsed.orb?.[a.id];
+      acc[a.id] = v && VALID_STATES.has(v) ? v : a.defaultState;
+      return acc;
+    }, {} as ThinkingOrbConfig);
+    const voice = VOICE_PHASES.reduce((acc, p) => {
+      const v = parsed.voice?.[p.id];
+      acc[p.id] = v && VALID_STATES.has(v) ? v : p.defaultState;
+      return acc;
+    }, {} as VoiceOrbConfig);
+    const preset = parsed.imgFx?.preset;
+    const scale = Number(parsed.imgFx?.pixelScale);
+    return {
+      orb,
+      voice,
+      imgFx: {
+        enabled: parsed.imgFx?.enabled !== false,
+        preset: preset && VALID_PRESETS.has(preset) ? preset : DEFAULT_IMGFX_CONFIG.preset,
+        pixelScale:
+          Number.isFinite(scale) && scale > 0
+            ? Math.min(4, Math.max(0.25, scale))
+            : DEFAULT_IMGFX_CONFIG.pixelScale,
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+const persisted = typeof window !== 'undefined' ? readPersisted() : null;
+
+let cachedConfig: ThinkingOrbConfig = persisted?.orb ?? DEFAULT_ORB_CONFIG;
+let cachedVoiceConfig: VoiceOrbConfig = persisted?.voice ?? DEFAULT_VOICE_CONFIG;
+let cachedImgFx: ImgFxConfig = persisted?.imgFx ?? DEFAULT_IMGFX_CONFIG;
 let inFlight: Promise<void> | null = null;
 let lastFetchedAt = 0;
 const subscribers = new Set<() => void>();
 
 function notify() {
   subscribers.forEach((fn) => fn());
+}
+
+function persist() {
+  try {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ orb: cachedConfig, voice: cachedVoiceConfig, imgFx: cachedImgFx }),
+    );
+  } catch {
+    // Private mode or a full quota — the in-memory cache still works.
+  }
 }
 
 async function fetchConfigOnce(force = false): Promise<void> {
@@ -296,6 +363,7 @@ async function fetchConfigOnce(force = false): Promise<void> {
       };
 
       lastFetchedAt = Date.now();
+      persist();
       notify();
     } catch (err) {
       // Non-fatal: the defaults are the previous hard-coded behaviour.
@@ -311,6 +379,19 @@ async function fetchConfigOnce(force = false): Promise<void> {
 /** Force a refetch — call after an admin saves so open tabs pick the change up. */
 export function refreshThinkingOrbConfig(): Promise<void> {
   return fetchConfigOnce(true);
+}
+
+// Warm the cache as soon as this module loads rather than waiting for the first
+// indicator to mount. ThinkingIndicator is imported eagerly by the chat view, so
+// this runs long before anything renders — and the auth listener covers the case
+// where the session only arrives after hydration.
+if (typeof window !== 'undefined' && supabase && isSupabaseConfigured) {
+  void fetchConfigOnce();
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+      void fetchConfigOnce(true);
+    }
+  });
 }
 
 /**
