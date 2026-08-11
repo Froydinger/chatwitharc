@@ -14,13 +14,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { AdminDownloadManager } from "./AdminDownloadManager";
 import { ThinkingOrbSettings } from "./admin/ThinkingOrbSettings";
+import { StorageAudit } from "./admin/StorageAudit";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useNavigate } from "react-router-dom";
 import {
   Shield, Settings, Users, MessageSquare, Trash2, Crown, Search, RefreshCw,
   Megaphone, Download, Construction, AlertTriangle, PartyPopper, LayoutDashboard,
   Globe, Sparkles, ChevronRight, Menu, X, ArrowLeft, DollarSign, Calendar,
-  Activity, CheckCircle, PenTool, Check, Clock, Laptop, ArrowUpRight, Loader
+  Activity, CheckCircle, PenTool, Check, Clock, Laptop, ArrowUpRight, Loader, HardDrive
 } from "lucide-react";
 import {
   AlertDialog,
@@ -414,6 +415,7 @@ export function AdminPanel() {
     { id: "banner",      label: "Announcements",   icon: Megaphone,       subtitle: "Banner Settings" },
     { id: "ai",          label: "AI Config",       icon: Sparkles,        subtitle: "Prompts & Rules" },
     { id: "thinking",    label: "Thinking Orb",    icon: Loader,          subtitle: "Loading Animations" },
+    { id: "storage",     label: "Storage Audit",   icon: HardDrive,       subtitle: "User Files & Uploads" },
     { id: "system",      label: "System Settings", icon: Settings,        subtitle: "General Options" },
     { id: "downloads",   label: "Downloads",       icon: Download,        subtitle: "Build Binary Manager" },
   ];
@@ -1536,7 +1538,10 @@ export function AdminPanel() {
             />
           )}
 
-          {/* ===================== SECTION 8: SYSTEM CONFIG ===================== */}
+          {/* ===================== SECTION 8: STORAGE AUDIT ===================== */}
+          {activeSection === "storage" && <StorageAudit />}
+
+          {/* ===================== SECTION 9: SYSTEM CONFIG ===================== */}
           {activeSection === "system" && (
             <div className="space-y-6 animate-fade-in">
               <Card className="border-border/60">
