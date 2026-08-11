@@ -13,13 +13,14 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { AdminDownloadManager } from "./AdminDownloadManager";
+import { ThinkingOrbSettings } from "./admin/ThinkingOrbSettings";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useNavigate } from "react-router-dom";
 import {
   Shield, Settings, Users, MessageSquare, Trash2, Crown, Search, RefreshCw,
   Megaphone, Download, Construction, AlertTriangle, PartyPopper, LayoutDashboard,
   Globe, Sparkles, ChevronRight, Menu, X, ArrowLeft, DollarSign, Calendar,
-  Activity, CheckCircle, PenTool, Check, Clock, Laptop, ArrowUpRight
+  Activity, CheckCircle, PenTool, Check, Clock, Laptop, ArrowUpRight, Loader
 } from "lucide-react";
 import {
   AlertDialog,
@@ -412,6 +413,7 @@ export function AdminPanel() {
     { id: "bugs",        label: "Bug Logs",        icon: AlertTriangle,   subtitle: "Exception Trace logs" },
     { id: "banner",      label: "Announcements",   icon: Megaphone,       subtitle: "Banner Settings" },
     { id: "ai",          label: "AI Config",       icon: Sparkles,        subtitle: "Prompts & Rules" },
+    { id: "thinking",    label: "Thinking Orb",    icon: Loader,          subtitle: "Loading Animations" },
     { id: "system",      label: "System Settings", icon: Settings,        subtitle: "General Options" },
     { id: "downloads",   label: "Downloads",       icon: Download,        subtitle: "Build Binary Manager" },
   ];
@@ -1506,7 +1508,35 @@ export function AdminPanel() {
             </div>
           )}
 
-          {/* ===================== SECTION 7: SYSTEM CONFIG ===================== */}
+          {/* ===================== SECTION 7: THINKING ORB ===================== */}
+          {activeSection === "thinking" && (
+            <ThinkingOrbSettings
+              getCurrentValue={getCurrentValue}
+              onValueChange={handleValueChange}
+              updateSetting={updateSetting}
+              updating={updating}
+              onSaved={(ok, error) => {
+                if (ok) {
+                  toast({
+                    title: "Thinking indicator updated",
+                    description: "Everyone sees the new animations on their next load.",
+                  });
+                  return;
+                }
+                console.error("Failed to save thinking orb settings:", error);
+                const err = error as { message?: string } | string | undefined;
+                toast({
+                  title: "Error",
+                  description:
+                    (typeof err === "string" ? err : err?.message) ||
+                    "Failed to update thinking indicator settings.",
+                  variant: "destructive",
+                });
+              }}
+            />
+          )}
+
+          {/* ===================== SECTION 8: SYSTEM CONFIG ===================== */}
           {activeSection === "system" && (
             <div className="space-y-6 animate-fade-in">
               <Card className="border-border/60">

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Sparkles, Music } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemedLogo } from "@/components/ThemedLogo";
-import { ThinkingOrb } from "thinking-orbs";
+import { ThinkingOrb, type OrbState } from "thinking-orbs";
+import { useThinkingOrbConfig } from "@/hooks/useThinkingOrbConfig";
 
 interface ThinkingIndicatorProps {
   isLoading: boolean;
@@ -11,6 +12,17 @@ interface ThinkingIndicatorProps {
   searchingChats?: boolean;
   searchingWeb?: boolean;
   fullSize?: boolean;
+  /**
+   * Drop the "listen to some tunes" button and the 60s reassurance note.
+   * Only the admin preview sets this — several indicators sit on screen at once
+   * there, and their timers would fire in unison as pure noise.
+   */
+  hideHelpers?: boolean;
+  /**
+   * Force a specific orb animation instead of the saved admin config. Only the
+   * admin preview sets this, so a pick can be seen before it is saved.
+   */
+  orbStateOverride?: OrbState;
 }
 
 /**
@@ -59,7 +71,7 @@ const ARC_PUNS = [
   "Arc and rolling...",
 ];
 
-export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemory, searchingChats, searchingWeb, fullSize }: ThinkingIndicatorProps) {
+export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemory, searchingChats, searchingWeb, fullSize, hideHelpers, orbStateOverride }: ThinkingIndicatorProps) {
   const showThinking = isLoading || isGeneratingImage || accessingMemory || searchingChats || searchingWeb;
   const [currentPunIndex, setCurrentPunIndex] = useState(0);
   const [showMusicButton, setShowMusicButton] = useState(false);
@@ -67,6 +79,11 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   const [isPlayingMusic, setIsPlayingMusic] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const thinkingStartTime = useRef<number | null>(null);
+  // Both of these must be read here, above the `!showThinking` early return —
+  // hooks placed after it are skipped on the render where thinking stops, which
+  // changes the hook count between renders.
+  const orbTheme = useResolvedOrbTheme();
+  const orbConfig = useThinkingOrbConfig();
 
   // Show the music button after 3s, and a "hang tight" note after 60s so the
   // user knows a slow write/code generation is still going (the stream now
@@ -160,8 +177,17 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
     return ARC_PUNS[currentPunIndex];
   };
 
-  const orbState = searchingWeb || searchingChats ? "searching" : "listening";
-  const orbTheme = useResolvedOrbTheme();
+  // Same precedence as getMessage() above, so the animation and the caption
+  // always describe the same activity.
+  const orbState = orbStateOverride ?? (isGeneratingImage
+    ? orbConfig.image
+    : searchingWeb
+      ? orbConfig.web
+      : searchingChats
+        ? orbConfig.chats
+        : accessingMemory
+          ? orbConfig.memory
+          : orbConfig.thinking);
 
   // Full-size loader for image generation
   if (fullSize && isGeneratingImage) {
@@ -243,7 +269,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
             size={64}
             speed={0.75}
             theme={orbTheme}
-            aria-label={orbState === "searching" ? "Arc is searching" : "Arc is thinking"}
+            aria-label={searchingWeb || searchingChats ? "Arc is searching" : "Arc is thinking"}
             className="h-10 w-10"
             style={{ width: 40, height: 40 }}
           />
@@ -267,7 +293,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
       
       {/* Music button - appears after 3 seconds */}
       <AnimatePresence>
-        {showMusicButton && (
+        {showMusicButton && !hideHelpers && (
           <motion.button
             initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
@@ -284,7 +310,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
 
       {/* Reassurance note - appears after 60 seconds of a slow generation */}
       <AnimatePresence>
-        {showHangTight && (
+        {showHangTight && !hideHelpers && (
           <motion.span
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
