@@ -199,7 +199,8 @@ export function ChatAudit() {
                   ))}
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
         </CardContent>
       </Card>

@@ -291,7 +291,8 @@ export function StorageAudit() {
                   })}
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
 
           <p className="text-[10px] text-muted-foreground pt-2">
