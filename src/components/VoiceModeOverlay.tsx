@@ -364,11 +364,16 @@ export function VoiceModeOverlay() {
     setPendingVoiceSwitch(null);
   }, []);
 
+  // These MUST stay above the `!isActive` early return. Activating voice flips
+  // isActive false -> true, and hooks placed after the return only start being
+  // called on that render — two more than the previous one, which is React
+  // error #310. Same trap ThinkingIndicator had.
+  const voiceOrbConfig = useVoiceOrbConfig();
+  const orbTheme = useResolvedOrbTheme();
+
   if (!isActive) return null;
 
   const amplitude = status === 'speaking' ? outputAmplitude : (isMuted ? 0 : inputAmplitude);
-  const voiceOrbConfig = useVoiceOrbConfig();
-  const orbTheme = useResolvedOrbTheme();
   const showInterruptButton = status === 'speaking' || isAudioPlaying;
 
   const getStatusIcon = () => {

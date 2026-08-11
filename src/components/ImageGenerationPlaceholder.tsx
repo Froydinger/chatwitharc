@@ -1,6 +1,7 @@
 import { Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemedLogo } from "@/components/ThemedLogo";
+import { ImageGenerationFx } from "@/components/ImageGenerationFx";
 
 interface ImageGenerationPlaceholderProps {
   prompt: string;
@@ -9,8 +10,13 @@ interface ImageGenerationPlaceholderProps {
 
 export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerationPlaceholderProps) {
   return (
+    /* img-fx paints the card's surface, so the child drops its own fill and
+       backdrop-blur — keeping them would sit a frosted sheet on top of the
+       shader and wash it out. The border and radius stay on the child so the
+       effect is clipped to the same rounded box. */
+    <ImageGenerationFx className="w-full max-w-sm mx-auto">
     <motion.div
-      className="w-full max-w-sm mx-auto bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center"
+      className="w-full rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center"
       style={{ aspectRatio: '1 / 1', minHeight: '320px' }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -75,5 +81,6 @@ export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerati
         </div>
       </div>
     </motion.div>
+    </ImageGenerationFx>
   );
 }

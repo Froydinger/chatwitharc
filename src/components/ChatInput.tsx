@@ -3113,12 +3113,12 @@ ${safeCode}
 
 
               {/* Input Field.
-                  Padding is asymmetric (5px top / 3px bottom) rather than a flat
-                  py-1: it drops the text and placeholder 1px below the geometric
-                  centre so they read as optically centred in the pill. 3px was
-                  visibly too low. The 8px vertical total is unchanged, so
-                  scrollHeight — and therefore the autosize height and the pill's
-                  height — stay exactly as before. */}
+                  Padding is written as an explicit 4px/4px rather than py-1 so
+                  the optical centring stays tunable in one place. It landed back
+                  at dead centre after trying 3px and 1px down, both of which
+                  read as too low. The 8px vertical total is what matters: it
+                  keeps scrollHeight, the autosize height and the pill's height
+                  unchanged no matter how the 8px is split. */}
               <Textarea
                 ref={textareaRef}
                 value={inputValue}
@@ -3131,7 +3131,7 @@ ${safeCode}
                 onFocus={handleInputFocus}
                 disabled={isVoiceActive}
                 placeholder={isVoiceActive ? "Voice mode is listening..." : isLoading ? "Thinking..." : "Message Arc..."}
-                className="flex-1 min-h-[28px] max-h-[200px] border-0 bg-transparent pt-[5px] pb-[3px] pr-4 focus-visible:ring-0 resize-none text-base placeholder:text-muted-foreground/60 scrollbar-hide"
+                className="flex-1 min-h-[28px] max-h-[200px] border-0 bg-transparent pt-[4px] pb-[4px] pr-4 focus-visible:ring-0 resize-none text-base placeholder:text-muted-foreground/60 scrollbar-hide"
                 rows={1}
               />
             </div>
