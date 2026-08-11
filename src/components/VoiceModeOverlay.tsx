@@ -485,7 +485,7 @@ export function VoiceModeOverlay() {
               initial={{ opacity: 0, y: 24, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24, scale: 0.98 }}
-              className="relative overflow-hidden rounded-[2rem] border border-primary/25 bg-background/88 px-2.5 py-1.5 shadow-2xl backdrop-blur-2xl"
+              className="t-resize relative overflow-hidden rounded-[2rem] border border-primary/25 bg-background/88 px-2.5 py-1.5 shadow-2xl backdrop-blur-2xl"
               style={{
                 // Ring brightness tracks the live level, so the bar visibly
                 // breathes with whoever is talking.

@@ -1406,7 +1406,7 @@ export function MobileChatApp() {
                   theme={effectTheme}
                 >
                   <div
-                    className="glass-dock"
+                    className="glass-dock t-resize"
                     data-has-images={hasSelectedImages}
                     data-arc-working={isArcWorking}
                   >
