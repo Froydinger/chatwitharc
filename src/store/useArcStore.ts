@@ -31,6 +31,29 @@ const titleGenerationInFlight = new Set<string>();
 let isBackfillingTitles = false;
 const TITLE_BACKFILL_PER_PASS = 25;
 
+// Titles that mean "we failed" — never worth writing over the sentinel.
+const GENERIC_TITLES = new Set([
+  'new chat',
+  'chat',
+  'untitled',
+  'untitled chat',
+  'conversation',
+  'new conversation',
+]);
+
+// Mirrors the sanitizing in the generate-chat-title function, for the fallback
+// path where the raw model output comes back unprocessed.
+function sanitizeChatTitle(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^(title|chat title)\s*[:\-–]\s*/i, '')
+    .replace(/^["'`“”‘’]+|["'`“”‘’]+$/g, '')
+    .replace(/[.]+$/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 60);
+}
+
 export interface ChatResource {
   id: string;
   title: string;
@@ -402,16 +425,46 @@ export const useArcStore = create<ArcState>()(
 
           if (chatMessages.length === 0) return;
 
+          const turns = chatMessages.slice(0, 6);
+          let generatedTitle = '';
+
           const { data, error } = await supabase.functions.invoke('generate-chat-title', {
-            body: { messages: chatMessages.slice(0, 6) },
+            body: { messages: turns },
           });
 
-          if (error) throw error;
-          if (data?.error) throw new Error(data.error);
+          if (error || data?.error) {
+            // The dedicated function is new, so it may not be live yet on an
+            // environment that hasn't redeployed. Fall back to the chat
+            // function's [ENHANCE_MODE] branch so naming works off whichever
+            // one is deployed rather than waiting on both.
+            console.warn('⚠️ generate-chat-title unavailable, falling back to chat:', error || data?.error);
 
-          const generatedTitle = typeof data?.title === 'string' ? data.title.trim() : '';
-          if (!generatedTitle) {
-            console.warn(`⚠️ No title returned for chat ${sessionId}:`, data?.reason || 'unknown');
+            const fallback = await supabase.functions.invoke('chat', {
+              body: {
+                model: 'gpt-5.6-luna',
+                messages: [
+                  {
+                    role: 'system',
+                    content:
+                      '[ENHANCE_MODE] Generate a short, specific title (3 to 5 words) summarizing this chat. Output ONLY the plain text title, no quotes, no markdown, no punctuation.',
+                  },
+                  ...turns,
+                ],
+              },
+            });
+
+            if (fallback.error) throw fallback.error;
+            if (fallback.data?.error) throw new Error(fallback.data.error);
+
+            generatedTitle = sanitizeChatTitle(
+              fallback.data?.choices?.[0]?.message?.content ?? '',
+            );
+          } else {
+            generatedTitle = typeof data?.title === 'string' ? data.title.trim() : '';
+          }
+
+          if (!generatedTitle || GENERIC_TITLES.has(generatedTitle.toLowerCase())) {
+            console.warn(`⚠️ No usable title returned for chat ${sessionId}:`, data?.reason || generatedTitle || 'empty');
             return;
           }
 
