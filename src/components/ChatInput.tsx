@@ -2173,7 +2173,7 @@ ${safeCode}
                 await updateSessionCanvasContent(requestSessionId, streamedContent || result.content);
                 const session = chatSessions.find((s) => s.id === requestSessionId);
                 if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
-                  await generateChatTitle(requestSessionId, useArcStore.getState().messages);
+                  await generateChatTitle(requestSessionId);
                 }
               }
             },
@@ -2380,12 +2380,15 @@ ${safeCode}
                 setSearchingChats(false);
                 setAccessingMemory(false);
 
-                // Intelligently generate a title if it's the first assistant message or still has default title
-                const { currentSessionId: sId, chatSessions: cSessions, generateChatTitle } = useArcStore.getState();
-                if (sId) {
-                  const session = cSessions.find((s) => s.id === sId);
+                // Intelligently generate a title if it's the first assistant message or still has default title.
+                // Name the session this response belongs to, NOT whatever chat
+                // happens to be open now — the user may have clicked away while
+                // the model was working.
+                const { chatSessions: cSessions, generateChatTitle } = useArcStore.getState();
+                if (requestSessionId) {
+                  const session = cSessions.find((s) => s.id === requestSessionId);
                   if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
-                    await generateChatTitle(sId, useArcStore.getState().messages);
+                    await generateChatTitle(requestSessionId);
                   }
                 }
 
@@ -2472,12 +2475,13 @@ ${safeCode}
                 modelUsed: result.modelUsed,
               });
 
-              // Intelligently generate a title if it's the first assistant message or still has default title
-              const { currentSessionId: sId, chatSessions: cSessions, generateChatTitle } = useArcStore.getState();
-              if (sId) {
-                const session = cSessions.find((s) => s.id === sId);
+              // Intelligently generate a title if it's the first assistant message or still has default title.
+              // Keyed to the session that was answered, not the one on screen.
+              const { chatSessions: cSessions, generateChatTitle } = useArcStore.getState();
+              if (requestSessionId) {
+                const session = cSessions.find((s) => s.id === requestSessionId);
                 if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
-                  await generateChatTitle(sId, useArcStore.getState().messages);
+                  await generateChatTitle(requestSessionId);
                 }
               }
 

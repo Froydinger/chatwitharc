@@ -952,7 +952,10 @@ serve(async (req) => {
             messages: conversationMessages,
             temperature: enhanceIsReasoning ? undefined : 0.3,
             reasoning_effort: enhanceIsReasoning ? 'none' : undefined,
-            max_completion_tokens: 1200,
+            // gpt-5.6 rejects a budget this small outright — 1200 returned a flat
+            // 400 on every call, silently breaking every caller of this branch.
+            // Ceiling only; a rewrite still spends what it spends.
+            max_completion_tokens: enhanceIsReasoning ? 65536 : 1200,
           }),
         }
       );

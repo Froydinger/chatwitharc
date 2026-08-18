@@ -92,7 +92,12 @@ Deno.serve(async (req) => {
         model: MODEL,
         // Luna is a gpt-5.6 reasoning model: reasoning_effort, never temperature.
         reasoning_effort: 'none',
-        max_completion_tokens: 512,
+        // This is a ceiling, not an allocation — a title spends ~10 tokens. It is
+        // set high because gpt-5.6 rejects a small budget outright: the old naming
+        // path asked for 1200 and got a flat 400 on every single call, which is
+        // what kept every chat named "New Chat". Matches the value the main chat
+        // path has been using successfully.
+        max_completion_tokens: 65536,
         messages: [
           { role: 'system', content: SYSTEM },
           ...turns,

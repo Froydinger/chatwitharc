@@ -175,7 +175,7 @@ export interface ArcState {
   // Canvas persistence
   updateSessionCanvasContent: (sessionId: string, canvasContent: string) => Promise<void>;
   updateSessionTitle: (sessionId: string, title: string) => Promise<void>;
-  generateChatTitle: (sessionId: string, messages: any[]) => Promise<void>;
+  generateChatTitle: (sessionId: string) => Promise<void>;
   generateTitlesForUnnamedChats: () => Promise<void>;
 
   // Current Chat State
@@ -375,12 +375,15 @@ export const useArcStore = create<ArcState>()(
         }
       },
 
-      generateChatTitle: async (sessionId: string, messages: any[]) => {
+      generateChatTitle: async (sessionId: string) => {
         if (!supabase || !isSupabaseConfigured) return;
+
+        const session = get().chatSessions.find(s => s.id === sessionId);
+        if (!session) return;
 
         // Corporate Mode sessions never leave the device, so they never get an
         // AI-generated title.
-        if (get().chatSessions.find(s => s.id === sessionId)?.isLocalOnly) return;
+        if (session.isLocalOnly) return;
 
         // Don't stack naming calls for the same chat — every assistant turn in a
         // short chat triggers this, and without the guard a slow call gets a
@@ -389,7 +392,11 @@ export const useArcStore = create<ArcState>()(
         titleGenerationInFlight.add(sessionId);
 
         try {
-          const chatMessages = messages
+          // Read the turns off the session being named. Callers used to hand in
+          // the ambient `messages` array, which is whatever chat is open RIGHT
+          // NOW — so a title that landed after the user clicked away was written
+          // from a different conversation's contents.
+          const chatMessages = session.messages
             .filter(m => (!m.type || m.type === 'text') && typeof m.content === 'string' && m.content.trim())
             .map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
 
@@ -455,7 +462,7 @@ export const useArcStore = create<ArcState>()(
           // Process them sequentially with a small delay to avoid rate limits
           for (const session of unnamed) {
             try {
-              await get().generateChatTitle(session.id, session.messages);
+              await get().generateChatTitle(session.id);
               await new Promise(r => setTimeout(r, 600)); // 600ms delay between calls
             } catch (err) {
               console.error('Failed to update title for session:', session.id, err);
