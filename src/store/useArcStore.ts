@@ -433,22 +433,28 @@ export const useArcStore = create<ArcState>()(
           });
 
           if (error || data?.error) {
-            // The dedicated function is new, so it may not be live yet on an
-            // environment that hasn't redeployed. Fall back to the chat
-            // function's [ENHANCE_MODE] branch so naming works off whichever
-            // one is deployed rather than waiting on both.
-            console.warn('⚠️ generate-chat-title unavailable, falling back to chat:', error || data?.error);
+            // The dedicated function is new and may not be live yet wherever
+            // this build is running. Fall back to an ordinary chat call, which
+            // needs no [ENHANCE_MODE] handling and therefore works against a
+            // backend of any vintage. The transcript goes in as one user turn
+            // so nothing here depends on server-side prompt plumbing.
+            console.warn('⚠️ generate-chat-title unavailable, falling back to a plain chat call:', error || data?.error);
+
+            const transcript = turns
+              .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 600)}`)
+              .join('\n');
 
             const fallback = await supabase.functions.invoke('chat', {
               body: {
                 model: 'gpt-5.6-luna',
                 messages: [
                   {
-                    role: 'system',
+                    role: 'user',
                     content:
-                      '[ENHANCE_MODE] Generate a short, specific title (3 to 5 words) summarizing this chat. Output ONLY the plain text title, no quotes, no markdown, no punctuation.',
+                      'Reply with ONLY a specific 3-5 word title for the conversation below. ' +
+                      'No quotes, no markdown, no punctuation, no explanation.\n\n' +
+                      transcript,
                   },
-                  ...turns,
                 ],
               },
             });
