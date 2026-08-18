@@ -3,7 +3,6 @@ import { persist } from 'zustand/middleware';
 import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from '@/utils/memoryDetection';
 import { useCanvasStore } from '@/store/useCanvasStore';
-import { AIService } from '@/services/ai';
 
 // Helper to extract a title from canvas content (first heading or first line)
 function extractCanvasTitle(content: string): string | null {
@@ -25,6 +24,12 @@ function extractCanvasTitle(content: string): string | null {
 }
 
 const sessionSaveRevisions = new Map<string, number>();
+
+// Chat-title generation guards. Module scope rather than store state so they
+// never trigger a re-render and never get persisted.
+const titleGenerationInFlight = new Set<string>();
+let isBackfillingTitles = false;
+const TITLE_BACKFILL_PER_PASS = 25;
 
 export interface ChatResource {
   id: string;
@@ -371,62 +376,93 @@ export const useArcStore = create<ArcState>()(
       },
 
       generateChatTitle: async (sessionId: string, messages: any[]) => {
+        if (!supabase || !isSupabaseConfigured) return;
+
+        // Corporate Mode sessions never leave the device, so they never get an
+        // AI-generated title.
+        if (get().chatSessions.find(s => s.id === sessionId)?.isLocalOnly) return;
+
+        // Don't stack naming calls for the same chat — every assistant turn in a
+        // short chat triggers this, and without the guard a slow call gets a
+        // second one racing it for the same row.
+        if (titleGenerationInFlight.has(sessionId)) return;
+        titleGenerationInFlight.add(sessionId);
+
         try {
           const chatMessages = messages
-            .filter(m => m.type === 'text')
+            .filter(m => (!m.type || m.type === 'text') && typeof m.content === 'string' && m.content.trim())
             .map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
-          
+
           if (chatMessages.length === 0) return;
 
-          const titlePrompt = {
-            role: 'system' as const,
-            content: '[ENHANCE_MODE] Generate a short, creative, specific title (3 to 5 words) summarizing this chat. Output ONLY the plain text title, no quotes, no markdown, no punctuation.'
-          };
+          const { data, error } = await supabase.functions.invoke('generate-chat-title', {
+            body: { messages: chatMessages.slice(0, 6) },
+          });
 
-          const ai = new AIService();
-          // Luna is the dedicated fast path for chat naming.
-          const res = await ai.sendMessage(
-            [titlePrompt, ...chatMessages.slice(0, 4)],
-            undefined,
-            undefined,
-            undefined,
-            false,
-            false,
-            false,
-            false,
-            false,
-            'gpt-5.6-luna'
-          );
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
 
-          const generatedTitle = res.content.trim().replace(/^["']|["']$/g, '').slice(0, 50);
-          if (generatedTitle && generatedTitle.length > 2 && !generatedTitle.toLowerCase().includes("generate a short")) {
-            console.log(`✨ Named chat "${sessionId}" to "${generatedTitle}"`);
-            await get().updateSessionTitle(sessionId, generatedTitle);
+          const generatedTitle = typeof data?.title === 'string' ? data.title.trim() : '';
+          if (!generatedTitle) {
+            console.warn(`⚠️ No title returned for chat ${sessionId}:`, data?.reason || 'unknown');
+            return;
           }
+
+          console.log(`✨ Named chat "${sessionId}" to "${generatedTitle}"`);
+          await get().updateSessionTitle(sessionId, generatedTitle);
         } catch (e) {
-          console.warn('Failed to generate chat title:', e);
+          // Loud on purpose: this failing quietly is what left every chat
+          // sitting at "New Chat".
+          console.error('❌ Failed to generate chat title for', sessionId, e);
+        } finally {
+          titleGenerationInFlight.delete(sessionId);
         }
       },
 
       generateTitlesForUnnamedChats: async () => {
-        const state = get();
-        // Find chats that have messages but are still named "New Chat" or are empty
-        const unnamed = state.chatSessions.filter(s => 
-          s.messages.length > 0 && 
-          (s.title === "New Chat" || !s.title || s.title.startsWith("New Chat"))
-        );
+        if (isBackfillingTitles) return;
 
-        if (unnamed.length === 0) return;
-        console.log(`🏷️ Found ${unnamed.length} unnamed chat sessions. Running background title naming pass...`);
+        // Sessions arrive from the metadata-first sync with empty `messages`
+        // arrays, so this has to look at messageCount, not messages.length —
+        // filtering on the latter matched nothing and the whole pass no-opped.
+        const isUnnamed = (s: ChatSession) =>
+          !s.isLocalOnly && (!s.title || s.title === 'New Chat' || s.title.startsWith('New Chat'));
 
-        // Process them sequentially with a small delay to avoid rate limits
-        for (const session of unnamed) {
-          try {
-            await get().generateChatTitle(session.id, session.messages);
-            await new Promise(r => setTimeout(r, 600)); // 600ms delay between calls
-          } catch (err) {
-            console.error('Failed to update title for session:', session.id, err);
+        if (!get().chatSessions.some(s => isUnnamed(s) && (s.messageCount ?? s.messages.length) > 0)) return;
+
+        isBackfillingTitles = true;
+        try {
+          // Messages live behind on-demand hydration; without them there is
+          // nothing to name from. hydrateAllSessions returns immediately when a
+          // bulk hydrate is already running (the sidebar kicks one off too), so
+          // wait for that one to land instead of naming from empty arrays.
+          await get().hydrateAllSessions();
+          for (let i = 0; i < 60 && get().isHydratingAll; i++) {
+            await new Promise(r => setTimeout(r, 500));
           }
+
+          const unnamed = get()
+            .chatSessions.filter(s => isUnnamed(s) && s.messages.length > 0)
+            // Newest first — those are the ones the user is looking at.
+            .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime())
+            // Cap per pass so a large backlog doesn't fire hundreds of model
+            // calls on one page load. Later passes pick up the rest.
+            .slice(0, TITLE_BACKFILL_PER_PASS);
+
+          if (unnamed.length === 0) return;
+          console.log(`🏷️ Found ${unnamed.length} unnamed chat sessions. Running background title naming pass...`);
+
+          // Process them sequentially with a small delay to avoid rate limits
+          for (const session of unnamed) {
+            try {
+              await get().generateChatTitle(session.id, session.messages);
+              await new Promise(r => setTimeout(r, 600)); // 600ms delay between calls
+            } catch (err) {
+              console.error('Failed to update title for session:', session.id, err);
+            }
+          }
+        } finally {
+          isBackfillingTitles = false;
         }
       },
       syncFromSupabase: async (limit = 500) => {
@@ -924,11 +960,16 @@ export const useArcStore = create<ArcState>()(
 
           console.log('💾 Saving session:', session.id, '- Messages:', newMessageCount);
 
+          // Re-read the title at write time. Saves are fired async and un-awaited,
+          // so a save started before naming finished still carries "New Chat" in
+          // its captured snapshot and would clobber the title the model just set.
+          const freshTitle = get().chatSessions.find(s => s.id === session.id)?.title ?? session.title;
+
           const { error } = await supabase
             .from('chat_sessions')
             .upsert({
               user_id: user.id,
-              title: session.title,
+              title: freshTitle,
               messages: session.messages as any,
               canvas_content: session.canvasContent ?? null,
               folder_id: session.folderId ?? null,
