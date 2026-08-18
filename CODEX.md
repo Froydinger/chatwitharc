@@ -165,10 +165,13 @@ is not the thing deploying edge functions or migrations.
   the dedicated model for memory/recall, chat naming, prompt enhancement, and
   the `generate-*-prompts` edge functions. Note Luna is a `gpt-5.6` reasoning
   model, so calls must send `reasoning_effort` instead of `temperature`.
-- Accent color: 7 options (`red`, `blue`, `green`, `yellow`, `purple`,
-  `orange`, `noir`) defined in `src/hooks/useAccentColor.tsx`, selected in
-  `src/components/SettingsPanel.tsx` (Appearance) and quick-switched from the
-  sidebar overflow menu in `src/components/RightPanel.tsx`. The default for new
-  users is set in `src/store/useAccentStore.ts` (currently `blue`); existing
-  users keep whatever is saved in `localStorage` / their Supabase profile.
+- **Accent color: Noir only.** Arc went black-and-white a long time ago and
+  accent selection is retired — there is no picker to add colors back to.
+  `useAccentStore.ts` force-writes `noir` to `localStorage` on every start, so
+  legacy saved colors normalize themselves. The other palettes still sit in
+  `accentColorConfigs` in `src/hooks/useAccentColor.tsx` and the `AccentColor`
+  union still lists them; that is dead config, NOT a live feature. Do not
+  reintroduce a color picker, and do not treat those entries as evidence one
+  exists. (This section previously claimed 7 selectable colors defaulting to
+  `blue`, which sent an agent chasing a non-existent regression.)
 - Team chats support real-time updates via Supabase channels.
