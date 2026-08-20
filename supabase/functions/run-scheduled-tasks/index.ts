@@ -112,6 +112,12 @@ async function runTool(name: string, args: any): Promise<string> {
   }
 }
 
+// gpt-5.6 / o1 / o3 are reasoning models: the API rejects function tools unless
+// reasoning_effort is explicitly 'none'. Mirrors the check in chat/index.ts.
+function isReasoningModel(model: string): boolean {
+  return model.includes("gpt-5.6") || model.startsWith("o1") || model.startsWith("o3");
+}
+
 async function callAi(prompt: string, model: string, taskTitle: string): Promise<string> {
   const system = `You are Arc, proactively pinging the user because a reminder/task they scheduled is due RIGHT NOW. You are NOT responding to a fresh request — you are the one initiating contact.
 
@@ -135,7 +141,13 @@ Rules:
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
-      body: JSON.stringify({ model, messages, tools: TOOLS, tool_choice: "auto" }),
+      body: JSON.stringify({
+        model,
+        messages,
+        tools: TOOLS,
+        tool_choice: "auto",
+        reasoning_effort: isReasoningModel(model) ? "none" : undefined,
+      }),
     });
     if (!res.ok) throw new Error(`AI gateway ${res.status}: ${await res.text().catch(() => "")}`);
     const json = await res.json();
@@ -158,7 +170,11 @@ Rules:
   const finalRes = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
-    body: JSON.stringify({ model, messages }),
+    body: JSON.stringify({
+      model,
+      messages,
+      reasoning_effort: isReasoningModel(model) ? "none" : undefined,
+    }),
   });
   const finalJson = await finalRes.json().catch(() => ({}));
   return finalJson?.choices?.[0]?.message?.content ?? "";
