@@ -119,18 +119,33 @@ function normalizeAspectRatio(aspectRatio?: unknown) {
   return typeof aspectRatio === "string" && aspectRatio.trim() ? aspectRatio.trim() : "3:2";
 }
 
+function wantsTransparentBackground(prompt: string): boolean {
+  const normalized = prompt.toLowerCase().replace(/[\s_-]+/g, " ");
+  return [
+    /\btransparent (?:background|backdrop|canvas|png)\b/,
+    /\b(?:background|backdrop|canvas) (?:is |should be )?transparent\b/,
+    /\b(?:with|on) (?:an? )?(?:actual(?:ly)? |fully )?transparent background\b/,
+    /\bno (?:background|backdrop)\b/,
+    /\bremove (?:the )?(?:background|backdrop)\b/,
+    /\bcut ?out (?:with|on) (?:an? )?transparent background\b/,
+    /\btransparent alpha\b/,
+  ].some((pattern) => pattern.test(normalized));
+}
+
 async function updateJob(supabase: any, jobId: string, values: Record<string, unknown>) {
   const { error } = await supabase.from("image_generation_jobs").update(values as any).eq("id", jobId);
   if (error) console.error("Failed to update image job:", jobId, error);
 }
 
 async function callImageGatewaySingle(prompt: string, model: string, size: string) {
+  const transparent = model === "gpt-image-2" && wantsTransparentBackground(prompt);
   const requestBody = JSON.stringify({
     model,
     prompt,
     size,
     quality: "medium",
     n: 1,
+    ...(transparent ? { background: "transparent", output_format: "png" } : {}),
   });
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -399,12 +414,13 @@ serve(async (req) => {
     const selectedModel = pickImageModel(body?.preferredModel);
     const size = aspectToSize(aspectRatio);
     const isYouTube = aspectRatio === "16:9";
+    const transparent = selectedModel === "gpt-image-2" && wantsTransparentBackground(rawPrompt);
     const requestedCount = Number(body?.count);
     const count = Number.isFinite(requestedCount)
       ? Math.max(1, Math.min(3, Math.floor(requestedCount)))
       : 1;
 
-    const prompt = isYouTube
+    const prompt = isYouTube && !transparent
       ? `${rawPrompt}\n\nIMPORTANT COMPOSITION RULE: Render this as a 16:9 widescreen image. The full canvas is 1536x1024, but place ALL meaningful content within the centered 1536x864 region. Add solid pure black (#000000) letterbox bars exactly 80 pixels tall at the very top and very bottom of the image. The black bars must be uniformly solid black, edge-to-edge, with no gradients, textures, or content. Treat them as off-screen padding.`
       : rawPrompt;
 
@@ -467,7 +483,7 @@ serve(async (req) => {
       selectedModel,
       size,
       count,
-      isYouTube,
+      isYouTube && !transparent,
     );
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
       EdgeRuntime.waitUntil(task);

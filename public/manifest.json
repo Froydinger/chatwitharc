@@ -10,13 +10,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icons/arcai-pwa-icon-512.png?v=7",
+      "src": "/icons/arcai-pwa-icon-512.png?v=8",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/arcai-pwa-icon-512.png?v=7",
+      "src": "/icons/arcai-pwa-icon-512.png?v=8",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -25,7 +25,7 @@
   "categories": ["productivity", "utilities", "social"],
   "screenshots": [
     {
-      "src": "/icons/arcai-pwa-icon-512.png?v=7",
+      "src": "/icons/arcai-pwa-icon-512.png?v=8",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",

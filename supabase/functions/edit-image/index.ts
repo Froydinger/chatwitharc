@@ -25,6 +25,19 @@ function toOpenAIModel(model: string): string {
   return model.startsWith('openai/') ? model.slice('openai/'.length) : model;
 }
 
+function wantsTransparentBackground(prompt: string): boolean {
+  const normalized = prompt.toLowerCase().replace(/[\s_-]+/g, ' ');
+  return [
+    /\btransparent (?:background|backdrop|canvas|png)\b/,
+    /\b(?:background|backdrop|canvas) (?:is |should be )?transparent\b/,
+    /\b(?:with|on) (?:an? )?(?:actual(?:ly)? |fully )?transparent background\b/,
+    /\bno (?:background|backdrop)\b/,
+    /\bremove (?:the )?(?:background|backdrop)\b/,
+    /\bcut ?out (?:with|on) (?:an? )?transparent background\b/,
+    /\btransparent alpha\b/,
+  ].some((pattern) => pattern.test(normalized));
+}
+
 function aspectToSize(aspectRatio: string): string {
   const ratios: Record<string, 'square' | 'landscape' | 'portrait'> = {
     '1:1': 'square', '3:2': 'landscape', '4:3': 'landscape', '16:9': 'landscape', '21:9': 'landscape',
@@ -290,6 +303,10 @@ async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filena
     // /v1/images/edits only accepts 1024x1024, 512x512, 256x256. Do NOT pass quality parameter.
     form.append('size', '1024x1024');
     form.append('n', '1');
+    if (modelName === 'gpt-image-2' && wantsTransparentBackground(prompt)) {
+      form.append('background', 'transparent');
+      form.append('output_format', 'png');
+    }
     form.append('image', blobs[0].blob, 'image.png');
 
     const response = await fetch(endpoint, { method: 'POST', headers, body: form, signal: controller.signal });
@@ -518,11 +535,12 @@ serve(async (req) => {
       });
     }
     const isYouTube = aspect === '16:9';
-    const editPrompt = buildEditPrompt(prompt, imageArray.length, isYouTube);
+    const transparent = selectedModel === 'gpt-image-2' && wantsTransparentBackground(prompt);
+    const editPrompt = buildEditPrompt(prompt, imageArray.length, isYouTube && !transparent);
 
     // Kick off processing in background; respond immediately so we never get killed
     // by the platform's per-request wall timeout.
-    const task = processEditJob(jobId, user.id, editPrompt, imageArray, aspect, requestedCount, selectedModel, isYouTube);
+    const task = processEditJob(jobId, user.id, editPrompt, imageArray, aspect, requestedCount, selectedModel, isYouTube && !transparent);
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
       EdgeRuntime.waitUntil(task);
     } else {
