@@ -64,16 +64,15 @@ export function DocsPage() {
             You can switch models using the <strong>Model Picker dropdown</strong> located at the 
             <strong> top left of the chat window</strong> (above the chat input).
           </p>
-          <p>Click the picker to select a chat mode:</p>
+          <p>Luna is Arc's default and only model for now. Click the picker to choose a reasoning level:</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Auto</strong>: Best for letting Arc choose the right model for each task.</li>
-            <li><strong className="text-foreground">Luna (GPT-5.6 Luna)</strong>: Best for quick chats, lightweight replies, and everyday questions.</li>
-            <li><strong className="text-foreground">Terra (GPT-5.6 Terra)</strong>: Best for code, writing, and structured work.</li>
-            <li><strong className="text-foreground">Sol (GPT-5.6 Sol)</strong>: Best for deep work, complex planning, and hard problems (Requires <a href="/pricing" className="text-primary hover:underline font-semibold">Boost</a>).</li>
+            <li><strong className="text-foreground">Quick</strong>: Faster everyday Luna answers.</li>
+            <li><strong className="text-foreground">Balanced</strong>: The default balance of speed and reasoning.</li>
+            <li><strong className="text-foreground">Deep</strong>: More Luna reasoning for harder work.</li>
           </ul>
         </div>
       ),
-      keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "gpt-5.6", "sol", "terra", "luna"]
+      keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "gpt-5.6", "quick", "balanced", "deep", "luna"]
     },
     {
       id: "model-quotas",
@@ -86,8 +85,8 @@ export function DocsPage() {
             Usage quotas depend on your plan:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Free Tier</strong>: Limited daily image generations and chat limits on standard models. The frontier model (GPT-5.6 Sol) is paywalled.</li>
-            <li><strong className="text-foreground">Boost Plan ($10/mo or $96/yr)</strong>: Removes daily chat caps, unlocks the frontier model (GPT-5.6 Sol), provides offline local model support, and upgrades image generation quality.</li>
+            <li><strong className="text-foreground">Free Tier</strong>: Luna chat plus limited daily image generations and plan-based usage limits.</li>
+            <li><strong className="text-foreground">Boost Plan ($10/mo or $96/yr)</strong>: Higher usage limits, offline local model support, premium image tools, and publishing.</li>
           </ul>
           <p>You can check your current daily usage and remaining limit at <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>
         </div>

@@ -883,8 +883,8 @@ export function MobileChatApp() {
       setRightPanelOpen(false);
     }
 
-    // Reset model to Quick for new chat (session only)
-    sessionStorage.setItem("arc_session_model", "gpt-5.6-terra");
+    // Luna remains the only cloud chat model for new sessions.
+    sessionStorage.setItem("arc_session_model", "gpt-5.6-luna");
   };
 
 

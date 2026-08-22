@@ -54,7 +54,8 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        temperature: 0.4,
+        reasoning_effort: 'low',
+        max_completion_tokens: 65536,
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: `Rewrite the following prompt. Do NOT answer it. Output only the improved prompt:\n\n${text.trim()}` },

@@ -241,8 +241,6 @@ export function SettingsPanel() {
     isAdmin: quotaAdmin,
     dailyImagesUsed,
     imageLimit: FREE_DAILY_IMAGE_LIMIT,
-    dailySmarterChatsUsed,
-    smarterChatLimit,
     openCheckout,
     openCustomerPortal,
     cancelAtPeriodEnd,
@@ -786,14 +784,10 @@ export function SettingsPanel() {
   const UsageCard = (
     <SectionCard icon={Stars} title="Usage & Quotas" subtitle="Quota allowances reset at 00:00 UTC">
       <Tile
-        title="Frontier Chats (GPT-5.6 Sol)"
-        description="Frontier reasoning model"
+        title="GPT-5.6 Luna Reasoning"
+        description="Quick, Balanced, and Deep reasoning levels"
         right={
-          quotaAdmin || smarterChatLimit === Infinity ? (
-            <span className="font-mono text-primary text-sm">Unlimited</span>
-          ) : (
-            <span className="font-mono text-muted-foreground text-sm">Locked (Boost Plan)</span>
-          )
+          <span className="font-mono text-primary text-sm">Available</span>
         }
       />
       <Tile

@@ -8,8 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { BOOST_PRICE_ID, BOOST_ANNUAL_PRICE_ID } from "@/lib/stripe";
 
 const FREE_FEATURES = [
-  "Quick chats (GPT-5.6 Luna)",
-  "Everyday chats (GPT-5.6 Terra)",
+  "GPT-5.6 Luna chats",
+  "Quick, Balanced & Deep reasoning",
   "Image Generation (GPT-Image-1 & 2)",
   "Deep Search web research",
   "Real-time voice conversations",
@@ -18,8 +18,8 @@ const FREE_FEATURES = [
 ];
 
 const BOOST_FEATURES = [
-  "Unlimited frontier reasoning (GPT-5.6 Sol)",
-  "Unlimited GPT-5.6 Terra chats",
+  "Higher Luna chat and reasoning limits",
+  "Quick, Balanced & Deep reasoning",
   "Premium Image Generation (GPT-Image-2)",
   "Advanced image editing studio",
   "Publish live web apps to custom links",

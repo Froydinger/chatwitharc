@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Image, decode } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import { getVideoProvider, type VideoOrientation } from "../_shared/videoProvider.ts";
+import { fetchPublicMedia } from "../_shared/safeRemoteMedia.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -144,17 +145,13 @@ async function readImageBytes(source: string): Promise<{ bytes: Uint8Array; cont
     const match = source.match(/^data:([^;,]+)?(;base64)?,(.*)$/s);
     if (!match) throw new Error("Invalid image data URL");
     const contentType = match[1] || "image/png";
+    if (match[3].length > 35 * 1024 * 1024) throw new Error("Source image is too large");
     const binary = match[2] ? atob(match[3]) : decodeURIComponent(match[3]);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return { bytes, contentType };
   }
-  const response = await fetch(source);
-  if (!response.ok) throw new Error(`Failed to fetch source image: ${response.status}`);
-  return {
-    bytes: new Uint8Array(await response.arrayBuffer()),
-    contentType: response.headers.get("content-type") || "image/png",
-  };
+  return await fetchPublicMedia(source);
 }
 
 /**

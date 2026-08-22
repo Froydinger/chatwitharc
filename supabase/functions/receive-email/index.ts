@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     });
 
     const body = await req.json();
-    console.log("Inbound email received:", body);
+    console.log("Inbound email webhook received", { type: body.type, id: body.data?.email_id });
 
     // If this is a Resend webhook event check, ignore anything that isn't 'email.received'.
     // Since 'All events' is selected on Resend, this prevents infinite notification loops
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
         });
         if (response.ok) {
           emailDetails = await response.json();
-          console.log("Successfully retrieved email details:", emailDetails);
+          console.log("Successfully retrieved inbound email details", { emailId });
         } else {
           console.error(`Resend API fetch failed with status: ${response.status} ${response.statusText}`);
         }

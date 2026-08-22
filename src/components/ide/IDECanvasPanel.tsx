@@ -360,7 +360,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const model = 'gpt-5.6-terra';
+      const model = 'gpt-5.6-luna';
 
       const historyForAgent = chatHistory
         .filter((m) => m.content && m.content.trim())

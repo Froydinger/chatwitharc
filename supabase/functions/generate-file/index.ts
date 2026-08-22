@@ -12,7 +12,10 @@ serve(async (req) => {
   }
 
   try {
-    const { fileType, content, prompt, model } = await req.json();
+    const { fileType, content, prompt, reasoningEffort } = await req.json();
+    const selectedReasoningEffort = ['low', 'medium', 'high'].includes(reasoningEffort)
+      ? reasoningEffort
+      : 'medium';
     const authHeader = req.headers.get('Authorization');
 
     // Input validation
@@ -149,16 +152,8 @@ For ZIP files:
 
 CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No explanations, no markdown code fences wrapping the output.`;
 
-    // Allowlist supported models — fall back to default if unknown
-    const ALLOWED_MODELS = new Set([
-      'gpt-5.6-terra',
-      'gpt-5.6-terra',
-      'gpt-5.6-terra',
-      'gpt-5.6-terra',
-    ]);
-    const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
-      ? model
-      : 'gpt-5.6-terra';
+    // Luna is the only enabled text/reasoning model for now.
+    const selectedModel = 'gpt-5.6-luna';
     console.log('Using model for file generation:', selectedModel);
 
     const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -169,6 +164,7 @@ CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No expla
       },
       body: JSON.stringify({
         model: selectedModel,
+        reasoning_effort: selectedReasoningEffort,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }

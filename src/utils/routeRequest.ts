@@ -15,15 +15,15 @@ import { isMobileLocalDevice } from '@/utils/mobileLocal';
  */
 export type RouteDestination =
   | 'local'                     // On-device model (label resolved at render)
-  | 'cloud-chat'                // GPT-5.6 Terra — default chat
-  | 'cloud-chat-pro'            // GPT-5.6 Terra — heavier reasoning
+  | 'cloud-chat'                // GPT-5.6 Luna — default chat
+  | 'cloud-chat-pro'            // GPT-5.6 Luna — deeper reasoning
   | 'cloud-search'              // Tavily Advanced retrieval + GPT synthesis
   | 'cloud-search-tavily'       // Legacy alias — same Tavily pipeline
-  | 'cloud-vision'              // GPT-5.6 Terra (image understanding)
-  | 'cloud-document'            // GPT-5.6 Terra (document analysis)
+  | 'cloud-vision'              // GPT-5.6 Luna (image understanding)
+  | 'cloud-document'            // GPT-5.6 Luna (document analysis)
   | 'cloud-voice'               // OpenAI Realtime
-  | 'cloud-code'                // GPT-5.6 Terra — /code, canvas code edits
-  | 'cloud-canvas'              // GPT-5.6 Terra — writing canvas
+  | 'cloud-code'                // GPT-5.6 Luna — /code, canvas code edits
+  | 'cloud-canvas'              // GPT-5.6 Luna — writing canvas
   | 'cloud-image'               // GPT-Image-2 — locked image model
   | 'cloud-image-pro'           // Deprecated alias — also maps to GPT-Image-2
   | 'cloud-image-edit'          // GPT-Image-2 — edit pass
@@ -75,7 +75,7 @@ export function routeRequest(ctx: RouteContext): RouteDestination {
  * Human-readable label for the source badge — shows the real model name.
  * `modelUsed` is the exact model id recorded on the message when it was
  * generated; when present it wins over the picker's current selection so
- * badges stay accurate for Auto-mode routing and old messages.
+ * badges stay accurate for stored messages and current Luna requests.
  */
 export function getRouteLabel(route: RouteDestination, modelUsed?: string): { label: string; icon: 'local' | 'cloud'; tooltip: string } {
   switch (route) {
@@ -152,12 +152,6 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
 }
 
 function getModelInfo(m: string): { name: string; tier: string; providerName: string } {
-  if (m === 'gpt-5.6-sol') {
-    return { name: 'GPT-5.6 Sol', tier: 'Sol', providerName: 'GPT-5.6 Sol' };
-  }
-  if (m === 'gpt-5.6-terra') {
-    return { name: 'GPT-5.6 Terra', tier: 'Terra', providerName: 'GPT-5.6 Terra' };
-  }
   if (m === 'gpt-5.6-luna') {
     return { name: 'GPT-5.6 Luna', tier: 'Luna', providerName: 'GPT-5.6 Luna' };
   }

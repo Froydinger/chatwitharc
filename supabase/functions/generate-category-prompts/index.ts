@@ -177,7 +177,8 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Generate 6 completely unique, never-before-seen ${category} prompts. Be wildly creative! Timestamp: ${timestamp}` }
       ],
-      max_completion_tokens: 2000,
+      reasoning_effort: 'low',
+      max_completion_tokens: 65536,
     };
 
     // Call AI to generate prompts

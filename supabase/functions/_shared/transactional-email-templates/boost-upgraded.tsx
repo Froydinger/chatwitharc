@@ -32,7 +32,7 @@ const BoostUpgradedEmail = ({
             <Text style={eyebrow}>Boost activated</Text>
             <Heading style={h1}>You're upgraded, {name}.</Heading>
             <Text style={paragraph}>
-              Thanks for upgrading to {planName}. Your Boost access is active now, including Sol frontier reasoning, higher image limits, voice conversations, and publishing tools.
+              Thanks for upgrading to {planName}. Your Boost access is active now, including higher usage limits, premium image tools, voice conversations, and publishing tools.
             </Text>
             <Section style={ctaWrap}>
               <Button style={button} href={appUrl}>Open ArcAI</Button>

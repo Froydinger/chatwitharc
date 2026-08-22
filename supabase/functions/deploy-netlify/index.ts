@@ -168,6 +168,17 @@ serve(async (req) => {
     // ============================================================
     // ACTION: deploy (default)
     // ============================================================
+    const { data: hasBoost, error: boostError } = await serviceClient.rpc('user_has_boost', {
+      check_user_id: authenticatedUserId,
+    });
+    if (boostError) {
+      console.error('[DEPLOY] Boost entitlement check failed:', boostError.message);
+      return jsonRes({ error: 'Could not verify publishing access' }, 503);
+    }
+    if (!hasBoost) {
+      return jsonRes({ error: 'ArcAI Boost is required to publish sites' }, 403);
+    }
+
     const { zipBase64, subdomain, siteId } = body;
     if (!zipBase64) return jsonRes({ error: 'Missing zipBase64' }, 400);
 

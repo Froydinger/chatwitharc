@@ -2,6 +2,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "../_shared/stripe.ts";
 
+const BOOST_PRICE_IDS = new Set(["arcai_boost_monthly", "arcai_boost_annual"]);
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -103,8 +105,6 @@ Deno.serve(async (req) => {
       action,
       sessionId,
       priceId,
-      customerEmail,
-      userId,
       returnUrl,
       environment,
       uiMode,
@@ -112,8 +112,6 @@ Deno.serve(async (req) => {
       action?: string;
       sessionId?: string;
       priceId?: string;
-      customerEmail?: string;
-      userId?: string;
       returnUrl?: string;
       environment?: StripeEnv;
       uiMode?: "embedded" | "hosted";
@@ -121,138 +119,39 @@ Deno.serve(async (req) => {
 
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
 
-    // Action -1: Debug Stripe account contents
-    if (action === "debug-stripe") {
-      const stripe = createStripeClient(environment);
-      let subsRes: any = null;
-      let custsRes: any = null;
-      let subsError: any = null;
-      let custsError: any = null;
-
-      try {
-        subsRes = await stripe.subscriptions.list({ limit: 100 });
-      } catch (err: any) {
-        subsError = err.message || String(err);
-      }
-
-      try {
-        custsRes = await stripe.customers.list({ limit: 100 });
-      } catch (err: any) {
-        custsError = err.message || String(err);
-      }
-
-      return new Response(JSON.stringify({ 
-        subsError,
-        custsError,
-        rawSubs: subsRes,
-        rawCusts: custsRes,
-        subscriptionsCount: subsRes?.data?.length ?? null,
-        customersCount: custsRes?.data?.length ?? null,
-      }), {
-        status: 200,
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
+    );
+    const token = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !caller) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Action 0: Sync subscription directly from Stripe customer search by email
-    if (action === "sync-stripe-sub") {
-      if (!customerEmail) throw new Error("Missing customerEmail");
-      if (!userId) throw new Error("Missing userId");
-
-      const stripe = createStripeClient(environment);
-      console.log(`[create-checkout] Searching Stripe for active subscriptions for user: ${userId} / email: ${customerEmail}`);
-      
-      let foundSubscription = null;
-      let stripeCustomerId = null;
-
-      // Method 1: List subscriptions matching the metadata directly
-      try {
-        const subs = await stripe.subscriptions.list({
-          status: "active",
-          limit: 100
-        });
-        
-        console.log(`[create-checkout] Found ${subs.data.length} active subscriptions in Stripe. Scanning metadata...`);
-        
-        // Find matching subscription by userId in metadata
-        const matchingSub = subs.data.find(s => s.metadata?.userId === userId || s.metadata?.user_id === userId);
-        if (matchingSub) {
-          console.log(`[create-checkout] Found subscription matching metadata.userId: ${matchingSub.id}`);
-          foundSubscription = matchingSub;
-          stripeCustomerId = typeof matchingSub.customer === "string" ? matchingSub.customer : matchingSub.customer.id;
-        }
-      } catch (err: any) {
-        console.warn(`[create-checkout] direct subscriptions list error:`, err);
-      }
-
-      // Method 2: If not found by metadata, search customer by email and check their subscriptions
-      if (!foundSubscription) {
-        try {
-          console.log(`[create-checkout] Scanning customers by email: ${customerEmail}`);
-          const customers = await stripe.customers.list({
-            email: customerEmail,
-            limit: 10,
-          });
-
-          for (const customer of customers.data) {
-            console.log(`[create-checkout] Checking customer: ${customer.id}`);
-            const subs = await stripe.subscriptions.list({
-              customer: customer.id,
-              status: "active",
-              limit: 5
-            });
-            if (subs.data.length) {
-              console.log(`[create-checkout] Found subscription matching customer email: ${subs.data[0].id}`);
-              foundSubscription = subs.data[0];
-              stripeCustomerId = customer.id;
-              break;
-            }
-          }
-        } catch (err: any) {
-          console.error(`[create-checkout] customer-based search error:`, err);
-        }
-      }
-
-      if (!foundSubscription) {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "No active Stripe subscriptions found for your account. Please complete checkout or contact support if you were charged." 
-        }), {
-          status: 200,
+    if (environment === "sandbox") {
+      const { data: adminRow } = await supabaseAdmin
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", caller.id)
+        .maybeSingle();
+      if (!adminRow) {
+        return new Response(JSON.stringify({ error: "Sandbox checkout is restricted to admins" }), {
+          status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+    }
 
-      const subscription = foundSubscription;
-      const item = subscription.items?.data?.[0];
-      const priceIdResolved = item?.price?.lookup_key || item?.price?.id || "arcai_boost_monthly";
-      const productIdResolved = typeof item?.price?.product === "string" ? item.price.product : (item?.price?.product?.id || "prod_boost");
-
-      // Save to database
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        { auth: { persistSession: false } },
-      );
-
-      await supabase.from("subscriptions").upsert({
-        user_id: userId,
-        stripe_subscription_id: subscription.id,
-        stripe_customer_id: stripeCustomerId,
-        product_id: productIdResolved,
-        price_id: priceIdResolved,
-        status: "active",
-        environment: environment,
-        current_period_start: subscription.current_period_start ? new Date(subscription.current_period_start * 1000).toISOString() : null,
-        current_period_end: subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : null,
-        cancel_at_period_end: subscription.cancel_at_period_end || false,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
-
-      console.log(`[create-checkout] Successfully linked real Stripe subscription: ${subscription.id} to user: ${userId}`);
-
-      return new Response(JSON.stringify({ success: true, subscriptionId: subscription.id }), {
-        status: 200,
+    // These temporary diagnostics exposed account-wide Stripe data and allowed
+    // client-selected subscription linking. They are intentionally retired.
+    if (action === "debug-stripe" || action === "sync-stripe-sub") {
+      return new Response(JSON.stringify({ error: "Not found" }), {
+        status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -274,12 +173,14 @@ Deno.serve(async (req) => {
 
       // Upsert subscription directly since we validated it on Stripe
       const targetUserId = session.metadata?.userId;
+      if (!targetUserId || targetUserId !== caller.id) {
+        return new Response(JSON.stringify({ error: "Checkout session does not belong to this account" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       if (targetUserId) {
-        const supabase = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-          { auth: { persistSession: false } },
-        );
+        const supabase = supabaseAdmin;
 
         let priceIdResolved = "arcai_boost_monthly"; // default
         let productIdResolved = "prod_boost";
@@ -326,26 +227,12 @@ Deno.serve(async (req) => {
     }
 
     // Action 2: Create a checkout session (default flow)
-    if (!priceId || !/^[a-zA-Z0-9_-]+$/.test(priceId)) throw new Error("Invalid priceId");
+    if (!priceId || !BOOST_PRICE_IDS.has(priceId)) throw new Error("Invalid priceId");
     if (!returnUrl) throw new Error("Missing returnUrl");
 
-    // Resolve auth user if Authorization header is present (preferred over client-passed userId).
-    let resolvedUserId = userId;
-    let resolvedEmail = customerEmail;
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-        { auth: { persistSession: false } },
-      );
-      const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await supabase.auth.getUser(token);
-      if (user) {
-        resolvedUserId = user.id;
-        resolvedEmail = user.email ?? resolvedEmail;
-      }
-    }
+    // Identity always comes from the verified JWT, never client-selected fields.
+    const resolvedUserId = caller.id;
+    const resolvedEmail = caller.email;
 
     const stripe = createStripeClient(environment);
     let stripePrice;

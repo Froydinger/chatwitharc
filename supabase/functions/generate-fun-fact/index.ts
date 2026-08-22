@@ -63,6 +63,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "gpt-5.6-luna",
+        reasoning_effort: "low",
+        max_completion_tokens: 65536,
         messages: [
           {
             role: "system",

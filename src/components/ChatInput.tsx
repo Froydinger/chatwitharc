@@ -34,7 +34,7 @@ import { useAccentColor } from "@/hooks/useAccentColor";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useModelStore, getModelForTask, SOL_MODEL, TERRA_MODEL } from "@/store/useModelStore";
+import { useModelStore, getModelForTask, LUNA_MODEL } from "@/store/useModelStore";
 import { AIService, getQueryComplexity } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { useStreamingWithContinuation } from "@/hooks/useStreamingWithContinuation";
@@ -526,7 +526,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Guest mode = no user OR anonymous (auto-issued) Supabase session.
   const isGuestMode = !user || isAnonymous;
   const requireAuth = useRequireAuth();
-  const { hasBoost, canSendSmarterChat, openCheckout, recordSmarterChat } = useSubscription();
+  const { hasBoost, openCheckout } = useSubscription();
 
   const {
     messages,
@@ -1317,18 +1317,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       return;
     }
 
-    // Quota check for the gated frontier model (Sol)
-    const currentModel = useModelStore.getState().chatModel;
-    if (currentModel === SOL_MODEL && !hasBoost) {
-      toast({
-        title: "Boost Plan Required",
-        description: "Sol (GPT-5.6) is available on the Boost plan. Upgrade now to get unlimited access to frontier reasoning!",
-        variant: "destructive",
-      });
-      openCheckout();
-      return;
-    }
-
     // If Arc is currently thinking, queue the message instead of blocking
     // Check both React state AND direct store state to avoid stale closure races
     const storeIsLoading = useArcStore.getState().isLoading;
@@ -1373,7 +1361,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
       // Add assistant prompt instructing model picker usage
       await addMessage({
-        content: "To switch models, please use the Auto/Luna/Terra/Sol picker at the top left of the chat window.",
+        content: "Luna is Arc's default and only model for now. Use the picker at the top of the chat to choose Quick, Balanced, or Deep reasoning.",
         role: "assistant",
         type: "text",
         sourceModel: "cloud-chat",
@@ -1512,10 +1500,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       window.dispatchEvent(new CustomEvent("arcai:guestMessageSent"));
     }
 
-    if (currentModel === TERRA_MODEL) {
-      recordSmarterChat();
-    }
-
     try {
       const ai = new AIService();
 
@@ -1567,7 +1551,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               role: "assistant",
               type: "text",
               sourceModel: "cloud-document",
-              modelUsed: "gpt-5.6-terra",
+              modelUsed: LUNA_MODEL,
             });
           }
         } catch (err: any) {
@@ -1577,7 +1561,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             role: "assistant",
             type: "text",
             sourceModel: "cloud-document",
-            modelUsed: "gpt-5.6-terra",
+            modelUsed: LUNA_MODEL,
           });
         }
         return;
@@ -1708,7 +1692,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             role: "assistant",
             type: "text",
             sourceModel: "cloud-vision",
-            modelUsed: "gpt-5.6-terra",
+            modelUsed: LUNA_MODEL,
           });
         } catch {
           toast({ title: "Error", description: "Failed to analyze images", variant: "destructive" });
@@ -1717,7 +1701,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             role: "assistant",
             type: "text",
             sourceModel: "cloud-vision",
-            modelUsed: "gpt-5.6-terra",
+            modelUsed: LUNA_MODEL,
           });
         }
         return;

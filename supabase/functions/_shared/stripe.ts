@@ -50,7 +50,7 @@ export async function verifyWebhook(
     : Deno.env.get("PAYMENTS_LIVE_WEBHOOK_SECRET");
 
   if (!secret) {
-    console.warn("⚠️ Webhook secret not configured, skipping signature verification");
+    console.warn("Webhook secret not configured, skipping signature verification");
     return JSON.parse(body);
   }
 

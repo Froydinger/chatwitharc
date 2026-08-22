@@ -4,106 +4,77 @@ import { persist } from 'zustand/middleware';
 export type ModelFamily = 'openai';
 export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-analysis' | 'image-edit' | 'file-gen';
 
-/** User-pickable chat models. Auto is the smart router; concrete picks control the conversational response model. */
-export const AUTO_MODEL = 'auto';
+/** Luna is the only user-facing text/reasoning model for now. */
 export const LUNA_MODEL = 'gpt-5.6-luna';
-export const TERRA_MODEL = 'gpt-5.6-terra';
-export const SOL_MODEL = 'gpt-5.6-sol';
+export type ChatModel = typeof LUNA_MODEL;
+export type LunaReasoningEffort = 'low' | 'medium' | 'high';
 
-export type ChatModel = typeof AUTO_MODEL | typeof LUNA_MODEL | typeof TERRA_MODEL | typeof SOL_MODEL;
-
-/** Map retired model ids (persisted picks, DB rows, stale clients) to current replacements. */
+/** Map every retired or stale chat-model id to Luna without breaking old clients. */
 export const LEGACY_MODEL_MAP: Record<string, ChatModel> = {
+  auto: LUNA_MODEL,
   'gpt-5.4-nano': LUNA_MODEL,
-  'gpt-5.4-mini': TERRA_MODEL,
-  'gpt-5.4': SOL_MODEL,
-  'gpt-5.5': SOL_MODEL,
+  'gpt-5.4-mini': LUNA_MODEL,
+  'gpt-5.4': LUNA_MODEL,
+  'gpt-5.5': LUNA_MODEL,
+  'gpt-5.6-terra': LUNA_MODEL,
+  'gpt-5.6-sol': LUNA_MODEL,
 };
 
 interface ModelStore {
   modelFamily: ModelFamily;
   setModelFamily: (family: ModelFamily) => void;
-  /** Active chat model. Defaults to Auto smart routing. */
   chatModel: ChatModel;
-  setChatModel: (model: ChatModel) => void;
+  /** Kept for existing callers; every value normalizes to Luna. */
+  setChatModel: (model: string) => void;
+  reasoningEffort: LunaReasoningEffort;
+  setReasoningEffort: (effort: LunaReasoningEffort) => void;
   isBoost: boolean;
   setIsBoost: (isBoost: boolean) => void;
 }
+
+const VALID_REASONING_EFFORTS = new Set<LunaReasoningEffort>(['low', 'medium', 'high']);
 
 export const useModelStore = create<ModelStore>()(
   persist(
     (set) => ({
       modelFamily: 'openai',
       setModelFamily: () => set({ modelFamily: 'openai' }),
-      chatModel: AUTO_MODEL,
-      setChatModel: (model) => set({ chatModel: model }),
+      chatModel: LUNA_MODEL,
+      setChatModel: () => set({ chatModel: LUNA_MODEL }),
+      reasoningEffort: 'medium',
+      setReasoningEffort: (reasoningEffort) => set({ reasoningEffort }),
       isBoost: false,
       setIsBoost: (isBoost) => set({ isBoost }),
     }),
     {
       name: 'arc-model-family',
-      version: 2,
+      version: 3,
       migrate: (persisted: unknown) => {
-        const state = (persisted ?? {}) as { modelFamily?: ModelFamily; chatModel?: string };
-        const known: string[] = [AUTO_MODEL, LUNA_MODEL, TERRA_MODEL, SOL_MODEL];
-        const raw = state.chatModel;
-        const mapped = raw ? LEGACY_MODEL_MAP[raw] : undefined;
-        const resolved = mapped ?? (raw && known.includes(raw) ? (raw as ChatModel) : AUTO_MODEL);
+        const state = (persisted ?? {}) as { reasoningEffort?: string };
+        const reasoningEffort = VALID_REASONING_EFFORTS.has(state.reasoningEffort as LunaReasoningEffort)
+          ? state.reasoningEffort as LunaReasoningEffort
+          : 'medium';
         return {
           modelFamily: 'openai' as const,
-          chatModel: resolved,
+          chatModel: LUNA_MODEL,
+          reasoningEffort,
         };
       },
-      partialize: (s) => ({ modelFamily: s.modelFamily, chatModel: s.chatModel }),
+      partialize: (state) => ({
+        modelFamily: state.modelFamily,
+        chatModel: LUNA_MODEL,
+        reasoningEffort: state.reasoningEffort,
+      }),
     }
   )
 );
 
 import { useImageGenStore, getResolvedImageModel } from './useImageGenStore';
 
-/**
- * Get the correct model string for a given task.
- * - Auto mode routes by task + graded complexity (0 simple → 3 very complex):
- *   simple and moderate chats use Luna, complex work uses Terra, and only heavyweight asks reach Sol.
- * - An explicitly picked model controls normal conversational work. Dedicated
- *   subsystems such as memory/recall and chat naming may use Luna.
- * - Image gen/edit are bound to the user's selected image model.
- */
-export function getModelForTask(task: ModelTask, complexity: 0 | 1 | 2 | 3 = 0): string {
-  const { chatModel } = useModelStore.getState();
-
-  if (chatModel === AUTO_MODEL) {
-    switch (task) {
-      case 'chat':
-        if (complexity >= 3) return SOL_MODEL;
-        if (complexity === 2) return TERRA_MODEL;
-        return LUNA_MODEL;
-      case 'code':
-      case 'file-gen':
-      case 'deep-chat':
-        // Code, write canvases, and deep chat floor at Terra; heavy asks step up
-        if (complexity >= 3) return SOL_MODEL;
-        return TERRA_MODEL;
-      case 'image-gen':
-      case 'image-edit':
-        return getResolvedImageModel(useModelStore.getState().isBoost);
-      case 'image-analysis':
-      default:
-        return LUNA_MODEL;
-    }
+/** Route every text, code, file, and analysis task through Luna. */
+export function getModelForTask(task: ModelTask, _complexity: 0 | 1 | 2 | 3 = 0): string {
+  if (task === 'image-gen' || task === 'image-edit') {
+    return getResolvedImageModel(useModelStore.getState().isBoost);
   }
-
-  switch (task) {
-    case 'chat':
-    case 'deep-chat':
-      return chatModel;
-    case 'image-gen':
-    case 'image-edit':
-      return getResolvedImageModel(useModelStore.getState().isBoost);
-    case 'code':
-    case 'image-analysis':
-    case 'file-gen':
-    default:
-      return chatModel;
-  }
+  return LUNA_MODEL;
 }

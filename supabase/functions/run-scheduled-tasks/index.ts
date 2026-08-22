@@ -173,7 +173,7 @@ Rules:
     body: JSON.stringify({
       model,
       messages,
-      reasoning_effort: isReasoningModel(model) ? "none" : undefined,
+      reasoning_effort: isReasoningModel(model) ? "medium" : undefined,
     }),
   });
   const finalJson = await finalRes.json().catch(() => ({}));
@@ -212,7 +212,7 @@ async function processTask(task: any): Promise<void> {
     .single();
 
   try {
-    const output = await callAi(task.prompt, task.model || "gpt-5.6-terra", task.title);
+    const output = await callAi(task.prompt, "gpt-5.6-luna", task.title);
 
     // Build messages payload for chat_sessions
     const now = new Date().toISOString();

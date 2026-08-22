@@ -1,4 +1,5 @@
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
+import { useModelStore } from '@/store/useModelStore';
 
 const AGENT_REQUEST_TIMEOUT_MS = 120000;
 const AGENT_INACTIVITY_TIMEOUT_MS = 90000;
@@ -43,7 +44,7 @@ export async function sendAgentMessage(
   userMessage: string,
   currentFiles: VirtualFileSystem,
   onAction: (action: AgentAction) => void,
-  model?: string,
+  _model?: string,
   authToken?: string,
   chatHistory?: { role: string; content: string }[]
 ): Promise<AgentResult> {
@@ -63,7 +64,8 @@ export async function sendAgentMessage(
       body: JSON.stringify({
         messages,
         currentFiles,
-        model,
+        model: 'gpt-5.6-luna',
+        reasoningEffort: useModelStore.getState().reasoningEffort,
       }),
       signal: requestController.signal,
     });

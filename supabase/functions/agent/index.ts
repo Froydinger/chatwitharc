@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const AI_GATEWAY = "https://api.openai.com/v1/chat/completions";
-const DEFAULT_AGENT_MODEL = "gpt-5.6-terra";
+const DEFAULT_AGENT_MODEL = "gpt-5.6-luna";
 const AI_REQUEST_TIMEOUT_MS = 90000;
 
 const AGENT_SYSTEM_PROMPT = `You are **Arc Code**, a senior software engineer building production-ready React web apps.
@@ -118,7 +118,7 @@ serve(async (req) => {
       });
     }
 
-    const { messages: rawMessages, currentFiles, model } = await req.json();
+    const { messages: rawMessages, currentFiles, reasoningEffort } = await req.json();
     const messages = normalizeMessages(rawMessages);
     if (messages.length === 0) {
       return new Response(JSON.stringify({ error: "At least one user message is required." }), {
@@ -152,7 +152,10 @@ serve(async (req) => {
           send({ type: "status", message: "Planning and writing code…" });
           const conversationMessages = [{ role: "system", content: systemPrompt }, ...messages];
 
-          const targetModel = model || DEFAULT_AGENT_MODEL;
+          const targetModel = DEFAULT_AGENT_MODEL;
+          const selectedReasoningEffort = ['low', 'medium', 'high'].includes(reasoningEffort)
+            ? reasoningEffort
+            : 'medium';
           const isReasoning = targetModel.startsWith("o1") || targetModel.startsWith("o3") || targetModel.startsWith("gpt-5.");
 
           const aiAbortController = new AbortController();
@@ -168,7 +171,7 @@ serve(async (req) => {
                 messages: conversationMessages,
                 stream: false,
                 ...(isReasoning
-                  ? { max_completion_tokens: 25000 }
+                  ? { max_completion_tokens: 25000, reasoning_effort: selectedReasoningEffort }
                   : { max_tokens: 12000, temperature: 0.2 }
                 ),
               }),

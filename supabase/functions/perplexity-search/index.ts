@@ -68,13 +68,13 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5.6-terra',
+            model: 'gpt-5.6-luna',
             messages: [
               { role: 'system', content: 'You are a precise, concise summarizer. Output exactly one sentence of key facts. Strict maximum of 20 words. No quotes, no markdown, no headings.' },
               { role: 'user', content: prompt }
             ],
-            max_tokens: 50,
-            temperature: 0.3,
+            max_completion_tokens: 4096,
+            reasoning_effort: 'low',
           }),
         });
 
@@ -197,11 +197,13 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5.6-terra',
+            model: 'gpt-5.6-luna',
             messages: [
               { role: 'system', content: synthSystem },
               { role: 'user', content: synthUser },
             ],
+            reasoning_effort: 'high',
+            max_completion_tokens: 65536,
           }),
         });
         if (aiResp.ok) {

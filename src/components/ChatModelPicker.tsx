@@ -1,64 +1,43 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MoonStar, Earth, Sun, RefreshCcwDot, Check, ChevronDown, Lock } from 'lucide-react';
-import { useModelStore, AUTO_MODEL, LUNA_MODEL, TERRA_MODEL, SOL_MODEL, type ChatModel } from '@/store/useModelStore';
-import { useSubscription } from '@/hooks/useSubscription';
+import { Zap, MoonStar, Brain, Check, ChevronDown } from 'lucide-react';
+import { useModelStore, type LunaReasoningEffort } from '@/store/useModelStore';
 import { cn } from '@/lib/utils';
 
-// Restore point marker — safe rebuild checkpoint
 interface Props {
   className?: string;
   compact?: boolean;
-  /** kept for backwards compat — dropdown is portaled and auto-anchors below button */
+  /** Kept for backwards compatibility; the dropdown auto-anchors below the button. */
   placement?: 'up' | 'down';
 }
 
-const MODEL_ICON_COLORS = {
-  auto: 'text-primary',
-  luna: 'text-[#c084fc] drop-shadow-[0_0_8px_rgba(192,132,252,0.7)]',
-  terra: 'text-[#39ff88] drop-shadow-[0_0_8px_rgba(57,255,136,0.65)]',
-  sol: 'text-[#ff8a1f] drop-shadow-[0_0_8px_rgba(255,138,31,0.65)]',
-} as const;
+const PRESETS = [
+  { effort: 'low', title: 'Quick', subtitle: 'Faster everyday answers', icon: Zap },
+  { effort: 'medium', title: 'Balanced', subtitle: 'Default speed and reasoning', icon: MoonStar },
+  { effort: 'high', title: 'Deep', subtitle: 'More reasoning for harder work', icon: Brain },
+] as const;
 
 export function ChatModelPicker({ className }: Props) {
-  const chatModel = useModelStore((s) => s.chatModel);
-  const setChatModel = useModelStore((s) => s.setChatModel);
-  const { hasBoost, openCheckout } = useSubscription();
+  const reasoningEffort = useModelStore((state) => state.reasoningEffort);
+  const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const activePreset = PRESETS.find((preset) => preset.effort === reasoningEffort) ?? PRESETS[1];
+  const CurrentIcon = activePreset.icon;
 
-  let current = 'Auto';
-  let CurrentIcon = RefreshCcwDot;
-  let currentIconClass: string = MODEL_ICON_COLORS.auto;
-  if (chatModel === LUNA_MODEL) {
-    current = 'Luna';
-    CurrentIcon = MoonStar;
-    currentIconClass = MODEL_ICON_COLORS.luna;
-  } else if (chatModel === TERRA_MODEL) {
-    current = 'Terra';
-    CurrentIcon = Earth;
-    currentIconClass = MODEL_ICON_COLORS.terra;
-  } else if (chatModel === SOL_MODEL) {
-    current = 'Sol';
-    CurrentIcon = Sun;
-    currentIconClass = MODEL_ICON_COLORS.sol;
-  }
-
-  // Compute position when opening, and on resize/scroll while open.
   useEffect(() => {
     if (!open) return;
-    const PANEL_W = 240; // matches w-60
+    const panelWidth = 272;
     const compute = () => {
-      const el = btnRef.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      const vw = window.innerWidth;
+      const element = btnRef.current;
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
       const margin = 8;
-      let left = r.left + r.width / 2 - PANEL_W / 2;
-      left = Math.max(margin, Math.min(left, vw - PANEL_W - margin));
-      setCoords({ top: r.bottom + 6, left });
+      let left = rect.left + rect.width / 2 - panelWidth / 2;
+      left = Math.max(margin, Math.min(left, window.innerWidth - panelWidth - margin));
+      setCoords({ top: rect.bottom + 6, left });
     };
     compute();
     window.addEventListener('resize', compute);
@@ -69,13 +48,8 @@ export function ChatModelPicker({ className }: Props) {
     };
   }, [open]);
 
-  const pick = (m: ChatModel) => {
-    if (m === SOL_MODEL && !hasBoost) {
-      openCheckout();
-      setOpen(false);
-      return;
-    }
-    setChatModel(m);
+  const pick = (effort: LunaReasoningEffort) => {
+    setReasoningEffort(effort);
     setOpen(false);
   };
 
@@ -84,16 +58,16 @@ export function ChatModelPicker({ className }: Props) {
       <button
         ref={btnRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setOpen((value) => !value)}
         className={cn(
           'glass-btn inline-flex items-center gap-1.5 h-10 px-4 rounded-full text-sm font-semibold text-foreground/90',
           className,
         )}
-        aria-label={`Model: ${current}`}
-        title={`Model: ${current} — tap to change`}
+        aria-label={`Luna reasoning: ${activePreset.title}`}
+        title={`Luna · ${activePreset.title} — tap to change reasoning level`}
       >
-        <CurrentIcon className={cn('h-4 w-4', currentIconClass)} />
-        <span>{current}</span>
+        <CurrentIcon className="h-4 w-4 text-primary" />
+        <span>Luna · {activePreset.title}</span>
         <ChevronDown className={cn('h-3.5 w-3.5 opacity-60 transition-transform', open && 'rotate-180')} />
       </button>
 
@@ -101,47 +75,29 @@ export function ChatModelPicker({ className }: Props) {
         <AnimatePresence>
           {open && coords && (
             <>
-              <div
-                className="fixed inset-0 z-[9998]"
-                onClick={() => setOpen(false)}
-              />
+              <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
               <motion.div
                 initial={{ opacity: 0, y: -6, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -6, scale: 0.96 }}
                 transition={{ type: 'spring', stiffness: 380, damping: 26 }}
                 style={{ top: coords.top, left: coords.left }}
-                className="fixed z-[9999] w-60 rounded-2xl border border-border/40 glass shadow-2xl p-1.5"
+                className="fixed z-[9999] w-[17rem] rounded-2xl border border-border/40 glass shadow-2xl p-1.5"
               >
-                <Row
-                  icon={<RefreshCcwDot className={cn('h-4 w-4', MODEL_ICON_COLORS.auto)} />}
-                  title="Auto"
-                  subtitle="Best for letting Arc choose"
-                  active={chatModel === AUTO_MODEL}
-                  onClick={() => pick(AUTO_MODEL)}
-                />
-                <Row
-                  icon={<MoonStar className={cn('h-4 w-4', MODEL_ICON_COLORS.luna)} />}
-                  title="Luna"
-                  subtitle="GPT-5.6 · Best for quick chats & reasoning"
-                  active={chatModel === LUNA_MODEL}
-                  onClick={() => pick(LUNA_MODEL)}
-                />
-                <Row
-                  icon={<Earth className={cn('h-4 w-4', MODEL_ICON_COLORS.terra)} />}
-                  title="Terra"
-                  subtitle="GPT-5.6 · Best for code & writing"
-                  active={chatModel === TERRA_MODEL}
-                  onClick={() => pick(TERRA_MODEL)}
-                />
-                <Row
-                  icon={<Sun className={cn('h-4 w-4', MODEL_ICON_COLORS.sol)} />}
-                  title="Sol"
-                  subtitle="GPT-5.6 · Best for deep work"
-                  active={chatModel === SOL_MODEL}
-                  gated={!hasBoost}
-                  onClick={() => pick(SOL_MODEL)}
-                />
+                <div className="px-2.5 pt-2 pb-1.5">
+                  <div className="text-xs font-semibold">Luna is the only model for now</div>
+                  <div className="text-[10px] text-muted-foreground">Choose how much reasoning Luna uses.</div>
+                </div>
+                {PRESETS.map((preset) => (
+                  <Row
+                    key={preset.effort}
+                    icon={<preset.icon className="h-4 w-4 text-primary" />}
+                    title={preset.title}
+                    subtitle={preset.subtitle}
+                    active={reasoningEffort === preset.effort}
+                    onClick={() => pick(preset.effort)}
+                  />
+                ))}
               </motion.div>
             </>
           )}
@@ -152,19 +108,11 @@ export function ChatModelPicker({ className }: Props) {
   );
 }
 
-function Row({
-  icon,
-  title,
-  subtitle,
-  active,
-  gated,
-  onClick,
-}: {
+function Row({ icon, title, subtitle, active, onClick }: {
   icon: React.ReactNode;
   title: string;
   subtitle: string;
   active?: boolean;
-  gated?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -176,14 +124,9 @@ function Row({
         active ? 'bg-primary/15' : 'hover:bg-white/5',
       )}
     >
-      <div className="w-7 h-7 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">
-        {icon}
-      </div>
+      <div className="w-7 h-7 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">{icon}</div>
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-semibold flex items-center justify-between gap-1.5">
-          <span>{title}</span>
-          {gated && <Lock className="h-3 w-3 text-muted-foreground/60" />}
-        </div>
+        <div className="text-xs font-semibold">{title}</div>
         <div className="text-[10px] text-muted-foreground truncate">{subtitle}</div>
       </div>
       {active && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}

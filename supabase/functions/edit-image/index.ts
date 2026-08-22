@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { Image, decode } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import { uploadImageToR2 } from "../_shared/r2.ts";
+import { fetchPublicMedia } from "../_shared/safeRemoteMedia.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 
@@ -200,13 +201,12 @@ async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob;
   if (url.startsWith('data:')) {
     const commaIdx = url.indexOf(',');
     const b64 = url.slice(commaIdx + 1);
+    if (b64.length > 35 * 1024 * 1024) throw new Error('Source image is too large');
     const bin = atob(b64);
     bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   } else {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to fetch source image: ${res.status}`);
-    bytes = new Uint8Array(await res.arrayBuffer());
+    bytes = (await fetchPublicMedia(url)).bytes;
   }
 
   const sniffed = sniffImageMime(bytes);
@@ -275,8 +275,7 @@ async function cropTo16x9(imageUrl: string): Promise<string> {
     bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   } else {
-    const res = await fetch(imageUrl);
-    bytes = new Uint8Array(await res.arrayBuffer());
+    bytes = (await fetchPublicMedia(imageUrl)).bytes;
   }
   const decoded = await decode(bytes) as Image;
   const w = decoded.width;

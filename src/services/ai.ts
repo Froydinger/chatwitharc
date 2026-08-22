@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { getModelForTask } from "@/store/useModelStore";
+import { getModelForTask, useModelStore } from "@/store/useModelStore";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext } from "@/lib/userLocation";
 
 // Detect if a user message warrants upgrading to a more powerful model
@@ -40,12 +40,12 @@ export function detectComplexQuery(message: string): boolean {
   return false;
 }
 
-// Graded query complexity for Auto model routing (0 simple -> 3 very complex)
+// Graded complexity still controls timeouts and task routing; Luna remains the model.
 export function getQueryComplexity(message: string): 0 | 1 | 2 | 3 {
   if (!message) return 0;
   const lower = message.toLowerCase().trim();
 
-  // Genuinely heavyweight requests (complexity 3 -> Sol)
+  // Genuinely heavyweight requests.
   if (
     lower.length > 2000 ||
     lower.includes("deep think") ||
@@ -57,7 +57,7 @@ export function getQueryComplexity(message: string): 0 | 1 | 2 | 3 {
     return 3;
   }
 
-  // Complex reasoning/coding requests (complexity 2 -> Terra)
+  // Complex reasoning/coding requests.
   if (
     lower.length > 500 ||
     detectComplexQuery(message) ||
@@ -101,7 +101,7 @@ Available pages and links:
 - Memory Page: https://askarc.chat/memory (Alternative link to manage memories)
 
 Key UI Elements & How to Use Them:
-- Model Picker Dropdown: Located at the top left of the chat window. Users can click this to switch between "Auto" (best for letting Arc choose), "Luna" (best for quick chats and reasoning), "Terra" (best for code and writing), and "Sol" (best for deep work — requires Boost).
+- Model Picker Dropdown: Located at the top left of the chat window. Luna is the default and only model for now. Users can choose Quick, Balanced, or Deep reasoning.
 - Theme: Arc uses a fixed black-and-white Noir palette. Users can switch between light, dark, and system themes from the chat controls or Appearance settings.
 - Voice Mode: Users can click the microphone icon in the chat input or the headphone button to start real-time voice chat.
 - Canvas Mode: Activates automatically for code or long-form writing, showing an editor panel on the right side of the screen.
@@ -183,7 +183,7 @@ export class AIService {
     forceCode?: boolean,
     forceResearch?: boolean,
     guestMode?: boolean,
-    modelOverride?: string
+    _modelOverride?: string
   ): Promise<SendMessageResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Chat service is not available. Please configure Supabase.');
@@ -264,7 +264,7 @@ export class AIService {
       const isComplex = !isCanvasOrCode && detectComplexQuery(lastUserMsg);
       
       const complexity = getQueryComplexity(lastUserMsg);
-      const selectedModel = modelOverride || (forceCode
+      const selectedModel = forceCode
         ? getModelForTask('code', complexity)
         : forceCanvas
           ? getModelForTask('file-gen', complexity)
@@ -272,7 +272,8 @@ export class AIService {
             ? getModelForTask('chat', complexity)
             : isComplex
               ? getModelForTask('deep-chat', complexity)
-              : getModelForTask('chat', complexity));
+              : getModelForTask('chat', complexity);
+      const reasoningEffort = useModelStore.getState().reasoningEffort;
 
       // Use longer timeout for canvas/code generation or complex queries (especially with 3.1 Pro)
       const timeoutMs = (isCanvasOrCode || isComplex) ? this.canvasTimeoutMs : this.defaultTimeoutMs;
@@ -297,6 +298,7 @@ export class AIService {
                 messages: [UI_CONTEXT_PROMPT, ...messages],
                 profile: effectiveProfile,
                 model: selectedModel,
+                reasoningEffort,
                 sessionId: sessionId,
                 forceWebSearch: forceWebSearch || false,
                 forceCanvas: forceCanvas || false,
@@ -453,6 +455,7 @@ export class AIService {
           : isComplex
             ? getModelForTask('deep-chat', complexity)
             : getModelForTask('chat', complexity);
+    const reasoningEffort = useModelStore.getState().reasoningEffort;
 
     // Enrich profile with context blocks (same as sendMessage)
     let enrichedProfile = profile || {};
@@ -498,6 +501,7 @@ export class AIService {
         messages: [UI_CONTEXT_PROMPT, ...messages],
         profile: enrichedProfile,
         model: selectedModel,
+        reasoningEffort,
         forceCanvas,
         forceCode,
         forceWebSearch,
@@ -628,7 +632,7 @@ export class AIService {
 
     try {
       const { data, error } = await supabase.functions.invoke('analyze-document', {
-        body: { messages, fileBase64, fileName, mimeType }
+        body: { messages, fileBase64, fileName, mimeType, reasoningEffort: useModelStore.getState().reasoningEffort }
       });
 
       if (error) {
@@ -666,7 +670,8 @@ export class AIService {
         body: { 
           messages,
           images: images,
-          model: selectedModel
+          model: selectedModel,
+          reasoningEffort: useModelStore.getState().reasoningEffort,
         }
       });
 
@@ -854,7 +859,7 @@ export class AIService {
       const selectedModel = getModelForTask('file-gen');
       
       const { data, error } = await supabase.functions.invoke('generate-file', {
-        body: { fileType, prompt, model: selectedModel },
+        body: { fileType, prompt, model: selectedModel, reasoningEffort: useModelStore.getState().reasoningEffort },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`
         } : undefined

@@ -30,7 +30,7 @@ const BoostGrantedEmail = ({
             <Text style={eyebrow}>Boost granted</Text>
             <Heading style={h1}>Boost is active, {name}.</Heading>
             <Text style={paragraph}>
-              ArcAI Boost has been granted to your account{adminEmail ? ` by ${adminEmail}` : ''}. You now have access to Boost features, including Sol frontier reasoning, expanded image limits, voice conversations, and publishing tools.
+              ArcAI Boost has been granted to your account{adminEmail ? ` by ${adminEmail}` : ''}. You now have access to Boost features, including higher usage limits, expanded image tools, voice conversations, and publishing tools.
             </Text>
             <Section style={ctaWrap}>
               <Button style={button} href={appUrl}>Open ArcAI</Button>

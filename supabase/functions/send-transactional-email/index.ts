@@ -32,10 +32,6 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
-
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -54,6 +50,29 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
+  }
+
+  const authHeader = req.headers.get('Authorization') ?? ''
+  const isServiceCall = authHeader === `Bearer ${supabaseServiceKey}`
+  let callerIsAdmin = false
+  if (!isServiceCall) {
+    const token = authHeader.replace(/^Bearer\s+/i, '')
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false },
+    })
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const { data: adminRow } = await supabaseAdmin
+      .from('admin_users')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    callerIsAdmin = !!adminRow
   }
 
   // Parse request body
@@ -106,6 +125,20 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
+  }
+
+  // Signed-in customers may only trigger the two support notifications, and
+  // those always go to Arc's fixed admin inbox. Admin/service callers retain
+  // the existing template and recipient behavior used by internal jobs.
+  if (!isServiceCall && !callerIsAdmin) {
+    if (templateName !== 'ticket-opened' && templateName !== 'arc-notification') {
+      return new Response(JSON.stringify({ error: 'Template not allowed' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    recipientEmail = Deno.env.get('ADMIN_EMAIL') || 'jkrd09@gmail.com'
+    recipientUserId = undefined
   }
 
   // 1. Look up template from registry (early — needed to resolve recipient)

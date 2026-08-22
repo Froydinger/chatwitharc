@@ -98,18 +98,12 @@ Deno.serve(async (req) => {
         });
       }
       
-      // Parse body early to check if it's an admin-only dispatch
-      const rawBody = await req.clone().json().catch(() => ({}));
-      const isAdminsOnly = rawBody?.admins_only === true;
-
-      if (!isAdminsOnly) {
-        const { data: isAdmin } = await admin
-          .from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle();
-        if (!isAdmin) {
-          return new Response(JSON.stringify({ error: "Admin required" }), {
-            status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
+      const { data: isAdmin } = await admin
+        .from("admin_users").select("user_id").eq("user_id", user.id).maybeSingle();
+      if (!isAdmin) {
+        return new Response(JSON.stringify({ error: "Admin required" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 

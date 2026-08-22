@@ -39,7 +39,10 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, fileBase64, fileName, mimeType } = await req.json();
+    const { messages, fileBase64, fileName, mimeType, reasoningEffort } = await req.json();
+    const selectedReasoningEffort = ['low', 'medium', 'high'].includes(reasoningEffort)
+      ? reasoningEffort
+      : 'medium';
 
     if (!messages || !fileBase64) {
       return new Response(JSON.stringify({ error: 'messages and fileBase64 are required' }), {
@@ -49,7 +52,7 @@ serve(async (req) => {
 
     console.log('Analyzing document:', fileName, 'type:', mimeType);
 
-    // Build multimodal content for GPT-5.6 Terra
+    // Build multimodal content for GPT-5.6 Luna
     const lastMessage = messages[messages.length - 1];
     const userPrompt = lastMessage?.content || `Analyze and summarize this document: ${fileName}`;
 
@@ -92,7 +95,7 @@ serve(async (req) => {
       ];
     }
 
-    const selectedModel = 'gpt-5.6-terra';
+    const selectedModel = 'gpt-5.6-luna';
     console.log('Using model:', selectedModel);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -103,6 +106,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: selectedModel,
+        reasoning_effort: selectedReasoningEffort,
         messages: [
           {
             role: 'system',

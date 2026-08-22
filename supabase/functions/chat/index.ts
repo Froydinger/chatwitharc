@@ -661,10 +661,16 @@ serve(async (req) => {
       console.log('👤 Guest mode request (no auth)');
     }
 
-    const { messages, profile, model, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
+    const { messages, profile, model, reasoningEffort, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
+
+    const allowedReasoningEfforts = new Set(['low', 'medium', 'high']);
+    const selectedReasoningEffort = allowedReasoningEfforts.has(reasoningEffort)
+      ? reasoningEffort
+      : 'medium';
 
     console.log('📊 Request details:', {
       model: model || 'gpt-5.6-luna (default)',
+      reasoningEffort: selectedReasoningEffort,
       messageCount: messages?.length || 0,
       hasProfile: !!profile,
       sessionId: sessionId || 'none (will not save in background)',
@@ -735,23 +741,11 @@ serve(async (req) => {
       );
     }
 
-    // Validate model if provided — only the user-pickable chat models are allowed.
-    // Retired ids from stale clients / saved prefs are mapped to their current replacement.
-    const legacyModelMap: Record<string, string> = {
-      'gpt-5.4-nano': 'gpt-5.6-luna',
-      'gpt-5.4-mini': 'gpt-5.6-terra',
-      'gpt-5.4': 'gpt-5.6-sol',
-      'gpt-5.5': 'gpt-5.6-sol',
-    };
-    const allowedModels = [
-      'gpt-5.6-luna',   // quickest — default quick chat
-      'gpt-5.6-terra',  // balanced
-      'gpt-5.6-sol',    // frontier
-    ];
-    const requestedModel = model ? (legacyModelMap[model] ?? model) : null;
-    const validatedModel = (requestedModel && allowedModels.includes(requestedModel)) ? requestedModel : null;
-    if (model && !validatedModel) {
-      console.warn(`⚠️ Model "${model}" not in allowed list, will use default`);
+    // Luna is the only enabled chat model. Normalize stale clients rather than
+    // rejecting them so users with an older cached frontend are not disrupted.
+    const validatedModel = 'gpt-5.6-luna';
+    if (model && model !== validatedModel) {
+      console.log(`Normalizing stale model request "${model}" to ${validatedModel}`);
     }
     
     const parsedClientOffset = (() => {
@@ -903,9 +897,10 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5.6-terra',
+            model: 'gpt-5.6-luna',
             messages: conversationMessages,
-            max_completion_tokens: 4096,
+            reasoning_effort: 'low',
+            max_completion_tokens: 65536,
           }),
         }
       );
@@ -934,7 +929,7 @@ serve(async (req) => {
     // ONLY rewrites the prompt and never executes it. Personas do NOT short-
     // circuit — they go through the full Arc flow with all tools enabled.
     if (isEnhanceMode) {
-      const enhanceModel = validatedModel || 'gpt-5.6-luna';
+      const enhanceModel = validatedModel;
       const enhanceIsReasoning = enhanceModel.includes('gpt-5.6') || enhanceModel.startsWith('o1') || enhanceModel.startsWith('o3');
       const fastResponse = await fetchWithRetry(
         'https://api.openai.com/v1/chat/completions',
@@ -945,13 +940,10 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            // Respect the caller's validated model override. Chat titles use
-            // Luna explicitly; other enhancement callers can still choose a
-            // supported model. Luna is the safe default.
             model: enhanceModel,
             messages: conversationMessages,
             temperature: enhanceIsReasoning ? undefined : 0.3,
-            reasoning_effort: enhanceIsReasoning ? 'none' : undefined,
+            reasoning_effort: enhanceIsReasoning ? selectedReasoningEffort : undefined,
             // gpt-5.6 rejects a budget this small outright — 1200 returned a flat
             // 400 on every call, silently breaking every caller of this branch.
             // Ceiling only; a rewrite still spends what it spends.
@@ -1265,28 +1257,17 @@ serve(async (req) => {
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
-    // Honor the client's conversational model choice. Auto grades complexity
-    // client-side; memory/recall is the intentional exception and always uses
-    // the dedicated Luna path below.
-    let selectedModel = validatedModel || 'gpt-5.6-luna';
+    let selectedModel = validatedModel;
     const lunaModel = 'gpt-5.6-luna';
     const explicitMemoryIntent = /\b(remember (?:this|that|what|when|how|my)|save (?:this|that) (?:to|in) (?:memory|memories)|do you remember|can you remember|recall|past (?:chat|chats|conversation|conversations)|we (?:talked|spoke|discussed)|i (?:told|mentioned) you)\b/i.test(lastUserMessage);
 
-    // Memory is a dedicated Luna subsystem. This also applies when the user
-    // explicitly picked another conversational model: the surrounding chat
-    // can use that model, but save/recall work is delegated to Luna.
+    // Memory remains on Luna, like every other text/reasoning path.
     if (toolChoice === "auto" && explicitMemoryIntent) {
       selectedModel = lunaModel;
       console.log('🧠 Explicit memory/recall intent: routing through Luna');
     }
     let finalResponseModel = selectedModel;
-    const fallbackModel = 'gpt-5.6-terra'; // Fallback for canvas/code if the primary model times out
-
-    if (wantsCode && !validatedModel) {
-      // Code with no model specified floors at Terra rather than Luna
-      selectedModel = 'gpt-5.6-terra';
-      console.log('🔧 Code mode with no model specified: defaulting to GPT-5.6 Terra');
-    }
+    const fallbackModel = lunaModel;
     
     // OpenAI models use max_completion_tokens.
     const tokenParam = { max_completion_tokens: 65536 };
@@ -1313,6 +1294,9 @@ serve(async (req) => {
           tools: toolsToUse,
           tool_choice: toolChoice,
           temperature: isReasoning ? undefined : 0.6,
+          // Chat Completions rejects function tools for GPT-5.6 unless this
+          // tool-selection call uses none. Reasoning is applied during the
+          // tool-free synthesis pass below.
           reasoning_effort: isReasoning ? 'none' : undefined,
           stream: true,
           ...tokenParam,
@@ -1660,16 +1644,17 @@ serve(async (req) => {
           tools: toolsToUse,
           tool_choice: toolChoice,
           temperature: isReasoning ? undefined : 0.6,
+          // Preserve function calling compatibility; the selected reasoning
+          // level is used in the tool-free answer/synthesis call.
           reasoning_effort: isReasoning ? 'none' : undefined,
           ...tokenParam,
         }),
       });
     } catch (primaryError) {
-      // If canvas/code mode with the reasoning model fails, try the fallback.
-      const isReasoningModel = selectedModel === 'gpt-5.6-terra';
+      // Retry canvas/code through the same enabled Luna model.
+      const isReasoningModel = selectedModel === lunaModel;
       if (isCanvasOrCodeMode && isReasoningModel) {
-        // Fallback remains GPT-5.6 Terra; no Gemini fallback.
-        const actualFallback = 'gpt-5.6-terra';
+        const actualFallback = fallbackModel;
         const fallbackTokenParam = { max_completion_tokens: 65536 };
         
         console.log('⚠️ Primary model failed, trying fallback:', actualFallback);
@@ -1686,7 +1671,7 @@ serve(async (req) => {
             tools: toolsToUse,
             tool_choice: toolChoice,
             temperature: (actualFallback.includes('gpt-5.6') || actualFallback.startsWith('o1') || actualFallback.startsWith('o3')) ? undefined : 0.6,
-            reasoning_effort: (actualFallback.includes('gpt-5.6') || actualFallback.startsWith('o1') || actualFallback.startsWith('o3')) ? 'none' : undefined,
+            reasoning_effort: 'none',
             ...fallbackTokenParam,
           }),
         });
@@ -1714,6 +1699,42 @@ serve(async (req) => {
 
     let data = await response.json();
     let assistantMessage = data.choices[0].message;
+
+    // GPT-5.6 Chat Completions currently requires reasoning_effort=none on a
+    // request that includes function tools. If no tool was selected, regenerate
+    // the user-facing answer without tools so Quick/Balanced/Deep still maps to
+    // low/medium/high reasoning without breaking function calling.
+    if (!(assistantMessage.tool_calls?.length > 0)) {
+      try {
+        const reasonedResponse = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: lunaModel,
+            messages: conversationMessages,
+            reasoning_effort: selectedReasoningEffort,
+            max_completion_tokens: 65536,
+          }),
+        });
+        if (reasonedResponse.ok) {
+          const reasonedData = await reasonedResponse.json();
+          const reasonedMessage = reasonedData.choices?.[0]?.message;
+          if (reasonedMessage?.content) {
+            assistantMessage = reasonedMessage;
+            data = reasonedData;
+          } else {
+            console.warn('Reasoning synthesis returned no content; using initial Luna answer');
+          }
+        } else {
+          console.warn(`Reasoning synthesis failed with ${reasonedResponse.status}; using initial Luna answer`);
+        }
+      } catch (error) {
+        console.warn('Reasoning synthesis failed; using initial Luna answer', error);
+      }
+    }
 
     // If a non-Luna conversational model decided a memory tool is needed,
     // have Luna regenerate that tool call before execution. This keeps the
@@ -1743,7 +1764,7 @@ serve(async (req) => {
               tools: [memoryTool],
               tool_choice: { type: 'function', function: { name: toolName } },
               reasoning_effort: 'none',
-              max_completion_tokens: 1200,
+              max_completion_tokens: 65536,
             }),
           });
 
@@ -2245,7 +2266,7 @@ serve(async (req) => {
         console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
         const usedMemoryTool = toolsUsed.some(name => memoryToolNames.has(name));
-        const secondCallModel = usedMemoryTool ? lunaModel : (validatedModel || lunaModel);
+        const secondCallModel = lunaModel;
         if (usedMemoryTool) finalResponseModel = lunaModel;
         const secondTokenParam = { max_completion_tokens: 65536 };
         const isSecondCallReasoning = secondCallModel.includes('gpt-5.6') || secondCallModel.startsWith('o1') || secondCallModel.startsWith('o3');
@@ -2259,6 +2280,7 @@ serve(async (req) => {
             model: secondCallModel,
             messages: synthesisMessages,
             temperature: isSecondCallReasoning ? undefined : 0.6,
+            reasoning_effort: isSecondCallReasoning ? selectedReasoningEffort : undefined,
             ...secondTokenParam,
           }),
         });

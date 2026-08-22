@@ -122,7 +122,8 @@ Keep "text" short (25-35 chars), put full context in "fullPrompt".`
           content: userContext
         }
       ],
-      max_completion_tokens: 500,
+      reasoning_effort: 'low',
+      max_completion_tokens: 65536,
     };
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

@@ -177,7 +177,8 @@ Example format:
             : 'Generate 6 personalized smart prompts for me based on my profile and chat history.' 
           }
         ],
-        max_completion_tokens: 1000,
+        reasoning_effort: 'low',
+        max_completion_tokens: 65536,
       }),
     });
 

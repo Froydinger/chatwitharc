@@ -9,8 +9,8 @@ import { BOOST_PRICE_ID, BOOST_ANNUAL_PRICE_ID } from "@/lib/stripe";
 import { motion } from "framer-motion";
 
 const BOOST_FEATURES = [
-  "Unlimited frontier reasoning (GPT-5.6 Sol)",
-  "Unlimited GPT-5.6 Terra chats",
+  "Higher Luna chat and reasoning limits",
+  "Quick, Balanced & Deep reasoning",
   "Premium Image Generation (GPT-Image-2)",
   "Advanced image editing studio",
   "Publish live web apps to custom links",

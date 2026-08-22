@@ -153,18 +153,13 @@ is not the thing deploying edge functions or migrations.
 
 ## Notes
 
-- Chat models in the picker use their real GPT-5.6 names (no in-house tier
-  names): Auto, Luna (`gpt-5.6-luna`, moon icon), Terra (`gpt-5.6-terra`,
-  earth icon), Sol (`gpt-5.6-sol`, sun icon, Boost-gated) — defined in
-  `src/store/useModelStore.ts`, picker in `src/components/ChatModelPicker.tsx`.
-  Retired GPT-5.4/5.5 ids are alias-mapped in `LEGACY_MODEL_MAP` (client) and
-  `legacyModelMap` in `supabase/functions/chat/index.ts` (server).
-- **Luna is the base model everywhere** — the entire GPT-5.4 line (including
-  Nano, formerly branded "Astro") is retired and must not be reintroduced.
-  Luna is the server default, the Auto floor for simple + moderate chat, and
-  the dedicated model for memory/recall, chat naming, prompt enhancement, and
-  the `generate-*-prompts` edge functions. Note Luna is a `gpt-5.6` reasoning
-  model, so calls must send `reasoning_effort` instead of `temperature`.
+- **Luna is the only text/reasoning model for now.** The picker exposes Quick,
+  Balanced, and Deep presets for `low`, `medium`, and `high`
+  `reasoning_effort`; all use `gpt-5.6-luna`. Old Auto, Terra, Sol, GPT-5.4,
+  and GPT-5.5 selections normalize to Luna on both client and server so stale
+  sessions keep working. Specialized image, realtime voice, video, and search
+  provider models remain separate. Luna calls use `reasoning_effort`, never
+  `temperature`.
 - **Accent color: Noir only.** Arc went black-and-white a long time ago and
   accent selection is retired — there is no picker to add colors back to.
   `useAccentStore.ts` force-writes `noir` to `localStorage` on every start, so

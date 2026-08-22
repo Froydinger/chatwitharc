@@ -160,7 +160,7 @@ export interface Message {
     | 'cloud-image-edit-fallback'
     | 'cloud-video'
     | 'cloud-ide';
-  // Exact model id that produced this response (e.g. 'gpt-5.6-terra').
+  // Exact model id that produced this response (currently 'gpt-5.6-luna').
   // Stored at send time so the badge shows what actually ran, not the
   // picker's current selection.
   modelUsed?: string;

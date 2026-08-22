@@ -49,7 +49,10 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, image, images, model } = await req.json();
+    const { messages, image, images, reasoningEffort } = await req.json();
+    const selectedReasoningEffort = ['low', 'medium', 'high'].includes(reasoningEffort)
+      ? reasoningEffort
+      : 'medium';
 
     // Support both single image and multiple images (up to 4)
     const imageArray = images || (image ? [image] : []);
@@ -88,16 +91,8 @@ serve(async (req) => {
       contentArray.push({ type: 'image_url', image_url: { url: img } });
     });
 
-    // Allowlist supported vision models — fall back to default if unknown
-    const ALLOWED_MODELS = new Set([
-      'gpt-5.6-terra',
-      'gpt-5.6-terra',
-      'gpt-5.6-terra',
-      'gpt-5.6-terra',
-    ]);
-    const selectedModel = (typeof model === 'string' && ALLOWED_MODELS.has(model))
-      ? model
-      : 'gpt-5.6-terra';
+    // Luna is the only enabled text/vision reasoning model for now.
+    const selectedModel = 'gpt-5.6-luna';
     console.log('Using model for image analysis:', selectedModel);
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -108,6 +103,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: selectedModel,
+        reasoning_effort: selectedReasoningEffort,
         messages: [
           {
             role: 'system',

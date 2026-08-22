@@ -178,9 +178,27 @@ export function TicketChat({ ticketId, onBack, isAdmin }: TicketChatProps) {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !supabase || !user) return;
+    const allowedTypes = new Set([
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "image/heic",
+      "image/heif",
+    ]);
+    if (!allowedTypes.has(file.type)) {
+      toast({ title: "Unsupported image", description: "Choose a JPEG, PNG, WebP, GIF, HEIC, or HEIF image.", variant: "destructive" });
+      e.currentTarget.value = "";
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      toast({ title: "Image is too large", description: "Ticket images must be 15 MB or smaller.", variant: "destructive" });
+      e.currentTarget.value = "";
+      return;
+    }
     setUploading(true);
     const ext = file.name.split(".").pop();
-    const path = `${ticketId}/${crypto.randomUUID()}.${ext}`;
+    const path = `${user.id}/${ticketId}/${crypto.randomUUID()}.${ext}`;
     const { error: uploadError } = await supabase.storage.from("ticket-attachments").upload(path, file);
     if (uploadError) {
       toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
