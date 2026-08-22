@@ -153,13 +153,13 @@ is not the thing deploying edge functions or migrations.
 
 ## Notes
 
-- **Luna is the only text/reasoning model for now.** The picker exposes Quick,
-  Balanced, and Deep presets for `low`, `medium`, and `high`
-  `reasoning_effort`; all use `gpt-5.6-luna`. Old Auto, Terra, Sol, GPT-5.4,
-  and GPT-5.5 selections normalize to Luna on both client and server so stale
-  sessions keep working. Specialized image, realtime voice, video, and search
-  provider models remain separate. Luna calls use `reasoning_effort`, never
-  `temperature`.
+- **Luna is the only text/reasoning model for now.** The picker exposes Auto,
+  Quick, Balanced, and Deep. Quick, Balanced, and Deep map to `low`, `medium`,
+  and `high` `reasoning_effort`; Auto starts at Quick and steps up for clearly
+  harder requests. All use `gpt-5.6-luna`. Old Terra, Sol, GPT-5.4, and GPT-5.5
+  selections normalize to Luna on both client and server so stale sessions keep
+  working. Specialized image, realtime voice, video, and search provider models
+  remain separate. Luna calls use `reasoning_effort`, never `temperature`.
 - **Accent color: Noir only.** Arc went black-and-white a long time ago and
   accent selection is retired — there is no picker to add colors back to.
   `useAccentStore.ts` force-writes `noir` to `localStorage` on every start, so

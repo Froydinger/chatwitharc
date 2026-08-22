@@ -15,7 +15,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/pricing": {
     title: "ArcAI • Pricing",
     description:
-      "ArcAI is free forever with every model, unlimited voice, Deep Search, shared chats and web publishing. Image generation and editing include 20 outputs per account per UTC day.",
+      "ArcAI includes GPT-5.6 Luna with Auto, Quick, Balanced and Deep reasoning, plus voice, Deep Search, shared chats and web publishing.",
   },
   "/downloads": {
     title: "ArcAI • Downloads",

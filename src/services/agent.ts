@@ -1,5 +1,5 @@
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
-import { useModelStore } from '@/store/useModelStore';
+import { resolveReasoningEffort, useModelStore } from '@/store/useModelStore';
 
 const AGENT_REQUEST_TIMEOUT_MS = 120000;
 const AGENT_INACTIVITY_TIMEOUT_MS = 90000;
@@ -65,7 +65,7 @@ export async function sendAgentMessage(
         messages,
         currentFiles,
         model: 'gpt-5.6-luna',
-        reasoningEffort: useModelStore.getState().reasoningEffort,
+        reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, 2),
       }),
       signal: requestController.signal,
     });

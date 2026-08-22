@@ -67,7 +67,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["ChatGPT alternative", "ChatGPT free", "free AI chatbot"],
     updated: UPDATED,
     intro:
-      "ChatGPT's free tier is highly limited. ArcAI is a ChatGPT alternative that gives you a generous free tier with reasoning models, search citations, canvases, and long-term memory, plus a premium Boost upgrade to unlock unlimited power-user features.",
+      "ChatGPT's free tier is highly limited. ArcAI is a ChatGPT alternative that gives you a generous free tier with GPT-5.6 Luna reasoning, search citations, canvases, and long-term memory, plus a premium Boost upgrade to unlock power-user features.",
     faq: [
       {
         q: "What is the best alternative to ChatGPT?",
@@ -125,7 +125,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "Is there a free version of GPT-4?",
-        a: "ArcAI is a GPT alternative that uses GPT-5.6 Luna for chat, code, writing, and analysis, with Quick, Balanced, and Deep reasoning choices.",
+        a: "ArcAI is a GPT alternative that uses GPT-5.6 Luna for chat, code, writing, and analysis, with Auto, Quick, Balanced, and Deep reasoning choices. Auto starts with Quick and steps up when needed.",
       },
       {
         q: "What model does ArcAI use for chat?",
@@ -417,13 +417,13 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-gpt-4-alternative": {
     angle: "Most people searching for a GPT-4 alternative want strong reasoning without turning every useful feature into a massive monthly bill. ArcAI focuses on GPT-class quality with practical tools around it.",
     useCases: ["reasoning through hard questions", "writing drafts", "debugging code", "summarizing documents", "generating images", "turning ideas into apps"],
-    freeAccess: "Free accounts get GPT-5.6 Luna with Quick, Balanced, and Deep reasoning choices; Boost adds higher usage limits and premium tools.",
+    freeAccess: "Free accounts get GPT-5.6 Luna with Auto, Quick, Balanced, and Deep reasoning choices; Boost adds higher usage limits and premium tools.",
     proof: "The result is GPT-style usefulness without needing to choose between chat, voice, images, memory, and code in separate products.",
   },
   "free-claude-alternative": {
     angle: "Claude is known for thoughtful writing and analysis, but many users want that style of assistance with voice, images, coding, and memory in the same product.",
     useCases: ["long-form writing", "structured thinking", "brainstorming", "code review", "voice notes", "saved personal context"],
-    freeAccess: "We offer both a generous free tier for daily use, and a Boost upgrade for power users seeking unlimited reasoning models.",
+    freeAccess: "We offer both a generous free tier for daily use and a Boost upgrade with higher Luna chat limits for power users.",
     proof: "ArcAI is especially useful when you want a writing-friendly assistant that can also create, search, speak, and remember.",
   },
   "best-free-ai-assistant-2026": {
@@ -477,7 +477,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-ai-for-writing": {
     angle: "A useful AI writing assistant should help with structure, voice, edits, outlines, rewrites, titles, summaries, and long-form drafts — not just produce generic paragraphs.",
     useCases: ["blog posts", "essays", "emails", "scripts", "brand copy", "editing tone"],
-    freeAccess: "Writers can draft, edit, and analyze documents on our free tier, or upgrade to Boost for advanced reasoning models.",
+    freeAccess: "Writers can draft, edit, and analyze documents on our free tier, or upgrade to Boost for higher Luna chat limits.",
     proof: "ArcAI is strongest when writing is connected to the rest of your context: memory, research, files, and drafts.",
   },
   "how-to-use-arcai-free": {

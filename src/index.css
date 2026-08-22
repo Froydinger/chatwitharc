@@ -1062,12 +1062,12 @@ All colors MUST be HSL for perfect glass effects.
   }
 
   /* Folder header list items (hover states) */
-  .group.flex.items-center.justify-between.px-2.py-1.5.cursor-pointer.hover\:bg-muted\/30:hover {
+  .group.flex.items-center.justify-between.px-2.py-1\.5.cursor-pointer.hover\:bg-muted\/30:hover {
     background: rgba(255, 255, 255, 0.02) !important;
     border-color: rgba(255, 255, 255, 0.08) !important;
     box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.05) !important;
   }
-  :root.light .group.flex.items-center.justify-between.px-2.py-1.5.cursor-pointer.hover\:bg-muted\/30:hover {
+  :root.light .group.flex.items-center.justify-between.px-2.py-1\.5.cursor-pointer.hover\:bg-muted\/30:hover {
     background: rgba(255, 255, 255, 0.45) !important;
     border-color: rgba(0, 0, 0, 0.06) !important;
     box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.5) !important;
@@ -1752,5 +1752,4 @@ All colors MUST be HSL for perfect glass effects.
   -webkit-app-region: drag;
   pointer-events: auto;
 }
-
 

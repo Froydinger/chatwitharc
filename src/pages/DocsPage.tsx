@@ -56,23 +56,24 @@ export function DocsPage() {
     {
       id: "switch-model",
       category: "models",
-      title: "How to switch models in ArcAI",
-      question: "How do I switch the active AI model?",
+      title: "How to change Luna's reasoning mode",
+      question: "How do I choose a Luna reasoning mode?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            You can switch models using the <strong>Model Picker dropdown</strong> located at the 
+            You can change Luna's reasoning mode using the <strong>Model Picker dropdown</strong> located at the
             <strong> top left of the chat window</strong> (above the chat input).
           </p>
-          <p>Luna is Arc's default and only model for now. Click the picker to choose a reasoning level:</p>
+          <p>Luna is Arc's default and only model for now. Click the picker to choose a reasoning mode:</p>
           <ul className="list-disc pl-5 space-y-1.5">
+            <li><strong className="text-foreground">Auto</strong>: Starts with Quick and steps up for clearly harder requests.</li>
             <li><strong className="text-foreground">Quick</strong>: Faster everyday Luna answers.</li>
-            <li><strong className="text-foreground">Balanced</strong>: The default balance of speed and reasoning.</li>
+            <li><strong className="text-foreground">Balanced</strong>: A balance of speed and reasoning.</li>
             <li><strong className="text-foreground">Deep</strong>: More Luna reasoning for harder work.</li>
           </ul>
         </div>
       ),
-      keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "gpt-5.6", "quick", "balanced", "deep", "luna"]
+      keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "gpt-5.6", "auto", "quick", "balanced", "deep", "luna"]
     },
     {
       id: "model-quotas",

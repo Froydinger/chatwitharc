@@ -31,7 +31,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI a free ChatGPT alternative?",
-    a: "Yes. ArcAI is a powerful alternative to ChatGPT, Gemini and Claude, offering a robust free plan with reasoning models, search citations, canvases, and long-term memory.",
+    a: "Yes. ArcAI is a powerful alternative to ChatGPT, Gemini and Claude, offering a robust free plan with GPT-5.6 Luna reasoning, search citations, canvases, and long-term memory.",
   },
   {
     q: "Do I need to sign up?",
@@ -201,7 +201,7 @@ export function LandingPage() {
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { category: "Ask", icon: MessageSquare, title: "GPT-5.6 Luna Inside", body: "Choose Quick, Balanced, or Deep reasoning while Luna powers every chat, writing, code, and analysis task." },
+            { category: "Ask", icon: MessageSquare, title: "GPT-5.6 Luna Inside", body: "Choose Auto, Quick, Balanced, or Deep reasoning while Luna powers every chat, writing, code, and analysis task. Auto starts fast and steps up when needed." },
             { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
             { category: "Reflect", icon: Brain, title: "Deep Cross-Session Memory", body: "Arc is built to reflect and remember. It automatically builds a persistent Memory Bank of your preferences, goals, and facts across sessions, recalling context so it genuinely knows who you are." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },

@@ -8,6 +8,7 @@ export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-ana
 export const LUNA_MODEL = 'gpt-5.6-luna';
 export type ChatModel = typeof LUNA_MODEL;
 export type LunaReasoningEffort = 'low' | 'medium' | 'high';
+export type LunaReasoningSelection = 'auto' | LunaReasoningEffort;
 
 /** Map every retired or stale chat-model id to Luna without breaking old clients. */
 export const LEGACY_MODEL_MAP: Record<string, ChatModel> = {
@@ -26,13 +27,24 @@ interface ModelStore {
   chatModel: ChatModel;
   /** Kept for existing callers; every value normalizes to Luna. */
   setChatModel: (model: string) => void;
-  reasoningEffort: LunaReasoningEffort;
-  setReasoningEffort: (effort: LunaReasoningEffort) => void;
+  reasoningEffort: LunaReasoningSelection;
+  setReasoningEffort: (effort: LunaReasoningSelection) => void;
   isBoost: boolean;
   setIsBoost: (isBoost: boolean) => void;
 }
 
-const VALID_REASONING_EFFORTS = new Set<LunaReasoningEffort>(['low', 'medium', 'high']);
+const VALID_REASONING_SELECTIONS = new Set<LunaReasoningSelection>(['auto', 'low', 'medium', 'high']);
+
+/** Auto starts fast and only spends more reasoning on clearly harder requests. */
+export function resolveReasoningEffort(
+  selection: LunaReasoningSelection,
+  complexity: 0 | 1 | 2 | 3 = 0,
+): LunaReasoningEffort {
+  if (selection !== 'auto') return selection;
+  if (complexity >= 3) return 'high';
+  if (complexity >= 2) return 'medium';
+  return 'low';
+}
 
 export const useModelStore = create<ModelStore>()(
   persist(
@@ -41,19 +53,19 @@ export const useModelStore = create<ModelStore>()(
       setModelFamily: () => set({ modelFamily: 'openai' }),
       chatModel: LUNA_MODEL,
       setChatModel: () => set({ chatModel: LUNA_MODEL }),
-      reasoningEffort: 'medium',
+      reasoningEffort: 'auto',
       setReasoningEffort: (reasoningEffort) => set({ reasoningEffort }),
       isBoost: false,
       setIsBoost: (isBoost) => set({ isBoost }),
     }),
     {
       name: 'arc-model-family',
-      version: 3,
+      version: 4,
       migrate: (persisted: unknown) => {
         const state = (persisted ?? {}) as { reasoningEffort?: string };
-        const reasoningEffort = VALID_REASONING_EFFORTS.has(state.reasoningEffort as LunaReasoningEffort)
-          ? state.reasoningEffort as LunaReasoningEffort
-          : 'medium';
+        const reasoningEffort = VALID_REASONING_SELECTIONS.has(state.reasoningEffort as LunaReasoningSelection)
+          ? state.reasoningEffort as LunaReasoningSelection
+          : 'auto';
         return {
           modelFamily: 'openai' as const,
           chatModel: LUNA_MODEL,

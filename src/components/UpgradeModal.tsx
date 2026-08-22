@@ -150,7 +150,7 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
             <ul className="text-left space-y-2.5 mb-6 max-w-sm mx-auto">
               {[
                 "Higher GPT-5.6 Luna chat limits",
-                "Quick, Balanced & Deep Luna reasoning",
+                "Auto, Quick, Balanced & Deep Luna reasoning",
                 "20 high-fidelity GPT Image 2 outputs per day",
                 "Premium image editing (variations & base image combining)",
                 "Publish your code online at a custom arc link",

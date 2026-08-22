@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, MoonStar, Brain, Check, ChevronDown } from 'lucide-react';
-import { useModelStore, type LunaReasoningEffort } from '@/store/useModelStore';
+import { Zap, RefreshCcwDot, Scale, Brain, Check, ChevronDown } from 'lucide-react';
+import { useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -13,8 +13,9 @@ interface Props {
 }
 
 const PRESETS = [
+  { effort: 'auto', title: 'Auto', subtitle: 'Quick first, more reasoning when needed', icon: RefreshCcwDot },
   { effort: 'low', title: 'Quick', subtitle: 'Faster everyday answers', icon: Zap },
-  { effort: 'medium', title: 'Balanced', subtitle: 'Default speed and reasoning', icon: MoonStar },
+  { effort: 'medium', title: 'Balanced', subtitle: 'A balance of speed and reasoning', icon: Scale },
   { effort: 'high', title: 'Deep', subtitle: 'More reasoning for harder work', icon: Brain },
 ] as const;
 
@@ -24,7 +25,7 @@ export function ChatModelPicker({ className }: Props) {
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
-  const activePreset = PRESETS.find((preset) => preset.effort === reasoningEffort) ?? PRESETS[1];
+  const activePreset = PRESETS.find((preset) => preset.effort === reasoningEffort) ?? PRESETS[0];
   const CurrentIcon = activePreset.icon;
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export function ChatModelPicker({ className }: Props) {
     };
   }, [open]);
 
-  const pick = (effort: LunaReasoningEffort) => {
+  const pick = (effort: LunaReasoningSelection) => {
     setReasoningEffort(effort);
     setOpen(false);
   };

@@ -785,7 +785,7 @@ export function SettingsPanel() {
     <SectionCard icon={Stars} title="Usage & Quotas" subtitle="Quota allowances reset at 00:00 UTC">
       <Tile
         title="GPT-5.6 Luna Reasoning"
-        description="Quick, Balanced, and Deep reasoning levels"
+        description="Auto, Quick, Balanced, and Deep reasoning modes"
         right={
           <span className="font-mono text-primary text-sm">Available</span>
         }

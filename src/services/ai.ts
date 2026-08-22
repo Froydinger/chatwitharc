@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { getModelForTask, useModelStore } from "@/store/useModelStore";
+import { getModelForTask, resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext } from "@/lib/userLocation";
 
 // Detect if a user message warrants upgrading to a more powerful model
@@ -101,7 +101,7 @@ Available pages and links:
 - Memory Page: https://askarc.chat/memory (Alternative link to manage memories)
 
 Key UI Elements & How to Use Them:
-- Model Picker Dropdown: Located at the top left of the chat window. Luna is the default and only model for now. Users can choose Quick, Balanced, or Deep reasoning.
+- Model Picker Dropdown: Located at the top left of the chat window. Luna is the default and only model for now. Users can choose Auto, Quick, Balanced, or Deep reasoning. Auto starts with Quick reasoning and steps up for clearly harder requests.
 - Theme: Arc uses a fixed black-and-white Noir palette. Users can switch between light, dark, and system themes from the chat controls or Appearance settings.
 - Voice Mode: Users can click the microphone icon in the chat input or the headphone button to start real-time voice chat.
 - Canvas Mode: Activates automatically for code or long-form writing, showing an editor panel on the right side of the screen.
@@ -273,7 +273,7 @@ export class AIService {
             : isComplex
               ? getModelForTask('deep-chat', complexity)
               : getModelForTask('chat', complexity);
-      const reasoningEffort = useModelStore.getState().reasoningEffort;
+      const reasoningEffort = resolveReasoningEffort(useModelStore.getState().reasoningEffort, complexity);
 
       // Use longer timeout for canvas/code generation or complex queries (especially with 3.1 Pro)
       const timeoutMs = (isCanvasOrCode || isComplex) ? this.canvasTimeoutMs : this.defaultTimeoutMs;
@@ -455,7 +455,7 @@ export class AIService {
           : isComplex
             ? getModelForTask('deep-chat', complexity)
             : getModelForTask('chat', complexity);
-    const reasoningEffort = useModelStore.getState().reasoningEffort;
+    const reasoningEffort = resolveReasoningEffort(useModelStore.getState().reasoningEffort, complexity);
 
     // Enrich profile with context blocks (same as sendMessage)
     let enrichedProfile = profile || {};
@@ -632,7 +632,7 @@ export class AIService {
 
     try {
       const { data, error } = await supabase.functions.invoke('analyze-document', {
-        body: { messages, fileBase64, fileName, mimeType, reasoningEffort: useModelStore.getState().reasoningEffort }
+        body: { messages, fileBase64, fileName, mimeType, reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, 2) }
       });
 
       if (error) {
@@ -671,7 +671,7 @@ export class AIService {
           messages,
           images: images,
           model: selectedModel,
-          reasoningEffort: useModelStore.getState().reasoningEffort,
+          reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, 2),
         }
       });
 
@@ -859,7 +859,7 @@ export class AIService {
       const selectedModel = getModelForTask('file-gen');
       
       const { data, error } = await supabase.functions.invoke('generate-file', {
-        body: { fileType, prompt, model: selectedModel, reasoningEffort: useModelStore.getState().reasoningEffort },
+        body: { fileType, prompt, model: selectedModel, reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, 2) },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`
         } : undefined

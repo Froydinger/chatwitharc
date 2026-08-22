@@ -1359,7 +1359,7 @@ export function AdminPanel() {
               <Card className="border-border/60">
                 <CardHeader>
                   <CardTitle>AI Core System Prompt</CardTitle>
-                  <CardDescription>Define system instructions that govern reasoning models and chat agents</CardDescription>
+                  <CardDescription>Define system instructions that govern Luna responses and chat agents</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">

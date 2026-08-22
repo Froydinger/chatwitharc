@@ -1361,7 +1361,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
       // Add assistant prompt instructing model picker usage
       await addMessage({
-        content: "Luna is Arc's default and only model for now. Use the picker at the top of the chat to choose Quick, Balanced, or Deep reasoning.",
+        content: "Luna is Arc's default and only model for now. Use the picker at the top of the chat to choose Auto, Quick, Balanced, or Deep reasoning. Auto starts with Quick and steps up for clearly harder requests.",
         role: "assistant",
         type: "text",
         sourceModel: "cloud-chat",

@@ -10,7 +10,7 @@ import { motion } from "framer-motion";
 
 const BOOST_FEATURES = [
   "Higher Luna chat and reasoning limits",
-  "Quick, Balanced & Deep reasoning",
+  "Auto, Quick, Balanced & Deep reasoning",
   "Premium Image Generation (GPT-Image-2)",
   "Advanced image editing studio",
   "Publish live web apps to custom links",
