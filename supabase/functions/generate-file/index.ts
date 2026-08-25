@@ -105,14 +105,20 @@ const systemPrompt = `You are a world-class document designer and content creato
 
 For PDF content:
 - Create visually structured documents with clear hierarchy
-- Use "═══════════════════════════════════" for major section dividers
-- Use "───────────────────────────────────" for minor section dividers  
-- Use "•" for bullet points, "  ◦" for sub-bullets
-- Use UPPERCASE for main headings, Title Case for subheadings
+- The PDF renderer understands markdown, so use it: "#"/"##"/"###" headings,
+  **bold**, *italic*, inline code, > blockquotes, fenced code blocks and | tables |.
+  Markers are typeset, never printed literally.
+- Use "-" or "•" for bullets and indent two spaces per sub-bullet level;
+  "1." / "2." for numbered lists
+- Use "═══════════════════════════════════" for major section dividers and
+  "───────────────────────────────────" for minor ones — both are drawn as
+  real horizontal rules
+- UPPERCASE lines are also treated as headings, so keep them short
 - Add generous spacing between sections (2-3 blank lines between major sections)
-- For writing lines, use "________________________________________"
+- For fill-in-the-blank writing lines, use "________________________________________"
+- Accented and Latin-1 text (café, €, £, —) renders correctly; avoid emoji,
+  which are dropped
 - Structure content with clear visual rhythm: heading → description → details → spacing
-- Think about information hierarchy and visual balance
 - Make it printer-friendly and scannable
 
 For DOCX/DOC content:
@@ -499,152 +505,878 @@ async function generateZipFile(content: string): Promise<Uint8Array> {
   }
 }
 
-// Improved PDF generator with proper text wrapping and formatting
-async function generateSimplePDF(content: string): Promise<Uint8Array> {
-  const pageWidth = 612; // 8.5 inches * 72 points/inch
-  const pageHeight = 792; // 11 inches * 72 points/inch
-  const margin = 72; // 1 inch margins for printability
-  const lineHeight = 18; // Increased for better readability and writing space
-  const maxWidth = pageWidth - (margin * 2);
-  const charsPerLine = 70; // Slightly reduced for better margins
-  
-  // Normalize unicode chars that the built-in Helvetica WinAnsi font can't render
-  // (smart quotes, bullets, em/en dashes, ellipsis, etc) into ASCII equivalents.
-  // Without this, the PDF shows "¢" or garbled characters in place of "•", "'", etc.
-  const sanitizeForPdf = (s: string): string => s
-    .replace(/[\u2018\u2019\u201A\u2032]/g, "'")     // curly single quotes / prime
-    .replace(/[\u201C\u201D\u201E\u2033]/g, '"')     // curly double quotes / prime
-    .replace(/[\u2013\u2014\u2015]/g, '-')           // en/em dashes
-    .replace(/\u2026/g, '...')                       // ellipsis
-    .replace(/[\u2022\u25E6\u00B7\u2027]/g, '-')     // bullets -> dash
-    .replace(/[\u2192\u2794]/g, '->')
-    .replace(/[\u2190]/g, '<-')
-    .replace(/\u00A0/g, ' ')                         // nbsp
-    .replace(/[\u2009\u200A\u200B\u200C\u200D\uFEFF]/g, '') // thin/zero-width spaces
-    .replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '?');      // strip anything else non-ASCII
+// ---------------------------------------------------------------------------
+// PDF generation
+//
+// Writes a real PDF byte stream (no external deps, edge-function friendly).
+// Three things matter here and are easy to get wrong:
+//   1. Offsets in the xref table are BYTE offsets. Everything is assembled as
+//      Uint8Array chunks so a multi-byte char can never desync the table.
+//   2. Text is encoded as WinAnsi (the encoding declared on the fonts), so
+//      accented Latin text ("café", "résumé", "£", "€") renders as written
+//      instead of being replaced with "?".
+//   3. The model is asked for visually structured output, so markdown and
+//      box-drawing dividers are rendered as formatting (bold headings, real
+//      bullets, drawn rules) rather than printed as literal characters.
+// ---------------------------------------------------------------------------
 
-  // Split content into lines and wrap long lines
-  const rawLines = sanitizeForPdf(content).split('\n');
-  const wrappedLines: string[] = [];
-  
-  for (const line of rawLines) {
-    // Convert underscore placeholders to actual underscores for blank lines
-    if (line.includes('________________')) {
-      wrappedLines.push(line.replace(/_{16,}/g, '________________________________________'));
+type PdfStyle = 'regular' | 'bold' | 'italic' | 'bolditalic' | 'mono' | 'monobold';
+
+interface PdfRun {
+  text: string;
+  style: PdfStyle;
+}
+
+// Font resource names, in the order the font objects are written.
+const PDF_FONT_NAMES: Record<PdfStyle, string> = {
+  regular: 'F1',
+  bold: 'F2',
+  italic: 'F3',
+  bolditalic: 'F4',
+  mono: 'F5',
+  monobold: 'F6',
+};
+
+const PDF_BASE_FONTS: Array<[string, string]> = [
+  ['F1', 'Helvetica'],
+  ['F2', 'Helvetica-Bold'],
+  ['F3', 'Helvetica-Oblique'],
+  ['F4', 'Helvetica-BoldOblique'],
+  ['F5', 'Courier'],
+  ['F6', 'Courier-Bold'],
+];
+
+// --- WinAnsi encoding ------------------------------------------------------
+
+// Characters that live in the 0x80-0x9F range of WinAnsiEncoding.
+const WINANSI_HIGH: Record<string, number> = {
+  '€': 0x80, '‚': 0x82, 'ƒ': 0x83, '„': 0x84,
+  '…': 0x85, '†': 0x86, '‡': 0x87, 'ˆ': 0x88,
+  '‰': 0x89, 'Š': 0x8a, '‹': 0x8b, 'Œ': 0x8c,
+  'Ž': 0x8e, '‘': 0x91, '’': 0x92, '“': 0x93,
+  '”': 0x94, '•': 0x95, '–': 0x96, '—': 0x97,
+  '˜': 0x98, '™': 0x99, 'š': 0x9a, '›': 0x9b,
+  'œ': 0x9c, 'ž': 0x9e, 'Ÿ': 0x9f,
+};
+
+// Characters WinAnsi has no glyph for, but that carry meaning worth keeping.
+const PDF_TRANSLITERATE: Record<string, string> = {
+  '→': '->', '➔': '->', '⇒': '=>', '←': '<-', '⇐': '<=',
+  '↔': '<->', '≤': '<=', '≥': '>=', '≠': '!=', '×': 'x',
+  '−': '-', '⁄': '/', '‧': '•', '◦': 'o', '‣': '•',
+  '⁃': '-', '▪': '•', '▫': 'o', '●': '•', '○': 'o',
+  '✓': '[x]', '✔': '[x]', '☐': '[ ]', '☑': '[x]', '☒': '[x]',
+  '\u2717': '[ ]', '\u2718': '[ ]', '\u2605': '*', '\u2606': '*',
+  // Exotic spaces (thin, narrow-nbsp, figure, em/en quad...) -> plain space
+  '\u2000': ' ', '\u2001': ' ', '\u2002': ' ', '\u2003': ' ', '\u2004': ' ',
+  '\u2005': ' ', '\u2006': ' ', '\u2007': ' ', '\u2008': ' ', '\u2009': ' ',
+  '\u200a': ' ', '\u202f': ' ', '\u205f': ' ', '\u3000': ' ',
+};
+
+// Dropped outright: zero-width joiners, variation selectors, emoji modifiers.
+function isDroppedChar(code: number): boolean {
+  return (
+    (code >= 0x200b && code <= 0x200d) || // zero-width space/non-joiner/joiner
+    code === 0xfeff ||                    // BOM
+    (code >= 0xfe00 && code <= 0xfe0f) || // variation selectors
+    (code >= 0x1f3fb && code <= 0x1f3ff)  // emoji skin-tone modifiers
+  );
+}
+
+function encodeWinAnsi(text: string): number[] {
+  const out: number[] = [];
+  for (const char of text) {
+    const code = char.codePointAt(0)!;
+
+    if (code >= 0x20 && code <= 0x7e) { out.push(code); continue; }
+    if (code === 0x09) { out.push(0x20); continue; }
+
+    const high = WINANSI_HIGH[char];
+    if (high !== undefined) { out.push(high); continue; }
+
+    // A0-FF map one-to-one onto Latin-1 in WinAnsi (except the unused A0/AD).
+    if (code >= 0xa1 && code <= 0xff) { out.push(code); continue; }
+
+    const replacement = PDF_TRANSLITERATE[char];
+    if (replacement !== undefined) { out.push(...encodeWinAnsi(replacement)); continue; }
+
+    if (isDroppedChar(code)) continue;
+
+    // Last resort: strip diacritics and keep the base letters if that lands
+    // in ASCII (handles ā, ș, ł-adjacent forms and similar).
+    const stripped = char.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (stripped !== char && /^[\x20-\x7e]+$/.test(stripped)) {
+      out.push(...encodeWinAnsi(stripped));
+    }
+    // Anything else (emoji, CJK) is dropped rather than turned into "?" —
+    // printing filler characters the user never wrote is worse than omitting.
+  }
+  return out;
+}
+
+// --- Glyph widths (AFM units / 1000) --------------------------------------
+
+const HELVETICA_WIDTHS = [
+  278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 278, 278,
+  556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 278, 278, 584, 584, 584, 556,
+  1015, 667, 667, 722, 722, 667, 611, 778, 722, 278, 500, 667, 556, 833, 722, 778,
+  667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 278, 278, 278, 469, 556,
+  333, 556, 556, 500, 556, 556, 278, 556, 556, 222, 222, 500, 222, 833, 556, 556,
+  556, 556, 333, 500, 278, 556, 500, 722, 500, 500, 500, 334, 260, 334, 584,
+];
+
+const HELVETICA_BOLD_WIDTHS = [
+  278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278,
+  556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611,
+  975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778,
+  667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556,
+  333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611,
+  611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584,
+];
+
+// Widths for the WinAnsi 0x80-0x9F block, keyed by byte.
+const HIGH_WIDTHS: Record<number, [number, number]> = {
+  0x80: [556, 556], 0x82: [222, 278], 0x83: [556, 556], 0x84: [333, 500],
+  0x85: [1000, 1000], 0x86: [556, 556], 0x87: [556, 556], 0x88: [333, 333],
+  0x89: [1000, 1000], 0x8a: [667, 667], 0x8b: [333, 333], 0x8c: [1000, 1000],
+  0x8e: [611, 611], 0x91: [222, 278], 0x92: [222, 278], 0x93: [333, 500],
+  0x94: [333, 500], 0x95: [350, 350], 0x96: [556, 556], 0x97: [1000, 1000],
+  0x98: [333, 333], 0x99: [1000, 1000], 0x9a: [500, 556], 0x9b: [333, 333],
+  0x9c: [944, 944], 0x9e: [500, 500], 0x9f: [667, 667],
+};
+
+// Accented byte -> the ASCII letter whose advance width it shares.
+function latin1WidthProxy(byte: number): number {
+  if (byte >= 0xc0 && byte <= 0xc6) return 0x41; // A
+  if (byte === 0xc7) return 0x43;                // C
+  if (byte >= 0xc8 && byte <= 0xcb) return 0x45; // E
+  if (byte >= 0xcc && byte <= 0xcf) return 0x49; // I
+  if (byte === 0xd0) return 0x44;                // D
+  if (byte === 0xd1) return 0x4e;                // N
+  if ((byte >= 0xd2 && byte <= 0xd6) || byte === 0xd8) return 0x4f; // O
+  if (byte >= 0xd9 && byte <= 0xdc) return 0x55; // U
+  if (byte === 0xdd || byte === 0x9f) return 0x59; // Y
+  if (byte === 0xde) return 0x50;                // P
+  if (byte === 0xdf) return 0x62;                // sharp s ~ b
+  if (byte >= 0xe0 && byte <= 0xe6) return 0x61; // a
+  if (byte === 0xe7) return 0x63;                // c
+  if (byte >= 0xe8 && byte <= 0xeb) return 0x65; // e
+  if (byte >= 0xec && byte <= 0xef) return 0x69; // i
+  if (byte === 0xf1) return 0x6e;                // n
+  if ((byte >= 0xf2 && byte <= 0xf6) || byte === 0xf8 || byte === 0xf0) return 0x6f; // o
+  if (byte >= 0xf9 && byte <= 0xfc) return 0x75; // u
+  if (byte === 0xfd || byte === 0xff) return 0x79; // y
+  if (byte === 0xfe) return 0x70;                // p
+  return 0x6f; // sensible default for the remaining symbols
+}
+
+function glyphWidth(byte: number, style: PdfStyle): number {
+  if (style === 'mono' || style === 'monobold') return 600; // Courier is monospaced
+
+  const boldish = style === 'bold' || style === 'bolditalic';
+  const table = boldish ? HELVETICA_BOLD_WIDTHS : HELVETICA_WIDTHS;
+
+  if (byte >= 0x20 && byte <= 0x7e) return table[byte - 0x20];
+
+  const high = HIGH_WIDTHS[byte];
+  if (high) return boldish ? high[1] : high[0];
+
+  if (byte === 0xa0) return table[0];
+  if (byte === 0xad) return boldish ? 333 : 333;
+  if (byte >= 0xa1 && byte <= 0xbf) return boldish ? 556 : 556;
+  if (byte >= 0xc0) return table[latin1WidthProxy(byte) - 0x20];
+
+  return table[0];
+}
+
+function measureBytes(bytes: number[], style: PdfStyle, fontSize: number): number {
+  let total = 0;
+  for (const byte of bytes) total += glyphWidth(byte, style);
+  return (total * fontSize) / 1000;
+}
+
+// --- Inline markdown -------------------------------------------------------
+
+function withStyle(base: PdfStyle, add: 'bold' | 'italic' | 'mono'): PdfStyle {
+  if (add === 'mono') return base === 'bold' || base === 'bolditalic' ? 'monobold' : 'mono';
+  if (base === 'mono' || base === 'monobold') return add === 'bold' ? 'monobold' : base;
+  const bold = add === 'bold' || base === 'bold' || base === 'bolditalic';
+  const italic = add === 'italic' || base === 'italic' || base === 'bolditalic';
+  if (bold && italic) return 'bolditalic';
+  if (bold) return 'bold';
+  if (italic) return 'italic';
+  return 'regular';
+}
+
+/**
+ * Turns inline markdown into styled runs. Markers are consumed, not printed —
+ * literal "**" leaking into a finished document is the whole complaint here.
+ */
+function parseInline(text: string, base: PdfStyle = 'regular'): PdfRun[] {
+  // Links and images become "label (url)" / "label" before styling.
+  const source = text
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (_m, label) => label || 'image')
+    .replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (_m, label, url) =>
+      label.trim().toLowerCase() === String(url).trim().toLowerCase() ? label : `${label} (${url})`)
+    .replace(/~~([^~]+)~~/g, '$1');
+
+  const runs: PdfRun[] = [];
+  let buffer = '';
+  let index = 0;
+
+  const flush = (style: PdfStyle) => {
+    if (buffer) runs.push({ text: buffer, style });
+    buffer = '';
+  };
+
+  while (index < source.length) {
+    const rest = source.slice(index);
+
+    const code = /^`+([^`]+)`+/.exec(rest);
+    if (code) {
+      flush(base);
+      runs.push({ text: code[1], style: withStyle(base, 'mono') });
+      index += code[0].length;
       continue;
     }
-    
-    if (line.length <= charsPerLine) {
-      wrappedLines.push(line);
-    } else {
-      // Wrap long lines
-      const words = line.split(' ');
-      let currentLine = '';
-      
-      for (const word of words) {
-        if ((currentLine + ' ' + word).length <= charsPerLine) {
-          currentLine += (currentLine ? ' ' : '') + word;
-        } else {
-          if (currentLine) wrappedLines.push(currentLine);
-          currentLine = word;
-        }
-      }
-      if (currentLine) wrappedLines.push(currentLine);
-    }
-  }
-  
-  // Calculate pages needed
-  const linesPerPage = Math.floor((pageHeight - (margin * 2)) / lineHeight);
-  const totalPages = Math.ceil(wrappedLines.length / linesPerPage);
-  
-  // Two-pass PDF generation: first build all content, then calculate correct offsets
-  const pdfHeader = '%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'; // Binary comment for PDF identification
-  
-  // Pre-calculate object numbers
-  // Obj 1: Catalog, Obj 2: Pages, Obj 3: Font
-  // Then for each page: content stream obj, page obj
-  const fontObjNum = 3;
-  const firstPageContentObj = 4;
-  
-  const pageObjectNumbers: number[] = [];
-  for (let i = 0; i < totalPages; i++) {
-    pageObjectNumbers.push(firstPageContentObj + (i * 2) + 1); // page obj follows content obj
-  }
-  
-  // Build all objects in order, tracking offsets correctly
-  const objects: string[] = [];
-  
-  // Obj 1: Catalog
-  objects.push(`1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`);
-  
-  // Obj 2: Pages
-  const pageRefs = pageObjectNumbers.map(num => `${num} 0 R`).join(' ');
-  objects.push(`2 0 obj\n<< /Type /Pages /Kids [${pageRefs}] /Count ${totalPages} >>\nendobj\n`);
-  
-  // Obj 3: Font
-  objects.push(`${fontObjNum} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`);
-  
-  // Page content + page objects
-  let objNum = firstPageContentObj;
-  for (let pageNum = 0; pageNum < totalPages; pageNum++) {
-    const startLine = pageNum * linesPerPage;
-    const endLine = Math.min(startLine + linesPerPage, wrappedLines.length);
-    const pageLines = wrappedLines.slice(startLine, endLine);
-    
-    let contentStream = 'BT\n';
-    contentStream += '/F1 12 Tf\n';
-    contentStream += `${margin} ${pageHeight - margin - 20} Td\n`;
-    contentStream += `${lineHeight} TL\n`;
-    
-    for (const line of pageLines) {
-      const escapedLine = line
-        .replace(/\\/g, '\\\\')
-        .replace(/\(/g, '\\(')
-        .replace(/\)/g, '\\)')
-        .replace(/\r/g, '')
-        .trim();
-      
-      if (escapedLine === '') {
-        contentStream += 'T*\n';
-      } else {
-        contentStream += `(${escapedLine}) Tj T*\n`;
-      }
-    }
-    contentStream += 'ET\n';
-    
-    const contentObjNum = objNum;
-    objects.push(`${contentObjNum} 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}endstream\nendobj\n`);
-    objNum++;
-    
-    const pageObjNum = objNum;
-    objects.push(`${pageObjNum} 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 ${fontObjNum} 0 R >> >> /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents ${contentObjNum} 0 R >>\nendobj\n`);
-    objNum++;
-  }
-  
-  // Calculate correct byte offsets for each object
-  const objectOffsets: number[] = [];
-  let currentOffset = pdfHeader.length;
-  const allObjectsStr = objects.map(obj => {
-    objectOffsets.push(currentOffset);
-    currentOffset += obj.length;
-    return obj;
-  }).join('');
-  
-  // Build xref table
-  const totalObjects = objects.length;
-  let xref = 'xref\n';
-  xref += `0 ${totalObjects + 1}\n`;
-  xref += '0000000000 65535 f \n';
-  
-  for (const offset of objectOffsets) {
-    xref += `${offset.toString().padStart(10, '0')} 00000 n \n`;
-  }
-  
-  const xrefOffset = pdfHeader.length + allObjectsStr.length;
-  const trailer = `trailer\n<< /Size ${totalObjects + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
 
-  const fullPDF = `${pdfHeader}${allObjectsStr}${xref}${trailer}`;
-  return new TextEncoder().encode(fullPDF);
+    // The (?!\1) guards keep runs of underscores ("Name: ________") intact —
+    // they are writing lines in the generated forms, not emphasis markers.
+    const strongEm = /^(\*\*\*|___)(?!\1[\s\S]*?)(?=\S)([\s\S]*?\S)\1/.exec(rest);
+    if (strongEm) {
+      flush(base);
+      runs.push(...parseInline(strongEm[2], withStyle(withStyle(base, 'bold'), 'italic')));
+      index += strongEm[0].length;
+      continue;
+    }
+
+    const strong = /^(\*\*|__)(?!_|\*)(?=\S)([\s\S]*?\S)\1/.exec(rest);
+    if (strong) {
+      flush(base);
+      runs.push(...parseInline(strong[2], withStyle(base, 'bold')));
+      index += strong[0].length;
+      continue;
+    }
+
+    // Single-marker emphasis: require a non-space neighbour so that
+    // "2 * 3" and snake_case_words are left alone.
+    const em = /^([*_])(?!\1)(?=\S)([^*_\n]*?\S)\1/.exec(rest);
+    if (em && !(em[1] === '_' && /\w$/.test(source.slice(0, index)))) {
+      flush(base);
+      runs.push(...parseInline(em[2], withStyle(base, 'italic')));
+      index += em[0].length;
+      continue;
+    }
+
+    if (rest.startsWith('\\') && rest.length > 1) {
+      buffer += rest[1];
+      index += 2;
+      continue;
+    }
+
+    buffer += source[index];
+    index += 1;
+  }
+
+  flush(base);
+  return runs.filter(run => run.text.length > 0);
+}
+
+// --- Block model -----------------------------------------------------------
+
+interface PdfBlock {
+  kind: 'text' | 'rule' | 'space';
+  runs?: PdfRun[];
+  fontSize?: number;
+  lineGap?: number;
+  indent?: number;      // left indent, points
+  hangIndent?: number;  // extra indent for wrapped continuation lines
+  marker?: PdfRun[];    // bullet / number drawn at `indent`
+  spaceBefore?: number;
+  spaceAfter?: number;
+  ruleWeight?: number;  // rule blocks
+  keepWithNext?: boolean;
+  preserve?: boolean;   // no wrapping-driven whitespace collapse (code)
+  height?: number;      // space blocks
+}
+
+const RULE_LINE = /^[═─━┄┅┈┉╌╍―—–−▬⸺⸻=~*#\-·•_\s]{3,}$/;
+
+function isRuleLine(trimmed: string): boolean {
+  if (trimmed.length < 3) return false;
+  // All-underscore lines are fill-in-the-blank writing lines, not dividers.
+  if (/^_+$/.test(trimmed)) return false;
+  if (!RULE_LINE.test(trimmed)) return false;
+  // Require a single repeated character so "- item" style content is safe.
+  const chars = new Set(trimmed.replace(/\s/g, '').split(''));
+  return chars.size === 1;
+}
+
+function ruleWeightFor(trimmed: string): number {
+  const char = trimmed.trim()[0];
+  return '═━▬='.includes(char) ? 1.4 : 0.6;
+}
+
+const HEADING_SIZES = [19, 15.5, 13.5, 12.5, 12, 12];
+
+/**
+ * Counts characters the WinAnsi base-14 fonts cannot represent at all.
+ * Scripts like CJK, Arabic or Devanagari would need an embedded font, which an
+ * edge function has no way to ship — so the document says so instead of coming
+ * out mysteriously blank.
+ */
+function countUnrenderable(text: string): { dropped: number; total: number } {
+  let dropped = 0;
+  let total = 0;
+  for (const char of text) {
+    if (/\s/.test(char)) continue;
+    total++;
+    if (encodeWinAnsi(char).length === 0) dropped++;
+  }
+  return { dropped, total };
+}
+
+/** Splits the model's text into laid-out blocks (headings, lists, rules...). */
+function parseBlocks(content: string, bodySize: number): PdfBlock[] {
+  const lines = content.replace(/\r\n?/g, '\n').split('\n');
+  const blocks: PdfBlock[] = [];
+  let inCodeFence = false;
+  let pendingBlank = 0;
+
+  const pushSpace = (height: number) => {
+    if (height > 0) blocks.push({ kind: 'space', height });
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    const fence = /^\s*(```|~~~)/.exec(line);
+    if (fence) {
+      inCodeFence = !inCodeFence;
+      pendingBlank = 0;
+      pushSpace(bodySize * 0.4);
+      continue;
+    }
+
+    if (inCodeFence) {
+      pendingBlank = 0;
+      blocks.push({
+        kind: 'text',
+        runs: [{ text: line.replace(/\t/g, '    ') || ' ', style: 'mono' }],
+        fontSize: bodySize - 2,
+        indent: 12,
+        preserve: true,
+      });
+      continue;
+    }
+
+    if (!trimmed) {
+      pendingBlank++;
+      continue;
+    }
+
+    if (pendingBlank > 0 && blocks.length > 0) {
+      // Collapse runs of blank lines; the model is told to use 2-3 of them.
+      pushSpace(Math.min(pendingBlank, 3) * bodySize * 0.55);
+    }
+    pendingBlank = 0;
+
+    if (isRuleLine(trimmed)) {
+      blocks.push({
+        kind: 'rule',
+        ruleWeight: ruleWeightFor(trimmed),
+        spaceBefore: bodySize * 0.5,
+        spaceAfter: bodySize * 0.5,
+      });
+      continue;
+    }
+
+    // Markdown table: gather the contiguous block and lay it out as a grid.
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      const rows: string[][] = [];
+      let separatorAt = -1;
+      let j = i;
+      while (j < lines.length && /^\s*\|.*\|\s*$/.test(lines[j])) {
+        const cells = lines[j].trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+        if (cells.every(c => /^:?-{2,}:?$/.test(c))) separatorAt = rows.length;
+        else rows.push(cells);
+        j++;
+      }
+      if (rows.length > 0) {
+        blocks.push(...layoutTable(rows, separatorAt, bodySize));
+        i = j - 1;
+        continue;
+      }
+    }
+
+    const heading = /^(#{1,6})\s+(.*)$/.exec(trimmed);
+    if (heading) {
+      const level = heading[1].length;
+      const size = HEADING_SIZES[level - 1];
+      blocks.push({
+        kind: 'text',
+        runs: parseInline(heading[2].replace(/\s+#+\s*$/, ''), 'bold'),
+        fontSize: size,
+        spaceBefore: level <= 2 ? size * 0.6 : size * 0.45,
+        spaceAfter: size * 0.3,
+        keepWithNext: true,
+      });
+      continue;
+    }
+
+    // The model is instructed to use UPPERCASE for main headings.
+    const isShoutHeading =
+      trimmed === trimmed.toUpperCase() &&
+      /[A-Z]/.test(trimmed) &&
+      trimmed.length <= 60 &&
+      trimmed.length > 2 &&
+      !/[.!?,;]$/.test(trimmed) &&
+      !/^[-*+•]/.test(trimmed);
+    if (isShoutHeading) {
+      blocks.push({
+        kind: 'text',
+        runs: parseInline(trimmed, 'bold'),
+        fontSize: 13.5,
+        spaceBefore: 9,
+        spaceAfter: 4,
+        keepWithNext: true,
+      });
+      continue;
+    }
+
+    const quote = /^>\s?(.*)$/.exec(trimmed);
+    if (quote) {
+      blocks.push({
+        kind: 'text',
+        runs: parseInline(quote[1], 'italic'),
+        fontSize: bodySize,
+        indent: 22,
+        spaceBefore: 2,
+        spaceAfter: 2,
+      });
+      continue;
+    }
+
+    const bullet = /^(\s*)([-*+•◦‣▪]|\d{1,3}[.)])\s+(.*)$/.exec(line);
+    if (bullet) {
+      const depth = Math.min(Math.floor(bullet[1].replace(/\t/g, '  ').length / 2), 4);
+      const ordered = /\d/.test(bullet[2]);
+      const markerText = ordered ? bullet[2] : depth % 2 === 0 ? '•' : '-';
+      const indent = 10 + depth * 16;
+      const markerWidth = ordered ? 20 : 12;
+      blocks.push({
+        kind: 'text',
+        runs: parseInline(bullet[3], 'regular'),
+        marker: [{ text: markerText, style: 'regular' }],
+        fontSize: bodySize,
+        indent: indent + markerWidth,
+        hangIndent: -markerWidth,
+        spaceBefore: 1,
+        spaceAfter: 1,
+      });
+      continue;
+    }
+
+    blocks.push({
+      kind: 'text',
+      runs: parseInline(trimmed, 'regular'),
+      fontSize: bodySize,
+      spaceBefore: 1,
+      spaceAfter: 1,
+    });
+  }
+
+  return blocks;
+}
+
+/** Renders a markdown table as padded monospace rows with a header rule. */
+function layoutTable(rows: string[][], separatorAt: number, bodySize: number): PdfBlock[] {
+  const columns = Math.max(...rows.map(r => r.length));
+  const widths: number[] = [];
+  for (let c = 0; c < columns; c++) {
+    widths[c] = Math.max(3, ...rows.map(r => (r[c] ?? '').length));
+  }
+
+  const blocks: PdfBlock[] = [{ kind: 'space', height: bodySize * 0.4 }];
+  rows.forEach((row, index) => {
+    const isHeader = separatorAt === 1 && index === 0;
+    const text = row
+      .map((cell, c) => (cell ?? '').padEnd(widths[c], ' '))
+      .join('  |  ');
+    blocks.push({
+      kind: 'text',
+      runs: [{ text, style: isHeader ? 'monobold' : 'mono' }],
+      fontSize: bodySize - 2.5,
+      indent: 8,
+      preserve: true,
+      keepWithNext: isHeader,
+    });
+    if (isHeader) {
+      blocks.push({ kind: 'rule', ruleWeight: 0.6, spaceBefore: 2, spaceAfter: 3 });
+    }
+  });
+  blocks.push({ kind: 'space', height: bodySize * 0.4 });
+  return blocks;
+}
+
+// --- Line breaking ---------------------------------------------------------
+
+interface PdfPiece {
+  bytes: number[];
+  style: PdfStyle;
+}
+
+interface PdfLine {
+  pieces: PdfPiece[];
+  x: number;
+  fontSize: number;
+  marker?: PdfPiece;
+  markerX?: number;
+}
+
+function wrapRuns(
+  runs: PdfRun[],
+  fontSize: number,
+  startX: number,
+  contWidth: number,
+  firstWidth: number,
+  preserve: boolean,
+): PdfPiece[][] {
+  if (preserve) {
+    return [runs.map(run => ({ bytes: encodeWinAnsi(run.text), style: run.style }))];
+  }
+
+  interface Token { bytes: number[]; style: PdfStyle; space: boolean; width: number }
+  const tokens: Token[] = [];
+  for (const run of runs) {
+    for (const part of run.text.split(/(\s+)/)) {
+      if (!part) continue;
+      const space = /^\s+$/.test(part);
+      const bytes = encodeWinAnsi(space ? ' ' : part);
+      if (bytes.length === 0) continue;
+      tokens.push({ bytes, style: run.style, space, width: measureBytes(bytes, run.style, fontSize) });
+    }
+  }
+
+  const lines: PdfPiece[][] = [];
+  let current: Token[] = [];
+  let used = 0;
+  let available = firstWidth;
+
+  const commit = () => {
+    while (current.length && current[current.length - 1].space) current.pop();
+    const pieces: PdfPiece[] = [];
+    for (const token of current) {
+      const last = pieces[pieces.length - 1];
+      if (last && last.style === token.style) last.bytes.push(...token.bytes);
+      else pieces.push({ bytes: [...token.bytes], style: token.style });
+    }
+    lines.push(pieces);
+    current = [];
+    used = 0;
+    available = contWidth;
+  };
+
+  for (const token of tokens) {
+    if (token.space && current.length === 0) continue;
+
+    if (used + token.width > available && current.length > 0) {
+      commit();
+      if (token.space) continue;
+    }
+
+    // A single token wider than the column (a long URL, say) is split by glyph.
+    if (token.width > available && !token.space) {
+      let chunk: number[] = [];
+      let chunkWidth = 0;
+      for (const byte of token.bytes) {
+        const width = (glyphWidth(byte, token.style) * fontSize) / 1000;
+        if (chunkWidth + width > available && chunk.length > 0) {
+          current.push({ bytes: chunk, style: token.style, space: false, width: chunkWidth });
+          commit();
+          chunk = [];
+          chunkWidth = 0;
+        }
+        chunk.push(byte);
+        chunkWidth += width;
+      }
+      if (chunk.length) {
+        current.push({ bytes: chunk, style: token.style, space: false, width: chunkWidth });
+        used += chunkWidth;
+      }
+      continue;
+    }
+
+    current.push(token);
+    used += token.width;
+  }
+
+  if (current.length) commit();
+  if (lines.length === 0) lines.push([]);
+  return lines;
+}
+
+// --- Byte assembly ---------------------------------------------------------
+
+class ByteBuffer {
+  private chunks: Uint8Array[] = [];
+  length = 0;
+
+  ascii(text: string): void {
+    const bytes = new Uint8Array(text.length);
+    for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i) & 0xff;
+    this.raw(bytes);
+  }
+
+  raw(bytes: Uint8Array): void {
+    this.chunks.push(bytes);
+    this.length += bytes.length;
+  }
+
+  toUint8Array(): Uint8Array {
+    const out = new Uint8Array(this.length);
+    let offset = 0;
+    for (const chunk of this.chunks) {
+      out.set(chunk, offset);
+      offset += chunk.length;
+    }
+    return out;
+  }
+}
+
+/** Escapes a WinAnsi byte string for a PDF literal string. */
+function pdfStringBytes(bytes: number[]): Uint8Array {
+  const out: number[] = [];
+  for (const byte of bytes) {
+    if (byte === 0x28 || byte === 0x29 || byte === 0x5c) out.push(0x5c);
+    out.push(byte);
+  }
+  return new Uint8Array(out);
+}
+
+interface PageOp {
+  kind: 'text' | 'rule';
+  line?: PdfLine;
+  y: number;
+  weight?: number;
+}
+
+async function generateSimplePDF(content: string): Promise<Uint8Array> {
+  const pageWidth = 612;   // 8.5in * 72
+  const pageHeight = 792;  // 11in * 72
+  const margin = 64;
+  const bodySize = 11;
+  const bodyLeading = 15.5;
+  const footerSize = 8.5;
+  const contentWidth = pageWidth - margin * 2;
+  const topY = pageHeight - margin;
+  const bottomY = margin + 24; // leaves room for the page footer
+
+  const text = String(content ?? '').trim();
+  const blocks = parseBlocks(text, bodySize);
+
+  // A document made mostly of glyphs the base-14 fonts lack would render blank.
+  // Say so rather than handing the user an empty page.
+  const { dropped, total } = countUnrenderable(text);
+  if (dropped > 0 && (total === 0 || dropped / total >= 0.15)) {
+    blocks.push({ kind: 'space', height: bodySize });
+    blocks.push({ kind: 'rule', ruleWeight: 0.6, spaceBefore: 4, spaceAfter: 6 });
+    blocks.push({
+      kind: 'text',
+      runs: [{
+        text: 'Note: this document contains characters (such as non-Latin scripts or ' +
+              'emoji) that cannot be embedded in a PDF here. They were omitted — the ' +
+              'TXT, Markdown or DOCX export keeps them intact.',
+        style: 'italic',
+      }],
+      fontSize: bodySize - 1.5,
+      spaceBefore: 2,
+    });
+  }
+
+  // --- Pass 1: lay blocks out into pages -----------------------------------
+  const pages: PageOp[][] = [];
+  let currentPage: PageOp[] = [];
+  let cursorY = topY;
+
+  const newPage = () => {
+    pages.push(currentPage);
+    currentPage = [];
+    cursorY = topY;
+  };
+
+  const remaining = () => cursorY - bottomY;
+
+  for (let index = 0; index < blocks.length; index++) {
+    const block = blocks[index];
+
+    if (block.kind === 'space') {
+      if (currentPage.length > 0) cursorY -= block.height ?? 0;
+      continue;
+    }
+
+    if (block.kind === 'rule') {
+      const needed = (block.spaceBefore ?? 0) + 4 + (block.spaceAfter ?? 0);
+      if (needed > remaining()) newPage();
+      cursorY -= block.spaceBefore ?? 0;
+      currentPage.push({ kind: 'rule', y: cursorY, weight: block.ruleWeight ?? 0.6 });
+      cursorY -= (block.spaceAfter ?? 0) + 2;
+      continue;
+    }
+
+    const fontSize = block.fontSize ?? bodySize;
+    const leading = fontSize <= bodySize ? bodyLeading : fontSize * 1.32;
+    const indent = block.indent ?? 0;
+    const hang = block.hangIndent ?? 0;
+    const firstX = margin + indent + hang;
+    const contX = margin + indent;
+    const wrapped = wrapRuns(
+      block.runs ?? [],
+      fontSize,
+      contX,
+      contentWidth - indent,
+      contentWidth - indent - hang,
+      block.preserve === true,
+    );
+
+    const blockHeight = (block.spaceBefore ?? 0) + wrapped.length * leading;
+    // Keep a heading (or table header) attached to what follows it.
+    const keepExtra = block.keepWithNext ? leading * 1.5 : 0;
+    if (blockHeight + keepExtra > remaining() && currentPage.length > 0) newPage();
+
+    cursorY -= block.spaceBefore ?? 0;
+
+    wrapped.forEach((pieces, lineIndex) => {
+      if (leading > remaining() && currentPage.length > 0) newPage();
+      cursorY -= leading;
+      const line: PdfLine = {
+        pieces,
+        x: lineIndex === 0 ? firstX : contX,
+        fontSize,
+      };
+      if (lineIndex === 0 && block.marker) {
+        line.marker = { bytes: encodeWinAnsi(block.marker[0].text), style: block.marker[0].style };
+        line.markerX = margin + indent + hang;
+        line.x = margin + indent;
+      }
+      currentPage.push({ kind: 'text', line, y: cursorY });
+    });
+
+    cursorY -= block.spaceAfter ?? 0;
+  }
+
+  pages.push(currentPage);
+  const renderedPages = pages.filter((ops, index) => ops.length > 0 || index === 0);
+  const totalPages = Math.max(renderedPages.length, 1);
+
+  // --- Pass 2: content streams --------------------------------------------
+  const streams: Uint8Array[] = renderedPages.map((ops, pageIndex) => {
+    const stream = new ByteBuffer();
+
+    for (const op of ops) {
+      if (op.kind === 'rule') {
+        const weight = op.weight ?? 0.6;
+        const gray = weight >= 1 ? '0.25' : '0.6';
+        stream.ascii(
+          `q ${weight} w ${gray} G ${margin} ${op.y.toFixed(2)} m ` +
+          `${pageWidth - margin} ${op.y.toFixed(2)} l S Q\n`,
+        );
+        continue;
+      }
+
+      const line = op.line!;
+      if (line.marker && line.marker.bytes.length > 0) {
+        stream.ascii(`BT /${PDF_FONT_NAMES[line.marker.style]} ${line.fontSize} Tf `);
+        stream.ascii(`1 0 0 1 ${(line.markerX ?? margin).toFixed(2)} ${op.y.toFixed(2)} Tm (`);
+        stream.raw(pdfStringBytes(line.marker.bytes));
+        stream.ascii(') Tj ET\n');
+      }
+
+      if (line.pieces.length === 0) continue;
+
+      stream.ascii(`BT 1 0 0 1 ${line.x.toFixed(2)} ${op.y.toFixed(2)} Tm\n`);
+      for (const piece of line.pieces) {
+        if (piece.bytes.length === 0) continue;
+        stream.ascii(`/${PDF_FONT_NAMES[piece.style]} ${line.fontSize} Tf (`);
+        stream.raw(pdfStringBytes(piece.bytes));
+        stream.ascii(') Tj\n');
+      }
+      stream.ascii('ET\n');
+    }
+
+    // Page footer.
+    if (totalPages > 1) {
+      const label = encodeWinAnsi(`Page ${pageIndex + 1} of ${totalPages}`);
+      const width = measureBytes(label, 'regular', footerSize);
+      stream.ascii(
+        `BT 0.45 g /${PDF_FONT_NAMES.regular} ${footerSize} Tf ` +
+        `1 0 0 1 ${((pageWidth - width) / 2).toFixed(2)} ${(margin - 22).toFixed(2)} Tm (`,
+      );
+      stream.raw(pdfStringBytes(label));
+      stream.ascii(') Tj ET 0 g\n');
+    }
+
+    return stream.toUint8Array();
+  });
+
+  // --- Pass 3: objects, xref, trailer (byte offsets throughout) ------------
+  const objects: Array<{ head: string; stream?: Uint8Array; tail?: string }> = [];
+
+  const fontFirstObj = 3;
+  const firstPageObj = fontFirstObj + PDF_BASE_FONTS.length; // content, page, ...
+  const pageObjNumbers = renderedPages.map((_, i) => firstPageObj + i * 2 + 1);
+
+  objects.push({ head: '<< /Type /Catalog /Pages 2 0 R >>' });
+  objects.push({
+    head: `<< /Type /Pages /Kids [${pageObjNumbers.map(n => `${n} 0 R`).join(' ')}] /Count ${totalPages} >>`,
+  });
+  for (const [, baseFont] of PDF_BASE_FONTS) {
+    objects.push({
+      head: `<< /Type /Font /Subtype /Type1 /BaseFont /${baseFont} /Encoding /WinAnsiEncoding >>`,
+    });
+  }
+
+  const fontResources = PDF_BASE_FONTS
+    .map(([name], i) => `/${name} ${fontFirstObj + i} 0 R`)
+    .join(' ');
+
+  streams.forEach((stream, i) => {
+    objects.push({ head: `<< /Length ${stream.length} >>`, stream });
+    objects.push({
+      head:
+        `<< /Type /Page /Parent 2 0 R /Resources << /Font << ${fontResources} >> >> ` +
+        `/MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents ${firstPageObj + i * 2} 0 R >>`,
+    });
+  });
+
+  const pdf = new ByteBuffer();
+  pdf.ascii('%PDF-1.4\n');
+  pdf.raw(new Uint8Array([0x25, 0xe2, 0xe3, 0xcf, 0xd3, 0x0a])); // binary marker
+
+  const offsets: number[] = [];
+  objects.forEach((object, i) => {
+    offsets.push(pdf.length);
+    pdf.ascii(`${i + 1} 0 obj\n${object.head}\n`);
+    if (object.stream) {
+      pdf.ascii('stream\n');
+      pdf.raw(object.stream);
+      pdf.ascii('\nendstream\n');
+    }
+    pdf.ascii('endobj\n');
+  });
+
+  const xrefOffset = pdf.length;
+  pdf.ascii(`xref\n0 ${objects.length + 1}\n`);
+  pdf.ascii('0000000000 65535 f \n');
+  for (const offset of offsets) {
+    pdf.ascii(`${offset.toString().padStart(10, '0')} 00000 n \n`);
+  }
+  pdf.ascii(
+    `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`,
+  );
+
+  return pdf.toUint8Array();
 }
 
 // Helper to build a ZIP from file entries (reused by DOCX/PPTX)
