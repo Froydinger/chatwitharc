@@ -50,7 +50,6 @@ export function getQueryComplexity(message: string): 0 | 1 | 2 | 3 {
     lower.length > 2000 ||
     lower.includes("deep think") ||
     lower.includes("deep-think") ||
-    lower.includes("gpt-5.6-sol") ||
     lower.includes("smartest model") ||
     lower.includes("deep reason")
   ) {
@@ -63,7 +62,6 @@ export function getQueryComplexity(message: string): 0 | 1 | 2 | 3 {
     detectComplexQuery(message) ||
     lower.includes("thinking model") ||
     lower.includes("reasoning model") ||
-    lower.includes("gpt-5.6-sol") ||
     lower.includes("smarter model")
   ) {
     return 2;

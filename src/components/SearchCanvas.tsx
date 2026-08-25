@@ -181,7 +181,6 @@ export function SearchCanvas() {
       const { data, error } = await supabase.functions.invoke("perplexity-search", {
         body: {
           query: query,
-          model: "sonar-pro",
         },
       });
 

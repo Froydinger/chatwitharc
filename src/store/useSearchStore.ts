@@ -561,7 +561,6 @@ export const useSearchStore = create<SearchState>()(
           const { data, error } = await supabase.functions.invoke('perplexity-search', {
             body: {
               query: contextualQuery,
-              model: 'sonar-pro',
               skipImages: true,
             },
           });
