@@ -292,7 +292,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Does ArcAI have GPTs like ChatGPT?",
-        a: "ArcAI has Personas — customizable AI personalities you can switch between mid-chat, similar in spirit to GPTs but simpler.",
+        a: "No — ArcAI is one assistant rather than a library of separate bots. Instead of building a custom GPT, you save what matters to the Memory Bank and Arc carries that context into every conversation, and you set how hard it thinks per chat with Quick, Balanced or Deep.",
       },
       {
         q: "Can I move from ChatGPT to ArcAI?",

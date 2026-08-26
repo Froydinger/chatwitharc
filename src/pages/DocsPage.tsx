@@ -332,7 +332,7 @@ export function DocsPage() {
           <ul className="list-disc pl-5 space-y-1.5">
             <li>Create a new chat room and share the public URL with team members.</li>
             <li>Messages sync in real-time across all connected clients.</li>
-            <li>Mention other users or personas directly in your message by typing <code>@username</code> or <code>@persona</code>.</li>
+            <li>Mention other users directly in your message by typing <code>@username</code>.</li>
             <li>Attach and upload images (up to 10MB per file) directly to the collaborative stream.</li>
           </ul>
         </div>
