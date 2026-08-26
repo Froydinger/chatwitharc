@@ -828,9 +828,6 @@ export function SettingsPanel() {
       case "ai":
         return (
           <>
-            <SectionCard icon={Stars} title="Custom Personas" subtitle="Create unique conversation styles">
-              <PersonasManager />
-            </SectionCard>
             {VoiceCard}
             <ImageDefaultsCard />
             <LocalAIPanel />
