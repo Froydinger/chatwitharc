@@ -3109,6 +3109,7 @@ ${safeCode}
                   unchanged no matter how the 8px is split. */}
               <Textarea
                 ref={textareaRef}
+                data-arc-composer="true"
                 value={inputValue}
                 onChange={(e) => {
                   if (isVoiceActive) return;

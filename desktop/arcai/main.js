@@ -463,11 +463,51 @@ function configurePermissions() {
   });
 }
 
+// Focus the message composer, not "the first input on the page".
+// A plain querySelector('textarea,input') matches hidden file inputs that sit
+// earlier in the DOM; focusing those is a silent no-op, so focus stayed on the
+// window's first focusable element (the hamburger) and Chromium painted a
+// focus-visible ring on it. Prefer the tagged composer, fall back to the first
+// element that is actually visible and editable, and retry while React mounts.
+const FOCUS_COMPOSER_SNIPPET = `(()=>{
+  const visible = (el) => {
+    if (!el || el.disabled || el.readOnly) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+  const pick = () => {
+    const tagged = document.querySelector('[data-arc-composer]');
+    if (visible(tagged)) return tagged;
+    const skip = 'file,hidden,checkbox,radio,button,submit,reset,image,range,color';
+    const sel = 'textarea, input:not([type])' +
+      skip.split(',').map((t) => ':not([type="' + t + '"])').join('');
+    for (const el of document.querySelectorAll(sel)) {
+      if (visible(el)) return el;
+    }
+    return null;
+  };
+  let tries = 0;
+  const tick = () => {
+    const el = pick();
+    if (el) {
+      el.focus({ preventScroll: true });
+      try {
+        const end = el.value ? el.value.length : 0;
+        if (el.setSelectionRange) el.setSelectionRange(end, end);
+      } catch (e) {}
+      return;
+    }
+    // Nothing to focus yet: make sure a button hasn't picked up the ring.
+    const active = document.activeElement;
+    if (active && (active.tagName === 'BUTTON' || active.tagName === 'A')) active.blur();
+    if (++tries < 20) setTimeout(tick, 100);
+  };
+  setTimeout(tick, 120);
+})()`;
+
 function focusInput(win) {
   if (!win || win.isDestroyed()) return;
-  win.webContents.executeJavaScript(
-    "setTimeout(()=>{const i=document.querySelector('textarea,input');if(i){i.focus()}},250)"
-  ).catch(() => {});
+  win.webContents.executeJavaScript(FOCUS_COMPOSER_SNIPPET).catch(() => {});
 }
 
 function addDragZone(win) {
@@ -686,6 +726,9 @@ function animateFloatingIn() {
   floating.setBounds(start, false);
   if (!floating.isVisible()) floating.show();
   floating.focus();
+  // Claim focus for the composer up front too, so the ring never flashes on the
+  // hamburger for the length of the slide.
+  focusInput(floating);
 
   runFloatingSlide({
     from: start,
