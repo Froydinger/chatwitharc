@@ -42,7 +42,7 @@ export interface VoiceOption {
 // Sorted alphabetically by display name
 export const VOICES: VoiceOption[] = [
   { id: 'cedar', name: 'Cedric', description: 'Natural & smooth', recommended: true, noPreview: true },
-  { id: 'marin', name: 'Marina', description: 'Expressive & natural', recommended: true, noPreview: true },
+  { id: 'marin', name: 'Marina', description: 'Expressive & natural', noPreview: true },
 ];
 
 // Full list for internal use (fallbacks, etc.)
@@ -54,7 +54,7 @@ export const ALL_VOICES: VoiceOption[] = [
   { id: 'coral', name: 'Cora', description: 'Friendly & bright', noPreview: true },
   { id: 'echo', name: 'Ethan', description: 'Clear & resonant', noPreview: true },
   { id: 'fable', name: 'Fiona', description: 'Storytelling warmth', noPreview: true },
-  { id: 'marin', name: 'Marina', description: 'Expressive & natural', recommended: true, noPreview: true },
+  { id: 'marin', name: 'Marina', description: 'Expressive & natural', noPreview: true },
   { id: 'nova', name: 'Nadia', description: 'Energetic & vivid', noPreview: true },
   { id: 'onyx', name: 'Oliver', description: 'Deep & authoritative', noPreview: true },
   { id: 'sage', name: 'Sofia', description: 'Calm & wise', noPreview: true },
