@@ -1324,7 +1324,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       }
 
       const { selectedVoice: currentVoice } = useVoiceModeStore.getState();
-      const safeVoice = REALTIME_SUPPORTED_VOICES.includes(currentVoice) ? currentVoice : 'cedar';
+      const safeVoice = REALTIME_SUPPORTED_VOICES.includes(currentVoice) ? currentVoice : 'marin';
 
       const { data: realtimeSession, error: realtimeSessionError } = await supabase.functions.invoke('openai-realtime-proxy', {
         body: {

@@ -125,7 +125,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   isAudioPlaying: false,
   currentTranscript: '',
   conversationTurns: [],
-  selectedVoice: 'cedar',
+  selectedVoice: 'marin',
   generatedImage: null,
   isGeneratingImage: false,
   lastGeneratedImageUrl: null,
