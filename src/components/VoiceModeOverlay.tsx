@@ -257,10 +257,12 @@ export function VoiceModeOverlay() {
     ? (thinkingOrbConfig.image ?? 'working')
     : (voiceOrbConfig[status as VoicePhase] ?? voiceOrbConfig.listening);
 
-  // Controlled orb speed multiplier — prevents frantic, overly fast rotation while speaking
+  // Slow, serene orb speed multiplier for smooth, graceful animation
   const orbSpeed = status === 'speaking'
-    ? 0.35 + Math.min(1, amplitude * 0.8) * 0.25
-    : 0.4 + Math.min(1, amplitude * 1.0) * 0.3;
+    ? 0.18 + Math.min(1, amplitude * 0.5) * 0.15
+    : status === 'listening'
+    ? 0.20 + Math.min(1, amplitude * 0.5) * 0.15
+    : 0.25;
 
   const pendingVoiceInfo = pendingVoiceSwitch 
     ? REALTIME_VOICES.find(v => v.id === pendingVoiceSwitch) 
@@ -427,44 +429,46 @@ export function VoiceModeOverlay() {
               </AnimatePresence>
             </div>
 
-            {/* Hero Orb-Focused Voice Bar */}
+            {/* Hero Orb-Focused Voice Bar Pill */}
             <motion.div
               initial={{ opacity: 0, y: 24, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24, scale: 0.96 }}
-              className="relative w-full overflow-hidden rounded-[2.5rem] border border-primary/30 bg-background/92 px-4 py-2.5 sm:px-6 sm:py-3 shadow-2xl backdrop-blur-2xl"
+              className="relative mx-auto w-full sm:w-fit sm:max-w-fit overflow-hidden rounded-full border border-primary/25 bg-background/90 px-4 py-2 sm:px-6 sm:py-2.5 shadow-2xl backdrop-blur-2xl transition-all"
               style={{
-                boxShadow: `0 0 0 1px hsl(var(--primary) / ${0.15 + Math.min(1, amplitude * 1.5) * 0.3}), 0 20px 60px hsl(0 0% 0% / 0.65)`,
+                boxShadow: orbTheme === 'dark'
+                  ? `0 0 0 1px hsl(var(--primary) / ${0.15 + Math.min(1, amplitude * 1.2) * 0.25}), 0 18px 48px rgba(0, 0, 0, 0.65)`
+                  : `0 0 0 1px hsl(var(--primary) / 0.15), 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)`,
               }}
             >
-              {/* Radial ambient glow sheen */}
+              {/* Radial ambient sheen */}
               <div
                 className="pointer-events-none absolute inset-0 -z-10 transition-opacity duration-300"
                 style={{
-                  opacity: status === 'speaking' ? 0.45 : status === 'listening' ? 0.3 : 0.15,
+                  opacity: orbTheme === 'dark' ? (status === 'speaking' ? 0.35 : 0.2) : 0.08,
                   background:
-                    'radial-gradient(ellipse at center, hsl(var(--primary) / 0.22), transparent 70%)',
+                    'radial-gradient(ellipse at center, hsl(var(--primary) / 0.2), transparent 70%)',
                 }}
                 aria-hidden="true"
               />
 
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between sm:justify-center gap-3 sm:gap-4">
                 {/* Left Action Controls */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={handleMuteToggle}
-                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
                       isMuted ? 'bg-destructive/20 text-destructive hover:bg-destructive/30' : 'bg-muted/70 text-foreground hover:bg-muted'
                     }`}
                     aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
                   >
-                    {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                    {isMuted ? <MicOff className="h-4.5 w-4.5" /> : <Mic className="h-4.5 w-4.5" />}
                   </button>
 
                   <button
                     onClick={handleAttachClick}
                     disabled={!!attachedImage}
-                    className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors xs:flex ${
+                    className={`hidden h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors xs:flex ${
                       attachedImage ? 'bg-primary/20 text-primary' : 'bg-muted/60 text-foreground hover:bg-muted'
                     }`}
                     aria-label="Attach image"
@@ -474,7 +478,7 @@ export function VoiceModeOverlay() {
 
                   <button
                     onClick={handleCameraToggle}
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
                       isCameraActive ? 'bg-primary/20 text-primary' : 'bg-muted/60 text-foreground hover:bg-muted'
                     }`}
                     aria-label={isCameraActive ? "Turn off camera" : "Turn on camera"}
@@ -484,20 +488,17 @@ export function VoiceModeOverlay() {
                 </div>
 
                 {/* Center Hero ThinkingOrb & Status */}
-                <div className="flex flex-1 items-center justify-center gap-4 sm:gap-5 px-2 py-1 min-w-0">
+                <div className="flex flex-1 sm:flex-initial items-center justify-center gap-3 sm:gap-4 px-1 py-0.5 min-w-0">
                   {/* Hero ThinkingOrb Container */}
-                  <div className="relative flex h-16 w-16 sm:h-20 sm:w-20 shrink-0 items-center justify-center">
-                    {/* Pulsing multi-layer ambient glows */}
-                    <div
-                      className="absolute -inset-3 -z-10 rounded-full bg-primary/35 blur-xl transition-opacity duration-300"
-                      style={{ opacity: 0.4 + Math.min(1, amplitude * 1.5) * 0.6 }}
-                      aria-hidden="true"
-                    />
-                    <div
-                      className="absolute inset-0 -z-10 rounded-full bg-primary/20 blur-md transition-transform duration-200"
-                      style={{ transform: `scale(${1 + Math.min(1, amplitude * 1.2) * 0.25})` }}
-                      aria-hidden="true"
-                    />
+                  <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+                    {/* Glow halo only in dark mode to prevent black smudging in light mode */}
+                    {orbTheme === 'dark' && (
+                      <div
+                        className="absolute -inset-2 -z-10 rounded-full bg-primary/30 blur-xl transition-opacity duration-300"
+                        style={{ opacity: 0.35 + Math.min(1, amplitude * 1.2) * 0.55 }}
+                        aria-hidden="true"
+                      />
+                    )}
 
                     <ThinkingOrb
                       state={voiceOrbState}
@@ -506,12 +507,12 @@ export function VoiceModeOverlay() {
                       theme={orbTheme}
                       paused={isMuted && status === 'listening'}
                       aria-label={`Arc is ${status}`}
-                      style={{ width: '100%', height: '100%', maxWidth: 76, maxHeight: 76 }}
+                      style={{ width: 56, height: 56 }}
                     />
                   </div>
 
-                  {/* Status Info (Scooted right with extra spacing) */}
-                  <div className="flex flex-col justify-center min-w-0 ml-1 sm:ml-2">
+                  {/* Status Info */}
+                  <div className="flex flex-col justify-center min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="truncate text-base font-semibold tracking-wide text-foreground select-none">
                         {getStatusText()}
@@ -531,7 +532,7 @@ export function VoiceModeOverlay() {
 
                   <button
                     onClick={handleReconnect}
-                    className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted/60 text-foreground transition-colors hover:bg-muted sm:flex"
+                    className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted/60 text-foreground transition-colors hover:bg-muted sm:flex"
                     aria-label="Reconnect voice mode"
                   >
                     <RotateCw className={`h-4 w-4 ${status === 'connecting' ? 'animate-spin' : ''}`} />
