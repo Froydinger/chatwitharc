@@ -207,27 +207,33 @@ export function ThinkingOrbSettings({
                   <p className="text-xs text-muted-foreground">{phase.description}</p>
                 </div>
 
-                {/* The live bar needs an open realtime session, so this mirrors
-                    its orb + label rather than mounting the real overlay. */}
+                {/* Mirror the new hero orb Voice Bar design */}
                 <div className="shrink-0 pointer-events-none">
-                  <div className="flex items-center gap-2.5 rounded-[2rem] border border-primary/25 bg-background/80 px-3 py-2 shadow-lg backdrop-blur-xl">
-                    <div className="relative flex h-10 w-10 items-center justify-center">
+                  <div className="flex items-center gap-3.5 rounded-[2.5rem] border border-primary/30 bg-background/92 px-4 py-2.5 shadow-xl backdrop-blur-2xl">
+                    <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+                      <div
+                        className="absolute -inset-2 -z-10 rounded-full bg-primary/35 blur-xl opacity-70"
+                        aria-hidden="true"
+                      />
+                      <div
+                        className="absolute inset-0 -z-10 rounded-full bg-primary/20 blur-md"
+                        aria-hidden="true"
+                      />
                       <ThinkingOrb
                         state={state}
                         size={64}
-                        speed={0.9}
+                        speed={0.7}
                         theme={orbTheme}
                         aria-label={`${phase.label} animation`}
-                        style={{ width: 38, height: 38 }}
-                      />
-                      <div
-                        className="absolute inset-1.5 -z-10 rounded-full bg-primary/30 blur-lg"
-                        aria-hidden="true"
+                        style={{ width: 56, height: 56 }}
                       />
                     </div>
-                    <span className="text-sm font-semibold whitespace-nowrap">
-                      {phase.sampleMessage}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-semibold tracking-wide text-foreground whitespace-nowrap">
+                        {phase.sampleMessage}
+                      </span>
+                      <span className="h-2.5 w-2.5 rounded-full bg-primary/80 shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />
+                    </div>
                   </div>
                 </div>
               </button>

@@ -427,85 +427,45 @@ export function VoiceModeOverlay() {
               </AnimatePresence>
             </div>
 
-            {/* Redesigned Voice Bar */}
+            {/* Hero Orb-Focused Voice Bar */}
             <motion.div
-              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              initial={{ opacity: 0, y: 24, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 24, scale: 0.98 }}
-              className="relative w-full overflow-hidden rounded-[2rem] border border-primary/25 bg-background/90 px-3 py-2 shadow-2xl backdrop-blur-2xl"
+              exit={{ opacity: 0, y: 24, scale: 0.96 }}
+              className="relative w-full overflow-hidden rounded-[2.5rem] border border-primary/30 bg-background/92 px-4 py-2.5 sm:px-6 sm:py-3 shadow-2xl backdrop-blur-2xl"
               style={{
-                boxShadow: `0 0 0 1px hsl(var(--primary) / ${0.12 + Math.min(1, amplitude * 1.2) * 0.25}), 0 18px 48px hsl(0 0% 0% / 0.55)`,
+                boxShadow: `0 0 0 1px hsl(var(--primary) / ${0.15 + Math.min(1, amplitude * 1.5) * 0.3}), 0 20px 60px hsl(0 0% 0% / 0.65)`,
               }}
             >
-              {/* Level sheen sweeping the pill */}
+              {/* Radial ambient glow sheen */}
               <div
                 className="pointer-events-none absolute inset-0 -z-10 transition-opacity duration-300"
                 style={{
-                  opacity: status === 'speaking' ? 0.4 : status === 'listening' ? 0.25 : 0.1,
+                  opacity: status === 'speaking' ? 0.45 : status === 'listening' ? 0.3 : 0.15,
                   background:
-                    'linear-gradient(115deg, hsl(var(--primary) / 0.16), transparent 45%, hsl(var(--primary) / 0.1))',
+                    'radial-gradient(ellipse at center, hsl(var(--primary) / 0.22), transparent 70%)',
                 }}
                 aria-hidden="true"
               />
 
-              <div className="flex items-center gap-2.5 sm:gap-3">
-                {/* Mute Toggle */}
-                <button
-                  onClick={handleMuteToggle}
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${
-                    isMuted ? 'bg-destructive/15 text-destructive hover:bg-destructive/25' : 'bg-muted/70 text-foreground hover:bg-muted'
-                  }`}
-                  aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
-                >
-                  {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-                </button>
-
-                {/* Orb & Status Block */}
-                <div className="flex flex-1 items-center gap-3 min-w-0 py-0.5">
-                  <div className="relative flex h-11 w-11 shrink-0 items-center justify-center">
-                    <ThinkingOrb
-                      state={voiceOrbState}
-                      size={64}
-                      speed={orbSpeed}
-                      theme={orbTheme}
-                      paused={isMuted && status === 'listening'}
-                      aria-label={`Arc is ${status}`}
-                      style={{ width: 44, height: 44 }}
-                    />
-                    <div
-                      className="absolute inset-0 -z-10 rounded-full bg-primary/25 blur-md transition-opacity duration-200"
-                      style={{ opacity: 0.3 + Math.min(1, amplitude * 1.2) * 0.7 }}
-                      aria-hidden="true"
-                    />
-                  </div>
-
-                  <div className="flex flex-col justify-center min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-semibold tracking-wide text-foreground select-none">
-                        {getStatusText()}
-                      </span>
-                      {isLoading || status === 'connecting' ? (
-                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
-                      ) : status === 'speaking' ? (
-                        <span className="h-2 w-2 shrink-0 rounded-full bg-primary animate-pulse shadow-[0_0_8px_hsl(var(--primary)/0.8)]" />
-                      ) : (
-                        <span className="h-2 w-2 shrink-0 rounded-full bg-primary/70 shadow-[0_0_6px_hsl(var(--primary)/0.5)]" />
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Controls Group */}
+              <div className="flex items-center justify-between gap-3">
+                {/* Left Action Controls */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <div className="hidden shrink-0 sm:block mr-1">
-                    <UsageMeter kind="voice" />
-                  </div>
+                  <button
+                    onClick={handleMuteToggle}
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors ${
+                      isMuted ? 'bg-destructive/20 text-destructive hover:bg-destructive/30' : 'bg-muted/70 text-foreground hover:bg-muted'
+                    }`}
+                    aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
+                  >
+                    {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                  </button>
 
                   <button
                     onClick={handleAttachClick}
                     disabled={!!attachedImage}
                     className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors xs:flex ${
-                      attachedImage ? 'bg-primary/15 text-primary' : 'bg-muted/60 text-foreground hover:bg-muted'
+                      attachedImage ? 'bg-primary/20 text-primary' : 'bg-muted/60 text-foreground hover:bg-muted'
                     }`}
                     aria-label="Attach image"
                   >
@@ -515,12 +475,63 @@ export function VoiceModeOverlay() {
                   <button
                     onClick={handleCameraToggle}
                     className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
-                      isCameraActive ? 'bg-primary/15 text-primary' : 'bg-muted/60 text-foreground hover:bg-muted'
+                      isCameraActive ? 'bg-primary/20 text-primary' : 'bg-muted/60 text-foreground hover:bg-muted'
                     }`}
                     aria-label={isCameraActive ? "Turn off camera" : "Turn on camera"}
                   >
                     {isCameraActive ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
                   </button>
+                </div>
+
+                {/* Center Hero ThinkingOrb & Status */}
+                <div className="flex flex-1 items-center justify-center gap-3.5 px-2 py-1 min-w-0">
+                  {/* Hero ThinkingOrb Container */}
+                  <div className="relative flex h-16 w-16 sm:h-20 sm:w-20 shrink-0 items-center justify-center">
+                    {/* Pulsing multi-layer ambient glows */}
+                    <div
+                      className="absolute -inset-3 -z-10 rounded-full bg-primary/35 blur-xl transition-opacity duration-300"
+                      style={{ opacity: 0.4 + Math.min(1, amplitude * 1.5) * 0.6 }}
+                      aria-hidden="true"
+                    />
+                    <div
+                      className="absolute inset-0 -z-10 rounded-full bg-primary/20 blur-md transition-transform duration-200"
+                      style={{ transform: `scale(${1 + Math.min(1, amplitude * 1.2) * 0.25})` }}
+                      aria-hidden="true"
+                    />
+
+                    <ThinkingOrb
+                      state={voiceOrbState}
+                      size={64}
+                      speed={orbSpeed}
+                      theme={orbTheme}
+                      paused={isMuted && status === 'listening'}
+                      aria-label={`Arc is ${status}`}
+                      style={{ width: '100%', height: '100%', maxWidth: 76, maxHeight: 76 }}
+                    />
+                  </div>
+
+                  {/* Status Info */}
+                  <div className="flex flex-col justify-center min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-base font-semibold tracking-wide text-foreground select-none">
+                        {getStatusText()}
+                      </span>
+                      {isLoading || status === 'connecting' ? (
+                        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+                      ) : status === 'speaking' ? (
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary animate-pulse shadow-[0_0_10px_hsl(var(--primary))]" />
+                      ) : (
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-primary/70 shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Action Controls */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="hidden shrink-0 lg:block mr-1">
+                    <UsageMeter kind="voice" />
+                  </div>
 
                   <button
                     onClick={handleReconnect}
@@ -537,7 +548,7 @@ export function VoiceModeOverlay() {
                     <PopoverTrigger asChild>
                       <button
                         disabled={isSwitching}
-                        className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-primary/40 bg-black shadow-sm transition-transform hover:scale-105"
+                        className="h-10 w-10 shrink-0 overflow-hidden rounded-full border-2 border-primary/40 bg-black shadow-md transition-transform hover:scale-105"
                         aria-label="Switch voice"
                       >
                         <img
@@ -550,7 +561,7 @@ export function VoiceModeOverlay() {
                     <PopoverContent
                       side="top"
                       align="center"
-                      sideOffset={12}
+                      sideOffset={16}
                       className="z-[110] w-[min(360px,calc(100vw-1.5rem))] rounded-2xl border border-primary/20 bg-background/95 p-4 shadow-2xl backdrop-blur-2xl"
                     >
                       {pendingVoiceSwitch && pendingVoiceInfo ? (
