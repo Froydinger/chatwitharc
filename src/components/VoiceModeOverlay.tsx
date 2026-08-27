@@ -226,6 +226,7 @@ export function VoiceModeOverlay() {
   }, []);
 
   const voiceOrbConfig = useVoiceOrbConfig();
+  const thinkingOrbConfig = useThinkingOrbConfig();
   const orbTheme = useResolvedOrbTheme();
 
   if (!isActive) return null;
@@ -250,7 +251,6 @@ export function VoiceModeOverlay() {
   
   const isLoading = isGeneratingImage || isSearching || isSearchingPastChats || isFetchingWeather || isSchedulingTask;
 
-  const thinkingOrbConfig = useThinkingOrbConfig();
   const voiceOrbState = (isSearching || isSearchingPastChats)
     ? (thinkingOrbConfig.web ?? 'searching')
     : (isGeneratingImage)
