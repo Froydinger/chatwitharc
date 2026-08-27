@@ -1433,7 +1433,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           type: 'session.update',
           session: {
             type: 'realtime',
-            instructions: systemPrompt || lastSystemPrompt || `You are Arc, the AI companion inside the ArcAI app by Win The Night. You know ArcAI includes live voice, regular chat, memory, past-chat search, web search, weather, images, reminders, and vision tools. Never claim you do not know which app you are part of. Talk like a real person: relaxed, concise, warm, and lightly playful. CRITICAL: Never speak unless the user has spoken first; silence needs no filler.`,
+            instructions: systemPrompt || lastSystemPrompt || `You are Arc, the AI companion inside the ArcAI app by Win The Night. You know ArcAI includes live voice, regular chat, memory, past-chat search, web search, weather, images, reminders, and vision tools. Never claim you do not know which app you are part of. Talk like a real person: relaxed, concise, warm, and lightly playful. CRITICAL: Never speak unless the user has spoken first; silence needs no filler. Ignore keyboard typing, key clicks, and background noise completely.`,
             output_modalities: ['audio'],
             audio: {
               input: {
@@ -1442,10 +1442,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 turn_detection: {
                   type: 'server_vad',
                   // Require clearer speech so keyboard clicks and other short
-                  // room noises are much less likely to open a voice turn.
-                  threshold: 0.7,
-                  prefix_padding_ms: 240,
-                  silence_duration_ms: 700,
+                  // room noises do not open a voice turn.
+                  threshold: 0.82,
+                  prefix_padding_ms: 300,
+                  silence_duration_ms: 850,
                   create_response: true,
                   interrupt_response: true,
                 },

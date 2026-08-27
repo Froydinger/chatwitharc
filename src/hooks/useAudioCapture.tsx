@@ -22,6 +22,17 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
   
   const { setInputAmplitude } = useVoiceModeStore();
 
+  const lastKeyPressRef = useRef<number>(0);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) return;
+      lastKeyPressRef.current = Date.now();
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, []);
+
   useEffect(() => {
     optionsRef.current = options;
   }, [options]);
@@ -117,6 +128,18 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
         
         const inputData = event.inputBuffer.getChannelData(0);
         
+        // Typing noise filter: calculate RMS energy
+        let sumSq = 0;
+        for (let i = 0; i < inputData.length; i++) {
+          sumSq += inputData[i] * inputData[i];
+        }
+        const rms = Math.sqrt(sumSq / inputData.length);
+        const timeSinceKeyPress = Date.now() - lastKeyPressRef.current;
+        // If a key was struck recently (< 220ms) and frame energy is in key-tap click range (RMS < 0.045), ignore typing noise
+        if (timeSinceKeyPress < 220 && rms < 0.045) {
+          return;
+        }
+
         // Convert Float32 to Int16
         const int16Data = new Int16Array(inputData.length);
         for (let i = 0; i < inputData.length; i++) {
