@@ -526,18 +526,6 @@ export function VoiceModeOverlay() {
 
                 {/* Right Action Controls */}
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <div className="hidden shrink-0 lg:block mr-1">
-                    <UsageMeter kind="voice" />
-                  </div>
-
-                  <button
-                    onClick={handleReconnect}
-                    className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted/60 text-foreground transition-colors hover:bg-muted sm:flex"
-                    aria-label="Reconnect voice mode"
-                  >
-                    <RotateCw className={`h-4 w-4 ${status === 'connecting' ? 'animate-spin' : ''}`} />
-                  </button>
-
                   {/* Close Button */}
                   <button
                     onClick={deactivateVoiceMode}
