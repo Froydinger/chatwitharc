@@ -60,6 +60,7 @@ const BlogPostPage = lazy(() => import("./pages/BlogPostPage").then((m) => ({ de
 const DesktopAuthCallbackPage = lazy(() => import("./pages/DesktopAuthCallbackPage").then((m) => ({ default: m.DesktopAuthCallbackPage })));
 const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage").then((m) => ({ default: m.AuthCallbackPage })));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
+import { MaintenanceGuard } from "@/components/MaintenanceGuard";
 import { useAuth } from "@/hooks/useAuth";
 import { GUEST_CHAT_ENABLED } from "@/lib/features";
 import { ThemedLogo } from "@/components/ThemedLogo";
@@ -223,80 +224,82 @@ const App = () => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <SubscriptionProvider>
-          <ImageQuotaProvider>
-            <TooltipProvider>
-              <div className="arcai-drag-bar" />
-              <LiquidFilter />
-              <BackgroundGradients />
-              {showStarfield && <Starfield />}
-              <Toaster />
-              <Sonner />
-              <FingerPopupContainer />
-              <PWAInstallPrompt />
-              <AdminBanner />
-              <BugReportModal
-                isOpen={isOpen}
-                onClose={closeBugReport}
-                errorMessage={errorMessage}
-                errorStack={errorStack}
-              />
-              <UpgradeModal 
-                isOpen={upgradeOpen} 
-                onClose={() => setUpgradeOpen(false)} 
-                priceId={upgradePriceId}
-              />
-              <BoostSync />
-              <BrowserRouter>
-                <ThemeManager />
-                <ScrollToTop />
-                <RouteSEO />
-                <PageTransition>
-                  <Suspense fallback={<FastLoader />}>
-                  <Routes>
-                    <Route path="/" element={<RootGate />} />
-                    <Route path="/welcome" element={<LandingPage />} />
-                    <Route path="/blog" element={<BlogIndexPage />} />
-                    <Route path="/blog/:slug" element={<BlogPostPage />} />
-                    <Route path="/chat/:sessionId" element={<Index />} />
-                    <Route path="/share/:sessionId" element={<SharedChatPage />} />
-                    <Route path="/downloads" element={<DownloadPage />} />
-                    <Route path="/pricing" element={<PricingPage />} />
-                    <Route path="/upgrade" element={<UpgradePage />} />
-                    <Route path="/dashboard" element={<DashboardPage />} />
-                    <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
-                    <Route path="/build" element={<AppsPage />} />
-                    <Route path="/build/:projectId" element={<AppsPage />} />
-                    <Route path="/admin" element={<AdminPage />} />
-                    <Route path="/unsubscribe" element={<UnsubscribePage />} />
-                    <Route path="/support" element={<SupportPage />} />
-                    <Route path="/docs" element={<DocsPage />} />
-                    <Route path="/tasks" element={<TasksPage />} />
-                    <Route path="/shared" element={<SharedChatsPage />} />
-                    <Route path="/shared/:chatId" element={<SharedChatRoomPage />} />
-                    <Route path="/desktop-auth-callback" element={<DesktopAuthCallbackPage />} />
-                    <Route path="/auth/callback" element={<AuthCallbackPage />} />
-                    <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
-                    <Route path="/checkout/return" element={<CheckoutReturnPage />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="/terms" element={<TermsPage />} />
-                    <Route path="/privacy" element={<PrivacyPolicyPage />} />
-                    <Route path="/refund-policy" element={<Navigate to="/terms" replace />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  </Suspense>
-                </PageTransition>
-              </BrowserRouter>
-              <GlobalMusicPlayer />
-              <CorporateMemoryConsentGate />
-              <GlobalAuthGate />
-            </TooltipProvider>
-          </ImageQuotaProvider>
-        </SubscriptionProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <MaintenanceGuard>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <SubscriptionProvider>
+            <ImageQuotaProvider>
+              <TooltipProvider>
+                <div className="arcai-drag-bar" />
+                <LiquidFilter />
+                <BackgroundGradients />
+                {showStarfield && <Starfield />}
+                <Toaster />
+                <Sonner />
+                <FingerPopupContainer />
+                <PWAInstallPrompt />
+                <AdminBanner />
+                <BugReportModal
+                  isOpen={isOpen}
+                  onClose={closeBugReport}
+                  errorMessage={errorMessage}
+                  errorStack={errorStack}
+                />
+                <UpgradeModal 
+                  isOpen={upgradeOpen} 
+                  onClose={() => setUpgradeOpen(false)} 
+                  priceId={upgradePriceId}
+                />
+                <BoostSync />
+                <BrowserRouter>
+                  <ThemeManager />
+                  <ScrollToTop />
+                  <RouteSEO />
+                  <PageTransition>
+                    <Suspense fallback={<FastLoader />}>
+                    <Routes>
+                      <Route path="/" element={<RootGate />} />
+                      <Route path="/welcome" element={<LandingPage />} />
+                      <Route path="/blog" element={<BlogIndexPage />} />
+                      <Route path="/blog/:slug" element={<BlogPostPage />} />
+                      <Route path="/chat/:sessionId" element={<Index />} />
+                      <Route path="/share/:sessionId" element={<SharedChatPage />} />
+                      <Route path="/downloads" element={<DownloadPage />} />
+                      <Route path="/pricing" element={<PricingPage />} />
+                      <Route path="/upgrade" element={<UpgradePage />} />
+                      <Route path="/dashboard" element={<DashboardPage />} />
+                      <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
+                      <Route path="/build" element={<AppsPage />} />
+                      <Route path="/build/:projectId" element={<AppsPage />} />
+                      <Route path="/admin" element={<AdminPage />} />
+                      <Route path="/unsubscribe" element={<UnsubscribePage />} />
+                      <Route path="/support" element={<SupportPage />} />
+                      <Route path="/docs" element={<DocsPage />} />
+                      <Route path="/tasks" element={<TasksPage />} />
+                      <Route path="/shared" element={<SharedChatsPage />} />
+                      <Route path="/shared/:chatId" element={<SharedChatRoomPage />} />
+                      <Route path="/desktop-auth-callback" element={<DesktopAuthCallbackPage />} />
+                      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+                      <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+                      <Route path="/checkout/return" element={<CheckoutReturnPage />} />
+                      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                      <Route path="/terms" element={<TermsPage />} />
+                      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                      <Route path="/refund-policy" element={<Navigate to="/terms" replace />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    </Suspense>
+                  </PageTransition>
+                </BrowserRouter>
+                <GlobalMusicPlayer />
+                <CorporateMemoryConsentGate />
+                <GlobalAuthGate />
+              </TooltipProvider>
+            </ImageQuotaProvider>
+          </SubscriptionProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </MaintenanceGuard>
   );
 };
 

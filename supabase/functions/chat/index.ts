@@ -620,6 +620,12 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // EMERGENCY MAINTENANCE HALT
+  return new Response(
+    JSON.stringify({ error: 'Arc AI API is currently under maintenance for 12 hours.' }),
+    { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+
   try {
     // Check for guest mode first
     const body = await req.json();
