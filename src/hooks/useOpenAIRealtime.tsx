@@ -1856,6 +1856,96 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
   }, []);
 
+  // Process speech turn via Whisper STT -> Luna (gpt-5.6-luna) -> OpenAI Neural TTS
+  const processWhisperSpeechTurn = useCallback(async (audioBlob: Blob) => {
+    if (!audioBlob || audioBlob.size === 0) return;
+
+    const { setStatus, selectedVoice, addConversationTurn, setInputAmplitude, setOutputAmplitude } = useVoiceModeStore.getState();
+    const safeVoice = REALTIME_SUPPORTED_VOICES.includes(selectedVoice) ? selectedVoice : 'marin';
+
+    setStatus('thinking');
+
+    try {
+      // 1. Transcribe audio via Whisper STT edge function
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'user_speech.webm');
+
+      const { data: whisperData, error: whisperErr } = await supabase.functions.invoke('whisper-transcribe', {
+        body: formData,
+      });
+
+      if (whisperErr || !whisperData?.text || whisperData.text.trim().length === 0) {
+        console.log('Whisper transcription quiet or empty');
+        setStatus('listening');
+        return;
+      }
+
+      const userText = whisperData.text.trim();
+      console.log('🎤 Whisper STT transcribed:', userText);
+
+      // Add user turn to store
+      addConversationTurn({ role: 'user', transcript: userText, isFinal: true, timestamp: Date.now() });
+
+      // 2. Process text reasoning via Luna (gpt-5.6-luna) in chat edge function
+      const { data: chatData, error: chatErr } = await supabase.functions.invoke('chat', {
+        body: {
+          message: userText,
+          model: 'gpt-5.6-luna',
+        },
+      });
+
+      const aiText = chatData?.response || chatData?.message || chatData?.content || "Got it! How else can I help?";
+      console.log('🧠 Luna (gpt-5.6-luna) response:', aiText);
+
+      // Add AI assistant turn to store
+      addConversationTurn({ role: 'assistant', transcript: aiText, isFinal: true, timestamp: Date.now() });
+
+      // 3. Synthesize HD Neural Voice audio via test-voice edge function
+      const { data: ttsData, error: ttsErr } = await supabase.functions.invoke('test-voice', {
+        body: {
+          voice: safeVoice,
+          text: aiText,
+        },
+      });
+
+      if (ttsErr || !ttsData?.audio) {
+        console.warn('TTS synthesis failed:', ttsErr);
+        setStatus('listening');
+        return;
+      }
+
+      // 4. Play audio in browser
+      const audioBytes = Uint8Array.from(atob(ttsData.audio), c => c.charCodeAt(0));
+      const audioBlobObj = new Blob([audioBytes], { type: 'audio/mp3' });
+      const audioUrl = URL.createObjectURL(audioBlobObj);
+      const audioPlayer = new Audio(audioUrl);
+
+      audioPlayer.onplay = () => {
+        setStatus('speaking');
+        useVoiceModeStore.getState().setIsAudioPlaying(true);
+      };
+
+      audioPlayer.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        useVoiceModeStore.getState().setIsAudioPlaying(false);
+        setStatus('listening');
+      };
+
+      audioPlayer.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        URL.revokeObjectURL(audioUrl);
+        useVoiceModeStore.getState().setIsAudioPlaying(false);
+        setStatus('listening');
+      };
+
+      await audioPlayer.play().catch(console.error);
+
+    } catch (err: any) {
+      console.error('Whisper pipeline error:', err);
+      setStatus('listening');
+    }
+  }, []);
+
   return {
     isConnected,
     connect,
@@ -1864,6 +1954,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     sendImage,
     cancelResponse,
     commitAudioAndRespond,
-    reconnectNow
+    reconnectNow,
+    processWhisperSpeechTurn
   };
 }
