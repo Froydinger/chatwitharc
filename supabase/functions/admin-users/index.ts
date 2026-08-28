@@ -17,12 +17,13 @@ async function sendBoostEmail(options: {
   displayName?: string | null;
   adminEmail?: string | null;
   idempotencyKey: string;
+  durationLabel?: string;
 }) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceKey) {
     console.warn("[ADMIN-USERS] Missing Supabase env; skipping Boost email");
-    return false;
+    return { sent: false, reason: "Email service configuration is missing" };
   }
 
   try {
@@ -42,30 +43,37 @@ async function sendBoostEmail(options: {
           adminEmail: options.adminEmail || undefined,
           appUrl: "https://askarc.chat",
           pricingUrl: "https://askarc.chat/pricing",
+          durationLabel: options.durationLabel,
         },
       }),
     });
 
+    const payload = await response.json().catch(() => null);
     if (!response.ok) {
-      const text = await response.text();
       console.warn("[ADMIN-USERS] Boost email failed", {
         templateName: options.templateName,
         userId: options.userId,
         status: response.status,
-        text,
+        payload,
       });
-      return false;
+      return { sent: false, reason: payload?.error || payload?.detail || `Email service returned ${response.status}` };
     }
 
-    logStep("Boost email sent", { templateName: options.templateName, userId: options.userId });
-    return true;
+    if (payload?.sent !== true) {
+      const reason = payload?.reason || payload?.error || "Email service did not confirm delivery";
+      console.warn("[ADMIN-USERS] Boost email was not sent", { userId: options.userId, reason });
+      return { sent: false, reason };
+    }
+
+    logStep("Boost email accepted", { templateName: options.templateName, userId: options.userId });
+    return { sent: true, receipt: payload };
   } catch (error) {
     console.warn("[ADMIN-USERS] Boost email threw", {
       templateName: options.templateName,
       userId: options.userId,
       error: error instanceof Error ? error.message : String(error),
     });
-    return false;
+    return { sent: false, reason: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -269,8 +277,14 @@ serve(async (req) => {
     }
 
     if (action === "grant_boost") {
-      const { userId } = params;
+      const { userId, durationDays } = params;
       if (!userId) throw new Error("userId required");
+      if (![7, 30, "lifetime"].includes(durationDays)) throw new Error("durationDays must be 7, 30, or lifetime");
+
+      const durationLabel = durationDays === "lifetime" ? "Lifetime" : `${durationDays} days`;
+      const periodEnd = durationDays === "lifetime"
+        ? "9999-12-31 23:59:59+00"
+        : new Date(Date.now() + Number(durationDays) * 24 * 60 * 60 * 1000).toISOString();
 
       const { data: targetProfile } = await supabase
         .from("profiles")
@@ -283,23 +297,30 @@ serve(async (req) => {
         status: "active",
         price_id: "arcai_boost_monthly",
         product_id: "arcai_boost",
-        current_period_end: "9999-12-31 23:59:59+00",
+        current_period_end: periodEnd,
         current_period_start: new Date().toISOString(),
         environment: "sandbox",
-        stripe_subscription_id: `promo_admin_${userId}_${Date.now()}`,
+        stripe_subscription_id: `promo_admin_${durationDays}_${userId}_${Date.now()}`,
       }, { onConflict: "user_id" });
       if (boostError) throw new Error(`Could not grant Boost: ${boostError.message}`);
 
       logStep("Granted boost via admin", { userId });
-      const emailSent = await sendBoostEmail({
+      const emailResult = await sendBoostEmail({
         templateName: "boost-granted",
         userId,
         displayName: targetProfile?.display_name,
         adminEmail: userData.user?.email,
-        idempotencyKey: `admin-boost-granted:${userId}:${new Date().toISOString().slice(0, 10)}`,
+        idempotencyKey: `admin-boost-granted:${userId}:${durationDays}:${Date.now()}`,
+        durationLabel,
       });
 
-      return new Response(JSON.stringify({ success: true, emailSent }), {
+      return new Response(JSON.stringify({
+        success: true,
+        emailSent: emailResult.sent,
+        emailError: emailResult.sent ? undefined : emailResult.reason,
+        durationLabel,
+        currentPeriodEnd: periodEnd,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -318,7 +339,7 @@ serve(async (req) => {
       if (revokeError) throw new Error(`Could not revoke Boost: ${revokeError.message}`);
 
       logStep("Revoked boost via admin", { userId });
-      const emailSent = await sendBoostEmail({
+      const emailResult = await sendBoostEmail({
         templateName: "boost-revoked",
         userId,
         displayName: targetProfile?.display_name,
@@ -326,7 +347,7 @@ serve(async (req) => {
         idempotencyKey: `admin-boost-revoked:${userId}:${new Date().toISOString().slice(0, 10)}`,
       });
 
-      return new Response(JSON.stringify({ success: true, emailSent }), {
+      return new Response(JSON.stringify({ success: true, emailSent: emailResult.sent, emailError: emailResult.sent ? undefined : emailResult.reason }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

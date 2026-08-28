@@ -553,7 +553,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const { streamWithContinuation } = useStreamingWithContinuation();
 
   useEffect(() => {
-    const handleOpenBugReport = () => openBugReport("");
+    const handleOpenBugReport = (event: Event) => {
+      const summary = (event as CustomEvent<{ summary?: string }>).detail?.summary || "";
+      openBugReport(summary);
+    };
     window.addEventListener("arc-open-bug-report", handleOpenBugReport);
     return () => window.removeEventListener("arc-open-bug-report", handleOpenBugReport);
   }, [openBugReport]);

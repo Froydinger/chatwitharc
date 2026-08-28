@@ -55,6 +55,8 @@ interface AdminUser {
   } | null;
 }
 
+type BoostDuration = 7 | 30 | "lifetime";
+
 export function AdminPanel() {
   const navigate = useNavigate();
   const { isAdmin, loading: adminLoading } = useAdminAccess();
@@ -68,7 +70,7 @@ export function AdminPanel() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [testEmail, setTestEmail] = useState("jkrd09@gmail.com");
+  const [testEmail, setTestEmail] = useState("jakefroydinger@gmail.com");
   const [sendingTest, setSendingTest] = useState(false);
   const [localValues, setLocalValues] = useState<Record<string, string>>({});
 
@@ -89,6 +91,8 @@ export function AdminPanel() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [replyContent, setReplyContent] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
+  const [boostGrantTarget, setBoostGrantTarget] = useState<AdminUser | null>(null);
+  const [grantingBoost, setGrantingBoost] = useState(false);
 
   // Quick Draft State
   const [quickDraftTitle, setQuickDraftTitle] = useState(() => localStorage.getItem("arc_admin_draft_title") || "");
@@ -104,16 +108,13 @@ export function AdminPanel() {
     if (!supabase) return;
     setSendingTest(true);
     try {
-      const { error } = await supabase.functions.invoke("send-transactional-email", {
-        body: {
-          templateName: "welcome",
-          recipientEmail: testEmail.trim(),
-          templateData: {
-            displayName: "Jake"
-          }
-        }
+      const result = await invokeEdgeFunction<{ success?: boolean; sent?: boolean; reason?: string }>("send-transactional-email", {
+        templateName: "welcome",
+        recipientEmail: testEmail.trim(),
+        idempotencyKey: `admin-welcome-test:${testEmail.trim().toLowerCase()}:${Date.now()}`,
+        templateData: { displayName: "Jake" },
       });
-      if (error) throw error;
+      if (result.sent !== true) throw new Error(result.reason || "Email service did not confirm delivery");
       toast({ title: "Test Email Sent!", description: `A welcome email has been sent to ${testEmail}` });
     } catch (err: any) {
       console.error("Failed to send test email:", err);
@@ -388,20 +389,28 @@ export function AdminPanel() {
     }
   };
 
-  const handleGrantBoost = async (user: AdminUser) => {
+  const handleGrantBoost = async (user: AdminUser, durationDays: BoostDuration) => {
     if (!supabase) return;
+    setGrantingBoost(true);
     try {
-      const data = await invokeEdgeFunction<{ success: boolean; emailSent?: boolean }>("admin-users", {
+      const data = await invokeEdgeFunction<{ success: boolean; emailSent?: boolean; emailError?: string; durationLabel?: string }>("admin-users", {
         action: "grant_boost",
         userId: user.id,
+        durationDays,
       });
       toast({
         title: "Boost subscription granted",
-        description: `Boost has been activated for ${user.display_name || user.email}${data?.emailSent === false ? " (email not sent)" : ""}`,
+        description: data.emailSent
+          ? `${data.durationLabel || "Boost"} activated for ${user.display_name || user.email}. Confirmation email accepted for delivery.`
+          : `${data.durationLabel || "Boost"} activated, but the email was not sent: ${data.emailError || "unknown mail error"}`,
+        variant: data.emailSent ? "default" : "destructive",
       });
+      setBoostGrantTarget(null);
       fetchUsers();
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to grant Boost", variant: "destructive" });
+    } finally {
+      setGrantingBoost(false);
     }
   };
 
@@ -442,6 +451,31 @@ export function AdminPanel() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground overflow-hidden font-sans">
+      <AlertDialog open={!!boostGrantTarget} onOpenChange={(open) => !open && !grantingBoost && setBoostGrantTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Choose Boost duration</AlertDialogTitle>
+            <AlertDialogDescription>
+              Grant Boost to {boostGrantTarget?.display_name || boostGrantTarget?.email}. Arc will save the expiration and send a confirmation email.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {([7, 30, "lifetime"] as BoostDuration[]).map((duration) => (
+              <Button
+                key={duration}
+                variant={duration === 30 ? "default" : "outline"}
+                disabled={grantingBoost || !boostGrantTarget}
+                onClick={() => boostGrantTarget && handleGrantBoost(boostGrantTarget, duration)}
+              >
+                {duration === "lifetime" ? "Lifetime" : `${duration} days`}
+              </Button>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={grantingBoost}>Cancel</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {/* ═══ DESKTOP SIDEBAR ═══ */}
       <aside className="hidden md:flex flex-col w-64 border-r border-border/60 bg-muted/10 shrink-0">
         <div className="h-16 flex items-center gap-2 px-6 border-b border-border/40 shrink-0">
@@ -895,6 +929,8 @@ export function AdminPanel() {
                                 >
                                   Boost: {user.subscription.status}
                                 </Badge>
+                              ) : user.is_admin ? (
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-emerald-500/10 text-emerald-500 border-emerald-500/25">Boost: admin</Badge>
                               ) : (
                                 <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-muted-foreground bg-muted/10 border-border/40">Free</Badge>
                               )}
@@ -935,7 +971,7 @@ export function AdminPanel() {
                                   variant="outline"
                                   size="sm"
                                   className="h-8 text-xs border-emerald-500/35 text-emerald-500 hover:bg-emerald-500/10"
-                                  onClick={() => handleGrantBoost(user)}
+                                  onClick={() => setBoostGrantTarget(user)}
                                 >
                                   Grant Boost
                                 </Button>

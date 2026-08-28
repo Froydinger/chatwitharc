@@ -191,6 +191,13 @@ export class AIService {
     guestMode?: boolean,
     _modelOverride?: string
   ): Promise<SendMessageResult> {
+    const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content || '';
+    const requestsBugReport = /\b(open|create|start|show|file|submit|send|make)\b[\s\S]{0,80}\b(bug\s*report|feedback|suggestion|support\s*(message|report)|message\s+(to|for)\s+(the\s+)?(team|support))\b/i.test(latestUserMessage);
+    if (requestsBugReport) {
+      window.dispatchEvent(new CustomEvent('arc-open-bug-report', {
+        detail: { summary: latestUserMessage },
+      }));
+    }
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Chat service is not available. Please configure Supabase.');
     }
@@ -350,7 +357,9 @@ export class AIService {
           }
 
           if (data.tool_calls_used?.includes('open_bug_report')) {
-            window.dispatchEvent(new CustomEvent('arc-open-bug-report'));
+            window.dispatchEvent(new CustomEvent('arc-open-bug-report', {
+              detail: { summary: latestUserMessage },
+            }));
           }
 
           // Notify about tool usage if callback provided

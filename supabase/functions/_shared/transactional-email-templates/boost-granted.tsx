@@ -9,12 +9,14 @@ interface BoostGrantedProps {
   displayName?: string
   adminEmail?: string
   appUrl?: string
+  durationLabel?: string
 }
 
 const BoostGrantedEmail = ({
   displayName,
   adminEmail,
   appUrl = 'https://askarc.chat',
+  durationLabel,
 }: BoostGrantedProps) => {
   const name = displayName || 'there'
   return (
@@ -32,6 +34,7 @@ const BoostGrantedEmail = ({
             <Text style={paragraph}>
               ArcAI Boost has been granted to your account{adminEmail ? ` by ${adminEmail}` : ''}. You now have access to Boost features, including higher usage limits, expanded image tools, voice conversations, and publishing tools.
             </Text>
+            {durationLabel && <Text style={duration}>Duration: {durationLabel}</Text>}
             <Section style={ctaWrap}>
               <Button style={button} href={appUrl}>Open ArcAI</Button>
             </Section>
@@ -49,7 +52,7 @@ export const template = {
   component: BoostGrantedEmail,
   subject: 'ArcAI Boost has been added to your account',
   displayName: 'Boost granted by admin',
-  previewData: { displayName: 'Jane', adminEmail: 'admin@askarc.chat', appUrl: 'https://askarc.chat' },
+  previewData: { displayName: 'Jane', adminEmail: 'admin@askarc.chat', appUrl: 'https://askarc.chat', durationLabel: '30 days' },
 } satisfies TemplateEntry
 
 const main = { backgroundColor: '#09090b', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }
@@ -60,6 +63,7 @@ const content = { backgroundColor: '#18181b', borderRadius: '16px', padding: '40
 const eyebrow = { color: '#4ade80', fontSize: '13px', fontWeight: '700' as const, letterSpacing: '0.08em', textTransform: 'uppercase' as const, textAlign: 'center' as const, margin: '0 0 12px' }
 const h1 = { color: '#fafafa', fontSize: '28px', fontWeight: '700' as const, textAlign: 'center' as const, margin: '0 0 16px' }
 const paragraph = { color: '#a1a1aa', fontSize: '15px', lineHeight: '26px', textAlign: 'center' as const, margin: '0 0 28px' }
+const duration = { color: '#4ade80', fontSize: '14px', fontWeight: '700' as const, textAlign: 'center' as const, margin: '-14px 0 28px' }
 const ctaWrap = { textAlign: 'center' as const, margin: '0' }
 const button = { backgroundColor: '#16a34a', borderRadius: '10px', color: '#ffffff', fontSize: '16px', fontWeight: '600' as const, textDecoration: 'none', textAlign: 'center' as const, display: 'inline-block', padding: '14px 36px', boxShadow: '0 4px 12px rgba(22, 163, 74, 0.3)' }
 const footer = { padding: '28px 20px', textAlign: 'center' as const }
