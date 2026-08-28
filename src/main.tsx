@@ -46,9 +46,23 @@ window.addEventListener('error', (e) => {
     const key = 'last_stale_reload';
     const now = Date.now();
     const last = parseInt(sessionStorage.getItem(key) || '0', 10);
-    if (now - last > 10000) {
+    if (now - last > 5000) {
       sessionStorage.setItem(key, now.toString());
       console.warn('Stale JS bundle error detected — auto reloading fresh build');
+      window.location.reload();
+    }
+  }
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  const reason = String(e.reason || e.reason?.message || '');
+  if (reason.includes('Failed to fetch dynamically imported module') || reason.includes('Loading chunk')) {
+    const key = 'last_stale_reload';
+    const now = Date.now();
+    const last = parseInt(sessionStorage.getItem(key) || '0', 10);
+    if (now - last > 5000) {
+      sessionStorage.setItem(key, now.toString());
+      console.warn('Dynamic import chunk missing — auto reloading fresh build');
       window.location.reload();
     }
   }
