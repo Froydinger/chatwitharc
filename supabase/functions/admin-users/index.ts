@@ -324,10 +324,11 @@ serve(async (req) => {
     }
 
     if (action === "stats") {
-      // 1. Total users
-      const { data: { users }, error: usersErr } = await supabase.auth.admin.listUsers();
+      // 1. Total users (fetch with perPage: 1000 to get full user count)
+      const { data: { users }, error: usersErr } = await supabase.auth.admin.listUsers({ perPage: 1000 });
       if (usersErr) throw usersErr;
-      const totalUsers = users?.length || 0;
+      const registeredUsers = (users || []).filter(u => u.email && u.email.trim() !== "" && !u.is_anonymous);
+      const totalUsers = registeredUsers.length;
 
       // 2. Active subscriptions
       const { data: subs, error: subsErr } = await supabase
@@ -347,19 +348,19 @@ serve(async (req) => {
         { count: sitesCount },
         { count: bugsCount },
         { count: ticketsCount },
-        { count: voiceCount }
+        { count: voiceCount },
+        { count: imagesJobCount }
       ] = await Promise.all([
         supabase.from("chat_sessions").select("id", { count: "exact", head: true }),
         supabase.from("generated_files").select("id", { count: "exact", head: true }),
         supabase.from("published_sites").select("id", { count: "exact", head: true }),
         supabase.from("bug_reports").select("id", { count: "exact", head: true }),
         supabase.from("support_tickets").select("id", { count: "exact", head: true }),
-        supabase.from("voice_conversations").select("id", { count: "exact", head: true })
+        supabase.from("voice_conversations").select("id", { count: "exact", head: true }),
+        supabase.from("image_generation_jobs").select("id", { count: "exact", head: true })
       ]);
 
-      // 4. Image Generation Stats
-      const { data: imageUsage } = await supabase.from("daily_image_usage").select("used");
-      const totalImages = imageUsage?.reduce((sum, item) => sum + (item.used || 0), 0) || 0;
+      const totalImages = imagesJobCount || 0;
 
       return new Response(JSON.stringify({
         totalUsers,
