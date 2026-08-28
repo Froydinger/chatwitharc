@@ -70,22 +70,36 @@ serve(async (req) => {
   let sessionData: any = null;
   let lastFailureStatus: number | null = null;
 
-  const sessionResponse = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
+  let sessionResponse = await fetch('https://api.openai.com/v1/realtime/sessions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${openaiApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      session: {
-        type: 'realtime',
-        model: selectedModel,
-        audio: {
-          output: { voice: requestedVoice },
-        },
-      },
+      model: selectedModel,
+      voice: requestedVoice,
     }),
   });
+
+  if (!sessionResponse.ok) {
+    sessionResponse = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        session: {
+          type: 'realtime',
+          model: selectedModel,
+          audio: {
+            output: { voice: requestedVoice },
+          },
+        },
+      }),
+    });
+  }
 
   responseText = await sessionResponse.text();
   if (!sessionResponse.ok) {
