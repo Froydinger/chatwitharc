@@ -6,7 +6,7 @@ import {
 import type { TemplateEntry } from './registry.ts'
 
 const SITE_NAME = 'ArcAI'
-const DEFAULT_DESKTOP_URL = 'https://askarc.chat/'
+const DEFAULT_DESKTOP_URL = 'https://askarc.chat/downloads'
 
 interface DesktopLinkProps {
   displayName?: string
@@ -37,18 +37,17 @@ const DesktopLinkEmail = ({ displayName, desktopUrl }: DesktopLinkProps) => {
             <Text style={emoji}>🖥️</Text>
             <Heading style={h1}>Your desktop link is ready, {name}</Heading>
             <Text style={paragraph}>
-              Open Arc on desktop where local mode is more stable and gives you the full experience.
-              Sign in with this same email to pick up where you left off.
+              Download ArcAI for Mac or Windows, then sign in with this same email to pick up where you left off.
             </Text>
 
             <Section style={ctaWrap}>
               <Button style={button} href={href}>
-                Open Arc on desktop
+                View desktop downloads
               </Button>
             </Section>
 
             <Text style={note}>
-              Best results: Arc, Chrome, Edge, or Brave on desktop.
+              You can also keep using ArcAI in your browser at askarc.chat.
             </Text>
           </Section>
 
@@ -63,7 +62,7 @@ const DesktopLinkEmail = ({ displayName, desktopUrl }: DesktopLinkProps) => {
 
 export const template = {
   component: DesktopLinkEmail,
-  subject: '🖥️ Your Arc desktop link',
+  subject: '🖥️ Download ArcAI for desktop',
   displayName: 'Desktop link',
   previewData: { displayName: 'Jane', desktopUrl: DEFAULT_DESKTOP_URL },
 } satisfies TemplateEntry

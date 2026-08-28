@@ -366,7 +366,7 @@ export function LandingPage() {
           Find your creative center.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-          Enjoy 20 daily reasoning chats, 10 images, and unlimited voice conversations forever. Your safe hub for thinking is just one click away.
+          Start with 20 daily reasoning chats, 10 images a day, and limited voice conversations. Upgrade to Boost for higher limits and unlimited voice.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button

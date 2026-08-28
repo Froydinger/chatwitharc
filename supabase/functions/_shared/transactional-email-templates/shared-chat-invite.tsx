@@ -45,7 +45,7 @@ const SharedChatInviteEmail = ({
             <>
               <Hr style={hr} />
               <Text style={tipDesc}>
-                You'll need to sign up with this email address to access the chat. It's free and takes a minute.
+                Create an ArcAI account with this email address, or sign in if you already have one, to access the chat.
               </Text>
             </>
           )}

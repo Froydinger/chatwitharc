@@ -59,7 +59,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
               <Text style={tipIcon}>🎨</Text>
               <Section>
                 <Text style={tipTitle}>Generate images</Text>
-                <Text style={tipDesc}>Use /image or tap the image button to create visuals</Text>
+                <Text style={tipDesc}>Ask Arc to make an image, or tap the image button for more controls</Text>
               </Section>
             </Section>
 
@@ -67,7 +67,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
               <Text style={tipIcon}>🔍</Text>
               <Section>
                 <Text style={tipTitle}>Research anything</Text>
-                <Text style={tipDesc}>Use /search for real-time web information</Text>
+                <Text style={tipDesc}>Ask about current information and Arc can search the web</Text>
               </Section>
             </Section>
 
@@ -75,7 +75,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
               <Text style={tipIcon}>✍️</Text>
               <Section>
                 <Text style={tipTitle}>Write & code</Text>
-                <Text style={tipDesc}>Use /write or /code for canvas mode</Text>
+                <Text style={tipDesc}>Ask Arc to draft, revise, build, or debug in a canvas</Text>
               </Section>
             </Section>
           </Section>
@@ -92,7 +92,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
           </Section>
 
           <Section style={footer}>
-            <Text style={footerText}>Need help? Just ask ArcAI anything!</Text>
+            <Text style={footerText}>Questions or feedback? Visit ArcAI Support.</Text>
             <Text style={copy}>© 2026 ArcAI by Win The Night™ Foundation</Text>
           </Section>
         </Container>

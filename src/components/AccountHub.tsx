@@ -302,16 +302,16 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                   </div>
                 </div>
 
-                {/* Free plan and image allowance */}
+                {/* Current plan and image allowance */}
                 <div className="p-4 rounded-xl glass border border-border/30 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Crown className="h-4 w-4 text-primary" />
                       <span className="font-medium">
-                        {subLoading ? "Loading..." : quotaAdmin ? "ArcAI Admin" : "ArcAI · Free forever"}
+                        {subLoading ? "Loading..." : quotaAdmin ? "ArcAI Admin · Boost included" : hasBoost ? "ArcAI · Boost" : "ArcAI · Free"}
                       </span>
                     </div>
-                    <span className="text-xs font-semibold text-primary">NO PAID TIER</span>
+                    <span className="text-xs font-semibold text-primary">{quotaAdmin || hasBoost ? "BOOST" : "FREE"}</span>
                   </div>
                   {!subLoading && (
                     <div className="space-y-2">
@@ -323,7 +323,9 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                         <Progress value={imagePercent} className="h-1.5" />
                       </div>
                       <p className="text-[10px] text-muted-foreground/70 text-center pt-1">
-                        Everything is free. Voice and all other features are unlimited.
+                        {quotaAdmin || hasBoost
+                          ? "Boost includes unlimited voice and higher usage limits."
+                          : "Free includes core ArcAI features with plan-based usage limits."}
                       </p>
                     </div>
                   )}

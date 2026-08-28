@@ -16,7 +16,7 @@ interface ScheduledTaskCompleteProps {
 const ScheduledTaskCompleteEmail = ({
   taskTitle = 'Your scheduled task',
   preview = '',
-  chatUrl = 'https://askarc.chat/dashboard',
+  chatUrl = 'https://askarc.chat/tasks',
 }: ScheduledTaskCompleteProps) => (
   <Html lang="en" dir="ltr">
     <Head />
@@ -42,7 +42,7 @@ const ScheduledTaskCompleteEmail = ({
           </Section>
           <Hr style={hr} />
           <Text style={tipDesc}>
-            Scheduled with {SITE_NAME} — you can manage or pause this task anytime from your Scheduled Tasks dashboard.
+            Scheduled with {SITE_NAME}. Manage, pause, or remove reminders anytime on the Tasks page.
           </Text>
         </Section>
         <Section style={footer}>

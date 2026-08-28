@@ -15,7 +15,7 @@ interface BoostRevokedProps {
 const BoostRevokedEmail = ({
   displayName,
   adminEmail,
-  appUrl = 'https://askarc.chat',
+  appUrl = 'https://askarc.chat/support',
   pricingUrl = 'https://askarc.chat/pricing',
 }: BoostRevokedProps) => {
   const name = displayName || 'there'
@@ -38,10 +38,10 @@ const BoostRevokedEmail = ({
               <Button style={button} href={pricingUrl}>View plans</Button>
             </Section>
             <Text style={small}>
-              Need help? Open ArcAI and contact support from your account settings.
+              If this change looks wrong, contact ArcAI Support.
             </Text>
             <Section style={secondaryCtaWrap}>
-              <Button style={secondaryButton} href={appUrl}>Open ArcAI</Button>
+              <Button style={secondaryButton} href={appUrl}>Contact support</Button>
             </Section>
           </Section>
           <Section style={footer}>
@@ -57,7 +57,7 @@ export const template = {
   component: BoostRevokedEmail,
   subject: 'ArcAI Boost has been removed from your account',
   displayName: 'Boost revoked by admin',
-  previewData: { displayName: 'Jane', adminEmail: 'admin@askarc.chat', appUrl: 'https://askarc.chat', pricingUrl: 'https://askarc.chat/pricing' },
+  previewData: { displayName: 'Jane', adminEmail: 'admin@askarc.chat', appUrl: 'https://askarc.chat/support', pricingUrl: 'https://askarc.chat/pricing' },
 } satisfies TemplateEntry
 
 const main = { backgroundColor: '#09090b', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }

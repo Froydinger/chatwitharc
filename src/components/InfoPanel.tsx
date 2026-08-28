@@ -40,7 +40,7 @@ export function InfoPanel() {
   ];
 
   const roadmap = [
-    "🎙️ Realtime voice conversations (coming soon)",
+    "🎙️ Realtime voice conversations",
     "🔧 Function calling integration",
     "🔗 Model Context Protocol (MCP) support", 
     "📸 Advanced image analysis",
