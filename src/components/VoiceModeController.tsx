@@ -1175,11 +1175,6 @@ When the user shares their camera or attaches an image, describe what you see na
     onAudioData: (audioData) => {
       sendAudio(audioData);
     },
-    onSpeechEnd: async (blob) => {
-      console.log('🎙️ Turn-by-turn VAD: Speech ended, processing turn...');
-      await processWhisperSpeechTurn(blob);
-      await saveNewTurns(false);
-    },
   });
 
   const isPushToTalkHoldingRef = useRef(false);

@@ -165,33 +165,12 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
         
         const inputData = event.inputBuffer.getChannelData(0);
         
-        // Calculate RMS energy for noise gating & silence detection
+        // Calculate RMS energy for noise gating
         let sumSq = 0;
         for (let i = 0; i < inputData.length; i++) {
           sumSq += inputData[i] * inputData[i];
         }
         const rms = Math.sqrt(sumSq / inputData.length);
-
-        // Turn-by-Turn VAD Silence Detection
-        if (rms > 0.025) {
-          hasSpokenInTurnRef.current = true;
-          lastSpeechTimeRef.current = Date.now();
-        } else if (hasSpokenInTurnRef.current && status === 'listening') {
-          const silenceDuration = Date.now() - lastSpeechTimeRef.current;
-          if (silenceDuration > 1200) {
-            console.log('🎙️ VAD: Speech ended (1.2s silence) — finishing turn...');
-            hasSpokenInTurnRef.current = false;
-            if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-              try { mediaRecorderRef.current.requestData(); } catch (_) {}
-            }
-            setTimeout(() => {
-              const blob = getRecordedAudioBlob();
-              if (blob && blob.size > 0 && optionsRef.current.onSpeechEnd) {
-                optionsRef.current.onSpeechEnd(blob);
-              }
-            }, 120);
-          }
-        }
 
         // Low-energy noise gate: drop ambient room hum, breathing, quiet coughs
         if (rms < 0.018) {
