@@ -48,10 +48,10 @@ let connectionOpenedAt = 0;
 
 // Keepalive: OpenAI may idle-disconnect long sessions during silence or
 // Safety Caps to prevent runaway OpenAI API charges:
-// 1. Hard cap per session: 10 minutes max
-const MAX_SESSION_MS = 10 * 60 * 1000;
-// 2. Inactivity timeout: 3 minutes of silence automatically closes session
-const INACTIVITY_TIMEOUT_MS = 3 * 60 * 1000;
+// 1. Hard cap per session: 5 minutes max
+const MAX_SESSION_MS = 5 * 60 * 1000;
+// 2. Inactivity timeout: 2 minutes of silence automatically closes session
+const INACTIVITY_TIMEOUT_MS = 2 * 60 * 1000;
 
 let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
 let maxSessionTimer: ReturnType<typeof setTimeout> | null = null;
@@ -534,12 +534,8 @@ const isGarbledTranscription = (text: string): boolean => {
   return false;
 };
 
-// Clear all per-connection timers (keepalive, cleanup, proactive refresh)
+// Clear all per-connection timers (cleanup, proactive refresh)
 const clearConnectionTimers = () => {
-  if (keepaliveInterval) {
-    clearInterval(keepaliveInterval);
-    keepaliveInterval = null;
-  }
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
     cleanupInterval = null;
