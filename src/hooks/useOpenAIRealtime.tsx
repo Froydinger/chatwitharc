@@ -54,7 +54,8 @@ let connectionOpenedAt = 0;
 // Safety Caps to prevent runaway OpenAI API charges:
 // 1. Hard cap per session: 5 minutes max
 const MAX_SESSION_MS = 5 * 60 * 1000;
-// 2. Inactivity timeout: 2 minutes of silence automatically closes session
+// 2. Silence timeout: 2 minutes with neither side speaking closes the
+//    session. This is the main cost guard while the tab is backgrounded.
 const INACTIVITY_TIMEOUT_MS = 2 * 60 * 1000;
 
 // Absolute wall-clock deadline for the whole voice session, set on the FIRST
@@ -72,10 +73,10 @@ let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
 const resetInactivityTimer = () => {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
-    console.log('Voice mode paused after 3 minutes of inactivity');
+    console.log('Voice mode paused after 2 minutes of silence');
     const { deactivateVoiceMode, setError } = useVoiceModeStore.getState();
     deactivateVoiceMode();
-    setError('Voice mode paused due to 3 minutes of inactivity.');
+    setError('Voice mode paused after 2 minutes of silence.');
   }, INACTIVITY_TIMEOUT_MS);
 };
 
@@ -84,18 +85,11 @@ const clearSessionTimers = () => {
   if (maxSessionTimer) { clearTimeout(maxSessionTimer); maxSessionTimer = null; }
 };
 
-// Automatically disconnect Voice Mode if the browser tab is hidden/backgrounded
-if (typeof window !== 'undefined') {
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      const { isActive, deactivateVoiceMode } = useVoiceModeStore.getState();
-      if (isActive) {
-        console.log('Tab backgrounded — disconnecting Voice Mode to prevent API cost leak');
-        deactivateVoiceMode();
-      }
-    }
-  });
-}
+// Voice Mode deliberately KEEPS RUNNING when the tab is backgrounded — Jake
+// uses it in the background on purpose. Do not re-add a visibilitychange
+// disconnect here. The cost guards are the 5-minute absolute session cap and
+// the 2-minute inactivity timeout, which apply the same whether the tab is
+// visible or not.
 
 // Deterministic errors that should NOT trigger reconnect
 // `model_not_found` is deterministic: retrying re-mints a token and redials a
@@ -665,6 +659,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'input_audio_buffer.speech_started':
         console.log('VAD: User speech detected');
+        // Real activity — restart the silence countdown. Without this the
+        // "inactivity" timeout was only ever armed at connect time, so it was a
+        // hard 2-minute kill that would end a call mid-conversation.
+        resetInactivityTimer();
         if (!loggedFirstSpeech) {
           loggedFirstSpeech = true;
           logVoiceDiagnostic({
@@ -1199,6 +1197,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.created':
+        // Arc talking counts as activity too.
+        resetInactivityTimer();
         responseInProgress = true;
         suppressInterruptedResponseAudio = false; // Always reset audio suppression for fresh response
         setCurrentTranscript('');
