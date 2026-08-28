@@ -16,7 +16,8 @@ import {
   setGlobalVideoRef,
   setGlobalSwitchCameraHandler,
   setGlobalVoiceSwitchHandler,
-  setGlobalReconnectHandler
+  setGlobalReconnectHandler,
+  setGlobalPushToTalkHandlers
 } from './VoiceModeOverlay';
 
 const aiService = new AIService();
@@ -717,7 +718,7 @@ export function VoiceModeController() {
           longitude: locationUsed.longitude,
         } : undefined,
         sourceModel: 'cloud-voice',
-        modelUsed: 'gpt-realtime-2.1',
+        modelUsed: 'gpt-realtime-mini',
       });
       return `Weather in ${data.location}: ${data.temperature}°F (feels like ${data.feelsLike}°F), ${data.condition}. High ${data.high}°, low ${data.low}°. Humidity ${data.humidity}%, wind ${data.wind} mph. Briefly tell the user what it's like — keep it casual and short.`;
     } catch (e: any) {
@@ -1170,11 +1171,44 @@ When the user shares their camera or attaches an image, describe what you see na
   }, [attachedImage, attachedImageMime, isConnected, sendImage]);
 
   // Audio capture from microphone
-  const { startCapture, stopCapture } = useAudioCapture({
+  const { startCapture, stopCapture, getRecordedAudioBlob, clearRecordedAudio } = useAudioCapture({
     onAudioData: (audioData) => {
       sendAudio(audioData);
     },
   });
+
+  const isPushToTalkHoldingRef = useRef(false);
+
+  const startPushToTalk = useCallback(() => {
+    if (isPushToTalkHoldingRef.current) return;
+    isPushToTalkHoldingRef.current = true;
+    console.log('🎙️ Push-to-talk started (holding spacebar or orb)');
+    if (navigator.vibrate) navigator.vibrate(30);
+    clearRecordedAudio();
+    useVoiceModeStore.getState().setStatus('listening');
+  }, [clearRecordedAudio]);
+
+  const endPushToTalk = useCallback(async () => {
+    if (!isPushToTalkHoldingRef.current) return;
+    isPushToTalkHoldingRef.current = false;
+    console.log('🎙️ Push-to-talk released, processing turn...');
+    if (navigator.vibrate) navigator.vibrate([20, 30]);
+
+    setTimeout(async () => {
+      const blob = getRecordedAudioBlob();
+      if (blob && blob.size > 0) {
+        await processWhisperSpeechTurn(blob);
+      } else {
+        console.warn('No audio captured during push-to-talk hold');
+        useVoiceModeStore.getState().setStatus('listening');
+      }
+    }, 150);
+  }, [getRecordedAudioBlob, processWhisperSpeechTurn]);
+
+  useLayoutEffect(() => {
+    setGlobalPushToTalkHandlers(startPushToTalk, endPushToTalk);
+    return () => { setGlobalPushToTalkHandlers(null, null); };
+  }, [startPushToTalk, endPushToTalk]);
 
   // Single effect to handle activation/deactivation
   useEffect(() => {

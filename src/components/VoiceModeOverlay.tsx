@@ -48,6 +48,15 @@ export function setGlobalReconnectHandler(handler: (() => void | Promise<void>) 
   globalReconnectHandler = handler;
 }
 
+// Global ref for push-to-talk hold handlers
+let globalStartPushToTalk: (() => void) | null = null;
+let globalEndPushToTalk: (() => void) | null = null;
+
+export function setGlobalPushToTalkHandlers(start: (() => void) | null, end: (() => void) | null) {
+  globalStartPushToTalk = start;
+  globalEndPushToTalk = end;
+}
+
 export function VoiceModeOverlay() {
   const {
     isActive,
@@ -224,9 +233,34 @@ export function VoiceModeOverlay() {
     setIsSwitching(false);
   }, [pendingVoiceSwitch, isSwitching]);
 
-  const handleCancelVoiceSwitch = useCallback(() => {
-    setPendingVoiceSwitch(null);
-  }, []);
+  // Spacebar push-to-talk listener for desktop
+  useEffect(() => {
+    if (!isActive) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat) {
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+        e.preventDefault();
+        if (globalStartPushToTalk) globalStartPushToTalk();
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+        e.preventDefault();
+        if (globalEndPushToTalk) globalEndPushToTalk();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [isActive]);
 
   const voiceOrbConfig = useVoiceOrbConfig();
   const thinkingOrbConfig = useThinkingOrbConfig();
@@ -492,12 +526,17 @@ export function VoiceModeOverlay() {
 
                 {/* Center Hero ThinkingOrb & Status */}
                 <div className="flex flex-1 sm:flex-initial items-center justify-center gap-3 sm:gap-4 px-1 py-0.5 min-w-0">
-                  {/* Hero ThinkingOrb Container */}
+                  {/* Hero ThinkingOrb Container — Push to Talk Hold */}
                   <div
-                    onClick={toggleMute}
+                    onMouseDown={() => globalStartPushToTalk?.()}
+                    onMouseUp={() => globalEndPushToTalk?.()}
+                    onMouseLeave={() => globalEndPushToTalk?.()}
+                    onTouchStart={() => globalStartPushToTalk?.()}
+                    onTouchEnd={() => globalEndPushToTalk?.()}
+                    onTouchCancel={() => globalEndPushToTalk?.()}
                     className="relative flex h-14 w-14 shrink-0 items-center justify-center cursor-pointer select-none active:scale-95 transition-transform"
                     role="button"
-                    aria-label={isMuted ? "Unmute mic" : "Mute mic"}
+                    aria-label="Hold orb or spacebar to speak"
                   >
                     {/* Glow halo only in dark mode to prevent black smudging in light mode */}
                     {orbTheme === 'dark' && (
