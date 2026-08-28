@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { AlertTriangle, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { AlertTriangle, Send, CheckCircle2 } from "lucide-react";
 
 interface BugReportModalProps {
   isOpen: boolean;
@@ -20,10 +21,54 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
   const { toast } = useToast();
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState(user?.email || "");
-  const isSubmitting = false;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const handleSubmit = async () => {
-    toast({ title: "Coming soon", description: "Bug-report email is temporarily unavailable." });
+    if (!description.trim() && !errorMessage.trim()) {
+      toast({ title: "Please describe what happened", description: "Provide a brief description of the issue.", variant: "destructive" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (!supabase) throw new Error("Supabase client not available");
+
+      const bugPayload = {
+        user_id: user?.id || null,
+        user_email: email || user?.email || "anonymous",
+        error_message: errorMessage || "User Reported Bug",
+        error_stack: errorStack || null,
+        user_description: description.trim() || null,
+        url: window.location.href,
+        user_agent: navigator.userAgent,
+        created_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from("bug_reports").insert([bugPayload]);
+      if (error) throw error;
+
+      setIsSubmitted(true);
+      toast({
+        title: "Bug Report Sent",
+        description: "Thank you for reporting this issue. Our team has received your report.",
+      });
+
+      setTimeout(() => {
+        setIsSubmitted(false);
+        setDescription("");
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      console.error("Failed to submit bug report:", err);
+      toast({
+        title: "Submission Error",
+        description: err?.message || "Failed to submit bug report. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -35,15 +80,15 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
             Report a Bug
           </DialogTitle>
           <DialogDescription>
-            Bug-report email is coming soon. This form is temporarily read-only.
+            Help us fix this issue by sharing what you were doing when the error occurred.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Error Message (read-only) */}
+          {/* Error Message */}
           {errorMessage && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Error Message</Label>
+              <Label className="text-sm font-medium">Error Details</Label>
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
                 <code className="text-xs text-destructive break-all">{errorMessage}</code>
               </div>
@@ -52,7 +97,7 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
 
           {/* User Email */}
           <div className="space-y-2">
-            <Label htmlFor="email">Email (optional)</Label>
+            <Label htmlFor="email">Email (for follow-up)</Label>
             <Input
               id="email"
               type="email"
@@ -60,9 +105,8 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
               className="glass border-glass-border"
-              disabled
+              disabled={isSubmitting || isSubmitted}
             />
-            <p className="text-xs text-muted-foreground">We'll only use this to follow up on your report</p>
           </div>
 
           {/* User Description */}
@@ -74,11 +118,11 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe what you were doing when the error occurred..."
               className="glass border-glass-border min-h-[120px]"
-              disabled
+              disabled={isSubmitting || isSubmitted}
             />
           </div>
 
-          {/* Error Stack (collapsible) */}
+          {/* Error Stack */}
           {errorStack && (
             <details className="space-y-2">
               <summary className="text-sm font-medium cursor-pointer text-muted-foreground hover:text-foreground">
@@ -97,15 +141,20 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled
-            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            disabled={isSubmitting || isSubmitted}
+            className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-2"
           >
-            {isSubmitting ? (
+            {isSubmitted ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-green-400" />
+                Submitted
+              </>
+            ) : isSubmitting ? (
               "Sending..."
             ) : (
               <>
-                <Send className="w-4 h-4 mr-2" />
-                Coming soon
+                <Send className="w-4 h-4" />
+                Send Bug Report
               </>
             )}
           </Button>
