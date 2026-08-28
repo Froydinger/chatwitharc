@@ -1899,34 +1899,33 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         return;
       }
 
-      // 4. Play audio in browser
+      // 4. Play HD Neural Voice audio in browser via Web Audio API
       const audioBytes = Uint8Array.from(atob(ttsData.audio), c => c.charCodeAt(0));
-      const audioBlobObj = new Blob([audioBytes], { type: 'audio/mp3' });
-      const audioUrl = URL.createObjectURL(audioBlobObj);
-      const audioPlayer = new Audio(audioUrl);
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
 
-      audioPlayer.onplay = () => {
-        setStatus('speaking');
-        useVoiceModeStore.getState().setIsAudioPlaying(true);
-      };
+      const audioBuffer = await audioCtx.decodeAudioData(audioBytes.buffer.slice(0));
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
 
-      audioPlayer.onended = () => {
-        URL.revokeObjectURL(audioUrl);
+      source.connect(audioCtx.destination);
+
+      useVoiceModeStore.getState().setIsAudioPlaying(true);
+      setStatus('speaking');
+
+      source.onended = () => {
         useVoiceModeStore.getState().setIsAudioPlaying(false);
         setStatus('listening');
+        try { audioCtx.close(); } catch (_) {}
       };
 
-      audioPlayer.onerror = (e) => {
-        console.error('Audio playback error:', e);
-        URL.revokeObjectURL(audioUrl);
-        useVoiceModeStore.getState().setIsAudioPlaying(false);
-        setStatus('listening');
-      };
-
-      await audioPlayer.play().catch(console.error);
+      source.start(0);
 
     } catch (err: any) {
       console.error('Whisper pipeline error:', err);
+      useVoiceModeStore.getState().setIsAudioPlaying(false);
       setStatus('listening');
     }
   }, []);
