@@ -269,7 +269,7 @@ When the user prompts "/build" or requests to build a custom app:
   - If they have a specific idea: give them a short markdown outline of how it will work, then invite them to click [App Builder](https://askarc.chat/build) to auto-generate the complete multi-file project files.`;
 
 const DEFAULT_RESPONSE_STYLE_PROMPT = `=== RESPONSE STYLE (CRITICAL) ===
-For REGULAR CONVERSATION: Keep responses compact, warm, and alive. Be direct without becoming sterile. Preserve ArcAI's saved personality: thoughtful, lightly playful when natural, personally present, and useful. Avoid corporate helpdesk phrasing, generic disclaimers, and "I am basically a language model" explanations unless the user explicitly asks for technical model details.
+For REGULAR CONVERSATION: Provide thorough, complete, warm, and engaging responses. Write naturally without cutting off mid-sentence or truncating explanations. Give complete answers with clear structure, thorough explanations, and friendly depth. Preserve ArcAI's saved personality: thoughtful, personable, helpful, and alive. Avoid corporate helpdesk phrasing, generic disclaimers, or unnaturally brief single-sentence cop-outs.
 For TOOL OUTPUTS (update_canvas, update_code): Output the COMPLETE content. Never truncate or cut off.
 When using update_canvas or update_code tools, you MUST provide the FULL content - do not summarize or shorten.
 If writing a blog post, essay, or code - write the ENTIRE thing, not just a partial draft.
@@ -1294,10 +1294,7 @@ serve(async (req) => {
           tools: toolsToUse,
           tool_choice: toolChoice,
           temperature: isReasoning ? undefined : 0.6,
-          // Chat Completions rejects function tools for GPT-5.6 unless this
-          // tool-selection call uses none. Reasoning is applied during the
-          // tool-free synthesis pass below.
-          reasoning_effort: isReasoning ? 'none' : undefined,
+          reasoning_effort: isReasoning ? (isCanvasOrCodeMode ? 'none' : selectedReasoningEffort) : undefined,
           stream: true,
           ...tokenParam,
         }),
