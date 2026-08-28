@@ -279,10 +279,10 @@ export function VoiceModeOverlay() {
     if (isMuted) return 'Muted';
     switch (status) {
       case 'connecting': return 'Connecting...';
-      case 'listening': return 'Listening...';
+      case 'listening': return 'Hold orb or spacebar to speak';
       case 'thinking': return 'Thinking...';
       case 'speaking': return 'Speaking...';
-      default: return 'Listening...';
+      default: return 'Hold orb or spacebar to speak';
     }
   };
   

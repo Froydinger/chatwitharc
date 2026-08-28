@@ -1198,12 +1198,13 @@ When the user shares their camera or attaches an image, describe what you see na
       const blob = getRecordedAudioBlob();
       if (blob && blob.size > 0) {
         await processWhisperSpeechTurn(blob);
+        await saveNewTurns(false);
       } else {
         console.warn('No audio captured during push-to-talk hold');
         useVoiceModeStore.getState().setStatus('listening');
       }
     }, 150);
-  }, [getRecordedAudioBlob, processWhisperSpeechTurn]);
+  }, [getRecordedAudioBlob, processWhisperSpeechTurn, saveNewTurns]);
 
   useLayoutEffect(() => {
     setGlobalPushToTalkHandlers(startPushToTalk, endPushToTalk);
