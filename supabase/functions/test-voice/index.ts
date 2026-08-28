@@ -7,9 +7,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ALLOWED_VOICES = new Set([
-  'alloy','ash','ballad','cedar','coral','echo','fable','onyx','nova','sage','shimmer','verse','marin'
-]);
+// tts-1 only accepts alloy, echo, fable, onyx, nova and shimmer. The Realtime
+// voice names (cedar, marin, ash, coral, sage, ...) are not valid here and
+// return 400 "Invalid voice", so every name maps to one of those six.
+const TTS1_VOICES: Record<string, string> = {
+  alloy: 'alloy',
+  ash: 'onyx',
+  ballad: 'echo',
+  cedar: 'onyx',
+  coral: 'nova',
+  echo: 'echo',
+  fable: 'fable',
+  onyx: 'onyx',
+  nova: 'nova',
+  sage: 'alloy',
+  shimmer: 'shimmer',
+  verse: 'fable',
+  marin: 'nova',
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -44,7 +59,7 @@ serve(async (req) => {
   try {
     const { voice, text } = await req.json();
 
-    const selectedVoice = (voice && ALLOWED_VOICES.has(voice)) ? voice : 'cedar';
+    const selectedVoice = (voice && TTS1_VOICES[voice]) ? TTS1_VOICES[voice] : 'nova';
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY not configured');
