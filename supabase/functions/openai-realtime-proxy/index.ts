@@ -7,7 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const ALLOWED_VOICES = new Set(['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin']);
+// Arc offers exactly two voices: Marina (marin, default) and Cedric (cedar).
+const ALLOWED_VOICES = new Set(['marin', 'cedar']);
 // Arc voice mode runs on the GA Realtime *mini* model — the cheapest realtime
 // tier. Do NOT fall back to the `gpt-4o-*-realtime-preview` family: those are the
 // previous generation and are several times more expensive per audio minute,
@@ -53,7 +54,7 @@ serve(async (req) => {
     });
   }
 
-  let requestedVoice = 'cedar';
+  let requestedVoice = 'marin';
   try {
     const body = await req.json();
     if (typeof body?.voice === 'string' && ALLOWED_VOICES.has(body.voice)) {

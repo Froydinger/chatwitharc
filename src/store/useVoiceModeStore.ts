@@ -5,8 +5,12 @@ export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'sp
 // All 13 OpenAI voices
 export type VoiceName = 'alloy' | 'ash' | 'ballad' | 'cedar' | 'coral' | 'echo' | 'fable' | 'marin' | 'nova' | 'onyx' | 'sage' | 'shimmer' | 'verse';
 
-// Voices supported by OpenAI Realtime API (subset of all VoiceName)
-export const REALTIME_SUPPORTED_VOICES: VoiceName[] = ['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin'];
+// The only two voices Arc offers. This is the real gate: it validates the
+// saved `profile.preferred_voice`, so a stale value from when the picker
+// listed more voices normalizes back to the Marina default instead of being
+// sent to OpenAI. The wider `VoiceName` union and ALL_VOICES in
+// constants/voices.ts are dead config kept for avatars — NOT a live feature.
+export const REALTIME_SUPPORTED_VOICES: VoiceName[] = ['marin', 'cedar'];
 
 interface VoiceTurn {
   role: 'user' | 'assistant';
