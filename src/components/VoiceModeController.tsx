@@ -601,7 +601,7 @@ export function VoiceModeController() {
           searchQuery = `${query}\n\n${formatLocationForContext(locationUsed)}`;
         } else if (isCurrentLocationRequest(query)) {
           setIsSearching(false);
-          return "I need your location for that one. Please allow location access and ask me again.";
+          return "I couldn't access your device location. What city should I use?";
         }
       }
 
@@ -698,7 +698,7 @@ export function VoiceModeController() {
           weatherLocation = locationLabel(locationUsed);
         } else if (!location?.trim() || isCurrentLocationRequest(location)) {
           setIsFetchingWeather(false);
-          return "I need your location for that weather check. Please allow location access and ask me again.";
+          return "I couldn't access your device location. What city should I use for the weather?";
         }
       }
 

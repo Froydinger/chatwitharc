@@ -101,13 +101,6 @@ export async function getUserLocation(): Promise<UserLocation | null> {
 
   if (!coords) return null;
 
-  // Desktop browsers sometimes return a VPN/IP centroid hundreds of miles
-  // away. Do not present a very coarse fix as the user's current city.
-  if (Number.isFinite(coords.accuracy) && coords.accuracy > 50_000) {
-    console.warn('Ignoring low-accuracy browser location:', coords.accuracy);
-    return null;
-  }
-
   const geo = await reverseGeocode(coords.latitude, coords.longitude);
   const loc: UserLocation = {
     ...geo,

@@ -256,6 +256,12 @@ export class AIService {
           (effectiveProfile as any).context_info = existing
             ? `${existing}\n\n${locLine}`
             : locLine;
+        } else if (detectsLocationIntent(lastUserText)) {
+          const unavailableLine = "Device location is unavailable or was not allowed. Ask the user which city to use instead of guessing their location.";
+          const existing = (effectiveProfile as any).context_info || '';
+          (effectiveProfile as any).context_info = existing
+            ? `${existing}\n\n${unavailableLine}`
+            : unavailableLine;
         }
       } catch (e) {
         console.warn('Location injection skipped:', e);
