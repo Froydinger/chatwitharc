@@ -4,6 +4,7 @@ import {
   Body, Container, Head, Heading, Html, Img, Preview, Section, Text, Button, Hr,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
+import { EmailHead, ARC_EMAIL_BODY_PROPS } from '../email-theme.tsx'
 
 const SITE_NAME = 'ArcAI'
 
@@ -16,9 +17,9 @@ interface TicketOpenedProps {
 
 const TicketOpenedEmail = ({ subject, userEmail, userName, priority }: TicketOpenedProps) => (
   <Html lang="en" dir="ltr">
-    <Head />
+    <EmailHead />
     <Preview>🎫 New support ticket: {subject || 'No subject'}</Preview>
-    <Body style={main}>
+    <Body {...ARC_EMAIL_BODY_PROPS} style={main}>
       <Container style={container}>
         <Section style={header}>
           <Img

@@ -2,6 +2,8 @@
 
 import * as React from 'npm:react@18.3.1'
 
+import { EmailHead, ARC_EMAIL_BODY_PROPS } from '../email-theme.tsx'
+
 import {
   Body,
   Button,
@@ -27,9 +29,9 @@ export const MagicLinkEmail = ({
   confirmationUrl,
 }: MagicLinkEmailProps) => (
   <Html lang="en" dir="ltr">
-    <Head />
+    <EmailHead />
     <Preview>Your ArcAI login link is ready</Preview>
-    <Body style={main}>
+    <Body {...ARC_EMAIL_BODY_PROPS} style={main}>
       <Container style={container}>
         <Section style={header}>
           <Img

@@ -4,6 +4,7 @@ import {
   Body, Container, Head, Heading, Html, Img, Preview, Section, Text, Button, Hr,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
+import { EmailHead, ARC_EMAIL_BODY_PROPS } from '../email-theme.tsx'
 
 const SITE_NAME = 'ArcAI'
 
@@ -15,9 +16,9 @@ interface SupportReplyProps {
 
 const SupportReplyEmail = ({ subject, messagePreview, isEmailGuest }: SupportReplyProps) => (
   <Html lang="en" dir="ltr">
-    <Head />
+    <EmailHead />
     <Preview>{isEmailGuest ? `Support Reply: ${subject}` : `New reply on your support ticket — ${subject || 'Your ticket'}`}</Preview>
-    <Body style={main}>
+    <Body {...ARC_EMAIL_BODY_PROPS} style={main}>
       <Container style={container}>
         <Section style={header}>
           <Img

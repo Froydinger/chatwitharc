@@ -4,6 +4,7 @@ import {
   Body, Button, Container, Head, Heading, Hr, Html, Img, Preview, Section, Text,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
+import { EmailHead, ARC_EMAIL_BODY_PROPS } from '../email-theme.tsx'
 
 const SITE_NAME = 'ArcAI'
 
@@ -19,9 +20,9 @@ const ScheduledTaskCompleteEmail = ({
   chatUrl = 'https://askarc.chat/tasks',
 }: ScheduledTaskCompleteProps) => (
   <Html lang="en" dir="ltr">
-    <Head />
+    <EmailHead />
     <Preview>{preview ? preview.slice(0, 140) : `${taskTitle} — from ${SITE_NAME}`}</Preview>
-    <Body style={main}>
+    <Body {...ARC_EMAIL_BODY_PROPS} style={main}>
       <Container style={container}>
         <Section style={header}>
           <Img
