@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { AdminDownloadManager } from "./AdminDownloadManager";
 import { ThinkingOrbSettings } from "./admin/ThinkingOrbSettings";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -390,10 +391,10 @@ export function AdminPanel() {
   const handleGrantBoost = async (user: AdminUser) => {
     if (!supabase) return;
     try {
-      const { data, error } = await supabase.functions.invoke("admin-users", {
-        body: { action: "grant_boost", userId: user.id },
+      const data = await invokeEdgeFunction<{ success: boolean; emailSent?: boolean }>("admin-users", {
+        action: "grant_boost",
+        userId: user.id,
       });
-      if (error) throw error;
       toast({
         title: "Boost subscription granted",
         description: `Boost has been activated for ${user.display_name || user.email}${data?.emailSent === false ? " (email not sent)" : ""}`,
@@ -407,10 +408,10 @@ export function AdminPanel() {
   const handleRevokeBoost = async (user: AdminUser) => {
     if (!supabase) return;
     try {
-      const { data, error } = await supabase.functions.invoke("admin-users", {
-        body: { action: "revoke_boost", userId: user.id },
+      const data = await invokeEdgeFunction<{ success: boolean; emailSent?: boolean }>("admin-users", {
+        action: "revoke_boost",
+        userId: user.id,
       });
-      if (error) throw error;
       toast({
         title: "Boost subscription revoked",
         description: `Boost has been deactivated for ${user.display_name || user.email}${data?.emailSent === false ? " (email not sent)" : ""}`,

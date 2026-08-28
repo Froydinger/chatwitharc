@@ -278,7 +278,7 @@ serve(async (req) => {
         .eq("user_id", userId)
         .maybeSingle();
 
-      await supabase.from("subscriptions").upsert({
+      const { error: boostError } = await supabase.from("subscriptions").upsert({
         user_id: userId,
         status: "active",
         price_id: "arcai_boost_monthly",
@@ -288,6 +288,7 @@ serve(async (req) => {
         environment: "sandbox",
         stripe_subscription_id: `promo_admin_${userId}_${Date.now()}`,
       }, { onConflict: "user_id" });
+      if (boostError) throw new Error(`Could not grant Boost: ${boostError.message}`);
 
       logStep("Granted boost via admin", { userId });
       const emailSent = await sendBoostEmail({
@@ -313,7 +314,8 @@ serve(async (req) => {
         .eq("user_id", userId)
         .maybeSingle();
 
-      await supabase.from("subscriptions").delete().eq("user_id", userId);
+      const { error: revokeError } = await supabase.from("subscriptions").delete().eq("user_id", userId);
+      if (revokeError) throw new Error(`Could not revoke Boost: ${revokeError.message}`);
 
       logStep("Revoked boost via admin", { userId });
       const emailSent = await sendBoostEmail({
