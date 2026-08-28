@@ -42,7 +42,28 @@ const DownloadPage = lazy(() => import("./pages/DownloadPage").then((m) => ({ de
 const PricingPage = lazy(() => import("./pages/PricingPage").then((m) => ({ default: m.PricingPage })));
 const UpgradePage = lazy(() => import("./pages/UpgradePage").then((m) => ({ default: m.UpgradePage })));
 const AppsPage = lazy(() => import("./pages/AppsPage").then((m) => ({ default: m.AppsPage })));
-const DashboardPage = lazy(() => import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const DASHBOARD_CHUNK_RELOAD_KEY = "arc:dashboard-chunk-reload";
+const DashboardPage = lazy(async () => {
+  try {
+    const module = await import("./pages/DashboardPage");
+    sessionStorage.removeItem(DASHBOARD_CHUNK_RELOAD_KEY);
+    return { default: module.DashboardPage };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const isStaleDeploymentChunk = /dynamically imported module|module script|loading chunk|chunkloaderror/i.test(message);
+
+    // An open Arc tab can retain the previous deployment's asset manifest.
+    // Recover once with a full reload instead of dropping into ErrorBoundary.
+    if (isStaleDeploymentChunk && !sessionStorage.getItem(DASHBOARD_CHUNK_RELOAD_KEY)) {
+      sessionStorage.setItem(DASHBOARD_CHUNK_RELOAD_KEY, "1");
+      window.location.reload();
+      return new Promise<never>(() => undefined);
+    }
+
+    sessionStorage.removeItem(DASHBOARD_CHUNK_RELOAD_KEY);
+    throw error;
+  }
+});
 const DashboardSettingsPage = lazy(() => import("./pages/DashboardSettingsPage").then((m) => ({ default: m.DashboardSettingsPage })));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const SupportPage = lazy(() => import("./pages/SupportPage").then((m) => ({ default: m.SupportPage })));
