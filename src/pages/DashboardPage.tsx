@@ -266,6 +266,7 @@ useEffect(() => {
     }
   };
 
+  const prevMessageCountRef = useRef(messages.length);
   // Disable automatic redirection when messages sync in background on Dashboard
   useEffect(() => {
     prevMessageCountRef.current = messages.length;
