@@ -64,6 +64,10 @@ interface VoiceModeState {
   // Track if user has spoken since unmuting (for mute-to-handoff)
   hasPendingSpeech: boolean;
   
+  // Push-to-talk state
+  isPushToTalkActive: boolean;
+  setIsPushToTalkActive: (active: boolean) => void;
+  
   // Voice swap lifecycle
   isVoiceSwapping: boolean;
   
@@ -135,8 +139,9 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   isFetchingWeather: false,
   weatherData: null,
   isSchedulingTask: false,
-  hasPendingSpeech: false,
-  isVoiceSwapping: false,
+  // Push-to-talk state
+  isPushToTalkActive: false,
+  setIsPushToTalkActive: (active) => set({ isPushToTalkActive: active }),
   
   // Camera initial state
   isCameraActive: false,

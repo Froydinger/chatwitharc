@@ -16,11 +16,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // EMERGENCY MAINTENANCE HALT
-  return new Response(
-    JSON.stringify({ error: 'Arc AI API is currently under maintenance for 12 hours.' }),
-    { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
   const authHeader = req.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) {

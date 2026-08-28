@@ -55,6 +55,9 @@ export function VoiceModeOverlay() {
     inputAmplitude,
     outputAmplitude,
     isMuted,
+    setMuted,
+    isPushToTalkActive,
+    setIsPushToTalkActive,
     deactivateVoiceMode,
     toggleMute,
     generatedImage,
@@ -239,13 +242,12 @@ export function VoiceModeOverlay() {
     if (isSearching) return 'Searching the web...';
     if (isGeneratingImage) return 'Generating image...';
     if (isSchedulingTask) return 'Setting reminder...';
-    if (isMuted) return 'Muted';
+    if (isPushToTalkActive) return 'Listening...';
     switch (status) {
       case 'connecting': return 'Connecting...';
-      case 'listening': return 'Listening...';
-      case 'thinking': return 'Thinking...';
       case 'speaking': return 'Speaking...';
-      default: return 'Tap to speak';
+      case 'thinking': return 'Thinking...';
+      default: return 'Hold orb to speak';
     }
   };
   
@@ -489,13 +491,22 @@ export function VoiceModeOverlay() {
 
                 {/* Center Hero ThinkingOrb & Status */}
                 <div className="flex flex-1 sm:flex-initial items-center justify-center gap-3 sm:gap-4 px-1 py-0.5 min-w-0">
-                  {/* Hero ThinkingOrb Container */}
-                  <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
+                  {/* Hero ThinkingOrb Container with Push-to-Talk handlers */}
+                  <div
+                    onMouseDown={(e) => { e.preventDefault(); setIsPushToTalkActive(true); setMuted(false); if (navigator.vibrate) navigator.vibrate(25); }}
+                    onMouseUp={(e) => { e.preventDefault(); setIsPushToTalkActive(false); setMuted(true); }}
+                    onMouseLeave={(e) => { e.preventDefault(); setIsPushToTalkActive(false); setMuted(true); }}
+                    onTouchStart={(e) => { e.preventDefault(); setIsPushToTalkActive(true); setMuted(false); if (navigator.vibrate) navigator.vibrate(25); }}
+                    onTouchEnd={(e) => { e.preventDefault(); setIsPushToTalkActive(false); setMuted(true); }}
+                    className="relative flex h-14 w-14 shrink-0 items-center justify-center cursor-pointer select-none touch-none active:scale-95 transition-transform"
+                    role="button"
+                    aria-label="Hold orb to speak"
+                  >
                     {/* Glow halo only in dark mode to prevent black smudging in light mode */}
                     {orbTheme === 'dark' && (
                       <div
                         className="absolute -inset-2 -z-10 rounded-full bg-primary/30 blur-xl transition-opacity duration-300"
-                        style={{ opacity: 0.35 + Math.min(1, amplitude * 1.2) * 0.55 }}
+                        style={{ opacity: isPushToTalkActive ? 0.8 : (0.35 + Math.min(1, amplitude * 1.2) * 0.55) }}
                         aria-hidden="true"
                       />
                     )}
@@ -505,7 +516,7 @@ export function VoiceModeOverlay() {
                       size={64}
                       speed={orbSpeed}
                       theme={orbTheme}
-                      paused={isMuted && status === 'listening'}
+                      paused={!isPushToTalkActive && status === 'listening'}
                       aria-label={`Arc is ${status}`}
                       style={{ width: 56, height: 56 }}
                     />
@@ -521,6 +532,9 @@ export function VoiceModeOverlay() {
                         <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
                       )}
                     </div>
+                    <span className="text-[11px] text-muted-foreground/80 font-normal select-none">
+                      {isPushToTalkActive ? 'Release to send' : 'Hold orb to speak'}
+                    </span>
                   </div>
                 </div>
 

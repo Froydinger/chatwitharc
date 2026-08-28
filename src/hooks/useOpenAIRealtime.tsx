@@ -47,19 +47,47 @@ let sessionReady = false; // Gate: true after session.created received
 let connectionOpenedAt = 0;
 
 // Keepalive: OpenAI may idle-disconnect long sessions during silence or
-// long-running tool calls. Send a lightweight ping every 20s.
-let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
-// Cleanup interval reference (single source of truth — prevents duplicates on reconnect)
+// Safety Caps to prevent runaway OpenAI API charges:
+// 1. Hard cap per session: 10 minutes max
+const MAX_SESSION_MS = 10 * 60 * 1000;
+// 2. Inactivity timeout: 3 minutes of silence automatically closes session
+const INACTIVITY_TIMEOUT_MS = 3 * 60 * 1000;
+
+let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
+let maxSessionTimer: ReturnType<typeof setTimeout> | null = null;
 let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
-// Realtime sessions support up to 60 minutes. Refresh shortly before that
-// boundary rather than needlessly replacing a healthy session every 13 min.
-let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
-const PROACTIVE_REFRESH_MS = 55 * 60 * 1000;
+const resetInactivityTimer = () => {
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(() => {
+    console.log('Voice mode paused after 3 minutes of inactivity');
+    const { deactivateVoiceMode, setError } = useVoiceModeStore.getState();
+    deactivateVoiceMode();
+    setError('Voice mode paused due to 3 minutes of inactivity.');
+  }, INACTIVITY_TIMEOUT_MS);
+};
+
+const clearSessionTimers = () => {
+  if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
+  if (maxSessionTimer) { clearTimeout(maxSessionTimer); maxSessionTimer = null; }
+};
+
+// Automatically disconnect Voice Mode if the browser tab is hidden/backgrounded
+if (typeof window !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      const { isActive, deactivateVoiceMode } = useVoiceModeStore.getState();
+      if (isActive) {
+        console.log('Tab backgrounded — disconnecting Voice Mode to prevent API cost leak');
+        deactivateVoiceMode();
+      }
+    }
+  });
+}
 
 // Deterministic errors that should NOT trigger reconnect
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
-const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1';
+const OPENAI_REALTIME_MODEL = 'gpt-realtime-mini';
 
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1381,53 +1409,17 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         cleanupInterval = setInterval(() => cleanupStaleToolCalls(), 30000);
 
-        // Keepalive: OpenAI may close idle sessions. Send a no-op session.update
-        // every 20s to keep the WebSocket warm during silence or long tool calls.
-        if (keepaliveInterval) {
-          clearInterval(keepaliveInterval);
-        }
-        keepaliveInterval = setInterval(() => {
-          if (
-            globalWs?.readyState === WebSocket.OPEN &&
-            sessionReady &&
-            !activeToolCallId &&
-            !responseInProgress
-          ) {
-            sendRealtimeEvent({ type: 'session.update', session: { type: 'realtime' } });
-          }
-        }, 20000);
+        // Start 3-minute inactivity timer
+        resetInactivityTimer();
 
-        // Proactive session refresh: schedule a reconnect just before the
-        // 60-minute hard limit so the user never experiences a forced drop.
-        // We close the current WS cleanly at 55 minutes; onclose then
-        // reconnects with an updated system prompt that includes conversation
-        // context so the AI remembers what was discussed.
-        if (proactiveRefreshTimer) {
-          clearTimeout(proactiveRefreshTimer);
-        }
-        proactiveRefreshTimer = setTimeout(async () => {
-          proactiveRefreshTimer = null;
-          const { isActive } = useVoiceModeStore.getState();
-          if (!isActive || !globalWs || globalWs.readyState !== WebSocket.OPEN) return;
-
-          console.log('Proactive session refresh at 55-min mark — reconnecting before expiry');
-
-          // Ask the controller for an updated system prompt that includes
-          // a summary of the conversation so far.
-          let updatedPrompt: string | undefined;
-          try {
-            updatedPrompt = await optionsRef.current.onSessionExpired?.();
-          } catch (e) {
-            console.warn('onSessionExpired callback failed, using last prompt:', e);
-          }
-          if (updatedPrompt) lastSystemPrompt = updatedPrompt;
-
-          // Reset reconnect counter so the onclose handler will reconnect.
-          reconnectAttempts = 0;
-
-          // Close cleanly — onclose will reconnect.
-          globalWs.close(1000, 'proactive_refresh');
-        }, PROACTIVE_REFRESH_MS);
+        // 10-minute maximum session cap (hard limit to prevent accidental cost leaks)
+        if (maxSessionTimer) clearTimeout(maxSessionTimer);
+        maxSessionTimer = setTimeout(() => {
+          console.log('Voice mode reached 10-minute maximum session cap');
+          const { deactivateVoiceMode, setError } = useVoiceModeStore.getState();
+          deactivateVoiceMode();
+          setError('Voice mode reached 10-minute session cap to prevent runaway usage.');
+        }, MAX_SESSION_MS);
         
         sendRealtimeEvent({
           type: 'session.update',
