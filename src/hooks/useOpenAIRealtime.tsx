@@ -1411,28 +1411,20 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         sendRealtimeEvent({
           type: 'session.update',
           session: {
-            type: 'realtime',
             instructions: (systemPrompt || lastSystemPrompt || `You are Arc, the AI companion inside the ArcAI app by Win The Night. You know ArcAI includes live voice, regular chat, memory, past-chat search, web search, weather, images, reminders, and vision tools. Never claim you do not know which app you are part of. Talk like a real person: relaxed, concise, warm, and lightly playful. CRITICAL: Keep spoken responses natural, direct, and concise (1–2 short sentences maximum unless the user explicitly asks for detail/explanations). Never speak unless the user has spoken first; silence needs no filler. Ignore keyboard typing, key clicks, and background noise completely.`) + `\n\nCRITICAL CONCISENESS RULE FOR COST EFFICIENCY: Speak concisely (1–2 brief sentences max). Cut fluff.`,
-            output_modalities: ['audio'],
+            modalities: ['text', 'audio'],
             max_output_tokens: 150,
-            audio: {
-              input: {
-                format: { type: 'audio/pcm', rate: 24000 },
-                transcription: { model: 'gpt-4o-transcribe', language: 'en' },
-                turn_detection: {
-                  type: 'server_vad',
-                  // Higher threshold (0.88) to filter breathing, coughing, typing, and room noise
-                  threshold: 0.88,
-                  prefix_padding_ms: 400,
-                  silence_duration_ms: 1000,
-                  create_response: true,
-                  interrupt_response: true,
-                },
-              },
-              output: {
-                format: { type: 'audio/pcm', rate: 24000 },
-                voice: safeVoice,
-              },
+            voice: safeVoice,
+            input_audio_format: 'pcm16',
+            output_audio_format: 'pcm16',
+            input_audio_transcription: {
+              model: 'whisper-1',
+            },
+            turn_detection: {
+              type: 'server_vad',
+              threshold: 0.65,
+              prefix_padding_ms: 300,
+              silence_duration_ms: 700,
             },
             tool_choice: 'auto',
             tools: [

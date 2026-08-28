@@ -266,8 +266,6 @@ export function VoiceModeOverlay() {
   const thinkingOrbConfig = useThinkingOrbConfig();
   const orbTheme = useResolvedOrbTheme();
 
-  if (!isActive) return null;
-
   const amplitude = status === 'speaking' ? outputAmplitude : (isMuted ? 0 : inputAmplitude);
 
   const getStatusText = () => {
@@ -308,7 +306,13 @@ export function VoiceModeOverlay() {
   return (
     <AnimatePresence>
       {isActive && (
-        <div className="fixed inset-x-0 bottom-0 z-[100] pointer-events-none px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+        <motion.div
+          initial={{ opacity: 0, y: 32, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 24, scale: 0.97 }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="fixed inset-x-0 bottom-0 z-[100] pointer-events-none px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]"
+        >
           <input
             ref={fileInputRef}
             type="file"
@@ -585,7 +589,7 @@ export function VoiceModeOverlay() {
               </div>
             </motion.div>
           </div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );
