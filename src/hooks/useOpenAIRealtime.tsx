@@ -94,7 +94,10 @@ if (typeof window !== 'undefined') {
 }
 
 // Deterministic errors that should NOT trigger reconnect
-const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
+// `model_not_found` is deterministic: retrying re-mints a token and redials a
+// model that will never exist, which is exactly the "reconnecting with context"
+// loop. It must never be treated as transient.
+const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key', 'model_not_found'];
 const OPENAI_REALTIME_MODEL = 'gpt-realtime-mini';
 
 // Delayed phantom guard timer — gives Whisper time to confirm real speech

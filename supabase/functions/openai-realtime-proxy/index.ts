@@ -14,10 +14,57 @@ const ALLOWED_VOICES = new Set(['marin', 'cedar']);
 // previous generation and are several times more expensive per audio minute,
 // which is what caused the earlier billing bleed.
 const REALTIME_MODEL_CANDIDATES = [
-  'gpt-realtime-mini-2025-10-06',
   'gpt-realtime-mini',
+  'gpt-realtime-mini-2025-10-06',
 ] as const;
 const OPENAI_REALTIME_MODEL = REALTIME_MODEL_CANDIDATES[0];
+
+// Resolved once per isolate. A hardcoded name is not trustworthy here: the
+// /client_secrets endpoint happily mints a token for a model the account
+// cannot actually use, and only the WebSocket rejects it (error
+// `model_not_found`, close code 4004). So the only reliable source is the
+// account's own model list.
+let cachedRealtimeModel: string | null = null;
+
+const scoreRealtimeModel = (id: string): number => {
+  let score = 0;
+  if (id.includes('mini')) score += 100;              // mini = cheapest tier
+  if (!id.includes('4o')) score += 50;                // GA over legacy 4o
+  if (!/\d{4}-\d{2}-\d{2}/.test(id)) score += 10;    // stable alias over snapshot
+  if (id.includes('preview')) score -= 5;
+  return score;
+};
+
+async function resolveRealtimeModel(apiKey: string): Promise<string | null> {
+  if (cachedRealtimeModel) return cachedRealtimeModel;
+  try {
+    const res = await fetch('https://api.openai.com/v1/models', {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) {
+      console.warn(`[openai-realtime-proxy] Could not list models (${res.status})`);
+      return null;
+    }
+    const json = await res.json();
+    const realtime: string[] = (json?.data ?? [])
+      .map((m: any) => m?.id)
+      .filter((id: unknown): id is string => typeof id === 'string' && id.includes('realtime'))
+      // Never auto-select full gpt-4o-realtime — it is the most expensive tier
+      // and caused the original billing bleed.
+      .filter((id: string) => !(id.includes('4o') && !id.includes('mini')));
+
+    console.log('[openai-realtime-proxy] Realtime models available:', JSON.stringify(realtime));
+    if (realtime.length === 0) return null;
+
+    realtime.sort((a, b) => scoreRealtimeModel(b) - scoreRealtimeModel(a));
+    cachedRealtimeModel = realtime[0];
+    console.log(`[openai-realtime-proxy] Resolved realtime model: ${cachedRealtimeModel}`);
+    return cachedRealtimeModel;
+  } catch (err) {
+    console.error('[openai-realtime-proxy] Model list lookup failed:', err);
+    return null;
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -82,7 +129,10 @@ serve(async (req) => {
   // /v1/realtime/sessions endpoint rejects them with "model does not exist",
   // which is what made an earlier fix wrongly conclude the mini model was bad
   // and cascade all the way back to the expensive 4o preview models.
-  for (const model of REALTIME_MODEL_CANDIDATES) {
+  const resolved = await resolveRealtimeModel(openaiApiKey);
+  const candidates = [...new Set([...(resolved ? [resolved] : []), ...REALTIME_MODEL_CANDIDATES])];
+
+  for (const model of candidates) {
     try {
       const res = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
         method: 'POST',
