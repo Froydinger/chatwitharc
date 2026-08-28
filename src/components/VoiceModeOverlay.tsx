@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Mic, MicOff, Loader2, Search, Camera, CameraOff, Paperclip, SwitchCamera, Check, RotateCw } from "lucide-react";
 import { WeatherCard } from "@/components/WeatherCard";
 import { useVoiceModeStore, VoiceName } from "@/store/useVoiceModeStore";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { VOICES, REALTIME_VOICES, VOICE_AVATARS } from "@/constants/voices";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
