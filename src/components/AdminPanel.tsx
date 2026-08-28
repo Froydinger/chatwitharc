@@ -249,6 +249,27 @@ export function AdminPanel() {
     }
   };
 
+  const [sendingSamples, setSendingSamples] = useState(false);
+  const handleSendSampleEmails = async () => {
+    if (!supabase) return;
+    setSendingSamples(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-users", {
+        body: { action: "send_sample_emails", recipientEmail: "jakefreudinger@gmail.com" },
+      });
+      if (error) throw error;
+      toast({
+        title: "Sample Emails Sent",
+        description: `Successfully dispatched ${data.sentCount || 11} email template examples to jakefreudinger@gmail.com!`,
+      });
+    } catch (err: any) {
+      console.error("Failed to send sample emails:", err);
+      toast({ title: "Error", description: err.message || "Failed to send sample emails", variant: "destructive" });
+    } finally {
+      setSendingSamples(false);
+    }
+  };
+
   const handleDeleteBug = async (bugId: string) => {
     if (!supabase) return;
     try {
@@ -971,10 +992,16 @@ export function AdminPanel() {
                   <CardTitle>Application Bug Exceptions</CardTitle>
                   <CardDescription>Logged crashes and uncaught errors</CardDescription>
                 </div>
-                <Button variant="outline" size="sm" onClick={fetchBugs} disabled={bugsLoading} className="border-border/60 shrink-0">
-                  <RefreshCw className={cn("h-3.5 w-3.5 mr-2", bugsLoading && "animate-spin")} />
-                  Refresh
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleSendSampleEmails} disabled={sendingSamples} className="border-border/60 shrink-0 gap-2">
+                    <Send className={cn("h-3.5 w-3.5", sendingSamples && "animate-spin")} />
+                    {sendingSamples ? "Sending Samples..." : "Send All 11 Sample Emails"}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={fetchBugs} disabled={bugsLoading} className="border-border/60 shrink-0">
+                    <RefreshCw className={cn("h-3.5 w-3.5 mr-2", bugsLoading && "animate-spin")} />
+                    Refresh
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 {bugsLoading ? (

@@ -86,19 +86,25 @@ serve(async (req) => {
     if (!authHeader) throw new Error("No authorization header");
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError) throw new Error(`Auth error: ${userError.message}`);
-    const callerUserId = userData.user?.id;
-    if (!callerUserId) throw new Error("Not authenticated");
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const isServiceCall = token === serviceRoleKey;
 
-    // Check admin status
-    const { data: adminCheck } = await supabase
-      .from("admin_users")
-      .select("id")
-      .eq("user_id", callerUserId)
-      .maybeSingle();
+    let callerUserId: string | null = null;
+    if (!isServiceCall) {
+      const { data: userData, error: userError } = await supabase.auth.getUser(token);
+      if (userError) throw new Error(`Auth error: ${userError.message}`);
+      callerUserId = userData.user?.id || null;
+      if (!callerUserId) throw new Error("Not authenticated");
 
-    if (!adminCheck) throw new Error("Not an admin");
+      // Check admin status
+      const { data: adminCheck } = await supabase
+        .from("admin_users")
+        .select("id")
+        .eq("user_id", callerUserId)
+        .maybeSingle();
+
+      if (!adminCheck) throw new Error("Not an admin");
+    }
 
     const { action, ...params } = await req.json();
     logStep("Action requested", { action, callerUserId });
@@ -425,6 +431,53 @@ serve(async (req) => {
       if (error) throw error;
 
       return new Response(JSON.stringify({ messages }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "send_sample_emails") {
+      const recipient = params.recipientEmail || "jakefreudinger@gmail.com";
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+      const sampleTemplates = [
+        { name: "welcome", data: { displayName: "Jake Freudinger", appUrl: "https://askarc.chat" } },
+        { name: "bug-report", data: { userEmail: "lorem.user@example.com", description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. User reported an issue in voice mode.", errorMessage: "TypeError: Cannot read properties of undefined (reading 'loremIpsum')", errorStack: "Error: Lorem Exception\n  at Component (https://askarc.chat/assets/app.js:42:10)", url: "https://askarc.chat/chat", userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)" } },
+        { name: "support-reply", data: { ticketTitle: "Lorem Ipsum Ticket #1042", message: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.", ticketUrl: "https://askarc.chat/support" } },
+        { name: "ticket-opened", data: { ticketId: "TCK-1042", subject: "Lorem Ipsum Support Ticket", message: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.", ticketUrl: "https://askarc.chat/support" } },
+        { name: "desktop-link", data: { downloadUrl: "https://askarc.chat/download" } },
+        { name: "shared-chat-invite", data: { inviterName: "Jake Freudinger", chatTitle: "Lorem Ipsum Team Project", shareUrl: "https://askarc.chat/share/lorem-ipsum-123" } },
+        { name: "scheduled-task-complete", data: { taskName: "Lorem Ipsum Daily Audit", taskResult: "Lorem ipsum dolor sit amet, task completed successfully with 0 errors." } },
+        { name: "arc-notification", data: { title: "Lorem Ipsum System Update", message: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ArcAI has updated with new capabilities.", actionUrl: "https://askarc.chat", actionText: "View Dashboard" } },
+        { name: "boost-upgraded", data: { displayName: "Jake Freudinger", planName: "ArcAI Boost", pricingUrl: "https://askarc.chat/pricing" } },
+        { name: "boost-granted", data: { displayName: "Jake Freudinger", adminEmail: "support@askarc.chat", appUrl: "https://askarc.chat" } },
+        { name: "boost-revoked", data: { displayName: "Jake Freudinger", pricingUrl: "https://askarc.chat/pricing" } },
+      ];
+
+      const results = [];
+      for (const t of sampleTemplates) {
+        try {
+          const resp = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              templateName: t.name,
+              recipientEmail: recipient,
+              idempotencyKey: `sample_${t.name}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+              templateData: t.data,
+            }),
+          });
+          const json = await resp.json();
+          results.push({ template: t.name, status: resp.status, response: json });
+        } catch (err) {
+          results.push({ template: t.name, error: err instanceof Error ? err.message : String(err) });
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true, recipient, sentCount: results.length, results }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

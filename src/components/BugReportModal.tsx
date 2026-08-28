@@ -48,6 +48,22 @@ export function BugReportModal({ isOpen, onClose, errorMessage = "", errorStack 
       const { error } = await supabase.from("bug_reports").insert([bugPayload]);
       if (error) throw error;
 
+      // Dispatch admin email alert via Resend
+      void supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "bug-report",
+          recipientEmail: "jakefreudinger@gmail.com",
+          templateData: {
+            userEmail: bugPayload.user_email,
+            description: bugPayload.user_description,
+            errorMessage: bugPayload.error_message,
+            errorStack: bugPayload.error_stack,
+            url: bugPayload.url,
+            userAgent: bugPayload.user_agent,
+          },
+        },
+      }).catch((e) => console.warn("Failed to dispatch bug alert email:", e));
+
       setIsSubmitted(true);
       toast({
         title: "Bug Report Sent",
