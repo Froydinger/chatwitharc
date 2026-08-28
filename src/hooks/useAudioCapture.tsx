@@ -164,24 +164,17 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
         if (!shouldCapture) return;
         
         const inputData = event.inputBuffer.getChannelData(0);
-        
-        // Calculate RMS energy for noise gating
-        let sumSq = 0;
-        for (let i = 0; i < inputData.length; i++) {
-          sumSq += inputData[i] * inputData[i];
-        }
-        const rms = Math.sqrt(sumSq / inputData.length);
 
-        // Low-energy noise gate: drop ambient room hum, breathing, quiet coughs
-        if (rms < 0.018) {
-          return;
-        }
-
-        const timeSinceKeyPress = Date.now() - lastKeyPressRef.current;
-        // Keyboard noise filter: ignore key-click audio frames when typing
-        if (timeSinceKeyPress < 350 && rms < 0.055) {
-          return;
-        }
+        // NOTE: do NOT drop quiet frames here. Server VAD decides when a turn
+        // starts and ends, and it ends a turn by hearing silence_duration_ms of
+        // quiet. Client-side gating deleted exactly those silent frames, so the
+        // server heard speech begin and never heard it stop — it never fired
+        // speech_stopped, never created a response, and Arc listened forever
+        // without answering.
+        //
+        // Noise rejection belongs to the server VAD threshold (0.65) and
+        // prefix_padding_ms in useOpenAIRealtime's session.update, which is the
+        // lever to turn if typing or breathing starts triggering turns again.
 
         // Convert Float32 to Int16
         const int16Data = new Int16Array(inputData.length);
