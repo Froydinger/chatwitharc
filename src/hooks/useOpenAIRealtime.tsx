@@ -636,22 +636,23 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         console.log('VAD: User speech detected');
         userSpokeAfterLastResponse = true;
         const voiceStateAtSpeechStart = useVoiceModeStore.getState();
-        const isBargeIn = responseInProgress || voiceStateAtSpeechStart.status === 'speaking' || voiceStateAtSpeechStart.isAudioPlaying;
-        suppressInterruptedResponseAudio = isBargeIn;
-        useVoiceModeStore.getState().setHasPendingSpeech(true);
-        // For WebSocket Realtime sessions, speech_started is the authoritative
-        // barge-in signal. Always ask the client to stop local playback here;
-        // UI/store flags can lag behind scheduled Web Audio sources.
-        try {
-          optionsRef.current.onInterrupt?.();
-        } catch (err) {
-          console.warn('onInterrupt handler threw:', err);
-        }
+        const isBargeIn = (responseInProgress || voiceStateAtSpeechStart.status === 'speaking' || voiceStateAtSpeechStart.isAudioPlaying)
+          && voiceStateAtSpeechStart.inputAmplitude > 0.045; // Guard against ambient noise/breathing cutting off AI speech
 
-        // Server VAD also cancels with interrupt_response:true. Keep the
-        // explicit cancel as a harmless fallback for an in-flight response.
-        if (isBargeIn && globalWs?.readyState === WebSocket.OPEN) {
-          sendRealtimeEvent({ type: 'response.cancel' });
+        if (isBargeIn) {
+          console.log('🎙️ Intentional user barge-in confirmed (amplitude > 0.045)');
+          suppressInterruptedResponseAudio = true;
+          useVoiceModeStore.getState().setHasPendingSpeech(true);
+          try {
+            optionsRef.current.onInterrupt?.();
+          } catch (err) {
+            console.warn('onInterrupt handler threw:', err);
+          }
+          if (globalWs?.readyState === WebSocket.OPEN) {
+            sendRealtimeEvent({ type: 'response.cancel' });
+          }
+        } else {
+          console.log('🤫 Ignored background noise/breath during AI speech');
         }
         break;
 
@@ -1160,31 +1161,15 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'response.created':
         responseInProgress = true;
-        // Clear accumulated transcript so AI deltas start fresh
+        suppressInterruptedResponseAudio = false; // Always reset audio suppression for fresh response
         setCurrentTranscript('');
 
-        // Allow tool-triggered responses through the phantom guard
+        // Allow tool-triggered or VAD-triggered responses through
         if (awaitingToolResponse) {
-          console.log('Allowing tool-triggered response through phantom guard');
+          console.log('Allowing tool-triggered response');
           awaitingToolResponse = false;
-          setStatus('thinking');
-          break;
         }
-
-        // Trust server VAD: if we got speech_started since the last response,
-        // this is a real user turn — let it through. Whisper transcription
-        // often arrives AFTER response.created, so we cannot wait on it.
-        if (userSpokeAfterLastResponse || hasRealTranscription) {
-          console.log('Allowing response — user speech detected by server VAD');
-          setStatus('thinking');
-          break;
-        }
-
-        // No speech detected at all — cancel immediately (true phantom)
-        console.log('Cancelling phantom response — no speech_started fired');
-        if (globalWs?.readyState === WebSocket.OPEN) {
-          sendRealtimeEvent({ type: 'response.cancel' });
-        }
+        setStatus('thinking');
         break;
 
       case 'response.done':
