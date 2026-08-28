@@ -1292,24 +1292,22 @@ When the user shares their camera or attaches an image, describe what you see na
     }
   }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, toast, deactivateVoiceMode, saveNewTurns, createNewSession]);
 
-  // Periodic auto-save every 30s during active voice mode (reduced from 60s to
-  // minimise data loss if a crash occurs between saves)
+  // 5-minute maximum session limit guard
   useEffect(() => {
     if (isActive) {
-      autoSaveIntervalRef.current = setInterval(() => {
-        saveNewTurns(false).then((count) => {
-          if (count > 0) console.log(`⏱️ Auto-saved ${count} voice turns`);
+      const FIVE_MINUTES_MS = 5 * 60 * 1000;
+      const timer = setTimeout(() => {
+        console.log('⏱️ 5-minute voice session limit reached — auto deactivating');
+        toast({
+          title: 'Voice session ended',
+          description: '5 minute session limit reached to save credits.',
         });
-      }, 30000);
-      
-      return () => {
-        if (autoSaveIntervalRef.current) {
-          clearInterval(autoSaveIntervalRef.current);
-          autoSaveIntervalRef.current = null;
-        }
-      };
+        deactivateVoiceMode();
+      }, FIVE_MINUTES_MS);
+
+      return () => clearTimeout(timer);
     }
-  }, [isActive, saveNewTurns]);
+  }, [isActive, deactivateVoiceMode, toast]);
 
   // Save finalized voice transcripts into the normal chat thread shortly after
   // each turn lands so voice mode feels like the regular chat, not a separate UI.

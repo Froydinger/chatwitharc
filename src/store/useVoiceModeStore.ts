@@ -154,8 +154,29 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   
   // Actions
   activateVoiceMode: () => {
-    console.log('Voice mode is temporarily disabled for maintenance');
-    return;
+    set({ 
+      isActive: true, 
+      status: 'listening',
+      currentTranscript: '',
+      conversationTurns: [],
+      isMuted: false,
+      generatedImage: null,
+      isGeneratingImage: false,
+      lastGeneratedImageUrl: null,
+      isSearching: false,
+      isSearchingPastChats: false,
+      searchSummary: null,
+      isFetchingWeather: false,
+      weatherData: null,
+      isSchedulingTask: false,
+      hasPendingSpeech: false,
+      isVoiceSwapping: false,
+      // Reset camera/attachment on new session
+      isCameraActive: false,
+      attachedImage: null,
+      attachedImagePreview: null,
+      attachedImageMime: null
+    });
   },
   
   deactivateVoiceMode: () => {
