@@ -59,6 +59,7 @@ const BlogIndexPage = lazy(() => import("./pages/BlogIndexPage").then((m) => ({ 
 const BlogPostPage = lazy(() => import("./pages/BlogPostPage").then((m) => ({ default: m.BlogPostPage })));
 const DesktopAuthCallbackPage = lazy(() => import("./pages/DesktopAuthCallbackPage").then((m) => ({ default: m.DesktopAuthCallbackPage })));
 const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage").then((m) => ({ default: m.AuthCallbackPage })));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
 import { useAuth } from "@/hooks/useAuth";
 import { GUEST_CHAT_ENABLED } from "@/lib/features";
 import { ThemedLogo } from "@/components/ThemedLogo";
