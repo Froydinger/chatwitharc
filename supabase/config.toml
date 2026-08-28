@@ -6,7 +6,10 @@ project_id = "jpqtoixhjnfdubvqshwk"
   [functions.process-email-queue]
     verify_jwt = true
   [functions.send-transactional-email]
-    verify_jwt = true
+    # The function performs its own user/admin/service authentication. Keeping
+    # the gateway check on rejects Supabase's newer sb_secret service key before
+    # internal jobs can reach that authentication layer.
+    verify_jwt = false
   [functions.preview-transactional-email]
     verify_jwt = false
   [functions.handle-email-unsubscribe]
