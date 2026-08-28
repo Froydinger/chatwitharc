@@ -94,31 +94,31 @@ export const template = {
 } satisfies TemplateEntry
 
 const main = {
-  backgroundColor: '#09090b',
+  backgroundColor: '#09090b', backgroundImage: 'linear-gradient(#09090b, #09090b)',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 }
 const container = { margin: '0 auto', padding: '40px 0', maxWidth: '560px' }
 const header = { textAlign: 'center' as const, paddingBottom: '16px' }
-const logo = { margin: '0 auto', borderRadius: '10px' }
+const logo = { margin: '0 auto', borderRadius: '10px', backgroundColor: '#000000', backgroundImage: 'linear-gradient(#000000, #000000)', padding: '8px' }
 const content = {
-  backgroundColor: '#18181b',
+  backgroundColor: '#18181b', backgroundImage: 'linear-gradient(#18181b, #18181b)',
   borderRadius: '12px',
   padding: '32px 28px',
   border: '1px solid rgba(0, 128, 240, 0.25)',
 }
-const h1 = { color: '#fafafa', fontSize: '22px', fontWeight: '700' as const, margin: '0 0 24px' }
-const label = { color: '#71717a', fontSize: '12px', fontWeight: '600' as const, textTransform: 'uppercase' as const, margin: '0 0 4px', letterSpacing: '0.05em' }
-const value = { color: '#fafafa', fontSize: '14px', margin: '0 0 16px', lineHeight: '22px' }
+const h1 = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '22px', fontWeight: '700' as const, margin: '0 0 24px' }
+const label = { color: '#71717a', WebkitTextFillColor: '#71717a', fontSize: '12px', fontWeight: '600' as const, textTransform: 'uppercase' as const, margin: '0 0 4px', letterSpacing: '0.05em' }
+const value = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '14px', margin: '0 0 16px', lineHeight: '22px' }
 const hr = { borderColor: '#27272a', margin: '8px 0 16px' }
 const codeBox = {
-  backgroundColor: '#09090b',
+  backgroundColor: '#09090b', backgroundImage: 'linear-gradient(#09090b, #09090b)',
   border: '1px solid rgba(0, 128, 240, 0.15)',
   borderRadius: '8px',
   padding: '12px 16px',
   marginBottom: '16px',
 }
 const codeText = {
-  color: '#fafafa',
+  color: '#fafafa', WebkitTextFillColor: '#fafafa',
   fontSize: '13px',
   fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Courier, monospace',
   margin: '0',
@@ -127,4 +127,4 @@ const codeText = {
   wordBreak: 'break-all' as const,
 }
 const footer = { padding: '20px', textAlign: 'center' as const }
-const footerText = { color: '#52525b', fontSize: '11px', margin: '0' }
+const footerText = { color: '#52525b', WebkitTextFillColor: '#52525b', fontSize: '11px', margin: '0' }

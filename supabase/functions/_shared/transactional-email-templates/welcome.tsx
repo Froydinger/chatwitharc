@@ -110,28 +110,28 @@ export const template = {
 } satisfies TemplateEntry
 
 const main = {
-  backgroundColor: '#09090b',
+  backgroundColor: '#09090b', backgroundImage: 'linear-gradient(#09090b, #09090b)',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
 }
 const container = { margin: '0 auto', padding: '40px 0', maxWidth: '560px' }
 const header = { textAlign: 'center' as const, paddingBottom: '24px' }
-const logo = { margin: '0 auto', borderRadius: '14px' }
+const logo = { margin: '0 auto', borderRadius: '14px', backgroundColor: '#000000', backgroundImage: 'linear-gradient(#000000, #000000)', padding: '8px' }
 const content = {
-  backgroundColor: '#18181b',
+  backgroundColor: '#18181b', backgroundImage: 'linear-gradient(#18181b, #18181b)',
   borderRadius: '16px',
   padding: '40px 32px',
   border: '1px solid rgba(0, 128, 240, 0.25)',
 }
 const emoji = { fontSize: '48px', textAlign: 'center' as const, margin: '0 0 16px' }
 const h1 = {
-  color: '#fafafa',
+  color: '#fafafa', WebkitTextFillColor: '#fafafa',
   fontSize: '28px',
   fontWeight: '700' as const,
   textAlign: 'center' as const,
   margin: '0 0 16px',
 }
 const paragraph = {
-  color: '#a1a1aa',
+  color: '#a1a1aa', WebkitTextFillColor: '#a1a1aa',
   fontSize: '15px',
   lineHeight: '26px',
   textAlign: 'center' as const,
@@ -139,9 +139,9 @@ const paragraph = {
 }
 const ctaWrap = { textAlign: 'center' as const, margin: '0 0 28px' }
 const button = {
-  backgroundColor: '#0080f0',
+  backgroundColor: '#0080f0', backgroundImage: 'linear-gradient(#0080f0, #0080f0)',
   borderRadius: '10px',
-  color: '#ffffff',
+  color: '#ffffff', WebkitTextFillColor: '#ffffff',
   fontSize: '16px',
   fontWeight: '600' as const,
   textDecoration: 'none',
@@ -151,25 +151,25 @@ const button = {
   boxShadow: '0 4px 12px rgba(0, 128, 240, 0.3)',
 }
 const hr = { borderColor: '#27272a', margin: '0 0 24px' }
-const tipsHeading = { color: '#fafafa', fontSize: '14px', fontWeight: '500' as const, margin: '0 0 20px' }
+const tipsHeading = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '14px', fontWeight: '500' as const, margin: '0 0 20px' }
 const tipRow = { marginBottom: '16px' }
 const tipIcon = { fontSize: '20px', margin: '0 0 4px' }
-const tipTitle = { color: '#fafafa', fontSize: '14px', fontWeight: '600' as const, margin: '0 0 2px' }
-const tipDesc = { color: '#a1a1aa', fontSize: '13px', margin: '0' }
+const tipTitle = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '14px', fontWeight: '600' as const, margin: '0 0 2px' }
+const tipDesc = { color: '#a1a1aa', WebkitTextFillColor: '#a1a1aa', fontSize: '13px', margin: '0' }
 const supportCard = {
-  backgroundColor: '#18181b',
+  backgroundColor: '#18181b', backgroundImage: 'linear-gradient(#18181b, #18181b)',
   margin: '16px 0 0',
   padding: '28px 24px',
   borderRadius: '16px',
   border: '1px solid rgba(124, 58, 237, 0.25)',
   textAlign: 'center' as const,
 }
-const h2 = { color: '#fafafa', fontSize: '20px', fontWeight: '700' as const, margin: '0 0 8px' }
-const supportParagraph = { color: '#a1a1aa', fontSize: '14px', lineHeight: '22px', margin: '0 0 20px' }
+const h2 = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '20px', fontWeight: '700' as const, margin: '0 0 8px' }
+const supportParagraph = { color: '#a1a1aa', WebkitTextFillColor: '#a1a1aa', fontSize: '14px', lineHeight: '22px', margin: '0 0 20px' }
 const supportButton = {
-  backgroundColor: '#7c3aed',
+  backgroundColor: '#7c3aed', backgroundImage: 'linear-gradient(#7c3aed, #7c3aed)',
   borderRadius: '10px',
-  color: '#ffffff',
+  color: '#ffffff', WebkitTextFillColor: '#ffffff',
   fontSize: '15px',
   fontWeight: '600' as const,
   textDecoration: 'none',
@@ -179,5 +179,5 @@ const supportButton = {
   boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)',
 }
 const footer = { padding: '28px 20px', textAlign: 'center' as const }
-const footerText = { color: '#71717a', fontSize: '13px', margin: '0 0 12px' }
-const copy = { color: '#52525b', fontSize: '11px', margin: '0' }
+const footerText = { color: '#71717a', WebkitTextFillColor: '#71717a', fontSize: '13px', margin: '0 0 12px' }
+const copy = { color: '#52525b', WebkitTextFillColor: '#52525b', fontSize: '11px', margin: '0' }

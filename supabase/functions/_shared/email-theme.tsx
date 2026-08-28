@@ -11,10 +11,10 @@ export const EmailHead = () => (
     <meta name="supported-color-schemes" content="dark" />
     <style>{`
       :root { color-scheme: dark; supported-color-schemes: dark; }
-      html, body { background: #09090b !important; background-color: #09090b !important; }
-      .arc-email-shell { background: #09090b !important; background-color: #09090b !important; }
-      [data-ogsc] .arc-email-shell { background: #09090b !important; background-color: #09090b !important; }
-      [data-ogsb] .arc-email-shell { background: #09090b !important; background-color: #09090b !important; }
+      html, body { background: #09090b !important; background-color: #09090b !important; background-image: linear-gradient(#09090b, #09090b) !important; }
+      .arc-email-shell { background: #09090b !important; background-color: #09090b !important; background-image: linear-gradient(#09090b, #09090b) !important; }
+      [data-ogsc] .arc-email-shell { background: #09090b !important; background-color: #09090b !important; background-image: linear-gradient(#09090b, #09090b) !important; }
+      [data-ogsb] .arc-email-shell { background: #09090b !important; background-color: #09090b !important; background-image: linear-gradient(#09090b, #09090b) !important; }
     `}</style>
   </Head>
 )

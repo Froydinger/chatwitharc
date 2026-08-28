@@ -61,18 +61,18 @@ export const template = {
   previewData: { displayName: 'Jane', adminEmail: 'admin@askarc.chat', appUrl: 'https://askarc.chat/support', pricingUrl: 'https://askarc.chat/pricing' },
 } satisfies TemplateEntry
 
-const main = { backgroundColor: '#09090b', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }
+const main = { backgroundColor: '#09090b', backgroundImage: 'linear-gradient(#09090b, #09090b)', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif' }
 const container = { margin: '0 auto', padding: '40px 0', maxWidth: '560px' }
 const header = { textAlign: 'center' as const, paddingBottom: '24px' }
-const logo = { margin: '0 auto', borderRadius: '14px' }
-const content = { backgroundColor: '#18181b', borderRadius: '16px', padding: '40px 32px', border: '1px solid rgba(244, 63, 94, 0.28)' }
-const eyebrow = { color: '#fb7185', fontSize: '13px', fontWeight: '700' as const, letterSpacing: '0.08em', textTransform: 'uppercase' as const, textAlign: 'center' as const, margin: '0 0 12px' }
-const h1 = { color: '#fafafa', fontSize: '26px', fontWeight: '700' as const, textAlign: 'center' as const, margin: '0 0 16px' }
-const paragraph = { color: '#a1a1aa', fontSize: '15px', lineHeight: '26px', textAlign: 'center' as const, margin: '0 0 28px' }
+const logo = { margin: '0 auto', borderRadius: '14px', backgroundColor: '#000000', backgroundImage: 'linear-gradient(#000000, #000000)', padding: '8px' }
+const content = { backgroundColor: '#18181b', backgroundImage: 'linear-gradient(#18181b, #18181b)', borderRadius: '16px', padding: '40px 32px', border: '1px solid rgba(244, 63, 94, 0.28)' }
+const eyebrow = { color: '#fb7185', WebkitTextFillColor: '#fb7185', fontSize: '13px', fontWeight: '700' as const, letterSpacing: '0.08em', textTransform: 'uppercase' as const, textAlign: 'center' as const, margin: '0 0 12px' }
+const h1 = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '26px', fontWeight: '700' as const, textAlign: 'center' as const, margin: '0 0 16px' }
+const paragraph = { color: '#a1a1aa', WebkitTextFillColor: '#a1a1aa', fontSize: '15px', lineHeight: '26px', textAlign: 'center' as const, margin: '0 0 28px' }
 const ctaWrap = { textAlign: 'center' as const, margin: '0 0 16px' }
-const button = { backgroundColor: '#e11d48', borderRadius: '10px', color: '#ffffff', fontSize: '16px', fontWeight: '600' as const, textDecoration: 'none', textAlign: 'center' as const, display: 'inline-block', padding: '14px 36px', boxShadow: '0 4px 12px rgba(225, 29, 72, 0.25)' }
-const small = { color: '#71717a', fontSize: '13px', lineHeight: '22px', textAlign: 'center' as const, margin: '8px 0 12px' }
+const button = { backgroundColor: '#e11d48', backgroundImage: 'linear-gradient(#e11d48, #e11d48)', borderRadius: '10px', color: '#ffffff', WebkitTextFillColor: '#ffffff', fontSize: '16px', fontWeight: '600' as const, textDecoration: 'none', textAlign: 'center' as const, display: 'inline-block', padding: '14px 36px', boxShadow: '0 4px 12px rgba(225, 29, 72, 0.25)' }
+const small = { color: '#71717a', WebkitTextFillColor: '#71717a', fontSize: '13px', lineHeight: '22px', textAlign: 'center' as const, margin: '8px 0 12px' }
 const secondaryCtaWrap = { textAlign: 'center' as const, margin: '0' }
-const secondaryButton = { backgroundColor: '#27272a', borderRadius: '10px', color: '#fafafa', fontSize: '14px', fontWeight: '600' as const, textDecoration: 'none', textAlign: 'center' as const, display: 'inline-block', padding: '12px 24px' }
+const secondaryButton = { backgroundColor: '#27272a', backgroundImage: 'linear-gradient(#27272a, #27272a)', borderRadius: '10px', color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '14px', fontWeight: '600' as const, textDecoration: 'none', textAlign: 'center' as const, display: 'inline-block', padding: '12px 24px' }
 const footer = { padding: '28px 20px', textAlign: 'center' as const }
-const copy = { color: '#52525b', fontSize: '11px', margin: '0' }
+const copy = { color: '#52525b', WebkitTextFillColor: '#52525b', fontSize: '11px', margin: '0' }
