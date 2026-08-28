@@ -1429,7 +1429,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             type: 'realtime',
             instructions: (systemPrompt || lastSystemPrompt || `You are Arc, the AI companion inside the ArcAI app by Win The Night. You know ArcAI includes live voice, regular chat, memory, past-chat search, web search, weather, images, reminders, and vision tools. Never claim you do not know which app you are part of. Talk like a real person: relaxed, concise, warm, and lightly playful. CRITICAL: Keep spoken responses natural, direct, and concise (1–2 short sentences maximum unless the user explicitly asks for detail/explanations). Never speak unless the user has spoken first; silence needs no filler. Ignore keyboard typing, key clicks, and background noise completely.`) + `\n\nCRITICAL CONCISENESS RULE FOR COST EFFICIENCY: Speak concisely (1–2 brief sentences max). Cut fluff.`,
             output_modalities: ['audio'],
-            max_output_tokens: 300,
+            max_output_tokens: 150,
             audio: {
               input: {
                 format: { type: 'audio/pcm', rate: 24000 },
@@ -1451,22 +1451,15 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             },
             tool_choice: 'auto',
             tools: [
-                {
+              {
                 type: 'function',
                 name: 'generate_image',
-                description: 'Generate a NEW image based on user description. Use when user asks to create, generate, show, draw, or make a new image or picture of something. For changes to the latest generated/chat image, use revise_image instead. ALWAYS pay attention to size/shape requests - "wide", "widescreen", "landscape", "banner" = 16:9. "Tall", "portrait", "vertical", "phone wallpaper" = 9:16. "Square" or no preference = 1:1.',
+                description: 'Generate a new image from a prompt. Aspect ratios: 16:9 (wide), 9:16 (tall), 1:1 (square).',
                 parameters: {
                   type: 'object',
                   properties: {
-                    prompt: {
-                      type: 'string',
-                      description: 'Detailed description of the image to generate'
-                    },
-                    aspect_ratio: {
-                      type: 'string',
-                      enum: ['3:2', '1:1', '16:9', '9:16', '4:3', '3:4'],
-                      description: 'REQUIRED aspect ratio. MUST be specified based on user request: "square" = "1:1". "tall"/"portrait"/"vertical"/"phone wallpaper" = "9:16". "widescreen"/"cinematic"/"banner"/"YouTube thumbnail" = "16:9". Anything else, including plain "landscape" and any request that does not mention a size or shape at all, = "3:2" (the default). Listen carefully for size/shape words!'
-                    }
+                    prompt: { type: 'string', description: 'Image prompt' },
+                    aspect_ratio: { type: 'string', enum: ['3:2', '1:1', '16:9', '9:16', '4:3', '3:4'] }
                   },
                   required: ['prompt', 'aspect_ratio']
                 }
@@ -1474,19 +1467,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               {
                 type: 'function',
                 name: 'revise_image',
-                description: 'Create a revised version of the latest generated/chat image. Use after Arc has generated or shown an image and the user asks to "edit that", update it, change it, make another version, adjust style, add/remove details, or otherwise revise the photo/image. The app will use the latest available image in the chat.',
+                description: 'Revise the current image based on user instruction.',
                 parameters: {
                   type: 'object',
                   properties: {
-                    prompt: {
-                      type: 'string',
-                      description: 'Detailed instruction for how to revise the current generated image'
-                    },
-                    aspect_ratio: {
-                      type: 'string',
-                      enum: ['source', '3:2', '1:1', '16:9', '9:16', '4:3', '3:4'],
-                      description: 'Aspect ratio for the revised image. Use "source" — which keeps the shape of the image being revised — unless the user explicitly asks for a different shape.'
-                    }
+                    prompt: { type: 'string', description: 'Revision prompt' },
+                    aspect_ratio: { type: 'string', enum: ['source', '3:2', '1:1', '16:9', '9:16', '4:3', '3:4'] }
                   },
                   required: ['prompt', 'aspect_ratio']
                 }
@@ -1494,54 +1480,36 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               {
                 type: 'function',
                 name: 'close_image',
-                description: 'Close/dismiss the currently displayed image. Use when user says "close image", "no more", "done with the image", "we\'re done", etc.',
-                parameters: {
-                  type: 'object',
-                  properties: {}
-                }
+                description: 'Close the displayed image.',
+                parameters: { type: 'object', properties: {} }
               },
               {
                 type: 'function',
                 name: 'web_search',
-                description: 'Search the web for real-time public internet information. Use when the user asks about current events, news, recent movies, sports scores, latest updates, breaking news, videos, places, products, or anything that truly requires up-to-date information from the internet. DO NOT use this for personal questions, the user\'s vibe/preferences, memories, or "based on our past chats" — use search_past_chats or memory tools for those. For WEATHER questions, use get_weather instead. IMPORTANT: Listen carefully to exact names - "Win the Night" is different from "Wind of Change". Repeat back the exact search term you heard before searching.',
+                description: 'Search the web for real-time news, current events, or internet info.',
                 parameters: {
                   type: 'object',
-                  properties: {
-                    query: {
-                      type: 'string',
-                      description: 'The EXACT search query the user spoke. Be very careful with names, titles, and proper nouns - transcribe them exactly as spoken.'
-                    }
-                  },
+                  properties: { query: { type: 'string', description: 'Search query' } },
                   required: ['query']
                 }
               },
               {
                 type: 'function',
                 name: 'search_past_chats',
-                description: 'Search through all of the user\'s past conversation history to find relevant context, patterns, preferences, or information discussed before. Use when the user asks about something they mentioned previously, their preferences, interests, past topics, what they told you before, patterns in their behavior, or anything that requires looking back at conversation history. This searches ALL past chats, not just recent ones.',
+                description: 'Search user past conversation history.',
                 parameters: {
                   type: 'object',
-                  properties: {
-                    query: {
-                      type: 'string',
-                      description: 'The topic, question, or information to search for in past conversations'
-                    }
-                  },
+                  properties: { query: { type: 'string', description: 'Query for past chats' } },
                   required: ['query']
                 }
               },
               {
                 type: 'function',
                 name: 'get_weather',
-                description: 'Get the current weather for a specific location. Use when the user asks about the weather, temperature, forecast, or conditions for any city or place. Prefer this over web_search for weather questions — it returns structured data and shows a nice weather card to the user.',
+                description: 'Get current weather for a city or place.',
                 parameters: {
                   type: 'object',
-                  properties: {
-                    location: {
-                      type: 'string',
-                      description: 'City name, optionally with state/country (e.g. "Austin, TX", "Tokyo", "Paris, France")'
-                    }
-                  },
+                  properties: { location: { type: 'string', description: 'City/location name' } },
                   required: ['location']
                 }
               },
