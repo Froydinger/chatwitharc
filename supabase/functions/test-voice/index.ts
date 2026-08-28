@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const ALLOWED_VOICES = new Set([
-  'alloy','ash','ballad','coral','echo','fable','onyx','nova','sage','shimmer','verse'
+  'alloy','ash','ballad','cedar','coral','echo','fable','onyx','nova','sage','shimmer','verse','marin'
 ]);
 
 serve(async (req) => {
@@ -42,22 +42,17 @@ serve(async (req) => {
   }
 
   try {
-    const { voice } = await req.json();
+    const { voice, text } = await req.json();
 
-    if (!voice || typeof voice !== 'string' || !ALLOWED_VOICES.has(voice)) {
-      return new Response(JSON.stringify({ error: 'Invalid voice' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
+    const selectedVoice = (voice && ALLOWED_VOICES.has(voice)) ? voice : 'cedar';
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     if (!OPENAI_API_KEY) {
       throw new Error('OPENAI_API_KEY not configured');
     }
 
-    const testPhrase = "Hey, this is my new voice. Are you ready to get started?";
+    const phraseToSpeak = typeof text === 'string' && text.trim().length > 0 ? text.trim() : "Hey, this is my new voice. Are you ready to get started?";
 
-    // Use OpenAI TTS API to generate test audio
+    // Use OpenAI TTS API to generate voice audio
     const response = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: {
@@ -66,8 +61,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'tts-1',
-        input: testPhrase,
-        voice: voice,
+        input: phraseToSpeak,
+        voice: selectedVoice,
         response_format: 'mp3',
       }),
     });

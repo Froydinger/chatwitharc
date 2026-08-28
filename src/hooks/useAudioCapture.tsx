@@ -13,9 +13,19 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const workletNodeRef = useRef<AudioWorkletNode | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const visibilityHandlerRef = useRef<(() => void) | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+
+  const getRecordedAudioBlob = useCallback((): Blob | null => {
+    if (recordedChunksRef.current.length === 0) return null;
+    const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+    recordedChunksRef.current = [];
+    return blob;
+  }, []);
+
+  const clearRecordedAudio = useCallback(() => {
+    recordedChunksRef.current = [];
+  }, []);
   
   const [isCapturing, setIsCapturing] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -81,6 +91,26 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
 
       mediaStreamRef.current = stream;
       setHasPermission(true);
+
+      // Start MediaRecorder for Whisper STT blob capture
+      try {
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : MediaRecorder.isTypeSupported('audio/mp4')
+          ? 'audio/mp4'
+          : 'audio/webm';
+        const recorder = new MediaRecorder(stream, { mimeType });
+        recordedChunksRef.current = [];
+        recorder.ondataavailable = (e) => {
+          if (e.data && e.data.size > 0) {
+            recordedChunksRef.current.push(e.data);
+          }
+        };
+        recorder.start(250);
+        mediaRecorderRef.current = recorder;
+      } catch (e) {
+        console.warn('MediaRecorder not supported or failed to start:', e);
+      }
 
       // Create audio context
       const audioContext = new AudioContext({ sampleRate });
@@ -245,6 +275,8 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
     isCapturing,
     hasPermission,
     startCapture,
-    stopCapture
+    stopCapture,
+    getRecordedAudioBlob,
+    clearRecordedAudio,
   };
 }
