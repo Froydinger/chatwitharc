@@ -534,15 +534,19 @@ const isGarbledTranscription = (text: string): boolean => {
   return false;
 };
 
-// Clear all per-connection timers (cleanup, proactive refresh)
+// Clear all per-connection timers (cleanup, inactivity, max session)
 const clearConnectionTimers = () => {
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
     cleanupInterval = null;
   }
-  if (proactiveRefreshTimer) {
-    clearTimeout(proactiveRefreshTimer);
-    proactiveRefreshTimer = null;
+  if (inactivityTimer) {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = null;
+  }
+  if (maxSessionTimer) {
+    clearTimeout(maxSessionTimer);
+    maxSessionTimer = null;
   }
 };
 
