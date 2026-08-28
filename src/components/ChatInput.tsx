@@ -28,6 +28,7 @@ import { useArcStore } from "@/store/useArcStore";
 import { predictActivity } from "@/lib/activityPrediction";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useToast } from "@/hooks/use-toast";
+import { useBugReport } from "@/hooks/useBugReport";
 import { useFingerPopup } from "@/hooks/use-finger-popup";
 import { useProfile } from "@/hooks/useProfile";
 import { useAccentColor } from "@/hooks/useAccentColor";
@@ -521,6 +522,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   useProfile();
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
+  const openBugReport = useBugReport((state) => state.openBugReport);
   const showPopup = useFingerPopup((state) => state.showPopup);
   const { user, isAnonymous } = useAuth();
   // Guest mode = no user OR anonymous (auto-issued) Supabase session.
@@ -549,6 +551,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const { accentColor } = useAccentColor();
   const { openSearchMode } = useSearchStore();
   const { streamWithContinuation } = useStreamingWithContinuation();
+
+  useEffect(() => {
+    const handleOpenBugReport = () => openBugReport("");
+    window.addEventListener("arc-open-bug-report", handleOpenBugReport);
+    return () => window.removeEventListener("arc-open-bug-report", handleOpenBugReport);
+  }, [openBugReport]);
 
   // Subscribe to canvas store reactively for auto-mode indicator when canvas is open
   // Use individual selectors for reliable re-renders when canvas open state changes

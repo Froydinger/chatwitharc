@@ -995,6 +995,20 @@ serve(async (req) => {
       {
         type: "function",
         function: {
+          name: "open_bug_report",
+          description: "Open ArcAI's in-app bug report form. Use when the user asks to report a bug, send product feedback, contact support about a problem, or says they want to send the ArcAI team a message.",
+          parameters: {
+            type: "object",
+            properties: {
+              summary: { type: "string", description: "A short summary of the issue, when the user already provided one." }
+            },
+            additionalProperties: false
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
           name: "web_search",
           description: "Search the web for current information, news, facts, real-time data, or anything beyond your training data. ALSO use it when the user refers to a person, title, event, or thing you don't recognize as though you should already know it — look it up instead of asking who or what they mean. DO NOT use this tool for generating code, HTML, or any programming content - respond with those directly in your message.",
           parameters: {
@@ -1842,7 +1856,13 @@ serve(async (req) => {
       
       // Execute all tool calls
       for (const toolCall of assistantMessage.tool_calls) {
-        if (toolCall.function.name === 'web_search') {
+        if (toolCall.function.name === 'open_bug_report') {
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: 'The in-app bug report form is now open. Tell the user briefly that they can review and send it.'
+          });
+        } else if (toolCall.function.name === 'web_search') {
           const args = JSON.parse(toolCall.function.arguments);
           const searchResponse = await webSearch(args.query);
           
@@ -2304,7 +2324,7 @@ serve(async (req) => {
         if (!response.ok) {
           const errorData = await response.text();
           console.error('OpenAI API error (second call):', response.status, errorData);
-          throw new Error(`OpenAI API error: ${response.status}`);
+          throw new Error(`OpenAI API error: ${response.status} ${errorData}`);
         }
 
         data = await response.json();
@@ -2379,12 +2399,19 @@ serve(async (req) => {
   } catch (error: unknown) {
     console.error('Chat function error:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
+    const normalized = message.toLowerCase();
+    const wasModerated = normalized.includes('content_filter') ||
+      normalized.includes('content policy') || normalized.includes('moderation') ||
+      normalized.includes('safety system') || normalized.includes('policy violation');
     return new Response(
       JSON.stringify({ 
-        error: message 
+        error: wasModerated
+          ? "Arc couldn't send that response because the safety filter blocked it. Try rephrasing the request without explicit, harmful, or disallowed details."
+          : message,
+        errorType: wasModerated ? 'content_violation' : 'service_error',
       }),
       { 
-        status: 500,
+        status: wasModerated ? 400 : 500,
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json' 

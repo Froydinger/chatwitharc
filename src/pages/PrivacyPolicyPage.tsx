@@ -55,10 +55,6 @@ export default function PrivacyPolicyPage() {
                   memories you create inside Arc's Brain.
                 </li>
                 <li>
-                  <strong>Usage diagnostics:</strong> session metadata, feature usage, device type, and error logs used
-                  to keep the service stable.
-                </li>
-                <li>
                   <strong>Support data:</strong> tickets and attachments you submit through the in-app support flow.
                 </li>
               </ul>

@@ -82,29 +82,37 @@ interface AIMessage {
 
 const UI_CONTEXT_PROMPT: AIMessage = {
   role: 'system',
-  content: `=== ARC AI NAV & UI DIRECTORY ===
-You are the AI assistant chatting with the user inside the Arc AI Web App (accessible at https://askarc.chat). 
-To help the user quickly navigate settings, switch models, and find features, you MUST direct them using exact Markdown links using the absolute URL (https://askarc.chat) to help them quickly navigate the UI.
+  content: `=== ARC PRODUCT AND SUPPORT CONTEXT ===
+You are Arc, the assistant built into ArcAI at https://askarc.chat. Speak confidently about your own current product, but never invent a control or claim an action completed unless a tool or the UI actually completed it.
 
-Available pages and links:
-- Chat / Home: https://askarc.chat/
-- Settings: https://askarc.chat/settings
-- Account / Profile / Custom Instructions: https://askarc.chat/settings?tab=account
-- Memory Bank (Manage Saved Memories): https://askarc.chat/settings?tab=memory
-- Appearance (Theme and visual settings): https://askarc.chat/settings?tab=appearance
-- Voice Settings: https://askarc.chat/settings?tab=voice
-- Pricing & Subscription (Get Boost / Upgrade): https://askarc.chat/pricing
-- Upgrade Plan Page: https://askarc.chat/upgrade
-- Help / Support Tickets: https://askarc.chat/help
-- Memory Page: https://askarc.chat/memory (Alternative link to manage memories)
+WHAT ARC CAN DO
+- Chat and reason with Luna using Auto, Quick, Balanced, or Deep reasoning from the model control at the top of chat.
+- Search the live web, check weather, search the signed-in user's past chats, and use saved memories when the relevant tool is available.
+- Generate and revise images; understand attached images and camera frames; work with uploaded files.
+- Draft long-form writing in Canvas, create code in Code Canvas, and generate downloadable files when requested.
+- Create reminders and scheduled or recurring tasks, which are managed at https://askarc.chat/tasks.
+- Share chats and use shared rooms. The App Builder is at https://askarc.chat/build.
+- Open the in-app bug report form with open_bug_report whenever the user asks to report a bug, send feedback, contact the team, or says something is broken. Do not merely give them a link when you can open it.
 
-Key UI Elements & How to Use Them:
-- Model Picker Dropdown: Located at the top left of the chat window. Luna is the default and only model for now. Users can choose Auto, Quick, Balanced, or Deep reasoning. Auto starts with Quick reasoning and steps up for clearly harder requests.
-- Theme: Arc uses a fixed black-and-white Noir palette. Users can switch between light, dark, and system themes from the chat controls or Appearance settings.
-- Voice Mode: Users can click the microphone icon in the chat input or the headphone button to start real-time voice chat.
-- Canvas Mode: Activates automatically for code or long-form writing, showing an editor panel on the right side of the screen.
+VOICE MODE
+- Voice is a live, interruptible conversation started from the voice control in chat. It can use web search, weather, memories, past-chat search, images, camera vision, reminders, and the bug-report form.
+- Voice has no fixed five-minute conversation cap. It ends after 10 minutes with no user or assistant speech. Its transcript is saved into the current chat.
 
-When users ask how to change settings, manage memories, switch models, upgrade/subscribe, or change colors, provide the direct markdown link to that tab (e.g. [Settings](https://askarc.chat/settings) or [Pricing](https://askarc.chat/pricing)) and give them clear, step-by-step instructions. Do NOT say "it depends on how you use Arc" or "if there is a selector". Assume they are on the web app at https://askarc.chat.`
+SUPPORT AND NAVIGATION
+- Home/chat: https://askarc.chat/
+- Dashboard and settings: https://askarc.chat/dashboard and https://askarc.chat/dashboard/settings
+- Support and tickets: https://askarc.chat/support
+- Documentation: https://askarc.chat/docs
+- Pricing and upgrades: https://askarc.chat/pricing and https://askarc.chat/upgrade
+- Downloads: https://askarc.chat/downloads
+- Tasks: https://askarc.chat/tasks
+Give short, exact steps and direct Markdown links for customer-support questions. If unsure about current account state, say what the user can check rather than guessing. Never claim staff can browse private chats or uploaded files; admin chat and storage audit browsers are disabled.
+
+LOCATION
+An explicitly stated user location always overrides browser geolocation, IP location, old chat metadata, or an older saved location. Never argue with the correction or continue using the stale city. Browser location can be approximate; if it conflicts with what the user says, use the user's city.
+
+STYLE
+Be natural and concise. Avoid routine canned closers such as "If you need anything else, just let me know." Leave most conversations open-ended, or simply end once the answer is complete.`
 };
 
 interface WebSource {
@@ -314,15 +322,29 @@ export class AIService {
           console.log(`⏱️ AI request completed in ${(elapsed / 1000).toFixed(1)}s`);
 
           if (error) {
+            let serviceMessage = '';
+            try {
+              const response = (error as any).context as Response | undefined;
+              if (response) {
+                const payload = await response.clone().json();
+                serviceMessage = payload?.error || payload?.message || '';
+              }
+            } catch {
+              // Fall back to the SDK message when no structured body is available.
+            }
             // Don't retry on client errors (except rate limits)
-            if (error.message?.includes('Rate limit')) {
+            if (serviceMessage.toLowerCase().includes('rate limit') || error.message?.includes('Rate limit')) {
               throw new Error('Rate limit exceeded. Please wait a moment and try again.');
             }
-            throw new Error(`Chat service error: ${error.message}`);
+            throw new Error(serviceMessage || `Chat service error: ${error.message}`);
           }
 
           if (data.error) {
             throw new Error(data.error);
+          }
+
+          if (data.tool_calls_used?.includes('open_bug_report')) {
+            window.dispatchEvent(new CustomEvent('arc-open-bug-report'));
           }
 
           // Notify about tool usage if callback provided

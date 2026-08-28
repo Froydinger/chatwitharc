@@ -32,6 +32,11 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  return new Response(JSON.stringify({ error: "Chat auditing is disabled for privacy." }), {
+    status: 410,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",

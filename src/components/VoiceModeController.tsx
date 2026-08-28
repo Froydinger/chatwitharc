@@ -6,6 +6,7 @@ import { useAudioPlayback } from '@/hooks/useAudioPlayback';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useArcStore, Message } from '@/store/useArcStore';
 import { useToast } from '@/hooks/use-toast';
+import { useBugReport } from '@/hooks/useBugReport';
 import { AIService } from '@/services/ai';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
@@ -177,9 +178,13 @@ Remember: you are not a generic AI assistant. You are Arc—a caring, curious, c
 const ARC_VOICE_IDENTITY_CONTEXT = `=== ARC IDENTITY AND PRODUCT CONTEXT (CRITICAL) ===
 You are Arc, the AI companion inside the ArcAI app by Win The Night. ArcAI is the app the user is currently using to talk with you. Speak about ArcAI and its capabilities in the first person ("I can…", "my memory…", "our chat…"). Never claim you have no idea which app or interface you are part of.
 
-ArcAI includes regular chat, this live voice mode, saved memories, searchable past chats, web search, weather, image generation and editing, reminders, and camera/image vision. Those capabilities are real and available through your tools. When the user refers to something from their memories or earlier chats, use recall_memory or search_past_chats instead of claiming you cannot access it or asking them to repeat it.
+ArcAI includes regular chat, this live voice mode, saved memories, searchable past chats, web search, weather, image generation and editing, files, writing and code canvases, reminders and recurring tasks, shared chats, an App Builder, downloads, support tickets, and camera/image vision. Voice has no fixed five-minute cap; it pauses after 10 minutes with no user or assistant speech, and its transcript is saved to the current chat. Those capabilities are real. When the user refers to something from their memories or earlier chats, use recall_memory or search_past_chats instead of claiming you cannot access it or asking them to repeat it.
 
-Be precise about the boundary: you know you are Arc inside ArcAI and you know the product capabilities, but you do not automatically see the user's exact screen layout or other apps unless they share an image/camera view. Never turn that visual limitation into a claim that you lack ArcAI product context.`;
+For customer support, give concrete answers and accurate destinations: support is https://askarc.chat/support, docs are https://askarc.chat/docs, account settings are https://askarc.chat/dashboard/settings, pricing is https://askarc.chat/pricing, tasks are https://askarc.chat/tasks, and the App Builder is https://askarc.chat/build. Use open_bug_report when the user asks to report a bug, send feedback, contact the team about a problem, or send ArcAI a message. Admin chat and storage audit browsers are disabled for privacy; never imply staff casually browse private chats or files.
+
+Be precise about the boundary: you know you are Arc inside ArcAI and you know the product capabilities, but you do not automatically see the user's exact screen layout or other apps unless they share an image/camera view. Never turn that visual limitation into a claim that you lack ArcAI product context.
+
+Be precise about location too: a city the user explicitly states always overrides browser geolocation, IP location, old chat metadata, or an older memory. Browser location may be approximate. If the two conflict, trust the user and do not keep repeating the stale city.`;
 
 async function buildVoiceSystemPrompt(
   profile: { display_name?: string | null; context_info?: string | null; memory_info?: string | null } | null,
@@ -220,6 +225,7 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
 - Match their vibe - if they're hyped, get hyped. If they're chill, be chill.
 - Don't over-explain or be preachy. Just chat.
 - Silence is fine. You don't need to fill every gap.
+- Do not use canned service closers like "if you need anything else, just let me know," "I'm here if you need me," or similar. Usually leave the conversation naturally open or simply stop. A genuinely final ending is fine when the moment clearly calls for one.
 - CRITICAL AUDIO RULE: Ignore keyboard typing, key clicks, button taps, mouse clicks, and non-speech background noise. NEVER interpret typing sounds or key clicks as user speech or speech turns. Only respond when the user speaks clear words to you. If you hear keyboard typing or background clicks, REMAIN SILENT.`;
 
     if (profile?.display_name) {
@@ -251,6 +257,7 @@ CRITICAL: Always say something BEFORE using any tool so the user isn't left in s
   IMPORTANT: Listen carefully to exact names and titles. If unsure, confirm before searching.
 • WEATHER: For ANY weather question (current weather, temperature, forecast, conditions for a city), use get_weather — NOT web_search. Say "Let me check" first, then call get_weather. Weather appears directly in the chat thread; give a short, casual spoken summary.
 • REMINDERS / SCHEDULED TASKS: You CAN create reminders. For "remind me...", "set a reminder", "schedule this", "in five minutes", "tomorrow", or recurring reminders, say "I'll set that" FIRST, then use create_scheduled_task. The reminder confirmation card appears directly in the chat thread.
+• BUG REPORT / SUPPORT MESSAGE: When the user wants to report a bug, send feedback, contact the ArcAI team about a problem, or says something is broken, say "I'll open the report form" and use open_bug_report. The user reviews and submits it; never claim it was sent merely because the form opened.
 • SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats when they ask about:
   - Something they mentioned before
   - Their preferences, interests, or patterns
@@ -319,6 +326,7 @@ let savedTurnIndex = 0;
 
 export function VoiceModeController() {
   const { toast } = useToast();
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const { addMessage, replaceMessage, messages, createNewSession } = useArcStore();
   const { profile, updateProfile } = useProfile();
   const {
@@ -877,44 +885,54 @@ export function VoiceModeController() {
   }, [setIsSearchingPastChats, withTimeout]);
 
   // Incremental save: persist new turns since last save
-  const saveNewTurns = useCallback(async (final: boolean = false) => {
-    const { conversationTurns, attachImageToLastAssistantTurn } = useVoiceModeStore.getState();
-    
-    if (final) attachImageToLastAssistantTurn();
-    
-    const { conversationTurns: currentTurns } = useVoiceModeStore.getState();
-    const turnsToSave = currentTurns
-      .slice(savedTurnIndex)
-      .filter(turn => turn.transcript.trim() || turn.imageUrl);
-    
-    if (turnsToSave.length === 0) return 0;
-    
-    console.log(`💾 Saving ${turnsToSave.length} new voice turns (index ${savedTurnIndex}→${savedTurnIndex + turnsToSave.length})`);
-    
-    const savePromises = turnsToSave.map(async (turn) => {
-      try {
-        if (turn.imageUrl) {
-          await addMessage({
-            content: turn.transcript || 'Generated image',
-            role: turn.role,
-            type: 'image',
-            imageUrl: turn.imageUrl,
-          });
-        } else if (turn.transcript.trim()) {
-          await addMessage({
-            content: turn.transcript,
-            role: turn.role,
-            type: 'text',
-          });
+  const saveNewTurns = useCallback((final: boolean = false): Promise<number> => {
+    const saveOperation = async (): Promise<number> => {
+      const { attachImageToLastAssistantTurn } = useVoiceModeStore.getState();
+
+      if (final) attachImageToLastAssistantTurn();
+
+      const { conversationTurns: currentTurns } = useVoiceModeStore.getState();
+      const startIndex = savedTurnIndex;
+      const turnsToSave = currentTurns
+        .slice(startIndex)
+        .filter(turn => turn.transcript.trim() || turn.imageUrl);
+
+      if (turnsToSave.length === 0) return 0;
+
+      console.log(`💾 Saving ${turnsToSave.length} new voice turns (index ${startIndex}→${currentTurns.length})`);
+
+      // Persist in conversational order. Promise.all allowed the faster write
+      // to land first, which could put Arc's reply above the user's transcript.
+      for (const turn of turnsToSave) {
+        try {
+          if (turn.imageUrl) {
+            await addMessage({
+              content: turn.transcript || 'Generated image',
+              role: turn.role,
+              type: 'image',
+              imageUrl: turn.imageUrl,
+            });
+          } else if (turn.transcript.trim()) {
+            await addMessage({
+              content: turn.transcript,
+              role: turn.role,
+              type: 'text',
+            });
+          }
+        } catch (error) {
+          console.error('Failed to save voice turn:', error);
         }
-      } catch (error) {
-        console.error('Failed to save voice turn:', error);
       }
-    });
-    
-    await Promise.all(savePromises);
-    savedTurnIndex = currentTurns.length;
-    return turnsToSave.length;
+
+      savedTurnIndex = currentTurns.length;
+      return turnsToSave.length;
+    };
+
+    // A new transcript can arrive while the previous batch is still saving.
+    // Queue batches so they cannot overlap and save the same range out of order.
+    const queuedSave = saveQueueRef.current.then(saveOperation, saveOperation);
+    saveQueueRef.current = queuedSave.then(() => undefined, () => undefined);
+    return queuedSave;
   }, [addMessage]);
 
   /**
@@ -964,7 +982,8 @@ This is a chill voice chat. Drop the formality, just talk like you're hanging wi
 - React naturally: "oh that's cool", "hm interesting", "wait really?"
 - Match their vibe - if they're hyped, get hyped. If they're chill, be chill.
 - Don't over-explain or be preachy. Just chat.
-- Silence is fine. You don't need to fill every gap.`;
+- Silence is fine. You don't need to fill every gap.
+- Do not use canned service closers like "if you need anything else, just let me know," "I'm here if you need me," or similar. Usually leave the conversation naturally open or simply stop. A genuinely final ending is fine when the moment clearly calls for one.`;
 
       const p = profileRef.current;
       if (p?.display_name) prompt += `\n\nUser: ${p.display_name}`;
@@ -1037,6 +1056,10 @@ When the user shares their camera or attaches an image, describe what you see na
     onSaveMemory: handleSaveMemory,
     onRecallMemory: handleRecallMemory,
     onDeleteMemory: handleDeleteMemory,
+    onOpenBugReport: async (summary) => {
+      useBugReport.getState().openBugReport(summary || '');
+      return 'The bug report form is open for the user to review and send.';
+    },
     onSessionExpired: handleSessionExpired,
   });
 
@@ -1291,23 +1314,6 @@ When the user shares their camera or attaches an image, describe what you see na
       });
     }
   }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, toast, deactivateVoiceMode, saveNewTurns, createNewSession]);
-
-  // 5-minute maximum session limit guard
-  useEffect(() => {
-    if (isActive) {
-      const FIVE_MINUTES_MS = 5 * 60 * 1000;
-      const timer = setTimeout(() => {
-        console.log('⏱️ 5-minute voice session limit reached — auto deactivating');
-        toast({
-          title: 'Voice session ended',
-          description: '5 minute session limit reached to save credits.',
-        });
-        deactivateVoiceMode();
-      }, FIVE_MINUTES_MS);
-
-      return () => clearTimeout(timer);
-    }
-  }, [isActive, deactivateVoiceMode, toast]);
 
   // Save finalized voice transcripts into the normal chat thread shortly after
   // each turn lands so voice mode feels like the regular chat, not a separate UI.

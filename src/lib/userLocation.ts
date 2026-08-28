@@ -10,9 +10,11 @@ export interface UserLocation {
   latitude: number;
   longitude: number;
   fetchedAt: number;
+  accuracyMeters?: number;
 }
 
-const CACHE_KEY = 'arc:userLocation';
+// Versioned so previously cached coarse/IP-derived locations are discarded.
+const CACHE_KEY = 'arc:userLocation:v2';
 const DENIED_KEY = 'arc:userLocationDenied';
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
 
@@ -93,11 +95,18 @@ export async function getUserLocation(): Promise<UserLocation | null> {
         }
         resolve(null);
       },
-      { enableHighAccuracy: false, timeout: 5000, maximumAge: 5 * 60 * 1000 }
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   });
 
   if (!coords) return null;
+
+  // Desktop browsers sometimes return a VPN/IP centroid hundreds of miles
+  // away. Do not present a very coarse fix as the user's current city.
+  if (Number.isFinite(coords.accuracy) && coords.accuracy > 50_000) {
+    console.warn('Ignoring low-accuracy browser location:', coords.accuracy);
+    return null;
+  }
 
   const geo = await reverseGeocode(coords.latitude, coords.longitude);
   const loc: UserLocation = {
@@ -105,6 +114,7 @@ export async function getUserLocation(): Promise<UserLocation | null> {
     latitude: Number(coords.latitude.toFixed(4)),
     longitude: Number(coords.longitude.toFixed(4)),
     fetchedAt: Date.now(),
+    accuracyMeters: Math.round(coords.accuracy),
   };
   try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(loc)); } catch {}
   return loc;
@@ -113,5 +123,5 @@ export async function getUserLocation(): Promise<UserLocation | null> {
 export function formatLocationForContext(loc: UserLocation): string {
   const parts = [loc.city, loc.region, loc.country].filter(Boolean);
   const place = parts.length ? parts.join(', ') : `${loc.latitude}, ${loc.longitude}`;
-  return `User's current location: ${place} (lat ${loc.latitude}, lon ${loc.longitude}). Use this when relevant to the question.`;
+  return `Browser-reported location: ${place} (lat ${loc.latitude}, lon ${loc.longitude}). The user's explicitly stated location always overrides this value. Use it only when relevant.`;
 }

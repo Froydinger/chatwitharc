@@ -17,6 +17,7 @@ interface UseOpenAIRealtimeOptions {
   onSaveMemory?: (memory: string, replaces?: string[]) => Promise<string>;
   onRecallMemory?: (query?: string) => Promise<string>;
   onDeleteMemory?: (keywords: string[]) => Promise<string>;
+  onOpenBugReport?: (summary?: string) => Promise<string>;
   // Called when a session expires so the controller can inject conversation
   // context into the fresh session's system prompt.
   onSessionExpired?: () => Promise<string | undefined>;
@@ -50,22 +51,12 @@ let audioChunksSent = 0;
 let loggedFirstSpeech = false;
 let connectionOpenedAt = 0;
 
-// Keepalive: OpenAI may idle-disconnect long sessions during silence or
-// Safety Caps to prevent runaway OpenAI API charges:
-// 1. Hard cap per session: 5 minutes max
-const MAX_SESSION_MS = 5 * 60 * 1000;
-// 2. Silence timeout: 2 minutes with neither side speaking closes the
-//    session. This is the main cost guard while the tab is backgrounded.
-const INACTIVITY_TIMEOUT_MS = 2 * 60 * 1000;
-
-// Absolute wall-clock deadline for the whole voice session, set on the FIRST
-// connect and deliberately NOT re-armed by reconnects. Anchoring the cap to the
-// socket instead of the session meant every reconnect bought another full 5
-// minutes, so a flapping connection could bill indefinitely.
-let sessionDeadlineAt = 0;
+// Keepalive: OpenAI may idle-disconnect long sessions during silence.
+// Ten minutes with neither side speaking closes the session so an abandoned
+// background call cannot remain connected indefinitely.
+const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
 
 let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
-let maxSessionTimer: ReturnType<typeof setTimeout> | null = null;
 let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
@@ -73,22 +64,20 @@ let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
 const resetInactivityTimer = () => {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
-    console.log('Voice mode paused after 2 minutes of silence');
+    console.log('Voice mode paused after 10 minutes of silence');
     const { deactivateVoiceMode, setError } = useVoiceModeStore.getState();
     deactivateVoiceMode();
-    setError('Voice mode paused after 2 minutes of silence.');
+    setError('Voice mode paused after 10 minutes of silence.');
   }, INACTIVITY_TIMEOUT_MS);
 };
 
 const clearSessionTimers = () => {
   if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
-  if (maxSessionTimer) { clearTimeout(maxSessionTimer); maxSessionTimer = null; }
 };
 
 // Voice Mode deliberately KEEPS RUNNING when the tab is backgrounded — Jake
 // uses it in the background on purpose. Do not re-add a visibilitychange
-// disconnect here. The cost guards are the 5-minute absolute session cap and
-// the 2-minute inactivity timeout, which apply the same whether the tab is
+// disconnect here. The 10-minute inactivity timeout applies whether the tab is
 // visible or not.
 
 // Deterministic errors that should NOT trigger reconnect
@@ -106,10 +95,12 @@ type QueuedTurn = {
   transcript: string;
   queuedAt: number;
   imageUrl?: string;
+  waitForUser?: boolean;
 };
 
 const TURN_ORDER_GRACE_MS = 220;
 const TURN_FORCE_FLUSH_MS = 900;
+const TURN_USER_TRANSCRIPT_TIMEOUT_MS = 5000;
 let pendingUserTurns: QueuedTurn[] = [];
 let pendingAssistantTurns: QueuedTurn[] = [];
 let turnFlushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -159,7 +150,13 @@ const flushTurnOrderingBuffer = () => {
     }
   }
 
-  while (pendingAssistantTurns.length > 0 && now - pendingAssistantTurns[0].queuedAt >= TURN_FORCE_FLUSH_MS) {
+  while (pendingAssistantTurns.length > 0) {
+    const nextAssistantTurn = pendingAssistantTurns[0];
+    const timeoutMs = nextAssistantTurn.waitForUser
+      ? TURN_USER_TRANSCRIPT_TIMEOUT_MS
+      : TURN_FORCE_FLUSH_MS;
+    if (now - nextAssistantTurn.queuedAt < timeoutMs) break;
+
     const staleAssistantTurn = pendingAssistantTurns.shift();
     if (staleAssistantTurn) {
       addConversationTurn({
@@ -221,9 +218,6 @@ type VoiceDiagnosticPayload = {
   details?: Record<string, unknown>;
 };
 
-let cachedDiagnosticUserId: string | null = null;
-let diagnosticWriteQueue: Promise<unknown> = Promise.resolve();
-
 const getConnectionStateLabel = () => {
   const state = globalWs?.readyState;
   if (state === WebSocket.CONNECTING) return 'connecting';
@@ -233,57 +227,9 @@ const getConnectionStateLabel = () => {
   return 'none';
 };
 
-const sanitizeDiagnosticDetails = (value: unknown, depth = 0): unknown => {
-  if (value == null) return value;
-  if (typeof value === 'string') return value.length > 1200 ? `${value.slice(0, 1200)}…` : value;
-  if (typeof value === 'number' || typeof value === 'boolean') return value;
-  if (depth >= 3) return '[truncated]';
-  if (Array.isArray(value)) return value.slice(0, 20).map((item) => sanitizeDiagnosticDetails(item, depth + 1));
-  if (typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .slice(0, 30)
-        .map(([key, item]) => [key, sanitizeDiagnosticDetails(item, depth + 1)])
-    );
-  }
-  return String(value);
-};
-
-const logVoiceDiagnostic = (payload: VoiceDiagnosticPayload) => {
-  diagnosticWriteQueue = diagnosticWriteQueue
-    .catch(() => undefined)
-    .then(async () => {
-      try {
-        if (!cachedDiagnosticUserId) {
-          const { data: { user } } = await supabase.auth.getUser();
-          cachedDiagnosticUserId = user?.id ?? null;
-        }
-        if (!cachedDiagnosticUserId) return;
-
-        const details = sanitizeDiagnosticDetails({
-          ...(payload.details || {}),
-          url: window.location.pathname,
-          visibility: document.visibilityState,
-          online: navigator.onLine,
-          userAgent: navigator.userAgent,
-          timestamp: new Date().toISOString(),
-        }) as Record<string, unknown>;
-
-        await (supabase as any).from('voice_diagnostics').insert({
-          user_id: cachedDiagnosticUserId,
-          session_id: payload.session_id ?? globalSessionId,
-          event_type: payload.event_type,
-          message: payload.message,
-          tool_name: payload.tool_name,
-          tool_call_id: payload.tool_call_id,
-          connection_state: payload.connection_state ?? getConnectionStateLabel(),
-          details,
-        });
-      } catch (error) {
-        console.warn('Voice diagnostic write failed:', error);
-      }
-    });
-};
+// Privacy choice: diagnostics remain available in the local console, but Arc
+// no longer uploads per-session voice events or device details to the database.
+const logVoiceDiagnostic = (_payload: VoiceDiagnosticPayload) => undefined;
 
 class VoiceToolTimeoutError extends Error {
   constructor(message: string) {
@@ -544,7 +490,7 @@ const isGarbledTranscription = (text: string): boolean => {
   return false;
 };
 
-// Clear all per-connection timers (cleanup, inactivity, max session)
+// Clear all per-connection timers (cleanup and inactivity)
 const clearConnectionTimers = () => {
   if (cleanupInterval) {
     clearInterval(cleanupInterval);
@@ -553,10 +499,6 @@ const clearConnectionTimers = () => {
   if (inactivityTimer) {
     clearTimeout(inactivityTimer);
     inactivityTimer = null;
-  }
-  if (maxSessionTimer) {
-    clearTimeout(maxSessionTimer);
-    maxSessionTimer = null;
   }
 };
 
@@ -661,7 +603,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         console.log('VAD: User speech detected');
         // Real activity — restart the silence countdown. Without this the
         // "inactivity" timeout was only ever armed at connect time, so it was a
-        // hard 2-minute kill that would end a call mid-conversation.
+        // hard inactivity kill that would end a call mid-conversation.
         resetInactivityTimer();
         if (!loggedFirstSpeech) {
           loggedFirstSpeech = true;
@@ -747,6 +689,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           transcript: aiTranscript,
           queuedAt: Date.now(),
           imageUrl: lastGeneratedImageUrl || undefined,
+          // Realtime can finish speaking before Whisper emits the user's final
+          // transcript. Hold this reply longer when it belongs to a spoken turn
+          // so the saved chat cannot place Arc above the user who triggered it.
+          waitForUser: userSpokeAfterLastResponse || hasRealTranscription,
         });
 
         if (lastGeneratedImageUrl) {
@@ -823,7 +769,18 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             }
           };
           
-          if (name === 'generate_image') {
+          if (name === 'open_bug_report') {
+            const args = JSON.parse(argsStr || '{}');
+            if (optionsRef.current.onOpenBugReport) {
+              optionsRef.current.onOpenBugReport(args.summary)
+                .then((message) => sendFunctionResult(call_id, JSON.stringify({ success: true, message })))
+                .catch((error) => sendFunctionResult(call_id, JSON.stringify({ success: false, error: error?.message || 'Could not open bug report' })))
+                .finally(cleanupToolCall);
+            } else {
+              sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'Bug reporting is unavailable' }));
+              cleanupToolCall();
+            }
+          } else if (name === 'generate_image') {
             try {
               const args = JSON.parse(argsStr || '{}');
               const prompt = args.prompt || '';
@@ -1359,16 +1316,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       globalWs = null;
     }
 
-    // Never let a reconnect resurrect a session that has already burned its
-    // 5-minute budget.
-    if (sessionDeadlineAt && Date.now() >= sessionDeadlineAt) {
-      console.log('Voice session budget exhausted — refusing to reconnect');
-      const { deactivateVoiceMode, setError } = useVoiceModeStore.getState();
-      deactivateVoiceMode();
-      setError('Voice mode reached the 5-minute session cap to prevent runaway usage.');
-      return;
-    }
-
     globalConnecting = true;
     globalSessionId = null;
     sessionReady = false;
@@ -1450,22 +1397,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // Start inactivity timer
         resetInactivityTimer();
 
-        // 5-minute maximum session cap (hard limit to prevent accidental cost
-        // leaks). The deadline is absolute: reconnects re-arm the timer against
-        // the ORIGINAL start time, never for a fresh 5 minutes.
-        if (!sessionDeadlineAt) sessionDeadlineAt = Date.now() + MAX_SESSION_MS;
-        if (maxSessionTimer) clearTimeout(maxSessionTimer);
-        maxSessionTimer = setTimeout(() => {
-          console.log('Voice mode reached 5-minute maximum session cap');
-          const { deactivateVoiceMode, setError } = useVoiceModeStore.getState();
-          deactivateVoiceMode();
-          setError('Voice mode reached the 5-minute session cap to prevent runaway usage.');
-        }, Math.max(0, sessionDeadlineAt - Date.now()));
-        
         const sessionUpdateSent = sendRealtimeEvent({
           type: 'session.update',
           session: {
-            instructions: (systemPrompt || lastSystemPrompt || `You are Arc, the AI companion inside the ArcAI app by Win The Night. You know ArcAI includes live voice, regular chat, memory, past-chat search, web search, weather, images, reminders, and vision tools. Never claim you do not know which app you are part of. Talk like a real person: relaxed, concise, warm, and lightly playful. CRITICAL: Keep spoken responses natural, direct, and concise (1–2 short sentences maximum unless the user explicitly asks for detail/explanations). Never speak unless the user has spoken first; silence needs no filler. Ignore keyboard typing, key clicks, and background noise completely.`) + `\n\nCRITICAL CONCISENESS RULE FOR COST EFFICIENCY: Speak concisely (1–2 brief sentences max). Cut fluff.`,
+            instructions: (systemPrompt || lastSystemPrompt || `You are Arc, the AI companion inside the ArcAI app by Win The Night. You know ArcAI includes live voice, regular chat, memory, past-chat search, web search, weather, images, reminders, and vision tools. Never claim you do not know which app you are part of. Talk like a real person: relaxed, concise, warm, and lightly playful. CRITICAL: Keep spoken responses natural, direct, and concise (1–2 short sentences maximum unless the user explicitly asks for detail/explanations). Never speak unless the user has spoken first; silence needs no filler. Ignore keyboard typing, key clicks, and background noise completely. Do not use canned service closers such as "if you need anything else, just let me know" or "I'm here if you need me." Usually leave the conversation naturally open or simply stop; a genuinely final ending is fine when appropriate.`) + `\n\nCRITICAL CONCISENESS RULE FOR COST EFFICIENCY: Speak concisely (1–2 brief sentences max). Cut fluff.`,
             // GA Realtime session schema. The previous-generation keys
             // (`modalities`, `input_audio_format`, top-level `voice`,
             // `input_audio_transcription`) are rejected by the GA mini model
@@ -1495,6 +1430,15 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             },
             tool_choice: 'auto',
             tools: [
+              {
+                type: 'function',
+                name: 'open_bug_report',
+                description: 'Open the in-app ArcAI bug report form when the user wants to report a bug, send feedback, contact support, or send the team a message.',
+                parameters: {
+                  type: 'object',
+                  properties: { summary: { type: 'string', description: 'Short issue summary if one was provided.' } }
+                }
+              },
               {
                 type: 'function',
                 name: 'generate_image',
@@ -1756,9 +1700,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     resetPendingFunctionResults();
     setIsConnected(false);
     setStatus('idle');
-
-    // The call is over, so the next one starts with a fresh 5-minute budget.
-    sessionDeadlineAt = 0;
 
     // Reset after close event has fired
     setTimeout(() => { reconnectAttempts = 0; }, 100);
