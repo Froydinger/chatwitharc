@@ -89,7 +89,7 @@ if (typeof window !== 'undefined') {
 
 // Deterministic errors that should NOT trigger reconnect
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
-const OPENAI_REALTIME_MODEL = 'gpt-realtime-mini';
+const OPENAI_REALTIME_MODEL = 'gpt-4o-mini-realtime-preview-2024-12-17';
 
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1899,29 +1899,51 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         return;
       }
 
-      // 4. Play HD Neural Voice audio in browser via Web Audio API
+      // 4. Play HD Neural Voice audio in browser (Web Audio API + HTML5 Audio fallback)
       const audioBytes = Uint8Array.from(atob(ttsData.audio), c => c.charCodeAt(0));
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      if (audioCtx.state === 'suspended') {
-        await audioCtx.resume();
+      const audioBlobObj = new Blob([audioBytes], { type: 'audio/mp3' });
+      const audioUrl = URL.createObjectURL(audioBlobObj);
+
+      try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        if (audioCtx.state === 'suspended') {
+          await audioCtx.resume();
+        }
+        const audioBuffer = await audioCtx.decodeAudioData(audioBytes.buffer.slice(0));
+        const source = audioCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioCtx.destination);
+
+        useVoiceModeStore.getState().setIsAudioPlaying(true);
+        setStatus('speaking');
+
+        source.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          useVoiceModeStore.getState().setIsAudioPlaying(false);
+          setStatus('listening');
+          try { audioCtx.close(); } catch (_) {}
+        };
+        source.start(0);
+      } catch (decodeErr) {
+        console.warn('Web Audio decode failed, falling back to HTML5 Audio:', decodeErr);
+        const audioPlayer = new Audio(audioUrl);
+        audioPlayer.onplay = () => {
+          setStatus('speaking');
+          useVoiceModeStore.getState().setIsAudioPlaying(true);
+        };
+        audioPlayer.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+          useVoiceModeStore.getState().setIsAudioPlaying(false);
+          setStatus('listening');
+        };
+        audioPlayer.onerror = (e) => {
+          console.error('Audio playback error:', e);
+          URL.revokeObjectURL(audioUrl);
+          useVoiceModeStore.getState().setIsAudioPlaying(false);
+          setStatus('listening');
+        };
+        await audioPlayer.play().catch(console.error);
       }
-
-      const audioBuffer = await audioCtx.decodeAudioData(audioBytes.buffer.slice(0));
-      const source = audioCtx.createBufferSource();
-      source.buffer = audioBuffer;
-
-      source.connect(audioCtx.destination);
-
-      useVoiceModeStore.getState().setIsAudioPlaying(true);
-      setStatus('speaking');
-
-      source.onended = () => {
-        useVoiceModeStore.getState().setIsAudioPlaying(false);
-        setStatus('listening');
-        try { audioCtx.close(); } catch (_) {}
-      };
-
-      source.start(0);
 
     } catch (err: any) {
       console.error('Whisper pipeline error:', err);
