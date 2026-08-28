@@ -87,18 +87,39 @@ export function StorageAudit() {
     });
   }, [data, query, kind]);
 
-  /** Group by user so the audit reads per person rather than as a flat dump. */
+  /** Group by user so the audit reads per person across all registered accounts. */
   const byUser = useMemo(() => {
     const map = new Map<string, FileEntry[]>();
+    if (data?.userEmails) {
+      for (const userId of Object.keys(data.userEmails)) {
+        if (userId !== "(root)") {
+          map.set(userId, []);
+        }
+      }
+    }
     for (const f of filtered) {
       const list = map.get(f.userId) ?? [];
       list.push(f);
       map.set(f.userId, list);
     }
-    return [...map.entries()].sort((a, b) => b[1].length - a[1].length);
-  }, [filtered]);
+    const q = query.trim().toLowerCase();
+    return [...map.entries()]
+      .filter(([userId, files]) => {
+        if (kind !== "all" && files.length > 0 && !files.some(f => f.kind === kind)) return false;
+        if (!q) return true;
+        const email = data?.userEmails?.[userId] ?? "";
+        const name = data?.displayNames?.[userId] ?? "";
+        return (
+          userId.toLowerCase().includes(q) ||
+          email.toLowerCase().includes(q) ||
+          name.toLowerCase().includes(q) ||
+          files.some(f => f.name.toLowerCase().includes(q))
+        );
+      })
+      .sort((a, b) => b[1].length - a[1].length);
+  }, [filtered, data, kind, query]);
 
-  const signFor = async (bucket: string, paths: string[]) => {
+  const signFor = useCallback(async (bucket: string, paths: string[]) => {
     if (!supabase || !paths.length) return;
     try {
       const { data: res, error: fnErr } = await supabase.functions.invoke("admin-storage", {
@@ -114,7 +135,26 @@ export function StorageAudit() {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  };
+  }, []);
+
+  // Auto-generate signed URLs for non-avatar buckets as files load
+  useEffect(() => {
+    if (!data?.files.length) return;
+    const pathsByBucket: Record<string, string[]> = {};
+    for (const f of data.files) {
+      if (f.bucket !== 'avatars' && !previews[`${f.bucket}/${f.path}`]) {
+        if (!pathsByBucket[f.bucket]) pathsByBucket[f.bucket] = [];
+        pathsByBucket[f.bucket].push(f.path);
+      }
+    }
+    for (const [b, paths] of Object.entries(pathsByBucket)) {
+      if (paths.length > 0) void signFor(b, paths);
+    }
+  }, [data, signFor, previews]);
+
+  const totalRegisteredAccounts = useMemo(() => {
+    return Object.keys(data?.userEmails || {}).length || new Set(data?.files.map((f) => f.userId)).size;
+  }, [data]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -151,7 +191,7 @@ export function StorageAudit() {
               <Badge variant="outline">{data.files.length} files</Badge>
               <Badge variant="outline">{formatBytes(data.totalBytes)} total</Badge>
               <Badge variant="outline">
-                {new Set(data.files.map((f) => f.userId)).size} accounts
+                {totalRegisteredAccounts} accounts ({new Set(data.files.map((f) => f.userId)).size} with files)
               </Badge>
               {Object.entries(data.bucketErrors ?? {}).map(([b, msg]) => (
                 <Badge key={b} variant="outline" className="border-destructive/40 text-destructive">
@@ -241,7 +281,8 @@ export function StorageAudit() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
                   {files.map((f) => {
-                    const url = previews[`${f.bucket}/${f.path}`];
+                    const publicAvatarUrl = f.bucket === 'avatars' ? `https://jpqtoixhjnfdubvqshwk.supabase.co/storage/v1/object/public/avatars/${f.path}` : null;
+                    const url = previews[`${f.bucket}/${f.path}`] || publicAvatarUrl;
                     return (
                       <div
                         key={`${f.bucket}/${f.path}`}
