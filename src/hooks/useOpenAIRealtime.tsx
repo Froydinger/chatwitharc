@@ -89,7 +89,7 @@ if (typeof window !== 'undefined') {
 
 // Deterministic errors that should NOT trigger reconnect
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
-const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1-mini';
+const OPENAI_REALTIME_MODEL = 'gpt-4o-mini-realtime-preview-2024-12-17';
 
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;

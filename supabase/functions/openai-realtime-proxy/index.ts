@@ -8,8 +8,8 @@ const corsHeaders = {
 };
 
 const ALLOWED_VOICES = new Set(['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin']);
-// Arc voice mode uses the cost-efficient Realtime 2.1 Mini model.
-const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1-mini' as const;
+// Arc voice mode uses the cost-efficient Realtime Mini model.
+const OPENAI_REALTIME_MODEL = 'gpt-4o-mini-realtime-preview-2024-12-17' as const;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
