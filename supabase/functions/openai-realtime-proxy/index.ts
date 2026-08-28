@@ -65,68 +65,82 @@ serve(async (req) => {
     });
   }
 
-  const selectedModel = OPENAI_REALTIME_MODEL;
-  let responseText = '';
+  const candidateModels = [
+    'gpt-4o-mini-realtime-preview-2024-12-17',
+    'gpt-4o-mini-realtime-preview',
+    'gpt-4o-realtime-preview-2024-12-17',
+    'gpt-4o-realtime-preview',
+  ];
+
   let sessionData: any = null;
   let lastFailureStatus: number | null = null;
+  let lastFailureText = '';
+  let successfulModel = '';
 
-  let sessionResponse = await fetch('https://api.openai.com/v1/realtime/sessions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${openaiApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: selectedModel,
-      voice: requestedVoice,
-    }),
-  });
-
-  if (!sessionResponse.ok) {
-    sessionResponse = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        session: {
-          type: 'realtime',
-          model: selectedModel,
-          audio: {
-            output: { voice: requestedVoice },
-          },
-        },
-      }),
-    });
-  }
-
-  responseText = await sessionResponse.text();
-  if (!sessionResponse.ok) {
-    lastFailureStatus = sessionResponse.status;
-    console.error('[openai-realtime-proxy] Failed to create realtime session:', selectedModel, sessionResponse.status, responseText);
-  } else {
+  for (const model of candidateModels) {
     try {
-      sessionData = JSON.parse(responseText);
-    } catch (error) {
-      lastFailureStatus = 502;
-      console.error('[openai-realtime-proxy] Failed to parse realtime session response:', selectedModel, error, responseText);
+      // 1. Try standard /v1/realtime/sessions endpoint
+      let res = await fetch('https://api.openai.com/v1/realtime/sessions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          voice: requestedVoice,
+        }),
+      });
+
+      // 2. Fallback to /v1/realtime/client_secrets if needed
+      if (!res.ok) {
+        res = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session: {
+              type: 'realtime',
+              model,
+              audio: {
+                output: { voice: requestedVoice },
+              },
+            },
+          }),
+        });
+      }
+
+      const text = await res.text();
+      if (res.ok) {
+        sessionData = JSON.parse(text);
+        successfulModel = model;
+        console.log(`[openai-realtime-proxy] Successfully created session with model: ${model}`);
+        break;
+      } else {
+        lastFailureStatus = res.status;
+        lastFailureText = text;
+        console.warn(`[openai-realtime-proxy] Model ${model} failed (${res.status}): ${text}`);
+      }
+    } catch (err) {
+      console.error(`[openai-realtime-proxy] Fetch error for model ${model}:`, err);
     }
   }
 
   if (!sessionData) {
+    console.error('[openai-realtime-proxy] All candidate models failed. Last failure:', lastFailureStatus, lastFailureText);
     return new Response(JSON.stringify({ error: 'Failed to create voice session' }), {
       status: lastFailureStatus ?? 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  // GA endpoint returns { value, expires_at } at top level
   const clientSecret = sessionData?.value ?? sessionData?.client_secret?.value;
   const expiresAt = sessionData?.expires_at ?? sessionData?.client_secret?.expires_at ?? null;
 
   if (!clientSecret) {
-    console.error('[openai-realtime-proxy] Missing client secret in realtime session response', responseText);
+    console.error('[openai-realtime-proxy] Missing client secret in realtime session response', sessionData);
     return new Response(JSON.stringify({ error: 'Voice session token missing' }), {
       status: 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -136,7 +150,7 @@ serve(async (req) => {
   return new Response(JSON.stringify({
     client_secret: clientSecret,
     expires_at: expiresAt,
-    model: selectedModel,
+    model: successfulModel || 'gpt-4o-mini-realtime-preview-2024-12-17',
   }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
