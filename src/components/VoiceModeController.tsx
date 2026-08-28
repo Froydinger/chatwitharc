@@ -1001,7 +1001,7 @@ When the user shares their camera or attaches an image, describe what you see na
   }, [saveNewTurns]);
 
   // OpenAI Realtime connection
-  const { isConnected, connect, disconnect, sendAudio, sendImage, cancelResponse, commitAudioAndRespond, reconnectNow } = useOpenAIRealtime({
+  const { isConnected, connect, disconnect, sendAudio, sendImage, cancelResponse, commitAudioAndRespond, reconnectNow, processWhisperSpeechTurn } = useOpenAIRealtime({
     onAudioData: (audioData) => {
       queueAudio(audioData);
     },
