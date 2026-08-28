@@ -1269,10 +1269,12 @@ serve(async (req) => {
     if (toolChoice === "auto") {
       const updateTaskRegex = /\b(e-?mail( me)? too|also e-?mail|add e-?mail|do e-?mail|push( me)? too|also push|add push|(change|move|update|edit|reschedule) (that|it|the|my|this) (reminder|task)|(cancel|delete|remove) (that|it|the|my|this) (reminder|task))\b/i;
       const scheduleRegex = /\b(remind me to|set a reminder|schedule a task|set an alarm|remind me in|remind me at|remind me tomorrow|remind me every|schedule a reminder)\b/i;
+      const scheduledDeliveryRegex = /\b(remind me|e-?mail me|send me an? e-?mail|notify me|ping me|alert me)\b/i;
+      const futureTimeRegex = /\b(in\s+(?:about\s+)?(?:\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty)\s+(?:seconds?|minutes?|hours?|days?|weeks?)|(?:today|tonight|tomorrow)(?:\s+at)?|at\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?|next\s+(?:minute|hour|day|week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|every\s+(?:minute|hour|day|morning|afternoon|evening|night|week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday))\b/i;
       if (updateTaskRegex.test(lastUserMessage)) {
         toolChoice = { type: "function", function: { name: "update_scheduled_task" } };
         console.log('✏️ Reminder follow-up detected — forcing update_scheduled_task');
-      } else if (scheduleRegex.test(lastUserMessage)) {
+      } else if (scheduleRegex.test(lastUserMessage) || (scheduledDeliveryRegex.test(lastUserMessage) && futureTimeRegex.test(lastUserMessage))) {
         toolChoice = { type: "function", function: { name: "schedule_task" } };
         console.log('⏰ Future-dated request detected — forcing schedule_task');
       }
