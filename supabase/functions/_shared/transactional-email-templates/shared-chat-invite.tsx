@@ -33,7 +33,7 @@ const SharedChatInviteEmail = ({
           />
         </Section>
         <Section style={content}>
-          <Text style={emoji}>💬</Text>
+          <Text className="arc-email-emoji" style={emoji}>💬</Text>
           <Heading style={h1}>You're invited to a shared chat</Heading>
           <Text style={paragraph}>
             <strong>{inviterName}</strong> added you to <strong>"{chatTitle}"</strong> on {SITE_NAME}.
@@ -73,11 +73,11 @@ const header = { textAlign: 'center' as const, paddingBottom: '24px' }
 const logo = { margin: '0 auto', borderRadius: '14px', backgroundColor: '#000000', backgroundImage: 'linear-gradient(#000000, #000000)', padding: '8px' }
 const content = { backgroundColor: '#18181b', backgroundImage: 'linear-gradient(#18181b, #18181b)', borderRadius: '16px', padding: '40px 32px', border: '1px solid rgba(0, 128, 240, 0.25)' }
 const emoji = { fontSize: '48px', textAlign: 'center' as const, margin: '0 0 16px' }
-const h1 = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '26px', fontWeight: '700' as const, textAlign: 'center' as const, margin: '0 0 16px' }
-const paragraph = { color: '#a1a1aa', WebkitTextFillColor: '#a1a1aa', fontSize: '15px', lineHeight: '26px', textAlign: 'center' as const, margin: '0 0 28px' }
+const h1 = { color: '#fafafa', fontSize: '26px', fontWeight: '700' as const, textAlign: 'center' as const, margin: '0 0 16px' }
+const paragraph = { color: '#a1a1aa', fontSize: '15px', lineHeight: '26px', textAlign: 'center' as const, margin: '0 0 28px' }
 const ctaWrap = { textAlign: 'center' as const, margin: '0 0 12px' }
-const button = { backgroundColor: '#0080f0', backgroundImage: 'linear-gradient(#0080f0, #0080f0)', borderRadius: '10px', color: '#ffffff', WebkitTextFillColor: '#ffffff', fontSize: '16px', fontWeight: '600' as const, textDecoration: 'none', textAlign: 'center' as const, display: 'inline-block', padding: '14px 36px', boxShadow: '0 4px 12px rgba(0, 128, 240, 0.3)' }
+const button = { backgroundColor: '#0080f0', backgroundImage: 'linear-gradient(#0080f0, #0080f0)', borderRadius: '10px', color: '#ffffff', fontSize: '16px', fontWeight: '600' as const, textDecoration: 'none', textAlign: 'center' as const, display: 'inline-block', padding: '14px 36px', boxShadow: '0 4px 12px rgba(0, 128, 240, 0.3)' }
 const hr = { borderColor: '#27272a', margin: '20px 0' }
-const tipDesc = { color: '#71717a', WebkitTextFillColor: '#71717a', fontSize: '13px', textAlign: 'center' as const, margin: '0' }
+const tipDesc = { color: '#71717a', fontSize: '13px', textAlign: 'center' as const, margin: '0' }
 const footer = { padding: '28px 20px', textAlign: 'center' as const }
-const copy = { color: '#52525b', WebkitTextFillColor: '#52525b', fontSize: '11px', margin: '0' }
+const copy = { color: '#52525b', fontSize: '11px', margin: '0' }

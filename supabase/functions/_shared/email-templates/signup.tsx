@@ -95,13 +95,13 @@ const content = {
   textAlign: 'center' as const,
   border: '1px solid rgba(0, 128, 240, 0.25)',
 }
-const h1 = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '24px', fontWeight: '700' as const, margin: '0 0 16px', letterSpacing: '-0.3px' }
-const paragraph = { color: '#a1a1aa', WebkitTextFillColor: '#a1a1aa', fontSize: '15px', lineHeight: '26px', margin: '0 0 28px' }
+const h1 = { color: '#fafafa', fontSize: '24px', fontWeight: '700' as const, margin: '0 0 16px', letterSpacing: '-0.3px' }
+const paragraph = { color: '#a1a1aa', fontSize: '15px', lineHeight: '26px', margin: '0 0 28px' }
 const btnWrap = { textAlign: 'center' as const }
 const btn = {
   backgroundColor: '#0080f0', backgroundImage: 'linear-gradient(#0080f0, #0080f0)',
   borderRadius: '8px',
-  color: '#ffffff', WebkitTextFillColor: '#ffffff',
+  color: '#ffffff',
   fontSize: '15px',
   fontWeight: '600' as const,
   textDecoration: 'none',
@@ -113,6 +113,6 @@ const btn = {
 }
 const hr = { borderColor: '#27272a', margin: '20px 0' }
 const footer = { padding: '24px 32px', textAlign: 'center' as const }
-const footerText = { color: '#71717a', WebkitTextFillColor: '#71717a', fontSize: '12px', lineHeight: '20px', margin: '0 0 4px' }
-const footerLink = { color: '#0080f0', WebkitTextFillColor: '#0080f0', textDecoration: 'underline', fontSize: '12px' }
-const copy = { color: '#52525b', WebkitTextFillColor: '#52525b', fontSize: '11px', margin: '12px 0 0' }
+const footerText = { color: '#71717a', fontSize: '12px', lineHeight: '20px', margin: '0 0 4px' }
+const footerLink = { color: '#0080f0', textDecoration: 'underline', fontSize: '12px' }
+const copy = { color: '#52525b', fontSize: '11px', margin: '12px 0 0' }

@@ -31,7 +31,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
           </Section>
 
           <Section style={content}>
-            <Text style={emoji}>🎉</Text>
+            <Text className="arc-email-emoji" style={emoji}>🎉</Text>
             <Heading style={h1}>Welcome, {name}!</Heading>
             <Text style={paragraph}>
               Your account is all set up. You're now part of a growing community
@@ -49,7 +49,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
             <Text style={tipsHeading}>Quick tips to get started:</Text>
 
             <Section style={tipRow}>
-              <Text style={tipIcon}>💡</Text>
+              <Text className="arc-email-emoji" style={tipIcon}>💡</Text>
               <Section>
                 <Text style={tipTitle}>Just ask naturally</Text>
                 <Text style={tipDesc}>Type or speak like you're talking to a friend</Text>
@@ -57,7 +57,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
             </Section>
 
             <Section style={tipRow}>
-              <Text style={tipIcon}>🎨</Text>
+              <Text className="arc-email-emoji" style={tipIcon}>🎨</Text>
               <Section>
                 <Text style={tipTitle}>Generate images</Text>
                 <Text style={tipDesc}>Ask Arc to make an image, or tap the image button for more controls</Text>
@@ -65,7 +65,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
             </Section>
 
             <Section style={tipRow}>
-              <Text style={tipIcon}>🔍</Text>
+              <Text className="arc-email-emoji" style={tipIcon}>🔍</Text>
               <Section>
                 <Text style={tipTitle}>Research anything</Text>
                 <Text style={tipDesc}>Ask about current information and Arc can search the web</Text>
@@ -73,7 +73,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
             </Section>
 
             <Section style={tipRow}>
-              <Text style={tipIcon}>✍️</Text>
+              <Text className="arc-email-emoji" style={tipIcon}>✍️</Text>
               <Section>
                 <Text style={tipTitle}>Write & code</Text>
                 <Text style={tipDesc}>Ask Arc to draft, revise, build, or debug in a canvas</Text>
@@ -82,7 +82,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
           </Section>
 
           <Section style={supportCard}>
-            <Text style={emoji}>⚡</Text>
+            <Text className="arc-email-emoji" style={emoji}>⚡</Text>
             <Heading style={h2}>Start free. Upgrade when you want more.</Heading>
             <Text style={supportParagraph}>
               ArcAI's free plan includes Luna chat, reasoning modes, web research, voice, memory, files, canvases, reminders, shared chats, and image generation with plan-based limits. Boost adds higher limits, premium image tools, advanced editing, priority access, and live web-app publishing for $10/month or $95/year.
@@ -124,14 +124,14 @@ const content = {
 }
 const emoji = { fontSize: '48px', textAlign: 'center' as const, margin: '0 0 16px' }
 const h1 = {
-  color: '#fafafa', WebkitTextFillColor: '#fafafa',
+  color: '#fafafa',
   fontSize: '28px',
   fontWeight: '700' as const,
   textAlign: 'center' as const,
   margin: '0 0 16px',
 }
 const paragraph = {
-  color: '#a1a1aa', WebkitTextFillColor: '#a1a1aa',
+  color: '#a1a1aa',
   fontSize: '15px',
   lineHeight: '26px',
   textAlign: 'center' as const,
@@ -141,7 +141,7 @@ const ctaWrap = { textAlign: 'center' as const, margin: '0 0 28px' }
 const button = {
   backgroundColor: '#0080f0', backgroundImage: 'linear-gradient(#0080f0, #0080f0)',
   borderRadius: '10px',
-  color: '#ffffff', WebkitTextFillColor: '#ffffff',
+  color: '#ffffff',
   fontSize: '16px',
   fontWeight: '600' as const,
   textDecoration: 'none',
@@ -151,11 +151,11 @@ const button = {
   boxShadow: '0 4px 12px rgba(0, 128, 240, 0.3)',
 }
 const hr = { borderColor: '#27272a', margin: '0 0 24px' }
-const tipsHeading = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '14px', fontWeight: '500' as const, margin: '0 0 20px' }
+const tipsHeading = { color: '#fafafa', fontSize: '14px', fontWeight: '500' as const, margin: '0 0 20px' }
 const tipRow = { marginBottom: '16px' }
 const tipIcon = { fontSize: '20px', margin: '0 0 4px' }
-const tipTitle = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '14px', fontWeight: '600' as const, margin: '0 0 2px' }
-const tipDesc = { color: '#a1a1aa', WebkitTextFillColor: '#a1a1aa', fontSize: '13px', margin: '0' }
+const tipTitle = { color: '#fafafa', fontSize: '14px', fontWeight: '600' as const, margin: '0 0 2px' }
+const tipDesc = { color: '#a1a1aa', fontSize: '13px', margin: '0' }
 const supportCard = {
   backgroundColor: '#18181b', backgroundImage: 'linear-gradient(#18181b, #18181b)',
   margin: '16px 0 0',
@@ -164,12 +164,12 @@ const supportCard = {
   border: '1px solid rgba(124, 58, 237, 0.25)',
   textAlign: 'center' as const,
 }
-const h2 = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '20px', fontWeight: '700' as const, margin: '0 0 8px' }
-const supportParagraph = { color: '#a1a1aa', WebkitTextFillColor: '#a1a1aa', fontSize: '14px', lineHeight: '22px', margin: '0 0 20px' }
+const h2 = { color: '#fafafa', fontSize: '20px', fontWeight: '700' as const, margin: '0 0 8px' }
+const supportParagraph = { color: '#a1a1aa', fontSize: '14px', lineHeight: '22px', margin: '0 0 20px' }
 const supportButton = {
   backgroundColor: '#7c3aed', backgroundImage: 'linear-gradient(#7c3aed, #7c3aed)',
   borderRadius: '10px',
-  color: '#ffffff', WebkitTextFillColor: '#ffffff',
+  color: '#ffffff',
   fontSize: '15px',
   fontWeight: '600' as const,
   textDecoration: 'none',
@@ -179,5 +179,5 @@ const supportButton = {
   boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)',
 }
 const footer = { padding: '28px 20px', textAlign: 'center' as const }
-const footerText = { color: '#71717a', WebkitTextFillColor: '#71717a', fontSize: '13px', margin: '0 0 12px' }
-const copy = { color: '#52525b', WebkitTextFillColor: '#52525b', fontSize: '11px', margin: '0' }
+const footerText = { color: '#71717a', fontSize: '13px', margin: '0 0 12px' }
+const copy = { color: '#52525b', fontSize: '11px', margin: '0' }

@@ -35,7 +35,7 @@ const DesktopLinkEmail = ({ displayName, desktopUrl }: DesktopLinkProps) => {
           </Section>
 
           <Section style={content}>
-            <Text style={emoji}>🖥️</Text>
+            <Text className="arc-email-emoji" style={emoji}>🖥️</Text>
             <Heading style={h1}>Your desktop link is ready, {name}</Heading>
             <Text style={paragraph}>
               Download ArcAI for Mac or Windows, then sign in with this same email to pick up where you left off.
@@ -84,14 +84,14 @@ const content = {
 }
 const emoji = { fontSize: '48px', textAlign: 'center' as const, margin: '0 0 16px' }
 const h1 = {
-  color: '#fafafa', WebkitTextFillColor: '#fafafa',
+  color: '#fafafa',
   fontSize: '28px',
   fontWeight: '700' as const,
   textAlign: 'center' as const,
   margin: '0 0 16px',
 }
 const paragraph = {
-  color: '#a1a1aa', WebkitTextFillColor: '#a1a1aa',
+  color: '#a1a1aa',
   fontSize: '15px',
   lineHeight: '26px',
   textAlign: 'center' as const,
@@ -101,7 +101,7 @@ const ctaWrap = { textAlign: 'center' as const, margin: '0 0 20px' }
 const button = {
   backgroundColor: '#0080f0', backgroundImage: 'linear-gradient(#0080f0, #0080f0)',
   borderRadius: '10px',
-  color: '#ffffff', WebkitTextFillColor: '#ffffff',
+  color: '#ffffff',
   fontSize: '16px',
   fontWeight: '600' as const,
   textDecoration: 'none',
@@ -110,6 +110,6 @@ const button = {
   padding: '14px 36px',
   boxShadow: '0 4px 12px rgba(0, 128, 240, 0.3)',
 }
-const note = { color: '#71717a', WebkitTextFillColor: '#71717a', fontSize: '13px', lineHeight: '20px', margin: '0' }
+const note = { color: '#71717a', fontSize: '13px', lineHeight: '20px', margin: '0' }
 const footer = { padding: '28px 20px', textAlign: 'center' as const }
-const footerText = { color: '#52525b', WebkitTextFillColor: '#52525b', fontSize: '11px', margin: '0' }
+const footerText = { color: '#52525b', fontSize: '11px', margin: '0' }

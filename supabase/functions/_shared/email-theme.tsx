@@ -15,6 +15,20 @@ export const EmailHead = () => (
       .arc-email-shell { background: #09090b !important; background-color: #09090b !important; background-image: linear-gradient(#09090b, #09090b) !important; }
       [data-ogsc] .arc-email-shell { background: #09090b !important; background-color: #09090b !important; background-image: linear-gradient(#09090b, #09090b) !important; }
       [data-ogsb] .arc-email-shell { background: #09090b !important; background-color: #09090b !important; background-image: linear-gradient(#09090b, #09090b) !important; }
+      .arc-email-shell h1,
+      .arc-email-shell h2,
+      .arc-email-shell h3,
+      .arc-email-shell p:not(.arc-email-emoji) {
+        color: #f4f4f5 !important;
+        background-image: linear-gradient(#f4f4f5, #f4f4f5) !important;
+        background-clip: text !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+      }
+      .arc-email-shell .arc-email-emoji {
+        background-image: none !important;
+        -webkit-text-fill-color: initial !important;
+      }
     `}</style>
   </Head>
 )

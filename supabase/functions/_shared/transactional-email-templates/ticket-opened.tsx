@@ -32,7 +32,7 @@ const TicketOpenedEmail = ({ subject, userEmail, userName, priority }: TicketOpe
         </Section>
 
         <Section style={content}>
-          <Text style={emoji}>🎫</Text>
+          <Text className="arc-email-emoji" style={emoji}>🎫</Text>
           <Heading style={h1}>New Support Ticket</Heading>
 
           <Text style={label}>Subject</Text>
@@ -83,15 +83,15 @@ const content = {
   border: '1px solid rgba(0, 128, 240, 0.25)',
 }
 const emoji = { fontSize: '40px', textAlign: 'center' as const, margin: '0 0 12px' }
-const h1 = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '24px', fontWeight: '700' as const, textAlign: 'center' as const, margin: '0 0 24px' }
-const label = { color: '#71717a', WebkitTextFillColor: '#71717a', fontSize: '12px', fontWeight: '600' as const, textTransform: 'uppercase' as const, margin: '0 0 4px', letterSpacing: '0.05em' }
-const value = { color: '#fafafa', WebkitTextFillColor: '#fafafa', fontSize: '14px', margin: '0 0 16px', lineHeight: '22px' }
+const h1 = { color: '#fafafa', fontSize: '24px', fontWeight: '700' as const, textAlign: 'center' as const, margin: '0 0 24px' }
+const label = { color: '#71717a', fontSize: '12px', fontWeight: '600' as const, textTransform: 'uppercase' as const, margin: '0 0 4px', letterSpacing: '0.05em' }
+const value = { color: '#fafafa', fontSize: '14px', margin: '0 0 16px', lineHeight: '22px' }
 const hr = { borderColor: '#27272a', margin: '8px 0 20px' }
 const ctaWrap = { textAlign: 'center' as const }
 const button = {
   backgroundColor: '#0080f0', backgroundImage: 'linear-gradient(#0080f0, #0080f0)',
   borderRadius: '10px',
-  color: '#ffffff', WebkitTextFillColor: '#ffffff',
+  color: '#ffffff',
   fontSize: '15px',
   fontWeight: '600' as const,
   textDecoration: 'none',
@@ -101,4 +101,4 @@ const button = {
   boxShadow: '0 4px 12px rgba(0, 128, 240, 0.3)',
 }
 const footer = { padding: '28px 20px', textAlign: 'center' as const }
-const footerText = { color: '#52525b', WebkitTextFillColor: '#52525b', fontSize: '11px', margin: '0' }
+const footerText = { color: '#52525b', fontSize: '11px', margin: '0' }
