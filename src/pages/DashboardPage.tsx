@@ -92,7 +92,7 @@ function extractCodeBlocks(content: string): Array<{ code: string; language: str
   return blocks;
 }
 
-export function DashboardPage() {
+function DashboardPageInner() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as DashboardTab) || "overview";
@@ -102,18 +102,10 @@ export function DashboardPage() {
 
   // Anonymous users are not allowed to view the dashboard at all.
   // Bounce them back to the chat and open the sign-in modal immediately.
-  useEffect(() => {
-    if (!authLoading && (isAnonymous || !user)) {
-      navigate("/", { replace: true });
-      window.dispatchEvent(
-        new CustomEvent("auth-gate-feature", { detail: { feature: "menu" } }),
-      );
-    }
-  }, [authLoading, isAnonymous, user, navigate]);
-
-  if (!authLoading && (isAnonymous || !user)) {
-    return null;
-  }
+  // The signed-out redirect lives in the DashboardPage gate below. It must NOT
+  // be done here: this component calls ~50 hooks after this point, so returning
+  // early once auth resolved changed the hook count between renders and crashed
+  // with React error #310.
 
   const { profile } = useProfile();
   const { isLoaded } = useChatSync();
@@ -2030,4 +2022,26 @@ function ChatListItem({ session, currentSessionId, timeAgo, onLoad, onDelete, fo
       </div>
     </div>
   );
+}
+
+// Auth gate. Keeping the signed-out check in its own component means
+// DashboardPageInner either mounts with its full hook list or does not mount at
+// all — the hook count can never change between renders.
+export function DashboardPage() {
+  const navigate = useNavigate();
+  const { user, loading: authLoading, isAnonymous } = useAuth();
+  const signedOut = !authLoading && (isAnonymous || !user);
+
+  useEffect(() => {
+    if (signedOut) {
+      navigate("/", { replace: true });
+      window.dispatchEvent(
+        new CustomEvent("auth-gate-feature", { detail: { feature: "menu" } }),
+      );
+    }
+  }, [signedOut, navigate]);
+
+  if (signedOut) return null;
+
+  return <DashboardPageInner />;
 }
