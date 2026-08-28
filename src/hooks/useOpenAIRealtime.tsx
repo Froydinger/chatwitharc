@@ -56,6 +56,8 @@ const INACTIVITY_TIMEOUT_MS = 2 * 60 * 1000;
 let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
 let maxSessionTimer: ReturnType<typeof setTimeout> | null = null;
 let cleanupInterval: ReturnType<typeof setInterval> | null = null;
+let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
 
 const resetInactivityTimer = () => {
   if (inactivityTimer) clearTimeout(inactivityTimer);
@@ -1434,11 +1436,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 transcription: { model: 'gpt-4o-transcribe', language: 'en' },
                 turn_detection: {
                   type: 'server_vad',
-                  // Require clearer speech so keyboard clicks and other short
-                  // room noises do not open a voice turn.
-                  threshold: 0.82,
-                  prefix_padding_ms: 300,
-                  silence_duration_ms: 850,
+                  // Higher threshold (0.88) to filter breathing, coughing, typing, and room noise
+                  threshold: 0.88,
+                  prefix_padding_ms: 400,
+                  silence_duration_ms: 1000,
                   create_response: true,
                   interrupt_response: true,
                 },

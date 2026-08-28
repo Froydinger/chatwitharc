@@ -128,15 +128,21 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
         
         const inputData = event.inputBuffer.getChannelData(0);
         
-        // Typing noise filter: calculate RMS energy
+        // Calculate RMS energy for noise gating
         let sumSq = 0;
         for (let i = 0; i < inputData.length; i++) {
           sumSq += inputData[i] * inputData[i];
         }
         const rms = Math.sqrt(sumSq / inputData.length);
+        
+        // Low-energy noise gate: drop ambient room hum, breathing, quiet coughs
+        if (rms < 0.018) {
+          return;
+        }
+
         const timeSinceKeyPress = Date.now() - lastKeyPressRef.current;
-        // If a key was struck recently (< 220ms) and frame energy is in key-tap click range (RMS < 0.045), ignore typing noise
-        if (timeSinceKeyPress < 220 && rms < 0.045) {
+        // Keyboard noise filter: ignore key-click audio frames when typing
+        if (timeSinceKeyPress < 350 && rms < 0.055) {
           return;
         }
 
