@@ -86,6 +86,10 @@ const clearSessionTimers = () => {
 // loop. It must never be treated as transient.
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key', 'model_not_found'];
 const OPENAI_REALTIME_MODEL = 'gpt-realtime-mini';
+const IS_IOS_VOICE_DEVICE = typeof navigator !== 'undefined' && (
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+);
 
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
@@ -601,6 +605,17 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'input_audio_buffer.speech_started':
         console.log('VAD: User speech detected');
+        const stateAtSpeechStart = useVoiceModeStore.getState();
+        if (IS_IOS_VOICE_DEVICE && (
+          responseInProgress ||
+          stateAtSpeechStart.status === 'thinking' ||
+          stateAtSpeechStart.status === 'speaking' ||
+          stateAtSpeechStart.isAudioPlaying
+        )) {
+          console.log('Ignoring iOS speaker echo during Arc response');
+          sendRealtimeEvent({ type: 'input_audio_buffer.clear' });
+          return;
+        }
         // Real activity — restart the silence countdown. Without this the
         // "inactivity" timeout was only ever armed at connect time, so it was a
         // hard inactivity kill that would end a call mid-conversation.
@@ -614,7 +629,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           });
         }
         userSpokeAfterLastResponse = true;
-        const voiceStateAtSpeechStart = useVoiceModeStore.getState();
+        const voiceStateAtSpeechStart = stateAtSpeechStart;
         const isBargeIn = (responseInProgress || voiceStateAtSpeechStart.status === 'speaking' || voiceStateAtSpeechStart.isAudioPlaying)
           && voiceStateAtSpeechStart.inputAmplitude > 0.045; // Guard against ambient noise/breathing cutting off AI speech
 

@@ -73,12 +73,13 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       // iOS Safari requires different constraint format
       const audioConstraints: MediaTrackConstraints = isIOS
         ? {
-            // iOS Safari format - use ideal objects
+            // iOS Safari/PWA needs these requested directly. `ideal` is often
+            // ignored and lets speaker output feed straight back into the mic.
             channelCount: { ideal: 1 },
             sampleRate: { ideal: sampleRate },
-            echoCancellation: { ideal: true },
-            noiseSuppression: { ideal: true },
-            autoGainControl: { ideal: true },
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
           }
         : {
             // Standard format for other browsers
@@ -154,7 +155,13 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
         // Note: We intentionally do NOT check document.visibilityState here
         // so that iOS PWA can continue voice conversations in background
         // Only capture audio when status is listening or speaking (barge-in enabled for Realtime)
-        const canListenForSpeech = status === 'listening' || status === 'speaking' || isAudioPlaying;
+        // iOS PWA echo cancellation is unreliable during speaker playback.
+        // Streaming then makes Arc hear its own voice as a barge-in and enter
+        // a cancel/reply loop. On iOS, reopen the mic only after playback ends;
+        // the visible interrupt control remains available for manual barge-in.
+        const canListenForSpeech = isIOS
+          ? status === 'listening' && !isAudioPlaying
+          : status === 'listening' || status === 'speaking' || isAudioPlaying;
         const shouldCapture =
           !isMuted &&
           canListenForSpeech &&
