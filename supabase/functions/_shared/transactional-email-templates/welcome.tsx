@@ -81,13 +81,13 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
           </Section>
 
           <Section style={supportCard}>
-            <Text style={emoji}>☕</Text>
-            <Heading style={h2}>Everything is free</Heading>
+            <Text style={emoji}>⚡</Text>
+            <Heading style={h2}>Start free. Upgrade when you want more.</Heading>
             <Text style={supportParagraph}>
-              All models, voice, Deep Search, publishing, and creative tools are included. Images and edits include 20 outputs per UTC day.
+              ArcAI's free plan includes Luna chat, reasoning modes, web research, voice, memory, files, canvases, reminders, shared chats, and image generation with plan-based limits. Boost adds higher limits, premium image tools, advanced editing, priority access, and live web-app publishing for $10/month or $95/year.
             </Text>
-            <Button style={supportButton} href="https://buymeacoffee.com/winthenight">
-              Support Win The Night™ Foundation
+            <Button style={supportButton} href="https://askarc.chat/pricing">
+              Compare Free and Boost
             </Button>
           </Section>
 
