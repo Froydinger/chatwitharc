@@ -53,6 +53,12 @@ const MAX_SESSION_MS = 5 * 60 * 1000;
 // 2. Inactivity timeout: 2 minutes of silence automatically closes session
 const INACTIVITY_TIMEOUT_MS = 2 * 60 * 1000;
 
+// Absolute wall-clock deadline for the whole voice session, set on the FIRST
+// connect and deliberately NOT re-armed by reconnects. Anchoring the cap to the
+// socket instead of the session meant every reconnect bought another full 5
+// minutes, so a flapping connection could bill indefinitely.
+let sessionDeadlineAt = 0;
+
 let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
 let maxSessionTimer: ReturnType<typeof setTimeout> | null = null;
 let cleanupInterval: ReturnType<typeof setInterval> | null = null;
@@ -1321,6 +1327,16 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       globalWs = null;
     }
 
+    // Never let a reconnect resurrect a session that has already burned its
+    // 5-minute budget.
+    if (sessionDeadlineAt && Date.now() >= sessionDeadlineAt) {
+      console.log('Voice session budget exhausted — refusing to reconnect');
+      const { deactivateVoiceMode, setError } = useVoiceModeStore.getState();
+      deactivateVoiceMode();
+      setError('Voice mode reached the 5-minute session cap to prevent runaway usage.');
+      return;
+    }
+
     globalConnecting = true;
     globalSessionId = null;
     sessionReady = false;
@@ -1400,14 +1416,17 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // Start 3-minute inactivity timer
         resetInactivityTimer();
 
-        // 5-minute maximum session cap (hard limit to prevent accidental cost leaks)
+        // 5-minute maximum session cap (hard limit to prevent accidental cost
+        // leaks). The deadline is absolute: reconnects re-arm the timer against
+        // the ORIGINAL start time, never for a fresh 5 minutes.
+        if (!sessionDeadlineAt) sessionDeadlineAt = Date.now() + MAX_SESSION_MS;
         if (maxSessionTimer) clearTimeout(maxSessionTimer);
         maxSessionTimer = setTimeout(() => {
           console.log('Voice mode reached 5-minute maximum session cap');
           const { deactivateVoiceMode, setError } = useVoiceModeStore.getState();
           deactivateVoiceMode();
           setError('Voice mode reached the 5-minute session cap to prevent runaway usage.');
-        }, MAX_SESSION_MS);
+        }, Math.max(0, sessionDeadlineAt - Date.now()));
         
         sendRealtimeEvent({
           type: 'session.update',
@@ -1634,18 +1653,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             }
           }, delay);
         } else if (isActive && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-          // Don't tear down the overlay — let the user decide. Stay in 'connecting'
-          // and schedule a longer cooldown attempt so transient outages can self-heal.
-          console.error('Max reconnect attempts reached — pausing reconnect loop, will retry after cooldown');
-          reconnectAttempts = 0;
-          setStatus('connecting');
-          optionsRef.current.onError?.('Connection unstable. Reconnecting in the background — keep talking when you see the orb pulse again, or tap X to end.');
-          setTimeout(async () => {
-            const { isActive: stillActive } = useVoiceModeStore.getState();
-            if (stillActive && (!globalWs || globalWs.readyState !== WebSocket.OPEN)) {
-              connect(await buildReconnectPrompt());
-            }
-          }, 15000);
+          // Give up for real. This branch used to reset reconnectAttempts to 0
+          // and schedule another attempt, which made the "capped" retry loop
+          // infinite — a failing socket would re-mint a token and redial
+          // forever. Ending the session is the only safe terminal state.
+          console.error('Max reconnect attempts reached — ending voice session');
+          const { deactivateVoiceMode } = useVoiceModeStore.getState();
+          deactivateVoiceMode();
+          optionsRef.current.onError?.('Voice connection kept dropping, so the call was ended. Tap the orb to try again.');
         } else {
           setStatus('idle');
         }
@@ -1697,6 +1712,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     resetPendingFunctionResults();
     setIsConnected(false);
     setStatus('idle');
+
+    // The call is over, so the next one starts with a fresh 5-minute budget.
+    sessionDeadlineAt = 0;
 
     // Reset after close event has fired
     setTimeout(() => { reconnectAttempts = 0; }, 100);
