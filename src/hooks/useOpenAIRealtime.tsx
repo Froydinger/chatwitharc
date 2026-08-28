@@ -44,6 +44,10 @@ let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 20;
 let lastSystemPrompt: string | null = null;
 let sessionReady = false; // Gate: true after session.created received
+// Diagnostics for the "listens but never responds" case: did mic audio ever
+// reach the socket, and did the server ever hear speech in it?
+let audioChunksSent = 0;
+let loggedFirstSpeech = false;
 let connectionOpenedAt = 0;
 
 // Keepalive: OpenAI may idle-disconnect long sessions during silence or
@@ -640,10 +644,35 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'session.updated':
         console.log('Session updated');
+        // Log what the server ACTUALLY applied. If turn_detection comes back
+        // null the model will never detect speech, which looks like "listening
+        // forever with no response".
+        logVoiceDiagnostic({
+          event_type: 'session_updated',
+          message: 'Realtime session config applied',
+          details: {
+            turn_detection: event.session?.audio?.input?.turn_detection
+              ?? event.session?.turn_detection ?? null,
+            output_modalities: event.session?.output_modalities
+              ?? event.session?.modalities ?? null,
+            input_format: event.session?.audio?.input?.format ?? null,
+            transcription: event.session?.audio?.input?.transcription ?? null,
+            voice: event.session?.audio?.output?.voice ?? event.session?.voice ?? null,
+            toolCount: Array.isArray(event.session?.tools) ? event.session.tools.length : null,
+          },
+        });
         break;
 
       case 'input_audio_buffer.speech_started':
         console.log('VAD: User speech detected');
+        if (!loggedFirstSpeech) {
+          loggedFirstSpeech = true;
+          logVoiceDiagnostic({
+            event_type: 'first_speech_detected',
+            message: 'Server VAD detected user speech',
+            details: { audioChunksSent },
+          });
+        }
         userSpokeAfterLastResponse = true;
         const voiceStateAtSpeechStart = useVoiceModeStore.getState();
         const isBargeIn = (responseInProgress || voiceStateAtSpeechStart.status === 'speaking' || voiceStateAtSpeechStart.isAudioPlaying)
@@ -1406,6 +1435,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         globalConnecting = false;
         reconnectAttempts = 0;
         connectionOpenedAt = Date.now();
+        audioChunksSent = 0;
+        loggedFirstSpeech = false;
         setIsConnected(true);
         setStatus('listening');
         
@@ -1416,7 +1447,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         cleanupInterval = setInterval(() => cleanupStaleToolCalls(), 30000);
 
-        // Start 3-minute inactivity timer
+        // Start inactivity timer
         resetInactivityTimer();
 
         // 5-minute maximum session cap (hard limit to prevent accidental cost
@@ -1431,7 +1462,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           setError('Voice mode reached the 5-minute session cap to prevent runaway usage.');
         }, Math.max(0, sessionDeadlineAt - Date.now()));
         
-        sendRealtimeEvent({
+        const sessionUpdateSent = sendRealtimeEvent({
           type: 'session.update',
           session: {
             instructions: (systemPrompt || lastSystemPrompt || `You are Arc, the AI companion inside the ArcAI app by Win The Night. You know ArcAI includes live voice, regular chat, memory, past-chat search, web search, weather, images, reminders, and vision tools. Never claim you do not know which app you are part of. Talk like a real person: relaxed, concise, warm, and lightly playful. CRITICAL: Keep spoken responses natural, direct, and concise (1–2 short sentences maximum unless the user explicitly asks for detail/explanations). Never speak unless the user has spoken first; silence needs no filler. Ignore keyboard typing, key clicks, and background noise completely.`) + `\n\nCRITICAL CONCISENESS RULE FOR COST EFFICIENCY: Speak concisely (1–2 brief sentences max). Cut fluff.`,
@@ -1580,6 +1611,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             ]
           }
         });
+
+        logVoiceDiagnostic({
+          event_type: 'session_update_sent',
+          message: sessionUpdateSent
+            ? 'session.update dispatched'
+            : 'session.update FAILED to dispatch',
+          details: { sent: sessionUpdateSent, voice: safeVoice, model: realtimeModel },
+        });
       };
 
       ws.onmessage = (event) => {
@@ -1626,6 +1665,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             responseInProgress,
             activeToolCallId,
             conversationTurnCount: useVoiceModeStore.getState().conversationTurns.length,
+            audioChunksSent,
+            sawSpeech: loggedFirstSpeech,
           },
         });
         globalConnecting = false;
@@ -1766,7 +1807,16 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK) as any);
     }
     const base64Audio = btoa(binary);
-    
+
+    audioChunksSent++;
+    if (audioChunksSent === 1) {
+      logVoiceDiagnostic({
+        event_type: 'first_audio_chunk_sent',
+        message: 'Mic audio is reaching the realtime socket',
+        details: { samples: audioData.length },
+      });
+    }
+
     sendRealtimeEvent({
       type: 'input_audio_buffer.append',
       audio: base64Audio
