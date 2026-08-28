@@ -145,32 +145,27 @@ serve(async (req) => {
         }
       }
 
-      // Attach user email and display name so the audit reads in terms of actual people.
-      const userIds = [...new Set(files.map((f) => f.userId))].filter((id) => id !== "(root)");
+      // Attach user email and display name for ALL registered users so the audit reads all people.
       const displayNames: Record<string, string> = {};
       const userEmails: Record<string, string> = {};
 
-      if (userIds.length) {
-        const [{ data: authData }, { data: profiles }] = await Promise.all([
-          supabase.auth.admin.listUsers({ perPage: 1000 }),
-          supabase.from("profiles").select("id, user_id, display_name"),
-        ]);
+      const [{ data: authData }, { data: profiles }] = await Promise.all([
+        supabase.auth.admin.listUsers({ perPage: 1000 }),
+        supabase.from("profiles").select("id, user_id, display_name"),
+      ]);
 
-        const authUserMap = new Map((authData?.users || []).map((u) => [u.id, u.email]));
-        const profileMap = new Map<string, string>();
-        for (const p of profiles || []) {
-          if (p.display_name) {
-            if (p.user_id) profileMap.set(p.user_id, p.display_name);
-            if (p.id) profileMap.set(p.id, p.display_name);
-          }
+      const profileMap = new Map<string, string>();
+      for (const p of profiles || []) {
+        if (p.display_name) {
+          if (p.user_id) profileMap.set(p.user_id, p.display_name);
+          if (p.id) profileMap.set(p.id, p.display_name);
         }
+      }
 
-        for (const id of userIds) {
-          const email = authUserMap.get(id);
-          const name = profileMap.get(id);
-          if (email) userEmails[id] = email;
-          if (name) displayNames[id] = name;
-        }
+      for (const u of authData?.users || []) {
+        if (u.email) userEmails[u.id] = u.email;
+        const name = profileMap.get(u.id);
+        if (name) displayNames[u.id] = name;
       }
 
       files.sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));

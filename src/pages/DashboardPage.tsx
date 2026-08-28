@@ -266,14 +266,10 @@ useEffect(() => {
     }
   };
 
-  const prevMessageCountRef = useRef(messages.length);
+  // Disable automatic redirection when messages sync in background on Dashboard
   useEffect(() => {
-    if (messages.length > prevMessageCountRef.current) {
-      const sessionId = currentSessionId;
-      if (sessionId) navigate(`/chat/${sessionId}`);
-    }
     prevMessageCountRef.current = messages.length;
-  }, [messages.length, currentSessionId, navigate]);
+  }, [messages.length]);
 
   // Reset pages on search changes
   useEffect(() => { setChatPage(1); }, [chatSearch]);
@@ -600,37 +596,41 @@ useEffect(() => {
 
 
   const allChats = useMemo(() => {
-    return [...chatSessions].sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
+    return [...(chatSessions || [])].sort((a, b) => {
+      const timeA = a.lastMessageAt ? toDate(a.lastMessageAt)?.getTime() || 0 : 0;
+      const timeB = b.lastMessageAt ? toDate(b.lastMessageAt)?.getTime() || 0 : 0;
+      return timeB - timeA;
+    });
   }, [chatSessions]);
 
   const filteredChats = useMemo(() => {
     if (!chatSearch.trim()) return allChats;
     const q = chatSearch.toLowerCase();
-    return allChats.filter(s => s.title.toLowerCase().includes(q));
+    return allChats.filter(s => (s.title || '').toLowerCase().includes(q));
   }, [allChats, chatSearch]);
 
   const filteredImages = useMemo(() => {
     if (!imageSearch.trim()) return dbImages;
     const q = imageSearch.toLowerCase();
-    return dbImages.filter(img => img.prompt.toLowerCase().includes(q));
+    return dbImages.filter(img => (img.prompt || '').toLowerCase().includes(q));
   }, [dbImages, imageSearch]);
 
   const filteredApps = useMemo(() => {
     if (!appSearch.trim()) return recentApps;
     const q = appSearch.toLowerCase();
-    return recentApps.filter(app => app.title.toLowerCase().includes(q));
+    return recentApps.filter(app => (app.title || '').toLowerCase().includes(q));
   }, [recentApps, appSearch]);
 
   const filteredMemories = useMemo(() => {
     if (!memorySearch.trim()) return contextBlocks;
     const q = memorySearch.toLowerCase();
-    return contextBlocks.filter(b => b.content.toLowerCase().includes(q));
+    return contextBlocks.filter(b => (b.content || '').toLowerCase().includes(q));
   }, [contextBlocks, memorySearch]);
 
   const filteredCanvases = useMemo(() => {
     const items: CanvasItem[] = [];
-    chatSessions.forEach(s => {
-      s.messages.forEach(m => {
+    (chatSessions || []).forEach(s => {
+      ((s && s.messages) || []).forEach(m => {
         if (m.type === 'code' || m.type === 'canvas') {
           // For writing canvases, use canvasContent.
           // For code canvases, prefer codeContent (the actual code) over content (which is just the label).
