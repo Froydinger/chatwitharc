@@ -153,7 +153,9 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
         // Browser echo cancellation plus server VAD filters Arc's own output.
         // Note: We intentionally do NOT check document.visibilityState here
         // so that iOS PWA can continue voice conversations in background
-        const canListenForSpeech = status === 'listening' || status === 'speaking' || isAudioPlaying;
+        // Only capture audio when status is strictly 'listening' and no audio is playing
+        // (No interruptions — Arc plays out full response then listens again)
+        const canListenForSpeech = status === 'listening' && !isAudioPlaying;
         const shouldCapture =
           !isMuted &&
           canListenForSpeech &&
