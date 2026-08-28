@@ -89,7 +89,7 @@ if (typeof window !== 'undefined') {
 
 // Deterministic errors that should NOT trigger reconnect
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key'];
-const OPENAI_REALTIME_MODEL = 'gpt-4o-mini-realtime-preview-2024-12-17';
+const OPENAI_REALTIME_MODEL = 'gpt-realtime-mini';
 
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
@@ -399,11 +399,12 @@ const deliverFunctionResult = (
 
   awaitingToolResponse = true;
 
+  // NOTE: the Realtime API has no `reasoning` parameter — that belongs to the
+  // Responses API. Sending it made OpenAI reject every tool reply with an
+  // unknown_parameter error, which is why Arc went silent after the first few
+  // turns. `reasoningEffort` is kept for diagnostics only.
   const responseCreateSent = sendRealtimeEvent({
     type: 'response.create',
-    response: {
-      reasoning: { effort: reasoningEffort },
-    },
   });
 
   if (!responseCreateSent) {
@@ -1399,32 +1400,45 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // Start 3-minute inactivity timer
         resetInactivityTimer();
 
-        // 10-minute maximum session cap (hard limit to prevent accidental cost leaks)
+        // 5-minute maximum session cap (hard limit to prevent accidental cost leaks)
         if (maxSessionTimer) clearTimeout(maxSessionTimer);
         maxSessionTimer = setTimeout(() => {
-          console.log('Voice mode reached 10-minute maximum session cap');
+          console.log('Voice mode reached 5-minute maximum session cap');
           const { deactivateVoiceMode, setError } = useVoiceModeStore.getState();
           deactivateVoiceMode();
-          setError('Voice mode reached 10-minute session cap to prevent runaway usage.');
+          setError('Voice mode reached the 5-minute session cap to prevent runaway usage.');
         }, MAX_SESSION_MS);
         
         sendRealtimeEvent({
           type: 'session.update',
           session: {
             instructions: (systemPrompt || lastSystemPrompt || `You are Arc, the AI companion inside the ArcAI app by Win The Night. You know ArcAI includes live voice, regular chat, memory, past-chat search, web search, weather, images, reminders, and vision tools. Never claim you do not know which app you are part of. Talk like a real person: relaxed, concise, warm, and lightly playful. CRITICAL: Keep spoken responses natural, direct, and concise (1–2 short sentences maximum unless the user explicitly asks for detail/explanations). Never speak unless the user has spoken first; silence needs no filler. Ignore keyboard typing, key clicks, and background noise completely.`) + `\n\nCRITICAL CONCISENESS RULE FOR COST EFFICIENCY: Speak concisely (1–2 brief sentences max). Cut fluff.`,
-            modalities: ['text', 'audio'],
-            max_output_tokens: 150,
-            voice: safeVoice,
-            input_audio_format: 'pcm16',
-            output_audio_format: 'pcm16',
-            input_audio_transcription: {
-              model: 'whisper-1',
-            },
-            turn_detection: {
-              type: 'server_vad',
-              threshold: 0.65,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 700,
+            // GA Realtime session schema. The previous-generation keys
+            // (`modalities`, `input_audio_format`, top-level `voice`,
+            // `input_audio_transcription`) are rejected by the GA mini model
+            // with a session_update_error, which is what produced the endless
+            // "reconnecting" loop with no audio.
+            type: 'realtime',
+            output_modalities: ['audio'],
+            audio: {
+              input: {
+                format: { type: 'audio/pcm', rate: 24000 },
+                // whisper-1 is the cheapest transcription tier; do not switch
+                // this to gpt-4o-transcribe, it costs several times more.
+                transcription: { model: 'whisper-1' },
+                turn_detection: {
+                  type: 'server_vad',
+                  // Deliberately high: typing, breathing and coughing were
+                  // tripping the VAD and cutting Arc off mid-sentence.
+                  threshold: 0.65,
+                  prefix_padding_ms: 300,
+                  silence_duration_ms: 700,
+                },
+              },
+              output: {
+                format: { type: 'audio/pcm', rate: 24000 },
+                voice: safeVoice,
+              },
             },
             tool_choice: 'auto',
             tools: [
@@ -1822,13 +1836,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     });
 
     if (!isLiveCamera) {
-      // Vision needs more thought than casual chat — bump reasoning effort just
-      // for this response. Subsequent turns fall back to the session default.
+      // Vision turns ask for a response like any other; the Realtime API has no
+      // per-response reasoning control (see deliverFunctionResult).
       sendRealtimeEvent({
         type: 'response.create',
-        response: {
-          reasoning: { effort: 'medium' },
-        },
       });
     }
   }, []);

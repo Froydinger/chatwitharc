@@ -8,8 +8,15 @@ const corsHeaders = {
 };
 
 const ALLOWED_VOICES = new Set(['alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'sage', 'shimmer', 'verse', 'marin']);
-// Arc voice mode uses the cost-efficient Realtime Mini model.
-const OPENAI_REALTIME_MODEL = 'gpt-4o-mini-realtime-preview-2024-12-17' as const;
+// Arc voice mode runs on the GA Realtime *mini* model — the cheapest realtime
+// tier. Do NOT fall back to the `gpt-4o-*-realtime-preview` family: those are the
+// previous generation and are several times more expensive per audio minute,
+// which is what caused the earlier billing bleed.
+const REALTIME_MODEL_CANDIDATES = [
+  'gpt-realtime-mini-2025-10-06',
+  'gpt-realtime-mini',
+] as const;
+const OPENAI_REALTIME_MODEL = REALTIME_MODEL_CANDIDATES[0];
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -65,71 +72,52 @@ serve(async (req) => {
     });
   }
 
-  const candidateModels = [
-    'gpt-4o-mini-realtime-preview-2024-12-17',
-    'gpt-4o-mini-realtime-preview',
-    'gpt-4o-realtime-preview-2024-12-17',
-    'gpt-4o-realtime-preview',
-  ];
-
   let sessionData: any = null;
   let lastFailureStatus: number | null = null;
   let lastFailureText = '';
   let successfulModel = '';
 
-  for (const model of candidateModels) {
+  // GA realtime models are only known to /v1/realtime/client_secrets. The legacy
+  // /v1/realtime/sessions endpoint rejects them with "model does not exist",
+  // which is what made an earlier fix wrongly conclude the mini model was bad
+  // and cascade all the way back to the expensive 4o preview models.
+  for (const model of REALTIME_MODEL_CANDIDATES) {
     try {
-      // 1. Try standard /v1/realtime/sessions endpoint
-      let res = await fetch('https://api.openai.com/v1/realtime/sessions', {
+      const res = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${openaiApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model,
-          voice: requestedVoice,
+          session: {
+            type: 'realtime',
+            model,
+            audio: {
+              output: { voice: requestedVoice },
+            },
+          },
         }),
       });
-
-      // 2. Fallback to /v1/realtime/client_secrets if needed
-      if (!res.ok) {
-        res = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${openaiApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            session: {
-              type: 'realtime',
-              model,
-              audio: {
-                output: { voice: requestedVoice },
-              },
-            },
-          }),
-        });
-      }
 
       const text = await res.text();
       if (res.ok) {
         sessionData = JSON.parse(text);
         successfulModel = model;
-        console.log(`[openai-realtime-proxy] Successfully created session with model: ${model}`);
+        console.log(`[openai-realtime-proxy] Created realtime session with model: ${model}`);
         break;
-      } else {
-        lastFailureStatus = res.status;
-        lastFailureText = text;
-        console.warn(`[openai-realtime-proxy] Model ${model} failed (${res.status}): ${text}`);
       }
+
+      lastFailureStatus = res.status;
+      lastFailureText = text;
+      console.warn(`[openai-realtime-proxy] Model ${model} rejected (${res.status}): ${text}`);
     } catch (err) {
       console.error(`[openai-realtime-proxy] Fetch error for model ${model}:`, err);
     }
   }
 
   if (!sessionData) {
-    console.error('[openai-realtime-proxy] All candidate models failed. Last failure:', lastFailureStatus, lastFailureText);
+    console.error('[openai-realtime-proxy] All realtime mini candidates failed. Last failure:', lastFailureStatus, lastFailureText);
     return new Response(JSON.stringify({ error: 'Failed to create voice session' }), {
       status: lastFailureStatus ?? 502,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -150,7 +138,7 @@ serve(async (req) => {
   return new Response(JSON.stringify({
     client_secret: clientSecret,
     expires_at: expiresAt,
-    model: successfulModel || 'gpt-4o-mini-realtime-preview-2024-12-17',
+    model: successfulModel || OPENAI_REALTIME_MODEL,
   }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
