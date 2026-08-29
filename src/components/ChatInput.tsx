@@ -3120,10 +3120,10 @@ ${safeCode}
                               setShowPromptLibrary(true);
                               setShowMenu(false);
                             }}
-                            className="col-span-2 flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
+                            className="col-span-2 flex flex-col items-center gap-2 p-4 rounded-2xl transition-all group border border-fuchsia-500/20 hover:border-fuchsia-500/35 bg-[linear-gradient(100deg,rgba(244,63,94,0.06),rgba(245,158,11,0.06),rgba(16,185,129,0.06),rgba(99,102,241,0.06))] hover:bg-[linear-gradient(100deg,rgba(244,63,94,0.12),rgba(245,158,11,0.12),rgba(16,185,129,0.12),rgba(99,102,241,0.12))] shadow-[0_0_20px_-5px_rgba(217,70,239,0.12)]"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-neutral-500/20 flex items-center justify-center transition-colors">
-                              <ListPlus className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-foreground transition-colors" />
+                            <div className="w-10 h-10 rounded-xl bg-[linear-gradient(100deg,rgba(244,63,94,0.18),rgba(245,158,11,0.18),rgba(16,185,129,0.18),rgba(99,102,241,0.18))] flex items-center justify-center transition-colors">
+                              <ListPlus className="h-4.5 w-4.5 text-fuchsia-500 dark:text-fuchsia-400 group-hover:text-fuchsia-400 transition-colors" />
                             </div>
                             <div className="flex flex-col items-center text-center">
                               <span className="text-xs font-semibold text-foreground">Prompts</span>
