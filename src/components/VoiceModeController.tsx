@@ -1410,7 +1410,10 @@ When the user shares their camera or attaches an image, describe what you see na
     };
   }, [addMessage]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount — this is what happens when the user navigates away
+  // from the chat (to the dashboard, settings, anywhere). A voice call cannot
+  // follow them, so end it deliberately and say so, rather than letting the
+  // socket close look like a failing connection.
   useEffect(() => {
     return () => {
       if (initRef.current) {
@@ -1422,9 +1425,20 @@ When the user shares their camera or attaches an image, describe what you see na
         stopPlayback();
         disconnect();
         initRef.current = false;
+
+        if (useVoiceModeStore.getState().isActive) {
+          saveNewTurnsRef.current?.(true).catch((error) => {
+            console.warn('Could not save voice turns while leaving the chat:', error);
+          });
+          useVoiceModeStore.getState().deactivateVoiceMode();
+          toast({
+            title: 'Voice mode ended',
+            description: 'Voice calls only run on the chat screen, so leaving it ends the call. Your conversation was saved.',
+          });
+        }
       }
     };
-  }, [stopCapture, stopCameraCapture, stopPlayback, disconnect]);
+  }, [stopCapture, stopCameraCapture, stopPlayback, disconnect, toast]);
 
   return null;
 }

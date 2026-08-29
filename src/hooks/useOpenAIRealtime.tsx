@@ -58,6 +58,10 @@ const isInterruptedResponseEvent = (event: any) => {
 
 // Auto-reconnect state
 let reconnectAttempts = 0;
+// Set when we close the socket on purpose (leaving the chat, ending the call).
+// Without this, an intentional close looked identical to having exhausted the
+// retry budget, and reported itself as a connection that kept dropping.
+let intentionalDisconnect = false;
 // Allow recovery from transient network failures and the finite Realtime
 // session-duration boundary without tearing the user back to chat.
 const MAX_RECONNECT_ATTEMPTS = 20;
@@ -1476,7 +1480,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
   const connect = useCallback(async (systemPrompt?: string) => {
     const { setStatus } = useVoiceModeStore.getState();
-    
+
+    // A fresh dial-out clears the intentional-close latch.
+    intentionalDisconnect = false;
+
     if (systemPrompt) lastSystemPrompt = systemPrompt;
     if (globalWs?.readyState === WebSocket.OPEN) {
       console.log('Already connected to OpenAI Realtime (global check)');
@@ -1817,7 +1824,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // OpenAI Realtime caps sessions at ~15 minutes, so a long voice chat WILL
         // hit a forced disconnect — we keep the overlay alive and reconnect silently.
         const { isActive, setStatus } = useVoiceModeStore.getState();
-        if (isActive && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        if (intentionalDisconnect) {
+          // We closed this ourselves — never reconnect, never report a fault.
+          setStatus('idle');
+        } else if (isActive && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttempts++;
           const delay = Math.min(500 * Math.pow(1.6, reconnectAttempts - 1), 8000);
           console.log(`Auto-reconnecting voice mode (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms...`);
@@ -1864,6 +1874,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     const { setStatus } = useVoiceModeStore.getState();
 
     // Reset reconnect state — this is an intentional disconnect
+    intentionalDisconnect = true;
     reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
 
     // Clear phantom timer
