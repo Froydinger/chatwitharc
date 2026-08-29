@@ -101,7 +101,7 @@ const SECTIONS: { id: SectionId; label: string; icon: LucideIcon; subtitle: stri
   { id: "appearance", label: "Appearance",    icon: Palette,     subtitle: "Look & feel" },
   { id: "ai",         label: "AI & Models",   icon: Sparkles,    subtitle: "Models, voice, images" },
   { id: "privacy",    label: "Privacy, Sharing, & Data",icon: Lock,        subtitle: "Memory, sharing, exports" },
-  { id: "plan",       label: "Plan & Usage",  icon: Stars,  subtitle: "Quota details & billing" },
+  { id: "plan",       label: "Plan & Billing", icon: Stars,  subtitle: "Subscription details" },
 ];
 
 // ---------- Shared tile primitives (matches Arc Local look) ----------
@@ -240,8 +240,6 @@ export function SettingsPanel() {
   const {
     hasBoost,
     isAdmin: quotaAdmin,
-    dailyImagesUsed,
-    imageLimit: FREE_DAILY_IMAGE_LIMIT,
     openCheckout,
     openCustomerPortal,
     cancelAtPeriodEnd,
@@ -782,29 +780,6 @@ export function SettingsPanel() {
     </SectionCard>
   );
 
-  const UsageCard = (
-    <SectionCard icon={Stars} title="Usage & Quotas" subtitle="Quota allowances reset at 00:00 UTC">
-      <Tile
-        title="GPT-5.6 Luna Reasoning"
-        description="Auto, Quick, Balanced, and Deep reasoning modes"
-        right={
-          <span className="font-mono text-primary text-sm">Available</span>
-        }
-      />
-      <Tile
-        title="Image Generations & Edits"
-        description="Creative image output quota"
-        right={
-          quotaAdmin || FREE_DAILY_IMAGE_LIMIT === Infinity ? (
-            <span className="font-mono text-primary text-sm">Unlimited</span>
-          ) : (
-            <span className="font-mono text-foreground text-sm">{dailyImagesUsed} / {FREE_DAILY_IMAGE_LIMIT}</span>
-          )
-        }
-      />
-    </SectionCard>
-  );
-
   const renderSection = () => {
     switch (section) {
       case "account":
@@ -867,7 +842,6 @@ export function SettingsPanel() {
         return (
           <>
             {PlanCard}
-            {UsageCard}
           </>
         );
     }

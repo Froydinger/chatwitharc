@@ -6,7 +6,8 @@ import {
   Plus, Clock, Settings, Search,
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
   Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music, Edit2, Check, X,
-  Layers, PenLine, FileCode, MessageCircle, Upload, Users, FolderPlus, Folder, Pin, PinOff, MoreVertical, MoreHorizontal
+  Layers, PenLine, FileCode, MessageCircle, Upload, Users, FolderPlus, Folder, Pin, PinOff, MoreVertical, MoreHorizontal,
+  CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock
 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,6 +39,10 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { DeploysPanel } from "@/components/DeploysPanel";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal } from "@/components/ui/dropdown-menu";
 import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
+import { useAccentStore } from "@/store/useAccentStore";
+import { useCorporateModeStore } from "@/store/useCorporateModeStore";
+import { useLocalAIStore } from "@/store/useLocalAIStore";
+import { isMobileLocalDevice } from "@/utils/mobileLocal";
 
 type DashboardTab = "overview" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -97,8 +102,8 @@ function DashboardPageInner() {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as DashboardTab) || "overview";
   const { user, loading: authLoading, isAnonymous } = useAuth();
-  const { isAdmin } = useImageQuota();
-  const { hasBoost } = useSubscription();
+  const { isAdmin, dailyImagesUsed, limit: imageLimit } = useImageQuota();
+  const { hasBoost, openCheckout } = useSubscription();
 
   // Anonymous users are not allowed to view the dashboard at all.
   // Bounce them back to the chat and open the sign-in modal immediately.
@@ -126,6 +131,31 @@ useEffect(() => {
   const { accentColor } = useAccentColor();
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const themeMode = useAccentStore((s) => s.themeMode);
+  const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
+  const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
+  const themeLabel = themeMode === "light" ? "Light" : themeMode === "system" ? "System" : "Dark";
+  const corporateMode = useCorporateModeStore((s) => s.enabled);
+  const setCorporateMode = useCorporateModeStore((s) => s.setEnabled);
+  const selectedLocalModel = useLocalAIStore((s) => s.selectedModelId);
+  const localModelStatus = useLocalAIStore((s) => s.status);
+  const isMobileLocal = isMobileLocalDevice();
+
+  const toggleCorporateMode = () => {
+    const next = !corporateMode;
+    const arcState = useArcStore.getState();
+    if (arcState.isLoading || arcState.isGeneratingImage) {
+      toast({ title: "Finish the current message first", description: "Wait for Arc to finish before switching modes.", variant: "destructive" });
+      return;
+    }
+    if (next && !(selectedLocalModel && localModelStatus === "ready")) {
+      toast({ title: "Download a local model first", description: "Open Settings → Arc Local to choose one." });
+      return;
+    }
+    setCorporateMode(next, accentColor);
+    if (arcState.messages.length > 0) arcState.createNewSession();
+    toast({ title: next ? "Corporate Mode enabled" : "Corporate Mode disabled", description: next ? "Chat now runs on-device only." : "Cloud features are available again." });
+  };
 
   const ITEMS_PER_PAGE = 12;
   const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
@@ -885,12 +915,43 @@ useEffect(() => {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => navigate("/dashboard/settings")}
+                onClick={cycleThemeMode}
                 className="rounded-full glass-shimmer"
-                title="Settings"
+                title={`Theme: ${themeLabel}`}
               >
-                <Settings className="h-4.5 w-4.5 text-muted-foreground" />
+                <motion.span key={themeMode} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }}>
+                  <ThemeIcon className="h-4.5 w-4.5 text-muted-foreground" />
+                </motion.span>
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon" className="rounded-full glass-shimmer" title="More options">
+                    <MoreHorizontal className="h-4.5 w-4.5 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-xl panel-solid border-border/60">
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/settings")} className="gap-2 cursor-pointer">
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/settings?section=appearance")} className="gap-2 cursor-pointer">
+                    <Palette className="h-4 w-4" />
+                    Appearance
+                  </DropdownMenuItem>
+                  {!isMobileLocal && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={toggleCorporateMode} className="gap-2 cursor-pointer">
+                        {corporateMode ? <Lock className="h-4 w-4 text-primary" /> : <Unlock className="h-4 w-4" />}
+                        <div className="flex flex-col">
+                          <span>{corporateMode ? "Corporate Mode: On" : "Corporate Mode"}</span>
+                          <span className="text-[10px] text-muted-foreground">{corporateMode ? "On-device only" : "Lock chat to your device"}</span>
+                        </div>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -913,8 +974,8 @@ useEffect(() => {
               {isAdmin 
                 ? "ArcAI Admin — unlimited everything" 
                 : hasBoost 
-                  ? "ArcAI Boost — Smart & Smartest unlocked" 
-                  : "ArcAI — free forever · 20 image outputs/day"}
+                  ? "ArcAI Boost — higher Luna limits and unlimited Deep Search"
+                  : `ArcAI Free — ${imageLimit === Infinity ? "unlimited" : imageLimit} image outputs/day`}
             </span>
           </button>
           <button
@@ -930,6 +991,37 @@ useEffect(() => {
           {/* ====== OVERVIEW ====== */}
           {activeTab === "overview" && (
             <motion.div key="overview" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-5">
+
+              {/* Usage lives on Dashboard now that the legacy sidebar is gone. */}
+              <div className="rounded-3xl border border-primary/15 bg-primary/[0.035] p-4 sm:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                      <CircleGauge className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-semibold text-foreground">Usage & plan</h2>
+                      <p className="text-xs text-muted-foreground">Daily image usage resets at 00:00 UTC</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full border border-border/40 bg-background/40 px-3 py-1.5 text-xs text-foreground">
+                      Luna reasoning <span className="text-primary">available</span>
+                    </span>
+                    <span className="rounded-full border border-border/40 bg-background/40 px-3 py-1.5 text-xs text-foreground">
+                      Images <span className="font-mono text-primary">{isAdmin || imageLimit === Infinity ? "unlimited" : `${dailyImagesUsed} / ${imageLimit}`}</span>
+                    </span>
+                    <span className="rounded-full border border-border/40 bg-background/40 px-3 py-1.5 text-xs text-foreground">
+                      Deep Search <span className="text-primary">{isAdmin || hasBoost ? "unlimited" : "4 Deep + 1 Ultra / week"}</span>
+                    </span>
+                  </div>
+                </div>
+                {!isAdmin && !hasBoost && (
+                  <button onClick={() => openCheckout()} className="mt-4 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+                    Upgrade for higher Luna limits and unlimited Deep Search →
+                  </button>
+                )}
+              </div>
 
               {/* Quick stat chips — single clean row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">

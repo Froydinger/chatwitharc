@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, Sun, Moon, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, LayoutDashboard, Share2, Lock, MoreHorizontal, Monitor, CircleGauge } from "lucide-react";
+import { Plus, Menu, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
@@ -11,7 +11,6 @@ import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput, cancelCurrentRequest, inferPromptMode, type ChatInputRef } from "@/components/ChatInput";
-import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
@@ -41,7 +40,6 @@ import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { SmartSuggestions } from "@/components/SmartSuggestions";
 import { PromptLibrary } from "@/components/PromptLibrary";
 import { GENERAL_QUICK_PROMPTS, pickRandomPrompts } from "@/components/WelcomeSection";
-import { useImageQuota } from "@/hooks/useImageQuota";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
@@ -254,9 +252,6 @@ export function MobileChatApp() {
   const navigate = useNavigate();
   const themeMode = useAccentStore((s) => s.themeMode);
   const effectTheme = themeMode === "system" ? "auto" : themeMode;
-  const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
-  const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
-  const themeLabel = themeMode === "light" ? "Light" : themeMode === "system" ? "System" : "Dark";
   const {
     messages,
     isLoading,
@@ -268,10 +263,6 @@ export function MobileChatApp() {
     startChatWithMessage,
     currentSessionId,
     chatSessions,
-    rightPanelOpen,
-    setRightPanelOpen,
-    rightPanelTab,
-    setRightPanelTab,
     syncFromSupabase,
     updateSessionCanvasContent,
     isHydratingSession,
@@ -281,10 +272,8 @@ export function MobileChatApp() {
   const isArcWorking = isLoading || isGeneratingImage || isSearchingChats || isAccessingMemory || isSearchingWeb;
   const isVoiceActive = useVoiceModeStore((s) => s.isActive);
   const { profile } = useProfile();
-  const { dailyImagesUsed, remainingImages, limit } = useImageQuota();
   const { user, isAnonymous } = useAuth();
   const requireAuth = useRequireAuth();
-  const canUseSidebar = !!user && !isAnonymous;
   const isMobile = useIsMobile();
   const isAdminBannerActive = useAdminBanner();
   
@@ -305,12 +294,8 @@ export function MobileChatApp() {
   // Search mode state
   const { isOpen: isSearchOpen, closeSearch } = useSearchStore();
 
-  // Auto-close sidebar when canvas opens on desktop
   // Reset inline styles when canvas closes (from drag-resize)
   useEffect(() => {
-    if (isCanvasOpen && !isMobile && rightPanelOpen) {
-      setRightPanelOpen(false);
-    }
     // When canvas closes, clear any inline styles set by the resize drag handler
     if (!isCanvasOpen && inputDockRef.current) {
       inputDockRef.current.style.right = '';
@@ -356,36 +341,6 @@ export function MobileChatApp() {
     };
   }, []);
 
-  // Docked state: when true, the panel pushes content. When false, panel is hover-preview only.
-  const [rightPanelDocked, setRightPanelDocked] = useState(false);
-  const hoverCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Anonymous visitors should never be able to keep/open the sidebar, even from
-  // restored state, keyboard shortcuts, hover, or swipe gestures.
-  useEffect(() => {
-    if (!isAnonymous) return;
-    if (rightPanelDocked) setRightPanelDocked(false);
-    if (rightPanelOpen) setRightPanelOpen(false);
-  }, [isAnonymous, rightPanelDocked, rightPanelOpen, setRightPanelOpen]);
-
-  // Initialize rightPanelOpen + docked state based on device type and user's last preference on mount/resize
-  useEffect(() => {
-    const isLargeScreen = window.innerWidth >= 1024;
-
-    if (isLargeScreen) {
-      // Restore docked preference; default to undocked (hover-only) for new users
-      const dockedPref = localStorage.getItem("arc_rightPanelDocked") === "true";
-      setRightPanelDocked(canUseSidebar ? dockedPref : false);
-      if (dockedPref && canUseSidebar) {
-        setRightPanelOpen(true);
-      }
-    } else {
-      // Always close on mobile/tablet by default
-      setRightPanelDocked(false);
-      setRightPanelOpen(false);
-    }
-  }, [isMobile, canUseSidebar, setRightPanelOpen]);
-
   const dashboardSwipeOpeningRef = useRef(false);
 
   // Mobile swipe gestures for browser + PWA. Decisions happen on touchend so route changes
@@ -406,7 +361,7 @@ export function MobileChatApp() {
     let startY = 0;
     let currentX = 0;
     let currentY = 0;
-    let mode: 'dashboard' | 'panel-open' | 'panel-close' | null = null;
+    let mode: 'dashboard' | null = null;
     let lockedHorizontal = false;
     let committed = false;
 
@@ -425,25 +380,13 @@ export function MobileChatApp() {
 
       const w = window.innerWidth;
       const deadZone = 40; // px buffer around center
-      const leftHalfMax = w / 2 - deadZone;
       const rightHalfMin = w / 2 + deadZone;
       startX = currentX = t.clientX;
       startY = currentY = t.clientY;
 
       // Right-half swipe-left to open Dashboard from any chat
-      if (!rightPanelOpen && t.clientX > rightHalfMin) {
+      if (t.clientX > rightHalfMin) {
         mode = 'dashboard';
-        return;
-      }
-
-      if (rightPanelOpen) {
-        // Close swipe must start in the right half
-        if (t.clientX < rightHalfMin) return;
-        mode = 'panel-close';
-      } else {
-        // Open swipe must start in the left half
-        if (t.clientX > leftHalfMax) return;
-        mode = 'panel-open';
       }
     };
 
@@ -465,8 +408,6 @@ export function MobileChatApp() {
 
       if (e.cancelable) e.preventDefault();
       if (mode === 'dashboard') committed = dx < -64 && ady < 72;
-      if (mode === 'panel-open') committed = dx > 64 && ady < 72;
-      if (mode === 'panel-close') committed = dx < -64 && ady < 72;
     };
 
     const onTouchEnd = () => {
@@ -478,7 +419,7 @@ export function MobileChatApp() {
 
       if (finalMode === 'dashboard') {
         if (dashboardSwipeOpeningRef.current) return;
-        if (!canUseSidebar) {
+        if (!user || isAnonymous) {
           requireAuth("menu");
           return;
         }
@@ -486,15 +427,6 @@ export function MobileChatApp() {
         sessionStorage.setItem('arc_dashboard_entry', 'swipe');
         navigate('/dashboard');
         return;
-      }
-      if (finalMode === 'panel-open') {
-        if (!canUseSidebar) {
-          requireAuth("menu");
-          return;
-        }
-        setRightPanelOpen(true);
-      } else if (finalMode === 'panel-close') {
-        setRightPanelOpen(false);
       }
     };
 
@@ -511,74 +443,7 @@ export function MobileChatApp() {
       body.style.overscrollBehaviorX = prevBodyOverscroll;
       body.style.touchAction = prevBodyTouchAction;
     };
-  }, [isMobile, rightPanelOpen, setRightPanelOpen, navigate, isCanvasOverlayActive, isSearchOpen, canUseSidebar, requireAuth]);
-
-
-  // Persist docked preference
-  useEffect(() => {
-    localStorage.setItem("arc_rightPanelDocked", String(rightPanelDocked));
-  }, [rightPanelDocked]);
-
-  // Hover edge handlers (desktop only)
-  const openPanelPreview = () => {
-    if (isMobile) return;
-    if (!canUseSidebar) return; // Hover preview disabled for guests
-    if (hoverCloseTimerRef.current) {
-      clearTimeout(hoverCloseTimerRef.current);
-      hoverCloseTimerRef.current = null;
-    }
-    if (!rightPanelOpen) setRightPanelOpen(true);
-  };
-
-  const schedulePanelClose = () => {
-    if (isMobile || rightPanelDocked) return;
-    // FIX: Prevent sidebar from collapsing if a dropdown menu is currently open
-    if (document.querySelector("[data-radix-popper-content-wrapper]")) return;
-    if (hoverCloseTimerRef.current) clearTimeout(hoverCloseTimerRef.current);
-    hoverCloseTimerRef.current = setTimeout(() => {
-      setRightPanelOpen(false);
-    }, 250);
-  };
-
-  const cancelPanelClose = () => {
-    if (hoverCloseTimerRef.current) {
-      clearTimeout(hoverCloseTimerRef.current);
-      hoverCloseTimerRef.current = null;
-    }
-  };
-
-  const toggleDock = () => {
-    if (!canUseSidebar) {
-      requireAuth("menu");
-      return;
-    }
-    if (rightPanelDocked) {
-      setRightPanelDocked(false);
-      setRightPanelOpen(false);
-    } else {
-      setRightPanelDocked(true);
-      setRightPanelOpen(true);
-    }
-  };
-
-  // Keyboard shortcut: press "S" (when not typing in a field) to toggle the sidebar.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== "s") return;
-      if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
-      const el = document.activeElement as HTMLElement | null;
-      const tag = el?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el?.isContentEditable) return;
-      e.preventDefault();
-      if (!canUseSidebar) {
-        requireAuth("menu");
-        return;
-      }
-      setRightPanelOpen(!rightPanelOpen);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [rightPanelOpen, setRightPanelOpen, canUseSidebar, requireAuth]);
+  }, [isMobile, navigate, isCanvasOverlayActive, isSearchOpen, user, isAnonymous, requireAuth]);
 
 
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
@@ -878,11 +743,6 @@ export function MobileChatApp() {
 
     navigate(`/chat/${newSessionId}`);
 
-    // Close panel only on mobile or when undocked on desktop. Keep docked sidebar open.
-    if (isMobile || !rightPanelDocked) {
-      setRightPanelOpen(false);
-    }
-
     // Luna remains the only cloud chat model for new sessions.
     sessionStorage.setItem("arc_session_model", "gpt-5.6-luna");
   };
@@ -961,9 +821,6 @@ export function MobileChatApp() {
   const hasCanvas = (canvasContent || sessionCanvas).trim().length > 0;
   const canReopenCanvas = !isCanvasOpen && hasCanvas;
   const canShareChat = Boolean(currentSessionId && messages.length > 0);
-  const canShowUsage = Boolean(user && !isAnonymous);
-  const usageTitle = `Image Quota: ${remainingImages === Infinity ? "Unlimited" : `${remainingImages} / ${limit} remaining`}`;
-  const openUsage = () => window.dispatchEvent(new CustomEvent("open-image-limits-modal"));
   const showHeaderUtilityButtons = !isMobile && !isHeaderTight;
 
   // Main chat interface - Desktop with canvas uses PanelGroup for resizable layout
@@ -978,12 +835,7 @@ export function MobileChatApp() {
     >
 
       {/* Main Content */}
-      <div
-        className={cn(
-          "flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10",
-          rightPanelDocked && !isCanvasOpen && "lg:ml-80 xl:ml-96",
-        )}
-      >
+      <div className="flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10">
         {/* Floating header buttons - no bar, hide when canvas is open on desktop */}
         {!isCanvasOverlayActive && !isDesktopCanvasMode && (
           <>
@@ -1003,15 +855,12 @@ export function MobileChatApp() {
                 transition={{ type: "spring", damping: 15, stiffness: 300 }}
                 className="cursor-pointer"
                 onClick={() => {
-                  if (!canUseSidebar) {
+                  if (!user || isAnonymous) {
                     requireAuth("menu");
                     return;
                   }
-                  if (isMobile) {
-                    setRightPanelOpen(!rightPanelOpen);
-                  } else {
-                    toggleDock();
-                  }
+                  sessionStorage.setItem('arc_dashboard_entry', 'menu');
+                  navigate('/dashboard');
                 }}
               >
                 <Button
@@ -1073,26 +922,6 @@ export function MobileChatApp() {
 
 
 
-              {/* Image Quota Circular Gauge Button */}
-              {showHeaderUtilityButtons && canShowUsage && (
-                <motion.div 
-                  whileHover={{ scale: 1.1, y: -2 }} 
-                  whileTap={{ scale: 0.95 }} 
-                  transition={{ type: "spring", damping: 15, stiffness: 300 }}
-                  className="cursor-pointer"
-                  onClick={openUsage}
-                >
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full glass-shimmer transition-all pointer-events-none flex items-center justify-center"
-                    title={usageTitle}
-                  >
-                    <CircleGauge className="h-4 w-4 text-primary" />
-                  </Button>
-                </motion.div>
-              )}
-
               {/* Music Player Button */}
               <motion.div 
                 whileHover={{ scale: 1.1, y: -2 }} 
@@ -1141,30 +970,6 @@ export function MobileChatApp() {
                 </Button>
               </motion.div>
 
-              {/* Logo Orb - clickable and opens support popup */}
-              <motion.div
-                className="relative cursor-pointer"
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                whileTap={{ scale: 0.95 }}
-                animate={isLogoSpinning ? { rotate: 360 } : { rotate: 0 }}
-                transition={isLogoSpinning ? { duration: 0.6, ease: "easeOut" } : { type: "spring", damping: 15, stiffness: 300 }}
-                onClick={() => {
-                  if (isAnonymous) {
-                    requireAuth("menu");
-                    return;
-                  }
-                  navigate('/dashboard');
-                }}
-              >
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full glass-shimmer transition-all overflow-hidden pointer-events-none"
-                  title="Dashboard"
-                >
-                  <LayoutDashboard className="h-6 w-6 text-primary" />
-                </Button>
-              </motion.div>
             </div>
           </>
         )}
@@ -1352,7 +1157,6 @@ export function MobileChatApp() {
               messages.length === 0 ? "top-1/2 -translate-y-1/2" : "bottom-6",
               // When canvas is open on desktop, limit to left 50% of screen (search mode is now full-screen)
               isCanvasOpen && !isMobile ? "right-[50%]" : "right-0",
-              rightPanelDocked && !isCanvasOpen && "lg:left-80 xl:left-96"
             )}
           >
             <div className="max-w-4xl mx-auto">
@@ -1428,7 +1232,7 @@ export function MobileChatApp() {
                     data-has-images={hasSelectedImages}
                     data-arc-working={isArcWorking}
                   >
-                    <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={rightPanelOpen} />
+                    <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false} />
                   </div>
                 </ArcInputEffects>
               </motion.div>
@@ -1446,32 +1250,6 @@ export function MobileChatApp() {
             </div>
           </div>
         </div>
-
-        {/* Right Panel */}
-        <RightPanel
-          isOpen={rightPanelOpen}
-          onClose={() => { setRightPanelDocked(false); setRightPanelOpen(false); }}
-          activeTab={rightPanelTab as any}
-          onTabChange={setRightPanelTab}
-          isDocked={rightPanelDocked}
-          onToggleDock={toggleDock}
-          onMouseEnter={cancelPanelClose}
-          onMouseLeave={schedulePanelClose}
-          canShareChat={canShareChat}
-          onShareChat={() => setIsShareDialogOpen(true)}
-          canShowUsage={canShowUsage}
-          onOpenUsage={openUsage}
-          usageTitle={usageTitle}
-        />
-
-        {/* Hover edge trigger — desktop only, opens panel preview without docking */}
-        {!isMobile && !isCanvasOpen && (
-          <div
-            className="fixed left-0 top-0 bottom-0 w-2 z-[55] hidden lg:block"
-            onMouseEnter={openPanelPreview}
-          />
-        )}
-
 
         {/* Music Popup */}
         <MusicPopup
