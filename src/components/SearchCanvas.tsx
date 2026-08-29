@@ -171,6 +171,11 @@ export function SearchCanvas() {
     }
   }, [activeSession?.summaryConversation?.length]);
 
+  // Ultra runs Perplexity's agentic Pro Search: it browses rather than just
+  // retrieving, and costs several times a standard search, so it is a
+  // deliberate choice rather than the default.
+  const [ultraMode, setUltraMode] = useState(false);
+
   const handleSearch = async (query: string) => {
     if (!query.trim() || isSearching) return;
 
@@ -184,6 +189,7 @@ export function SearchCanvas() {
           query: query,
           // Deep Search only — this is what selects the Perplexity provider.
           deepResearch: true,
+          ultra: ultraMode,
         },
       });
 
@@ -205,7 +211,7 @@ export function SearchCanvas() {
 
       toast({
         title: `Found ${results.length} sources`,
-        description: "Deep Search complete",
+        description: ultraMode ? "Ultra Deep Search complete" : "Deep Search complete",
       });
 
       // Fetch ultra-concise quick answer asynchronously in the background
@@ -1393,10 +1399,39 @@ export function SearchCanvas() {
                   </div>
                 </div>
 
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Deep Search™</h2>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Get instant answers with real-time web search and cited sources
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
+                  {ultraMode ? "Ultra Deep Search™" : "Deep Search™"}
+                </h2>
+                <p className="text-muted-foreground mb-5 max-w-md mx-auto">
+                  {ultraMode
+                    ? "Agentic research that browses sources before answering — slower, and worth it for the hard ones"
+                    : "Get instant answers with real-time web search and cited sources"}
                 </p>
+
+                <div className="grid grid-cols-2 gap-2 max-w-md mx-auto mb-8">
+                  <button
+                    onClick={() => setUltraMode(false)}
+                    className={cn(
+                      "w-full py-2.5 px-2 rounded-2xl border text-center text-[13px] sm:text-sm font-semibold tracking-wide transition-all duration-200",
+                      !ultraMode
+                        ? "border-indigo-500/40 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300"
+                        : "border-indigo-500/15 bg-indigo-500/5 text-muted-foreground hover:bg-indigo-500/10"
+                    )}
+                  >
+                    Deep Search
+                  </button>
+                  <button
+                    onClick={() => setUltraMode(true)}
+                    className={cn(
+                      "w-full py-2.5 px-2 rounded-2xl border text-center text-[13px] sm:text-sm font-semibold tracking-wide transition-all duration-200",
+                      ultraMode
+                        ? "border-fuchsia-500/40 bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-300"
+                        : "border-fuchsia-500/15 bg-fuchsia-500/5 text-muted-foreground hover:bg-fuchsia-500/10"
+                    )}
+                  >
+                    Ultra Deep Search
+                  </button>
+                </div>
 
                 {/* Smart Suggestion Cards */}
                 <AnimatePresence mode="wait">

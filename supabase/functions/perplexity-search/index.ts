@@ -43,7 +43,7 @@ serve(async (req) => {
       );
     }
 
-    const { query, messages, skipImages, quickAnswerOnly, mainContent, deepResearch } = await req.json();
+    const { query, messages, skipImages, quickAnswerOnly, mainContent, deepResearch, ultra } = await req.json();
 
     // Quick answer background generation short-circuit
     if (quickAnswerOnly) {
@@ -128,6 +128,99 @@ serve(async (req) => {
     let rawResults: any[] = [];
     let quickAnswer = '';
     let providerImages: any[] = [];
+
+    // Ultra Deep Search runs Perplexity's agentic Pro Search, which browses
+    // rather than just retrieving, and answers with its own citations. It costs
+    // several times a standard search request, so it is only ever reached when
+    // the user picks that tab explicitly — never as a default or a fallback.
+    let ultraContent = '';
+    let ultraSources: SearchResult[] = [];
+
+    if (ultra && PERPLEXITY_API_KEY) {
+      const callPro = async (includeSearchType: boolean) => {
+        const webSearchOptions: Record<string, unknown> = { search_context_size: 'high' };
+        if (includeSearchType) webSearchOptions.search_type = 'pro';
+
+        return fetch('https://api.perplexity.ai/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'sonar-pro',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert research analyst. Answer thoroughly and specifically, comparing and reconciling sources rather than summarizing one. Use clear markdown headings and short paragraphs. Cite inline with [1], [2] matching your sources. State uncertainty plainly where the evidence is thin or conflicting. Never mention which search engine or model produced this.',
+              },
+              { role: 'user', content: userQuery },
+            ],
+            web_search_options: webSearchOptions,
+          }),
+        });
+      };
+
+      try {
+        let proResp = await callPro(true);
+        // search_type is the newer agentic flag; if this account or version
+        // rejects it, fall back to plain Sonar Pro rather than failing.
+        if (proResp.status === 400) {
+          console.warn('Pro Search rejected search_type — retrying without it');
+          proResp = await callPro(false);
+        }
+
+        if (proResp.ok) {
+          const proData = await proResp.json();
+          ultraContent = proData.choices?.[0]?.message?.content || '';
+          const proResults: any[] = proData.search_results || [];
+          const proCitations: string[] = proData.citations || [];
+          ultraSources = proResults.length > 0
+            ? proResults.slice(0, 8).map((r: any, i: number) => ({
+                title: r.title || `Source ${i + 1}`,
+                url: r.url,
+                snippet: r.snippet || '',
+              }))
+            : proCitations.slice(0, 8).map((url: string, i: number) => ({
+                title: `Source ${i + 1}`,
+                url,
+                snippet: '',
+              }));
+        } else {
+          console.error('Pro Search failed:', proResp.status, await proResp.text());
+        }
+      } catch (e) {
+        console.error('Pro Search error:', e);
+      }
+
+      // Anything that went wrong drops through to the standard path below.
+      if (ultraContent && ultraSources.length > 0) {
+        const citations = ultraSources.map((sourceItem) => sourceItem.url);
+        let content = ultraContent;
+
+        const maxCite = citations.length;
+        content = content.replace(/\[(\d+)\]/g, (m: string, n: string) => (parseInt(n) > maxCite ? '' : m));
+        citations.forEach((url, index) => {
+          const num = index + 1;
+          const superDigits = '⁰¹²³⁴⁵⁶⁷⁸⁹';
+          const superNum = String(num).split('').map((d) => superDigits[parseInt(d)]).join('');
+          [new RegExp(`\\[\\[${num}\\]\\]`, 'g'), new RegExp(`\\[${num}\\]`, 'g')]
+            .forEach((pattern) => { content = content.replace(pattern, `[${superNum}](${url})`); });
+        });
+        content = content.replace(/(\]\([^)]+\))(\[)/g, '$1, $2').replace(/  +/g, ' ');
+
+        return new Response(
+          JSON.stringify({
+            content,
+            sources: ultraSources,
+            citations,
+            images: [],
+            model: 'arc-research-ultra',
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     if (provider === 'perplexity') {
       const pplxResp = await fetch('https://api.perplexity.ai/search', {
