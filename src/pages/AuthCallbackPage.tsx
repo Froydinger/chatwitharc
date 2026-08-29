@@ -52,7 +52,9 @@ export function AuthCallbackPage() {
         }
 
         window.history.replaceState({}, document.title, "/auth/callback");
-        window.location.replace("/dashboard");
+        // Land in a new chat, not the dashboard — signing in means wanting to
+        // talk to Arc, and the dashboard is a detour on the way there.
+        window.location.replace("/");
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : "Could not finish sign in.");
       }
@@ -66,7 +68,7 @@ export function AuthCallbackPage() {
       <div className="max-w-md text-center space-y-5">
         <ThemedLogo className="h-16 w-16 mx-auto" alt="ArcAI" />
         <h1 className="text-2xl font-semibold">{error ? "Sign-in needs another try" : "Finishing sign in..."}</h1>
-        <p className="text-sm text-muted-foreground">{error ?? "Securing your ArcAI session and opening your dashboard."}</p>
+        <p className="text-sm text-muted-foreground">{error ?? "Securing your ArcAI session and opening your chat."}</p>
         {error && <a className="inline-flex text-primary underline" href="/">Return to sign in</a>}
       </div>
     </div>

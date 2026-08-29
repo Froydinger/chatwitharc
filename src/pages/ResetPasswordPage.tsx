@@ -47,7 +47,7 @@ export function ResetPasswordPage() {
       setSaving(false);
       return;
     }
-    window.location.replace("/dashboard");
+    window.location.replace("/");
   };
 
   return (
