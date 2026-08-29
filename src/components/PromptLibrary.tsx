@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageCircle, Compass, Sparkles, RefreshCw } from "lucide-react";
+import { X, MessageCircle, Compass, Sparkles, Lightbulb, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
