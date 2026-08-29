@@ -88,11 +88,6 @@ const ROUTE_META: Record<string, RouteMeta> = {
     description:
       "Thank you for upgrading to ArcAI Boost. Your subscription features are ready.",
   },
-  "/build": {
-    title: "ArcAI • App Builder Coming Soon",
-    description:
-      "The App Builder IDE is paused while the workspace is rebuilt.",
-  },
 };
 
 export const RouteSEO = () => {
@@ -110,9 +105,7 @@ export const RouteSEO = () => {
   if (path.startsWith("/shared/")) {
     path = "/shared";
   }
-  if (path.startsWith("/build")) {
-    path = "/build";
-  }
+
 
   // Let per-post <Helmet> in BlogPostPage own SEO for /blog/:slug.
   if (path.startsWith("/blog/")) {

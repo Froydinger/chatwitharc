@@ -41,7 +41,6 @@ const AdminPage = lazy(() => import("./pages/AdminPage").then((m) => ({ default:
 const DownloadPage = lazy(() => import("./pages/DownloadPage").then((m) => ({ default: m.DownloadPage })));
 const PricingPage = lazy(() => import("./pages/PricingPage").then((m) => ({ default: m.PricingPage })));
 const UpgradePage = lazy(() => import("./pages/UpgradePage").then((m) => ({ default: m.UpgradePage })));
-const AppsPage = lazy(() => import("./pages/AppsPage").then((m) => ({ default: m.AppsPage })));
 const DASHBOARD_CHUNK_RELOAD_KEY = "arc:dashboard-chunk-reload";
 const DashboardPage = lazy(async () => {
   try {
@@ -288,8 +287,8 @@ const App = () => {
                     <Route path="/upgrade" element={<UpgradePage />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
-                    <Route path="/build" element={<AppsPage />} />
-                    <Route path="/build/:projectId" element={<AppsPage />} />
+                    <Route path="/build" element={<Navigate to="/" replace />} />
+                    <Route path="/build/:projectId" element={<Navigate to="/" replace />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/unsubscribe" element={<UnsubscribePage />} />
                     <Route path="/support" element={<SupportPage />} />

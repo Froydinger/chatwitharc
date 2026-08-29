@@ -264,11 +264,9 @@ function checkForCodingRequest(message: string): boolean {
   return false;
 }
 
-// App Builder IDE is paused — /build shows a coming-soon notice
-function checkForBuildRequest(message: string): boolean {
-  if (!message) return false;
-  const m = message.trim().toLowerCase();
-  if (/^build\//.test(m) || /^\/build\b/.test(m)) return true;
+// There is no app builder. /build is not a command — it goes through as
+// ordinary chat rather than advertising a feature that does not exist.
+function checkForBuildRequest(_message: string): boolean {
   return false;
 }
 
@@ -1506,15 +1504,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       wasBuildMode = false;
     }
 
-    // BUILD MODE: App Builder is paused while the IDE is rebuilt.
-    if (wasBuildMode) {
-      toast({
-        title: "App Builder is coming soon",
-        description: "Use /code for single-file prototypes while the IDE workspace is offline.",
-      });
-      return;
-    }
-
     // Search mode (/search) - now does a regular web search in chat (NOT Deep Search Mode)
     // Deep Search Mode is opened separately via the button
     // We set forceWebSearch flag so the chat API always does a web search
@@ -1917,7 +1906,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         const canvasState = useCanvasStore.getState();
 
         // CODE MODE: /code produces inline code blocks via the normal AI flow.
-        // The App Builder IDE is paused, so /build is handled as coming soon.
         // The isCodingRequest flag flows through to forceCode below
 
         // When writing canvas is open, default to routing there unless the message
@@ -2979,8 +2967,8 @@ ${safeCode}
                           </button>
                         </div>
 
-                        {/* Featured Banners: Deep Search & App Builder IDE (At the Top!) */}
-                        <div className="grid grid-cols-2 gap-2 mb-4">
+                        {/* Featured Banner: Deep Search */}
+                        <div className="grid grid-cols-1 gap-2 mb-4">
                           <button
                             onClick={() => {
                               setShowMenu(false);
@@ -2997,25 +2985,6 @@ ${safeCode}
                             </div>
                           </button>
 
-                          <button
-                            onClick={() => {
-                              setShowMenu(false);
-                              toast({
-                                title: "App Builder is coming soon",
-                                description: "Use /code for single-file prototypes while the IDE workspace is offline.",
-                              });
-                            }}
-                            className="flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 group border border-amber-500/20 bg-amber-500/5 shadow-[0_0_20px_-5px_rgba(245,158,11,0.1)] cursor-not-allowed opacity-80"
-                            aria-disabled="true"
-                          >
-                            <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
-                              <Hammer className="h-4.5 w-4.5 text-amber-400" />
-                            </div>
-                            <div className="flex flex-col items-start text-left min-w-0">
-                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">App Builder</span>
-                              <span className="text-[9px] text-amber-500 font-semibold leading-tight mt-0.5 line-clamp-2">Coming soon</span>
-                            </div>
-                          </button>
                         </div>
 
                         {/* Grid of Core Tools - Sleek unified look */}
@@ -3132,7 +3101,7 @@ ${safeCode}
                               setShowPromptLibrary(true);
                               setShowMenu(false);
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
+                            className="col-span-2 flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
                           >
                             <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-neutral-500/20 flex items-center justify-center transition-colors">
                               <ListPlus className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-foreground transition-colors" />

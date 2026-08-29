@@ -104,14 +104,19 @@ is not the thing deploying edge functions or migrations.
 - `supabase/functions/chat/index.ts` — main chat edge function (tools,
   scheduling, notifications)
 
-## App Builder & Sandbox Preview (`/build`)
+## App Builder (hidden — do not surface it)
 
-- **Agentic Sandbox Compiler**: Compiles React (TSX/JSX) and styles with Tailwind CSS, Lucide React, Framer Motion, and React Icons.
-- **Routing**: Shims standard `react-router-dom` imports to the official UMD build of React Router DOM v6 under the hood. All browser routing (like `BrowserRouter`) is automatically mapped to `HashRouter` inside the iframe.
-- **Sandbox Previews**: Rendered using a `srcDoc` iframe. An `onLoad` handler catches full-page navigations (preventing the parent app from loading inside the preview panel) and forces the iframe to reload via a state `key` trigger.
-- **App Builder Limitations**:
-  - Frontend-only: There is no server-side Node.js/Python database logic.
-  - Storage: Previews share the host origin's localStorage space. Prototyped database state must be client-side and should prefix localStorage keys to prevent cross-app contamination.
+The App Builder / IDE is **fully hidden**, not "coming soon". It is being
+rebuilt, and advertising it was actively unwanted. Nothing user-facing may
+mention, link, or promise it — no nav entry, no tool tile, no docs article, no
+FAQ, no SEO copy, and nothing in any model prompt (`supabase/functions/chat`,
+`src/services/ai.ts`, the voice prompts). `/build` redirects to `/` and is not
+a chat command.
+
+The underlying code still exists for the rebuild: `AppsPanel.tsx` and
+`AppsPage.tsx` (both now unreferenced), `IDEArtifactCard.tsx` for legacy saved
+artifacts, and the `cloud-ide` route in `src/utils/routeRequest.ts`. Leave them
+alone; just do not link anything to them.
 
 ## Video generation (Sora 2)
 

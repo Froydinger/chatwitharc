@@ -143,7 +143,7 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
     case 'cloud-video':
       return { label: 'Cloud · Sora 2 (Video)', icon: 'cloud', tooltip: 'Video generation — Sora 2.' };
     case 'cloud-ide':
-      return { label: 'App Builder · Coming soon', icon: 'cloud', tooltip: 'The App Builder IDE is paused while the workspace is rebuilt.' };
+      return { label: 'Saved project', icon: 'cloud', tooltip: 'A project saved from an earlier workspace. It is read-only.' };
     default:
       // Persisted conversations can outlive route names. Never let an unknown
       // legacy value crash the entire message list while rendering metadata.

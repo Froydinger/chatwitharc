@@ -45,7 +45,7 @@ export function IDEArtifactCard({
   }, [projectId]);
 
   const handleOpen = () => {
-    toast.info("App Builder is coming soon", {
+    toast.info("This project can't be opened right now", {
       description: "Existing IDE artifacts are read-only while the workspace is offline.",
     });
   };
@@ -64,13 +64,10 @@ export function IDEArtifactCard({
         <div className="flex items-center gap-2 min-w-0">
           <Code2 className="w-4 h-4 text-primary flex-shrink-0" />
           <span className="font-medium text-sm text-foreground truncate">
-            {resolvedTitle || prompt.slice(0, 40) || 'App Builder'}
+            {resolvedTitle || prompt.slice(0, 40) || 'Saved project'}
           </span>
           <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-primary/15 text-primary flex-shrink-0">
             IDE
-          </span>
-          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-500 flex-shrink-0">
-            Coming soon
           </span>
           {projectId && (
             <Cloud className="w-3 h-3 flex-shrink-0 text-emerald-400" />

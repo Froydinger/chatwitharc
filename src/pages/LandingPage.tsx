@@ -58,12 +58,8 @@ const LANDING_FAQ = [
     a: "Yes. Voice mode is available, providing low-latency spoken conversations with multiple natural voices. Unlimited voice mode is included on the Boost tier.",
   },
   {
-    q: "Can ArcAI build complete web apps?",
-    a: "The App Builder is coming soon. While the IDE workspace is offline, ArcAI can still help create and edit single-file prototypes through the regular code canvas.",
-  },
-  {
-    q: "What are the limitations of the App Builder?",
-    a: "The App Builder IDE is currently paused while it is rebuilt. Use the code canvas for HTML, CSS, JavaScript, and compact React-style prototypes in the meantime.",
+    q: "Can ArcAI write code?",
+    a: "Yes. The code canvas generates and edits single-file HTML, CSS, JavaScript, and compact React-style prototypes, with a live preview and follow-up edits in chat.",
   },
 ];
 

@@ -330,19 +330,15 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["free AI coding", "AI code generator free", "free Copilot alternative", "AI code canvas"],
     updated: UPDATED,
     intro:
-      "ArcAI has a built-in code canvas for generating, editing, and iterating on single-file prototypes in chat. The full App Builder IDE is currently coming soon.",
+      "ArcAI has a built-in code canvas for generating, editing, and iterating on single-file prototypes in chat.",
     faq: [
       {
-        q: "What is the App Builder?",
-        a: "The App Builder IDE is coming soon. For now, ArcAI focuses coding work through the code canvas, which is best for single-file HTML, CSS, JavaScript, and compact React-style prototypes.",
+        q: "What is the code canvas?",
+        a: "It is a live coding surface in chat. Ask for something, and ArcAI writes it into a canvas you can preview, edit, and iterate on by asking follow-up questions.",
       },
       {
-        q: "Can I publish what I build?",
-        a: "Publishing from the App Builder is paused while the IDE is rebuilt. You can still create and refine code in the regular code canvas.",
-      },
-      {
-        q: "What are the limitations of the App Builder?",
-        a: "The App Builder IDE is currently offline. Use the code canvas for lightweight frontend prototypes until the full workspace returns.",
+        q: "What can it build?",
+        a: "Single-file HTML, CSS, JavaScript, and compact React-style prototypes. It is best suited to self-contained pages and small demos rather than multi-file projects.",
       },
     ],
     cta: "Try the code canvas",

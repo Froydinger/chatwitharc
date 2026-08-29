@@ -202,26 +202,6 @@ export function DocsPage() {
       keywords: ["canvas language", "html", "javascript", "svg", "tailwind", "python", "syntax highlighting", "markdown"]
     },
     {
-      id: "app-builder",
-      category: "canvas",
-      title: "React App Builder status",
-      question: "What is happening with the App Builder?",
-      answer: (
-        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-          <p>
-            The <strong>App Builder</strong> IDE is currently paused and marked as coming soon while the workspace is rebuilt.
-          </p>
-          <p>What to use instead:</p>
-          <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Code Canvas</strong>: Use <code>/code</code> for single-file HTML, CSS, JavaScript, and compact React-style prototypes.</li>
-            <li><strong className="text-foreground">Chat Follow-ups</strong>: When a code canvas is open, ask follow-up questions or request edits directly in chat.</li>
-            <li><strong className="text-foreground">Saved Artifacts</strong>: Existing IDE artifacts remain visible but read-only until App Builder returns.</li>
-          </ul>
-        </div>
-      ),
-      keywords: ["app builder", "react", "build app", "ide", "coming soon", "code canvas"]
-    },
-    {
       id: "memory-bank",
       category: "memory",
       title: "Managing saved memories",
