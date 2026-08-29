@@ -78,6 +78,25 @@ function shouldForceVideoSearch(message: string): boolean {
   return asksForVideo && wantsLookup;
 }
 
+// A preset written for a mode has to carry that mode's command prefix, or the
+// composer stays in plain chat and the preset quietly loses its mode.
+export type PromptCategory = 'chat' | 'create' | 'write' | 'code';
+
+export const PROMPT_CATEGORY_PREFIX: Record<PromptCategory, string> = {
+  chat: '',
+  create: 'image/ ',
+  write: 'write/ ',
+  code: 'code/ ',
+};
+
+const ALREADY_PREFIXED =
+  /^\s*(?:(?:code|write|canvas|image|draw|create|video|animate|search)\s*\/|\/(?:code|write|canvas|image|draw|create|video|animate|search)\b)/i;
+
+export const withPromptPrefix = (prompt: string, category: PromptCategory) => {
+  if (!prompt || ALREADY_PREFIXED.test(prompt)) return prompt;
+  return `${PROMPT_CATEGORY_PREFIX[category]}${prompt}`;
+};
+
 export const cancelCurrentRequest = () => {
   cancelRequested = true;
   // Abort any ongoing fetch request FIRST to prevent more data arriving
@@ -542,6 +561,8 @@ export interface ChatInputRef {
   handleImageUploadFiles: (files: File[]) => void;
   focusInput: () => void;
   sendMessage: (content: string) => void;
+  /** Drop text into the composer without sending, so the user can edit it. */
+  prefillInput: (content: string) => void;
 }
 
 export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
@@ -740,6 +761,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       },
       sendMessage: (content: string) => {
         handleSend(content);
+      },
+      prefillInput: (content: string) => {
+        setInputValue(content);
+        textareaRef.current?.focus();
       },
     }),
     [toast],
@@ -3215,8 +3240,8 @@ ${safeCode}
         isOpen={showPromptLibrary}
         onClose={() => setShowPromptLibrary(false)}
         prompts={quickPrompts}
-        onSelectPrompt={(p) => {
-          setInputValue(p);
+        onSelectPrompt={(p, category) => {
+          setInputValue(withPromptPrefix(p, category));
           textareaRef.current?.focus();
         }}
       />

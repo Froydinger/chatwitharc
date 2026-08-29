@@ -19,7 +19,9 @@ interface PromptLibraryProps {
   isOpen: boolean;
   onClose: () => void;
   prompts: QuickPrompt[];
-  onSelectPrompt: (prompt: string) => void;
+  // The tab a prompt came from decides which mode the composer should switch
+  // into, so the caller gets the category alongside the text.
+  onSelectPrompt: (prompt: string, category: TabType) => void;
 }
 
 type TabType = 'chat' | 'create' | 'write' | 'code';
@@ -390,7 +392,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                         }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => {
-                          onSelectPrompt(prompt.prompt);
+                          onSelectPrompt(prompt.prompt, activeTab);
                           onClose();
                         }}
                         className="group relative p-5 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-background/80 to-background/60 border border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-200 text-left overflow-hidden"

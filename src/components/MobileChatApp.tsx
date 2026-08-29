@@ -10,7 +10,7 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { MessageBubble } from "@/components/MessageBubble";
-import { ChatInput, cancelCurrentRequest, type ChatInputRef } from "@/components/ChatInput";
+import { ChatInput, cancelCurrentRequest, withPromptPrefix, type ChatInputRef, type PromptCategory } from "@/components/ChatInput";
 import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
@@ -901,6 +901,25 @@ export function MobileChatApp() {
     [startChatWithMessage, isAnonymous, requireAuth],
   );
 
+  // Library presets are written for a mode, so they arrive with that mode's
+  // command prefix and land in the composer unsent — the user tweaks them and
+  // sends when ready, instead of firing off a half-formed prompt.
+  const prefillPrompt = useCallback(
+    (prompt: string, category: PromptCategory) => {
+      if (isAnonymous) {
+        requireAuth("tools");
+        return;
+      }
+      const withPrefix = withPromptPrefix(prompt, category);
+      if (chatInputRef.current) {
+        chatInputRef.current.prefillInput(withPrefix);
+      } else {
+        startChatWithMessage(withPrefix);
+      }
+    },
+    [isAnonymous, requireAuth, startChatWithMessage],
+  );
+
   /** AI avatar progressive fade in after load */
   useEffect(() => {
     const root = messagesContainerRef.current ?? document.body;
@@ -1472,7 +1491,7 @@ export function MobileChatApp() {
           isOpen={showLibrary}
           onClose={() => setShowLibrary(false)}
           prompts={quickPrompts}
-          onSelectPrompt={triggerPrompt}
+          onSelectPrompt={prefillPrompt}
         />
 
         {/* Audio element now lives in GlobalMusicPlayer (App.tsx) */}
