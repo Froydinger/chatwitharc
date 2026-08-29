@@ -19,7 +19,7 @@ const SITE = "https://askarc.chat";
 const LANDING_FAQ = [
   {
     q: "What is ArcAI?",
-    a: "ArcAI is a multimodal AI assistant built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, voice mode, image generation, a code canvas, and long-term memory, all in your browser.",
+    a: "ArcAI is a multimodal AI assistant founded and created by Win The Night™ Foundation, built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, voice mode, image generation, a code canvas, and long-term memory, all in your browser.",
   },
   {
     q: "Is ArcAI free?",

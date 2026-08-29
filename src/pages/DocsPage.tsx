@@ -507,6 +507,18 @@ export function DocsPage() {
           </AnimatePresence>
         </div>
 
+        <div className="text-center text-xs text-muted-foreground/60 pt-8 pb-4">
+          ArcAI is founded and created by{" "}
+          <a
+            href="https://winthenight.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-primary transition-colors underline"
+          >
+            Win The Night™ Foundation
+          </a>
+        </div>
+
       </div>
     </div>
   );

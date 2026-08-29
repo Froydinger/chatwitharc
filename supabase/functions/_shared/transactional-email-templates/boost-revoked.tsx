@@ -46,7 +46,7 @@ const BoostRevokedEmail = ({
             </Section>
           </Section>
           <Section style={footer}>
-            <Text style={copy}>© 2026 ArcAI by Win The Night Foundation</Text>
+            <Text style={copy}>© 2026 ArcAI by Win The Night™ Foundation</Text>
           </Section>
         </Container>
       </Body>

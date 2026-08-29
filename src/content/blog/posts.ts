@@ -38,7 +38,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "What is ArcAI?",
-        a: "ArcAI is a multimodal AI assistant and workspace built by Win The Night™ Foundation. It gives you chat, voice conversations, AI image generation, a code canvas, and long-term memory — all accessible on a generous free tier or via our premium Boost plan.",
+        a: "ArcAI is a multimodal AI assistant and workspace founded and created by Win The Night™ Foundation. It gives you chat, voice conversations, AI image generation, a code canvas, and long-term memory — all accessible on a generous free tier or via our premium Boost plan.",
       },
       {
         q: "Is ArcAI free?",
@@ -259,7 +259,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["Ask Arc", "askarc.chat", "ArcAI"],
     updated: UPDATED,
     intro:
-      "Ask Arc is the way people refer to using ArcAI, the free AI assistant from Win The Night™ Foundation. Visit askarc.chat, create a free account, and start typing.",
+      "Ask Arc is the way people refer to using ArcAI, the free AI assistant founded and created by Win The Night™ Foundation. Visit askarc.chat, create a free account, and start typing.",
     faq: [
       {
         q: "What is Ask Arc?",
