@@ -1077,10 +1077,12 @@ When the user shares their camera or attaches an image, describe what you see na
       // clearQueue stops every scheduled Web Audio source and briefly blocks
       // late audio deltas from the cancelled response. Calling stopPlayback
       // immediately afterward used to clear that protection too early.
-      clearQueue();
+      // It reports how much was heard so the response can be truncated there.
+      const playedMs = clearQueue();
       const store = useVoiceModeStore.getState();
       store.setStatus('listening');
       store.setIsAudioPlaying(false);
+      return playedMs;
     },
     onError: (error) => {
       console.error('Voice mode error:', error);
@@ -1142,8 +1144,9 @@ When the user shares their camera or attaches an image, describe what you see na
   // Manual interrupt handler
   const handleManualInterrupt = useCallback(() => {
     console.log('Manual interrupt triggered via button');
-    cancelResponse();
-    clearQueue();
+    // Stop playback first so the truncation point reflects what was really heard.
+    const playedMs = clearQueue();
+    cancelResponse(playedMs);
     const store = useVoiceModeStore.getState();
     store.setStatus('listening');
     store.setIsAudioPlaying(false);

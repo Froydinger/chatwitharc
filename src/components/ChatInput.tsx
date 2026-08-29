@@ -2992,7 +2992,7 @@ ${safeCode}
                         </div>
 
                         {/* Featured Banner: Deep Search */}
-                        <div className="grid grid-cols-1 gap-2 mb-4">
+                        <div className="grid grid-cols-1 gap-2 mb-2">
                           <button
                             onClick={() => {
                               setShowMenu(false);

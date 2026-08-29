@@ -6,7 +6,9 @@ interface UseOpenAIRealtimeOptions {
   onTranscriptUpdate?: (transcript: string, isFinal: boolean) => void;
   onAudioData?: (audioData: Int16Array) => void;
   onError?: (error: string) => void;
-  onInterrupt?: () => void;
+  // Returns how many milliseconds of Arc's audio the user actually heard, so
+  // the interrupt can tell the server where to cut the response off.
+  onInterrupt?: () => number | void;
   onImageGenerate?: (prompt: string, aspectRatio?: string) => Promise<string>;
   onImageRevise?: (prompt: string, aspectRatio?: string) => Promise<string>;
   onImageDismiss?: () => void;
@@ -38,6 +40,13 @@ let hasRealTranscription = false;
 let awaitingToolResponse = false;
 let suppressInterruptedResponseAudio = false;
 let activeResponseId: string | null = null;
+// The assistant audio item currently being spoken, and how many milliseconds of
+// audio the server has produced for it. An interrupt has to tell the server how
+// much of that was actually heard, or it carries on as if the whole thing was.
+// Realtime streams PCM16 at 24kHz, which is what turns sample counts into ms.
+const REALTIME_AUDIO_SAMPLE_RATE = 24000;
+let activeAudioItemId: string | null = null;
+let activeAudioMs = 0;
 const interruptedResponseIds = new Set<string>();
 
 const rememberInterruptedResponse = (responseId: string | null) => {
@@ -120,6 +129,36 @@ const IOS_BARGE_IN_AMPLITUDE = 0.09;
 // below the threshold, so real interrupts were thrown away as echo. Track the
 // loudest level from just before the event instead.
 const INPUT_PEAK_WINDOW_MS = 700;
+// The mic now stays open while Arc talks, so some of what it hears is Arc's own
+// voice coming back off the speaker. Real speech has to clear Arc's output
+// level, not just the noise floor — echo tracks the output, a person does not.
+const ECHO_HEADROOM = 0.8;
+// Hard stop against a runaway echo loop: if barge-ins fire again and again in a
+// short window, it is Arc hearing itself, not a person talking. Each one cancels
+// a response and starts another, which is billed, so past this many in the
+// window barge-in is switched off until things settle.
+const BARGE_IN_BURST_LIMIT = 4;
+const BARGE_IN_BURST_WINDOW_MS = 10000;
+const BARGE_IN_COOLDOWN_MS = 20000;
+let recentBargeIns: number[] = [];
+let bargeInSuspendedUntil = 0;
+
+const bargeInAllowed = () => {
+  const now = Date.now();
+  if (now < bargeInSuspendedUntil) return false;
+  recentBargeIns = recentBargeIns.filter((t) => now - t < BARGE_IN_BURST_WINDOW_MS);
+  return recentBargeIns.length < BARGE_IN_BURST_LIMIT;
+};
+
+const noteBargeIn = () => {
+  const now = Date.now();
+  recentBargeIns.push(now);
+  if (recentBargeIns.length >= BARGE_IN_BURST_LIMIT) {
+    console.warn('Too many barge-ins in a row — suspending barge-in briefly to avoid an echo loop');
+    bargeInSuspendedUntil = now + BARGE_IN_COOLDOWN_MS;
+    recentBargeIns = [];
+  }
+};
 let recentInputPeak = 0;
 let recentInputPeakAt = 0;
 
@@ -495,6 +534,28 @@ const announceBackgroundWork = (text: string) => {
   requestToolResponse();
 };
 
+// Over a WebSocket the client owns playback, so the server has no idea how much
+// of its audio was actually heard when the user cuts in. Without this it keeps
+// the entire spoken response in context — Arc then answers as if it had said
+// things the user never heard, and those unheard audio tokens are billed on
+// every following turn.
+const truncateSpokenAudio = (playedMs: number) => {
+  if (!activeAudioItemId || globalWs?.readyState !== WebSocket.OPEN) return;
+
+  // The server errors if the cut is past the real audio length.
+  const audioEndMs = Math.max(0, Math.min(Math.floor(playedMs), Math.floor(activeAudioMs)));
+
+  sendRealtimeEvent({
+    type: 'conversation.item.truncate',
+    item_id: activeAudioItemId,
+    content_index: 0,
+    audio_end_ms: audioEndMs,
+  });
+
+  activeAudioItemId = null;
+  activeAudioMs = 0;
+};
+
 const scheduleToolResponseRetry = () => {
   if (toolResponseRetryTimer) return;
   toolResponseRetryTimer = setTimeout(() => {
@@ -738,6 +799,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // and Arc answers "still waiting for that to finish" forever.
         const arcIsAudiblySpeaking =
           stateAtSpeechStart.status === 'speaking' || stateAtSpeechStart.isAudioPlaying;
+        // While Arc is audible, require the input to stand above what Arc is
+        // putting out, otherwise the speaker bleed would interrupt Arc itself.
+        const clearsOwnVoice =
+          !arcIsAudiblySpeaking ||
+          speechLevel > stateAtSpeechStart.outputAmplitude * ECHO_HEADROOM;
         const toolWorkOutstanding =
           toolCallsInFlight.size > 0 ||
           pendingFunctionResults.length > 0 ||
@@ -745,7 +811,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           stateAtSpeechStart.isSearchingPastChats ||
           stateAtSpeechStart.isFetchingWeather ||
           stateAtSpeechStart.isSchedulingTask;
-        const canBargeIn = arcIsAudiblySpeaking && !toolWorkOutstanding;
+        const canBargeIn =
+          arcIsAudiblySpeaking && !toolWorkOutstanding && clearsOwnVoice && bargeInAllowed();
 
         // iOS used to discard every speech_started while Arc was responding,
         // which killed echo loops but also made voice barge-in impossible — the
@@ -758,7 +825,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           stateAtSpeechStart.status === 'speaking' ||
           stateAtSpeechStart.isAudioPlaying
         ) && !(canBargeIn && speechLevel > bargeInThreshold)) {
-          console.log(`Ignoring iOS speaker echo during Arc response (peak ${speechLevel.toFixed(3)})`);
+          console.log(`Ignoring iOS speaker echo during Arc response (peak ${speechLevel.toFixed(3)}, output ${stateAtSpeechStart.outputAmplitude.toFixed(3)})`);
           sendRealtimeEvent({ type: 'input_audio_buffer.clear' });
           return;
         }
@@ -780,16 +847,19 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
         if (isBargeIn) {
           console.log(`🎙️ Intentional user barge-in confirmed (peak ${speechLevel.toFixed(3)} > ${bargeInThreshold})`);
+          noteBargeIn();
           rememberInterruptedResponse(activeResponseId);
           suppressInterruptedResponseAudio = true;
           useVoiceModeStore.getState().setHasPendingSpeech(true);
+          let playedMs = 0;
           try {
-            optionsRef.current.onInterrupt?.();
+            playedMs = optionsRef.current.onInterrupt?.() ?? 0;
           } catch (err) {
             console.warn('onInterrupt handler threw:', err);
           }
           if (globalWs?.readyState === WebSocket.OPEN) {
             sendRealtimeEvent({ type: 'response.cancel' });
+            truncateSpokenAudio(playedMs);
           }
         } else if (arcIsAudiblySpeaking) {
           console.log(`🤫 Ignored background noise/breath during AI speech (peak ${speechLevel.toFixed(3)})`);
@@ -883,6 +953,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             bytes[i] = binaryString.charCodeAt(i);
           }
           const audioData = new Int16Array(bytes.buffer);
+          if (event.item_id && event.item_id !== activeAudioItemId) {
+            activeAudioItemId = event.item_id;
+            activeAudioMs = 0;
+          }
+          activeAudioMs += (audioData.length / REALTIME_AUDIO_SAMPLE_RATE) * 1000;
           optionsRef.current.onAudioData?.(audioData);
         }
         break;
@@ -1334,6 +1409,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         resetInactivityTimer();
         responseInProgress = true;
         activeResponseId = event.response?.id || null;
+        activeAudioItemId = null;
+        activeAudioMs = 0;
         suppressInterruptedResponseAudio = false; // Always reset audio suppression for fresh response
         setCurrentTranscript('');
 
@@ -1970,13 +2047,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
   }, []);
 
-  const cancelResponse = useCallback(() => {
+  const cancelResponse = useCallback((playedMs: number = 0) => {
     if (globalWs?.readyState !== WebSocket.OPEN) return;
     
     console.log('Manually cancelling AI response');
     rememberInterruptedResponse(activeResponseId);
     suppressInterruptedResponseAudio = true;
     sendRealtimeEvent({ type: 'response.cancel' });
+    truncateSpokenAudio(playedMs);
   }, []);
 
   // Commit the current audio buffer and trigger AI response

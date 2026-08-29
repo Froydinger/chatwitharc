@@ -7,12 +7,18 @@ interface UseAudioCaptureOptions {
   sampleRate?: number;
 }
 
+// How long the mic keeps streaming after a mute, so the trailing silence that
+// tells server VAD the turn is over still reaches it.
+const MUTE_TAIL_MS = 1200;
+
 export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
   const { sampleRate = 24000 } = options;
   const optionsRef = useRef(options);
   
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  // When the user muted, so the tail of what they just said still gets through.
+  const mutedAtRef = useRef<number>(0);
   const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -35,6 +41,16 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   
   const { setInputAmplitude } = useVoiceModeStore();
+
+  // Note when muting starts so the capture loop can run out its grace window.
+  useEffect(() => {
+    let wasMuted = useVoiceModeStore.getState().isMuted;
+    return useVoiceModeStore.subscribe((state) => {
+      if (state.isMuted === wasMuted) return;
+      wasMuted = state.isMuted;
+      mutedAtRef.current = state.isMuted ? Date.now() : 0;
+    });
+  }, []);
 
   const lastKeyPressRef = useRef<number>(0);
   const hasSpokenInTurnRef = useRef<boolean>(false);
@@ -154,16 +170,28 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
         // Browser echo cancellation plus server VAD filters Arc's own output.
         // Note: We intentionally do NOT check document.visibilityState here
         // so that iOS PWA can continue voice conversations in background
-        // Only capture audio when status is listening or speaking (barge-in enabled for Realtime)
-        // iOS PWA echo cancellation is unreliable during speaker playback.
-        // Streaming then makes Arc hear its own voice as a barge-in and enter
-        // a cancel/reply loop. On iOS, reopen the mic only after playback ends;
-        // the visible interrupt control remains available for manual barge-in.
-        const canListenForSpeech = isIOS
-          ? status === 'listening' && !isAudioPlaying
-          : status === 'listening' || status === 'speaking' || isAudioPlaying;
+        // The mic stays open while Arc talks, on every platform — closing it on
+        // iOS meant no audio ever reached the server during playback, so server
+        // VAD could not fire and voice barge-in was impossible there no matter
+        // what the client did with the events.
+        //
+        // The echo risk that closed it is handled where the evidence is: the
+        // speech_started handler in useOpenAIRealtime compares the input peak
+        // against Arc's own output level and clears the input buffer when the
+        // sound is just the speaker bleeding back in.
+        const canListenForSpeech =
+          status === 'listening' || status === 'speaking' || isAudioPlaying;
+
+        // Muting must not cut a sentence off mid-flight. Server VAD ends a turn
+        // by hearing silence, so if the user stops talking and immediately hits
+        // mute, dropping frames right then leaves the turn open forever and Arc
+        // never answers. Keep streaming briefly after a mute so that trailing
+        // silence still lands.
+        const muteGraceActive =
+          isMuted && mutedAtRef.current > 0 && Date.now() - mutedAtRef.current < MUTE_TAIL_MS;
+
         const shouldCapture =
-          !isMuted &&
+          (!isMuted || muteGraceActive) &&
           canListenForSpeech &&
           !isGeneratingImage &&
           !isSearching;

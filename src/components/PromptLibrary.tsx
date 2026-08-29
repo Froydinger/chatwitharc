@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageCircle, Compass, Sparkles, Lightbulb, RefreshCw } from "lucide-react";
+import { X, Lightbulb, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
@@ -151,10 +151,27 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
     }
   };
 
+  // Same colour language as the tools sheet: a tinted border and wash per tab,
+  // stronger when selected. No icons, no drop shadow to get clipped.
   const tabs = [
-    { id: 'ask' as TabType, label: 'Ask', icon: MessageCircle },
-    { id: 'reflect' as TabType, label: 'Reflect', icon: Compass },
-    { id: 'create' as TabType, label: 'Create', icon: Sparkles },
+    {
+      id: 'ask' as TabType,
+      label: 'Ask',
+      activeClass: 'border-sky-500/40 bg-sky-500/15 text-sky-600 dark:text-sky-300',
+      idleClass: 'border-sky-500/15 bg-sky-500/5 text-muted-foreground hover:bg-sky-500/10',
+    },
+    {
+      id: 'reflect' as TabType,
+      label: 'Reflect',
+      activeClass: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300',
+      idleClass: 'border-emerald-500/15 bg-emerald-500/5 text-muted-foreground hover:bg-emerald-500/10',
+    },
+    {
+      id: 'create' as TabType,
+      label: 'Create',
+      activeClass: 'border-fuchsia-500/40 bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-300',
+      idleClass: 'border-fuchsia-500/15 bg-fuchsia-500/5 text-muted-foreground hover:bg-fuchsia-500/10',
+    },
   ];
 
   return createPortal(
@@ -278,42 +295,26 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                 </div>
               </div>
 
-              {/* Tab Navigation - elegant pill design */}
-              <div className="relative px-6 sm:px-8 pt-6 pb-3 border-b border-border/20">
-                <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-2 px-2" style={{ touchAction: 'pan-x' }}>
+              {/* Tab Navigation — three equal, color-coded pills spanning the sheet */}
+              <div className="px-6 sm:px-8 pt-5 pb-4 border-b border-border/20">
+                <div className="grid grid-cols-3 gap-2">
                   {tabs.map((tab, index) => {
-                    const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
                     return (
                       <motion.button
                         key={tab.id}
-                        initial={{ opacity: 0, y: -10 }}
+                        initial={{ opacity: 0, y: -6 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 + index * 0.03, duration: 0.2 }}
+                        transition={{ delay: 0.12 + index * 0.03, duration: 0.2 }}
                         onClick={() => setActiveTab(tab.id)}
-                        whileHover={{ scale: 1.03, y: -1 }}
-                        whileTap={{ scale: 0.97 }}
+                        whileTap={{ scale: 0.98 }}
                         className={cn(
-                          "relative flex items-center gap-2.5 py-2.5 rounded-xl transition-all duration-300 whitespace-nowrap font-medium text-sm z-10",
-                          isActive
-                            ? "text-foreground shadow-lg px-4"
-                            : "text-muted-foreground hover:text-foreground hover:bg-background/40 px-3"
+                          "w-full py-2.5 px-2 rounded-2xl border text-center font-semibold transition-all duration-200",
+                          "text-[13px] sm:text-sm tracking-wide",
+                          isActive ? tab.activeClass : tab.idleClass
                         )}
                       >
-                        <Icon className="h-4 w-4 shrink-0" />
-                        {isActive && <span>{tab.label}</span>}
-
-                        {isActive && (
-                          <motion.div
-                            layoutId="activePromptTab"
-                            className="absolute inset-0 rounded-xl bg-gradient-to-br from-background/90 to-background/70 border border-primary/30 shadow-[0_0_15px_hsl(var(--primary)/0.15)] -z-10"
-                            transition={{
-                              type: "spring",
-                              damping: 25,
-                              stiffness: 300
-                            }}
-                          />
-                        )}
+                        {tab.label}
                       </motion.button>
                     );
                   })}

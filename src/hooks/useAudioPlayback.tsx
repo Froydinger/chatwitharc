@@ -29,6 +29,12 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const masterGainRef = useRef<GainNode | null>(null);
+  // Where the current burst of speech started on the audio clock, and how much
+  // audio has been scheduled for it. The Realtime API needs the milliseconds
+  // actually played when the user interrupts, so it can drop the rest from the
+  // conversation instead of believing it was all heard.
+  const utteranceStartRef = useRef<number>(0);
+  const scheduledMsRef = useRef<number>(0);
   const lastSourceRef = useRef<AudioBufferSourceNode | null>(null);
   // Track active sources for cleanup.
   // IMPORTANT: Do NOT aggressively evict scheduled sources while they're still pending,
@@ -156,8 +162,14 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
         chunkGain.gain.exponentialRampToValueAtTime(1, fadeEnd);
       }
 
+      if (!isPlayingRef.current && utteranceStartRef.current === 0) {
+        utteranceStartRef.current = startTime;
+        scheduledMsRef.current = 0;
+      }
+
       source.start(startTime);
       nextStartTimeRef.current = startTime + audioBuffer.duration;
+      scheduledMsRef.current += audioBuffer.duration * 1000;
     } catch (error) {
       console.warn('Failed to schedule voice audio chunk; dropping chunk:', error);
       try { source.disconnect(); } catch (_) {}
@@ -196,6 +208,8 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
       // Only mark playback done if this was the last scheduled source
       if (lastSourceRef.current === source && audioQueueRef.current.length === 0) {
         currentSourceRef.current = null;
+        utteranceStartRef.current = 0;
+        scheduledMsRef.current = 0;
         setIsPlaying(false);
         setIsAudioPlaying(false);
         isPlayingRef.current = false;
@@ -211,6 +225,16 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
       }
     };
   }, [initAudioContext, sampleRate, setIsAudioPlaying]);
+
+  // Milliseconds of the current response the user has actually heard. Never
+  // more than what was scheduled — the server rejects a truncation point past
+  // the real audio length.
+  const getPlayedMs = useCallback(() => {
+    const audioContext = audioContextRef.current;
+    if (!audioContext || audioContext.state === 'closed' || utteranceStartRef.current === 0) return 0;
+    const elapsed = (audioContext.currentTime - utteranceStartRef.current) * 1000;
+    return Math.max(0, Math.min(Math.floor(elapsed), Math.floor(scheduledMsRef.current)));
+  }, []);
 
   const queueAudio = useCallback((audioData: Int16Array) => {
     // Don't queue if interrupted
@@ -230,7 +254,9 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     scheduleChunk(audioData);
   }, [scheduleChunk]);
 
-  const clearQueue = useCallback(() => {
+  const clearQueue = useCallback((): number => {
+    const playedMs = getPlayedMs();
+
     // Clear any existing interrupt timeout to prevent race conditions
     if (interruptTimeoutRef.current) {
       clearTimeout(interruptTimeoutRef.current);
@@ -275,6 +301,9 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
 
     // Reset interrupted flag after a short delay to allow new responses
     // Store timeout ref so it can be cancelled if needed
+    utteranceStartRef.current = 0;
+    scheduledMsRef.current = 0;
+
     interruptTimeoutRef.current = setTimeout(() => {
       isInterruptedRef.current = false;
       interruptTimeoutRef.current = null;
@@ -288,7 +317,9 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
         } catch (_) {}
       }
     }, 100);
-  }, [setOutputAmplitude, setIsAudioPlaying]);
+
+    return playedMs;
+  }, [getPlayedMs, setOutputAmplitude, setIsAudioPlaying]);
 
   const stopPlayback = useCallback(() => {
     // Clear any pending interrupt timeout
@@ -301,6 +332,8 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     audioQueueRef.current = [];
     nextStartTimeRef.current = 0;
     lastSourceRef.current = null;
+    utteranceStartRef.current = 0;
+    scheduledMsRef.current = 0;
 
     // Same fade-then-stop as an interrupt, then tear the context down once the
     // ramp has played out — closing a context mid-waveform pops too.
@@ -396,6 +429,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     isPlaying,
     queueAudio,
     clearQueue,
+    getPlayedMs,
     stopPlayback
   };
 }

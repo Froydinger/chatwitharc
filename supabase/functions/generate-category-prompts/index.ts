@@ -27,9 +27,9 @@ const fallbackPrompts = {
     { label: "🎨 Surprise Me", prompt: "image/ Something beautiful and unexpected — you pick the subject, the palette, and the mood. Make a real choice, not a safe one." },
     { label: "🌆 Neon City", prompt: "image/ A rain-slicked city street at night, neon signs reflecting in the puddles, one lit window telling a whole story." },
     { label: "🖼️ Profile Shot", prompt: "image/ A clean, cinematic portrait with strong directional light and real personality." },
-    { label: "✍️ Draft An Email", prompt: "write/ Help me draft an email I've been avoiding. Get the tone right first, then tighten it." },
-    { label: "🔨 Sharpen My Draft", prompt: "write/ I have a draft that's close but flabby. Cut what isn't working and tell me why you cut it." },
     { label: "🕹️ Build Something Fun", prompt: "code/ Build me a small interactive toy in one page — you choose what. Make it something I'll actually play with for a minute." },
+    { label: "📊 Dashboard Mock", prompt: "code/ Build a compact dashboard with live-looking stats, a chart, and a clean layout in a single HTML file." },
+    { label: "🌈 Color Playground", prompt: "code/ Build a color palette playground where I can nudge values and instantly see the result on a sample layout." },
   ],
 } as const;
 
@@ -79,26 +79,29 @@ serve(async (req) => {
 
     // Define prompts for each category - PRACTICAL, DOWN-TO-EARTH
     const categoryPrompts = {
-      ask: `Generate 6 prompts for the ASK tab: getting real answers and putting Arc's tools to work.
+      ask: `Generate 6 prompts for the ASK tab: ordinary, day-to-day usefulness.
 
-Lean on what Arc can actually do — live web search with citations, current weather, reading an attached file or PDF, searching the user's own past chats, saving and recalling memories, and setting reminders or recurring tasks. Also good: comparing options, thinking a decision through, explaining something clearly, practising a conversation.
+This is the practical tab — errands, plans, questions, logistics, decisions, learning something. Lean on what Arc can actually do: live web search with citations, current weather, reading an attached file or PDF, searching the user's own past chats, setting reminders and recurring tasks.
 
-Write them as things the user says to Arc, in their voice. No prefix on these — they are plain chat.`,
+Examples of the RIGHT register: look something up, plan the week, compare two options, explain a topic, what to cook, draft a plan, set a reminder, practise for an interview.
 
-      reflect: `Generate 6 prompts for the REFLECT tab: thinking things through with someone who remembers.
+STAY OUT of feelings, therapy, journaling, self-reflection or personal growth — that is the Reflect tab and must not appear here. No prefix on these; they are plain chat.`,
 
-This is the emotionally intelligent side — processing a hard day, checking in, noticing patterns across past chats, saving something about themselves for Arc to remember, reviewing a week, reframing a stuck situation, setting an intention.
+      reflect: `Generate 6 prompts for the REFLECT tab: therapy-adjacent, journaling, deep thought.
 
-Warm and human, never clinical or corporate-wellness. Some should invite Arc to just listen rather than fix. No prefix on these — they are plain chat.`,
+This is the inward tab — processing a hard day, sitting with something, journaling, noticing patterns, self-understanding, values, grief, burnout, relationships, growth. It leans on Arc's memory and past-chat search: what Arc remembers about the user, patterns across old conversations, saving something about themselves.
 
-      create: `Generate 6 prompts for the CREATE tab: making something. Mix roughly 3 image, 2 writing, 1 coding.
+Examples of the RIGHT register: talk me through what happened today, what do you remember about me, help me journal on something, show me the pattern I keep repeating, help me sit with this rather than fix it, what am I avoiding.
+
+STAY OUT of errands, logistics, lookups, planning and productivity — that is the Ask tab and must not appear here. Warm and human, never clinical or corporate-wellness. Some should invite Arc to listen rather than solve. No prefix on these; they are plain chat.`,
+
+      create: `Generate 6 prompts for the CREATE tab: making something. Exactly 3 image and 3 coding — an even split, no writing prompts.
 
 EVERY prompt in this tab MUST start with its command prefix, exactly:
-- image prompts start with "image/ " then a vivid one-or-two-sentence description
-- writing prompts start with "write/ " then what to draft, outline, or sharpen
-- coding prompts start with "code/ " then what to build in a single HTML page
+- the 3 image prompts start with "image/ " then a vivid one-or-two-sentence description
+- the 3 coding prompts start with "code/ " then what to build in a single HTML page
 
-Image prompts should describe a real image worth looking at — specific light, mood, and subject, not a list of adjectives.`,
+Image prompts should describe a real image worth looking at — specific light, mood, and subject, not a list of adjectives. Coding prompts should be things worth actually opening: small tools, toys, generators, visualisers.`,
     };
 
     const systemPrompt = `You are a creative AI that generates UNIQUE, NEVER-REPEATED prompt suggestions.
