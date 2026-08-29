@@ -568,8 +568,10 @@ export const useSearchStore = create<SearchState>()(
               query: contextualQuery,
               skipImages: true,
               deepResearch: true,
-              // Follow-ups run in whatever mode the original search used.
+              // Follow-ups run in whatever mode the original search used, and
+              // continue a search that was already counted against the quota.
               ultra: session.ultra === true,
+              isFollowUp: true,
             },
           });
 

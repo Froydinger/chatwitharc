@@ -34,6 +34,10 @@ import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { ResearchDashGame } from "@/components/ResearchDashGame";
+import { ArcInputEffects } from "@/components/MobileChatApp";
+import { useAccentStore } from "@/store/useAccentStore";
+
 import { useSearchStore, SearchResult, SavedLink } from "@/store/useSearchStore";
 import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -81,6 +85,8 @@ export function SearchCanvas() {
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [selectedImageUrlForModal, setSelectedImageUrlForModal] = useState<string | null>(null);
   const orbTheme = useResolvedOrbTheme();
+  const themeMode = useAccentStore((state) => state.themeMode);
+  const effectTheme = themeMode === "system" ? "auto" : themeMode;
   const HISTORY_PAGE_SIZE = 5;
 
   // Default fallback suggestions for research
@@ -192,6 +198,20 @@ export function SearchCanvas() {
           ultra: ultraMode,
         },
       });
+
+      // A spent weekly allowance comes back as a 429 with details, not a crash.
+      const quotaHit = (data as any)?.quotaExceeded || (error as any)?.context?.status === 429;
+      if (quotaHit) {
+        const isUltra = (data as any)?.mode === 'ultra' || ultraMode;
+        toast({
+          title: isUltra ? "Ultra Deep Search used up" : "Deep Searches used up",
+          description: isUltra
+            ? "Free accounts get one Ultra Deep Search a week. Boost makes it unlimited."
+            : "Free accounts get four Deep Searches a week. Boost makes them unlimited.",
+        });
+        setSearching(false);
+        return;
+      }
 
       if (error) throw error;
 
@@ -767,6 +787,9 @@ export function SearchCanvas() {
         <div className="border-b border-border/20 bg-background/80 backdrop-blur-sm">
           <div className="max-w-3xl mx-auto px-4 py-4">
             <div className="relative">
+              {/* Same beam and metal treatment as the chat composer, so research
+                  feels like part of the app rather than a separate tool. */}
+              <ArcInputEffects active={isSearching} isNewChat={!activeSession} theme={effectTheme}>
               <div
                 className={cn(
                   "glass-dock !rounded-full !p-1 transition-all duration-200",
@@ -801,6 +824,7 @@ export function SearchCanvas() {
                   </button>
                 )}
               </div>
+              </ArcInputEffects>
             </div>
           </div>
         </div>
@@ -1386,8 +1410,17 @@ export function SearchCanvas() {
                   </div>
                 </div>
 
-                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">Searching the web...</h2>
-                <p className="text-muted-foreground max-w-md mx-auto">Finding the best sources for your query</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">
+                  {ultraMode ? "Researching deeply..." : "Searching the web..."}
+                </h2>
+                <p className="text-muted-foreground max-w-md mx-auto">
+                  {ultraMode
+                    ? "Reading and cross-checking sources — this one takes a minute"
+                    : "Finding the best sources for your query"}
+                </p>
+
+                {/* Ultra browses before it answers, so there is a real wait to fill. */}
+                {ultraMode && <ResearchDashGame className="mt-8" />}
               </motion.div>
             ) : (
               /* Empty State */

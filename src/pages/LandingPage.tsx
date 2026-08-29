@@ -10,6 +10,7 @@ import {
   Code2,
   Brain,
   Crown,
+  Search,
 } from "lucide-react";
 import { BLOG_POSTS } from "@/content/blog/posts";
 import { useAuth } from "@/hooks/useAuth";
@@ -250,7 +251,7 @@ export function LandingPage() {
               {[
                 { icon: ImageIcon, title: "10 free images a day", body: "Generate and edit up to 10 images daily for free, or 30 with Boost." },
                 { icon: Mic, title: "Unlimited voice & audio", body: "Speak naturally with instant spoken audio, free and open to everyone." },
-                { icon: Sparkles, title: "20 Fast chats a day", body: "Get 20 complex reasoning chats per day on free, or go unlimited with Boost." },
+                { icon: Search, title: "Deep research, powered by Perplexity", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. 4 Deep and 1 Ultra a week free, unlimited on Boost." },
                 { icon: Code2, title: "Publish code online", body: "Share your canvases and running web creations with custom Arc links on Boost." },
               ].map((b) => (
                 <div

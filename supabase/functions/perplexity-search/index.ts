@@ -55,7 +55,7 @@ serve(async (req) => {
       );
     }
 
-    const { query, messages, skipImages, quickAnswerOnly, mainContent, deepResearch, ultra } = await req.json();
+    const { query, messages, skipImages, quickAnswerOnly, mainContent, deepResearch, ultra, isFollowUp } = await req.json();
 
     // Quick answer background generation short-circuit
     if (quickAnswerOnly) {
@@ -135,6 +135,36 @@ serve(async (req) => {
     const provider: 'perplexity' | 'tavily' =
       PERPLEXITY_API_KEY && deepResearch ? 'perplexity' : 'tavily';
     console.log('Research search:', { query: userQuery, skipImages, provider });
+
+    // Weekly research quota. Free accounts get a taste of both modes, Boost is
+    // uncapped. Counted here rather than in the client because the client copy
+    // only decides what UI to offer. The quick-answer short-circuit above never
+    // reaches this — it is part of a search that was already counted.
+    if (deepResearch && !isFollowUp) {
+      const { data: quota, error: quotaError } = await supabase.rpc('reserve_research_quota', {
+        target_user_id: user.id,
+        research_mode: ultra ? 'ultra' : 'deep',
+      });
+
+      if (quotaError) {
+        // A quota system that is down must not take search down with it.
+        console.error('Research quota check failed (allowing search):', quotaError);
+      } else if (quota && quota.allowed === false) {
+        return new Response(
+          JSON.stringify({
+            error: ultra
+              ? 'You have used your free Ultra Deep Search for this week.'
+              : 'You have used your free Deep Searches for this week.',
+            quotaExceeded: true,
+            mode: ultra ? 'ultra' : 'deep',
+            used: quota.used,
+            limit: quota.limit,
+            resetAt: quota.resetAt ?? null,
+          }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // Normalized across providers: retrieval fills these, synthesis reads them.
     let rawResults: any[] = [];

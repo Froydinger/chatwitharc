@@ -21,6 +21,14 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('App Error:', error, errorInfo);
+
+    // A chunk from a previous deploy failing to load is not a crash — the page
+    // just needs the new build. index.html already knows how to recover from
+    // that; hand it over so the user sees a reload rather than an error screen.
+    const recover = (window as unknown as { __recoverArcChunk?: (e: unknown) => boolean }).__recoverArcChunk;
+    if (typeof recover === 'function' && recover(error)) {
+      this.setState({ hasError: false, error: null });
+    }
   }
 
   render() {

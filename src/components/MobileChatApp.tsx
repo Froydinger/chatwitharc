@@ -163,7 +163,7 @@ function getDaypartGreeting(d: Date = new Date()): string {
  * independent, so it can never disappear. This mirrors the repo's own
  * LiquidMetalOverlay pattern used on dialogs/cards.
  */
-function ArcInputEffects({
+export function ArcInputEffects({
   isNewChat = false,
   isWorking = false,
   active,
