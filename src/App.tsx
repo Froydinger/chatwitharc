@@ -11,6 +11,7 @@ import { BoostSync } from "@/components/BoostSync";
 import { ImageQuotaProvider } from "@/hooks/useImageQuota";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { AdminBanner } from "@/components/AdminBanner";
+import { SourceSurveyBanner } from "@/components/SourceSurveyBanner";
 import { PageTransition } from "@/components/PageTransition";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { RouteSEO } from "@/components/RouteSEO";
@@ -257,6 +258,7 @@ const App = () => {
               <FingerPopupContainer />
               <PWAInstallPrompt />
               <AdminBanner />
+              <SourceSurveyBanner />
               <BugReportModal
                 isOpen={isOpen}
                 onClose={closeBugReport}
