@@ -7,37 +7,29 @@ const corsHeaders = {
 };
 
 const fallbackPrompts = {
-  chat: [
-    { label: "Plan Week", prompt: "Help me plan the rest of my week around what matters most." },
-    { label: "Think Through", prompt: "Help me think through a decision and compare the tradeoffs clearly." },
-    { label: "Explain Simply", prompt: "Explain a topic I am curious about in plain language with examples." },
-    { label: "Reset Focus", prompt: "Help me reset my focus and choose the next useful thing to do." },
-    { label: "Practice Talk", prompt: "Role-play an important conversation so I can practice what to say." },
-    { label: "Fresh Angle", prompt: "Give me a fresh perspective on a situation I am stuck on." },
+  ask: [
+    { label: "🌐 Search The Web", prompt: "Search the web and tell me what's happening with a topic I'm following — give me the sources you used." },
+    { label: "🌦️ Local Weather", prompt: "What's the weather where I am right now, and what should I plan around it today?" },
+    { label: "⚖️ Weigh A Decision", prompt: "Help me weigh a decision I'm sitting on. Ask me what matters most, then lay out the tradeoffs honestly." },
+    { label: "⏰ Remind Me", prompt: "Set me a reminder for something I keep forgetting, and pick a time that actually makes sense." },
+    { label: "🔎 Fact Check This", prompt: "Fact-check a claim I heard. Search for it, tell me what holds up, and link where it came from." },
+    { label: "🧠 Explain It Simply", prompt: "Explain a topic I'm curious about in plain language, then check whether I actually followed it." },
+  ],
+  reflect: [
+    { label: "🌙 Rough Day", prompt: "I had a rough day. Help me talk through what happened without rushing me to a solution." },
+    { label: "💾 Remember This", prompt: "There's something about me I want you to remember for future chats. Save it, and tell me how you'll use it." },
+    { label: "🪞 What You Know", prompt: "What do you remember about me so far? Tell me what you've picked up and whether any of it is out of date." },
+    { label: "🔁 Same Pattern", prompt: "I keep circling the same problem. Search our past chats and show me the pattern I'm not seeing." },
+    { label: "🎯 Set An Intention", prompt: "Help me set one clear intention for today, and make it small enough that I'll actually do it." },
+    { label: "📝 Weekly Review", prompt: "Walk me through a review of my week — what worked, what didn't, and what's worth carrying forward." },
   ],
   create: [
-    { label: "Brand Mark", prompt: "Generate image: a polished logo mark concept for a modern digital product." },
-    { label: "Profile Shot", prompt: "Generate image: a clean cinematic profile picture with strong lighting and personality." },
-    { label: "Product Mockup", prompt: "Generate image: a realistic product mockup in a premium editorial ad style." },
-    { label: "Social Graphic", prompt: "Generate image: a bold social media graphic with a clear focal point and crisp typography space." },
-    { label: "Wallpaper", prompt: "Generate image: a high-resolution wallpaper with rich detail and balanced composition." },
-    { label: "Poster Concept", prompt: "Generate image: a striking poster concept with strong contrast and memorable art direction." },
-  ],
-  write: [
-    { label: "Draft Email", prompt: "Draft a clear email for something I need to send, then make it warmer and more concise." },
-    { label: "Polish Text", prompt: "Improve this writing so it sounds cleaner, sharper, and more natural." },
-    { label: "Outline Piece", prompt: "Help me outline a piece of writing with a strong structure and useful talking points." },
-    { label: "Rewrite Tone", prompt: "Rewrite this in a tone that feels confident, friendly, and professional." },
-    { label: "Meeting Notes", prompt: "Turn rough notes into a clean summary with decisions and next steps." },
-    { label: "Strong Hook", prompt: "Help me write a stronger opening hook for something I am working on." },
-  ],
-  code: [
-    { label: "Mini Tool", prompt: "Code: Build a useful mini tool with HTML, CSS, and JavaScript." },
-    { label: "Landing Page", prompt: "Code: Create a responsive landing page with modern visuals and clear sections." },
-    { label: "Dashboard UI", prompt: "Code: Build a compact dashboard interface with stats, charts, and controls." },
-    { label: "Interactive Demo", prompt: "Code: Create a polished interactive demo using HTML, CSS, and JavaScript." },
-    { label: "Form Flow", prompt: "Code: Build a clean form flow with validation and helpful states." },
-    { label: "Animation Lab", prompt: "Code: Create a smooth animation playground with controls." },
+    { label: "🎨 Surprise Me", prompt: "image/ Something beautiful and unexpected — you pick the subject, the palette, and the mood. Make a real choice, not a safe one." },
+    { label: "🌆 Neon City", prompt: "image/ A rain-slicked city street at night, neon signs reflecting in the puddles, one lit window telling a whole story." },
+    { label: "🖼️ Profile Shot", prompt: "image/ A clean, cinematic portrait with strong directional light and real personality." },
+    { label: "✍️ Draft An Email", prompt: "write/ Help me draft an email I've been avoiding. Get the tone right first, then tighten it." },
+    { label: "🔨 Sharpen My Draft", prompt: "write/ I have a draft that's close but flabby. Cut what isn't working and tell me why you cut it." },
+    { label: "🕹️ Build Something Fun", prompt: "code/ Build me a small interactive toy in one page — you choose what. Make it something I'll actually play with for a minute." },
   ],
 } as const;
 
@@ -46,7 +38,7 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  let requestedCategory: keyof typeof fallbackPrompts = 'chat';
+  let requestedCategory: keyof typeof fallbackPrompts = 'ask';
 
   // Require signed-in user — this consumes paid AI gateway credits
   const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
@@ -75,9 +67,9 @@ serve(async (req) => {
 
   try {
     const { category } = await req.json();
-    requestedCategory = ['chat', 'create', 'write', 'code'].includes(category) ? category : 'chat';
+    requestedCategory = ['ask', 'reflect', 'create'].includes(category) ? category : 'ask';
 
-    if (!category || !['chat', 'create', 'write', 'code'].includes(category)) {
+    if (!category || !['ask', 'reflect', 'create'].includes(category)) {
       throw new Error('Invalid category');
     }
 
@@ -87,43 +79,26 @@ serve(async (req) => {
 
     // Define prompts for each category - PRACTICAL, DOWN-TO-EARTH
     const categoryPrompts = {
-      chat: `Generate 6 PRACTICAL, ACTIONABLE prompts. Think everyday tasks:
-- "Plan my week" / "What should I make for dinner?" / "Help me draft an email"
-- "Explain [concept] simply" / "Give me workout ideas" / "Help me budget"
-- "Recommend a book" / "Practice interview questions" / "Help me decide between X and Y"
+      ask: `Generate 6 prompts for the ASK tab: getting real answers and putting Arc's tools to work.
 
-IMPORTANT: Be practical and useful - NOT ethereal, spiritual, or wellness-focused.
-Prompts should help with real tasks, decisions, and everyday problems.
+Lean on what Arc can actually do — live web search with citations, current weather, reading an attached file or PDF, searching the user's own past chats, saving and recalling memories, and setting reminders or recurring tasks. Also good: comparing options, thinking a decision through, explaining something clearly, practising a conversation.
 
-CRITICAL: Labels SHORT (2-3 words). Prompts concise (1-2 sentences). Keep them GENERAL — never invent fake user context (no fake counts, leftover items, names, dates, possessions).
-Be grounded and helpful, not poetic!`,
+Write them as things the user says to Arc, in their voice. No prefix on these — they are plain chat.`,
 
-      create: `Generate 6 COMPLETELY DIFFERENT image prompts. Be creative but PRACTICAL:
-- Logos, icons, illustrations for projects
-- Wallpapers, profile pictures, social media graphics
-- Concept art, product mockups, scene designs
+      reflect: `Generate 6 prompts for the REFLECT tab: thinking things through with someone who remembers.
 
-CRITICAL: Labels SHORT (2-3 words). Each prompt MUST start with "Generate image:" (exactly) then 1-2 descriptive sentences.
-Use VARIED emojis. Make them useful!`,
+This is the emotionally intelligent side — processing a hard day, checking in, noticing patterns across past chats, saving something about themselves for Arc to remember, reviewing a week, reframing a stuck situation, setting an intention.
 
-      write: `Generate 6 PRACTICAL writing prompts that help with REAL tasks:
-- "Draft a thank-you note for..." / "Write a LinkedIn summary"
-- "Help me outline a presentation on..." / "Create a meeting agenda"
-- "Proofread this paragraph" / "Make this email more professional"
-- "Write a product description" / "Draft an apology message"
+Warm and human, never clinical or corporate-wellness. Some should invite Arc to just listen rather than fix. No prefix on these — they are plain chat.`,
 
-Focus on real-world writing tasks people actually need help with.
+      create: `Generate 6 prompts for the CREATE tab: making something. Mix roughly 3 image, 2 writing, 1 coding.
 
-CRITICAL: Labels SHORT (2-3 words). Prompts general and open-ended (1-2 sentences) — never fabricate user-specific details.
-Avoid creative writing prompts - focus on utility!`,
+EVERY prompt in this tab MUST start with its command prefix, exactly:
+- image prompts start with "image/ " then a vivid one-or-two-sentence description
+- writing prompts start with "write/ " then what to draft, outline, or sharpen
+- coding prompts start with "code/ " then what to build in a single HTML page
 
-      code: `Generate 6 USEFUL coding prompts. Think tools people actually need:
-- Calculators, converters, form validators
-- Countdown timers, to-do apps, note widgets
-- Data formatters, API helpers, automation scripts
-
-CRITICAL: Labels SHORT (2-3 words). Prompts concise, specify HTML/CSS/JS.
-Use VARIED emojis. Make them practical and buildable!`,
+Image prompts should describe a real image worth looking at — specific light, mood, and subject, not a list of adjectives.`,
     };
 
     const systemPrompt = `You are a creative AI that generates UNIQUE, NEVER-REPEATED prompt suggestions.
@@ -158,8 +133,8 @@ Return ONLY valid JSON array with 6 objects:
   ...
 ]
 
-FOR IMAGE PROMPTS: prompt MUST start with "Generate image:" (exactly)
-Example: {"label": "🎨 Neon City", "prompt": "Generate image: a cyberpunk cityscape with neon lights."}
+FOR THE CREATE TAB: every prompt MUST start with "image/ ", "write/ " or "code/ " (exactly, including the slash and space). Ask and Reflect prompts take no prefix.
+Example: {"label": "🎨 Neon City", "prompt": "image/ a cyberpunk cityscape, rain-slicked streets, neon bleeding into the puddles."}
 
 CRITICAL: Every single label MUST have an emoji at the start! Use only regular quotes in JSON! Keep prompts general — never fabricate specific user details!`;
 

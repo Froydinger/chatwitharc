@@ -78,23 +78,17 @@ function shouldForceVideoSearch(message: string): boolean {
   return asksForVideo && wantsLookup;
 }
 
-// A preset written for a mode has to carry that mode's command prefix, or the
-// composer stays in plain chat and the preset quietly loses its mode.
-export type PromptCategory = 'chat' | 'create' | 'write' | 'code';
+// Library prompts carry their own command prefix (image/, write/, code/), so
+// the mode comes from the prompt text itself rather than the tab it sat under
+// — the Create tab holds all three kinds.
+export type PromptMode = 'chat' | 'image' | 'write' | 'code';
 
-export const PROMPT_CATEGORY_PREFIX: Record<PromptCategory, string> = {
-  chat: '',
-  create: 'image/ ',
-  write: 'write/ ',
-  code: 'code/ ',
-};
-
-const ALREADY_PREFIXED =
-  /^\s*(?:(?:code|write|canvas|image|draw|create|video|animate|search)\s*\/|\/(?:code|write|canvas|image|draw|create|video|animate|search)\b)/i;
-
-export const withPromptPrefix = (prompt: string, category: PromptCategory) => {
-  if (!prompt || ALREADY_PREFIXED.test(prompt)) return prompt;
-  return `${PROMPT_CATEGORY_PREFIX[category]}${prompt}`;
+export const inferPromptMode = (prompt: string): PromptMode => {
+  const m = (prompt || '').trimStart().toLowerCase();
+  if (/^(?:image|draw|create)\s*\/|^\/(?:image|draw|create)\b/.test(m)) return 'image';
+  if (/^(?:write|canvas)\s*\/|^\/(?:write|canvas)\b/.test(m)) return 'write';
+  if (/^code\s*\/|^\/code\b/.test(m)) return 'code';
+  return 'chat';
 };
 
 export const cancelCurrentRequest = () => {
@@ -3240,14 +3234,14 @@ ${safeCode}
         isOpen={showPromptLibrary}
         onClose={() => setShowPromptLibrary(false)}
         prompts={quickPrompts}
-        onSelectPrompt={(p, category) => {
-          const withPrefix = withPromptPrefix(p, category);
-          // Image presets are complete as written — send them.
-          if (category === 'create') {
-            handleSend(withPrefix);
+        onSelectPrompt={(p) => {
+          // Image presets are complete as written — send them. Everything else
+          // waits in the composer, already switched into its mode, to be edited.
+          if (inferPromptMode(p) === 'image') {
+            handleSend(p);
             return;
           }
-          setInputValue(withPrefix);
+          setInputValue(p);
           textareaRef.current?.focus();
         }}
       />

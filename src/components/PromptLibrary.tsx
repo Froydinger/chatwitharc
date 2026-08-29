@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, MessageCircle, Lightbulb, PenTool, Code, RefreshCw } from "lucide-react";
+import { X, MessageCircle, Compass, Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
@@ -19,27 +19,24 @@ interface PromptLibraryProps {
   isOpen: boolean;
   onClose: () => void;
   prompts: QuickPrompt[];
-  // The tab a prompt came from decides which mode the composer should switch
-  // into, so the caller gets the category alongside the text.
-  onSelectPrompt: (prompt: string, category: TabType) => void;
+  onSelectPrompt: (prompt: string) => void;
 }
 
-type TabType = 'chat' | 'create' | 'write' | 'code';
+// The library mirrors what ArcAI stands for: Ask, Reflect, Create.
+type TabType = 'ask' | 'reflect' | 'create';
 
 export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: PromptLibraryProps) {
-  const [activeTab, setActiveTab] = useState<TabType>('chat');
+  const [activeTab, setActiveTab] = useState<TabType>('ask');
 
   // State for dynamically generated prompts
-  const [chatPrompts, setChatPrompts] = useState<QuickPrompt[]>([]);
+  const [askPrompts, setAskPrompts] = useState<QuickPrompt[]>([]);
+  const [reflectPrompts, setReflectPrompts] = useState<QuickPrompt[]>([]);
   const [createPrompts, setCreatePrompts] = useState<QuickPrompt[]>([]);
-  const [writePrompts, setWritePrompts] = useState<QuickPrompt[]>([]);
-  const [codePrompts, setCodePrompts] = useState<QuickPrompt[]>([]);
 
   // Loading states for each category
-  const [isLoadingChat, setIsLoadingChat] = useState(false);
+  const [isLoadingAsk, setIsLoadingAsk] = useState(false);
+  const [isLoadingReflect, setIsLoadingReflect] = useState(false);
   const [isLoadingCreate, setIsLoadingCreate] = useState(false);
-  const [isLoadingWrite, setIsLoadingWrite] = useState(false);
-  const [isLoadingCode, setIsLoadingCode] = useState(false);
 
   // Generate initial prompts on mount
   useEffect(() => {
@@ -49,7 +46,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
   }, [isOpen]);
 
   // Function to generate AI prompts for a category
-  const generateAIPrompts = async (category: 'chat' | 'create' | 'write' | 'code', forceRefresh = false): Promise<QuickPrompt[]> => {
+  const generateAIPrompts = async (category: TabType, forceRefresh = false): Promise<QuickPrompt[]> => {
     // Check cache first for instant load (unless forcing refresh)
     if (!forceRefresh) {
       const cached = getCachedPrompts(category);
@@ -116,11 +113,17 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
 
   // Function to refresh prompts for a specific category or all
   const refreshPrompts = async (category: TabType | 'all', forceRefresh = false) => {
-    if (category === 'all' || category === 'chat') {
-      setIsLoadingChat(true);
-      const prompts = await generateAIPrompts('chat', forceRefresh);
-      setChatPrompts(prompts);
-      setIsLoadingChat(false);
+    if (category === 'all' || category === 'ask') {
+      setIsLoadingAsk(true);
+      const prompts = await generateAIPrompts('ask', forceRefresh);
+      setAskPrompts(prompts);
+      setIsLoadingAsk(false);
+    }
+    if (category === 'all' || category === 'reflect') {
+      setIsLoadingReflect(true);
+      const prompts = await generateAIPrompts('reflect', forceRefresh);
+      setReflectPrompts(prompts);
+      setIsLoadingReflect(false);
     }
     if (category === 'all' || category === 'create') {
       setIsLoadingCreate(true);
@@ -128,45 +131,30 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
       setCreatePrompts(prompts);
       setIsLoadingCreate(false);
     }
-    if (category === 'all' || category === 'write') {
-      setIsLoadingWrite(true);
-      const prompts = await generateAIPrompts('write', forceRefresh);
-      setWritePrompts(prompts);
-      setIsLoadingWrite(false);
-    }
-    if (category === 'all' || category === 'code') {
-      setIsLoadingCode(true);
-      const prompts = await generateAIPrompts('code', forceRefresh);
-      setCodePrompts(prompts);
-      setIsLoadingCode(false);
-    }
   };
 
   const getCurrentPrompts = () => {
     switch (activeTab) {
-      case 'chat': return chatPrompts;
+      case 'ask': return askPrompts;
+      case 'reflect': return reflectPrompts;
       case 'create': return createPrompts;
-      case 'write': return writePrompts;
-      case 'code': return codePrompts;
-      default: return chatPrompts;
+      default: return askPrompts;
     }
   };
 
   const isCurrentTabLoading = () => {
     switch (activeTab) {
-      case 'chat': return isLoadingChat;
+      case 'ask': return isLoadingAsk;
+      case 'reflect': return isLoadingReflect;
       case 'create': return isLoadingCreate;
-      case 'write': return isLoadingWrite;
-      case 'code': return isLoadingCode;
       default: return false;
     }
   };
 
   const tabs = [
-    { id: 'chat' as TabType, label: 'Chat', icon: MessageCircle },
-    { id: 'create' as TabType, label: 'Create', icon: Lightbulb },
-    { id: 'write' as TabType, label: 'Write', icon: PenTool },
-    { id: 'code' as TabType, label: 'Code', icon: Code },
+    { id: 'ask' as TabType, label: 'Ask', icon: MessageCircle },
+    { id: 'reflect' as TabType, label: 'Reflect', icon: Compass },
+    { id: 'create' as TabType, label: 'Create', icon: Sparkles },
   ];
 
   return createPortal(
@@ -392,7 +380,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                         }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => {
-                          onSelectPrompt(prompt.prompt, activeTab);
+                          onSelectPrompt(prompt.prompt);
                           onClose();
                         }}
                         className="group relative p-5 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-background/80 to-background/60 border border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-200 text-left overflow-hidden"

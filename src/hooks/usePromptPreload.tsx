@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
-import { generatePromptsByCategory } from '@/utils/promptGenerator';
+import { generatePromptsByCategory, type PromptCategory } from '@/utils/promptGenerator';
 
 export interface QuickPrompt {
   label: string;
@@ -30,7 +30,7 @@ export function getCachedPrompts(category: string): QuickPrompt[] | null {
 }
 
 // Generate AI prompts for a category
-async function generateAIPrompts(category: 'chat' | 'create' | 'write' | 'code'): Promise<QuickPrompt[]> {
+async function generateAIPrompts(category: PromptCategory): Promise<QuickPrompt[]> {
   if (!supabase || !isSupabaseConfigured) {
     return generatePromptsByCategory(category);
   }
@@ -96,10 +96,9 @@ export function usePromptPreload() {
 
       try {
         await Promise.all([
-          generateAIPrompts('chat'),
+          generateAIPrompts('ask'),
+          generateAIPrompts('reflect'),
           generateAIPrompts('create'),
-          generateAIPrompts('write'),
-          generateAIPrompts('code'),
         ]);
         console.log('✨ Prompts pre-generated and cached in sessionStorage!');
       } catch (error) {

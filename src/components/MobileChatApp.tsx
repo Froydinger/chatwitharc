@@ -10,7 +10,7 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { MessageBubble } from "@/components/MessageBubble";
-import { ChatInput, cancelCurrentRequest, withPromptPrefix, type ChatInputRef, type PromptCategory } from "@/components/ChatInput";
+import { ChatInput, cancelCurrentRequest, inferPromptMode, type ChatInputRef } from "@/components/ChatInput";
 import { RightPanel } from "@/components/RightPanel";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
@@ -901,23 +901,20 @@ export function MobileChatApp() {
     [startChatWithMessage, isAnonymous, requireAuth],
   );
 
-  // Library presets arrive with their mode's command prefix. Text presets land
-  // in the composer unsent so they can be edited; image presets send straight
-  // away, since a preset image prompt is already complete.
+  // Library presets carry their own command prefix, so picking one switches the
+  // composer into that mode. Image presets are complete as written and send
+  // straight away; everything else waits in the composer to be edited.
   const prefillPrompt = useCallback(
-    (prompt: string, category: PromptCategory) => {
+    (prompt: string) => {
       if (isAnonymous) {
         requireAuth("tools");
         return;
       }
-      const withPrefix = withPromptPrefix(prompt, category);
-      // Image presets are finished prompts — there is nothing to tweak, so they
-      // go straight out. Everything else waits in the composer to be edited.
-      if (category === 'create' || !chatInputRef.current) {
-        startChatWithMessage(withPrefix);
+      if (inferPromptMode(prompt) === 'image' || !chatInputRef.current) {
+        startChatWithMessage(prompt);
         return;
       }
-      chatInputRef.current.prefillInput(withPrefix);
+      chatInputRef.current.prefillInput(prompt);
     },
     [isAnonymous, requireAuth, startChatWithMessage],
   );

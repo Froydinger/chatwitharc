@@ -3,82 +3,70 @@ interface QuickPrompt {
   prompt: string;
 }
 
-// Pools of prompt variations for each category
-const chatPromptPool = [
-  { label: "Rough Day", prompt: "I had a rough day and need to talk through it. Can you help me process what happened?" },
-  { label: "Check In", prompt: "Let's do a wellness check-in. I want to talk about how I'm feeling right now." },
-  { label: "Need Focus", prompt: "I'm struggling to focus today. Help me create a plan to get back on track." },
-  { label: "Feeling Overwhelmed", prompt: "I'm feeling overwhelmed with everything going on. Can we talk through it?" },
-  { label: "Need Advice", prompt: "I have a decision to make and I'm not sure what to do. Can you help me think it through?" },
-  { label: "Gratitude Practice", prompt: "Help me practice gratitude today. I want to focus on the positive things in my life." },
-  { label: "Set Intention", prompt: "I want to set a clear intention for today. Can you help me figure out what to focus on?" },
-  { label: "Creative Block", prompt: "I'm stuck creatively and need help getting unstuck. Can you give me some prompts or exercises?" },
-  { label: "Problem Help", prompt: "I'm stuck on a problem and can't figure it out. Can you help me break it down?" },
-  { label: "Growth Talk", prompt: "I want to talk about my personal growth. Where am I improving and where can I do better?" },
-  { label: "Get Inspired", prompt: "I need some creative inspiration. Can you help spark some ideas?" },
-  { label: "Teach Me", prompt: "Teach me something new and interesting today. Surprise me with a fascinating topic!" },
-  { label: "Future Dreams", prompt: "I want to dream big about my future. Help me visualize where I want to be." },
-  { label: "Motivation Needed", prompt: "I need a motivational boost right now. Can you help energize me?" },
-  { label: "Practice Conversation", prompt: "I have an important conversation coming up. Can we role-play so I can practice?" },
-  { label: "New Perspective", prompt: "I'm looking at this situation the same way. Help me see it from a different angle." },
+// The library is organized around what ArcAI stands for: Ask, Reflect, Create.
+//
+// Prompts carry their own command prefix (`image/`, `write/`, `code/`) so the
+// composer switches into the right mode when one is picked. Ask and Reflect
+// prompts are plain chat and need no prefix — they lean on Arc's tools (web
+// search, weather, memory, past-chat search, reminders, file reading) instead.
+
+// ASK — get answers, use the tools, make decisions.
+const askPromptPool: QuickPrompt[] = [
+  { label: "🌐 Search The Web", prompt: "Search the web and tell me what's happening with a topic I'm following — give me the sources you used." },
+  { label: "🌦️ Local Weather", prompt: "What's the weather where I am right now, and what should I plan around it today?" },
+  { label: "📄 Read My File", prompt: "I'm attaching a document. Read it and give me the key points, anything surprising, and what I should do next." },
+  { label: "⚖️ Weigh A Decision", prompt: "Help me weigh a decision I'm sitting on. Ask me what matters most, then lay out the tradeoffs honestly." },
+  { label: "🧠 Explain It Simply", prompt: "Explain a topic I'm curious about in plain language, then check whether I actually followed it." },
+  { label: "⏰ Remind Me", prompt: "Set me a reminder for something I keep forgetting, and pick a time that actually makes sense." },
+  { label: "🔎 Fact Check This", prompt: "Fact-check a claim I heard. Search for it, tell me what holds up, and link where it came from." },
+  { label: "🗂️ Find That Chat", prompt: "Search my past chats for something we talked about before — I can't remember when or what we decided." },
+  { label: "🎤 Practice With Me", prompt: "Role-play a conversation I'm nervous about. Play the other person honestly, then tell me how I did." },
+  { label: "🧭 Plan My Week", prompt: "Help me plan the week around what actually matters, not just what's loudest." },
+  { label: "🍳 What Should I Cook", prompt: "Suggest something to cook tonight based on what I have and how much energy I've got left." },
+  { label: "📚 Teach Me Something", prompt: "Teach me something genuinely interesting I probably don't know, and tell me why it matters." },
+  { label: "🧮 Break It Down", prompt: "I'm stuck on a problem. Break it into steps and walk me through the first one." },
+  { label: "🆚 Compare Options", prompt: "Compare a few options I'm choosing between. Search for current details if it helps, and give me your actual recommendation." },
 ];
 
-const createPromptPool = [
-  { label: "Dream Poster", prompt: "Generate image: a wild, colorful retro 90s poster design concept. Think neon colors, geometric shapes, and absolute chaos in the best way." },
-  { label: "Cosmic Explorer", prompt: "Generate image: a stunning cosmic landscape with planets, nebulae, and distant galaxies. Make it feel vast and awe-inspiring." },
-  { label: "Cult Classic", prompt: "Generate image: a movie poster for a hidden gem 90s film. Make it visually striking and nostalgic." },
-  { label: "Nature's Canvas", prompt: "Generate image: a beautiful, serene natural scene with lush details, perfect lighting, and a peaceful atmosphere." },
-  { label: "Fever Dream", prompt: "Generate image: the most unhinged, beautiful, chaotic 90s vaporwave aesthetic scene. Neon lights, palm trees, abandoned malls." },
-  { label: "Ethereal Portrait", prompt: "Generate image: an artistic, ethereal portrait with dreamlike qualities, soft lighting, and beautiful composition." },
-  { label: "Cyberpunk City", prompt: "Generate image: a futuristic cyberpunk cityscape at night with neon signs, rain-slicked streets, and towering skyscrapers." },
-  { label: "Mountain Majesty", prompt: "Generate image: majestic mountain peaks at sunrise with dramatic lighting, clouds, and epic scale." },
-  { label: "Ocean Dreams", prompt: "Generate image: an underwater scene with vibrant coral reefs, exotic fish, and rays of sunlight piercing the water." },
-  { label: "Mushroom Forest", prompt: "Generate image: a magical forest filled with giant, glowing mushrooms and mystical atmosphere." },
-  { label: "Space Station", prompt: "Generate image: a detailed space station orbiting a colorful planet with stars and cosmic phenomena in the background." },
-  { label: "Neon Nights", prompt: "Generate image: a vibrant street scene with neon signs, bustling energy, and electric atmosphere." },
-  { label: "Butterfly Garden", prompt: "Generate image: a lush garden filled with colorful butterflies, exotic flowers, and warm sunlight." },
-  { label: "Fantasy Castle", prompt: "Generate image: an epic fantasy castle on a cliff with dramatic clouds, waterfalls, and magical lighting." },
-  { label: "Desert Sunset", prompt: "Generate image: a stunning desert landscape at sunset with dramatic colors, cacti, and vast open sky." },
-  { label: "Retro Game", prompt: "Generate image: pixel art or vaporwave style scene inspired by classic 80s/90s video games with bold colors." },
+// REFLECT — think it through, remember it, come back to it.
+const reflectPromptPool: QuickPrompt[] = [
+  { label: "🌙 Rough Day", prompt: "I had a rough day. Help me talk through what happened without rushing me to a solution." },
+  { label: "💾 Remember This", prompt: "There's something about me I want you to remember for future chats. Save it, and tell me how you'll use it." },
+  { label: "🪞 What You Know", prompt: "What do you remember about me so far? Tell me what you've picked up and whether any of it is out of date." },
+  { label: "📈 How I'm Doing", prompt: "Look back at what we've talked about lately and tell me honestly how I seem to be doing." },
+  { label: "🔁 Same Pattern", prompt: "I keep circling the same problem. Search our past chats and show me the pattern I'm not seeing." },
+  { label: "🙏 Gratitude Check", prompt: "Walk me through a short gratitude practice — ask me questions instead of listing things at me." },
+  { label: "🎯 Set An Intention", prompt: "Help me set one clear intention for today, and make it small enough that I'll actually do it." },
+  { label: "🌗 Reframe This", prompt: "I'm stuck seeing a situation one way. Help me look at it from an angle I haven't tried." },
+  { label: "🧵 Untangle It", prompt: "My head is full and nothing is sorted. Ask me questions until it's untangled." },
+  { label: "🛌 Wind Down", prompt: "Help me wind down. Keep it slow and short, and don't hand me a to-do list." },
+  { label: "📝 Weekly Review", prompt: "Walk me through a review of my week — what worked, what didn't, and what's worth carrying forward." },
+  { label: "🌱 Where I'm Growing", prompt: "Help me look at where I'm actually growing and where I keep avoiding the work." },
+  { label: "💬 Say The Hard Thing", prompt: "There's something I need to say to someone and I keep putting it off. Help me find the words." },
+  { label: "🕯️ Sit With It", prompt: "I don't want advice right now, I just want to think out loud. Follow along and reflect it back to me." },
 ];
 
-const writePromptPool = [
-  { label: "Character Backstory", prompt: "Help me develop a detailed backstory for my character. I need depth and motivation." },
-  { label: "Polish Draft", prompt: "I have a rough draft that needs polishing. Can you help me refine and improve it?" },
-  { label: "World Building", prompt: "Help me create lore and details for my fictional world. I want it to feel rich and believable." },
-  { label: "Dialogue Help", prompt: "I'm struggling with dialogue in my scene. Can you help me make it more natural and engaging?" },
-  { label: "Blog Outline", prompt: "Help me outline my blog post idea. I need structure and a compelling flow." },
-  { label: "Poetry Feedback", prompt: "I wrote a poem and want feedback. Can you help me improve the imagery and rhythm?" },
-  { label: "Opening Hook", prompt: "I need a strong opening hook for my piece. Help me grab the reader's attention immediately." },
-  { label: "Story Arc", prompt: "Help me plot out the story arc for my narrative. Where should the turning points be?" },
-  { label: "Sharpen Focus", prompt: "My writing feels unfocused. Help me identify the core message and cut the fluff." },
-  { label: "Brainstorm Ideas", prompt: "I'm brainstorming for my next piece. Can you help me generate and explore ideas?" },
-  { label: "Plot Twist", prompt: "I need an unexpected plot twist for my story. Help me create something surprising but logical." },
-  { label: "Stronger Ending", prompt: "My ending feels weak. Help me craft a more powerful and memorable conclusion." },
-  { label: "Theme Development", prompt: "Help me develop the central theme of my piece. I want it to resonate deeply." },
-  { label: "Description Help", prompt: "I need help writing vivid descriptions. Make my scenes come alive with sensory details." },
-  { label: "Tone Adjustment", prompt: "The tone of my writing isn't quite right. Help me adjust it to match my intent." },
-  { label: "Scene Structure", prompt: "Help me structure this scene for maximum impact. Where should the tension build?" },
+// CREATE — make the thing. These carry the prefix for the mode they need.
+const createPromptPool: QuickPrompt[] = [
+  { label: "🎨 Surprise Me", prompt: "image/ Something beautiful and unexpected — you pick the subject, the palette, and the mood. Make a real choice, not a safe one." },
+  { label: "🌆 Neon City", prompt: "image/ A rain-slicked city street at night, neon signs reflecting in the puddles, one lit window telling a whole story." },
+  { label: "🖼️ Profile Shot", prompt: "image/ A clean, cinematic portrait with strong directional light and real personality — the kind of shot worth using as a profile picture." },
+  { label: "📼 Retro Poster", prompt: "image/ A poster for a film that never existed, styled like the early nineties — bold type space, grain, and heavy atmosphere." },
+  { label: "🏔️ Wide Open", prompt: "image/ A vast landscape at the exact moment the light turns — scale that makes a person feel small in a good way." },
+  { label: "🍄 Strange Forest", prompt: "image/ A forest where the mushrooms glow and the scale is slightly wrong, lit like a memory rather than a photograph." },
+  { label: "✍️ Draft An Email", prompt: "write/ Help me draft an email I've been avoiding. Get the tone right first, then tighten it." },
+  { label: "📰 Outline A Piece", prompt: "write/ Help me outline something I want to write — find the through-line before we worry about the words." },
+  { label: "🔨 Sharpen My Draft", prompt: "write/ I have a draft that's close but flabby. Cut what isn't working and tell me why you cut it." },
+  { label: "🎭 Build A Character", prompt: "write/ Help me build a character with a real contradiction at the center of them, not a list of traits." },
+  { label: "🪝 Better Opening", prompt: "write/ My opening is weak. Give me three genuinely different ways in, and tell me which one you'd pick." },
+  { label: "🕹️ Build Something Fun", prompt: "code/ Build me a small interactive toy in one page — you choose what. Make it something I'll actually play with for a minute." },
+  { label: "📊 Dashboard Mock", prompt: "code/ Build a compact dashboard with live-looking stats, a chart, and a clean layout in a single HTML file." },
+  { label: "⏱️ Timer That Works", prompt: "code/ Build a timer I'd actually use — presets, a clear readout, and a finish that gets my attention." },
+  { label: "🎲 Random Generator", prompt: "code/ Build a generator that produces something worth refreshing for, with a bit of animation when it lands." },
+  { label: "🌈 Color Playground", prompt: "code/ Build a color palette playground where I can nudge values and instantly see the result on a sample layout." },
 ];
 
-const codePromptPool = [
-  { label: "Interactive Demo", prompt: "Code: Build a random interactive demo - surprise me with something fun! Pick any cool interactive demo like a particle system, drawing canvas, mini game (snake, pong, memory cards), color mixer, gravity simulator, or bouncing balls. Just build something engaging with HTML, CSS, and JavaScript without asking what I want - be creative!" },
-  { label: "Dashboard", prompt: "Code: Create a dashboard interface with HTML and CSS. Include charts, stats, and a clean layout." },
-  { label: "Animation", prompt: "Code: Create a beautiful CSS and JavaScript animation. Make it smooth and eye-catching." },
-  { label: "Calculator", prompt: "Code: Build a calculator using HTML, CSS, and JavaScript. Include a clean UI and proper error handling." },
-  { label: "Landing Page", prompt: "Code: Create a modern landing page with HTML and CSS. Make it responsive and conversion-focused." },
-  { label: "Form Builder", prompt: "Code: Create an interactive form with validation using HTML, CSS, and JavaScript." },
-  { label: "Timer App", prompt: "Code: Build a customizable timer or stopwatch with HTML, CSS, and JavaScript. Make it functional and visually appealing." },
-  { label: "Random Generator", prompt: "Code: Create a random generator (quotes, colors, names, etc.) with HTML, CSS, and JavaScript. Make it fun and interactive." },
-  { label: "Todo List", prompt: "Code: Build a feature-rich todo list app with HTML, CSS, and JavaScript. Include add, delete, and mark complete functionality." },
-  { label: "Music Player UI", prompt: "Code: Design a music player interface with HTML and CSS. Include controls, progress bar, and album art display." },
-  { label: "Weather Widget", prompt: "Code: Create a weather widget interface with HTML and CSS. Make it clean and informative." },
-  { label: "Slot Machine", prompt: "Code: Build a simple slot machine game with HTML, CSS, and JavaScript. Include animations and win logic." },
-  { label: "Calendar View", prompt: "Code: Create a calendar interface with HTML, CSS, and JavaScript. Make it interactive and navigable." },
-  { label: "Color Palette", prompt: "Code: Build a color palette generator with HTML, CSS, and JavaScript. Let users create and save color schemes." },
-  { label: "Password Generator", prompt: "Code: Create a secure password generator with HTML, CSS, and JavaScript. Include customization options." },
-  { label: "Image Gallery", prompt: "Code: Build an image gallery with HTML, CSS, and JavaScript. Include lightbox functionality and smooth transitions." },
-];
+export type PromptCategory = 'ask' | 'reflect' | 'create';
 
 // Shuffle array using Fisher-Yates algorithm
 function shuffleArray<T>(array: T[]): T[] {
@@ -96,35 +84,32 @@ function generateCategoryPrompts(pool: QuickPrompt[], count: number = 6): QuickP
   return shuffled.slice(0, count);
 }
 
+const pools: Record<PromptCategory, QuickPrompt[]> = {
+  ask: askPromptPool,
+  reflect: reflectPromptPool,
+  create: createPromptPool,
+};
+
 // Generate all prompt categories
 export function generateAllPrompts() {
   return {
-    chat: generateCategoryPrompts(chatPromptPool, 6),
+    ask: generateCategoryPrompts(askPromptPool, 6),
+    reflect: generateCategoryPrompts(reflectPromptPool, 6),
     create: generateCategoryPrompts(createPromptPool, 6),
-    write: generateCategoryPrompts(writePromptPool, 6),
-    code: generateCategoryPrompts(codePromptPool, 6),
   };
 }
 
 // Generate prompts for a specific category
-export function generatePromptsByCategory(category: 'chat' | 'create' | 'write' | 'code'): QuickPrompt[] {
-  const pools = {
-    chat: chatPromptPool,
-    create: createPromptPool,
-    write: writePromptPool,
-    code: codePromptPool,
-  };
-
-  return generateCategoryPrompts(pools[category], 6);
+export function generatePromptsByCategory(category: PromptCategory): QuickPrompt[] {
+  return generateCategoryPrompts(pools[category] ?? askPromptPool, 6);
 }
 
 // Get all prompts as a flat array (for compatibility with existing code)
 export function getAllPromptsFlat(): QuickPrompt[] {
   const generated = generateAllPrompts();
   return [
-    ...generated.chat,
+    ...generated.ask,
+    ...generated.reflect,
     ...generated.create,
-    ...generated.write,
-    ...generated.code,
   ];
 }
