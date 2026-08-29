@@ -901,9 +901,9 @@ export function MobileChatApp() {
     [startChatWithMessage, isAnonymous, requireAuth],
   );
 
-  // Library presets are written for a mode, so they arrive with that mode's
-  // command prefix and land in the composer unsent — the user tweaks them and
-  // sends when ready, instead of firing off a half-formed prompt.
+  // Library presets arrive with their mode's command prefix. Text presets land
+  // in the composer unsent so they can be edited; image presets send straight
+  // away, since a preset image prompt is already complete.
   const prefillPrompt = useCallback(
     (prompt: string, category: PromptCategory) => {
       if (isAnonymous) {
@@ -911,11 +911,13 @@ export function MobileChatApp() {
         return;
       }
       const withPrefix = withPromptPrefix(prompt, category);
-      if (chatInputRef.current) {
-        chatInputRef.current.prefillInput(withPrefix);
-      } else {
+      // Image presets are finished prompts — there is nothing to tweak, so they
+      // go straight out. Everything else waits in the composer to be edited.
+      if (category === 'create' || !chatInputRef.current) {
         startChatWithMessage(withPrefix);
+        return;
       }
+      chatInputRef.current.prefillInput(withPrefix);
     },
     [isAnonymous, requireAuth, startChatWithMessage],
   );

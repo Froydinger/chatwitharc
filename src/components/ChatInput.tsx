@@ -3241,7 +3241,13 @@ ${safeCode}
         onClose={() => setShowPromptLibrary(false)}
         prompts={quickPrompts}
         onSelectPrompt={(p, category) => {
-          setInputValue(withPromptPrefix(p, category));
+          const withPrefix = withPromptPrefix(p, category);
+          // Image presets are complete as written — send them.
+          if (category === 'create') {
+            handleSend(withPrefix);
+            return;
+          }
+          setInputValue(withPrefix);
           textareaRef.current?.focus();
         }}
       />
