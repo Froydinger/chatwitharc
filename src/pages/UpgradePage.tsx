@@ -7,16 +7,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/hooks/useAuth";
 import { BOOST_PRICE_ID, BOOST_ANNUAL_PRICE_ID } from "@/lib/stripe";
 import { motion } from "framer-motion";
-
-const BOOST_FEATURES = [
-  "Higher Luna chat and reasoning limits",
-  "Auto, Quick, Balanced & Deep reasoning",
-  "Premium Image Generation (GPT-Image-2)",
-  "Advanced image editing studio",
-  "Unlimited Deep Search & Ultra Deep Search",
-  "Unlimited shared chats & rooms",
-  "Priority feature & server access",
-];
+import { BOOST_PLAN_FEATURES } from "@/lib/planCopy";
 
 export function UpgradePage() {
   const navigate = useNavigate();
@@ -137,7 +128,7 @@ export function UpgradePage() {
               </div>
               <h1 className="text-4xl font-black tracking-tight text-white mb-3">Unlock ArcAI Boost.</h1>
               <p className="text-sm md:text-base text-muted-foreground max-w-md mx-auto">
-                Elevate your daily message limits, gain access to high-fidelity GPT-Image-2 models, and publish live code.
+                Get higher Luna limits, unlimited research, premium image tools, and live web-app publishing.
               </p>
             </div>
 
@@ -165,7 +156,7 @@ export function UpgradePage() {
                       <span className={`text-[11px] transition-colors duration-200 ${billingInterval === "annual" ? "text-white font-semibold" : "text-muted-foreground"} flex items-center gap-1`}>
                         Annual
                         <span className="text-[8px] bg-primary/20 text-primary font-bold px-1 py-0.2 rounded-full">
-                          -20%
+                          -21%
                         </span>
                       </span>
                     </div>
@@ -179,14 +170,14 @@ export function UpgradePage() {
                     </span>
                   </div>
                   {billingInterval === "annual" && (
-                    <p className="text-xs text-primary font-bold mb-5">Equal to just $7.91/month (Save 20%)</p>
+                    <p className="text-xs text-primary font-bold mb-5">Equal to just $7.92/month (Save 21%)</p>
                   )}
                   {billingInterval === "monthly" && (
                     <div className="h-4 mb-5" />
                   )}
                   
                   <ul className="space-y-3.5 mb-8">
-                    {BOOST_FEATURES.map((feature) => (
+                    {BOOST_PLAN_FEATURES.map((feature) => (
                       <li key={feature} className="flex items-start gap-2.5 text-sm text-white/90">
                         <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                         <span>{feature}</span>

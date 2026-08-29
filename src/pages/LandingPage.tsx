@@ -28,7 +28,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that unlocks unlimited premium reasoning chats, unlimited voice, full image editing, higher image quotas (20 GPT-Image-2 outputs/day), and live web app publishing.",
+    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds higher Luna limits, unlimited Deep Search and Ultra Deep Search, GPT-Image-2 (20/day), full editing, and live web-app publishing.",
   },
   {
     q: "Is ArcAI a free ChatGPT alternative?",
@@ -52,7 +52,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI generate images?",
-    a: "Yes. Free accounts receive GPT-Image-1 Mini (40 outputs/day), GPT-Image-1 (10 outputs/day), and 3 free premium GPT-Image-2 outputs. Boost accounts unlock 20 premium GPT-Image-2 outputs per day and full editing features.",
+    a: "Yes. Free accounts receive GPT-Image-1 Mini (40/day), GPT-Image-1 (10/day), and GPT-Image-2 (3/day). Boost accounts receive GPT-Image-2 (20/day) and full editing features.",
   },
   {
     q: "Does ArcAI have voice mode?",

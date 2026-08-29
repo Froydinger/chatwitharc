@@ -16,6 +16,7 @@ import {
 } from "@/lib/stripe";
 import { supabase } from "@/integrations/supabase/client";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
+import { BOOST_PLAN_FEATURES, FREE_PLAN_SUMMARY } from "@/lib/planCopy";
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -148,15 +149,7 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
             </div>
 
             <ul className="text-left space-y-2.5 mb-6 max-w-sm mx-auto">
-              {[
-                "Higher GPT-5.6 Luna chat limits",
-                "Auto, Quick, Balanced & Deep Luna reasoning",
-                "20 high-fidelity GPT Image 2 outputs per day",
-                "Premium image editing (variations & base image combining)",
-                "Publish your code online at a custom arc link",
-                "Unlimited shared chats (up to 6 people each)",
-                "Cancel anytime",
-              ].map((item) => (
+              {[...BOOST_PLAN_FEATURES, "Cancel anytime"].map((item) => (
                 <li key={item} className="flex items-start gap-2.5 text-sm">
                   <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                   <span>{item}</span>
@@ -169,7 +162,7 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
                 <Sparkles className="h-3 w-3" />
                 <span className="font-medium text-foreground">Free forever includes</span>
               </div>
-              20 Fast chats/day · GPT-Image-1 Mini (40/day) · GPT-Image-1 (10/day) · 3 GPT-Image-2/day · 2 shared chats
+              {FREE_PLAN_SUMMARY}
             </div>
 
             {canCheckout ? (

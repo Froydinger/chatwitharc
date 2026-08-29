@@ -30,6 +30,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { useArcStore } from "@/store/useArcStore";
+import { BOOST_PLAN_SUMMARY, FREE_PLAN_SUMMARY } from "@/lib/planCopy";
 
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -441,7 +442,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                           )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          {hasBoost ? "Unlimited Fast reasoning & custom domain publishing" : "20 Fast chats/day & 10 images/day limit"}
+                          {hasBoost ? BOOST_PLAN_SUMMARY : FREE_PLAN_SUMMARY}
                         </div>
                       </div>
                       <div className="flex gap-2">

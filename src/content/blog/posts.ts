@@ -34,7 +34,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["ArcAI", "Ask Arc", "AI assistant", "AI with memory", "Boost tier"],
     updated: UPDATED,
     intro:
-      "ArcAI (sometimes called Ask Arc) is an AI workspace that combines chat, real-time voice, image generation, and coding tools in a single browser app. You can get started with a free account, or unlock unlimited premium reasoning and voice mode with the Boost upgrade.",
+      "ArcAI (sometimes called Ask Arc) is an AI workspace that combines Luna reasoning chat, real-time voice, image generation, and coding tools in a single browser app. You can get started with a free account, or unlock higher limits and unlimited research with Boost.",
     faq: [
       {
         q: "What is ArcAI?",
@@ -179,7 +179,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which free AI generates images?",
-        a: "ArcAI includes GPT-Image-1 Mini (40 outputs/day), GPT-Image-1 (10 outputs/day), and 3 free premium GPT-Image-2 outputs. Boost plan upgrades this to 20 premium GPT-Image-2 outputs per day.",
+        a: "ArcAI includes GPT-Image-1 Mini (40/day), GPT-Image-1 (10/day), and GPT-Image-2 (3/day) on Free. Boost upgrades GPT-Image-2 to 20/day and adds full editing.",
       },
     ],
     cta: "Try the AI assistant",
@@ -395,7 +395,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "what-is-arcai": {
     angle: "ArcAI is built around a simple idea: one assistant should handle the whole loop — thinking, searching, speaking, writing, coding, creating images, and remembering the context that makes those tasks personal.",
     useCases: ["daily planning", "research with sources", "image generation", "coding prototypes", "voice brainstorming", "long-term personal context"],
-    freeAccess: "Every ArcAI feature is accessible on the free plan. Voice mode is unlimited for everyone. Boost unlocks unlimited Deep Search and Ultra Deep Search, unlimited premium reasoning, and higher image quotas.",
+    freeAccess: "Every ArcAI feature is accessible on the free plan. Voice mode is unlimited for everyone. Boost unlocks unlimited Deep Search and Ultra Deep Search, higher Luna limits, and higher image quotas.",
     proof: "That combination makes ArcAI feel less like a single chatbot tab and more like a personal operating layer for creative work.",
   },
   "free-chatgpt-alternative": {
@@ -502,7 +502,7 @@ function enrichPost(post: BlogPost): BlogPost {
         `${item.a} In practical terms, this means you can start with a normal question and keep going into follow-ups, research, drafts, files, images, voice, or code without switching products. ArcAI is designed for the kind of messy, real workflow where a user asks one thing, changes direction, adds context, and expects the assistant to keep up.`,
         index === 0
           ? context.proof
-          : `ArcAI offers a generous free tier with unlimited chats, image generation, and weekly research — 4 Deep Searches and 1 Ultra Deep Search. Voice mode is unlimited for everyone. Boost unlocks unlimited research, unlimited premium reasoning, and higher image quotas.`
+          : `ArcAI offers a generous free tier with Luna reasoning, image generation, and weekly research — 4 Deep Searches and 1 Ultra Deep Search. Voice mode is unlimited for everyone. Boost unlocks unlimited research, higher Luna limits, and higher image quotas.`
       ],
     bullets:
       item.bullets ??

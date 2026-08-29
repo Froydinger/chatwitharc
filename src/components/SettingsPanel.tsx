@@ -92,6 +92,7 @@ import { PushNotificationsCard } from "@/components/PushNotificationsCard";
 import { cn } from "@/lib/utils";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
 import { useStarfieldStore } from "@/store/useStarfieldStore";
+import { BOOST_PLAN_SUMMARY, FREE_PLAN_SUMMARY } from "@/lib/planCopy";
 
 type SectionId = "account" | "appearance" | "ai" | "privacy" | "plan";
 
@@ -193,7 +194,7 @@ function ImageDefaultsCard() {
         title={
           <div className="flex items-center gap-2">
             Quick generation
-            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">Fast</span>
+            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">Quick</span>
           </div>
         }
         description="Use GPT Image 1 Mini for new images. Edits always use GPT Image 2."
@@ -743,8 +744,8 @@ export function SettingsPanel() {
               {quotaAdmin 
                 ? "Unlimited reasoning chats and image outputs." 
                 : hasBoost 
-                ? "Unlimited Fast chats, 30 images/day, and publishing creations online at custom arc links." 
-                : "20 Fast chats/day, 10 images/day, and unlimited Faster chats."
+                ? BOOST_PLAN_SUMMARY
+                : FREE_PLAN_SUMMARY
               }
             </p>
             {hasBoost && currentPeriodEnd && (
