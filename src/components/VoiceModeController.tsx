@@ -474,11 +474,25 @@ export function VoiceModeController() {
   }, []);
 
   // Image generation handler
+  // Voice transcripts are persisted in batches, but tool cards (images, weather,
+  // reminders) were written to the chat the moment the tool ran. That put the
+  // card above the request that asked for it. Flush whatever turns are already
+  // transcribed before writing a card so the chat keeps conversational order.
+  const saveNewTurnsRef = useRef<((final?: boolean) => Promise<number>) | null>(null);
+  const flushTurnsBeforeCard = useCallback(async () => {
+    try {
+      await saveNewTurnsRef.current?.(false);
+    } catch (error) {
+      console.warn('Could not flush voice turns before writing a tool card:', error);
+    }
+  }, []);
+
   const handleImageGenerate = useCallback(async (prompt: string, aspectRatio?: string): Promise<string> => {
     console.log('VoiceModeController: Generating image with prompt:', prompt, 'aspect ratio:', aspectRatio);
     const runId = Symbol('voice-image-generate');
     latestImageRunRef.current = runId;
     setIsGeneratingImage(true);
+    await flushTurnsBeforeCard();
     const placeholderId = await addMessage({
       content: `Generating image: ${prompt}`,
       role: 'assistant',
@@ -520,7 +534,7 @@ export function VoiceModeController() {
       setIsGeneratingImage(false);
       throw error;
     }
-  }, [addMessage, replaceMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
+  }, [addMessage, flushTurnsBeforeCard, replaceMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
 
   // Image revision handler: voice edits always go through the Image 2 edit path.
   const handleImageRevise = useCallback(async (prompt: string, aspectRatio?: string): Promise<string> => {
@@ -533,6 +547,7 @@ export function VoiceModeController() {
     const runId = Symbol('voice-image-revise');
     latestImageRunRef.current = runId;
     setIsGeneratingImage(true);
+    await flushTurnsBeforeCard();
     const placeholderId = await addMessage({
       content: `Editing image: ${prompt}`,
       role: 'assistant',
@@ -574,7 +589,7 @@ export function VoiceModeController() {
       setIsGeneratingImage(false);
       throw error;
     }
-  }, [addMessage, getLastChatImageUrl, replaceMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
+  }, [addMessage, flushTurnsBeforeCard, getLastChatImageUrl, replaceMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
 
   // Image dismiss handler
   const handleImageDismiss = useCallback(() => {
@@ -711,6 +726,7 @@ export function VoiceModeController() {
       if (data?.error) return `I couldn't find weather for "${location}": ${data.error}`;
       
       setWeatherData(null);
+      await flushTurnsBeforeCard();
       await addMessage({
         content: `Weather in ${data.location}: ${data.temperature}°F, ${data.condition}. High ${data.high}°, low ${data.low}°.`,
         role: 'assistant',
@@ -732,7 +748,7 @@ export function VoiceModeController() {
       setIsFetchingWeather(false);
       return `Weather lookup failed: ${e?.message || 'Unknown error'}`;
     }
-  }, [addMessage, setIsFetchingWeather, setWeatherData]);
+  }, [addMessage, flushTurnsBeforeCard, setIsFetchingWeather, setWeatherData]);
 
   const handleCreateScheduledTask = useCallback(async (request: string): Promise<string> => {
     const cleanRequest = request?.trim();
@@ -748,6 +764,7 @@ export function VoiceModeController() {
         useArcStore.getState().currentSessionId || undefined,
       );
 
+      await flushTurnsBeforeCard();
       await addMessage({
         content: result.content || 'Reminder set.',
         role: 'assistant',
@@ -769,7 +786,7 @@ export function VoiceModeController() {
     } finally {
       setIsSchedulingTask(false);
     }
-  }, [addMessage, profile, setIsSchedulingTask]);
+  }, [addMessage, flushTurnsBeforeCard, profile, setIsSchedulingTask]);
 
   // Memory: save
   const handleSaveMemory = useCallback(async (memory: string, replaces?: string[]): Promise<string> => {
@@ -944,6 +961,8 @@ export function VoiceModeController() {
     saveQueueRef.current = queuedSave.then(() => undefined, () => undefined);
     return queuedSave;
   }, [addMessage]);
+
+  saveNewTurnsRef.current = saveNewTurns;
 
   /**
    * Called by the realtime hook just before a proactive session refresh.
