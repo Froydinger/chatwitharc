@@ -154,7 +154,6 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
                 "20 high-fidelity GPT Image 2 outputs per day",
                 "Premium image editing (variations & base image combining)",
                 "Publish your code online at a custom arc link",
-                "Unlimited voice conversations",
                 "Unlimited shared chats (up to 6 people each)",
                 "Cancel anytime",
               ].map((item) => (

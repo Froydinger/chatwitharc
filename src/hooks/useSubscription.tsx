@@ -8,7 +8,9 @@ export const FREE_DAILY_IMAGE_LIMIT = 10;
 export const BOOST_DAILY_IMAGE_LIMIT = 30;
 export const FREE_DAILY_SMARTER_CHAT_LIMIT = 20;
 
-export const FREE_VOICE_LIMIT_30D = 10;
+// Voice is no longer capped. Kept as a legacy export so existing imports keep
+// resolving; nothing gates on it any more.
+export const FREE_VOICE_LIMIT_30D = Infinity;
 
 // Legacy exports kept so existing call sites don't break.
 const FREE_DAILY_MESSAGE_LIMIT = Infinity;
@@ -146,10 +148,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const canSendSmarterChat = hasBoost;
   const remainingSmarterChats = hasBoost ? Infinity : 0;
 
-  const canStartVoiceConversation = hasBoost || voiceConversations30d < FREE_VOICE_LIMIT_30D;
-  const remainingVoiceConversations = hasBoost
-    ? Infinity
-    : Math.max(0, FREE_VOICE_LIMIT_30D - voiceConversations30d);
+  // Voice is unlimited for everyone — it is cheap enough not to meter, and a
+  // capped voice mode made the product feel stingier than it is. The 30-day
+  // count is still tracked for usage visibility, it just no longer gates.
+  const canStartVoiceConversation = true;
+  const remainingVoiceConversations = Infinity;
 
   const refreshVoiceCount = useCallback(async () => {
     if (!user || !supabase) {

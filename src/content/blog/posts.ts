@@ -42,7 +42,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI free?",
-        a: "Yes. The free tier includes GPT-5.6 Luna chat, adjustable reasoning, image generation, and weekly research — 4 Deep Searches and 1 Ultra Deep Search. Boost raises the limits: unlimited Deep Search and Ultra Deep Search, unlimited voice mode, and higher image quotas.",
+        a: "Yes. The free tier includes GPT-5.6 Luna chat, adjustable reasoning, image generation, and weekly research — 4 Deep Searches and 1 Ultra Deep Search. Voice mode is unlimited for everyone. Boost raises the rest: unlimited Deep Search and Ultra Deep Search, and higher image quotas.",
       },
       {
         q: "Do I need an account to use ArcAI?",
@@ -75,7 +75,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI as good as ChatGPT Plus?",
-        a: "Boost adds unlimited Deep Search and Ultra Deep Search, higher ArcAI usage limits, unlimited voice conversations, and premium image tools.",
+        a: "Boost adds unlimited Deep Search and Ultra Deep Search, higher ArcAI usage limits, and premium image tools. Voice mode is already unlimited for everyone.",
       },
       {
         q: "Does the free tier have message limits?",
@@ -175,7 +175,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which AI has voice mode?",
-        a: "ArcAI has real-time voice conversations powered by OpenAI Realtime API. Unlimited voice mode is unlocked on the premium Boost tier.",
+        a: "ArcAI has real-time voice conversations powered by the OpenAI Realtime API, unlimited and free for everyone — no Boost required.",
       },
       {
         q: "Which free AI generates images?",
@@ -192,11 +192,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["free AI voice", "voice AI free", "talk to AI free"],
     updated: UPDATED,
     intro:
-      "Most AI assistants charge for voice. ArcAI provides voice mode conversations, utilizing the OpenAI Realtime API. You can unlock unlimited voice mode with our Boost subscription.",
+      "Most AI assistants charge for voice. ArcAI gives every account unlimited real-time voice conversations through the OpenAI Realtime API, at no cost.",
     faq: [
       {
         q: "Which AI has voice conversations?",
-        a: "ArcAI. It uses the OpenAI Realtime API to deliver low-latency spoken conversations with multiple natural voice options. Unlimited voice conversations are included in Boost.",
+        a: "ArcAI. It uses the OpenAI Realtime API to deliver low-latency spoken conversations with multiple natural voice options, unlimited on every account including free.",
       },
       {
         q: "Can I interrupt the AI while it's talking?",
@@ -395,7 +395,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "what-is-arcai": {
     angle: "ArcAI is built around a simple idea: one assistant should handle the whole loop — thinking, searching, speaking, writing, coding, creating images, and remembering the context that makes those tasks personal.",
     useCases: ["daily planning", "research with sources", "image generation", "coding prototypes", "voice brainstorming", "long-term personal context"],
-    freeAccess: "Every ArcAI feature is accessible on the free plan. Boost unlocks unlimited Deep Search and Ultra Deep Search, unlimited premium reasoning, unlimited voice mode, and higher image quotas.",
+    freeAccess: "Every ArcAI feature is accessible on the free plan. Voice mode is unlimited for everyone. Boost unlocks unlimited Deep Search and Ultra Deep Search, unlimited premium reasoning, and higher image quotas.",
     proof: "That combination makes ArcAI feel less like a single chatbot tab and more like a personal operating layer for creative work.",
   },
   "free-chatgpt-alternative": {
@@ -407,7 +407,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-gemini-alternative": {
     angle: "Gemini is powerful, but many users want an assistant that is not organized around one ecosystem. ArcAI is browser-first and independent while still giving you multimodal tools in one place.",
     useCases: ["chat without Google Workspace", "voice conversations", "AI images", "coding help", "source-backed web answers", "memory across projects"],
-    freeAccess: "ArcAI's free plan includes unlimited fast chat, image generation, and weekly research — 4 Deep Searches and 1 Ultra Deep Search. Boost adds unlimited research, unlimited voice, and higher image quotas.",
+    freeAccess: "ArcAI's free plan includes unlimited fast chat, image generation, and weekly research — 4 Deep Searches and 1 Ultra Deep Search. Voice is unlimited for everyone; Boost adds unlimited research and higher image quotas.",
     proof: "That makes ArcAI a practical Gemini alternative for people who want less lock-in and more creative surface area.",
   },
   "free-gpt-4-alternative": {
@@ -449,7 +449,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "ask-arc-what-is-it": {
     angle: "Ask Arc is the natural way to describe using ArcAI: you bring a question, problem, draft, file, idea, or voice note, and Arc helps move it forward.",
     useCases: ["asking questions", "rewriting text", "researching", "generating images", "coding", "remembering preferences"],
-    freeAccess: "Get started for free at askarc.chat, with an optional Boost subscription that unlocks advanced reasoning, unlimited voice, and unlimited research.",
+    freeAccess: "Get started for free at askarc.chat, with an optional Boost subscription that unlocks advanced reasoning and unlimited research. Voice is unlimited for everyone.",
     proof: "The product is meant to feel approachable: open it, ask, refine, save, and continue later.",
   },
   "arcai-vs-chatgpt": {
@@ -467,7 +467,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-ai-for-coding": {
     angle: "Coding with AI works best when the assistant can move from explanation to implementation. ArcAI's code canvas is designed for generating, previewing, and iterating on working web app ideas.",
     useCases: ["debugging", "prototype apps", "UI changes", "scripts", "learning code", "publishing small projects"],
-    freeAccess: "Code generation and live preview in the code canvas are free for everyone.",
+    freeAccess: "Code generation, live preview, and publishing a canvas to a shareable link are free for everyone."
     proof: "That makes ArcAI more than a code-answer bot: it can become a lightweight builder workspace.",
   },
   "free-ai-for-writing": {
@@ -502,7 +502,7 @@ function enrichPost(post: BlogPost): BlogPost {
         `${item.a} In practical terms, this means you can start with a normal question and keep going into follow-ups, research, drafts, files, images, voice, or code without switching products. ArcAI is designed for the kind of messy, real workflow where a user asks one thing, changes direction, adds context, and expects the assistant to keep up.`,
         index === 0
           ? context.proof
-          : `ArcAI offers a generous free tier with unlimited chats, image generation, and weekly research — 4 Deep Searches and 1 Ultra Deep Search. Boost unlocks unlimited research, unlimited premium reasoning, unlimited voice mode, and higher image quotas.`
+          : `ArcAI offers a generous free tier with unlimited chats, image generation, and weekly research — 4 Deep Searches and 1 Ultra Deep Search. Voice mode is unlimited for everyone. Boost unlocks unlimited research, unlimited premium reasoning, and higher image quotas.`
       ],
     bullets:
       item.bullets ??

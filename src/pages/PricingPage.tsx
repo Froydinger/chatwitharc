@@ -12,8 +12,9 @@ const FREE_FEATURES = [
   "Auto, Quick, Balanced & Deep reasoning",
   "Image Generation (GPT-Image-1 & 2)",
   "4 Deep Searches + 1 Ultra Deep Search a week",
-  "Real-time voice conversations",
+  "Unlimited real-time voice conversations",
   "Memory, file uploads & canvases",
+  "Publish a canvas to a shareable link",
   "Reminders & shared chats",
 ];
 

@@ -324,7 +324,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                       </div>
                       <p className="text-[10px] text-muted-foreground/70 text-center pt-1">
                         {quotaAdmin || hasBoost
-                          ? "Boost includes unlimited voice and higher usage limits."
+                          ? "Boost includes unlimited research and higher usage limits."
                           : "Free includes core ArcAI features with plan-based usage limits."}
                       </p>
                     </div>
