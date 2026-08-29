@@ -80,7 +80,7 @@ export function InfoPanel() {
           and magical interactions.
         </p>
         <p className="text-sm text-muted-foreground/70">
-          Built by <a href="https://winthenight.productions" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-foreground transition-colors underline">Win The Night</a> • Powered by OpenAI
+          Built by <a href="https://winthenight.org" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-foreground transition-colors underline">Win The Night</a> • Powered by OpenAI
         </p>
       </motion.div>
 

@@ -26,7 +26,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">1. Who we are</h2>
               <p className="text-muted-foreground">
-                ArcAI ("ArcAI", "we", "us") is operated by <strong>Win The Night™ Productions</strong> in collaboration
+                ArcAI ("ArcAI", "we", "us") is operated by <strong>Win The Night™ Foundation</strong> in collaboration
                 with <strong>Froydinger™ Design Systems</strong>. Contact:{" "}
                 <a href="mailto:arc@froydinger.com" className="text-primary hover:underline">
                   arc@froydinger.com
@@ -87,7 +87,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">6. Intellectual property</h2>
               <p className="text-muted-foreground">
-                The ArcAI software, branding, and underlying systems are owned by Win The Night Productions and
+                The ArcAI software, branding, and underlying systems are owned by Win The Night™ Foundation and
                 Froydinger Design Systems. You retain ownership of inputs you submit and outputs generated for you,
                 subject to the rights of the underlying AI model providers. You grant us a limited license to process
                 your inputs solely to provide the service.
@@ -147,8 +147,8 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">13. Governing law</h2>
               <p className="text-muted-foreground">
-                These terms are governed by the laws of the United States and the state of residence of Win The Night
-                Productions, without regard to conflict-of-laws rules.
+                These terms are governed by the laws of the United States and the state of residence of Win The Night™
+                Foundation, without regard to conflict-of-laws rules.
               </p>
             </section>
 

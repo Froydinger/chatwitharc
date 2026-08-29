@@ -259,7 +259,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["Ask Arc", "askarc.chat", "ArcAI"],
     updated: UPDATED,
     intro:
-      "Ask Arc is the way people refer to using ArcAI, the free AI assistant from Win The Night Productions. Visit askarc.chat, create a free account, and start typing.",
+      "Ask Arc is the way people refer to using ArcAI, the free AI assistant from Win The Night™ Foundation. Visit askarc.chat, create a free account, and start typing.",
     faq: [
       {
         q: "What is Ask Arc?",

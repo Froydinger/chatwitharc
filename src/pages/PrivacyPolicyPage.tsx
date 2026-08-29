@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">Who we are</h2>
               <p className="text-muted-foreground">
-                ArcAI is operated by <strong>Win The Night™ Productions</strong> in collaboration with{" "}
+                ArcAI is operated by <strong>Win The Night™ Foundation</strong> in collaboration with{" "}
                 <strong>Froydinger™ Design Systems</strong>. Questions? Email{" "}
                 <a href="mailto:arc@froydinger.com" className="text-primary hover:underline">
                   arc@froydinger.com

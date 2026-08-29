@@ -882,12 +882,12 @@ export function SettingsPanel() {
           <a href="/support" onClick={(e) => { e.preventDefault(); navigate('/support'); }} className="hover:text-primary-glow transition-colors underline">Help</a>
           <span>•</span>
           <a
-            href="https://winthenight.productions"
+            href="https://winthenight.org"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-primary-glow transition-colors underline"
           >
-            Win the Night Productions
+            Win The Night™ Foundation
           </a>
         </div>
         <p className="text-[11px] text-muted-foreground/60 opacity-60 pt-1">
@@ -1020,7 +1020,7 @@ export function SettingsPanel() {
               <a href="/blog" onClick={(e) => { e.preventDefault(); navigate('/blog'); }} className="hover:text-primary-glow underline">Guides & FAQs</a>
               <span>•</span>
               <a
-                href="https://winthenight.productions"
+                href="https://winthenight.org"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:text-primary-glow underline"
