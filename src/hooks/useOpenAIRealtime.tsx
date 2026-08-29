@@ -104,13 +104,6 @@ const clearSessionTimers = () => {
 // loop. It must never be treated as transient.
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key', 'model_not_found'];
 const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1-mini';
-// Barge-in sensitivity. Anything quieter than this while Arc is talking is
-// treated as breathing, room noise, or speaker bleed rather than an interrupt.
-// iOS needs a higher bar because the handset speaker leaks into the mic even
-// with echo cancellation on — but a bar, not a blanket block, or the user can
-// never talk over Arc at all.
-const BARGE_IN_AMPLITUDE = 0.045;
-const IOS_BARGE_IN_AMPLITUDE = 0.09;
 const IS_IOS_VOICE_DEVICE = typeof navigator !== 'undefined' && (
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
@@ -644,17 +637,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'input_audio_buffer.speech_started':
         console.log('VAD: User speech detected');
         const stateAtSpeechStart = useVoiceModeStore.getState();
-        const bargeInThreshold = IS_IOS_VOICE_DEVICE ? IOS_BARGE_IN_AMPLITUDE : BARGE_IN_AMPLITUDE;
-        const arcIsResponding = responseInProgress ||
+        if (IS_IOS_VOICE_DEVICE && (
+          responseInProgress ||
           stateAtSpeechStart.status === 'thinking' ||
           stateAtSpeechStart.status === 'speaking' ||
-          stateAtSpeechStart.isAudioPlaying;
-
-        // iOS used to discard every speech_started while Arc was responding,
-        // which killed echo loops but also made voice barge-in impossible — the
-        // user talked over Arc and Arc played the rest of its answer anyway.
-        // Discard only what is quiet enough to actually be speaker bleed.
-        if (IS_IOS_VOICE_DEVICE && arcIsResponding && stateAtSpeechStart.inputAmplitude <= bargeInThreshold) {
+          stateAtSpeechStart.isAudioPlaying
+        )) {
           console.log('Ignoring iOS speaker echo during Arc response');
           sendRealtimeEvent({ type: 'input_audio_buffer.clear' });
           return;
@@ -674,10 +662,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         userSpokeAfterLastResponse = true;
         const voiceStateAtSpeechStart = stateAtSpeechStart;
         const isBargeIn = (responseInProgress || voiceStateAtSpeechStart.status === 'speaking' || voiceStateAtSpeechStart.isAudioPlaying)
-          && voiceStateAtSpeechStart.inputAmplitude > bargeInThreshold; // Guard against ambient noise/breathing cutting off AI speech
+          && voiceStateAtSpeechStart.inputAmplitude > 0.045; // Guard against ambient noise/breathing cutting off AI speech
 
         if (isBargeIn) {
-          console.log(`🎙️ Intentional user barge-in confirmed (amplitude > ${bargeInThreshold})`);
+          console.log('🎙️ Intentional user barge-in confirmed (amplitude > 0.045)');
           rememberInterruptedResponse(activeResponseId);
           suppressInterruptedResponseAudio = true;
           useVoiceModeStore.getState().setHasPendingSpeech(true);
@@ -1249,12 +1237,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (completedActiveResponse) {
           responseInProgress = false;
           activeResponseId = null;
-          // A cancelled response can still have audio deltas in flight behind
-          // its own done event. Keep suppressing until the next response starts
-          // (response.created clears this) so the tail never plays.
-          if (event.response?.status !== 'cancelled') {
-            suppressInterruptedResponseAudio = false;
-          }
+          suppressInterruptedResponseAudio = false;
         }
         flushPendingFunctionResults();
         setCurrentTranscript('');
