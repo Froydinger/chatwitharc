@@ -15,6 +15,18 @@ interface SearchResult {
   snippet: string;
 }
 
+// No upstream call gets to stall the whole search. A provider that misses its
+// window is treated as a failure so the fallback path can run.
+const fetchWithTimeout = async (url: string, init: RequestInit, timeoutMs: number) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -141,7 +153,7 @@ serve(async (req) => {
         const webSearchOptions: Record<string, unknown> = { search_context_size: 'high' };
         if (includeSearchType) webSearchOptions.search_type = 'pro';
 
-        return fetch('https://api.perplexity.ai/chat/completions', {
+        return fetchWithTimeout('https://api.perplexity.ai/chat/completions', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
@@ -158,7 +170,7 @@ serve(async (req) => {
             ],
             web_search_options: webSearchOptions,
           }),
-        });
+        }, 90000);
       };
 
       try {
@@ -223,18 +235,24 @@ serve(async (req) => {
     }
 
     if (provider === 'perplexity') {
-      const pplxResp = await fetch('https://api.perplexity.ai/search', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: userQuery,
-          max_results: 12,
-          search_context_size: 'high',
-        }),
-      });
+      let pplxResp: Response;
+      try {
+        pplxResp = await fetchWithTimeout('https://api.perplexity.ai/search', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: userQuery,
+            max_results: 10,
+            search_context_size: 'medium',
+          }),
+        }, 20000);
+      } catch (e) {
+        console.error('Perplexity search timed out or failed:', e);
+        pplxResp = new Response(null, { status: 504 });
+      }
 
       if (!pplxResp.ok) {
         const errText = await pplxResp.text();
@@ -296,7 +314,7 @@ serve(async (req) => {
     // Tavily runs as the primary provider when no Perplexity key is set, and as
     // the fallback when a Perplexity call fails.
     if (rawResults.length === 0 && TAVILY_API_KEY) {
-      const tavilyResp = await fetch('https://api.tavily.com/search', {
+      const tavilyResp = await fetchWithTimeout('https://api.tavily.com/search', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${TAVILY_API_KEY}`,
@@ -311,7 +329,7 @@ serve(async (req) => {
           include_raw_content: true,
           include_images: !skipImages,
         }),
-      });
+      }, 20000);
 
       if (!tavilyResp.ok) {
         const errText = await tavilyResp.text();
@@ -364,7 +382,7 @@ serve(async (req) => {
     let content = '';
     if (OPENAI_API_KEY) {
       const sourceBlock = picked.map((r, i) => {
-        const body = (r.raw_content || r.content || '').slice(0, 3000);
+        const body = (r.raw_content || r.content || '').slice(0, 1800);
         return `[${i + 1}] ${r.title}\nURL: ${r.url}\nExcerpt: ${body}`;
       }).join('\n\n');
 
@@ -375,7 +393,7 @@ serve(async (req) => {
       const synthUser = `Query: ${userQuery}\n\nArcAI-retrieved sources (not user-provided):\n${sourceBlock}${tavilyAnswer}\n\nWrite the comprehensive cited research answer now.`;
 
       try {
-        const aiResp = await fetch('https://api.openai.com/v1/chat/completions', {
+        const aiResp = await fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${OPENAI_API_KEY}`,
@@ -387,10 +405,12 @@ serve(async (req) => {
               { role: 'system', content: synthSystem },
               { role: 'user', content: synthUser },
             ],
-            reasoning_effort: 'high',
-            max_completion_tokens: 65536,
+            // Medium effort with a real cap: high effort against a 65k budget
+            // was most of the wait, for an answer nobody reads to the end of.
+            reasoning_effort: 'medium',
+            max_completion_tokens: 6000,
           }),
-        });
+        }, 60000);
         if (aiResp.ok) {
           const aiData = await aiResp.json();
           content = aiData.choices?.[0]?.message?.content || '';

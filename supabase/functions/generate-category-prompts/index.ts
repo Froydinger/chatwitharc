@@ -173,7 +173,7 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
       const errText = await response.text().catch(() => '');
       console.error('AI gateway error:', response.status, errText);
       return new Response(
-        JSON.stringify({ prompts: fallbackPrompts[category as keyof typeof fallbackPrompts], fallback: true, error: `AI service temporarily unavailable (${response.status})` }),
+        JSON.stringify({ prompts: fallbackPrompts[category as keyof typeof fallbackPrompts], category, fallback: true, error: `AI service temporarily unavailable (${response.status})` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -238,14 +238,14 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
         console.error('Attempted to parse:', jsonMatch[0].substring(0, 500));
         console.error(`Failed to parse AI response JSON: ${parseMessage}`);
         return new Response(
-          JSON.stringify({ prompts: fallbackPrompts[category as keyof typeof fallbackPrompts], fallback: true, error: `Failed to parse AI response JSON: ${parseMessage}` }),
+          JSON.stringify({ prompts: fallbackPrompts[category as keyof typeof fallbackPrompts], category, fallback: true, error: `Failed to parse AI response JSON: ${parseMessage}` }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
     }
 
     return new Response(
-      JSON.stringify({ prompts }),
+      JSON.stringify({ prompts, category }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -253,7 +253,7 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
     console.error('Category prompts error:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     return new Response(
-      JSON.stringify({ prompts: fallbackPrompts[requestedCategory], fallback: true, error: message }),
+      JSON.stringify({ prompts: fallbackPrompts[requestedCategory], category: requestedCategory, fallback: true, error: message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }

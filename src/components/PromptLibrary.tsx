@@ -8,7 +8,7 @@ import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask } from "@/store/useModelStore";
 import { toast } from "sonner";
 import { generatePromptsByCategory } from "@/utils/promptGenerator";
-import { getCachedPrompts } from "@/hooks/usePromptPreload";
+import { getCachedPrompts, CACHE_KEY_PREFIX } from "@/hooks/usePromptPreload";
 
 interface QuickPrompt {
   label: string;
@@ -58,7 +58,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
       console.log(`🔄 Force refreshing ${category} prompts - bypassing cache`);
       // Clear cache when force refreshing
       try {
-        sessionStorage.removeItem(`arc_prompts_cache_${category}`);
+        sessionStorage.removeItem(`${CACHE_KEY_PREFIX}${category}`);
       } catch (e) {
         console.error('Failed to clear cache:', e);
       }
@@ -88,6 +88,15 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
         return generatePromptsByCategory(category);
       }
 
+      // An older deployment that does not know this category answers with its
+      // own default set, which is how Ask and Reflect ended up showing the same
+      // prompts. Only trust a response that says it is for what we asked for.
+      const answeredForCategory = !data?.category || data.category === category;
+      if (!answeredForCategory) {
+        console.warn(`Prompt service answered for "${data.category}" when asked for "${category}" — using local prompts`);
+        return generatePromptsByCategory(category);
+      }
+
       const prompts = Array.isArray(data?.prompts) && data.prompts.length > 0
         ? data.prompts
         : generatePromptsByCategory(category);
@@ -96,7 +105,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
       // Only cache successful API responses, not fallbacks
       if (data?.prompts && data.prompts.length > 0) {
         try {
-          sessionStorage.setItem(`arc_prompts_cache_${category}`, JSON.stringify(prompts));
+          sessionStorage.setItem(`${CACHE_KEY_PREFIX}${category}`, JSON.stringify(prompts));
           console.log(`💾 Cached new ${category} prompts`);
         } catch (e) {
           console.error('Failed to cache prompts:', e);

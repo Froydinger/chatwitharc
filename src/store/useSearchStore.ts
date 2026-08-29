@@ -56,6 +56,10 @@ export interface SearchSession {
   summaryConversation?: SourceMessage[]; // Follow-up conversation within the summary
   images?: string[];
   quickAnswer?: string;
+  // Which mode ran this search, so follow-ups stay on it — answering a
+  // follow-up with a weaker search than the question it follows reads as a
+  // regression to the user.
+  ultra?: boolean;
 }
 
 interface SearchState {
@@ -83,7 +87,7 @@ interface SearchState {
   setPendingSearchQuery: (query: string | null) => void;
   
   // Session actions
-  addSession: (query: string, results: SearchResult[], formattedContent: string, relatedQueries?: string[], images?: string[], quickAnswer?: string) => string;
+  addSession: (query: string, results: SearchResult[], formattedContent: string, relatedQueries?: string[], images?: string[], quickAnswer?: string, ultra?: boolean) => string;
   setActiveSession: (sessionId: string) => void;
   updateSession: (sessionId: string, updates: Partial<Omit<SearchSession, 'id' | 'timestamp'>>) => void;
   removeSession: (sessionId: string) => void;
@@ -208,7 +212,7 @@ export const useSearchStore = create<SearchState>()(
         set({ pendingSearchQuery: query });
       },
 
-      addSession: (query, results, formattedContent, relatedQueries, images, quickAnswer) => {
+      addSession: (query, results, formattedContent, relatedQueries, images, quickAnswer, ultra) => {
         const id = crypto.randomUUID();
         const newSession: SearchSession = {
           id,
@@ -219,6 +223,7 @@ export const useSearchStore = create<SearchState>()(
           relatedQueries,
           images,
           quickAnswer,
+          ultra,
         };
 
         set((state) => ({
@@ -563,6 +568,8 @@ export const useSearchStore = create<SearchState>()(
               query: contextualQuery,
               skipImages: true,
               deepResearch: true,
+              // Follow-ups run in whatever mode the original search used.
+              ultra: session.ultra === true,
             },
           });
 

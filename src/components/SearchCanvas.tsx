@@ -207,7 +207,7 @@ export function SearchCanvas() {
       const images: string[] = data?.images || [];
 
       // Save session with empty quickAnswer to show results instantly
-      const sessionId = addSession(query, results, formattedContent, undefined, images, "");
+      const sessionId = addSession(query, results, formattedContent, undefined, images, "", ultraMode);
 
       toast({
         title: `Found ${results.length} sources`,

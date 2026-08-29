@@ -7,7 +7,8 @@ export interface QuickPrompt {
   prompt: string;
 }
 
-const CACHE_KEY_PREFIX = 'arc_prompts_cache_';
+// Bumped when the category set changed — old keys hold the duplicated sets.
+const CACHE_KEY_PREFIX = 'arc_prompts_arc_';
 export { CACHE_KEY_PREFIX };
 
 // Store prompts in sessionStorage for instant access
@@ -46,6 +47,13 @@ async function generateAIPrompts(category: PromptCategory): Promise<QuickPrompt[
     if (error) {
       console.error(`Failed to generate ${category} prompts:`, error);
       // Don't cache fallback prompts - let them be freshly randomized each time
+      return generatePromptsByCategory(category);
+    }
+
+    // Ignore a response generated for a different category — an older
+    // deployment falls back to its own default set rather than erroring.
+    if (data?.category && data.category !== category) {
+      console.warn(`Prompt service answered for "${data.category}" when asked for "${category}"`);
       return generatePromptsByCategory(category);
     }
 
