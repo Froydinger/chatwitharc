@@ -479,8 +479,25 @@ export function VoiceModeController() {
   // card above the request that asked for it. Flush whatever turns are already
   // transcribed before writing a card so the chat keeps conversational order.
   const saveNewTurnsRef = useRef<((final?: boolean) => Promise<number>) | null>(null);
+  // Flushing alone was not enough: the model calls the tool straight off the
+  // audio, while the user's transcript arrives on its own slower path, so at
+  // card time there was usually nothing to flush yet and the card still landed
+  // above the request. Give the transcript a moment to show up first. The
+  // overlay already shows live progress, so a short wait costs nothing visible.
+  const PENDING_TURN_WAIT_MS = 3500;
+  const PENDING_TURN_POLL_MS = 150;
   const flushTurnsBeforeCard = useCallback(async () => {
     try {
+      const deadline = Date.now() + PENDING_TURN_WAIT_MS;
+      while (Date.now() < deadline) {
+        const { conversationTurns, isActive } = useVoiceModeStore.getState();
+        if (!isActive) break;
+        const hasUnsavedUserTurn = conversationTurns
+          .slice(savedTurnIndex)
+          .some((turn) => turn.role === 'user' && turn.transcript.trim());
+        if (hasUnsavedUserTurn) break;
+        await new Promise((resolve) => setTimeout(resolve, PENDING_TURN_POLL_MS));
+      }
       await saveNewTurnsRef.current?.(false);
     } catch (error) {
       console.warn('Could not flush voice turns before writing a tool card:', error);
@@ -492,18 +509,23 @@ export function VoiceModeController() {
     const runId = Symbol('voice-image-generate');
     latestImageRunRef.current = runId;
     setIsGeneratingImage(true);
-    await flushTurnsBeforeCard();
-    const placeholderId = await addMessage({
+    // The card waits for the user's transcript so it lands under the request,
+    // but the render must not wait for anything — kick it off first.
+    const placeholderPromise = flushTurnsBeforeCard().then(() => addMessage({
       content: `Generating image: ${prompt}`,
       role: 'assistant',
       type: 'image-generating',
       imagePrompt: prompt,
       sourceModel: 'cloud-image',
       modelUsed: 'gpt-image-2',
+    })).catch((error) => {
+      console.warn('Could not write the image placeholder:', error);
+      return '';
     });
     
     try {
       const urls = await aiService.generateImage(prompt, 'gpt-image-2', aspectRatio);
+      const placeholderId = await placeholderPromise;
       const imageUrl = urls[0];
       if (latestImageRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
         return imageUrl;
@@ -524,6 +546,7 @@ export function VoiceModeController() {
     } catch (error) {
       console.error('VoiceModeController: Image generation failed:', error);
       if (latestImageRunRef.current !== runId) return '';
+      const placeholderId = await placeholderPromise;
       await replaceMessage(placeholderId, {
         content: "I couldn't finish that image generation. Try a simpler prompt and I'll take another swing.",
         role: 'assistant',
@@ -547,19 +570,22 @@ export function VoiceModeController() {
     const runId = Symbol('voice-image-revise');
     latestImageRunRef.current = runId;
     setIsGeneratingImage(true);
-    await flushTurnsBeforeCard();
-    const placeholderId = await addMessage({
+    const placeholderPromise = flushTurnsBeforeCard().then(() => addMessage({
       content: `Editing image: ${prompt}`,
       role: 'assistant',
       type: 'image-generating',
       imagePrompt: prompt,
       sourceModel: 'cloud-image-edit',
       modelUsed: 'gpt-image-2',
+    })).catch((error) => {
+      console.warn('Could not write the image placeholder:', error);
+      return '';
     });
 
     try {
       const urls = await aiService.editImage(prompt, baseImageUrl, 'gpt-image-2', aspectRatio);
       const imageUrl = urls[0];
+      const placeholderId = await placeholderPromise;
       if (latestImageRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
         return imageUrl;
       }
@@ -579,6 +605,7 @@ export function VoiceModeController() {
     } catch (error) {
       console.error('VoiceModeController: Image revision failed:', error);
       if (latestImageRunRef.current !== runId) return '';
+      const placeholderId = await placeholderPromise;
       await replaceMessage(placeholderId, {
         content: "I couldn't finish that image edit. Try a simpler edit and I'll run it again.",
         role: 'assistant',
