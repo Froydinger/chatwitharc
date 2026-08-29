@@ -1091,6 +1091,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           role: "assistant",
           type: "text",
           memoryAction,
+          webSources: result.webSources,
           sourceModel: didSearchWeb
             ? result.searchProvider === "tavily"
               ? "cloud-search-tavily"
@@ -2518,6 +2519,7 @@ ${safeCode}
                 role: "assistant",
                 type: "text",
                 memoryAction,
+                webSources: result.webSources,
                 weatherData: result.weatherData,
                 scheduledTask: result.scheduledTask,
                 notificationDispatch: result.notificationDispatch,

@@ -1,4 +1,4 @@
-import { ExternalLink, Globe2 } from "lucide-react";
+import { ExternalLink, Globe2, Search, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
@@ -27,22 +27,35 @@ export function SearchResultsCard({ content, sources, query }: SearchResultsCard
   return (
     <div
       className={cn(
-        "w-[min(42rem,calc(100vw-2.5rem))] max-w-full overflow-hidden rounded-2xl",
-        "border border-border/55 bg-background/75 shadow-sm backdrop-blur-xl",
+        "w-[min(46rem,calc(100vw-2.5rem))] max-w-full overflow-hidden rounded-3xl",
+        "border border-primary/20 bg-background/80 shadow-[0_18px_60px_-28px_hsl(var(--primary)/0.45)] ring-1 ring-foreground/[0.04] backdrop-blur-2xl",
       )}
     >
-      <div className="flex items-start gap-3 border-b border-border/45 px-4 py-3.5 sm:px-5">
-        <div className="mt-0.5 rounded-xl bg-primary/10 p-2 text-primary">
-          <Globe2 className="h-4 w-4" />
+      <div className="flex items-center gap-3 border-b border-border/45 bg-muted/15 px-4 py-3 sm:px-5">
+        <div className="flex gap-1.5" aria-hidden="true">
+          <span className="h-2.5 w-2.5 rounded-full bg-foreground/15" />
+          <span className="h-2.5 w-2.5 rounded-full bg-foreground/10" />
+          <span className="h-2.5 w-2.5 rounded-full bg-primary/35" />
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">Web results</p>
-          {query && <p className="mt-0.5 truncate text-xs text-muted-foreground">{query}</p>}
+        <div className="flex min-w-0 flex-1 items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
+          <Search className="h-3.5 w-3.5 text-primary" />
+          <span className="truncate">{query || "Arc Search"}</span>
+        </div>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">Complete</span>
+      </div>
+
+      <div className="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
+        <div className="mt-0.5 rounded-2xl border border-primary/20 bg-primary/10 p-2.5 text-primary shadow-inner">
+          <Sparkles className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground">Search result</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">Synthesized from {sources.length} source{sources.length === 1 ? "" : "s"}</p>
         </div>
       </div>
 
-      <div className="px-4 py-4 sm:px-5">
-        <div className="search-result-copy text-foreground/90">
+      <div className="px-4 py-4 sm:px-5 sm:pb-5">
+        <div className="search-result-copy rounded-2xl border border-border/40 bg-background/45 px-4 py-4 text-foreground/90 sm:px-5">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
@@ -70,9 +83,9 @@ export function SearchResultsCard({ content, sources, query }: SearchResultsCard
       </div>
 
       {sources.length > 0 && (
-        <div className="border-t border-border/45 bg-muted/20 px-4 py-3.5 sm:px-5">
+        <div className="border-t border-border/45 bg-muted/20 px-4 py-4 sm:px-5">
           <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Sources
+            Sources used
           </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {sources.slice(0, 6).map((source, index) => (

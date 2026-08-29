@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { describeCronSchedule } from "@/lib/scheduleLabels";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Task {
   id: string;
@@ -97,6 +98,9 @@ export function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
+  const [expiredTask, setExpiredTask] = useState<Task | null>(null);
+  const [resumeSchedule, setResumeSchedule] = useState("in 5 minutes");
+  const [resuming, setResuming] = useState(false);
 
   // form
   const [title, setTitle] = useState("");
@@ -128,7 +132,7 @@ export function TasksPage() {
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
-    setTasks((data as any) ?? []);
+    setTasks((data as Task[] | null) ?? []);
     setLoading(false);
   }
 
@@ -169,8 +173,52 @@ export function TasksPage() {
   }
 
   async function toggleStatus(t: Task) {
-    const next = t.status === "active" ? "paused" : "active";
-    await supabase.from("scheduled_tasks").update({ status: next }).eq("id", t.id);
+    if (t.status === "active") {
+      const { error } = await supabase.from("scheduled_tasks").update({ status: "paused" }).eq("id", t.id);
+      if (error) toast({ title: "Couldn't pause reminder", description: error.message, variant: "destructive" });
+      void load();
+      return;
+    }
+
+    const scheduledTime = t.next_run_at ? new Date(t.next_run_at).getTime() : NaN;
+    if (Number.isFinite(scheduledTime) && scheduledTime > Date.now()) {
+      const { error } = await supabase.from("scheduled_tasks").update({ status: "active" }).eq("id", t.id);
+      if (error) {
+        toast({ title: "Couldn't resume reminder", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Reminder resumed", description: `Still scheduled for ${new Date(scheduledTime).toLocaleString()}.` });
+      }
+      void load();
+      return;
+    }
+
+    setResumeSchedule(t.schedule_type === "cron" ? describeCronSchedule(t.cron_expr, t.next_run_at) : "in 5 minutes");
+    setExpiredTask(t);
+  }
+
+  async function rescheduleExpiredTask() {
+    if (!expiredTask) return;
+    const parsed = parseSchedule(resumeSchedule);
+    if (!parsed) {
+      toast({ title: "When should I remind you?", description: "Try ‘in 5 minutes’ or ‘every day at 8am’.", variant: "destructive" });
+      return;
+    }
+    const nextRun = parsed.type === "once" ? parsed.runAt! : computeNextFromCron(parsed.cron!);
+    setResuming(true);
+    const { error } = await supabase.from("scheduled_tasks").update({
+      status: "active",
+      schedule_type: parsed.type,
+      cron_expr: parsed.cron ?? null,
+      run_at: parsed.runAt ?? null,
+      next_run_at: nextRun,
+    }).eq("id", expiredTask.id);
+    setResuming(false);
+    if (error) {
+      toast({ title: "Couldn't reschedule reminder", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Reminder rescheduled", description: `Next reminder: ${new Date(nextRun).toLocaleString()}.` });
+    setExpiredTask(null);
     void load();
   }
 
@@ -279,9 +327,11 @@ export function TasksPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => runNow(t)} title="Run now">
-                      <Play className="h-4 w-4" />
-                    </Button>
+                    {t.status === "active" && (
+                      <Button variant="ghost" size="icon" onClick={() => runNow(t)} title="Run now">
+                        <Play className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" onClick={() => toggleStatus(t)} title={t.status === "active" ? "Pause" : "Resume"}>
                       {t.status === "active" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                     </Button>
@@ -294,6 +344,33 @@ export function TasksPage() {
             ))}
           </div>
         )}
+
+        <Dialog open={Boolean(expiredTask)} onOpenChange={(open) => { if (!open && !resuming) setExpiredTask(null); }}>
+          <DialogContent className="glass-card max-w-md">
+            <DialogHeader>
+              <DialogTitle>When would you like me to remind you?</DialogTitle>
+              <DialogDescription>
+                The original time for “{expiredTask?.title}” has already passed. Choose a new time to resume it.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-2">
+              <Label htmlFor="resume-schedule">New reminder time</Label>
+              <Input
+                id="resume-schedule"
+                value={resumeSchedule}
+                onChange={(event) => setResumeSchedule(event.target.value)}
+                placeholder="in 5 minutes"
+                onKeyDown={(event) => { if (event.key === "Enter") void rescheduleExpiredTask(); }}
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">Try “in 5 minutes,” “every day at 8am,” or “every Monday.”</p>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setExpiredTask(null)} disabled={resuming}>Cancel</Button>
+              <Button onClick={rescheduleExpiredTask} disabled={resuming}>{resuming ? "Rescheduling…" : "Resume reminder"}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

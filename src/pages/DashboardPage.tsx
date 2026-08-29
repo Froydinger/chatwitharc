@@ -5,7 +5,7 @@ import {
   MessageSquare, Image, Rocket, Brain,
   Plus, Clock, Settings, Search,
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
-  Globe, Code2, Eye, Sparkles, Zap, ArrowRight, Music, Edit2, Check, X,
+  Globe, Code2, Eye, Sparkles, ArrowRight, Music, Edit2, Check, X,
   Layers, PenLine, FileCode, MessageCircle, Upload, Users, FolderPlus, Folder, Pin, PinOff, MoreVertical, MoreHorizontal,
   CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock
 } from "lucide-react";
@@ -30,7 +30,6 @@ import { getFaviconByLabel } from "@/constants/faviconOptions";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useAccentColor } from "@/hooks/useAccentColor";
 import { useToast } from "@/hooks/use-toast";
-import { ChatInput } from "@/components/ChatInput";
 import { MusicPopup } from "@/components/MusicPopup";
 import { useMusicStore } from "@/store/useMusicStore";
 import { CodePreview } from "@/components/CodePreview";
@@ -874,7 +873,7 @@ useEffect(() => {
         willChange: 'transform, opacity, filter',
       }}
     >
-      <div className="w-full px-4 sm:px-6 pt-3 sm:pt-4 pb-8 sm:pb-12 space-y-6 sm:space-y-8">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 pt-3 sm:pt-5 pb-8 sm:pb-12 space-y-6 sm:space-y-8">
 
         {/* ═══ HEADER with ambient glow ═══ */}
         <div className="relative">
@@ -882,7 +881,7 @@ useEffect(() => {
           <div className="absolute -top-12 left-1/4 w-48 h-48 rounded-full bg-primary/8 blur-[80px] pointer-events-none" />
           <div className="absolute -top-8 right-1/3 w-32 h-32 rounded-full bg-primary/5 blur-[60px] pointer-events-none" />
           
-          <div className="relative flex items-center justify-between">
+          <div className="relative flex items-center justify-between rounded-3xl border border-border/30 bg-background/35 px-3 py-3 sm:px-5 sm:py-4 backdrop-blur-xl">
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
@@ -894,9 +893,11 @@ useEffect(() => {
                 <MessageSquare className="h-4.5 w-4.5 text-primary" />
               </Button>
               <div>
+                <p className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70 sm:block">Your Arc</p>
                 <h1 className="text-base sm:text-2xl font-light text-foreground tracking-tight">
                   {greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}.
                 </h1>
+                <p className="hidden text-xs text-muted-foreground sm:block">Everything you’ve made, saved, and scheduled.</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -954,36 +955,6 @@ useEffect(() => {
               </DropdownMenu>
             </div>
           </div>
-        </div>
-
-        {/* ═══ CHAT INPUT ═══ */}
-        <div className="glass-dock" data-has-images={false}>
-          <ChatInput inline />
-        </div>
-        {/* Portal target for inline image preview — outside glass-dock */}
-        <div id="dashboard-image-preview-target" />
-
-        {/* ═══ FREE BADGE ═══ */}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => navigate('/dashboard/settings?section=plan')}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-primary/25 bg-primary/8 text-primary text-xs font-medium cursor-pointer hover:bg-primary/15 hover:border-primary/40 transition-colors"
-          >
-            <Zap className="h-3.5 w-3.5" />
-            <span>
-              {isAdmin 
-                ? "ArcAI Admin — unlimited everything" 
-                : hasBoost 
-                  ? "ArcAI Boost — higher Luna limits and unlimited Deep Search"
-                  : `ArcAI Free — ${imageLimit === Infinity ? "unlimited" : imageLimit} image outputs/day`}
-            </span>
-          </button>
-          <button
-            onClick={() => navigate('/blog')}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-          >
-            Guides & FAQs
-          </button>
         </div>
 
         {/* ═══ TAB CONTENT ═══ */}
