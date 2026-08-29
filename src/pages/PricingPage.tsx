@@ -11,18 +11,18 @@ const FREE_FEATURES = [
   "GPT-5.6 Luna chats",
   "Auto, Quick, Balanced & Deep reasoning",
   "Image Generation (GPT-Image-1 & 2)",
-  "Deep Search web research",
+  "4 Deep Searches + 1 Ultra Deep Search a week",
   "Real-time voice conversations",
   "Memory, file uploads & canvases",
   "Reminders & shared chats",
 ];
 
 const BOOST_FEATURES = [
+  "Unlimited Deep Search & Ultra Deep Search",
   "Higher Luna chat and reasoning limits",
   "Auto, Quick, Balanced & Deep reasoning",
   "Premium Image Generation (GPT-Image-2)",
   "Advanced image editing studio",
-  "Publish live web apps to custom links",
   "Unlimited shared chats & rooms",
   "Priority feature & server access",
 ];
@@ -46,7 +46,7 @@ export function PricingPage() {
           </div>
           <h1 className="text-5xl font-bold mb-4 text-foreground">Choose your reasoning tier.</h1>
           <p className="text-lg text-foreground/75 max-w-xl mx-auto">
-            Get started with our robust free tier or upgrade to Boost for custom web publishing and elevated quotas.
+            Get started with our robust free tier or upgrade to Boost for unlimited research and elevated quotas.
           </p>
         </div>
 

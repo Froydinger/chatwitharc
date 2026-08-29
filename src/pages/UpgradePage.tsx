@@ -13,7 +13,7 @@ const BOOST_FEATURES = [
   "Auto, Quick, Balanced & Deep reasoning",
   "Premium Image Generation (GPT-Image-2)",
   "Advanced image editing studio",
-  "Publish live web apps to custom links",
+  "Unlimited Deep Search & Ultra Deep Search",
   "Unlimited shared chats & rooms",
   "Priority feature & server access",
 ];

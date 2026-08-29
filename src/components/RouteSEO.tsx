@@ -15,7 +15,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/pricing": {
     title: "ArcAI • Pricing",
     description:
-      "ArcAI includes GPT-5.6 Luna with Auto, Quick, Balanced and Deep reasoning, plus voice, Deep Search, shared chats and web publishing.",
+      "ArcAI includes GPT-5.6 Luna with Auto, Quick, Balanced and Deep reasoning, plus voice, Perplexity-powered Deep Search and Ultra Deep Search, and shared chats.",
   },
   "/downloads": {
     title: "ArcAI • Downloads",
@@ -66,7 +66,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/upgrade": {
     title: "ArcAI • Upgrade to Boost",
     description:
-      "Upgrade your ArcAI account to Boost for unlimited premium reasoning, unlimited voice mode, custom web publishing, and higher image quotas.",
+      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited premium reasoning, unlimited voice mode, and higher image quotas.",
   },
   "/share": {
     title: "ArcAI • Shared Conversation",

@@ -24,7 +24,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning, Deep Search, canvases, memory, and basic image generation. Upgrade to Boost for higher usage limits, unlimited voice, higher image quotas, and custom web publishing.",
+    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning, canvases, memory, image generation, and weekly research — 4 Deep Searches and 1 Ultra Deep Search. Upgrade to Boost for unlimited research, higher usage limits, unlimited voice, and higher image quotas.",
   },
   {
     q: "Is there a paid tier?",

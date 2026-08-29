@@ -391,7 +391,7 @@ export function RightPanel({
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-semibold text-foreground">Upgrade to Boost</h4>
                     <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                      Unlock higher usage limits, premium creative tools, and custom web publishing.
+                      Unlock unlimited Deep Search, higher usage limits, and premium creative tools.
                     </p>
                   </div>
                 </div>

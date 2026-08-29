@@ -87,8 +87,13 @@ export default function PrivacyPolicyPage() {
                   <strong>Email delivery providers</strong> — for account, support, and system messages.
                 </li>
                 <li>
-                  <strong>Web Search, image, and audio providers</strong> — only when you explicitly trigger web search,
-                  image, or audio features.
+                  <strong>Web search and research providers</strong> — your query is sent to <strong>Perplexity</strong>
+                  when you run a Deep Search or Ultra Deep Search, and to our web search provider when you trigger an
+                  in-chat search. Only the query itself is sent, not your chat history, memories, or files.
+                </li>
+                <li>
+                  <strong>Image and audio providers</strong> — only when you explicitly trigger image or audio
+                  features.
                 </li>
                 <li>Law enforcement or regulators when legally required.</li>
               </ul>

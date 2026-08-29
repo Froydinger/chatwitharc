@@ -202,6 +202,40 @@ export function DocsPage() {
       keywords: ["canvas language", "html", "javascript", "svg", "tailwind", "python", "syntax highlighting", "markdown"]
     },
     {
+      id: "deep-search",
+      category: "canvas",
+      title: "Deep Search & Ultra Deep Search",
+      question: "What is the difference between Deep Search and Ultra Deep Search?",
+      answer: (
+        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+          <p>
+            Both are research modes powered by <strong>Perplexity</strong>, opened from the Deep Search button and
+            switched with the tabs at the top of the page.
+          </p>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li>
+              <strong className="text-foreground">Deep Search</strong>: retrieves ranked live web results and writes a
+              cited answer from them. Fast, and right for most questions.
+            </li>
+            <li>
+              <strong className="text-foreground">Ultra Deep Search</strong>: agentic research that browses and
+              cross-checks sources before answering. Slower on purpose — use it when the answer has to be assembled
+              rather than looked up.
+            </li>
+          </ul>
+          <p>
+            Free accounts get <strong>4 Deep Searches and 1 Ultra Deep Search each week</strong>. Boost makes both
+            unlimited. Follow-up questions inside a research session stay in the mode it started in and do not count
+            against your weekly allowance.
+          </p>
+          <p>
+            This is separate from the quick web search inside normal chat, which stays instant and uncapped.
+          </p>
+        </div>
+      ),
+      keywords: ["deep search", "ultra deep search", "research", "perplexity", "citations", "sources", "web search"]
+    },
+    {
       id: "memory-bank",
       category: "memory",
       title: "Managing saved memories",

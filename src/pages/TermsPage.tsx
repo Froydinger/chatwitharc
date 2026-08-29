@@ -36,12 +36,17 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold mb-2">2. Free, forever</h2>
+              <h2 className="text-xl font-semibold mb-2">2. Free tier and Boost</h2>
               <p className="text-muted-foreground">
-                ArcAI is <strong>free for everyone</strong>. There is no paid plan, no subscription, and no Merchant of
-                Record — anything you read elsewhere about billing, refunds, or Pro tiers no longer applies. The only
-                soft limit is 10 image generations per day for non-admin accounts so the service stays sustainable for
-                all users.
+                ArcAI is <strong>free to use</strong>. A free account includes chat, voice, memory, canvases, file
+                uploads, shared chats, and a daily allowance of image generations, plus 4 Deep Searches and 1 Ultra
+                Deep Search each week.
+              </p>
+              <p className="text-muted-foreground mt-3">
+                <strong>Boost</strong> is an optional paid subscription that raises those allowances — unlimited Deep
+                Search and Ultra Deep Search, a higher daily image limit, and higher chat and reasoning limits. It is
+                billed through Stripe on a monthly or annual term, renews automatically until cancelled, and can be
+                cancelled at any time from your account settings; access continues to the end of the paid period.
               </p>
             </section>
 
