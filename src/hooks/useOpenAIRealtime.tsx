@@ -111,6 +111,28 @@ const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1-mini';
 // never talk over Arc at all.
 const BARGE_IN_AMPLITUDE = 0.045;
 const IOS_BARGE_IN_AMPLITUDE = 0.09;
+// speech_started fires on the leading edge of a word, where the level is still
+// near silence — sampling the amplitude at that instant almost always read
+// below the threshold, so real interrupts were thrown away as echo. Track the
+// loudest level from just before the event instead.
+const INPUT_PEAK_WINDOW_MS = 700;
+let recentInputPeak = 0;
+let recentInputPeakAt = 0;
+
+const noteInputAmplitude = (amplitude: number) => {
+  const now = Date.now();
+  if (amplitude >= recentInputPeak || now - recentInputPeakAt > INPUT_PEAK_WINDOW_MS) {
+    recentInputPeak = amplitude;
+    recentInputPeakAt = now;
+  }
+};
+
+const getRecentInputPeak = (currentAmplitude: number) => {
+  if (Date.now() - recentInputPeakAt > INPUT_PEAK_WINDOW_MS) return currentAmplitude;
+  return Math.max(recentInputPeak, currentAmplitude);
+};
+
+useVoiceModeStore.subscribe((state) => noteInputAmplitude(state.inputAmplitude));
 const IS_IOS_VOICE_DEVICE = typeof navigator !== 'undefined' && (
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
@@ -682,6 +704,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         console.log('VAD: User speech detected');
         const stateAtSpeechStart = useVoiceModeStore.getState();
         const bargeInThreshold = IS_IOS_VOICE_DEVICE ? IOS_BARGE_IN_AMPLITUDE : BARGE_IN_AMPLITUDE;
+        const speechLevel = getRecentInputPeak(stateAtSpeechStart.inputAmplitude);
         // Only audible speech can be talked over. While Arc is silently waiting
         // on a tool (weather, search, image), an interrupt cancels the response
         // the tool result was going to land in: the result then queues behind
@@ -709,8 +732,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           stateAtSpeechStart.status === 'thinking' ||
           stateAtSpeechStart.status === 'speaking' ||
           stateAtSpeechStart.isAudioPlaying
-        ) && !(canBargeIn && stateAtSpeechStart.inputAmplitude > bargeInThreshold)) {
-          console.log('Ignoring iOS speaker echo during Arc response');
+        ) && !(canBargeIn && speechLevel > bargeInThreshold)) {
+          console.log(`Ignoring iOS speaker echo during Arc response (peak ${speechLevel.toFixed(3)})`);
           sendRealtimeEvent({ type: 'input_audio_buffer.clear' });
           return;
         }
@@ -728,11 +751,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         userSpokeAfterLastResponse = true;
         const voiceStateAtSpeechStart = stateAtSpeechStart;
-        const isBargeIn = canBargeIn
-          && voiceStateAtSpeechStart.inputAmplitude > bargeInThreshold; // Guard against ambient noise/breathing cutting off AI speech
+        const isBargeIn = canBargeIn && speechLevel > bargeInThreshold; // Guard against ambient noise/breathing cutting off AI speech
 
         if (isBargeIn) {
-          console.log(`🎙️ Intentional user barge-in confirmed (amplitude > ${bargeInThreshold})`);
+          console.log(`🎙️ Intentional user barge-in confirmed (peak ${speechLevel.toFixed(3)} > ${bargeInThreshold})`);
           rememberInterruptedResponse(activeResponseId);
           suppressInterruptedResponseAudio = true;
           useVoiceModeStore.getState().setHasPendingSpeech(true);
@@ -744,8 +766,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           if (globalWs?.readyState === WebSocket.OPEN) {
             sendRealtimeEvent({ type: 'response.cancel' });
           }
-        } else {
-          console.log('🤫 Ignored background noise/breath during AI speech');
+        } else if (arcIsAudiblySpeaking) {
+          console.log(`🤫 Ignored background noise/breath during AI speech (peak ${speechLevel.toFixed(3)})`);
         }
         break;
 
@@ -1556,10 +1578,15 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 turn_detection: {
                   type: 'server_vad',
                   // Deliberately high: typing, breathing and coughing were
-                  // tripping the VAD and cutting Arc off mid-sentence.
-                  threshold: 0.65,
+                  // tripping the VAD and cutting Arc off mid-sentence. 0.65 was
+                  // high enough that speech over Arc's own voice rarely
+                  // registered at all, which is what made it un-interruptible.
+                  threshold: 0.55,
                   prefix_padding_ms: 300,
                   silence_duration_ms: 700,
+                  // Let the server stop its own response the moment it hears
+                  // speech, instead of relying only on the client's cancel.
+                  interrupt_response: true,
                 },
               },
               output: {
