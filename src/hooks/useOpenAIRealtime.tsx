@@ -37,24 +37,6 @@ let hasRealTranscription = false;
 // Track when we explicitly request a response via sendFunctionResult
 let awaitingToolResponse = false;
 let suppressInterruptedResponseAudio = false;
-let activeResponseId: string | null = null;
-const interruptedResponseIds = new Set<string>();
-
-const rememberInterruptedResponse = (responseId: string | null) => {
-  if (!responseId) return;
-  interruptedResponseIds.add(responseId);
-  // Bound this for long-running sessions while retaining enough history to
-  // reject late WebSocket events from recently cancelled responses.
-  if (interruptedResponseIds.size > 20) {
-    const oldest = interruptedResponseIds.values().next().value;
-    if (oldest) interruptedResponseIds.delete(oldest);
-  }
-};
-
-const isInterruptedResponseEvent = (event: any) => {
-  const responseId = event?.response_id || event?.response?.id;
-  return Boolean(responseId && interruptedResponseIds.has(responseId));
-};
 
 // Auto-reconnect state
 let reconnectAttempts = 0;
@@ -590,9 +572,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           return;
         }
         globalSessionId = event.session?.id;
-        activeResponseId = null;
-        interruptedResponseIds.clear();
-        suppressInterruptedResponseAudio = false;
         sessionReady = true;
         console.log('Session created:', globalSessionId);
         logVoiceDiagnostic({
@@ -656,7 +635,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
         if (isBargeIn) {
           console.log('🎙️ Intentional user barge-in confirmed (amplitude > 0.045)');
-          rememberInterruptedResponse(activeResponseId);
           suppressInterruptedResponseAudio = true;
           useVoiceModeStore.getState().setHasPendingSpeech(true);
           try {
@@ -704,7 +682,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'response.audio_transcript.delta':
       case 'response.output_audio_transcript.delta':
-        if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
+        if (suppressInterruptedResponseAudio) return;
         setStatus('speaking');
         const partialTranscript = event.delta || '';
         // Accumulate AI transcript separately — reset on each new response
@@ -715,7 +693,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'response.audio_transcript.done':
       case 'response.output_audio_transcript.done':
-        if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
+        if (suppressInterruptedResponseAudio) return;
         const aiTranscript = event.transcript || '';
         if (!aiTranscript.trim()) return;
         console.log('AI said:', aiTranscript);
@@ -741,7 +719,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'response.audio.delta':
       case 'response.output_audio.delta':
-        if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
+        if (suppressInterruptedResponseAudio) return;
         if (event.delta) {
           const binaryString = atob(event.delta);
           const bytes = new Uint8Array(binaryString.length);
@@ -1194,7 +1172,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // Arc talking counts as activity too.
         resetInactivityTimer();
         responseInProgress = true;
-        activeResponseId = event.response?.id || null;
         suppressInterruptedResponseAudio = false; // Always reset audio suppression for fresh response
         setCurrentTranscript('');
 
@@ -1207,18 +1184,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.done':
-        const completedResponseId = event.response?.id || null;
-        const completedActiveResponse = !completedResponseId || completedResponseId === activeResponseId;
-        if (event.response?.status === 'cancelled') {
-          rememberInterruptedResponse(completedResponseId || activeResponseId);
-        }
-        // A cancelled response can finish after the next response has already
-        // started. Never let that stale completion reset the new turn.
-        if (completedActiveResponse) {
-          responseInProgress = false;
-          activeResponseId = null;
-          suppressInterruptedResponseAudio = false;
-        }
+        responseInProgress = false;
+        suppressInterruptedResponseAudio = false;
         flushPendingFunctionResults();
         setCurrentTranscript('');
         
@@ -1823,8 +1790,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     if (globalWs?.readyState !== WebSocket.OPEN) return;
     
     console.log('Manually cancelling AI response');
-    rememberInterruptedResponse(activeResponseId);
-    suppressInterruptedResponseAudio = true;
     sendRealtimeEvent({ type: 'response.cancel' });
   }, []);
 
