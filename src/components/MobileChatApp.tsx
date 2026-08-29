@@ -35,6 +35,7 @@ import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { VoiceModeController } from "@/components/VoiceModeController";
+import { SourceSurveyBanner } from "@/components/SourceSurveyBanner";
 import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
 import { MessageQueue } from "@/components/MessageQueue";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
@@ -1232,6 +1233,9 @@ export function MobileChatApp() {
           >
             {/* Spacer for header */}
             <div style={{ paddingTop: "5rem" }} />
+
+            {/* One-question survey for accounts that predate asking at signup */}
+            <SourceSurveyBanner />
 
             {/* Empty state or hydrating state */}
             {messages.length === 0 ? (

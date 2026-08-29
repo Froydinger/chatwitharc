@@ -5,6 +5,11 @@ import './index.css'
 import 'katex/dist/katex.min.css'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { isMacDesktopRuntime, shouldReserveDesktopTrafficLightSpace } from './utils/platform.ts'
+import { captureFirstTouch } from './lib/acquisition.ts'
+
+// Before anything can navigate: document.referrer only exists on the visit that
+// brought someone in, and routing replaces the URL moments later.
+captureFirstTouch()
 
 // Device detection for iPad PWA
 const isIpad = () => {

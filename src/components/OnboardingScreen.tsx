@@ -8,14 +8,28 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { User, MessageCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { readFirstTouch, inferSourceFromReferrer } from "@/lib/acquisition";
 
 interface OnboardingScreenProps {
   onComplete: () => void;
 }
 
+const SIGNUP_SOURCES = [
+  { id: 'chatgpt', label: 'ChatGPT' },
+  { id: 'google', label: 'Google search' },
+  { id: 'perplexity', label: 'Perplexity' },
+  { id: 'claude', label: 'Claude' },
+  { id: 'social', label: 'Social media' },
+  { id: 'friend', label: 'A friend' },
+  { id: 'other', label: 'Other' },
+] as const;
+
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const [displayName, setDisplayName] = useState("");
   const [contextInfo, setContextInfo] = useState("");
+  const [source, setSource] = useState<string | null>(null);
+  const [sourceOther, setSourceOther] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -42,11 +56,22 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
         throw new Error("No authenticated user found");
       }
 
+      // The browser only reports a referrer on the visit that brought them in,
+      // so it was stashed at first load. Self-reported source and referrer are
+      // both kept: LLM referrals often arrive with no referrer at all, and a
+      // referrer is evidence the answer to a question cannot be.
+      const firstTouch = readFirstTouch();
+      const referrerSource = firstTouch ? inferSourceFromReferrer(firstTouch.referrer) : null;
+
       const { error } = await supabase
         .from('profiles')
         .update({
           display_name: displayName.trim(),
-          context_info: contextInfo.trim() || null
+          context_info: contextInfo.trim() || null,
+          signup_source: source ?? referrerSource,
+          signup_source_detail: source === 'other' ? (sourceOther.trim() || null) : null,
+          signup_referrer: firstTouch?.referrer || null,
+          signup_landing_path: firstTouch?.landingPath || null,
         })
         .eq('user_id', user.id);
 
@@ -154,6 +179,43 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               </div>
               <p className="text-xs text-muted-foreground">
                 This helps me provide more personalized responses
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                How did you find ArcAI?
+                <span className="text-sm text-muted-foreground ml-1">(optional)</span>
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                {SIGNUP_SOURCES.map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setSource(source === option.id ? null : option.id)}
+                    disabled={loading}
+                    className={cn(
+                      "rounded-xl border px-3 py-2.5 text-sm font-medium transition-all text-left",
+                      source === option.id
+                        ? "border-primary/50 bg-primary/10 text-foreground"
+                        : "border-border/50 bg-card/40 text-muted-foreground hover:bg-card/70"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              {source === 'other' && (
+                <Input
+                  placeholder="Where did you hear about us?"
+                  value={sourceOther}
+                  onChange={(e) => setSourceOther(e.target.value)}
+                  disabled={loading}
+                  className="mt-2"
+                />
+              )}
+              <p className="text-xs text-muted-foreground">
+                This only tells us where to keep showing up — it is never shared.
               </p>
             </div>
 
