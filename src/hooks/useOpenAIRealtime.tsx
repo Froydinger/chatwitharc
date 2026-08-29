@@ -469,6 +469,28 @@ const requestToolResponse = () => {
   return true;
 };
 
+// Report work that finished long after the tool call was answered. The result
+// arrives as a conversation item rather than a function output, because the
+// function call itself was already closed out, and then asks for a reply using
+// the same free-turn logic as any other tool response.
+const announceBackgroundWork = (text: string) => {
+  if (globalWs?.readyState !== WebSocket.OPEN) return;
+
+  const sent = sendRealtimeEvent({
+    type: 'conversation.item.create',
+    item: {
+      type: 'message',
+      role: 'system',
+      content: [{ type: 'input_text', text }],
+    },
+  });
+  if (!sent) return;
+
+  if (!pendingToolResponseRequest) pendingToolResponseSince = Date.now();
+  pendingToolResponseRequest = true;
+  requestToolResponse();
+};
+
 const scheduleToolResponseRetry = () => {
   if (toolResponseRetryTimer) return;
   toolResponseRetryTimer = setTimeout(() => {
@@ -717,7 +739,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           pendingFunctionResults.length > 0 ||
           stateAtSpeechStart.isSearching ||
           stateAtSpeechStart.isSearchingPastChats ||
-          stateAtSpeechStart.isGeneratingImage ||
           stateAtSpeechStart.isFetchingWeather ||
           stateAtSpeechStart.isSchedulingTask;
         const canBargeIn = arcIsAudiblySpeaking && !toolWorkOutstanding;
@@ -934,15 +955,21 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               console.log('Generating image with prompt:', prompt, 'aspect ratio:', aspectRatio);
               
               if (optionsRef.current.onImageGenerate) {
+                // Answer the call immediately and let the render continue in the
+                // background, so the conversation keeps flowing while it draws.
+                // The finished image is announced as its own turn below.
+                sendFunctionResult(call_id, JSON.stringify({
+                  success: true,
+                  status: 'started',
+                  message: 'Image generation started and is rendering now. Say something brief and natural to that effect, keep talking with the user as normal, and do NOT describe the image or claim it is finished — you will be told the moment it is ready.'
+                }));
+                cleanupToolCall();
+
                 withToolTimeout('generate_image', call_id, optionsRef.current.onImageGenerate(prompt, aspectRatio), 90000)
                   .then(() => {
                     console.log('Image generated successfully');
                     logVoiceDiagnostic({ event_type: 'tool_call_completed', tool_name: name, tool_call_id: call_id });
-                    sendFunctionResult(call_id, JSON.stringify({ 
-                      success: true, 
-                      message: `Image generated in the chat thread. Briefly acknowledge it, but do not mention retries or previous failures.`
-                    }));
-                    cleanupToolCall();
+                    announceBackgroundWork(`The image you started ("${prompt}") has finished rendering and is now visible in the chat. Comment on it briefly and naturally, as if you just saw it appear. Do not mention retries or previous failures.`);
                   })
                   .catch((error) => {
                     console.error('Image generation failed:', error);
@@ -953,11 +980,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                       tool_call_id: call_id,
                       details: { errorName: error?.name },
                     });
-                    sendFunctionResult(call_id, JSON.stringify({ 
-                      success: false, 
-                      error: error.message || 'Failed to generate image'
-                    }));
-                    cleanupToolCall();
+                    announceBackgroundWork(`The image you started ("${prompt}") failed to render: ${error?.message || 'unknown error'}. Tell the user briefly and offer to try again.`);
                   });
               } else {
                 sendFunctionResult(call_id, JSON.stringify({ 
@@ -982,15 +1005,18 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               console.log('Revising current image with prompt:', prompt, 'aspect ratio:', aspectRatio);
 
               if (optionsRef.current.onImageRevise) {
+                sendFunctionResult(call_id, JSON.stringify({
+                  success: true,
+                  status: 'started',
+                  message: 'Image edit started and is rendering now. Say something brief and natural to that effect, keep talking with the user as normal, and do NOT describe the result or claim it is finished — you will be told the moment it is ready.'
+                }));
+                cleanupToolCall();
+
                 withToolTimeout('revise_image', call_id, optionsRef.current.onImageRevise(prompt, aspectRatio), 60000)
                   .then(() => {
                     console.log('Image revised successfully');
                     logVoiceDiagnostic({ event_type: 'tool_call_completed', tool_name: name, tool_call_id: call_id });
-                    sendFunctionResult(call_id, JSON.stringify({
-                      success: true,
-                      message: `Updated image generated in the chat thread. Briefly acknowledge the edit, but do not mention retries or previous failures.`
-                    }));
-                    cleanupToolCall();
+                    announceBackgroundWork(`The image edit you started ("${prompt}") has finished and the updated image is now visible in the chat. Comment on it briefly and naturally. Do not mention retries or previous failures.`);
                   })
                   .catch((error) => {
                     console.error('Image revision failed:', error);
@@ -1001,11 +1027,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                       tool_call_id: call_id,
                       details: { errorName: error?.name },
                     });
-                    sendFunctionResult(call_id, JSON.stringify({
-                      success: false,
-                      error: error.message || 'Failed to revise image'
-                    }));
-                    cleanupToolCall();
+                    announceBackgroundWork(`The image edit you started ("${prompt}") failed: ${error?.message || 'unknown error'}. Tell the user briefly and offer to try again.`);
                   });
               } else {
                 sendFunctionResult(call_id, JSON.stringify({
