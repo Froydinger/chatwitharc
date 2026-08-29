@@ -116,10 +116,10 @@ serve(async (req) => {
     // LLM answer, which is exactly the shape wanted here — synthesis already
     // happens below with Luna, so the Agent API's own grounded answer would be
     // paid for twice and then thrown away.
-    // Perplexity is for Deep Search only. Callers opt in with deepResearch, so
-    // scheduled-task lookups (and anything else reusing this function) stay on
-    // Tavily. In-chat web search never reaches here at all — it runs its own
-    // Tavily path inside the chat function.
+    // Callers opt in with deepResearch: Deep Search and scheduled-task lookups
+    // both do, since neither gets a chance to ask a follow-up. In-chat web
+    // search never reaches here at all — it runs its own Tavily path inside the
+    // chat function, where the user can just ask again.
     const provider: 'perplexity' | 'tavily' =
       PERPLEXITY_API_KEY && deepResearch ? 'perplexity' : 'tavily';
     console.log('Research search:', { query: userQuery, skipImages, provider });

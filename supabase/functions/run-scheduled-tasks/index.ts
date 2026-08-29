@@ -99,7 +99,10 @@ async function runTool(name: string, args: any): Promise<string> {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/perplexity-search`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE_KEY}` },
-        body: JSON.stringify({ query: args?.query }),
+        // Scheduled results land in front of the user with no chance to ask a
+        // follow-up, so they use the same Perplexity retrieval as Deep Search.
+        // Images are never shown in a scheduled result, so skip fetching them.
+        body: JSON.stringify({ query: args?.query, deepResearch: true, skipImages: true }),
       });
       const json = await res.json().catch(() => ({}));
       // perplexity-search returns formatted/sources; trim aggressively
