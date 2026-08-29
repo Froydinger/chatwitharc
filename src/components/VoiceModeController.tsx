@@ -5,7 +5,6 @@ import { useAudioCapture } from '@/hooks/useAudioCapture';
 import { useAudioPlayback } from '@/hooks/useAudioPlayback';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useArcStore, Message } from '@/store/useArcStore';
-import { useSearchResultsModalStore } from '@/store/useSearchResultsModalStore';
 import { useToast } from '@/hooks/use-toast';
 import { useBugReport } from '@/hooks/useBugReport';
 import { AIService } from '@/services/ai';
@@ -668,7 +667,6 @@ export function VoiceModeController() {
           longitude: locationUsed.longitude,
         } : undefined,
       });
-      useSearchResultsModalStore.getState().show({ query, content: response, sources });
       console.log('VoiceModeController: Web search complete');
       return response;
     } catch (error: any) {

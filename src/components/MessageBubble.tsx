@@ -34,6 +34,7 @@ import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmb
 import { ModelSourceBadge } from "@/components/ModelSourceBadge";
 import { MessageMetadata } from "@/components/MessageMetadata";
 import { WeatherCard } from "@/components/WeatherCard";
+import { SearchResultsCard } from "@/components/SearchResultsCard";
 import { ScheduledTaskCard } from "@/components/ScheduledTaskCard";
 import { NotificationDispatchCard } from "@/components/NotificationDispatchCard";
 import { SvgArtifact } from "@/components/SvgArtifact";
@@ -341,6 +342,23 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </motion.div>
               )}
 
+              {/* Web search results stay in the conversation, like weather. */}
+              {!isUser && message.webSources && message.webSources.length > 0 && (
+                <motion.div
+                  key="card-web-results"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="mb-3 relative z-10 flex justify-start"
+                >
+                  <SearchResultsCard
+                    content={message.content || ""}
+                    sources={message.webSources}
+                    query={message.memoryAction?.type === "web_searched" ? message.memoryAction.query : undefined}
+                  />
+                </motion.div>
+              )}
+
               {/* Scheduled Task Card */}
               {!isUser && message.scheduledTask && (
                 <motion.div
@@ -625,7 +643,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     </p>
                   ) : (
                     // AI messages with code block support and markdown
-                    (message.content || "").trim().length > 0 && !["canvas", "code", "ide", "file"].includes(message.type) && (
+                    (message.content || "").trim().length > 0 &&
+                    !message.webSources?.length &&
+                    !["canvas", "code", "ide", "file"].includes(message.type) && (
                       <div
                         key="text-assistant"
                         className="relative z-10 w-full min-w-0 arc-message-bubble"
