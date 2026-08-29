@@ -5,6 +5,16 @@ interface UseAudioPlaybackOptions {
   sampleRate?: number;
 }
 
+// Click/pop suppression. Raw PCM chunks that start or stop mid-waveform snap
+// the speaker cone, which iOS renders as an audible pop. These are short enough
+// to be inaudible as a fade but long enough to land on a zero crossing.
+const FADE_IN_SECONDS = 0.008;   // ramp up when audio starts after silence/a gap
+const FADE_OUT_SECONDS = 0.014;  // ramp down before an interrupt or teardown
+const SILENCE_GAIN = 0.0001;     // exponential ramps cannot target exactly 0
+// Small scheduling lead so normal network jitter does not starve the graph
+// mid-sentence (an underrun is a gap, and a gap is a pop).
+const START_LEAD_SECONDS = 0.06;
+
 export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   const { sampleRate = 24000 } = options;
   
@@ -18,6 +28,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   const interruptTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const visibilityHandlerRef = useRef<(() => void) | null>(null);
   const nextStartTimeRef = useRef<number>(0);
+  const masterGainRef = useRef<GainNode | null>(null);
   const lastSourceRef = useRef<AudioBufferSourceNode | null>(null);
   // Track active sources for cleanup.
   // IMPORTANT: Do NOT aggressively evict scheduled sources while they're still pending,
@@ -55,6 +66,12 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
       analyserRef.current = audioContextRef.current.createAnalyser();
       analyserRef.current.fftSize = 256;
       analyserRef.current.connect(audioContextRef.current.destination);
+
+      // Everything plays through one gain node so interrupts can fade the whole
+      // graph out instead of hard-stopping sources mid-waveform.
+      masterGainRef.current = audioContextRef.current.createGain();
+      masterGainRef.current.gain.setValueAtTime(1, audioContextRef.current.currentTime);
+      masterGainRef.current.connect(analyserRef.current);
       
       // Set up MediaSession for background audio support on iOS/Android
       if ('mediaSession' in navigator) {
@@ -107,10 +124,17 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     source.buffer = audioBuffer;
     currentSourceRef.current = source;
     
-    if (analyserRef.current) {
-      source.connect(analyserRef.current);
+    // Per-chunk gain, used only to soften the first chunk of a burst. Contiguous
+    // chunks stay at unity so the stream itself is untouched — fading every chunk
+    // would add an audible flutter at the chunk rate.
+    const chunkGain = audioContext.createGain();
+    source.connect(chunkGain);
+    if (masterGainRef.current) {
+      chunkGain.connect(masterGainRef.current);
+    } else if (analyserRef.current) {
+      chunkGain.connect(analyserRef.current);
     } else {
-      source.connect(audioContext.destination);
+      chunkGain.connect(audioContext.destination);
     }
     
     // Schedule gapless playback. Browser audio can throw if the context is
@@ -118,12 +142,26 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     // that so one bad chunk never crashes the whole app.
     try {
       const now = audioContext.currentTime;
-      const startTime = Math.max(now, nextStartTimeRef.current);
+      // A chunk we cannot start on time follows silence (stream start) or a
+      // buffer underrun. Either way the waveform jumps from zero, so ease it in
+      // and re-anchor with a little lead to avoid starving again immediately.
+      const isDiscontinuous = nextStartTimeRef.current < now;
+      const startTime = isDiscontinuous
+        ? now + START_LEAD_SECONDS
+        : nextStartTimeRef.current;
+
+      if (isDiscontinuous && audioBuffer.duration > 0) {
+        const fadeEnd = Math.min(startTime + FADE_IN_SECONDS, startTime + audioBuffer.duration);
+        chunkGain.gain.setValueAtTime(SILENCE_GAIN, startTime);
+        chunkGain.gain.exponentialRampToValueAtTime(1, fadeEnd);
+      }
+
       source.start(startTime);
       nextStartTimeRef.current = startTime + audioBuffer.duration;
     } catch (error) {
       console.warn('Failed to schedule voice audio chunk; dropping chunk:', error);
       try { source.disconnect(); } catch (_) {}
+      try { chunkGain.disconnect(); } catch (_) {}
       return;
     }
     
@@ -146,6 +184,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
       // Remove from active tracking
       activeSourcesRef.current.delete(source);
       try { source.disconnect(); } catch (_) {}
+      try { chunkGain.disconnect(); } catch (_) {}
       
       if (isInterruptedRef.current) {
         setIsPlaying(false);
@@ -204,9 +243,27 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     nextStartTimeRef.current = 0;
     lastSourceRef.current = null;
 
-    // Stop ALL active audio sources immediately (not just currentSource)
+    // Fade the graph out over a few milliseconds, then stop the sources at that
+    // same moment. Stopping outright cuts the waveform at whatever amplitude it
+    // happened to be at, which pops hard on iOS during barge-in.
+    const ctx = audioContextRef.current;
+    const masterGain = masterGainRef.current;
+    const stopAt = ctx && ctx.state !== 'closed'
+      ? ctx.currentTime + FADE_OUT_SECONDS
+      : 0;
+
+    if (ctx && masterGain && stopAt) {
+      try {
+        masterGain.gain.cancelScheduledValues(ctx.currentTime);
+        masterGain.gain.setValueAtTime(Math.max(masterGain.gain.value, SILENCE_GAIN), ctx.currentTime);
+        masterGain.gain.exponentialRampToValueAtTime(SILENCE_GAIN, stopAt);
+      } catch (_) {}
+    }
+
     for (const src of activeSourcesRef.current) {
-      try { src.stop(); src.disconnect(); } catch (_) {}
+      try { src.stop(stopAt); } catch (_) {
+        try { src.stop(); src.disconnect(); } catch (__) {}
+      }
     }
     activeSourcesRef.current.clear();
     currentSourceRef.current = null;
@@ -221,6 +278,15 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     interruptTimeoutRef.current = setTimeout(() => {
       isInterruptedRef.current = false;
       interruptTimeoutRef.current = null;
+      // Restore the master level only once the fade-out has fully finished, so
+      // the next response starts from a clean, silent graph.
+      const activeCtx = audioContextRef.current;
+      if (activeCtx && activeCtx.state !== 'closed' && masterGainRef.current) {
+        try {
+          masterGainRef.current.gain.cancelScheduledValues(activeCtx.currentTime);
+          masterGainRef.current.gain.setValueAtTime(1, activeCtx.currentTime);
+        } catch (_) {}
+      }
     }, 100);
   }, [setOutputAmplitude, setIsAudioPlaying]);
 
@@ -236,17 +302,37 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     nextStartTimeRef.current = 0;
     lastSourceRef.current = null;
 
-    // Stop ALL active sources
+    // Same fade-then-stop as an interrupt, then tear the context down once the
+    // ramp has played out — closing a context mid-waveform pops too.
+    const ctx = audioContextRef.current;
+    const masterGain = masterGainRef.current;
+    const stopAt = ctx && ctx.state !== 'closed'
+      ? ctx.currentTime + FADE_OUT_SECONDS
+      : 0;
+
+    if (ctx && masterGain && stopAt) {
+      try {
+        masterGain.gain.cancelScheduledValues(ctx.currentTime);
+        masterGain.gain.setValueAtTime(Math.max(masterGain.gain.value, SILENCE_GAIN), ctx.currentTime);
+        masterGain.gain.exponentialRampToValueAtTime(SILENCE_GAIN, stopAt);
+      } catch (_) {}
+    }
+
     for (const src of activeSourcesRef.current) {
-      try { src.stop(); src.disconnect(); } catch (_) {}
+      try { src.stop(stopAt); } catch (_) {
+        try { src.stop(); src.disconnect(); } catch (__) {}
+      }
     }
     activeSourcesRef.current.clear();
     currentSourceRef.current = null;
 
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
+    if (ctx) {
+      setTimeout(() => {
+        try { ctx.close(); } catch (_) {}
+      }, Math.ceil(FADE_OUT_SECONDS * 1000) + 40);
     }
+    audioContextRef.current = null;
+    masterGainRef.current = null;
     analyserRef.current = null;
     isPlayingRef.current = false;
     setIsPlaying(false);
