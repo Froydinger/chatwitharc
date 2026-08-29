@@ -467,7 +467,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-ai-for-coding": {
     angle: "Coding with AI works best when the assistant can move from explanation to implementation. ArcAI's code canvas is designed for generating, previewing, and iterating on working web app ideas.",
     useCases: ["debugging", "prototype apps", "UI changes", "scripts", "learning code", "publishing small projects"],
-    freeAccess: "Code generation, live preview, and publishing a canvas to a shareable link are free for everyone."
+    freeAccess: "Code generation, live preview, and publishing a canvas to a shareable link are free for everyone.",
     proof: "That makes ArcAI more than a code-answer bot: it can become a lightweight builder workspace.",
   },
   "free-ai-for-writing": {
