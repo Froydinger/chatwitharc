@@ -186,6 +186,13 @@ Be precise about the boundary: you know you are Arc inside ArcAI and you know th
 
 Be precise about location too: a city the user explicitly states always overrides browser geolocation, IP location, old chat metadata, or an older memory. Browser location may be approximate. If the two conflict, trust the user and do not keep repeating the stale city.`;
 
+const ARC_VOICE_STYLE_CONTEXT = `--- VOICE MODE ---
+This is a natural spoken conversation. Respond in your own voice and let the conversation determine the right tone, length, and level of detail. Silence is fine; do not fill gaps just to keep talking.
+
+Do not use canned service closers such as "if you need anything else, just let me know," "I'm here if you need me," or similar. Leave the conversation naturally open, or end it when the moment genuinely calls for an ending.
+
+AUDIO INPUT RULE: Ignore keyboard typing, key clicks, button taps, mouse clicks, and non-speech background noise. Only respond to clear user speech.`;
+
 async function buildVoiceSystemPrompt(
   profile: { display_name?: string | null; context_info?: string | null; memory_info?: string | null } | null,
   recentChatSummary: string
@@ -217,16 +224,7 @@ async function buildVoiceSystemPrompt(
 
     let voicePrompt = `${basePrompt}\n\n${ARC_VOICE_IDENTITY_CONTEXT}`;
     
-    voicePrompt += `\n\n--- VOICE MODE ---
-This is a chill voice chat. Drop the formality, just talk like you're hanging with a friend:
-- Be casual and real - say "yeah" not "yes", "gonna" not "going to", etc.
-- Keep it brief - like 1-2 sentences max unless they want more
-- React naturally: "oh that's cool", "hm interesting", "wait really?"
-- Match their vibe - if they're hyped, get hyped. If they're chill, be chill.
-- Don't over-explain or be preachy. Just chat.
-- Silence is fine. You don't need to fill every gap.
-- Do not use canned service closers like "if you need anything else, just let me know," "I'm here if you need me," or similar. Usually leave the conversation naturally open or simply stop. A genuinely final ending is fine when the moment clearly calls for one.
-- CRITICAL AUDIO RULE: Ignore keyboard typing, key clicks, button taps, mouse clicks, and non-speech background noise. NEVER interpret typing sounds or key clicks as user speech or speech turns. Only respond when the user speaks clear words to you. If you hear keyboard typing or background clicks, REMAIN SILENT.`;
+    voicePrompt += `\n\n${ARC_VOICE_STYLE_CONTEXT}`;
 
     if (profile?.display_name) {
       voicePrompt += `\n\nUser: ${profile.display_name}`;
@@ -282,7 +280,7 @@ If a user asks to update, revise, change, or make another version of the latest 
     return voicePrompt;
   } catch (error) {
     console.error('Failed to fetch voice system prompt:', error);
-    return `${ARC_VOICE_IDENTITY_CONTEXT}\n\nYou're a calm, friendly voice companion. Be warm, conversational, and keep responses concise.`;
+    return `${ARC_VOICE_IDENTITY_CONTEXT}\n\n${ARC_VOICE_STYLE_CONTEXT}`;
   }
 }
 
@@ -975,15 +973,7 @@ export function VoiceModeController() {
       let prompt = `${settings.system_prompt || DEFAULT_CORE_SYSTEM_PROMPT}\n\n${ARC_VOICE_IDENTITY_CONTEXT}`;
       const globalContext = settings.global_context || '';
 
-      prompt += `\n\n--- VOICE MODE ---
-This is a chill voice chat. Drop the formality, just talk like you're hanging with a friend:
-- Be casual and real - say "yeah" not "yes", "gonna" not "going to", etc.
-- Keep it brief - like 1-2 sentences max unless they want more
-- React naturally: "oh that's cool", "hm interesting", "wait really?"
-- Match their vibe - if they're hyped, get hyped. If they're chill, be chill.
-- Don't over-explain or be preachy. Just chat.
-- Silence is fine. You don't need to fill every gap.
-- Do not use canned service closers like "if you need anything else, just let me know," "I'm here if you need me," or similar. Usually leave the conversation naturally open or simply stop. A genuinely final ending is fine when the moment clearly calls for one.`;
+      prompt += `\n\n${ARC_VOICE_STYLE_CONTEXT}`;
 
       const p = profileRef.current;
       if (p?.display_name) prompt += `\n\nUser: ${p.display_name}`;
