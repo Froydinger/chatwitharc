@@ -50,8 +50,21 @@ export function SourceSurveyBanner() {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      // Only ask people who have never answered.
-      if (!cancelled && !error && data && !data.signup_source) {
+      if (error) {
+        // Most likely the column does not exist yet because the migration has
+        // not deployed. Say so plainly rather than failing silently — an unasked
+        // survey looks identical to a broken one.
+        console.warn(
+          "[source survey] could not read signup_source, banner hidden:",
+          error.message,
+        );
+        return;
+      }
+
+      if (cancelled) return;
+
+      // No profile row yet is not an answer, so still worth asking.
+      if (!data || !data.signup_source) {
         setVisible(true);
       }
     };
