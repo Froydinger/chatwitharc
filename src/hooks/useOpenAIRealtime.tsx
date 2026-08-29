@@ -104,6 +104,13 @@ const clearSessionTimers = () => {
 // loop. It must never be treated as transient.
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key', 'model_not_found'];
 const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1-mini';
+// Barge-in sensitivity. Anything quieter than this while Arc is talking is
+// treated as breathing, room noise, or speaker bleed rather than an interrupt.
+// iOS needs a higher bar because the handset speaker leaks into the mic even
+// with echo cancellation on — but a bar, not a blanket block, or the user can
+// never talk over Arc at all.
+const BARGE_IN_AMPLITUDE = 0.045;
+const IOS_BARGE_IN_AMPLITUDE = 0.09;
 const IS_IOS_VOICE_DEVICE = typeof navigator !== 'undefined' && (
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
@@ -637,12 +644,35 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'input_audio_buffer.speech_started':
         console.log('VAD: User speech detected');
         const stateAtSpeechStart = useVoiceModeStore.getState();
+        const bargeInThreshold = IS_IOS_VOICE_DEVICE ? IOS_BARGE_IN_AMPLITUDE : BARGE_IN_AMPLITUDE;
+        // Only audible speech can be talked over. While Arc is silently waiting
+        // on a tool (weather, search, image), an interrupt cancels the response
+        // the tool result was going to land in: the result then queues behind
+        // hasPendingSpeech, which a cancelled response deliberately leaves set,
+        // and Arc answers "still waiting for that to finish" forever.
+        const arcIsAudiblySpeaking =
+          stateAtSpeechStart.status === 'speaking' || stateAtSpeechStart.isAudioPlaying;
+        const toolWorkOutstanding =
+          toolCallsInFlight.size > 0 ||
+          pendingFunctionResults.length > 0 ||
+          stateAtSpeechStart.isSearching ||
+          stateAtSpeechStart.isSearchingPastChats ||
+          stateAtSpeechStart.isGeneratingImage ||
+          stateAtSpeechStart.isFetchingWeather ||
+          stateAtSpeechStart.isSchedulingTask;
+        const canBargeIn = arcIsAudiblySpeaking && !toolWorkOutstanding;
+
+        // iOS used to discard every speech_started while Arc was responding,
+        // which killed echo loops but also made voice barge-in impossible — the
+        // user talked over Arc and Arc played the rest of its answer anyway.
+        // Discard only what cannot be a real interrupt, or is quiet enough to
+        // actually be speaker bleed.
         if (IS_IOS_VOICE_DEVICE && (
           responseInProgress ||
           stateAtSpeechStart.status === 'thinking' ||
           stateAtSpeechStart.status === 'speaking' ||
           stateAtSpeechStart.isAudioPlaying
-        )) {
+        ) && !(canBargeIn && stateAtSpeechStart.inputAmplitude > bargeInThreshold)) {
           console.log('Ignoring iOS speaker echo during Arc response');
           sendRealtimeEvent({ type: 'input_audio_buffer.clear' });
           return;
@@ -661,11 +691,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         userSpokeAfterLastResponse = true;
         const voiceStateAtSpeechStart = stateAtSpeechStart;
-        const isBargeIn = (responseInProgress || voiceStateAtSpeechStart.status === 'speaking' || voiceStateAtSpeechStart.isAudioPlaying)
-          && voiceStateAtSpeechStart.inputAmplitude > 0.045; // Guard against ambient noise/breathing cutting off AI speech
+        const isBargeIn = canBargeIn
+          && voiceStateAtSpeechStart.inputAmplitude > bargeInThreshold; // Guard against ambient noise/breathing cutting off AI speech
 
         if (isBargeIn) {
-          console.log('🎙️ Intentional user barge-in confirmed (amplitude > 0.045)');
+          console.log(`🎙️ Intentional user barge-in confirmed (amplitude > ${bargeInThreshold})`);
           rememberInterruptedResponse(activeResponseId);
           suppressInterruptedResponseAudio = true;
           useVoiceModeStore.getState().setHasPendingSpeech(true);
