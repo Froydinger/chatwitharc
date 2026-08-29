@@ -319,6 +319,16 @@ type PendingFunctionResult = {
 // Tool calls in flight to prevent duplicate executions
 const toolCallsInFlight = new Map<string, number>();
 const TOOL_CALL_TIMEOUT_MS = 60000;
+// A tool result is on the conversation but Arc has not been asked to speak it
+// yet, because a response was already running or the user was mid-turn.
+let pendingToolResponseRequest = false;
+let pendingToolResponseSince = 0;
+let toolResponseRetryTimer: ReturnType<typeof setTimeout> | null = null;
+const TOOL_RESPONSE_RETRY_MS = 600;
+// hasPendingSpeech is left set on purpose after a cancelled response, so a
+// tool reply must not wait on it forever. Past this point, the only thing that
+// can still hold the reply back is an actually-running response.
+const TOOL_RESPONSE_MAX_WAIT_MS = 6000;
 let activeToolCallId: string | null = null;
 let queuedToolCalls: Array<{ name: string; call_id: string; arguments?: string }> = [];
 const queuedToolCallIds = new Set<string>();
@@ -333,17 +343,6 @@ const deliverFunctionResult = (
   result: string,
   reasoningEffort: ReasoningEffort = 'low'
 ): boolean => {
-  const voiceState = useVoiceModeStore.getState();
-  if (
-    responseInProgress ||
-    voiceState.hasPendingSpeech ||
-    voiceState.status === 'thinking' ||
-    voiceState.status === 'speaking'
-  ) {
-    queueFunctionResult(callId, result, reasoningEffort);
-    return false;
-  }
-
   if (!toolCallsInFlight.has(callId) && !pendingFunctionResultCallIds.has(callId)) {
     logVoiceDiagnostic({
       event_type: 'stale_tool_result_dropped',
@@ -389,6 +388,41 @@ const deliverFunctionResult = (
     return false;
   }
 
+  // The output is now on the conversation, so the model can never lose it.
+  // Asking for the spoken reply is the part that has to wait for a free turn.
+  if (!pendingToolResponseRequest) pendingToolResponseSince = Date.now();
+  pendingToolResponseRequest = true;
+  requestToolResponse();
+  return true;
+};
+
+// Ask Realtime to speak now that a tool result is on the conversation. Only one
+// response may be active at a time, so this backs off and retries rather than
+// dropping the request — a dropped request is the model never mentioning the
+// result it already has.
+const requestToolResponse = () => {
+  if (!pendingToolResponseRequest) return false;
+
+  if (globalWs?.readyState !== WebSocket.OPEN) {
+    scheduleToolResponseRetry();
+    return false;
+  }
+
+  const voiceState = useVoiceModeStore.getState();
+  const waitedTooLong = Date.now() - pendingToolResponseSince > TOOL_RESPONSE_MAX_WAIT_MS;
+  const turnIsBusy = waitedTooLong
+    ? responseInProgress
+    : responseInProgress ||
+      voiceState.hasPendingSpeech ||
+      voiceState.status === 'thinking' ||
+      voiceState.status === 'speaking';
+
+  if (turnIsBusy) {
+    scheduleToolResponseRetry();
+    return false;
+  }
+
+  pendingToolResponseRequest = false;
   awaitingToolResponse = true;
 
   // NOTE: the Realtime API has no `reasoning` parameter — that belongs to the
@@ -403,41 +437,45 @@ const deliverFunctionResult = (
     logVoiceDiagnostic({
       event_type: 'tool_response_create_failed',
       message: 'Failed to request realtime response after tool output',
-      tool_call_id: callId,
     });
-  } else {
-    responseInProgress = true;
+    pendingToolResponseRequest = true;
+    scheduleToolResponseRetry();
+    return false;
   }
 
-  return responseCreateSent;
+  responseInProgress = true;
+  return true;
+};
+
+const scheduleToolResponseRetry = () => {
+  if (toolResponseRetryTimer) return;
+  toolResponseRetryTimer = setTimeout(() => {
+    toolResponseRetryTimer = null;
+    if (pendingToolResponseRequest) requestToolResponse();
+  }, TOOL_RESPONSE_RETRY_MS);
 };
 
 const flushPendingFunctionResults = (force = false) => {
-  const voiceState = useVoiceModeStore.getState();
-  const isUserTurnActive =
-    voiceState.hasPendingSpeech ||
-    voiceState.status === 'thinking' ||
-    voiceState.status === 'speaking';
-
-  if ((responseInProgress || isUserTurnActive) && !force) return;
-
   if (pendingFunctionFlushTimer) {
     clearTimeout(pendingFunctionFlushTimer);
     pendingFunctionFlushTimer = null;
   }
 
-  while (pendingFunctionResults.length > 0 && (!responseInProgress || force)) {
-    const item = pendingFunctionResults.shift();
-    if (!item) break;
-    pendingFunctionResultCallIds.delete(item.callId);
+  // Only outputs that failed to send land here now (socket closed mid-call, a
+  // stale call id). Retry them; delivery itself no longer waits on the turn.
+  while (pendingFunctionResults.length > 0) {
+    const item = pendingFunctionResults[0];
     logVoiceDiagnostic({
       event_type: force ? 'tool_result_force_flushed' : 'tool_result_flushed',
       tool_call_id: item.callId,
       details: { queuedMs: Date.now() - item.queuedAt, reasoningEffort: item.reasoningEffort },
     });
-    const sent = deliverFunctionResult(item.callId, item.result, item.reasoningEffort);
-    if (sent) break;
+    if (!deliverFunctionResult(item.callId, item.result, item.reasoningEffort)) break;
+    pendingFunctionResults.shift();
+    pendingFunctionResultCallIds.delete(item.callId);
   }
+
+  requestToolResponse();
 };
 
 const queueFunctionResult = (
@@ -476,6 +514,12 @@ const resetPendingFunctionResults = () => {
   }
   pendingFunctionResults = [];
   pendingFunctionResultCallIds.clear();
+  pendingToolResponseRequest = false;
+  pendingToolResponseSince = 0;
+  if (toolResponseRetryTimer) {
+    clearTimeout(toolResponseRetryTimer);
+    toolResponseRetryTimer = null;
+  }
   responseInProgress = false;
 };
 
@@ -572,21 +616,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     result: string,
     reasoningEffort: ReasoningEffort = 'low'
   ) => {
-    // Tool calls can finish while the model is talking or while the user is
-    // interrupting. Queue until the turn is settled so Realtime never gets a
-    // second response.create while it is already handling one.
-    const voiceState = useVoiceModeStore.getState();
-    if (
-      responseInProgress ||
-      voiceState.hasPendingSpeech ||
-      voiceState.status === 'thinking' ||
-      voiceState.status === 'speaking'
-    ) {
+    // Always put the result on the conversation right away. Withholding it
+    // until the turn settled meant a result that arrived while Arc was still
+    // saying "let me check" sat in a queue that the next user turn re-blocked,
+    // so Arc answered "that's still running" while holding the answer.
+    // Only the follow-up response.create has to wait for a free turn.
+    if (!deliverFunctionResult(callId, result, reasoningEffort)) {
       queueFunctionResult(callId, result, reasoningEffort);
-      return;
     }
-
-    deliverFunctionResult(callId, result, reasoningEffort);
   }, []);
 
   // Clear audio buffer to prevent leftover audio from previous turns
@@ -1235,6 +1272,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               cleanupToolCall();
             }
           } else {
+            // Every function_call needs an output or the model stalls waiting
+            // on one it will never get.
+            console.warn('Realtime requested an unknown tool:', name);
+            sendFunctionResult(call_id, JSON.stringify({ success: false, error: `Unknown tool: ${name}` }));
             cleanupToolCall();
           }
         }
