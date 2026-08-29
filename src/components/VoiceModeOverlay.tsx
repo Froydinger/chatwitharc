@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UsageMeter } from "@/components/UsageMeter";
 import { ThinkingOrb } from "thinking-orbs";
 import { useResolvedOrbTheme } from "@/components/ThinkingIndicator";
-import { useVoiceOrbConfig, useThinkingOrbConfig, type VoicePhase } from "@/hooks/useThinkingOrbConfig";
+import { normalizedOrbSpeed, useVoiceOrbConfig, useThinkingOrbConfig, type VoicePhase } from "@/hooks/useThinkingOrbConfig";
 
 // Global ref to allow interrupt from overlay - set by VoiceModeController
 let globalInterruptHandler: (() => void) | null = null;
@@ -292,12 +292,14 @@ export function VoiceModeOverlay() {
     ? (thinkingOrbConfig.image ?? 'working')
     : (voiceOrbConfig[status as VoicePhase] ?? voiceOrbConfig.listening);
 
-  // Slow, serene orb speed multiplier for smooth, graceful animation
-  const orbSpeed = status === 'speaking'
-    ? 0.18 + Math.min(1, amplitude * 0.5) * 0.15
+  // Normalize the library's very different per-state base speeds, then add a
+  // small amplitude response without allowing any phase to race on startup.
+  const orbTargetPace = status === 'speaking'
+    ? 0.72 + Math.min(1, amplitude) * 0.18
     : status === 'listening'
-    ? 0.20 + Math.min(1, amplitude * 0.5) * 0.15
-    : 0.25;
+    ? 0.68 + Math.min(1, amplitude) * 0.15
+    : 0.75;
+  const orbSpeed = normalizedOrbSpeed(voiceOrbState, orbTargetPace);
 
   const pendingVoiceInfo = pendingVoiceSwitch 
     ? REALTIME_VOICES.find(v => v.id === pendingVoiceSwitch) 

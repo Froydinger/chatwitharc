@@ -104,6 +104,27 @@ export const ORB_STATES: readonly { id: OrbState; label: string; description: st
 
 const VALID_STATES = new Set<string>(ORB_STATES.map((s) => s.id));
 
+// thinking-orbs ships intentionally different internal speeds per animation.
+// A single multiplier therefore makes some states (especially listening and
+// connecting) appear more than twice as fast as others. Normalize live app
+// orbs around a target visual pace so whichever state wins during startup does
+// not look like a runaway/doubled animation loop.
+const ORB_BASE_SPEED: Record<OrbState, number> = {
+  working: 1.885,
+  searching: 2.015,
+  solving: 1.82,
+  listening: 4.388,
+  connecting: 3.315,
+  weaving: 1.625,
+  composing: 2.34,
+  breathing: 3.24,
+  shaping: 2.405,
+};
+
+export function normalizedOrbSpeed(state: OrbState, targetPace = 1.05): number {
+  return targetPace / ORB_BASE_SPEED[state];
+}
+
 export type ThinkingOrbConfig = Record<ThinkingActivity, OrbState>;
 
 export const DEFAULT_ORB_CONFIG: ThinkingOrbConfig = THINKING_ACTIVITIES.reduce(

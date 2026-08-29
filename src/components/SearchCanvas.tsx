@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThinkingOrb } from "thinking-orbs";
 import { useResolvedOrbTheme } from "@/components/ThinkingIndicator";
+import { normalizedOrbSpeed } from "@/hooks/useThinkingOrbConfig";
 import {
   Search,
   Loader2,
@@ -1369,7 +1370,7 @@ export function SearchCanvas() {
                     <ThinkingOrb
                       state="solving"
                       size={64}
-                      speed={0.75}
+                      speed={normalizedOrbSpeed('searching')}
                       theme={orbTheme}
                       aria-label="Searching the web"
                     />

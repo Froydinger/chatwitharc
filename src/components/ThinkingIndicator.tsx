@@ -3,7 +3,7 @@ import { Sparkles, Music } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { ThinkingOrb, type OrbState } from "thinking-orbs";
-import { useThinkingOrbConfig } from "@/hooks/useThinkingOrbConfig";
+import { normalizedOrbSpeed, useThinkingOrbConfig } from "@/hooks/useThinkingOrbConfig";
 import { useArcStore } from "@/store/useArcStore";
 import { ImageGenerationFx } from "@/components/ImageGenerationFx";
 
@@ -281,7 +281,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
           <ThinkingOrb
             state={orbState}
             size={64}
-            speed={0.75}
+            speed={normalizedOrbSpeed(orbState)}
             theme={orbTheme}
             aria-label={searchingWeb || searchingChats ? "Arc is searching" : "Arc is thinking"}
             className="h-10 w-10"
