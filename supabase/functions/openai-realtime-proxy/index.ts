@@ -9,11 +9,12 @@ const corsHeaders = {
 
 // Arc offers exactly two voices: Marina (marin, default) and Cedric (cedar).
 const ALLOWED_VOICES = new Set(['marin', 'cedar']);
-// Arc voice mode runs on the GA Realtime *mini* model — the cheapest realtime
-// tier. Do NOT fall back to the `gpt-4o-*-realtime-preview` family: those are the
-// previous generation and are several times more expensive per audio minute,
-// which is what caused the earlier billing bleed.
+// Arc voice mode runs only on the lowest-cost Realtime Mini tier. Prefer the
+// newer 2.1 Mini model, with the older Mini alias as the sole fallback family.
+// Never auto-select a full-size Realtime model: that would silently raise the
+// audio rate and recreate the billing risk this proxy is meant to prevent.
 const REALTIME_MODEL_CANDIDATES = [
+  'gpt-realtime-2.1-mini',
   'gpt-realtime-mini',
   'gpt-realtime-mini-2025-10-06',
 ] as const;
@@ -28,7 +29,8 @@ let cachedRealtimeModel: string | null = null;
 
 const scoreRealtimeModel = (id: string): number => {
   let score = 0;
-  if (id.includes('mini')) score += 100;              // mini = cheapest tier
+  if (id.includes('2.1-mini')) score += 1_000;         // newest same-price Mini first
+  if (id.includes('mini')) score += 100;              // Mini tier only
   if (!id.includes('4o')) score += 50;                // GA over legacy 4o
   if (!/\d{4}-\d{2}-\d{2}/.test(id)) score += 10;    // stable alias over snapshot
   if (id.includes('preview')) score -= 5;
@@ -49,9 +51,9 @@ async function resolveRealtimeModel(apiKey: string): Promise<string | null> {
     const realtime: string[] = (json?.data ?? [])
       .map((m: any) => m?.id)
       .filter((id: unknown): id is string => typeof id === 'string' && id.includes('realtime'))
-      // Never auto-select full gpt-4o-realtime — it is the most expensive tier
-      // and caused the original billing bleed.
-      .filter((id: string) => !(id.includes('4o') && !id.includes('mini')));
+      // Hard cost boundary: model discovery may return full-price Realtime
+      // models, but Arc voice is allowed to select Mini models only.
+      .filter((id: string) => id.includes('mini'));
 
     console.log('[openai-realtime-proxy] Realtime models available:', JSON.stringify(realtime));
     if (realtime.length === 0) return null;

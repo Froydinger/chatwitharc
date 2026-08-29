@@ -85,7 +85,7 @@ const clearSessionTimers = () => {
 // model that will never exist, which is exactly the "reconnecting with context"
 // loop. It must never be treated as transient.
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key', 'model_not_found'];
-const OPENAI_REALTIME_MODEL = 'gpt-realtime-mini';
+const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1-mini';
 const IS_IOS_VOICE_DEVICE = typeof navigator !== 'undefined' && (
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
