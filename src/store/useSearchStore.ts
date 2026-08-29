@@ -562,6 +562,7 @@ export const useSearchStore = create<SearchState>()(
             body: {
               query: contextualQuery,
               skipImages: true,
+              deepResearch: true,
             },
           });
 

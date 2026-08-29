@@ -43,7 +43,7 @@ serve(async (req) => {
       );
     }
 
-    const { query, messages, skipImages, quickAnswerOnly, mainContent } = await req.json();
+    const { query, messages, skipImages, quickAnswerOnly, mainContent, deepResearch } = await req.json();
 
     // Quick answer background generation short-circuit
     if (quickAnswerOnly) {
@@ -102,46 +102,138 @@ serve(async (req) => {
       );
     }
 
+    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
     const TAVILY_API_KEY = Deno.env.get('TAVILY_API_KEY');
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-    if (!TAVILY_API_KEY) {
+    if (!PERPLEXITY_API_KEY && !TAVILY_API_KEY) {
       return new Response(
         JSON.stringify({ error: 'Search is not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Research search:', { query: userQuery, skipImages });
+    // Perplexity's Search API returns ranked results as structured data with no
+    // LLM answer, which is exactly the shape wanted here — synthesis already
+    // happens below with Luna, so the Agent API's own grounded answer would be
+    // paid for twice and then thrown away.
+    // Perplexity is for Deep Search only. Callers opt in with deepResearch, so
+    // scheduled-task lookups (and anything else reusing this function) stay on
+    // Tavily. In-chat web search never reaches here at all — it runs its own
+    // Tavily path inside the chat function.
+    const provider: 'perplexity' | 'tavily' =
+      PERPLEXITY_API_KEY && deepResearch ? 'perplexity' : 'tavily';
+    console.log('Research search:', { query: userQuery, skipImages, provider });
 
-    // 1. Tavily search — research-grade settings (advanced depth, deep chunks, raw content, advanced answer)
-    const tavilyResp = await fetch('https://api.tavily.com/search', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${TAVILY_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query: userQuery,
-        search_depth: 'advanced',
-        chunks_per_source: 3,
-        max_results: 12,
-        include_answer: 'advanced',
-        include_raw_content: true,
-        include_images: !skipImages,
-      }),
-    });
+    // Normalized across providers: retrieval fills these, synthesis reads them.
+    let rawResults: any[] = [];
+    let quickAnswer = '';
+    let providerImages: any[] = [];
 
-    if (!tavilyResp.ok) {
-      const errText = await tavilyResp.text();
-      console.error('Tavily error:', tavilyResp.status, errText);
-      return new Response(
-        JSON.stringify({ error: `Search failed: ${tavilyResp.status}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (provider === 'perplexity') {
+      const pplxResp = await fetch('https://api.perplexity.ai/search', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: userQuery,
+          max_results: 12,
+          search_context_size: 'high',
+        }),
+      });
+
+      if (!pplxResp.ok) {
+        const errText = await pplxResp.text();
+        console.error('Perplexity search error:', pplxResp.status, errText);
+        // 401 is a key problem and 429 is rate limiting; neither is worth
+        // failing the whole search when Tavily is still configured.
+        if (!TAVILY_API_KEY) {
+          return new Response(
+            JSON.stringify({ error: `Search failed: ${pplxResp.status}` }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        console.warn('Falling back to Tavily for this search');
+      } else {
+        const pplxData = await pplxResp.json();
+        rawResults = (pplxData.results || []).map((r: any) => ({
+          title: r.title,
+          url: r.url,
+          content: r.snippet || '',
+          raw_content: r.snippet || '',
+          date: r.date || r.last_updated || undefined,
+        }));
+      }
     }
 
-    const tavilyData = await tavilyResp.json();
-    const rawResults: any[] = tavilyData.results || [];
+    // Perplexity's Search API returns no images. Fetching them means a second,
+    // separately billed Tavily call per search, so it is opt-in: set
+    // SEARCH_IMAGES=tavily to turn the image strip back on under Perplexity.
+    if (
+      provider === 'perplexity' &&
+      rawResults.length > 0 &&
+      !skipImages &&
+      TAVILY_API_KEY &&
+      Deno.env.get('SEARCH_IMAGES') === 'tavily'
+    ) {
+      try {
+        const imgResp = await fetch('https://api.tavily.com/search', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${TAVILY_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: userQuery,
+            search_depth: 'basic',
+            max_results: 3,
+            include_images: true,
+          }),
+        });
+        if (imgResp.ok) {
+          const imgData = await imgResp.json();
+          providerImages = imgData.images || [];
+        }
+      } catch (e) {
+        console.warn('Image lookup failed (non-fatal):', e);
+      }
+    }
+
+    // Tavily runs as the primary provider when no Perplexity key is set, and as
+    // the fallback when a Perplexity call fails.
+    if (rawResults.length === 0 && TAVILY_API_KEY) {
+      const tavilyResp = await fetch('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${TAVILY_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: userQuery,
+          search_depth: 'advanced',
+          chunks_per_source: 3,
+          max_results: 12,
+          include_answer: 'advanced',
+          include_raw_content: true,
+          include_images: !skipImages,
+        }),
+      });
+
+      if (!tavilyResp.ok) {
+        const errText = await tavilyResp.text();
+        console.error('Tavily error:', tavilyResp.status, errText);
+        return new Response(
+          JSON.stringify({ error: `Search failed: ${tavilyResp.status}` }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const tavilyData = await tavilyResp.json();
+      rawResults = tavilyData.results || [];
+      quickAnswer = tavilyData.answer || '';
+      providerImages = tavilyData.images || [];
+    }
 
     // Dedupe by domain so we get diverse citations, cap at 8 for richer research
     const seenDomains = new Set<string>();
@@ -183,7 +275,7 @@ serve(async (req) => {
         return `[${i + 1}] ${r.title}\nURL: ${r.url}\nExcerpt: ${body}`;
       }).join('\n\n');
 
-      const tavilyAnswer = tavilyData.answer ? `\n\nQuick answer (reference only, do not cite directly): ${tavilyData.answer}` : '';
+      const tavilyAnswer = quickAnswer ? `\n\nQuick answer (reference only, do not cite directly): ${quickAnswer}` : '';
 
       const synthSystem = `You are an expert research analyst. Produce a thorough, well-structured answer to the user's query using ONLY the retrieved sources. These sources were found by ArcAI; they were NOT pasted, shared, provided, or included by the user. Never attribute source material to the user. Answer the query directly and do not ask the user to paste a link, quote, or timestamp. If evidence is incomplete or conflicting, state the uncertainty and provide the best-supported answer. Synthesize across sources — compare, contrast, and reconcile differences. Use clear markdown headings, short paragraphs, and bullet points where helpful. Aim for depth and nuance, not just summary. CITATION RULES: Cite inline with [1], [2] etc. matching source numbers. Use a MINIMUM of 4 and MAXIMUM of 8 distinct sources. Never invent source numbers or write full URLs inline. Do not mention which search engine or AI was used.`;
 
@@ -219,7 +311,7 @@ serve(async (req) => {
 
     // Fallback content if synthesis unavailable
     if (!content) {
-      const tavilyAnswer = tavilyData.answer || '';
+      const tavilyAnswer = quickAnswer;
       content = tavilyAnswer
         ? `${tavilyAnswer}\n\n` + picked.map((r, i) => `[${i + 1}] ${r.title}`).join('\n')
         : picked.map((r, i) => `[${i + 1}] ${r.title}\n${(r.content || '').slice(0, 300)}`).join('\n\n');
@@ -245,7 +337,7 @@ serve(async (req) => {
     content = content.replace(/(\]\([^)]+\))(\[)/g, '$1, $2');
     content = content.replace(/  +/g, ' ');
 
-    const images = !skipImages ? (tavilyData.images || []).map((img: any) => {
+    const images = !skipImages ? providerImages.map((img: any) => {
       if (typeof img === 'string') return img;
       return img?.url || '';
     }).filter(Boolean) : [];

@@ -182,6 +182,8 @@ export function SearchCanvas() {
       const { data, error } = await supabase.functions.invoke("perplexity-search", {
         body: {
           query: query,
+          // Deep Search only — this is what selects the Perplexity provider.
+          deepResearch: true,
         },
       });
 
@@ -214,6 +216,7 @@ export function SearchCanvas() {
               query,
               mainContent: formattedContent,
               quickAnswerOnly: true,
+              deepResearch: true,
             },
           });
           if (quickData?.quickAnswer) {
