@@ -699,7 +699,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Video is allowlisted by email rather than sold with Boost — see
   // useVideoAccess for why. The server enforces the same list.
   const { seconds: videoSeconds, orientation: videoOrientation } = useVideoGenStore();
-  const { canGenerateVideo } = useVideoAccess();
+  // Video is switched off in the UI for now — the provider is being retired and
+  // it is not worth the surface area. Access and the generation path are left
+  // intact underneath; flip this back on to bring the entry points back.
+  const VIDEO_UI_ENABLED = false;
+  const { canGenerateVideo: hasVideoAccess } = useVideoAccess();
+  const canGenerateVideo = VIDEO_UI_ENABLED && hasVideoAccess;
 
   // When a /write canvas is open, auto-show canvas mode indicator so user knows
   // their messages will modify the canvas (not go to chat)
@@ -3006,21 +3011,21 @@ ${safeCode}
 
                         </div>
 
-                        {/* Grid of Core Tools - Sleek unified look */}
-                        <div className="grid grid-cols-2 gap-2">
+                        {/* Core tools: one per row so they read cleanly on mobile */}
+                        <div className="grid grid-cols-1 gap-2">
                           <button
                             onClick={() => {
                               fileInputRef.current?.click();
                               setShowMenu(false);
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
+                            className="flex items-center gap-3 p-2.5 rounded-2xl transition-all duration-200 group border border-blue-500/20 hover:border-blue-500/35 bg-blue-500/5 hover:bg-blue-500/10"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-blue-500/10 flex items-center justify-center transition-colors">
-                              <Paperclip className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-blue-400 transition-colors" />
+                            <div className="w-8 h-8 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0 group-hover:bg-blue-500/25 transition-colors">
+                              <Paperclip className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                             </div>
-                            <div className="flex flex-col items-center text-center">
-                              <span className="text-xs font-semibold text-foreground">Attach</span>
-                              <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Files, PDFs, Docs</span>
+                            <div className="flex flex-col items-start text-left min-w-0">
+                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Attach</span>
+                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">Files, PDFs, Docs</span>
                             </div>
                           </button>
 
@@ -3031,35 +3036,16 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
+                            className="flex items-center gap-3 p-2.5 rounded-2xl transition-all duration-200 group border border-rose-500/20 hover:border-rose-500/35 bg-rose-500/5 hover:bg-rose-500/10"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-amber-500/10 flex items-center justify-center transition-colors">
-                              <ImagePlus className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-amber-400 transition-colors" />
+                            <div className="w-8 h-8 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0 group-hover:bg-rose-500/25 transition-colors">
+                              <ImagePlus className="h-4 w-4 text-rose-500 dark:text-rose-400" />
                             </div>
-                            <div className="flex flex-col items-center text-center">
-                              <span className="text-xs font-semibold text-foreground">Generate</span>
-                              <span className="text-[9px] text-muted-foreground font-normal mt-0.5">AI Image Creation</span>
+                            <div className="flex flex-col items-start text-left min-w-0">
+                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Generate</span>
+                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">AI Image Creation</span>
                             </div>
                           </button>
-
-                          {canGenerateVideo && (
-                            <button
-                              onClick={() => {
-                                setInputValue("video/ ");
-                                setShowMenu(false);
-                                textareaRef.current?.focus();
-                              }}
-                              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
-                            >
-                              <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-violet-500/10 flex items-center justify-center transition-colors">
-                                <Clapperboard className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-violet-400 transition-colors" />
-                              </div>
-                              <div className="flex flex-col items-center text-center">
-                                <span className="text-xs font-semibold text-foreground">Video</span>
-                                <span className="text-[9px] text-muted-foreground font-normal mt-0.5">AI Video Creation</span>
-                              </div>
-                            </button>
-                          )}
 
                           <button
                             onClick={() => {
@@ -3068,14 +3054,14 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
+                            className="flex items-center gap-3 p-2.5 rounded-2xl transition-all duration-200 group border border-emerald-500/20 hover:border-emerald-500/35 bg-emerald-500/5 hover:bg-emerald-500/10"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-indigo-500/10 flex items-center justify-center transition-colors">
-                              <Globe className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-indigo-400 transition-colors" />
+                            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/25 transition-colors">
+                              <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                             </div>
-                            <div className="flex flex-col items-center text-center">
-                              <span className="text-xs font-semibold text-foreground">Search</span>
-                              <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Live Web Results</span>
+                            <div className="flex flex-col items-start text-left min-w-0">
+                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Search</span>
+                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">Live Web Results</span>
                             </div>
                           </button>
 
@@ -3086,14 +3072,14 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
+                            className="flex items-center gap-3 p-2.5 rounded-2xl transition-all duration-200 group border border-amber-500/20 hover:border-amber-500/35 bg-amber-500/5 hover:bg-amber-500/10"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-emerald-500/10 flex items-center justify-center transition-colors">
-                              <Code2 className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-emerald-400 transition-colors" />
+                            <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 group-hover:bg-amber-500/25 transition-colors">
+                              <Code2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                             </div>
-                            <div className="flex flex-col items-center text-center">
-                              <span className="text-xs font-semibold text-foreground">Code</span>
-                              <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Scripting & logic</span>
+                            <div className="flex flex-col items-start text-left min-w-0">
+                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Code</span>
+                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">Scripting & logic</span>
                             </div>
                           </button>
 
@@ -3104,14 +3090,14 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.01] hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-all group border border-black/10 dark:border-white/5 hover:border-black/15 dark:hover:border-white/10"
+                            className="flex items-center gap-3 p-2.5 rounded-2xl transition-all duration-200 group border border-sky-500/20 hover:border-sky-500/35 bg-sky-500/5 hover:bg-sky-500/10"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-black/[0.04] dark:bg-white/[0.04] group-hover:bg-pink-500/10 flex items-center justify-center transition-colors">
-                              <PenLine className="h-4.5 w-4.5 text-slate-600 dark:text-slate-400 group-hover:text-pink-400 transition-colors" />
+                            <div className="w-8 h-8 rounded-xl bg-sky-500/15 flex items-center justify-center shrink-0 group-hover:bg-sky-500/25 transition-colors">
+                              <PenLine className="h-4 w-4 text-sky-600 dark:text-sky-400" />
                             </div>
-                            <div className="flex flex-col items-center text-center">
-                              <span className="text-xs font-semibold text-foreground">Draft</span>
-                              <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Writing & Layouts</span>
+                            <div className="flex flex-col items-start text-left min-w-0">
+                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Draft</span>
+                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">Writing & Layouts</span>
                             </div>
                           </button>
 
@@ -3120,7 +3106,7 @@ ${safeCode}
                               setShowPromptLibrary(true);
                               setShowMenu(false);
                             }}
-                            className="col-span-2 flex flex-col items-center gap-2 p-4 rounded-2xl transition-all group border border-fuchsia-500/20 hover:border-fuchsia-500/35 bg-[linear-gradient(100deg,rgba(244,63,94,0.06),rgba(245,158,11,0.06),rgba(16,185,129,0.06),rgba(99,102,241,0.06))] hover:bg-[linear-gradient(100deg,rgba(244,63,94,0.12),rgba(245,158,11,0.12),rgba(16,185,129,0.12),rgba(99,102,241,0.12))] shadow-[0_0_20px_-5px_rgba(217,70,239,0.12)]"
+                            className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-all group border border-fuchsia-500/20 hover:border-fuchsia-500/35 bg-[linear-gradient(100deg,rgba(244,63,94,0.06),rgba(245,158,11,0.06),rgba(16,185,129,0.06),rgba(99,102,241,0.06))] hover:bg-[linear-gradient(100deg,rgba(244,63,94,0.12),rgba(245,158,11,0.12),rgba(16,185,129,0.12),rgba(99,102,241,0.12))] shadow-[0_0_20px_-5px_rgba(217,70,239,0.12)]"
                           >
                             <div className="w-10 h-10 rounded-xl bg-[linear-gradient(100deg,rgba(244,63,94,0.18),rgba(245,158,11,0.18),rgba(16,185,129,0.18),rgba(99,102,241,0.18))] flex items-center justify-center transition-colors">
                               <ListPlus className="h-4.5 w-4.5 text-fuchsia-500 dark:text-fuchsia-400 group-hover:text-fuchsia-400 transition-colors" />
