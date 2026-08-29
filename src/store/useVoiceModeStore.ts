@@ -17,6 +17,13 @@ interface VoiceTurn {
   transcript: string;
   timestamp: Date;
   imageUrl?: string; // If this turn included an image generation
+  webSearch?: {
+    query: string;
+    summary: string;
+    sources: { url: string; title: string; snippet?: string }[];
+    provider: 'tavily';
+    locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
+  };
 }
 
 interface VoiceModeState {
@@ -45,7 +52,12 @@ interface VoiceModeState {
   // Web search state
   isSearching: boolean;
   isSearchingPastChats: boolean;
-  searchSummary: { query: string; summary: string; sources: { url: string; title: string }[] } | null;
+  searchSummary: {
+    query: string;
+    summary: string;
+    sources: { url: string; title: string; snippet?: string }[];
+    locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
+  } | null;
   
   // Weather state
   isFetchingWeather: boolean;

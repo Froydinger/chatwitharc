@@ -32,6 +32,8 @@ import { useLocalModelPersistence } from "@/hooks/useLocalModelPersistence";
 import { CorporateMemoryConsentGate } from "@/components/CorporateMemoryConsentModal";
 import { MacWindowControls } from "@/components/MacWindowControls";
 import { isMacDesktopRuntime, shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
+import { SearchResultsModal } from "@/components/SearchResultsModal";
+import { useSearchResultsModalStore } from "@/store/useSearchResultsModalStore";
 // Route pages are lazy-loaded so the initial bundle stays small and the app
 // paints (the FastLoader) almost immediately instead of showing a black screen
 // while ~MBs of JS for every page download and parse up front.
@@ -218,6 +220,7 @@ const ThemeManager = () => {
 
 const App = () => {
   const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
+  const searchResultsModal = useSearchResultsModalStore();
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   
@@ -263,6 +266,13 @@ const App = () => {
                 onClose={closeBugReport}
                 errorMessage={errorMessage}
                 errorStack={errorStack}
+              />
+              <SearchResultsModal
+                isOpen={searchResultsModal.isOpen}
+                onClose={searchResultsModal.close}
+                content={searchResultsModal.content}
+                sources={searchResultsModal.sources}
+                query={searchResultsModal.query}
               />
               <UpgradeModal 
                 isOpen={upgradeOpen} 

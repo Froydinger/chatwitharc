@@ -59,6 +59,7 @@ import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore, useResolvedImageModel, useEditImageModel } from "@/store/useImageGenStore";
 import { useVideoGenStore, orientationForDimensions } from "@/store/useVideoGenStore";
 import { useVideoAccess } from "@/hooks/useVideoAccess";
+import { useSearchResultsModalStore } from "@/store/useSearchResultsModalStore";
 import { AnimateAttachmentModal } from "@/components/AnimateAttachmentModal";
 import { useImageQuota } from "@/hooks/useImageQuota";
 
@@ -1029,6 +1030,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             query: newContent,
             searchProvider: result.searchProvider,
           };
+          useSearchResultsModalStore.getState().show({
+            query: newContent,
+            content: result.content,
+            sources: result.webSources,
+          });
         } else if (didSearchChats) {
           memoryAction = { type: "chats_searched" as const };
         }
@@ -2449,6 +2455,11 @@ ${safeCode}
                   query: userMessage,
                   searchProvider: result.searchProvider,
                 };
+                useSearchResultsModalStore.getState().show({
+                  query: userMessage,
+                  content: result.content,
+                  sources: result.webSources,
+                });
               }
 
               // Add the complete response with source tag

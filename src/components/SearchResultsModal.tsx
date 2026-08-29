@@ -79,7 +79,7 @@ export function SearchResultsModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-[220] flex items-center justify-center"
           onClick={onClose}
         >
           {/* Backdrop */}
@@ -146,7 +146,7 @@ export function SearchResultsModal({
 
             {/* Content */}
             <ScrollArea className="flex-1 px-6 py-6">
-              <article className="prose prose-lg prose-invert max-w-none">
+              <article className="prose prose-lg max-w-none dark:prose-invert">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{

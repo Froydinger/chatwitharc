@@ -117,6 +117,13 @@ type QueuedTurn = {
   transcript: string;
   queuedAt: number;
   imageUrl?: string;
+  webSearch?: {
+    query: string;
+    summary: string;
+    sources: { url: string; title: string; snippet?: string }[];
+    provider: 'tavily';
+    locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
+  };
   waitForUser?: boolean;
 };
 
@@ -160,6 +167,7 @@ const flushTurnOrderingBuffer = () => {
         transcript: assistantTurn.transcript,
         timestamp: new Date(),
         imageUrl: assistantTurn.imageUrl,
+        webSearch: assistantTurn.webSearch,
       });
     }
   }
@@ -186,6 +194,7 @@ const flushTurnOrderingBuffer = () => {
         transcript: staleAssistantTurn.transcript,
         timestamp: new Date(),
         imageUrl: staleAssistantTurn.imageUrl,
+        webSearch: staleAssistantTurn.webSearch,
       });
     }
   }
@@ -222,6 +231,7 @@ const forceFlushTurnOrderingBuffer = () => {
         transcript: turn.transcript,
         timestamp: new Date(),
         imageUrl: turn.imageUrl,
+        webSearch: turn.webSearch,
       });
     }
   }
@@ -720,12 +730,19 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (!aiTranscript.trim()) return;
         console.log('AI said:', aiTranscript);
         
-        const { lastGeneratedImageUrl } = useVoiceModeStore.getState();
+        const { lastGeneratedImageUrl, searchSummary } = useVoiceModeStore.getState();
 
         pendingAssistantTurns.push({
           transcript: aiTranscript,
           queuedAt: Date.now(),
           imageUrl: lastGeneratedImageUrl || undefined,
+          webSearch: searchSummary ? {
+            query: searchSummary.query,
+            summary: searchSummary.summary,
+            sources: searchSummary.sources,
+            provider: 'tavily',
+            locationUsed: searchSummary.locationUsed,
+          } : undefined,
           // Realtime can finish speaking before Whisper emits the user's final
           // transcript. Hold this reply longer when it belongs to a spoken turn
           // so the saved chat cannot place Arc above the user who triggered it.
@@ -734,6 +751,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
         if (lastGeneratedImageUrl) {
           useVoiceModeStore.getState().setLastGeneratedImageUrl(null);
+        }
+        if (searchSummary) {
+          useVoiceModeStore.getState().setSearchSummary(null);
         }
 
         scheduleTurnFlush();

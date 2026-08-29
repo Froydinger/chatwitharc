@@ -5,6 +5,7 @@ import { useAudioCapture } from '@/hooks/useAudioCapture';
 import { useAudioPlayback } from '@/hooks/useAudioPlayback';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useArcStore, Message } from '@/store/useArcStore';
+import { useSearchResultsModalStore } from '@/store/useSearchResultsModalStore';
 import { useToast } from '@/hooks/use-toast';
 import { useBugReport } from '@/hooks/useBugReport';
 import { AIService } from '@/services/ai';
@@ -638,11 +639,12 @@ export function VoiceModeController() {
       }
       
       const response = data?.choices?.[0]?.message?.content || 'No results found for that search.';
-      const sources = (data?.sources || data?.choices?.[0]?.message?.sources || [])
+      const sources = (data?.web_sources || data?.sources || data?.choices?.[0]?.message?.sources || [])
         .slice(0, 6)
         .map((s: any) => ({
           url: typeof s === 'string' ? s : (s?.url || ''),
           title: typeof s === 'string' ? s : (s?.title || s?.url || ''),
+          snippet: typeof s === 'string' ? undefined : (s?.snippet || s?.content || undefined),
         }))
         .filter((s: any) => s.url);
       
@@ -654,19 +656,10 @@ export function VoiceModeController() {
         .trim()
         .slice(0, 320);
       
-      setSearchSummary(null);
-      await addMessage({
-        content: response,
-        role: 'assistant',
-        type: 'text',
-        webSources: sources,
-        memoryAction: sources.length > 0 ? {
-          type: 'web_searched',
-          content: response,
-          sources,
-          query,
-          searchProvider: data?.search_provider || 'tavily',
-        } : undefined,
+      setSearchSummary({
+        query,
+        summary: cleanSummary,
+        sources,
         locationUsed: locationUsed ? {
           city: locationUsed.city,
           region: locationUsed.region,
@@ -674,9 +667,8 @@ export function VoiceModeController() {
           latitude: locationUsed.latitude,
           longitude: locationUsed.longitude,
         } : undefined,
-        sourceModel: 'cloud-search',
-        modelUsed: data?.model_used,
       });
+      useSearchResultsModalStore.getState().show({ query, content: response, sources });
       console.log('VoiceModeController: Web search complete');
       return response;
     } catch (error: any) {
@@ -690,7 +682,7 @@ export function VoiceModeController() {
       }
       return `I ran into a problem searching for that: ${error.message || 'Unknown error'}. Want me to try again?`;
     }
-  }, [addMessage, setIsSearching, setSearchSummary, withTimeout]);
+  }, [setIsSearching, setSearchSummary, withTimeout]);
 
   // Weather handler
   const handleGetWeather = useCallback(async (location: string): Promise<string> => {
@@ -921,10 +913,22 @@ export function VoiceModeController() {
               imageUrl: turn.imageUrl,
             });
           } else if (turn.transcript.trim()) {
+            const webSearch = turn.webSearch;
             await addMessage({
               content: turn.transcript,
               role: turn.role,
               type: 'text',
+              webSources: webSearch?.sources,
+              memoryAction: webSearch ? {
+                type: 'web_searched',
+                content: webSearch.summary,
+                sources: webSearch.sources,
+                query: webSearch.query,
+                searchProvider: webSearch.provider,
+              } : undefined,
+              sourceModel: turn.role === 'assistant' ? 'cloud-voice' : undefined,
+              modelUsed: turn.role === 'assistant' ? 'gpt-realtime-2.1-mini' : undefined,
+              locationUsed: webSearch?.locationUsed,
             });
           }
         } catch (error) {
