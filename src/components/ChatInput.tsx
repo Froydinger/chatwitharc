@@ -141,7 +141,7 @@ function checkForImageRequest(message: string): boolean {
   // Natural language detection for image generation requests
   // Supports: "generate an image of...", "draw me a cat", "make me a picture of...", "can you create an image of..."
   if (
-    /^(can\s+you\s+)?(please\s+)?(generate|create|make|draw|paint|design|render|produce|visualize|show\s+me|give\s+me)\s+(me\s+)?(an?\s+)?(image|picture|photo|illustration|artwork|graphic|icon|logo|wallpaper|poster|banner|thumbnail)/i.test(
+    /^(?:(?:okay|ok|yeah|alright|cool)[,!]?\s+)?(can\s+you\s+)?(please\s+)?(generate|create|make|draw|paint|design|render|produce|visualize|show\s+me|give\s+me)\s+(me\s+)?(an?\s+)?(image|picture|pic|photo|illustration|artwork|graphic|icon|logo|wallpaper|poster|banner|thumbnail)/i.test(
       m,
     )
   )
@@ -150,7 +150,7 @@ function checkForImageRequest(message: string): boolean {
   if (/^(can\s+you\s+)?(please\s+)?(draw|paint|sketch)\s+(me\s+)?(a|an|the|some)\s+/i.test(m)) return true;
   // Broader match: verb + optional "me" + image word anywhere in short messages
   if (
-    /\b(generate|create|make|draw|paint)\s+(me\s+)?(an?\s+)?(image|picture|photo|illustration)\b/i.test(m) &&
+    /\b(generate|create|make|draw|paint)\s+(me\s+)?(an?\s+)?(image|picture|pic|photo|illustration)\b/i.test(m) &&
     m.length < 200
   )
     return true;
@@ -231,8 +231,8 @@ async function orientationForImageUrl(url: string): Promise<'landscape' | 'portr
 function extractSubjectForImageRequest(message: string): string {
   const m = message.trim();
   let cleaned = m.replace(/^(can\s+you\s+)?(please\s+)?(show\s+me|find|search\s+for|look\s+up|google|generate|create|make|draw|paint|render|give\s+me)\s+/i, '');
-  cleaned = cleaned.replace(/^(an?\s+)?(image|picture|photo|illustration|drawing|visual|graphic|sketch|artwork|clipart|photos|images|pictures)\s+(of|for|about)\s+/i, '');
-  cleaned = cleaned.replace(/\b(photos|images|pictures|photo|image|picture)\b/i, '');
+  cleaned = cleaned.replace(/^(an?\s+)?(image|picture|pic|photo|illustration|drawing|visual|graphic|sketch|artwork|clipart|photos|images|pictures|pics)\s+(of|for|about)\s+/i, '');
+  cleaned = cleaned.replace(/\b(photos|images|pictures|pics|photo|image|picture|pic)\b/i, '');
   return cleaned.trim() || "a beautiful subject";
 }
 
@@ -240,7 +240,7 @@ function analyzeImageRequestIntent(message: string): 'generate' | 'search' | 'as
   if (!message) return 'none';
   const m = message.trim().toLowerCase();
   
-  const isImageQuery = /\b(image|picture|photo|illustration|drawing|visual|graphic|sketch|artwork|clipart)s?\b/i.test(m);
+  const isImageQuery = /\b(image|picture|pic|photo|illustration|drawing|visual|graphic|sketch|artwork|clipart)s?\b/i.test(m);
   if (!isImageQuery) {
     return 'none';
   }
@@ -485,16 +485,47 @@ function extractPrefixPrompt(message: string): string {
 
 function extractImagePrompt(message: string): string {
   let prompt = (message || "").trim();
+  prompt = prompt.replace(/^(?:(?:okay|ok|yeah|alright|cool)[,!]?\s+)?/i, "").trim();
   prompt = prompt.replace(/^(please\s+)?(?:can|could|would)\s+you\s+/i, "").trim();
   prompt = prompt
     .replace(
-      /^(?:generate|create|make|draw|paint|design|render|produce|visualize|show\s+me|give\s+me)\s+(?:an?\s+)?(?:image|picture|photo|illustration|artwork|graphic)?\s*(?:of)?\s*/i,
+      /^(?:generate|create|make|draw|paint|design|render|produce|visualize|show\s+me|give\s+me)\s+(?:an?\s+)?(?:image|picture|pic|photo|illustration|artwork|graphic)?\s*(?:of)?\s*/i,
       "",
     )
     .trim();
   if (!prompt) prompt = message.trim();
   if (!/^(a|an|the)\s+/i.test(prompt) && !/^[A-Z]/.test(prompt)) prompt = `a ${prompt}`;
   return prompt;
+}
+
+function isContextualImagePrompt(message: string): boolean {
+  const cleaned = extractPrefixPrompt(message).trim().toLowerCase().replace(/[.!?]+$/g, '');
+  return /^(?:okay\s+|ok\s+|yeah\s+|alright\s+)?(?:go\s+for\s+it|do\s+it|make\s+it|generate\s+it|create\s+it|that|this|it)$/i.test(cleaned) ||
+    /\b(?:image|picture|pic|photo|illustration)\s+(?:of\s+)?(?:that|this|it)\b/i.test(cleaned) ||
+    /\b(?:generate|create|make|draw|render|visualize)\b[\s\S]*\b(?:that|this|it)\b/i.test(cleaned);
+}
+
+function findRecentVisualContext(messages: Message[]): string | null {
+  for (let index = messages.length - 1; index >= Math.max(0, messages.length - 8); index -= 1) {
+    const message = messages[index];
+    if (message.imagePrompt?.trim()) return message.imagePrompt.trim();
+    if (message.type !== 'text' || !message.content?.trim()) continue;
+
+    const content = message.content.trim();
+    // Prefer an explicit prompt Arc already drafted, including any negative
+    // prompt that follows it. This is the common "okay, generate that" flow.
+    const promptMarker = content.match(/(?:^|\n)\s*(?:\*\*)?Prompt:(?:\*\*)?\s*/i);
+    if (promptMarker?.index !== undefined) {
+      return content.slice(promptMarker.index + promptMarker[0].length).trim().slice(0, 5000);
+    }
+
+    // Skip tiny acknowledgements and tool/status copy; use the latest actual
+    // concept description from either participant.
+    if (content.length < 40) continue;
+    if (/^(generating|editing|searching|i(?:'|’)ll look|let me look)/i.test(content)) continue;
+    return content.slice(0, 5000);
+  }
+  return null;
 }
 
 /* ---------------- Tiny utilities ---------------- */
@@ -1737,8 +1768,26 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
       // No images: Banana => generate; else text
       if (wasImageMode) {
-        // Strip the prefix (image/, draw/, create/, /image, etc.) and use the rest as prompt
-        const imagePrompt = extractPrefixPrompt(finalMessage || "") || "a beautiful image";
+        // Resolve conversational follow-ups against the concept Arc just
+        // described. Sending literal "go for it"/"that" to the image model
+        // used to discard the conversation and produce an unrelated generic.
+        const contextualPrompt = isContextualImagePrompt(finalMessage || "");
+        const priorVisualContext = contextualPrompt ? findRecentVisualContext(messages) : null;
+        if (contextualPrompt && !priorVisualContext) {
+          await addMessage({ content: finalMessage, role: "user", type: "text" });
+          await addMessage({
+            content: "What should I make? Give me the subject or scene and I’ll generate it.",
+            role: "assistant",
+            type: "text",
+            sourceModel: "cloud-chat",
+            modelUsed: LUNA_MODEL,
+          });
+          setLoading(false);
+          return;
+        }
+
+        const strippedPrompt = extractPrefixPrompt(finalMessage || "");
+        const imagePrompt = priorVisualContext || extractImagePrompt(strippedPrompt) || "a beautiful image";
         await addMessage({ content: finalMessage || imagePrompt, role: "user", type: "text" });
         await addMessage({
           content: `Generating image: ${imagePrompt}`,
