@@ -1408,8 +1408,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const userMessage = messageToSend.trim();
     // Run location permission from the send interaction, before profile/tool
     // work introduces a delay that can prevent iOS from showing its sheet.
+    // Do not await here: the shared location promise is awaited later by the
+    // AI service, while the composer can clear and show the sent message now.
     if (detectsLocationIntent(userMessage) && !getCachedLocation()) {
-      await getUserLocation();
+      void getUserLocation();
     }
     let images = [...selectedImages];
     let documents = [...selectedDocuments];
