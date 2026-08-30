@@ -15,8 +15,8 @@ export interface UserLocation {
 
 // Versioned so previously cached coarse/IP-derived locations are discarded.
 const CACHE_KEY = 'arc:userLocation:v2';
-const DENIED_KEY = 'arc:userLocationDenied';
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
+let pendingLocationRequest: Promise<UserLocation | null> | null = null;
 
 // Trigger words/phrases that imply the model would benefit from user location.
 const LOCATION_INTENT = /\b(near\s*me|nearby|around\s*(me|here)|in\s*my\s*(area|city|town|region)|where\s*am\s*i|local\b|locally|weather|forecast|temperature|restaurants?|cafes?|coffee|bars?|gas\s*stations?|grocery|grocer(y|ies)|pharmac(y|ies)|hotels?|attractions?|things?\s*to\s*do|what'?s?\s*open|closest|nearest|directions?|how\s*far|distance\s*to|sunset|sunrise|tides?)\b/i;
@@ -36,10 +36,6 @@ export function getCachedLocation(): UserLocation | null {
   } catch {
     return null;
   }
-}
-
-export function wasLocationDenied(): boolean {
-  return sessionStorage.getItem(DENIED_KEY) === '1';
 }
 
 async function reverseGeocode(lat: number, lon: number): Promise<Partial<UserLocation>> {
@@ -72,45 +68,52 @@ async function reverseGeocode(lat: number, lon: number): Promise<Partial<UserLoc
 export async function getUserLocation(): Promise<UserLocation | null> {
   const cached = getCachedLocation();
   if (cached) return cached;
-  if (wasLocationDenied()) return null;
   if (typeof navigator === 'undefined' || !navigator.geolocation) return null;
+  if (pendingLocationRequest) return pendingLocationRequest;
 
-  const coords = await new Promise<GeolocationCoordinates | null>((resolve) => {
-    // Manual fallback timeout of 6 seconds to ensure the promise resolves
-    // even if the browser/webview geolocation prompt gets stuck.
-    const timerId = setTimeout(() => {
-      console.warn("Geolocation prompt timed out manually.");
-      resolve(null);
-    }, 6000);
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        clearTimeout(timerId);
-        resolve(pos.coords);
-      },
-      (err) => {
-        clearTimeout(timerId);
-        if (err.code === err.PERMISSION_DENIED) {
-          try { sessionStorage.setItem(DENIED_KEY, '1'); } catch {}
-        }
+  pendingLocationRequest = (async () => {
+    const coords = await new Promise<GeolocationCoordinates | null>((resolve) => {
+      // Give iOS enough time to present and resolve its native permission sheet.
+      const timerId = setTimeout(() => {
+        console.warn("Geolocation prompt timed out manually.");
         resolve(null);
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-    );
-  });
+      }, 15_000);
 
-  if (!coords) return null;
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          clearTimeout(timerId);
+          resolve(pos.coords);
+        },
+        () => {
+          clearTimeout(timerId);
+          // Do not cache denial here. iOS and embedded browsers can return the
+          // same code when no permission sheet was shown; the browser already
+          // remembers a genuine user denial itself.
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 12_000, maximumAge: 0 }
+      );
+    });
 
-  const geo = await reverseGeocode(coords.latitude, coords.longitude);
-  const loc: UserLocation = {
-    ...geo,
-    latitude: Number(coords.latitude.toFixed(4)),
-    longitude: Number(coords.longitude.toFixed(4)),
-    fetchedAt: Date.now(),
-    accuracyMeters: Math.round(coords.accuracy),
-  };
-  try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(loc)); } catch {}
-  return loc;
+    if (!coords) return null;
+
+    const geo = await reverseGeocode(coords.latitude, coords.longitude);
+    const loc: UserLocation = {
+      ...geo,
+      latitude: Number(coords.latitude.toFixed(4)),
+      longitude: Number(coords.longitude.toFixed(4)),
+      fetchedAt: Date.now(),
+      accuracyMeters: Math.round(coords.accuracy),
+    };
+    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(loc)); } catch {}
+    return loc;
+  })();
+
+  try {
+    return await pendingLocationRequest;
+  } finally {
+    pendingLocationRequest = null;
+  }
 }
 
 export function formatLocationForContext(loc: UserLocation): string {

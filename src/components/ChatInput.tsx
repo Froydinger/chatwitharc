@@ -61,6 +61,7 @@ import { useVideoGenStore, orientationForDimensions } from "@/store/useVideoGenS
 import { useVideoAccess } from "@/hooks/useVideoAccess";
 import { AnimateAttachmentModal } from "@/components/AnimateAttachmentModal";
 import { useImageQuota } from "@/hooks/useImageQuota";
+import { detectsLocationIntent, getCachedLocation, getUserLocation } from "@/lib/userLocation";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -1405,6 +1406,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     }
 
     const userMessage = messageToSend.trim();
+    // Run location permission from the send interaction, before profile/tool
+    // work introduces a delay that can prevent iOS from showing its sheet.
+    if (detectsLocationIntent(userMessage) && !getCachedLocation()) {
+      await getUserLocation();
+    }
     let images = [...selectedImages];
     let documents = [...selectedDocuments];
 

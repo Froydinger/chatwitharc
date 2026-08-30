@@ -688,6 +688,9 @@ export function VoiceModeController() {
           snippet: typeof s === 'string' ? undefined : (s?.snippet || s?.content || undefined),
         }))
         .filter((s: any) => s.url);
+      const searchImages = Array.isArray(data?.search_images)
+        ? data.search_images.filter((url: unknown): url is string => typeof url === 'string' && url.length > 0).slice(0, 4)
+        : [];
       
       // Build a short summary (first ~280 chars, strip markdown noise)
       const cleanSummary = response
@@ -701,6 +704,7 @@ export function VoiceModeController() {
         query,
         summary: cleanSummary,
         sources,
+        images: searchImages,
         locationUsed: locationUsed ? {
           city: locationUsed.city,
           region: locationUsed.region,
@@ -743,7 +747,9 @@ export function VoiceModeController() {
       }
 
       const { data, error } = await supabase.functions.invoke('get-weather', {
-        body: { location: weatherLocation },
+        body: locationUsed
+          ? { location: weatherLocation, latitude: locationUsed.latitude, longitude: locationUsed.longitude }
+          : { location: weatherLocation },
       });
       setIsFetchingWeather(false);
       if (error) {
@@ -961,6 +967,7 @@ export function VoiceModeController() {
               role: turn.role,
               type: 'text',
               webSources: webSearch?.sources,
+              searchImages: webSearch?.images,
               memoryAction: webSearch ? {
                 type: 'web_searched',
                 content: webSearch.summary,

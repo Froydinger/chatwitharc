@@ -2,6 +2,9 @@ import { ExternalLink, Globe2, Search, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
+import { SmoothImage } from "@/components/ui/smooth-image";
+import { ImageModal } from "@/components/ImageModal";
+import { useState } from "react";
 
 interface SearchSource {
   title?: string;
@@ -13,6 +16,7 @@ interface SearchResultsCardProps {
   content: string;
   sources: SearchSource[];
   query?: string;
+  images?: string[];
 }
 
 function sourceHost(url: string) {
@@ -23,8 +27,13 @@ function sourceHost(url: string) {
   }
 }
 
-export function SearchResultsCard({ content, sources, query }: SearchResultsCardProps) {
+export function SearchResultsCard({ content, sources, query, images = [] }: SearchResultsCardProps) {
+  const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const visibleImages = images.slice(0, 4).filter((url) => !failedImages.has(url));
+
   return (
+    <>
     <div
       className={cn(
         "w-[min(46rem,calc(100vw-2.5rem))] max-w-full overflow-hidden rounded-3xl",
@@ -110,6 +119,21 @@ export function SearchResultsCard({ content, sources, query }: SearchResultsCard
           </div>
         </div>
       )}
+
+      {visibleImages.length > 0 && (
+        <div className="border-t border-border/45 bg-muted/10 px-4 py-4 sm:px-5">
+          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Images</p>
+          <div className="grid grid-cols-2 gap-2">
+            {visibleImages.map((url, index) => (
+              <button key={url} type="button" onClick={() => setSelectedImage(url)} className="aspect-video overflow-hidden rounded-xl border border-border/45 bg-muted/20">
+                <SmoothImage src={url} alt={`Search result ${index + 1}`} thumbnail className="h-full w-full" imageClassName="transition-transform duration-300 hover:scale-105" onError={() => setFailedImages((current) => new Set(current).add(url))} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
+    <ImageModal isOpen={selectedImage !== null} onClose={() => setSelectedImage(null)} imageUrl={selectedImage || ""} alt="Search result" />
+    </>
   );
 }

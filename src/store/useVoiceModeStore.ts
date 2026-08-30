@@ -21,6 +21,7 @@ interface VoiceTurn {
     query: string;
     summary: string;
     sources: { url: string; title: string; snippet?: string }[];
+    images?: string[];
     provider: 'tavily';
     locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
   };
@@ -56,6 +57,7 @@ interface VoiceModeState {
     query: string;
     summary: string;
     sources: { url: string; title: string; snippet?: string }[];
+    images?: string[];
     locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
   } | null;
   

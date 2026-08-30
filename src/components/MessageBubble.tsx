@@ -355,6 +355,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     content={message.content || ""}
                     sources={message.webSources}
                     query={message.memoryAction?.type === "web_searched" ? message.memoryAction.query : undefined}
+                    images={message.searchImages}
                   />
                 </motion.div>
               )}
@@ -382,34 +383,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   className="mb-3 relative z-10 flex justify-start"
                 >
                   <NotificationDispatchCard dispatch={message.notificationDispatch} />
-                </motion.div>
-              )}
-
-              {/* Search Images Grid */}
-              {!isUser && message.searchImages && message.searchImages.length > 0 && (
-                <motion.div
-                  key="card-search-images"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="mb-3 mt-1 relative z-10 grid grid-cols-2 md:grid-cols-3 gap-2 max-w-md"
-                >
-                  {message.searchImages.slice(0, 6).map((imgUrl, i) => (
-                    <div 
-                      key={i} 
-                      className="relative aspect-video rounded-xl overflow-hidden border border-border/40 group/img cursor-pointer bg-muted/40 shadow-sm hover:scale-[1.02] hover:shadow-md transition-all duration-300"
-                      onClick={() => handleOpenImage(imgUrl, true)}
-                    >
-                      <SmoothImage 
-                        src={imgUrl} 
-                        alt={`Search result ${i + 1}`} 
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity duration-300 flex items-end p-2">
-                        <span className="text-[10px] text-white font-medium truncate">View Image</span>
-                      </div>
-                    </div>
-                  ))}
                 </motion.div>
               )}
 

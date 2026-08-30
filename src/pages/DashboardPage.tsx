@@ -963,8 +963,8 @@ useEffect(() => {
           {activeTab === "overview" && (
             <motion.div key="overview" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-6">
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(19rem,0.75fr)]">
-                <section className="relative overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-primary/[0.10] via-background/70 to-background/35 p-4 shadow-[0_24px_80px_-48px_hsl(var(--primary)/0.7)] sm:p-6">
-                  <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+                <section className="relative overflow-hidden rounded-[2rem] border border-border/55 bg-gradient-to-br from-primary/[0.035] via-background/90 to-muted/20 p-4 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.32)] dark:border-primary/20 dark:from-primary/[0.10] dark:via-background/70 dark:to-background/35 dark:shadow-[0_24px_80px_-48px_hsl(var(--primary)/0.7)] sm:p-6">
+                  <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/[0.035] blur-3xl dark:bg-primary/10" />
                   <div className="relative mb-5 flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/75">Pick up where you left off</p>
@@ -985,7 +985,7 @@ useEffect(() => {
                         <button
                           key={session.id}
                           onClick={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }}
-                          className="group min-w-0 rounded-2xl border border-border/35 bg-background/50 p-4 text-left backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-background/75"
+                          className="group min-w-0 rounded-2xl border border-border/60 bg-background/85 p-4 text-left shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-background dark:border-border/35 dark:bg-background/50 dark:shadow-none dark:hover:bg-background/75"
                         >
                           <div className="mb-3 flex items-center justify-between gap-3">
                             <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-xs font-semibold text-primary">{index + 1}</span>
@@ -1000,7 +1000,7 @@ useEffect(() => {
                 </section>
 
                 <aside className="flex flex-col gap-4">
-                  <div className="rounded-[2rem] border border-border/35 bg-background/45 p-5 backdrop-blur-xl">
+                  <div className="rounded-[2rem] border border-border/60 bg-background/80 p-5 shadow-sm backdrop-blur-xl dark:border-border/35 dark:bg-background/45 dark:shadow-none">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10"><CircleGauge className="h-5 w-5 text-primary" /></span>
@@ -1016,8 +1016,8 @@ useEffect(() => {
                     {!isAdmin && !hasBoost && <Button variant="outline" size="sm" className="mt-4 w-full rounded-full" onClick={() => openCheckout()}>Explore Boost</Button>}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => navigate('/tasks')} className="rounded-3xl border border-border/35 bg-background/45 p-4 text-left transition-all hover:border-primary/35 hover:bg-primary/[0.06]"><Clock className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Reminders</p><p className="mt-1 text-[11px] text-muted-foreground">Scheduled tasks</p></button>
-                    <button onClick={() => navigate('/shared')} className="rounded-3xl border border-border/35 bg-background/45 p-4 text-left transition-all hover:border-primary/35 hover:bg-primary/[0.06]"><Users className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Shared</p><p className="mt-1 text-[11px] text-muted-foreground">Chats with people</p></button>
+                    <button onClick={() => navigate('/tasks')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Clock className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Reminders</p><p className="mt-1 text-[11px] text-muted-foreground">Scheduled tasks</p></button>
+                    <button onClick={() => navigate('/shared')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Users className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Shared</p><p className="mt-1 text-[11px] text-muted-foreground">Chats with people</p></button>
                   </div>
                 </aside>
               </div>
@@ -1026,7 +1026,7 @@ useEffect(() => {
                 <div className="mb-3 flex items-end justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">Your library</p><h2 className="mt-1 text-lg font-semibold">Everything Arc is holding onto</h2></div><p className="hidden text-xs text-muted-foreground sm:block">{insightTip}</p></div>
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                   {stats.map(({ label, tab, icon: Icon, value }) => (
-                    <button key={label} onClick={() => switchTab(tab)} className="group relative overflow-hidden rounded-3xl border border-border/35 bg-background/40 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.055] sm:p-5">
+                    <button key={label} onClick={() => switchTab(tab)} className="group relative overflow-hidden rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.035] dark:border-border/35 dark:bg-background/40 dark:shadow-none dark:hover:bg-primary/[0.055] sm:p-5">
                       <Icon className="h-5 w-5 text-primary" />
                       <p className="mt-7 text-3xl font-light tabular-nums text-foreground">{value ?? 0}</p>
                       <div className="mt-1 flex items-center justify-between"><span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span><ArrowRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-1 group-hover:text-primary" /></div>

@@ -193,6 +193,7 @@ type QueuedTurn = {
     query: string;
     summary: string;
     sources: { url: string; title: string; snippet?: string }[];
+    images?: string[];
     provider: 'tavily';
     locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
   };
@@ -924,6 +925,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             query: searchSummary.query,
             summary: searchSummary.summary,
             sources: searchSummary.sources,
+            images: searchSummary.images,
             provider: 'tavily',
             locationUsed: searchSummary.locationUsed,
           } : undefined,
