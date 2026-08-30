@@ -73,10 +73,10 @@ export function StatusPage() {
             <div className="mb-10 flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
               <div>
                 <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
-                  <Activity className="h-3.5 w-3.5" /> ArcAI system status
+                  <Activity className="h-3.5 w-3.5" /> AskArc system status
                 </div>
-                <h1 className="max-w-2xl text-4xl font-light tracking-tight sm:text-6xl">Arc system status</h1>
-                <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">A simple live check for the services that power Arc.</p>
+                <h1 className="max-w-2xl text-4xl font-light tracking-tight sm:text-6xl">AskArc status</h1>
+                <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">A simple live check for AskArc and the services that power it.</p>
               </div>
               <div className={cn("flex items-center gap-2 text-sm font-semibold", summary.color)}>
                 <span className={cn("h-2.5 w-2.5 rounded-full shadow-[0_0_18px_currentColor]", summary.bg)} />
@@ -97,10 +97,7 @@ export function StatusPage() {
                       </div>
                       <span className={cn("text-[10px] font-semibold uppercase tracking-wider", visual.color)}>{service.status === "operational" ? "Live" : "Down"}</span>
                     </div>
-                    <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
-                      {service.activity && <span>{service.activity.completed} of {service.activity.total} {service.activity.label}</span>}
-                      {typeof service.latencyMs === "number" && <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" /> {service.latencyMs} ms</span>}
-                    </div>
+                    {typeof service.latencyMs === "number" && <div className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"><Clock3 className="h-3.5 w-3.5" /> {service.latencyMs} ms</div>}
                   </motion.article>
                 );
               })}
