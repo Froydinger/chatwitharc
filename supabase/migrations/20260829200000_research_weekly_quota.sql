@@ -84,4 +84,5 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.reserve_research_quota(uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.reserve_research_quota(uuid, text) TO service_role;
