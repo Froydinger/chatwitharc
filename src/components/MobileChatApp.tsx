@@ -380,12 +380,12 @@ export function MobileChatApp() {
 
       const w = window.innerWidth;
       const deadZone = 40; // px buffer around center
-      const rightHalfMin = w / 2 + deadZone;
+      const leftHalfMax = w / 2 - deadZone;
       startX = currentX = t.clientX;
       startY = currentY = t.clientY;
 
-      // Right-half swipe-left to open Dashboard from any chat
-      if (t.clientX > rightHalfMin) {
+      // Left-half swipe-right to open Dashboard from any chat
+      if (t.clientX < leftHalfMax) {
         mode = 'dashboard';
       }
     };
@@ -407,7 +407,7 @@ export function MobileChatApp() {
       }
 
       if (e.cancelable) e.preventDefault();
-      if (mode === 'dashboard') committed = dx < -64 && ady < 72;
+      if (mode === 'dashboard') committed = dx > 64 && ady < 72;
     };
 
     const onTouchEnd = () => {

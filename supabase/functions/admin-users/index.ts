@@ -393,6 +393,28 @@ serve(async (req) => {
 
       const totalImages = imagesJobCount || 0;
 
+      const trafficSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const [{ data: sourceRows, error: sourceError }, { data: trafficRows, error: trafficError }] = await Promise.all([
+        supabase.from("profiles").select("signup_source,signup_source_detail").not("signup_source", "is", null),
+        supabase.from("anonymous_route_traffic").select("traffic_date,route,pageviews").gte("traffic_date", trafficSince).order("traffic_date", { ascending: false }),
+      ]);
+      if (sourceError) throw sourceError;
+      if (trafficError) throw trafficError;
+
+      const sourceCounts = (sourceRows || []).reduce<Record<string, number>>((counts, row) => {
+        const source = row.signup_source || "unknown";
+        counts[source] = (counts[source] || 0) + 1;
+        return counts;
+      }, {});
+      const otherSourceDetails = (sourceRows || [])
+        .filter((row) => row.signup_source === "other" && row.signup_source_detail?.trim())
+        .map((row) => row.signup_source_detail.trim().slice(0, 200));
+      const routeTraffic = (trafficRows || []).reduce<Record<string, number>>((totals, row) => {
+        totals[row.route] = (totals[row.route] || 0) + Number(row.pageviews || 0);
+        return totals;
+      }, {});
+      const totalAnonymousPageviews = Object.values(routeTraffic).reduce((total, count) => total + count, 0);
+
       return new Response(JSON.stringify({
         totalUsers,
         activeLiveSubsCount,
@@ -404,7 +426,13 @@ serve(async (req) => {
         bugsCount: bugsCount || 0,
         ticketsCount: ticketsCount || 0,
         voiceCount: voiceCount || 0,
-        totalImages
+        totalImages,
+        sourceCounts,
+        sourceResponseCount: sourceRows?.length || 0,
+        otherSourceDetails,
+        routeTraffic,
+        totalAnonymousPageviews,
+        trafficWindowDays: 30,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

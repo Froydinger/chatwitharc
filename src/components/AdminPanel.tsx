@@ -289,6 +289,8 @@ export function AdminPanel() {
       if (activeSection === "dashboard") {
         fetchStats();
         fetchUsers(5);
+      } else if (activeSection === "stats") {
+        fetchStats();
       } else if (activeSection === "users") {
         fetchUsers(100);
       } else if (activeSection === "bugs") {
@@ -459,6 +461,7 @@ export function AdminPanel() {
 
   const sidebarItems = [
     { id: "dashboard",   label: "Dashboard",       icon: LayoutDashboard, subtitle: "At a Glance Overview" },
+    { id: "stats",       label: "Stats",           icon: Activity,        subtitle: "Sources & Anonymous Traffic" },
     { id: "users",       label: "Users",           icon: Users,           subtitle: "Manage Accounts" },
     { id: "tickets",     label: "Support Desk",    icon: MessageSquare,   subtitle: "Customer Ticketing" },
     { id: "bugs",        label: "Bug Logs",        icon: AlertTriangle,   subtitle: "Exception Trace logs" },
@@ -887,6 +890,60 @@ export function AdminPanel() {
                     <Button onClick={handleSaveQuickDraft} className="w-full text-xs font-semibold h-8 bg-primary hover:bg-primary/90 text-primary-foreground">
                       <Check className="h-3.5 w-3.5 mr-1" /> Save Draft Note
                     </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {activeSection === "stats" && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                <div>
+                  <h3 className="text-lg font-bold">Stats</h3>
+                  <p className="text-xs text-muted-foreground">Survey answers and anonymous page totals. No visitor-level tracking.</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={fetchStats} disabled={statsLoading}>
+                  <RefreshCw className={cn("mr-2 h-3.5 w-3.5", statsLoading && "animate-spin")} /> Refresh
+                </Button>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                <Card className="border-border/60">
+                  <CardHeader>
+                    <CardTitle>Where people found AskArc</CardTitle>
+                    <CardDescription>{stats?.sourceResponseCount || 0} survey responses</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {Object.entries(stats?.sourceCounts || {}).sort(([, a], [, b]) => Number(b) - Number(a)).map(([source, count]) => (
+                      <div key={source} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/10 px-4 py-3">
+                        <span className="text-sm font-medium capitalize">{source === "friend" ? "A friend" : source}</span>
+                        <Badge variant="secondary">{Number(count)}</Badge>
+                      </div>
+                    ))}
+                    {!statsLoading && !stats?.sourceResponseCount && <p className="py-6 text-center text-sm text-muted-foreground">No survey answers yet.</p>}
+                    {!!stats?.otherSourceDetails?.length && (
+                      <div className="border-t border-border/40 pt-4">
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Other answers</p>
+                        <div className="space-y-2">{stats.otherSourceDetails.map((detail: string, index: number) => <p key={`${detail}-${index}`} className="rounded-xl bg-muted/15 px-3 py-2 text-xs">{detail}</p>)}</div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/60">
+                  <CardHeader>
+                    <CardTitle>Anonymous traffic</CardTitle>
+                    <CardDescription>{stats?.totalAnonymousPageviews || 0} pageviews over the last {stats?.trafficWindowDays || 30} days</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {Object.entries(stats?.routeTraffic || {}).sort(([, a], [, b]) => Number(b) - Number(a)).map(([route, count]) => (
+                      <div key={route} className="flex items-center justify-between rounded-xl border border-border/40 bg-muted/10 px-4 py-3">
+                        <code className="text-xs text-foreground">{route}</code>
+                        <Badge variant="secondary">{Number(count)}</Badge>
+                      </div>
+                    ))}
+                    {!statsLoading && !stats?.totalAnonymousPageviews && <p className="py-6 text-center text-sm text-muted-foreground">No anonymous pageviews recorded yet.</p>}
                   </CardContent>
                 </Card>
               </div>
