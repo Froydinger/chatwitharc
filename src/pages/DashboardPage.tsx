@@ -961,123 +961,92 @@ useEffect(() => {
         <AnimatePresence mode="wait" initial={false} custom={tabDirection}>
           {/* ====== OVERVIEW ====== */}
           {activeTab === "overview" && (
-            <motion.div key="overview" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-5">
-
-              {/* Usage lives on Dashboard now that the legacy sidebar is gone. */}
-              <div className="rounded-3xl border border-primary/15 bg-primary/[0.035] p-4 sm:p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                      <CircleGauge className="h-5 w-5 text-primary" />
-                    </div>
+            <motion.div key="overview" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-6">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(19rem,0.75fr)]">
+                <section className="relative overflow-hidden rounded-[2rem] border border-primary/20 bg-gradient-to-br from-primary/[0.10] via-background/70 to-background/35 p-4 shadow-[0_24px_80px_-48px_hsl(var(--primary)/0.7)] sm:p-6">
+                  <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+                  <div className="relative mb-5 flex items-center justify-between gap-3">
                     <div>
-                      <h2 className="text-sm font-semibold text-foreground">Usage & plan</h2>
-                      <p className="text-xs text-muted-foreground">Daily image usage resets at 00:00 UTC</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/75">Pick up where you left off</p>
+                      <h2 className="mt-1 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Recent chats</h2>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" className="rounded-full text-xs" onClick={() => switchTab("chats")}>View all</Button>
+                      <Button size="sm" className="rounded-full gap-1.5" onClick={() => { const id = createNewSession(); navigate(`/chat/${id}`); }}>
+                        <Plus className="h-3.5 w-3.5" /> New chat
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full border border-border/40 bg-background/40 px-3 py-1.5 text-xs text-foreground">
-                      Luna reasoning <span className="text-primary">available</span>
-                    </span>
-                    <span className="rounded-full border border-border/40 bg-background/40 px-3 py-1.5 text-xs text-foreground">
-                      Images <span className="font-mono text-primary">{isAdmin || imageLimit === Infinity ? "unlimited" : `${dailyImagesUsed} / ${imageLimit}`}</span>
-                    </span>
-                    <span className="rounded-full border border-border/40 bg-background/40 px-3 py-1.5 text-xs text-foreground">
-                      Deep Search <span className="text-primary">{isAdmin || hasBoost ? "unlimited" : "4 Deep + 1 Ultra / week"}</span>
-                    </span>
-                  </div>
-                </div>
-                {!isAdmin && !hasBoost && (
-                  <button onClick={() => openCheckout()} className="mt-4 text-xs font-medium text-primary hover:text-primary/80 transition-colors">
-                    Upgrade for higher Luna limits and unlimited Deep Search →
-                  </button>
-                )}
-              </div>
-
-              {/* Quick stat chips — single clean row */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {stats.map(({ label, tab, icon: Icon, value }) => (
-                  <button
-                    key={label}
-                    onClick={() => switchTab(tab)}
-                    className="group flex items-center gap-3 px-3.5 py-3 rounded-2xl border border-primary/15 bg-primary/[0.04] hover:bg-primary/10 hover:border-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all text-left"
-                  >
-                    <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">
-                      <Icon className="h-4 w-4 text-primary" />
+                  {!isLoaded ? <SkeletonList count={4} /> : allChats.length === 0 ? (
+                    <EmptyState icon={MessageSquare} text="Your next idea starts here" sub="Create a chat and it’ll stay within reach." />
+                  ) : (
+                    <div className="relative grid gap-2 sm:grid-cols-2">
+                      {allChats.slice(0, 4).map((session, index) => (
+                        <button
+                          key={session.id}
+                          onClick={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }}
+                          className="group min-w-0 rounded-2xl border border-border/35 bg-background/50 p-4 text-left backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-background/75"
+                        >
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-xs font-semibold text-primary">{index + 1}</span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{timeAgo(session.lastMessageAt || session.createdAt)}</span>
+                          </div>
+                          <p className="truncate text-sm font-semibold text-foreground">{session.title || "Untitled chat"}</p>
+                          <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{session.messages?.at(-1)?.content || "Open conversation"}</p>
+                        </button>
+                      ))}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-lg font-semibold text-foreground leading-none tabular-nums">{value ?? 0}</p>
-                      <p className="text-[11px] text-muted-foreground mt-1 uppercase tracking-wider truncate">{label}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+                  )}
+                </section>
 
-              {/* Shortcuts: Scheduled Tasks & Shared Chats */}
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  onClick={() => navigate("/tasks")}
-                  className="group flex items-center gap-3 px-3.5 py-3 rounded-2xl border border-primary/15 bg-primary/[0.04] hover:bg-primary/10 hover:border-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all text-left"
-                >
-                  <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                    <Clock className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-foreground leading-none">Scheduled Tasks</p>
-                    <p className="text-[11px] text-muted-foreground mt-1 uppercase tracking-wider truncate">Run prompts on a timer</p>
-                  </div>
-                </button>
-                <button
-                  onClick={() => navigate("/shared")}
-                  className="group flex items-center gap-3 px-3.5 py-3 rounded-2xl border border-primary/15 bg-primary/[0.04] hover:bg-primary/10 hover:border-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all text-left"
-                >
-                  <div className="h-9 w-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                    <Users className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-foreground leading-none">Shared Chats</p>
-                    <p className="text-[11px] text-muted-foreground mt-1 uppercase tracking-wider truncate">Group convos with Arc</p>
-                  </div>
-                </button>
-              </div>
-
-              {/* Insight tip — subtle inline */}
-              <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-primary/15 bg-primary/[0.04]">
-                <Sparkles className="h-4 w-4 text-primary shrink-0" />
-                <p className="text-sm text-foreground/80">{insightTip}</p>
-              </div>
-
-              {/* Recent Chats */}
-              <Section title="Recent Chats" icon={MessageSquare} action={() => switchTab("chats")} actionLabel="See all">
-                {!isLoaded ? <SkeletonGrid cols={3} /> : allChats.length === 0 ? (
-                  <EmptyState icon={MessageSquare} text="No chats yet" sub="Start a conversation above!" />
-                ) : (
-                  <div className="space-y-1.5">
-                    {allChats.slice(0, 5).map((session, i) => (
-                      <ChatCard key={session.id} session={session} timeAgo={timeAgo} onClick={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }} index={i} />
-                    ))}
-                  </div>
-                )}
-              </Section>
-
-              {/* Memories */}
-              <Section title="Memories" icon={Brain} action={() => switchTab("memories")} actionLabel="See all" count={contextBlocks.length}>
-                {blocksLoading ? <SkeletonList count={3} /> : contextBlocks.length === 0 ? (
-                  <EmptyState icon={Brain} text="No memories yet" sub='Say "remember that..."' />
-                ) : (
-                  <div className="space-y-1.5">
-                    {contextBlocks.slice(0, 4).map((block) => (
-                      <div
-                        key={block.id}
-                        className="group p-3 rounded-xl border border-border/30 bg-muted/15 hover:border-primary/25 hover:bg-primary/5 transition-all"
-                      >
-                        <p className="text-sm text-foreground/90 line-clamp-2 leading-relaxed">{block.content}</p>
-                        <span className="text-[10px] text-muted-foreground mt-1.5 block uppercase tracking-wider">{timeAgo(block.created_at)}</span>
+                <aside className="flex flex-col gap-4">
+                  <div className="rounded-[2rem] border border-border/35 bg-background/45 p-5 backdrop-blur-xl">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10"><CircleGauge className="h-5 w-5 text-primary" /></span>
+                        <div><p className="text-sm font-semibold">Usage</p><p className="text-xs text-muted-foreground">Resets daily at 00:00 UTC</p></div>
                       </div>
-                    ))}
+                      <button onClick={() => navigate('/dashboard/settings?section=plan')} className="text-[10px] font-semibold uppercase tracking-wider text-primary">Plan</button>
+                    </div>
+                    <div className="mt-5 space-y-3">
+                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-3 py-2.5 text-xs"><span className="text-muted-foreground">Luna reasoning</span><span className="font-medium text-primary">Available</span></div>
+                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-3 py-2.5 text-xs"><span className="text-muted-foreground">Image outputs</span><span className="font-mono text-foreground">{isAdmin || imageLimit === Infinity ? "Unlimited" : `${dailyImagesUsed} / ${imageLimit}`}</span></div>
+                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-3 py-2.5 text-xs"><span className="text-muted-foreground">Deep Search</span><span className="font-medium text-primary">{isAdmin || hasBoost ? "Unlimited" : "4 + 1 Ultra / wk"}</span></div>
+                    </div>
+                    {!isAdmin && !hasBoost && <Button variant="outline" size="sm" className="mt-4 w-full rounded-full" onClick={() => openCheckout()}>Explore Boost</Button>}
                   </div>
-                )}
-              </Section>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button onClick={() => navigate('/tasks')} className="rounded-3xl border border-border/35 bg-background/45 p-4 text-left transition-all hover:border-primary/35 hover:bg-primary/[0.06]"><Clock className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Reminders</p><p className="mt-1 text-[11px] text-muted-foreground">Scheduled tasks</p></button>
+                    <button onClick={() => navigate('/shared')} className="rounded-3xl border border-border/35 bg-background/45 p-4 text-left transition-all hover:border-primary/35 hover:bg-primary/[0.06]"><Users className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Shared</p><p className="mt-1 text-[11px] text-muted-foreground">Chats with people</p></button>
+                  </div>
+                </aside>
+              </div>
+
+              <section>
+                <div className="mb-3 flex items-end justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">Your library</p><h2 className="mt-1 text-lg font-semibold">Everything Arc is holding onto</h2></div><p className="hidden text-xs text-muted-foreground sm:block">{insightTip}</p></div>
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  {stats.map(({ label, tab, icon: Icon, value }) => (
+                    <button key={label} onClick={() => switchTab(tab)} className="group relative overflow-hidden rounded-3xl border border-border/35 bg-background/40 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.055] sm:p-5">
+                      <Icon className="h-5 w-5 text-primary" />
+                      <p className="mt-7 text-3xl font-light tabular-nums text-foreground">{value ?? 0}</p>
+                      <div className="mt-1 flex items-center justify-between"><span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span><ArrowRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-1 group-hover:text-primary" /></div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="grid gap-4 lg:grid-cols-[1fr_0.65fr]">
+                <div className="rounded-[2rem] border border-border/35 bg-background/40 p-5 sm:p-6">
+                  <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><Brain className="h-5 w-5 text-primary" /><div><h2 className="text-sm font-semibold">Fresh memories</h2><p className="text-xs text-muted-foreground">What Arc remembers about you</p></div></div><button onClick={() => switchTab('memories')} className="text-xs text-primary">See all</button></div>
+                  {blocksLoading ? <SkeletonList count={3} /> : contextBlocks.length === 0 ? <EmptyState icon={Brain} text="No memories yet" sub='Say “remember that…” in chat.' /> : (
+                    <div className="grid gap-2 sm:grid-cols-2">{contextBlocks.slice(0, 4).map((block) => <div key={block.id} className="rounded-2xl border border-border/30 bg-muted/15 p-3.5"><p className="line-clamp-2 text-sm leading-relaxed text-foreground/90">{block.content}</p><span className="mt-2 block text-[10px] uppercase tracking-wider text-muted-foreground">{timeAgo(block.created_at)}</span></div>)}</div>
+                  )}
+                </div>
+                <button onClick={() => navigate('/status')} className="group flex min-h-40 flex-col justify-between rounded-[2rem] border border-border/35 bg-gradient-to-br from-background/45 to-primary/[0.07] p-5 text-left transition-all hover:border-primary/35 sm:p-6">
+                  <div className="flex items-center justify-between"><Globe className="h-5 w-5 text-primary" /><span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Live</span></div>
+                  <div><p className="text-lg font-semibold">Arc system status</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Live service checks, incident visibility, and platform health.</p></div>
+                </button>
+              </section>
             </motion.div>
           )}
 

@@ -24,3 +24,8 @@ project_id = "jpqtoixhjnfdubvqshwk"
     verify_jwt = true
   [functions.delete-r2-image]
     verify_jwt = true
+  [functions.system-health]
+    # Public status and privacy-safe aggregate pageview endpoint.
+    # The function never trusts a caller identity and uses service_role only
+    # for its narrow aggregate reads/write.
+    verify_jwt = false

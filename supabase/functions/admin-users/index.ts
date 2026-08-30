@@ -98,10 +98,12 @@ serve(async (req) => {
     const isServiceCall = token === serviceRoleKey;
 
     let callerUserId: string | null = null;
+    let callerEmail: string | undefined;
     if (!isServiceCall) {
       const { data: userData, error: userError } = await supabase.auth.getUser(token);
       if (userError) throw new Error(`Auth error: ${userError.message}`);
       callerUserId = userData.user?.id || null;
+      callerEmail = userData.user?.email;
       if (!callerUserId) throw new Error("Not authenticated");
 
       // Check admin status
@@ -309,7 +311,7 @@ serve(async (req) => {
         templateName: "boost-granted",
         userId,
         displayName: targetProfile?.display_name,
-        adminEmail: userData.user?.email,
+        adminEmail: callerEmail,
         idempotencyKey: `admin-boost-granted:${userId}:${durationDays}:${Date.now()}`,
         durationLabel,
       });
@@ -343,7 +345,7 @@ serve(async (req) => {
         templateName: "boost-revoked",
         userId,
         displayName: targetProfile?.display_name,
-        adminEmail: userData.user?.email,
+        adminEmail: callerEmail,
         idempotencyKey: `admin-boost-revoked:${userId}:${new Date().toISOString().slice(0, 10)}`,
       });
 

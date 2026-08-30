@@ -215,7 +215,7 @@ All colors MUST be HSL for perfect glass effects.
       inset 0 1px 0 hsl(0 0% 100% / 0.8);
   }
   :root.dark[data-accent="noir"] .dashboard-nav-pill {
-    background: hsl(var(--accent) / 0.92);
+    background: hsl(0 0% 3% / 0.96);
     border-color: hsl(var(--border) / 0.8);
     box-shadow:
       0 12px 36px rgba(0, 0, 0, 0.75),
@@ -1752,4 +1752,3 @@ All colors MUST be HSL for perfect glass effects.
   -webkit-app-region: drag;
   pointer-events: auto;
 }
-

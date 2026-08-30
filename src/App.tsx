@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/UpgradeModal";
@@ -72,6 +72,7 @@ const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
 const SharedChatPage = lazy(() => import("./pages/SharedChatPage").then((m) => ({ default: m.SharedChatPage })));
 const TasksPage = lazy(() => import("./pages/TasksPage").then((m) => ({ default: m.TasksPage })));
+const StatusPage = lazy(() => import("./pages/StatusPage").then((m) => ({ default: m.StatusPage })));
 const SharedChatsPage = lazy(() => import("./pages/SharedChatsPage").then((m) => ({ default: m.SharedChatsPage })));
 const SharedChatRoomPage = lazy(() => import("./pages/SharedChatRoomPage").then((m) => ({ default: m.SharedChatRoomPage })));
 const LandingPage = lazy(() => import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })));
@@ -85,6 +86,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { GUEST_CHAT_ENABLED } from "@/lib/features";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { motion } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 const FullscreenLoader = () => {
   const [stage, setStage] = useState<'spin' | 'bloop'>('spin');
@@ -216,6 +218,18 @@ const ThemeManager = () => {
   return null;
 };
 
+const AnonymousTrafficCounter = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    // Aggregate route totals only. The endpoint stores date + canonical route +
+    // count, never identity, IP, UA, cookie, device ID, or fingerprint data.
+    void supabase.functions.invoke("system-health", { body: { action: "pageview", path: pathname } });
+  }, [pathname]);
+
+  return null;
+};
+
 const App = () => {
   const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
@@ -273,6 +287,7 @@ const App = () => {
               <BoostSync />
               <BrowserRouter>
                 <ThemeManager />
+                <AnonymousTrafficCounter />
                 <ScrollToTop />
                 <RouteSEO />
                 <PageTransition>
@@ -296,6 +311,7 @@ const App = () => {
                     <Route path="/support" element={<SupportPage />} />
                     <Route path="/docs" element={<DocsPage />} />
                     <Route path="/tasks" element={<TasksPage />} />
+                    <Route path="/status" element={<StatusPage />} />
                     <Route path="/shared" element={<SharedChatsPage />} />
                     <Route path="/shared/:chatId" element={<SharedChatRoomPage />} />
                     <Route path="/desktop-auth-callback" element={<DesktopAuthCallbackPage />} />
