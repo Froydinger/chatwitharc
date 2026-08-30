@@ -14,6 +14,7 @@ interface ServiceHealth {
   status: ServiceState;
   latencyMs?: number;
   detail: string;
+  activity?: { completed: number; total: number; label: string };
 }
 
 interface HealthResponse {
@@ -23,9 +24,9 @@ interface HealthResponse {
 }
 
 const stateCopy = {
-  operational: { label: "All systems operational", color: "text-emerald-400", bg: "bg-emerald-400", Icon: CheckCircle2 },
-  degraded: { label: "Some systems are degraded", color: "text-amber-400", bg: "bg-amber-400", Icon: CircleAlert },
-  outage: { label: "Service interruption", color: "text-red-400", bg: "bg-red-400", Icon: WifiOff },
+  operational: { label: "All systems live", color: "text-emerald-400", bg: "bg-emerald-400", Icon: CheckCircle2 },
+  degraded: { label: "Some systems are down", color: "text-amber-400", bg: "bg-amber-400", Icon: CircleAlert },
+  outage: { label: "System down", color: "text-red-400", bg: "bg-red-400", Icon: WifiOff },
 } as const;
 
 export function StatusPage() {
@@ -55,7 +56,7 @@ export function StatusPage() {
   const SummaryIcon = summary.Icon;
 
   return (
-    <main className="relative z-10 min-h-screen px-4 py-6 text-foreground sm:px-6 sm:py-10">
+    <main className="relative z-10 min-h-screen px-4 pb-6 pt-[calc(env(safe-area-inset-top)+1.5rem)] text-foreground sm:px-6 sm:py-10">
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-10 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
@@ -74,8 +75,8 @@ export function StatusPage() {
                 <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">
                   <Activity className="h-3.5 w-3.5" /> ArcAI system status
                 </div>
-                <h1 className="max-w-2xl text-4xl font-light tracking-tight sm:text-6xl">The live pulse of Arc.</h1>
-                <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">Real checks across the services that power chat, creative tools, reminders, and your saved work.</p>
+                <h1 className="max-w-2xl text-4xl font-light tracking-tight sm:text-6xl">Arc system status</h1>
+                <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">A simple live check for the services that power Arc.</p>
               </div>
               <div className={cn("flex items-center gap-2 text-sm font-semibold", summary.color)}>
                 <span className={cn("h-2.5 w-2.5 rounded-full shadow-[0_0_18px_currentColor]", summary.bg)} />
@@ -94,9 +95,12 @@ export function StatusPage() {
                         <span className={cn("flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/25", visual.color)}><Icon className="h-5 w-5" /></span>
                         <div><h2 className="text-sm font-semibold">{service.name}</h2><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{service.detail}</p></div>
                       </div>
-                      <span className={cn("text-[10px] font-semibold uppercase tracking-wider", visual.color)}>{service.status}</span>
+                      <span className={cn("text-[10px] font-semibold uppercase tracking-wider", visual.color)}>{service.status === "operational" ? "Live" : "Down"}</span>
                     </div>
-                    {typeof service.latencyMs === "number" && <div className="mt-4 flex items-center gap-1.5 text-[11px] text-muted-foreground"><Clock3 className="h-3.5 w-3.5" /> {service.latencyMs} ms</div>}
+                    <div className="mt-4 flex items-center gap-3 text-[11px] text-muted-foreground">
+                      {service.activity && <span>{service.activity.completed} of {service.activity.total} {service.activity.label}</span>}
+                      {typeof service.latencyMs === "number" && <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" /> {service.latencyMs} ms</span>}
+                    </div>
                   </motion.article>
                 );
               })}

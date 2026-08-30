@@ -33,6 +33,7 @@ type ServiceHealth = {
   status: ServiceStatus;
   latencyMs?: number;
   detail: string;
+  activity?: { completed: number; total: number; label: string };
 };
 
 let cachedHealth: { expiresAt: number; payload: Record<string, unknown> } | null = null;
@@ -81,7 +82,25 @@ function summarize(id: string, name: string, rows: JobRow[] | null, error: unkno
     detail: finished === 0
       ? "No completed operations in the last 24 hours."
       : `${succeeded} succeeded and ${failed} failed in the last 24 hours.`,
+    activity: { completed: succeeded, total: finished, label: "completed" },
   };
+}
+
+async function applyManualStatus(admin: ReturnType<typeof adminClient>, services: ServiceHealth[]): Promise<ServiceHealth[]> {
+  const keys = services.flatMap(({ id }) => [`status_${id}`, `status_${id}_message`]);
+  const { data } = await admin.from("admin_settings").select("key,value").in("key", keys);
+  const settings = new Map((data ?? []).map((row) => [row.key, row.value]));
+
+  return services.map((service) => {
+    const override = settings.get(`status_${service.id}`);
+    if (override !== "operational" && override !== "outage") return service;
+    const message = settings.get(`status_${service.id}_message`)?.trim();
+    return {
+      ...service,
+      status: override,
+      detail: message || (override === "operational" ? "This service is live." : "This service is currently unavailable."),
+    };
+  });
 }
 
 async function timed<T>(operation: PromiseLike<T>): Promise<{ result: T; latencyMs: number }> {
@@ -118,7 +137,7 @@ async function healthPayload(): Promise<Record<string, unknown>> {
   const images = imageCheck.result;
   const videos = videoCheck.result;
   const reminders = reminderCheck.result;
-  const services: ServiceHealth[] = [
+  const automaticServices: ServiceHealth[] = [
     { id: "edge", name: "ArcAI API", status: "operational", detail: "The public health endpoint is responding." },
     {
       id: "database",
@@ -137,6 +156,7 @@ async function healthPayload(): Promise<Record<string, unknown>> {
       reminderCheck.latencyMs,
     ),
   ];
+  const services = await applyManualStatus(admin, automaticServices);
 
   const states = services.map((service) => service.status);
   const payload = {

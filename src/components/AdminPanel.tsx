@@ -350,6 +350,26 @@ export function AdminPanel() {
     }
   };
 
+  const statusServices = [
+    { id: "edge", name: "ArcAI API" },
+    { id: "database", name: "Database" },
+    { id: "images", name: "Image generation" },
+    { id: "video", name: "Video generation" },
+    { id: "reminders", name: "Reminders" },
+  ];
+
+  const handleSaveStatus = async () => {
+    try {
+      for (const service of statusServices) {
+        await updateSetting(`status_${service.id}`, getCurrentValue(`status_${service.id}`) || "auto", `Public status override for ${service.name}`);
+        await updateSetting(`status_${service.id}_message`, getCurrentValue(`status_${service.id}_message`) || "", `Public status message for ${service.name}`);
+      }
+      toast({ title: "Public status updated", description: "The live status page will reflect these settings within 30 seconds." });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update public status.", variant: "destructive" });
+    }
+  };
+
   const handleValueChange = (key: string, value: string) => {
     setLocalValues(prev => ({ ...prev, [key]: value }));
   };
@@ -442,6 +462,7 @@ export function AdminPanel() {
     { id: "users",       label: "Users",           icon: Users,           subtitle: "Manage Accounts" },
     { id: "tickets",     label: "Support Desk",    icon: MessageSquare,   subtitle: "Customer Ticketing" },
     { id: "bugs",        label: "Bug Logs",        icon: AlertTriangle,   subtitle: "Exception Trace logs" },
+    { id: "status",      label: "Public Status",   icon: Activity,        subtitle: "Live Service Controls" },
     { id: "banner",      label: "Announcements",   icon: Megaphone,       subtitle: "Banner Settings" },
     { id: "ai",          label: "AI Config",       icon: Sparkles,        subtitle: "Prompts & Rules" },
     { id: "thinking",    label: "Thinking Orb",    icon: Loader,          subtitle: "Loading Animations" },
@@ -1266,6 +1287,36 @@ export function AdminPanel() {
                 )}
               </Card>
             </div>
+          )}
+
+          {activeSection === "status" && (
+            <Card className="border-border/60 animate-fade-in">
+              <CardHeader className="border-b border-border/40">
+                <CardTitle>Public System Status</CardTitle>
+                <CardDescription>Leave a service on Auto for live checks, or explicitly mark it live or down.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4 p-4 md:p-6">
+                {statusServices.map((service) => {
+                  const value = getCurrentValue(`status_${service.id}`) || "auto";
+                  return (
+                    <div key={service.id} className="space-y-3 rounded-2xl border border-border/50 bg-muted/10 p-4">
+                      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                        <Label className="font-semibold">{service.name}</Label>
+                        <div className="flex gap-2">
+                          {[{ value: "auto", label: "Auto" }, { value: "operational", label: "Live" }, { value: "outage", label: "Down" }].map((option) => (
+                            <Button key={option.value} type="button" size="sm" variant={value === option.value ? "default" : "outline"} onClick={() => handleValueChange(`status_${service.id}`, option.value)}>
+                              {option.label}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      <Input value={getCurrentValue(`status_${service.id}_message`)} onChange={(event) => handleValueChange(`status_${service.id}_message`, event.target.value)} placeholder="Optional message shown when this service is down" />
+                    </div>
+                  );
+                })}
+                <Button onClick={handleSaveStatus} disabled={updating} className="w-full font-semibold">Save Public Status</Button>
+              </CardContent>
+            </Card>
           )}
 
           {/* ===================== SECTION 5: ANNOUNCEMENT BANNER ===================== */}
