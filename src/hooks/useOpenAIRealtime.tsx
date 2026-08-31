@@ -117,22 +117,6 @@ const clearSessionTimers = () => {
 // loop. It must never be treated as transient.
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key', 'model_not_found'];
 const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1-mini';
-// Barge-in sensitivity. Anything quieter than this while Arc is talking is
-// treated as breathing, room noise, or speaker bleed rather than an interrupt.
-// iOS needs a higher bar because the handset speaker leaks into the mic even
-// with echo cancellation on — but a bar, not a blanket block, or the user can
-// never talk over Arc at all.
-const BARGE_IN_AMPLITUDE = 0.045;
-const IOS_BARGE_IN_AMPLITUDE = 0.09;
-// speech_started fires on the leading edge of a word, where the level is still
-// near silence — sampling the amplitude at that instant almost always read
-// below the threshold, so real interrupts were thrown away as echo. Track the
-// loudest level from just before the event instead.
-const INPUT_PEAK_WINDOW_MS = 700;
-// The mic now stays open while Arc talks, so some of what it hears is Arc's own
-// voice coming back off the speaker. Real speech has to clear Arc's output
-// level, not just the noise floor — echo tracks the output, a person does not.
-const ECHO_HEADROOM = 0.8;
 // Hard stop against a runaway echo loop: if barge-ins fire again and again in a
 // short window, it is Arc hearing itself, not a person talking. Each one cancels
 // a response and starts another, which is billed, so past this many in the
@@ -159,28 +143,6 @@ const noteBargeIn = () => {
     recentBargeIns = [];
   }
 };
-let recentInputPeak = 0;
-let recentInputPeakAt = 0;
-
-const noteInputAmplitude = (amplitude: number) => {
-  const now = Date.now();
-  if (amplitude >= recentInputPeak || now - recentInputPeakAt > INPUT_PEAK_WINDOW_MS) {
-    recentInputPeak = amplitude;
-    recentInputPeakAt = now;
-  }
-};
-
-const getRecentInputPeak = (currentAmplitude: number) => {
-  if (Date.now() - recentInputPeakAt > INPUT_PEAK_WINDOW_MS) return currentAmplitude;
-  return Math.max(recentInputPeak, currentAmplitude);
-};
-
-useVoiceModeStore.subscribe((state) => noteInputAmplitude(state.inputAmplitude));
-const IS_IOS_VOICE_DEVICE = typeof navigator !== 'undefined' && (
-  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-);
-
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -791,8 +753,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'input_audio_buffer.speech_started':
         console.log('VAD: User speech detected');
         const stateAtSpeechStart = useVoiceModeStore.getState();
-        const bargeInThreshold = IS_IOS_VOICE_DEVICE ? IOS_BARGE_IN_AMPLITUDE : BARGE_IN_AMPLITUDE;
-        const speechLevel = getRecentInputPeak(stateAtSpeechStart.inputAmplitude);
         // Only audible speech can be talked over. While Arc is silently waiting
         // on a tool (weather, search, image), an interrupt cancels the response
         // the tool result was going to land in: the result then queues behind
@@ -800,11 +760,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // and Arc answers "still waiting for that to finish" forever.
         const arcIsAudiblySpeaking =
           stateAtSpeechStart.status === 'speaking' || stateAtSpeechStart.isAudioPlaying;
-        // While Arc is audible, require the input to stand above what Arc is
-        // putting out, otherwise the speaker bleed would interrupt Arc itself.
-        const clearsOwnVoice =
-          !arcIsAudiblySpeaking ||
-          speechLevel > stateAtSpeechStart.outputAmplitude * ECHO_HEADROOM;
         const toolWorkOutstanding =
           toolCallsInFlight.size > 0 ||
           pendingFunctionResults.length > 0 ||
@@ -813,23 +768,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           stateAtSpeechStart.isFetchingWeather ||
           stateAtSpeechStart.isSchedulingTask;
         const canBargeIn =
-          arcIsAudiblySpeaking && !toolWorkOutstanding && clearsOwnVoice && bargeInAllowed();
-
-        // iOS used to discard every speech_started while Arc was responding,
-        // which killed echo loops but also made voice barge-in impossible — the
-        // user talked over Arc and Arc played the rest of its answer anyway.
-        // Discard only what cannot be a real interrupt, or is quiet enough to
-        // actually be speaker bleed.
-        if (IS_IOS_VOICE_DEVICE && (
-          responseInProgress ||
-          stateAtSpeechStart.status === 'thinking' ||
-          stateAtSpeechStart.status === 'speaking' ||
-          stateAtSpeechStart.isAudioPlaying
-        ) && !(canBargeIn && speechLevel > bargeInThreshold)) {
-          console.log(`Ignoring iOS speaker echo during Arc response (peak ${speechLevel.toFixed(3)}, output ${stateAtSpeechStart.outputAmplitude.toFixed(3)})`);
-          sendRealtimeEvent({ type: 'input_audio_buffer.clear' });
-          return;
-        }
+          arcIsAudiblySpeaking && !toolWorkOutstanding && bargeInAllowed();
         // Real activity — restart the silence countdown. Without this the
         // "inactivity" timeout was only ever armed at connect time, so it was a
         // hard inactivity kill that would end a call mid-conversation.
@@ -844,10 +783,15 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         userSpokeAfterLastResponse = true;
         const voiceStateAtSpeechStart = stateAtSpeechStart;
-        const isBargeIn = canBargeIn && speechLevel > bargeInThreshold; // Guard against ambient noise/breathing cutting off AI speech
+        // The server VAD has already classified this audio as speech. Do not
+        // apply a second client-side amplitude test here: echo cancellation can
+        // make a real user's voice look quieter than Arc's output even though
+        // the server clearly heard them, leaving queued playback talking over
+        // the interruption.
+        const isBargeIn = canBargeIn;
 
         if (isBargeIn) {
-          console.log(`🎙️ Intentional user barge-in confirmed (peak ${speechLevel.toFixed(3)} > ${bargeInThreshold})`);
+          console.log('🎙️ User barge-in confirmed by server VAD');
           noteBargeIn();
           rememberInterruptedResponse(activeResponseId);
           suppressInterruptedResponseAudio = true;
@@ -863,7 +807,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             truncateSpokenAudio(playedMs);
           }
         } else if (arcIsAudiblySpeaking) {
-          console.log(`🤫 Ignored background noise/breath during AI speech (peak ${speechLevel.toFixed(3)})`);
+          console.log('🤫 Ignored speech during protected tool work or barge-in cooldown');
         }
         break;
 
