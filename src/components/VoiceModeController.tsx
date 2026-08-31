@@ -386,7 +386,7 @@ export function VoiceModeController() {
   messagesRef.current = messages;
 
   // Audio playback for AI responses
-  const { queueAudio, stopPlayback, clearQueue } = useAudioPlayback();
+  const { queueAudio, stopPlayback, clearQueue, duckPlayback, restorePlayback } = useAudioPlayback();
   const toolPulseAudioRef = useRef<AudioContext | null>(null);
   const toolPulseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const latestWebSearchRunRef = useRef<symbol | null>(null);
@@ -1103,6 +1103,8 @@ When the user shares their camera or attaches an image, describe what you see na
       store.setIsAudioPlaying(false);
       return playedMs;
     },
+    onInterruptProbeStart: duckPlayback,
+    onInterruptProbeRejected: restorePlayback,
     onError: (error) => {
       console.error('Voice mode error:', error);
       toast({

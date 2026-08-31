@@ -9,6 +9,8 @@ interface UseOpenAIRealtimeOptions {
   // Returns how many milliseconds of Arc's audio the user actually heard, so
   // the interrupt can tell the server where to cut the response off.
   onInterrupt?: () => number | void;
+  onInterruptProbeStart?: () => void;
+  onInterruptProbeRejected?: () => void;
   onImageGenerate?: (prompt: string, aspectRatio?: string) => Promise<string>;
   onImageRevise?: (prompt: string, aspectRatio?: string) => Promise<string>;
   onImageDismiss?: () => void;
@@ -48,6 +50,21 @@ const REALTIME_AUDIO_SAMPLE_RATE = 24000;
 let activeAudioItemId: string | null = null;
 let activeAudioMs = 0;
 const interruptedResponseIds = new Set<string>();
+const BARGE_IN_PROBE_MS = 260;
+const BARGE_IN_PROBE_AMPLITUDE = 0.006;
+let bargeInProbeTimer: ReturnType<typeof setTimeout> | null = null;
+let bargeInProbePeak = 0;
+let bargeInProbeResponseId: string | null = null;
+let stopBargeInProbeAmplitudeWatch: (() => void) | null = null;
+
+const clearBargeInProbe = () => {
+  if (bargeInProbeTimer) clearTimeout(bargeInProbeTimer);
+  bargeInProbeTimer = null;
+  stopBargeInProbeAmplitudeWatch?.();
+  stopBargeInProbeAmplitudeWatch = null;
+  bargeInProbePeak = 0;
+  bargeInProbeResponseId = null;
+};
 
 const rememberInterruptedResponse = (responseId: string | null) => {
   if (!responseId) return;
@@ -756,21 +773,41 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // the interruption.
         const isBargeIn = canBargeIn;
 
-        if (isBargeIn) {
-          console.log('🎙️ User barge-in confirmed by server VAD');
-          rememberInterruptedResponse(activeResponseId);
-          suppressInterruptedResponseAudio = true;
-          useVoiceModeStore.getState().setHasPendingSpeech(true);
-          let playedMs = 0;
-          try {
-            playedMs = optionsRef.current.onInterrupt?.() ?? 0;
-          } catch (err) {
-            console.warn('onInterrupt handler threw:', err);
-          }
-          if (globalWs?.readyState === WebSocket.OPEN) {
-            sendRealtimeEvent({ type: 'response.cancel' });
-            truncateSpokenAudio(playedMs);
-          }
+        if (isBargeIn && !bargeInProbeTimer) {
+          // At loud speaker volumes iOS can report Arc's own output as speech.
+          // Duck the speaker first, then only interrupt if microphone energy
+          // remains after the echo source is gone.
+          optionsRef.current.onInterruptProbeStart?.();
+          bargeInProbePeak = 0;
+          bargeInProbeResponseId = activeResponseId;
+          stopBargeInProbeAmplitudeWatch = useVoiceModeStore.subscribe((state) => {
+            bargeInProbePeak = Math.max(bargeInProbePeak, state.inputAmplitude);
+          });
+          bargeInProbeTimer = setTimeout(() => {
+            const confirmedUserSpeech = bargeInProbePeak >= BARGE_IN_PROBE_AMPLITUDE;
+            const interruptedId = bargeInProbeResponseId;
+            clearBargeInProbe();
+            if (!confirmedUserSpeech) {
+              console.log('🔈 Rejected speaker echo after barge-in probe');
+              optionsRef.current.onInterruptProbeRejected?.();
+              return;
+            }
+
+            console.log('🎙️ User barge-in confirmed after speaker duck');
+            rememberInterruptedResponse(interruptedId);
+            suppressInterruptedResponseAudio = true;
+            useVoiceModeStore.getState().setHasPendingSpeech(true);
+            let playedMs = 0;
+            try {
+              playedMs = optionsRef.current.onInterrupt?.() ?? 0;
+            } catch (err) {
+              console.warn('onInterrupt handler threw:', err);
+            }
+            if (globalWs?.readyState === WebSocket.OPEN) {
+              if (responseInProgress) sendRealtimeEvent({ type: 'response.cancel' });
+              truncateSpokenAudio(playedMs);
+            }
+          }, BARGE_IN_PROBE_MS);
         }
         break;
 
@@ -1599,9 +1636,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                   threshold: 0.55,
                   prefix_padding_ms: 300,
                   silence_duration_ms: 700,
-                  // Let the server stop its own response the moment it hears
-                  // speech, instead of relying only on the client's cancel.
-                  interrupt_response: true,
+                  // The client probes after ducking playback so loud iOS
+                  // speaker echo is not mistaken for a user interruption.
+                  interrupt_response: false,
                 },
               },
               output: {
@@ -1871,6 +1908,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
     // Clear all connection timers
     clearConnectionTimers();
+    clearBargeInProbe();
 
     if (globalWs) {
       globalWs.close();
@@ -1915,6 +1953,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
 
     clearConnectionTimers();
+    clearBargeInProbe();
     forceFlushTurnOrderingBuffer();
     toolCallsInFlight.clear();
     resetToolCallQueue();

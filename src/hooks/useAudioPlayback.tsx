@@ -10,6 +10,8 @@ interface UseAudioPlaybackOptions {
 // to be inaudible as a fade but long enough to land on a zero crossing.
 const FADE_IN_SECONDS = 0.008;   // ramp up when audio starts after silence/a gap
 const FADE_OUT_SECONDS = 0.014;  // ramp down before an interrupt or teardown
+const BARGE_IN_DUCK_SECONDS = 0.025;
+const BARGE_IN_RESTORE_SECONDS = 0.04;
 const SILENCE_GAIN = 0.0001;     // exponential ramps cannot target exactly 0
 // Small scheduling lead so normal network jitter does not starve the graph
 // mid-sentence (an underrun is a gap, and a gap is a pop).
@@ -321,6 +323,31 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     return playedMs;
   }, [getPlayedMs, setOutputAmplitude, setIsAudioPlaying]);
 
+  // Briefly silence Arc without destroying scheduled sources. Voice capture
+  // uses this to distinguish a person continuing to speak from Arc's own
+  // speaker echo before committing to a full interruption.
+  const duckPlayback = useCallback(() => {
+    const ctx = audioContextRef.current;
+    const masterGain = masterGainRef.current;
+    if (!ctx || ctx.state === 'closed' || !masterGain) return;
+    try {
+      masterGain.gain.cancelScheduledValues(ctx.currentTime);
+      masterGain.gain.setValueAtTime(Math.max(masterGain.gain.value, SILENCE_GAIN), ctx.currentTime);
+      masterGain.gain.exponentialRampToValueAtTime(SILENCE_GAIN, ctx.currentTime + BARGE_IN_DUCK_SECONDS);
+    } catch (_) {}
+  }, []);
+
+  const restorePlayback = useCallback(() => {
+    const ctx = audioContextRef.current;
+    const masterGain = masterGainRef.current;
+    if (!ctx || ctx.state === 'closed' || !masterGain || isInterruptedRef.current) return;
+    try {
+      masterGain.gain.cancelScheduledValues(ctx.currentTime);
+      masterGain.gain.setValueAtTime(Math.max(masterGain.gain.value, SILENCE_GAIN), ctx.currentTime);
+      masterGain.gain.exponentialRampToValueAtTime(1, ctx.currentTime + BARGE_IN_RESTORE_SECONDS);
+    } catch (_) {}
+  }, []);
+
   const stopPlayback = useCallback(() => {
     // Clear any pending interrupt timeout
     if (interruptTimeoutRef.current) {
@@ -429,6 +456,8 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     isPlaying,
     queueAudio,
     clearQueue,
+    duckPlayback,
+    restorePlayback,
     getPlayedMs,
     stopPlayback
   };
