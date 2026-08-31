@@ -2,6 +2,7 @@
 // Registered for both sandbox and live by enable_stripe_payments.
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { type StripeEnv, verifyWebhook } from "../_shared/stripe.ts";
+import { sendBoostAdminEmail } from "../_shared/boost-admin-email.ts";
 
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabase() {
@@ -22,16 +23,24 @@ function resolvePriceId(item: any): string | null {
     || null;
 }
 
-async function sendBoostUpgradeEmail(userId: string, subscriptionId: string) {
+async function sendBoostUpgradeEmail(
+  userId: string,
+  subscriptionId: string,
+  priceId: string | null,
+  env: StripeEnv,
+) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!supabaseUrl || !serviceKey) return;
 
-  const { data: profile } = await getSupabase()
-    .from("profiles")
-    .select("display_name")
-    .eq("user_id", userId)
-    .maybeSingle();
+  const [{ data: profile }, { data: userData }] = await Promise.all([
+    getSupabase()
+      .from("profiles")
+      .select("display_name")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    getSupabase().auth.admin.getUserById(userId),
+  ]);
 
   try {
     const response = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
@@ -69,6 +78,15 @@ async function sendBoostUpgradeEmail(userId: string, subscriptionId: string) {
       error: error instanceof Error ? error.message : String(error),
     });
   }
+
+  await sendBoostAdminEmail({
+    userId,
+    subscriptionId,
+    priceId,
+    environment: env,
+    subscriberEmail: userData?.user?.email,
+    displayName: profile?.display_name,
+  });
 }
 
 async function upsertSubscription(subscription: any, env: StripeEnv, options?: { sendUpgradeEmail?: boolean }) {
@@ -83,7 +101,7 @@ async function upsertSubscription(subscription: any, env: StripeEnv, options?: {
   const periodStart = item?.current_period_start ?? subscription.current_period_start;
   const periodEnd = item?.current_period_end ?? subscription.current_period_end;
 
-  await getSupabase().from("subscriptions").upsert(
+  const { error: subscriptionError } = await getSupabase().from("subscriptions").upsert(
     {
       user_id: userId,
       stripe_subscription_id: subscription.id,
@@ -100,8 +118,12 @@ async function upsertSubscription(subscription: any, env: StripeEnv, options?: {
     { onConflict: "stripe_subscription_id" },
   );
 
+  if (subscriptionError) {
+    throw new Error(`Failed to persist Boost subscription: ${subscriptionError.message}`);
+  }
+
   if (options?.sendUpgradeEmail && subscription.status === "active") {
-    await sendBoostUpgradeEmail(userId, subscription.id);
+    await sendBoostUpgradeEmail(userId, subscription.id, priceId, env);
   }
 }
 

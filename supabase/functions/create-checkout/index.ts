@@ -1,6 +1,7 @@
 // Create a Stripe Embedded Checkout session for ArcAi Boost.
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "../_shared/stripe.ts";
+import { sendBoostAdminEmail } from "../_shared/boost-admin-email.ts";
 
 const BOOST_PRICE_IDS = new Set(["arcai_boost_monthly", "arcai_boost_annual"]);
 
@@ -194,7 +195,7 @@ Deno.serve(async (req) => {
 
         const subscriptionIdResolved = typeof session.subscription === "string" ? session.subscription : (session.subscription?.id || `sub_chk_${session.id}`);
 
-        await supabase.from("subscriptions").upsert({
+        const { error: subscriptionError } = await supabase.from("subscriptions").upsert({
           user_id: targetUserId,
           stripe_subscription_id: subscriptionIdResolved,
           stripe_customer_id: typeof session.customer === "string" ? session.customer : (session.customer?.id || null),
@@ -205,6 +206,10 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
 
+        if (subscriptionError) {
+          throw new Error(`Failed to activate Boost: ${subscriptionError.message}`);
+        }
+
         const { data: profile } = await supabase
           .from("profiles")
           .select("display_name")
@@ -214,6 +219,15 @@ Deno.serve(async (req) => {
         await sendBoostUpgradeEmail({
           userId: targetUserId,
           subscriptionId: subscriptionIdResolved,
+          displayName: profile?.display_name,
+        });
+
+        await sendBoostAdminEmail({
+          userId: targetUserId,
+          subscriptionId: subscriptionIdResolved,
+          priceId: priceIdResolved,
+          environment,
+          subscriberEmail: caller.email,
           displayName: profile?.display_name,
         });
 
