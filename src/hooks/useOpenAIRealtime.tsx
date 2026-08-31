@@ -117,32 +117,6 @@ const clearSessionTimers = () => {
 // loop. It must never be treated as transient.
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key', 'model_not_found'];
 const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1-mini';
-// Hard stop against a runaway echo loop: if barge-ins fire again and again in a
-// short window, it is Arc hearing itself, not a person talking. Each one cancels
-// a response and starts another, which is billed, so past this many in the
-// window barge-in is switched off until things settle.
-const BARGE_IN_BURST_LIMIT = 4;
-const BARGE_IN_BURST_WINDOW_MS = 10000;
-const BARGE_IN_COOLDOWN_MS = 20000;
-let recentBargeIns: number[] = [];
-let bargeInSuspendedUntil = 0;
-
-const bargeInAllowed = () => {
-  const now = Date.now();
-  if (now < bargeInSuspendedUntil) return false;
-  recentBargeIns = recentBargeIns.filter((t) => now - t < BARGE_IN_BURST_WINDOW_MS);
-  return recentBargeIns.length < BARGE_IN_BURST_LIMIT;
-};
-
-const noteBargeIn = () => {
-  const now = Date.now();
-  recentBargeIns.push(now);
-  if (recentBargeIns.length >= BARGE_IN_BURST_LIMIT) {
-    console.warn('Too many barge-ins in a row — suspending barge-in briefly to avoid an echo loop');
-    bargeInSuspendedUntil = now + BARGE_IN_COOLDOWN_MS;
-    recentBargeIns = [];
-  }
-};
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -753,22 +727,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'input_audio_buffer.speech_started':
         console.log('VAD: User speech detected');
         const stateAtSpeechStart = useVoiceModeStore.getState();
-        // Only audible speech can be talked over. While Arc is silently waiting
-        // on a tool (weather, search, image), an interrupt cancels the response
-        // the tool result was going to land in: the result then queues behind
-        // hasPendingSpeech, which a cancelled response deliberately leaves set,
-        // and Arc answers "still waiting for that to finish" forever.
-        const arcIsAudiblySpeaking =
-          stateAtSpeechStart.status === 'speaking' || stateAtSpeechStart.isAudioPlaying;
-        const toolWorkOutstanding =
-          toolCallsInFlight.size > 0 ||
-          pendingFunctionResults.length > 0 ||
-          stateAtSpeechStart.isSearching ||
-          stateAtSpeechStart.isSearchingPastChats ||
-          stateAtSpeechStart.isFetchingWeather ||
-          stateAtSpeechStart.isSchedulingTask;
+        // If Arc has an active response or scheduled audio, server-confirmed
+        // speech is always a barge-in. Do not veto it based on client status,
+        // tool state, volume comparisons, or a cooldown: those secondary gates
+        // allowed Arc to hear the user while continuing to talk over them.
         const canBargeIn =
-          arcIsAudiblySpeaking && !toolWorkOutstanding && bargeInAllowed();
+          responseInProgress ||
+          stateAtSpeechStart.status === 'speaking' ||
+          stateAtSpeechStart.isAudioPlaying;
         // Real activity — restart the silence countdown. Without this the
         // "inactivity" timeout was only ever armed at connect time, so it was a
         // hard inactivity kill that would end a call mid-conversation.
@@ -792,7 +758,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
         if (isBargeIn) {
           console.log('🎙️ User barge-in confirmed by server VAD');
-          noteBargeIn();
           rememberInterruptedResponse(activeResponseId);
           suppressInterruptedResponseAudio = true;
           useVoiceModeStore.getState().setHasPendingSpeech(true);
@@ -806,8 +771,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             sendRealtimeEvent({ type: 'response.cancel' });
             truncateSpokenAudio(playedMs);
           }
-        } else if (arcIsAudiblySpeaking) {
-          console.log('🤫 Ignored speech during protected tool work or barge-in cooldown');
         }
         break;
 

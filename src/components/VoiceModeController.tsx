@@ -219,7 +219,7 @@ async function buildVoiceSystemPrompt(
         .select('content')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(50) : Promise.resolve({ data: null })
+        .limit(100) : Promise.resolve({ data: null })
     ]);
 
     const settingsData = settingsResult.data;
@@ -864,11 +864,23 @@ export function VoiceModeController() {
         .limit(100);
       if (error) return `Failed to load memories: ${error.message}`;
       const items = (data || []).map((r: any) => r.content as string);
-      const filtered = query && query.trim()
-        ? items.filter((c) => c.toLowerCase().includes(query.toLowerCase()))
+      const normalizedQuery = query?.trim().toLowerCase() || '';
+      const relationshipTerms = ['wife', 'spouse', 'husband', 'partner', 'married', 'marriage'];
+      const isRelationshipQuery = relationshipTerms.some((term) => normalizedQuery.includes(term));
+      let filtered = normalizedQuery
+        ? items.filter((content) => {
+            const normalizedContent = content.toLowerCase();
+            return isRelationshipQuery
+              ? relationshipTerms.some((term) => normalizedContent.includes(term))
+              : normalizedContent.includes(normalizedQuery);
+          })
         : items;
+      // Memories are natural-language facts, so the user's wording may not be
+      // a literal substring of the saved wording. Give Realtime the memories to
+      // reason over instead of falsely claiming nothing was saved.
+      if (normalizedQuery && filtered.length === 0) filtered = items;
       if (filtered.length === 0) return query ? `No memories match "${query}".` : 'No memories saved yet.';
-      return filtered.slice(0, 30).map((c, i) => `${i + 1}. ${c}`).join('\n');
+      return filtered.slice(0, 100).map((c, i) => `${i + 1}. ${c}`).join('\n');
     } catch (e: any) {
       return `Memory recall failed: ${e?.message || 'unknown error'}`;
     }
@@ -1027,7 +1039,7 @@ export function VoiceModeController() {
           .select('content')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(50) : Promise.resolve({ data: null })
+          .limit(100) : Promise.resolve({ data: null })
       ]);
 
       const settings = (settingsResult.data || []).reduce((acc: Record<string, string>, s: any) => {
