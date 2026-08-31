@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Globe, ExternalLink, Settings2, Loader2, Plus, Rocket } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Globe, ExternalLink, Settings2, Loader2, Rocket } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { PublishedSite, deletePublishedSite } from '@/lib/publishedSites';
+import { PublishedSite } from '@/lib/publishedSites';
 import { SiteManageModal } from '@/components/SiteManageModal';
-import { unpublishFromNetlify } from '@/lib/deploy';
 import { toast } from 'sonner';
 
 
@@ -24,12 +21,12 @@ export function DeploysPanel() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('published_sites' as any)
+        .from('published_sites')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
       setSites((data ?? []) as unknown as PublishedSite[]);
-    } catch (err) {
+    } catch {
       toast.error('Failed to load sites');
     } finally {
       setLoading(false);
@@ -73,14 +70,14 @@ export function DeploysPanel() {
           />
         )}
 
-        {/* How publishing works — sets expectations for permanence */}
+        {/* How publishing works */}
         <div className="mt-3 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground space-y-1.5">
           <div className="flex items-center gap-1.5 text-primary font-medium">
             <Rocket className="h-3.5 w-3.5" />
             How publishing works
           </div>
-          <p>Publish a code creation for free and keep it live until you choose to unpublish it.</p>
-          <p>Publications are <strong>final</strong>: once live they cannot be edited or re-published. You can unpublish at any time, but unpublished sites cannot be brought back.</p>
+          <p>Publishing is included with ArcAI Boost. Keep a site live until you choose to unpublish it.</p>
+          <p>Published sites are <strong>updateable</strong>: re-publish to the same URL anytime. You can unpublish whenever you want, but removed URLs cannot be recovered.</p>
         </div>
       </div>
 
@@ -130,15 +127,13 @@ export function DeploysPanel() {
 
 function SiteCard({ site, onManage }: { site: PublishedSite; onManage: () => void }) {
   const faviconSrc = site.favicon_data
-    ?? (site.favicon_svg ? `data:image/svg+xml,${encodeURIComponent(site.favicon_svg)}` : null);
+    ?? (site.favicon_svg ? `data:image/svg+xml,${encodeURIComponent(site.favicon_svg)}` : '/arc-logo-cropped.png');
 
   return (
     <div className="group flex items-center gap-3 p-3 rounded-xl border border-border/30 bg-card/40 hover:border-primary/20 hover:bg-card/70 transition-all">
       {/* Favicon */}
       <div className="w-10 h-10 flex-shrink-0 rounded-lg border border-border/20 overflow-hidden bg-muted/30 flex items-center justify-center">
-        {faviconSrc
-          ? <img src={faviconSrc} alt="" className="w-full h-full object-contain" />
-          : <Globe className="w-5 h-5 text-muted-foreground" />}
+        <img src={faviconSrc} alt="" className="w-full h-full object-contain" />
       </div>
 
       {/* Info */}

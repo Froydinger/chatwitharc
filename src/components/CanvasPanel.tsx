@@ -39,7 +39,7 @@ import { CodePreview } from "@/components/CodePreview";
 import { getLanguageDisplay, getFileExtension, canPreview } from "@/utils/codeUtils";
 import { deployCodeBlock } from "@/lib/deploy";
 import { toast as sonnerToast } from "sonner";
-import { PublishModal } from "@/components/PublishModal";
+import { PublishModal, type PublishOpts } from "@/components/PublishModal";
 import { SiteManageModal } from "@/components/SiteManageModal";
 import { savePublishedSite, PublishedSite } from "@/lib/publishedSites";
 import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
@@ -50,10 +50,19 @@ import { Markdown } from "@tiptap/markdown";
 
 interface CanvasPanelProps {
   className?: string;
+  /** The parent chat shell already owns desktop titlebar spacing. */
+  embedded?: boolean;
+}
+
+type NavigatorWithStandalone = Navigator & { standalone?: boolean };
+type WindowWithLiveCanvas = Window & { __arcaiLiveCanvasContent?: string };
+
+function setLiveCanvasContent(nextContent: string) {
+  (window as WindowWithLiveCanvas).__arcaiLiveCanvasContent = nextContent;
 }
 
 function editorGetMarkdown(editor: ReturnType<typeof useEditor>): string {
-  if (!editor) return "";
+  if (!editor || editor.isDestroyed) return "";
   try {
     return editor.getMarkdown?.() ?? "";
   } catch {
@@ -61,7 +70,7 @@ function editorGetMarkdown(editor: ReturnType<typeof useEditor>): string {
   }
 }
 
-export function CanvasPanel({ className }: CanvasPanelProps) {
+export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
   const {
     content,
     versions,
@@ -89,13 +98,15 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [showManageModal, setShowManageModal] = useState(false);
+  const [isCompactToolbar, setIsCompactToolbar] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const handlePublish = () => {
     // Open the publish modal. The permanence warning lives inside the modal.
     setShowPublishModal(true);
   };
 
-  const handlePublishConfirm = async (opts: { subdomain: string; title: string; faviconSvg: string }) => {
+  const handlePublishConfirm = async (opts: PublishOpts) => {
     // Edge function is authoritative: if this throws, no record is saved and
     // the PublishModal surfaces the error to the user. NO phantom records.
     const result = await deployCodeBlock(content, codeLanguage, opts);
@@ -104,8 +115,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       subdomain: result.subdomain,
       url: result.url,
       title: opts.title,
-      favicon_svg: opts.faviconSvg,
-      favicon_data: null,
+      favicon_svg: null,
+      favicon_data: opts.faviconData ?? null,
       og_title: null,
       og_description: null,
       og_image_url: null,
@@ -120,13 +131,23 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
   useEffect(() => {
     const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
-                  (window.navigator as any).standalone === true;
+                  (window.navigator as NavigatorWithStandalone).standalone === true;
     const isIOSDevice = /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
                         (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
     setIsIOS(isIOSDevice);
     setIsIOSPWA(isIOSDevice && isPWA);
     // macOS 26 and earlier desktop standalone apps need traffic-light headroom.
     setIsStandaloneApp(shouldReserveDesktopTrafficLightSpace());
+  }, []);
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const update = (width: number) => setIsCompactToolbar(width < 700);
+    update(panel.getBoundingClientRect().width);
+    const observer = new ResizeObserver(([entry]) => update(entry.contentRect.width));
+    observer.observe(panel);
+    return () => observer.disconnect();
   }, []);
   const [showHistory, setShowHistory] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -141,7 +162,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   const supportsPreview = isCodeMode && canPreview(codeLanguage);
 
   useEffect(() => {
-    (window as any).__arcaiLiveCanvasContent = content;
+    setLiveCanvasContent(content);
   }, [content, canvasType]);
 
   // Track elapsed time when AI is writing
@@ -194,7 +215,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       const md = editorGetMarkdown(ed as ReturnType<typeof useEditor>);
       if (md !== undefined && md !== content) {
         setContent(md, false);
-        (window as any).__arcaiLiveCanvasContent = md;
+        setLiveCanvasContent(md);
         lastSyncedContent.current = md;
       }
     },
@@ -202,14 +223,14 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
   // Keep editor editable state in sync with isAIWriting
   useEffect(() => {
-    if (editor) {
+    if (editor && !editor.isDestroyed) {
       editor.setEditable(!isAIWriting && !isCodeMode);
     }
   }, [editor, isAIWriting, isCodeMode]);
 
   // Sync editor when store content changes (writing mode only)
   useEffect(() => {
-    if (!editor || isCodeMode) return;
+    if (!editor || editor.isDestroyed || isCodeMode) return;
     
     const currentMd = editorGetMarkdown(editor);
     // Sync if content differs from what's in the editor
@@ -217,7 +238,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       // Set flag BEFORE setContent to prevent onUpdate from firing back
       isApplyingRemoteUpdateRef.current = true;
       editor.commands.setContent(content, { contentType: 'markdown' });
-      (window as any).__arcaiLiveCanvasContent = content;
+      setLiveCanvasContent(content);
       lastSyncedContent.current = content;
       // Clear flag after microtask (after onUpdate would have fired)
       queueMicrotask(() => {
@@ -228,14 +249,15 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
   
   // Force sync when editor becomes ready (handles initial mount race condition)
   useEffect(() => {
-    if (!editor || isCodeMode) return;
+    if (!editor || editor.isDestroyed || isCodeMode) return;
     
     // Small delay to ensure editor is fully initialized
     const timer = setTimeout(() => {
+      if (editor.isDestroyed || isCodeMode) return;
       if (content && content !== lastSyncedContent.current) {
         isApplyingRemoteUpdateRef.current = true;
         editor.commands.setContent(content, { contentType: 'markdown' });
-        (window as any).__arcaiLiveCanvasContent = content;
+        setLiveCanvasContent(content);
         lastSyncedContent.current = content;
         queueMicrotask(() => {
           isApplyingRemoteUpdateRef.current = false;
@@ -255,14 +277,14 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
 
   // Keyboard shortcuts
   useEffect(() => {
-    if (!editor && !isCodeMode) return;
+    if ((!editor || editor.isDestroyed) && !isCodeMode) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
         handleSaveVersion();
       }
-      if (!isCodeMode && editor) {
+      if (!isCodeMode && editor && !editor.isDestroyed) {
         if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) {
           e.preventDefault();
           editor.chain().focus().undo().run();
@@ -330,51 +352,55 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
       {
         icon: Bold,
         label: "Bold",
-        run: () => editor?.chain().focus().toggleBold().run(),
-        active: () => !!editor?.isActive("bold"),
+        run: () => { if (editor && !editor.isDestroyed) editor.chain().focus().toggleBold().run(); },
+        active: () => !!editor && !editor.isDestroyed && editor.isActive("bold"),
       },
       {
         icon: Italic,
         label: "Italic",
-        run: () => editor?.chain().focus().toggleItalic().run(),
-        active: () => !!editor?.isActive("italic"),
+        run: () => { if (editor && !editor.isDestroyed) editor.chain().focus().toggleItalic().run(); },
+        active: () => !!editor && !editor.isDestroyed && editor.isActive("italic"),
       },
       {
         icon: Heading1,
         label: "H1",
-        run: () => editor?.chain().focus().toggleHeading({ level: 1 }).run(),
-        active: () => !!editor?.isActive("heading", { level: 1 }),
+        run: () => { if (editor && !editor.isDestroyed) editor.chain().focus().toggleHeading({ level: 1 }).run(); },
+        active: () => !!editor && !editor.isDestroyed && editor.isActive("heading", { level: 1 }),
       },
       {
         icon: Heading2,
         label: "H2",
-        run: () => editor?.chain().focus().toggleHeading({ level: 2 }).run(),
-        active: () => !!editor?.isActive("heading", { level: 2 }),
+        run: () => { if (editor && !editor.isDestroyed) editor.chain().focus().toggleHeading({ level: 2 }).run(); },
+        active: () => !!editor && !editor.isDestroyed && editor.isActive("heading", { level: 2 }),
       },
       {
         icon: List,
         label: "List",
-        run: () => editor?.chain().focus().toggleBulletList().run(),
-        active: () => !!editor?.isActive("bulletList"),
+        run: () => { if (editor && !editor.isDestroyed) editor.chain().focus().toggleBulletList().run(); },
+        active: () => !!editor && !editor.isDestroyed && editor.isActive("bulletList"),
       },
       {
         icon: Code,
         label: "Code",
-        run: () => editor?.chain().focus().toggleCode().run(),
-        active: () => !!editor?.isActive("code"),
+        run: () => { if (editor && !editor.isDestroyed) editor.chain().focus().toggleCode().run(); },
+        active: () => !!editor && !editor.isDestroyed && editor.isActive("code"),
       },
     ],
     [editor]
   );
 
+  const isEditorReady = Boolean(editor && !editor.isDestroyed);
+  const canUndo = Boolean(editor && !editor.isDestroyed && editor.can().undo());
+  const canRedo = Boolean(editor && !editor.isDestroyed && editor.can().redo());
+
 
 
 
   return (
-    <div className={cn("flex flex-col h-full bg-background", className)}>
+    <div ref={panelRef} className={cn("flex flex-col h-full bg-background", className)}>
       {/* Header - Glassy style */}
-      <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/20 bg-gradient-to-r from-background/80 via-background/60 to-background/80 backdrop-blur-xl" style={{
-        paddingTop: isStandaloneApp
+      <div className="flex min-h-16 items-center justify-between gap-2 px-3.5 py-2.5 border-b border-border/30 bg-background/85 backdrop-blur-xl" style={{
+        paddingTop: isStandaloneApp && !embedded
           ? 'calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 30px))'
           : isIOSPWA
           ? 'calc(env(safe-area-inset-top, 0px) + 14px)'  // iOS PWA (Dynamic Island)
@@ -388,6 +414,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
             size="sm"
             onClick={handleCloseCanvas}
             className="h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all"
+            aria-label="Close Canvas"
+            title="Close Canvas"
           >
             <ChevronLeft className="w-5 h-5" />
           </Button>
@@ -402,25 +430,31 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                 <FileText className="w-4 h-4 text-primary" />
               </div>
             )}
-            <span className="text-sm font-semibold text-foreground hidden sm:inline">
-              {isCodeMode ? getLanguageDisplay(codeLanguage) : 'Canvas'}
-            </span>
+            {!isCompactToolbar && (
+              <span className="text-sm font-semibold text-foreground hidden sm:inline">
+                {isCodeMode ? getLanguageDisplay(codeLanguage) : 'Canvas'}
+              </span>
+            )}
             {isAIWriting && (
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                <span className="text-xs font-medium hidden sm:inline">
-                  Generating{elapsedSeconds > 0 ? ` (${elapsedSeconds}s)` : '...'}
-                </span>
+                {!isCompactToolbar && (
+                  <span className="text-xs font-medium hidden sm:inline">
+                    Generating{elapsedSeconds > 0 ? ` (${elapsedSeconds}s)` : '...'}
+                  </span>
+                )}
               </div>
             )}
           </div>
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground/80 mr-1 hidden sm:block font-medium">
-            {isCodeMode ? `${lineCount} lines` : `${wordCount} words`}
-          </span>
+        <div className="flex min-w-0 items-center gap-1.5">
+          {!isCompactToolbar && (
+            <span className="text-xs text-muted-foreground/80 mr-1 hidden sm:block font-medium">
+              {isCodeMode ? `${lineCount} lines` : `${wordCount} words`}
+            </span>
+          )}
 
           {/* Toggle between Code and Preview for code mode */}
           {isCodeMode && supportsPreview && (
@@ -459,7 +493,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           )}
 
           {/* Viewport toggle for code preview */}
-          {!isMobile && isCodeMode && supportsPreview && !showCodeEditor && (
+          {!isMobile && !isCompactToolbar && isCodeMode && supportsPreview && !showCodeEditor && (
             <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-xl p-1 backdrop-blur-sm">
               <Button
                 variant="ghost"
@@ -503,8 +537,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                   className="h-9 px-3 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-white/10 transition-all text-xs font-medium"
                   title="Manage live site"
                 >
-                  <Globe className="w-4 h-4 mr-1.5" />
-                  <span className="hidden sm:inline">Live</span>
+                  <Globe className={cn("w-4 h-4", !isCompactToolbar && "mr-1.5")} />
+                  {!isCompactToolbar && <span className="hidden sm:inline">Live</span>}
                 </Button>
               ) : (
                 <Button
@@ -515,14 +549,15 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                   className="h-9 px-3 rounded-xl text-primary hover:text-primary hover:bg-white/10 disabled:opacity-40 transition-all text-xs font-medium"
                   title="Publish to web"
                 >
-                  <Rocket className="w-4 h-4 mr-1.5" />
-                  <span className="hidden sm:inline">Publish</span>
+                  <Rocket className={cn("w-4 h-4", !isCompactToolbar && "mr-1.5")} />
+                  {!isCompactToolbar && <span className="hidden sm:inline">Publish</span>}
                 </Button>
               )
             )}
 
             {/* Desktop: individual buttons */}
-            <div className="hidden sm:flex items-center gap-1">
+            {!isMobile && !isCompactToolbar && (
+              <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="sm"
@@ -557,10 +592,12 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
               >
                 <Download className="w-4 h-4" />
               </Button>
-            </div>
+              </div>
+            )}
 
-            {/* Mobile: collapsed into ⋮ menu */}
-            <div className="relative sm:hidden">
+            {/* Compact panes and mobile: secondary actions collapse into one menu. */}
+            {(isMobile || isCompactToolbar) && (
+            <div className="relative">
               <Button
                 variant="ghost"
                 size="sm"
@@ -569,11 +606,40 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                   "h-9 w-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all",
                   showMobileMenu && "bg-white/10 text-foreground"
                 )}
+                aria-label="More Canvas actions"
+                title="More Canvas actions"
               >
                 <MoreVertical className="w-4 h-4" />
               </Button>
               {showMobileMenu && (
                 <div className="absolute right-0 top-full mt-1 z-50 min-w-[160px] rounded-xl border border-border/30 bg-background/95 backdrop-blur-xl shadow-xl overflow-hidden">
+                  {isCodeMode && supportsPreview && !showCodeEditor && (
+                    <>
+                      <button
+                        className={cn(
+                          "flex items-center gap-3 w-full px-4 py-3 text-sm hover:bg-white/5 transition-colors",
+                          previewViewport === 'desktop' ? "text-foreground" : "text-muted-foreground"
+                        )}
+                        onClick={() => { setPreviewViewport('desktop'); setShowMobileMenu(false); }}
+                      >
+                        <Monitor className="w-4 h-4" />
+                        Desktop preview
+                        {previewViewport === 'desktop' && <Check className="w-3.5 h-3.5 ml-auto text-primary" />}
+                      </button>
+                      <button
+                        className={cn(
+                          "flex items-center gap-3 w-full px-4 py-3 text-sm hover:bg-white/5 transition-colors",
+                          previewViewport === 'mobile' ? "text-foreground" : "text-muted-foreground"
+                        )}
+                        onClick={() => { setPreviewViewport('mobile'); setShowMobileMenu(false); }}
+                      >
+                        <Smartphone className="w-4 h-4" />
+                        Mobile preview
+                        {previewViewport === 'mobile' && <Check className="w-3.5 h-3.5 ml-auto text-primary" />}
+                      </button>
+                      <div className="h-px bg-border/30" />
+                    </>
+                  )}
                   <button
                     className="flex items-center gap-3 w-full px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
                     onClick={() => { setShowHistory(!showHistory); setShowMobileMenu(false); }}
@@ -600,6 +666,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                 </div>
               )}
             </div>
+            )}
           </div>
         </div>
       </div>
@@ -615,7 +682,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
                 size="sm"
                 onClick={action.run}
                 title={action.label}
-                disabled={isAIWriting || !editor}
+                disabled={isAIWriting || !isEditorReady}
                 className={cn(
                   "h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-40",
                   action.active() && "bg-muted text-foreground"
@@ -630,8 +697,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => editor?.chain().focus().undo().run()}
-              disabled={isAIWriting || !editor || !editor.can().undo()}
+              onClick={() => { if (editor && !editor.isDestroyed) editor.chain().focus().undo().run(); }}
+              disabled={isAIWriting || !canUndo}
               title="Undo"
               className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground disabled:opacity-40"
             >
@@ -640,8 +707,8 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => editor?.chain().focus().redo().run()}
-              disabled={isAIWriting || !editor || !editor.can().redo()}
+              onClick={() => { if (editor && !editor.isDestroyed) editor.chain().focus().redo().run(); }}
+              disabled={isAIWriting || !canRedo}
               title="Redo"
               className="h-7 w-7 p-0 rounded text-muted-foreground hover:text-foreground disabled:opacity-40"
             >
@@ -698,7 +765,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
               language={codeLanguage}
               onChange={(code) => {
                 setContent(code, false);
-                (window as any).__arcaiLiveCanvasContent = code;
+                setLiveCanvasContent(code);
               }}
               readOnly={isAIWriting}
               className="flex-1"
@@ -709,7 +776,7 @@ export function CanvasPanel({ className }: CanvasPanelProps) {
           <ScrollArea className="flex-1">
             <div className="px-6 py-5 pb-24 md:pb-5 min-h-[300px]">
               <EditorContent
-                editor={editor}
+                editor={isEditorReady ? editor : null}
                 className={cn(
                   "min-h-[300px]",
                   "tiptap-editor prose prose-sm dark:prose-invert max-w-none",

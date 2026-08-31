@@ -39,9 +39,9 @@ export const CanvasAttachment = ({
 
   return (
     <div className={cn(
-      "group relative overflow-hidden rounded-lg border border-border/50 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent backdrop-blur-sm transition-all hover:border-primary/50 hover:shadow-lg",
+      "group relative overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent backdrop-blur-sm shadow-sm transition-all hover:border-primary/50 hover:shadow-md",
       className
-    )}>
+    )} onClick={(event) => event.stopPropagation()}>
       <div className="p-4">
         <div className="flex items-start gap-3">
           {/* Canvas Icon */}

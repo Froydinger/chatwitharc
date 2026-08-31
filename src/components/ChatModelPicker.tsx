@@ -19,7 +19,7 @@ const PRESETS = [
   { effort: 'high', title: 'Deep', subtitle: 'More reasoning for harder work', icon: Brain },
 ] as const;
 
-export function ChatModelPicker({ className }: Props) {
+export function ChatModelPicker({ className, compact = false }: Props) {
   const reasoningEffort = useModelStore((state) => state.reasoningEffort);
   const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
   const [open, setOpen] = useState(false);
@@ -61,14 +61,15 @@ export function ChatModelPicker({ className }: Props) {
         type="button"
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          'glass-btn inline-flex items-center gap-1.5 h-10 px-4 rounded-full text-sm font-semibold text-foreground/90',
+          'glass-btn inline-flex items-center gap-1.5 h-10 rounded-full text-sm font-semibold text-foreground/90',
+          compact ? 'px-3' : 'px-4',
           className,
         )}
         aria-label={`Luna reasoning: ${activePreset.title}`}
         title={`Luna · ${activePreset.title} — tap to change reasoning level`}
       >
         <CurrentIcon className="h-4 w-4 text-primary" />
-        <span>Luna · {activePreset.title}</span>
+        <span>{compact ? activePreset.title : `Luna · ${activePreset.title}`}</span>
         <ChevronDown className={cn('h-3.5 w-3.5 opacity-60 transition-transform', open && 'rotate-180')} />
       </button>
 

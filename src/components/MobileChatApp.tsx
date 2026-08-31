@@ -53,6 +53,21 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 
+const MIN_DESKTOP_CANVAS_WIDTH = 400;
+const MIN_DESKTOP_CHAT_WIDTH = 260;
+
+function getCanvasWidthBounds(containerWidth: number) {
+  const maxWidth = Math.max(
+    MIN_DESKTOP_CANVAS_WIDTH,
+    Math.min(containerWidth * 0.75, containerWidth - MIN_DESKTOP_CHAT_WIDTH),
+  );
+  const minWidth = Math.min(
+    Math.max(containerWidth * 0.45, MIN_DESKTOP_CANVAS_WIDTH),
+    maxWidth,
+  );
+  return { minWidth, maxWidth };
+}
+
 /** Snarky Arc greetings - no names, just pure personality */
 function getDaypartGreeting(d: Date = new Date()): string {
   const h = d.getHours();
@@ -294,14 +309,6 @@ export function MobileChatApp() {
   // Search mode state
   const { isOpen: isSearchOpen, closeSearch } = useSearchStore();
 
-  // Reset inline styles when canvas closes (from drag-resize)
-  useEffect(() => {
-    // When canvas closes, clear any inline styles set by the resize drag handler
-    if (!isCanvasOpen && inputDockRef.current) {
-      inputDockRef.current.style.right = '';
-    }
-  }, [isCanvasOpen, isMobile]);
-
   // Pre-generate prompts in background for instant access
   usePromptPreload();
 
@@ -460,6 +467,7 @@ export function MobileChatApp() {
   const [showLibrary, setShowLibrary] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const [isHeaderTight, setIsHeaderTight] = useState(false);
+  const [isCanvasResizing, setIsCanvasResizing] = useState(false);
   const canvasResizingRef = useRef(false);
   const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
@@ -479,6 +487,23 @@ export function MobileChatApp() {
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
   }, []);
+
+  useEffect(() => {
+    if (isMobile || !isCanvasOpen) return;
+    const clampCanvasWidth = () => {
+      const containerWidth = window.innerWidth;
+      const { minWidth, maxWidth } = getCanvasWidthBounds(containerWidth);
+      setCanvasWidthPercent((currentPercent) => {
+        const currentWidth = containerWidth * (currentPercent / 100);
+        const nextWidth = Math.min(Math.max(currentWidth, minWidth), maxWidth);
+        const nextPercent = (nextWidth / containerWidth) * 100;
+        return Math.abs(nextPercent - currentPercent) < 0.01 ? currentPercent : nextPercent;
+      });
+    };
+    clampCanvasWidth();
+    window.addEventListener('resize', clampCanvasWidth);
+    return () => window.removeEventListener('resize', clampCanvasWidth);
+  }, [isCanvasOpen, isMobile]);
 
   // Scroll container for messages
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -721,7 +746,24 @@ export function MobileChatApp() {
     };
   }, []);
 
+  const persistCanvasBeforeLeaving = useCallback(async () => {
+    if (!isCanvasOpen || !currentSessionId || !canvasContent.trim()) return;
+    await updateSessionCanvasContent(currentSessionId, canvasContent);
+  }, [canvasContent, currentSessionId, isCanvasOpen, updateSessionCanvasContent]);
+
+  const handleOpenDashboard = () => {
+    if (!user || isAnonymous) {
+      requireAuth("menu");
+      return;
+    }
+    void persistCanvasBeforeLeaving();
+    sessionStorage.setItem('arc_dashboard_entry', 'menu');
+    navigate('/dashboard');
+  };
+
   const handleNewChat = () => {
+    void persistCanvasBeforeLeaving();
+
     // Anonymous users get no chat history — wipe local sessions before
     // creating the new one so they always start from a blank slate.
     if (isAnonymous) {
@@ -836,8 +878,8 @@ export function MobileChatApp() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10">
-        {/* Floating header buttons - no bar, hide when canvas is open on desktop */}
-        {!isCanvasOverlayActive && !isDesktopCanvasMode && (
+        {/* Floating header buttons - no bar. Keep core chat controls in desktop Canvas. */}
+        {!isCanvasOverlayActive && (
           <>
             {/* Left Header Buttons */}
             <div
@@ -854,19 +896,14 @@ export function MobileChatApp() {
                 whileTap={{ scale: 0.95 }} 
                 transition={{ type: "spring", damping: 15, stiffness: 300 }}
                 className="cursor-pointer"
-                onClick={() => {
-                  if (!user || isAnonymous) {
-                    requireAuth("menu");
-                    return;
-                  }
-                  sessionStorage.setItem('arc_dashboard_entry', 'menu');
-                  navigate('/dashboard');
-                }}
+                onClick={handleOpenDashboard}
               >
                 <Button
                   variant="outline"
                   size="icon"
                   className="rounded-full glass-shimmer transition-all pointer-events-none"
+                  title="Open menu"
+                  aria-label="Open menu"
                 >
                   <Menu className="h-4 w-4" />
                 </Button>
@@ -883,23 +920,26 @@ export function MobileChatApp() {
                   variant="outline"
                   size="icon"
                   className="rounded-full glass-shimmer transition-all pointer-events-none"
+                  title="New chat"
+                  aria-label="New chat"
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
               </motion.div>
-              <ChatModelPicker placement="down" />
+              <ChatModelPicker placement="down" compact={isDesktopCanvasMode} />
             </div>
 
             {/* Right Header Buttons */}
-            <div
-              className={cn(
-                "fixed right-4 z-40 transition-transform duration-300 ease-out flex h-16 items-center gap-2 pointer-events-auto",
-                isMobile && !headerVisible && "-translate-y-24",
-              )}
-              style={{
-                top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
-              }}
-            >
+            {!isDesktopCanvasMode && (
+              <div
+                className={cn(
+                  "fixed right-4 z-40 transition-transform duration-300 ease-out flex h-16 items-center gap-2 pointer-events-auto",
+                  isMobile && !headerVisible && "-translate-y-24",
+                )}
+                style={{
+                  top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
+                }}
+              >
               {/* Share Button */}
               {showHeaderUtilityButtons && canShareChat && (
                 <motion.div 
@@ -970,7 +1010,8 @@ export function MobileChatApp() {
                 </Button>
               </motion.div>
 
-            </div>
+              </div>
+            )}
           </>
         )}
 
@@ -1133,12 +1174,13 @@ export function MobileChatApp() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="fixed bottom-32 left-[45%] -translate-x-1/2 z-40 pointer-events-auto"
+                className="fixed bottom-32 left-0 z-40 flex justify-center pointer-events-none"
+                style={{ right: isDesktopCanvasMode ? `${canvasWidthPercent}%` : 0 }}
               >
                 <Button
                   size="icon"
                   variant="outline"
-                  className="rounded-full shadow-lg bg-background/80 backdrop-blur-sm border border-primary/20 transition-all hover:scale-105"
+                  className="pointer-events-auto rounded-full shadow-lg bg-background/80 backdrop-blur-sm border border-primary/20 transition-all hover:scale-105"
                   onClick={scrollToBottom}
                 >
                   <ArrowDown className="h-4 w-4" />
@@ -1152,12 +1194,13 @@ export function MobileChatApp() {
           <div
             ref={inputDockRef}
             className={cn(
-              "fixed z-30 pointer-events-none px-4 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
-              "left-0",
+              "fixed z-30 pointer-events-none px-4 left-0",
+              isCanvasResizing
+                ? "transition-none"
+                : "transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
               messages.length === 0 ? "top-1/2 -translate-y-1/2" : "bottom-6",
-              // When canvas is open on desktop, limit to left 50% of screen (search mode is now full-screen)
-              isCanvasOpen && !isMobile ? "right-[50%]" : "right-0",
             )}
+            style={{ right: isDesktopCanvasMode ? `${canvasWidthPercent}%` : 0 }}
           >
             <div className="max-w-4xl mx-auto">
               {/* Message Queue - at top if it has messages */}
@@ -1283,21 +1326,22 @@ export function MobileChatApp() {
             animate={{ width: canvasWidthPercent + "%", opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={canvasResizingRef.current ? { duration: 0 } : { duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="flex-shrink-0 overflow-hidden bg-background flex relative"
-            style={{ minWidth: 400, paddingLeft: 12 }}
+            className="flex-shrink-0 overflow-hidden bg-background flex relative border-l border-border/30"
+            style={{ minWidth: MIN_DESKTOP_CANVAS_WIDTH }}
           >
             {/* Resize Handle - positioned absolutely to extend grab area into chat */}
             <div 
-              className="absolute left-0 top-0 bottom-0 w-3 cursor-col-resize z-50 group"
+              className="absolute -left-1.5 top-0 bottom-0 w-3 cursor-col-resize z-50 group"
               onMouseDown={(e) => {
                 e.preventDefault();
-                canvasResizingRef.current = true;
                 const canvasEl = e.currentTarget.parentElement;
-                const inputDock = inputDockRef.current;
                 if (!canvasEl) return;
+                canvasResizingRef.current = true;
+                setIsCanvasResizing(true);
                 const startX = e.clientX;
                 const startWidth = canvasEl.offsetWidth;
                 const containerWidth = canvasEl.parentElement?.offsetWidth || window.innerWidth;
+                const { minWidth, maxWidth } = getCanvasWidthBounds(containerWidth);
                 
                 // Add a full-screen overlay to capture mouse events during drag
                 const overlay = document.createElement('div');
@@ -1307,20 +1351,16 @@ export function MobileChatApp() {
                 const onMouseMove = (moveEvent: MouseEvent) => {
                   const delta = startX - moveEvent.clientX;
                   const newWidth = Math.min(
-                    Math.max(startWidth + delta, containerWidth * 0.45), // min 45%
-                    containerWidth * 0.75 // max 75%
+                    Math.max(startWidth + delta, minWidth),
+                    maxWidth,
                   );
                   // Update percentage directly — framer-motion transition is disabled during drag
                   setCanvasWidthPercent((newWidth / containerWidth) * 100);
-                  // Update input bar to match canvas width
-                  if (inputDock) {
-                    const rightPercent = (newWidth / containerWidth) * 100;
-                    inputDock.style.right = `${rightPercent}%`;
-                  }
                 };
                 
                 const onMouseUp = () => {
                   canvasResizingRef.current = false;
+                  setIsCanvasResizing(false);
                   document.removeEventListener('mousemove', onMouseMove);
                   document.removeEventListener('mouseup', onMouseUp);
                   overlay.remove();
@@ -1331,10 +1371,10 @@ export function MobileChatApp() {
               }}
             >
               {/* Visual indicator */}
-              <div className="absolute left-1 top-0 bottom-0 w-1 bg-border/30 group-hover:bg-primary/50 group-active:bg-primary transition-colors" />
+              <div className="absolute left-1/2 top-0 bottom-0 w-px -translate-x-1/2 bg-border/30 group-hover:bg-primary/60 group-active:bg-primary transition-colors" />
             </div>
             <div className="flex-1 overflow-hidden">
-              <CanvasPanel />
+              <CanvasPanel embedded />
             </div>
           </motion.div>
         )}

@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { getLanguageDisplay, getLanguageColor } from '@/utils/codeUtils';
 import { deployCodeBlock } from '@/lib/deploy';
 import { toast } from 'sonner';
-import { PublishModal } from '@/components/PublishModal';
+import { PublishModal, type PublishOpts } from '@/components/PublishModal';
 import { SiteManageModal } from '@/components/SiteManageModal';
 import { savePublishedSite, PublishedSite } from '@/lib/publishedSites';
 
@@ -38,7 +38,7 @@ export function CodeArtifactCard({
     setShowPublishModal(true);
   };
 
-  const handlePublishConfirm = async (opts: { subdomain: string; title: string; faviconSvg: string }) => {
+  const handlePublishConfirm = async (opts: PublishOpts) => {
     // Edge function is authoritative — if it throws, no phantom record is saved
     // and the PublishModal surfaces the error to the user.
     const result = await deployCodeBlock(codeContent, codeLanguage, opts);
@@ -47,8 +47,8 @@ export function CodeArtifactCard({
       subdomain: result.subdomain,
       url: result.url,
       title: opts.title,
-      favicon_svg: opts.faviconSvg,
-      favicon_data: null,
+      favicon_svg: null,
+      favicon_data: opts.faviconData ?? null,
       og_title: null, og_description: null, og_image_url: null,
       code: codeContent,
       code_language: codeLanguage,
@@ -68,12 +68,15 @@ export function CodeArtifactCard({
     <>
       <div
         className={cn(
-          "group relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm",
-          "hover:border-primary/30 hover:bg-card/80 transition-all duration-200",
+          "group relative rounded-2xl border border-border/40 bg-card/60 backdrop-blur-sm shadow-sm",
+          "hover:border-primary/30 hover:bg-card/80 hover:shadow-md transition-all duration-200",
           "cursor-pointer overflow-hidden",
           className
         )}
-        onClick={handleOpen}
+        onClick={(event) => {
+          event.stopPropagation();
+          handleOpen();
+        }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/30">
@@ -89,12 +92,13 @@ export function CodeArtifactCard({
               {langDisplay}
             </span>
           </div>
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
               className="h-7 px-2 text-xs"
               onClick={(e) => { e.stopPropagation(); handleOpen(); }}
+              title="Open in Canvas"
             >
               <ExternalLink className="w-3.5 h-3.5 mr-1" />
               Open
@@ -105,6 +109,7 @@ export function CodeArtifactCard({
                 size="sm"
                 className="h-7 px-2 text-xs text-primary hover:text-primary"
                 onClick={handleDeployClick}
+                title="Publish to web"
               >
                 <Rocket className="w-3.5 h-3.5 mr-1" />
                 Publish
@@ -116,6 +121,7 @@ export function CodeArtifactCard({
                 size="sm"
                 className="h-7 px-2 text-xs text-emerald-400 hover:text-emerald-300"
                 onClick={(e) => { e.stopPropagation(); setShowManageModal(true); }}
+                title="Manage live site"
               >
                 <Globe className="w-3.5 h-3.5 mr-1" />
                 Live

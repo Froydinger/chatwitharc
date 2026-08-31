@@ -1,19 +1,28 @@
-import { useState, useEffect } from 'react';
-import { Rocket, Globe, Loader2, X, Check, AlertCircle } from 'lucide-react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { Rocket, Globe, Loader2, X, Check, AlertCircle, Upload, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
 import { checkSubdomainAvailability, PUBLISH_DOMAIN } from '@/lib/deploy';
 import { useSubscription } from '@/hooks/useSubscription';
 
-const EMOJI_OPTIONS = ['🚀', '⚡', '🌟', '🎯', '🔥', '💎', '🎨', '🌈', '🦋', '🍀', '🎭', '🏆'];
-const BG_OPTIONS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
+const DEFAULT_FAVICON_SRC = '/arc-logo-cropped.png';
+const MAX_ICON_BYTES = 1024 * 1024;
+const MAX_ICON_DIMENSION = 4096;
+const NORMALIZED_ICON_SIZE = 128;
+
+type SupportedIconMime = 'image/png' | 'image/jpeg' | 'image/webp';
+
+const SUPPORTED_ICON_TYPES = new Set<SupportedIconMime>([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+]);
 
 export interface PublishOpts {
   subdomain: string;
   title: string;
-  faviconSvg: string;
+  faviconData?: string;
   ogTitle?: string;
   ogDescription?: string;
   ogImageUrl?: string;
@@ -26,8 +35,108 @@ interface PublishModalProps {
   defaultTitle?: string;
 }
 
-function makeFaviconSvg(emoji: string, bg: string): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="${bg}"/><text x="50" y="68" text-anchor="middle" font-size="52" font-family="sans-serif" fill="white">${emoji}</text></svg>`;
+function detectImageType(bytes: Uint8Array): SupportedIconMime | null {
+  if (
+    bytes.length >= 8
+    && bytes[0] === 0x89
+    && bytes[1] === 0x50
+    && bytes[2] === 0x4e
+    && bytes[3] === 0x47
+    && bytes[4] === 0x0d
+    && bytes[5] === 0x0a
+    && bytes[6] === 0x1a
+    && bytes[7] === 0x0a
+  ) {
+    return 'image/png';
+  }
+
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return 'image/jpeg';
+  }
+
+  if (
+    bytes.length >= 12
+    && bytes[0] === 0x52
+    && bytes[1] === 0x49
+    && bytes[2] === 0x46
+    && bytes[3] === 0x46
+    && bytes[8] === 0x57
+    && bytes[9] === 0x45
+    && bytes[10] === 0x42
+    && bytes[11] === 0x50
+  ) {
+    return 'image/webp';
+  }
+
+  return null;
+}
+
+async function normalizeIcon(file: File): Promise<string> {
+  if (file.size <= 0) {
+    throw new Error('That image is empty. Choose another file.');
+  }
+  if (file.size > MAX_ICON_BYTES) {
+    throw new Error('Icon must be 1 MB or smaller.');
+  }
+
+  const declaredType = file.type.toLowerCase();
+  if (declaredType && !SUPPORTED_ICON_TYPES.has(declaredType as SupportedIconMime)) {
+    throw new Error('Choose a PNG, JPEG, or WebP image.');
+  }
+
+  const buffer = await file.arrayBuffer();
+  const detectedType = detectImageType(new Uint8Array(buffer));
+  if (!detectedType || (declaredType && declaredType !== detectedType)) {
+    throw new Error('That file is not a valid PNG, JPEG, or WebP image.');
+  }
+
+  const sourceUrl = URL.createObjectURL(new Blob([buffer], { type: detectedType }));
+  try {
+    const image = new Image();
+    image.decoding = 'async';
+    image.src = sourceUrl;
+    await image.decode();
+
+    if (!image.naturalWidth || !image.naturalHeight) {
+      throw new Error('That image has invalid dimensions.');
+    }
+    if (image.naturalWidth > MAX_ICON_DIMENSION || image.naturalHeight > MAX_ICON_DIMENSION) {
+      throw new Error('Icon dimensions must be 4096 × 4096 or smaller.');
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = NORMALIZED_ICON_SIZE;
+    canvas.height = NORMALIZED_ICON_SIZE;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      throw new Error('Your browser could not process that image.');
+    }
+
+    const scale = Math.min(
+      NORMALIZED_ICON_SIZE / image.naturalWidth,
+      NORMALIZED_ICON_SIZE / image.naturalHeight,
+    );
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const x = Math.round((NORMALIZED_ICON_SIZE - width) / 2);
+    const y = Math.round((NORMALIZED_ICON_SIZE - height) / 2);
+
+    context.clearRect(0, 0, NORMALIZED_ICON_SIZE, NORMALIZED_ICON_SIZE);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.drawImage(image, x, y, width, height);
+
+    const dataUrl = canvas.toDataURL('image/png');
+    if (!dataUrl.startsWith('data:image/png;base64,')) {
+      throw new Error('Your browser could not process that image.');
+    }
+    return dataUrl;
+  } catch (err) {
+    if (err instanceof Error && err.message) throw err;
+    throw new Error('Arc could not read that image. Try another PNG, JPEG, or WebP.');
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
 }
 
 function slugify(s: string): string {
@@ -38,11 +147,14 @@ type AvailabilityState = 'idle' | 'checking' | 'available' | 'taken';
 
 export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: PublishModalProps) {
   const { hasBoost, openCheckout } = useSubscription();
+  const iconInputRef = useRef<HTMLInputElement>(null);
+  const iconRequestRef = useRef(0);
   const [title, setTitle] = useState(defaultTitle || 'My Site');
   const [subdomain, setSubdomain] = useState('');
   const [subdomainEdited, setSubdomainEdited] = useState(false);
-  const [emoji, setEmoji] = useState('🚀');
-  const [bg, setBg] = useState('#6366f1');
+  const [faviconData, setFaviconData] = useState<string>();
+  const [iconProcessing, setIconProcessing] = useState(false);
+  const [iconError, setIconError] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState('');
   const [availability, setAvailability] = useState<AvailabilityState>('idle');
@@ -59,9 +171,14 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
     if (open) {
       setTitle(defaultTitle || 'My Site');
       setSubdomainEdited(false);
+      setFaviconData(undefined);
+      setIconProcessing(false);
+      setIconError('');
       setPublishing(false);
       setError('');
       setAvailability('idle');
+      iconRequestRef.current += 1;
+      if (iconInputRef.current) iconInputRef.current.value = '';
     }
   }, [open, defaultTitle]);
 
@@ -116,7 +233,35 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
   }
 
   const previewUrl = `${subdomain || 'my-site'}.${PUBLISH_DOMAIN}`;
-  const faviconSvg = makeFaviconSvg(emoji, bg);
+
+  const handleIconUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const requestId = iconRequestRef.current + 1;
+    iconRequestRef.current = requestId;
+    setIconError('');
+    setIconProcessing(true);
+    try {
+      const normalized = await normalizeIcon(file);
+      if (iconRequestRef.current !== requestId) return;
+      setFaviconData(normalized);
+    } catch (err) {
+      if (iconRequestRef.current !== requestId) return;
+      setIconError(err instanceof Error ? err.message : 'Arc could not process that image.');
+    } finally {
+      if (iconRequestRef.current === requestId) setIconProcessing(false);
+    }
+  };
+
+  const resetIcon = () => {
+    iconRequestRef.current += 1;
+    setFaviconData(undefined);
+    setIconProcessing(false);
+    setIconError('');
+    if (iconInputRef.current) iconInputRef.current.value = '';
+  };
 
   const handlePublish = async () => {
     if (!subdomain.trim()) { setError('Site name is required'); return; }
@@ -124,7 +269,11 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
     setError('');
     setPublishing(true);
     try {
-      await onPublish({ subdomain: subdomain.trim(), title: title.trim() || subdomain, faviconSvg });
+      await onPublish({
+        subdomain: subdomain.trim(),
+        title: title.trim() || subdomain,
+        ...(faviconData ? { faviconData } : {}),
+      });
       onClose();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Publish failed';
@@ -136,7 +285,7 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
     }
   };
 
-  const disablePublish = publishing || !subdomain || availability === 'checking' || availability === 'taken';
+  const disablePublish = publishing || iconProcessing || !subdomain || availability === 'checking' || availability === 'taken';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -159,47 +308,68 @@ export function PublishModal({ open, onClose, onPublish, defaultTitle = '' }: Pu
         </div>
 
         <div className="px-6 py-5 space-y-5">
-          {/* Favicon picker */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Icon</Label>
-            <div className="flex gap-3">
-              <div
-                className="w-14 h-14 flex-shrink-0 rounded-xl flex items-center justify-center text-2xl shadow-inner"
-                style={{ background: bg }}
-              >
-                {emoji}
+          {/* Site icon */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Site icon</Label>
+            <div className="flex items-center gap-3 rounded-xl border border-border/30 bg-muted/20 p-3">
+              <div className="relative w-14 h-14 flex-shrink-0 rounded-xl border border-border/30 overflow-hidden bg-background/60 p-1.5">
+                <img
+                  src={faviconData || DEFAULT_FAVICON_SRC}
+                  alt="Site icon preview"
+                  className="w-full h-full object-contain rounded-lg"
+                />
+                {iconProcessing && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/75 backdrop-blur-sm">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  </div>
+                )}
               </div>
 
-              <div className="flex-1 space-y-2">
-                <div className="flex flex-wrap gap-1.5">
-                  {EMOJI_OPTIONS.map(e => (
-                    <button
-                      key={e}
-                      onClick={() => setEmoji(e)}
-                      className={cn(
-                        "w-8 h-8 rounded-lg text-lg transition-all hover:scale-110",
-                        emoji === e ? "ring-2 ring-primary bg-primary/10" : "hover:bg-white/10"
-                      )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{faviconData ? 'Custom icon' : 'Arc icon'}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">PNG, JPEG, or WebP · 1 MB max</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <input
+                    ref={iconInputRef}
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+                    onChange={handleIconUpload}
+                    className="sr-only"
+                    aria-label="Choose a custom site icon"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 rounded-lg gap-1.5"
+                    onClick={() => iconInputRef.current?.click()}
+                    disabled={iconProcessing || publishing}
+                  >
+                    {iconProcessing
+                      ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />Processing…</>
+                      : <><Upload className="w-3.5 h-3.5" />{faviconData ? 'Replace' : 'Upload'}</>}
+                  </Button>
+                  {faviconData && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 rounded-lg gap-1.5 text-muted-foreground"
+                      onClick={resetIcon}
+                      disabled={iconProcessing || publishing}
                     >
-                      {e}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex gap-1.5">
-                  {BG_OPTIONS.map(c => (
-                    <button
-                      key={c}
-                      onClick={() => setBg(c)}
-                      className={cn(
-                        "w-6 h-6 rounded-full transition-all hover:scale-110",
-                        bg === c && "ring-2 ring-offset-2 ring-offset-background ring-white"
-                      )}
-                      style={{ background: c }}
-                    />
-                  ))}
+                      <RotateCcw className="w-3.5 h-3.5" />Use Arc icon
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
+            {iconError && (
+              <p className="flex items-start gap-1.5 text-xs text-destructive" role="alert">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                <span>{iconError}</span>
+              </p>
+            )}
           </div>
 
           {/* Page title */}

@@ -24,13 +24,60 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
-const DEFAULT_FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="#6366f1"/><text x="50" y="68" text-anchor="middle" font-size="52" font-family="sans-serif" fill="white">🚀</text></svg>`;
+/** Arc's black-and-white mark, used whenever a published site has no custom icon. */
+export const DEFAULT_ARC_FAVICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="#090d0b"/><path d="M72.8 33.6A29 29 0 1 0 71.2 68.8" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/><path d="M64 41A20 20 0 1 1 59.2 67.3" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round"/></svg>`;
+
+const EXISTING_FAVICON_LINK_RE = /<link\b(?=[^>]*\brel\s*=\s*["'][^"']*\b(?:shortcut\s+)?icon\b[^"']*["'])[^>]*>\s*/gi;
+
+function faviconLink(faviconSvg?: string, faviconData?: string): string {
+  if (faviconData) return `<link rel="icon" href="${faviconData}" type="image/png">`;
+  if (faviconSvg) return '<link rel="icon" href="/favicon.svg" type="image/svg+xml">';
+  return `<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(DEFAULT_ARC_FAVICON_SVG)}" type="image/svg+xml">`;
+}
+
+function injectPublishingHead(code: string, pageTitle: string, headExtras: string): string {
+  let html = code.replace(EXISTING_FAVICON_LINK_RE, '');
+  const safeTitle = pageTitle
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  const titleTag = `<title>${safeTitle}</title>`;
+  const titlePattern = /<title\b[^>]*>[\s\S]*?<\/title\s*>/i;
+  const headPattern = /<head(?:\s[^>]*)?>/i;
+  const closingHeadPattern = /<\/head\s*>/i;
+
+  const hasTitle = titlePattern.test(html);
+  if (hasTitle) html = html.replace(titlePattern, titleTag);
+
+  if (headPattern.test(html)) {
+    const additions = [hasTitle ? null : titleTag, headExtras].filter(Boolean).join('\n  ');
+    if (closingHeadPattern.test(html)) {
+      return html.replace(closingHeadPattern, `  ${additions}\n</head>`);
+    }
+    return html.replace(headPattern, (head) => `${head}\n  ${additions}`);
+  }
+
+  if (hasTitle) html = html.replace(titlePattern, '');
+
+  const headBlock = `<head>\n  ${titleTag}\n  ${headExtras}\n</head>`;
+  const htmlPattern = /<html(?:\s[^>]*)?>/i;
+  if (htmlPattern.test(html)) {
+    return html.replace(htmlPattern, (htmlTag) => `${htmlTag}\n${headBlock}`);
+  }
+
+  const doctypePattern = /<!doctype\s[^>]*>/i;
+  if (doctypePattern.test(html)) {
+    return html.replace(doctypePattern, (doctype) => `${doctype}\n${headBlock}`);
+  }
+
+  return `${headBlock}\n${html}`;
+}
 
 function generateDeployHtml(bundledCode: string, appName: string, hasFavicon: boolean): string {
   const base = generatePreviewHtml(bundledCode);
   const faviconTag = hasFavicon
     ? `<link rel="icon" href="/favicon.svg" type="image/svg+xml">`
-    : `<link rel="icon" href="data:image/svg+xml,${encodeURIComponent(DEFAULT_FAVICON_SVG)}" type="image/svg+xml">`;
+    : faviconLink();
   return base
     .replace('</head>', `  <title>${appName}</title>\n  ${faviconTag}\n</head>`)
     .replace(`"development"`, `"production"`);
@@ -94,7 +141,7 @@ export async function unpublishFromNetlify(siteId: string): Promise<void> {
       body: JSON.stringify({ action: 'delete', siteId }),
       signal: controller.signal,
     });
-    let data: any;
+    let data: { error?: string };
     try {
       data = await res.json();
     } catch {
@@ -104,8 +151,8 @@ export async function unpublishFromNetlify(siteId: string): Promise<void> {
     if (!res.ok || data.error) {
       throw new Error(data.error || `Unpublish failed (HTTP ${res.status})`);
     }
-  } catch (err: any) {
-    if (err?.name === 'AbortError') {
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
       throw new Error('Unpublish timed out — please try again');
     }
     throw err;
@@ -117,7 +164,7 @@ export async function unpublishFromNetlify(siteId: string): Promise<void> {
 export interface DeployCodeBlockOpts {
   subdomain?: string;
   title?: string;
-  faviconSvg?: string;    // SVG string from emoji picker → stored as /favicon.svg in zip
+  faviconSvg?: string;    // Legacy custom SVG → stored as /favicon.svg in zip
   faviconData?: string;   // data URL from file upload → embedded directly in <link>
   ogTitle?: string;
   ogDescription?: string;
@@ -153,12 +200,8 @@ export async function deployCodeBlock(
     ogImageUrl     && `<meta name="twitter:image" content="${ogImageUrl.replace(/"/g, '&quot;')}">`,
   ].filter(Boolean).join('\n  ');
 
-  // Favicon link tag — uploaded file takes priority over emoji SVG
-  const faviconTag = faviconData
-    ? `<link rel="icon" href="${faviconData}">`
-    : faviconSvg
-    ? `<link rel="icon" href="/favicon.svg" type="image/svg+xml">`
-    : '';
+  // A custom upload wins, followed by a legacy SVG. Arc's mark is the default.
+  const faviconTag = faviconLink(faviconSvg, faviconData);
 
   const pageTitle = title || 'My Site';
   const headExtras = [faviconTag, ogTags].filter(Boolean).join('\n  ');
@@ -168,13 +211,9 @@ export async function deployCodeBlock(
   const lang = language.toLowerCase();
 
   if (lang === 'html') {
-    // Inject into existing HTML
-    html = code
-      .replace(/<title>[^<]*<\/title>/, `<title>${pageTitle}</title>`)
-      .replace('</head>', `  ${headExtras}\n</head>`);
-    if (!html.includes('<title>')) {
-      html = html.replace('<head>', `<head>\n  <title>${pageTitle}</title>\n  ${headExtras}`);
-    }
+    // Replace any generated favicon so the publishing choice is authoritative,
+    // and add a head block when a generated HTML fragment omitted one.
+    html = injectPublishingHead(code, pageTitle, headExtras);
   } else if (lang === 'css') {
     html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${pageTitle}</title>${headExtras}<style>${code}</style></head><body></body></html>`;
   } else if (canPreview(lang)) {
