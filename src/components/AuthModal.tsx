@@ -44,15 +44,19 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const { toast } = useToast();
   const { continueAsGuest } = useAuth();
   const [guestLoading, setGuestLoading] = useState(false);
 
   const handleContinueAsGuest = async () => {
+    setAuthError(null);
     setGuestLoading(true);
     const { error } = await continueAsGuest();
     setGuestLoading(false);
     if (error) {
+      const msg = "Couldn't start guest chat. Please try again or sign in.";
+      setAuthError(msg);
       toast({
         title: "Couldn't start guest chat",
         description: "Please try again, or sign in to continue.",
@@ -138,12 +142,17 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
       };
 
   const handleAuth = async () => {
+    setAuthError(null);
     if (!supabase || !isSupabaseConfigured) {
-      toast({ title: "Error", description: "Authentication is not available.", variant: "destructive" });
+      const msg = "Authentication is not available.";
+      setAuthError(msg);
+      toast({ title: "Error", description: msg, variant: "destructive" });
       return;
     }
     if (!email || !password) {
-      toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
+      const msg = "Please enter both email and password.";
+      setAuthError(msg);
+      toast({ title: "Error", description: msg, variant: "destructive" });
       return;
     }
 
@@ -158,9 +167,11 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         if (!data.session && !data.user) {
+          const msg = "Sign up failed. Please try again or use Google sign in.";
+          setAuthError(msg);
           toast({
             title: "Sign up failed",
-            description: "Could not create account. Please try again or use Google sign in.",
+            description: msg,
             variant: "destructive",
           });
           return;
@@ -177,26 +188,37 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
         onClose();
       }
     } catch (error: unknown) {
-      toast({ title: "Error", description: error instanceof Error ? error.message : "An error occurred", variant: "destructive" });
+      const msg = error instanceof Error ? error.message : "An error occurred during authentication";
+      setAuthError(msg);
+      toast({ title: "Error", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleAuth = async () => {
+    setAuthError(null);
     setLoading(true);
     try {
-      const { error } = await signInWithGoogle();
-      if (error) throw error;
+      const res = await signInWithGoogle();
+      if (res?.error) throw res.error;
+      if (res?.data?.url) {
+        window.location.href = res.data.url;
+      }
     } catch (error: unknown) {
-      toast({ title: "Error", description: error instanceof Error ? error.message : "An error occurred with Google sign in", variant: "destructive" });
+      const msg = error instanceof Error ? error.message : "An error occurred with Google sign in";
+      setAuthError(msg);
+      toast({ title: "Error", description: msg, variant: "destructive" });
       setLoading(false);
     }
   };
 
   const handlePasswordReset = async () => {
+    setAuthError(null);
     if (!email) {
-      toast({ title: "Enter your email", description: "Type your email above, then request the reset link." });
+      const msg = "Type your email address above first, then click Forgot Password.";
+      setAuthError(msg);
+      toast({ title: "Enter your email", description: msg });
       return;
     }
 
@@ -208,7 +230,9 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
       if (error) throw error;
       toast({ title: "Check your email", description: "We sent you a link to choose a new password." });
     } catch (error: unknown) {
-      toast({ title: "Reset failed", description: error instanceof Error ? error.message : "Could not send the reset link", variant: "destructive" });
+      const msg = error instanceof Error ? error.message : "Could not send the reset link";
+      setAuthError(msg);
+      toast({ title: "Reset failed", description: msg, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -279,6 +303,17 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                   </span>
                 </div>
 
+
+                {/* Inline Error Display */}
+                {authError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-xs font-medium text-red-400"
+                  >
+                    {authError}
+                  </motion.div>
+                )}
 
                 {/* Tab Switcher */}
                 <div className={cn("flex p-1 rounded-full border", t.surface, t.border)}>
