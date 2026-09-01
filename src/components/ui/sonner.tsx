@@ -28,7 +28,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       className="toaster group"
       position="top-right"
       duration={3000}
-      style={{ top: topOffset } as React.CSSProperties}
+      style={{ top: topOffset, zIndex: 999999 } as React.CSSProperties}
       toastOptions={{
         classNames: {
           toast:

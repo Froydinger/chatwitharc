@@ -25,8 +25,10 @@ import {
   Lock,
   Cpu,
   ChevronDown,
+  ArrowRight,
   type LucideIcon,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -807,10 +809,8 @@ export function SettingsPanel() {
             {VoiceCard}
             <ImageDefaultsCard />
             <LocalAIPanel />
-            <a
-              href="https://froydinger.design/status"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/status"
               className="group flex items-center justify-between gap-3 p-4 rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md hover:bg-card/60 hover:border-primary/40 transition-all"
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -824,8 +824,8 @@ export function SettingsPanel() {
                   </span>
                 </div>
               </div>
-              <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
-            </a>
+              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+            </Link>
           </>
         );
       case "privacy":

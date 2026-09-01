@@ -5,21 +5,34 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+import { createPortal } from "react-dom"
+
 const ToastProvider = ToastPrimitives.Provider
 
 const ToastViewport = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Viewport>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
->(({ className, ...props }, ref) => (
-  <ToastPrimitives.Viewport
-    ref={ref}
-    className={cn(
-      "fixed top-[calc(env(safe-area-inset-top,0px)+1rem)] right-4 z-[10000] flex max-h-screen w-auto flex-col gap-2 p-0 md:max-w-[380px]",
-      className
-    )}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const content = (
+    <ToastPrimitives.Viewport
+      ref={ref}
+      className={cn(
+        "fixed top-[calc(env(safe-area-inset-top,0px)+1rem)] right-4 z-[999999] flex max-h-screen w-auto flex-col gap-2 p-0 md:max-w-[380px]",
+        className
+      )}
+      {...props}
+    />
+  );
+
+  if (!mounted || typeof document === "undefined") return null;
+  return createPortal(content, document.body);
+});
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName
 
 const toastVariants = cva(
