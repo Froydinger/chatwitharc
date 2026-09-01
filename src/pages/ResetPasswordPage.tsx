@@ -60,11 +60,11 @@ export function ResetPasswordPage() {
         </div>
         {ready ? (
           <form onSubmit={submit} className="space-y-4 text-left">
-            <input className="w-full rounded-xl border border-border bg-background px-4 py-3" type="password" autoComplete="new-password" placeholder="New password" value={password} onChange={(event) => setPassword(event.target.value)} required />
-            <input className="w-full rounded-xl border border-border bg-background px-4 py-3" type="password" autoComplete="new-password" placeholder="Confirm new password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
-            <GlassButton variant="glow" className="w-full" type="submit" disabled={saving}>{saving ? "Saving..." : "Set new password"}</GlassButton>
+            <input className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" type="password" autoComplete="new-password" placeholder="New password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+            <input className="w-full rounded-xl border border-border bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50" type="password" autoComplete="new-password" placeholder="Confirm new password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required />
+            <GlassButton variant="glow" className="w-full font-semibold" type="submit" disabled={saving}>{saving ? "Saving..." : "Set new password"}</GlassButton>
           </form>
-        ) : <a className="inline-flex text-primary underline" href="/">Return to sign in</a>}
+        ) : <a className="inline-flex text-primary underline font-medium hover:opacity-80 transition-opacity" href="/">Return to sign in</a>}
       </div>
     </div>
   );

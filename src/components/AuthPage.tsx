@@ -253,12 +253,12 @@ export function AuthPage() {
             {mode !== 'forgot-password' && mode !== 'magic-link' && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-white">Password</Label>
+                  <Label htmlFor="password" className="text-foreground">Password</Label>
                   {mode === 'login' && (
                     <button
                       type="button"
                       onClick={() => setMode('forgot-password')}
-                      className="text-xs text-gray-400 hover:text-white transition-colors"
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
                     >
                       Forgot password?
                     </button>
