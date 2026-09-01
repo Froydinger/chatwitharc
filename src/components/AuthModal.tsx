@@ -39,7 +39,7 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
 
 export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
-  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -157,11 +157,20 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
       } else {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        if (!data.session) {
+        if (!data.session && !data.user) {
           toast({
-            title: "Email sign-up is coming soon",
-            description: "Use Google for now, or try again shortly.",
+            title: "Sign up failed",
+            description: "Could not create account. Please try again or use Google sign in.",
+            variant: "destructive",
           });
+          return;
+        }
+        if (!data.session && data.user) {
+          toast({
+            title: "Account created!",
+            description: "Please check your email to verify your account before logging in.",
+          });
+          onClose();
           return;
         }
         toast({ title: "Account created!", description: "Welcome to ArcAI." });
