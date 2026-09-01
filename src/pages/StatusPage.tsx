@@ -85,22 +85,27 @@ export function StatusPage() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              {(health?.services ?? []).map((service, index) => {
-                const visual = stateCopy[service.status];
-                const Icon = visual.Icon;
-                return (
-                  <motion.article key={service.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="rounded-3xl border border-border/35 bg-background/45 p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3">
-                        <span className={cn("flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/25", visual.color)}><Icon className="h-5 w-5" /></span>
-                        <div><h2 className="text-sm font-semibold">{service.name}</h2><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{service.detail}</p></div>
+              {(health?.services ?? [])
+                .filter((service) => service.id !== "video" && !service.name.toLowerCase().includes("video"))
+                .map((service, index) => {
+                  const visual = stateCopy[service.status];
+                  const Icon = visual.Icon;
+                  return (
+                    <motion.article key={service.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="rounded-3xl border border-border/35 bg-background/45 p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                          <span className={cn("flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/25", visual.color)}><Icon className="h-5 w-5" /></span>
+                          <div>
+                            <h2 className="text-sm font-semibold">{service.name}</h2>
+                            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{service.status === "operational" ? "Operational" : service.detail}</p>
+                          </div>
+                        </div>
+                        <span className={cn("text-[10px] font-semibold uppercase tracking-wider", visual.color)}>{service.status === "operational" ? "Operational" : service.status === "degraded" ? "Degraded" : "Down"}</span>
                       </div>
-                      <span className={cn("text-[10px] font-semibold uppercase tracking-wider", visual.color)}>{service.status === "operational" ? "Live" : "Down"}</span>
-                    </div>
-                    {typeof service.latencyMs === "number" && <div className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"><Clock3 className="h-3.5 w-3.5" /> {service.latencyMs} ms</div>}
-                  </motion.article>
-                );
-              })}
+                      {typeof service.latencyMs === "number" && <div className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"><Clock3 className="h-3.5 w-3.5" /> {service.latencyMs} ms</div>}
+                    </motion.article>
+                  );
+                })}
             </div>
 
             {error && <div className="rounded-3xl border border-red-500/25 bg-red-500/5 p-5 text-sm text-red-300">{error} This is reported as an interruption rather than guessing that everything is fine.</div>}

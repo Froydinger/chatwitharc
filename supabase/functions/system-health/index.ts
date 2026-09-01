@@ -66,7 +66,7 @@ function canonicalRoute(input: unknown): string | null {
 
 function summarize(id: string, name: string, rows: JobRow[] | null, error: unknown, latencyMs: number): ServiceHealth {
   if (error || !rows) {
-    return { id, name, status: "degraded", latencyMs, detail: "Recent operational data is temporarily unavailable." };
+    return { id, name, status: "degraded", latencyMs, detail: "Service is experiencing degraded performance." };
   }
 
   const succeeded = rows.filter((row) => row.status === "completed" || row.status === "succeeded").length;
@@ -79,10 +79,7 @@ function summarize(id: string, name: string, rows: JobRow[] | null, error: unkno
     name,
     status: degraded ? "degraded" : "operational",
     latencyMs,
-    detail: finished === 0
-      ? "No completed operations in the last 24 hours."
-      : `${succeeded} succeeded and ${failed} failed in the last 24 hours.`,
-    activity: { completed: succeeded, total: finished, label: "completed" },
+    detail: degraded ? "Service is experiencing degraded performance." : "Service is fully operational.",
   };
 }
 
@@ -98,7 +95,7 @@ async function applyManualStatus(admin: ReturnType<typeof adminClient>, services
     return {
       ...service,
       status: override,
-      detail: message || (override === "operational" ? "This service is live." : "This service is currently unavailable."),
+      detail: message || (override === "operational" ? "Service is fully operational." : "Service is currently unavailable."),
     };
   });
 }
@@ -126,31 +123,28 @@ async function healthPayload(): Promise<Record<string, unknown>> {
   const admin = adminClient();
   const since = new Date(now - 24 * 60 * 60 * 1000).toISOString();
 
-  const [databaseCheck, imageCheck, videoCheck, reminderCheck] = await Promise.all([
+  const [databaseCheck, imageCheck, reminderCheck] = await Promise.all([
     timed(admin.from("anonymous_route_traffic").select("traffic_date", { head: true, count: "exact" }).limit(1)),
     timed(admin.from("image_generation_jobs").select("status,created_at").gte("created_at", since).limit(5000)),
-    timed(admin.from("video_generation_jobs").select("status,created_at").gte("created_at", since).limit(5000)),
     timed(admin.from("scheduled_task_runs").select("status,started_at").gte("started_at", since).limit(5000)),
   ]);
 
   const database = databaseCheck.result;
   const images = imageCheck.result;
-  const videos = videoCheck.result;
   const reminders = reminderCheck.result;
   const automaticServices: ServiceHealth[] = [
-    { id: "edge", name: "ArcAI API", status: "operational", detail: "The public health endpoint is responding." },
+    { id: "edge", name: "ArcAI API", status: "operational", detail: "Service is fully operational." },
     {
       id: "database",
       name: "Database",
       status: database.error ? "outage" : "operational",
       latencyMs: databaseCheck.latencyMs,
-      detail: database.error ? "The database health check failed." : "Database connectivity is operational.",
+      detail: database.error ? "Database is currently unavailable." : "Service is fully operational.",
     },
     summarize("images", "Image generation", (images.data ?? []) as JobRow[], images.error, imageCheck.latencyMs),
-    summarize("video", "Video generation", (videos.data ?? []) as JobRow[], videos.error, videoCheck.latencyMs),
     summarize(
       "reminders",
-      "Reminders",
+      "Reminders & Tasks",
       (reminders.data ?? []).map((row) => ({ status: row.status, created_at: row.started_at })) as JobRow[],
       reminders.error,
       reminderCheck.latencyMs,
