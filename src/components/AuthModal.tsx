@@ -275,7 +275,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                 <div className={cn("flex p-1 rounded-full border", t.surface, t.border)}>
                   <button
                     type="button"
-                    onClick={() => { setIsLogin(true); setShowEmailForm(false); }}
+                    onClick={() => { setIsLogin(true); setShowEmailForm(true); }}
                     className={cn(
                       "flex-1 py-2 px-4 rounded-full text-sm font-medium transition-all duration-200",
                       isLogin ? t.tabActive : t.tabIdle,
@@ -286,7 +286,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                   </button>
                   <button
                     type="button"
-                    onClick={() => { setIsLogin(false); setShowEmailForm(false); }}
+                    onClick={() => { setIsLogin(false); setShowEmailForm(true); }}
                     className={cn(
                       "flex-1 py-2 px-4 rounded-full text-sm font-medium transition-all duration-200",
                       !isLogin ? t.tabActive : t.tabIdle,

@@ -19,14 +19,18 @@ function getDesktopAuthRedirectUrl() {
   return getAuthRedirectUrl("/desktop-auth-callback?port=48879");
 }
 
-export function signInWithGoogle(redirectTo = getAuthRedirectUrl("/auth/callback")) {
-  return supabase.auth.signInWithOAuth({
+export async function signInWithGoogle(redirectTo = getAuthRedirectUrl("/auth/callback")) {
+  const res = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: usesLegacyDesktopAuthBridge() ? getDesktopAuthRedirectUrl() : redirectTo,
       queryParams: { prompt: "select_account" },
     },
   });
+  if (res.data?.url) {
+    window.location.href = res.data.url;
+  }
+  return res;
 }
 
 /**
