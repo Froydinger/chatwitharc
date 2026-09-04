@@ -156,6 +156,39 @@ alone; just do not link anything to them.
   timeout. Provider content is only fetchable for ~1 hour after a render, so
   `pollVideoJob` downloads immediately on completion.
 
+## Blog SEO / AEO prerender
+
+`npm run build` runs `vite build` then `scripts/prerender.mjs`. The app is a
+client-rendered SPA, so without this step every `/blog/*` URL returned the same
+shell — Googlebot executes JS and recovered the page, but GPTBot, OAI-SearchBot,
+ClaudeBot and PerplexityBot did not, making all the posts invisible to answer
+engines.
+
+The script bundles `src/content/blog/posts.ts` through Vite's own build API (no
+extra deps) and writes a flat static page per post to `dist/_prerender/`, with
+the real title, description, canonical, OG tags and the Article + FAQPage +
+BreadcrumbList JSON-LD. Crawler copy goes in the offscreen `#aeo-static` block
+that `index.html` already uses, so nothing changes visually.
+
+Two things that will bite you:
+
+- **Flat files, never `<route>/index.html`.** Netlify answers a directory
+  request with a 301 to the trailing-slash form, and that runs *before* custom
+  rules — which would make every extensionless URL in `sitemap.xml` redirect.
+- **The generated `netlify.toml` block must be committed.** Netlify reads that
+  file before the build runs, so the rewrites cannot be produced by the build
+  that needs them. Add or rename a post and the build fails on purpose: rerun
+  `npm run build`, commit the regenerated `netlify.toml`, then push.
+
+Add a post to `src/content/blog/posts.ts` and also add it to
+`public/sitemap.xml` — the sitemap is not generated.
+
+## Structured data
+
+Do not add `aggregateRating` (or any review markup) unless it is backed by
+real collected reviews. A previous hardcoded 4.8/150 was removed: self-serving
+review markup risks a manual action against the rich results the site earns.
+
 ## Notes
 
 - **Luna is the only text/reasoning model for now.** The picker exposes Auto,
