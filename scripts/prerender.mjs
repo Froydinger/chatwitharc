@@ -7,9 +7,9 @@
  * largely do not — they saw the generic title, the wrong canonical, and none of
  * the per-post Article/FAQPage/Breadcrumb schema.
  *
- * This writes a real static `dist/blog/<slug>/index.html` per post. Netlify
- * serves an existing file before applying the non-forced SPA rewrite, so these
- * take precedence for crawlers while the SPA keeps handling client navigation.
+ * This writes a real static page per post under `dist/_prerender/` and points
+ * an explicit 200 rewrite at it, so `/blog/<slug>` serves prerendered HTML
+ * directly while the SPA keeps handling client-side navigation.
  *
  * Crawler copy goes in the existing offscreen `#aeo-static` block (the same
  * convention index.html already uses). React's createRoot replaces the whole
@@ -26,6 +26,10 @@ const ROOT = process.cwd();
 const DIST = path.join(ROOT, "dist");
 const SITE = "https://askarc.chat";
 const OG_IMAGE = `${SITE}/og-image.png`;
+// Flat files, deliberately NOT `<route>/index.html`: Netlify normalises a
+// directory request with a 301 to a trailing slash before custom rules run,
+// which would make every extensionless sitemap URL redirect.
+const PRERENDER_DIR = "_prerender";
 
 /** Bundle the TS post data through Vite so this script needs no extra deps. */
 async function loadPosts() {
@@ -235,10 +239,10 @@ async function writePage(template, aeo, { route, body, ...head }) {
     template.slice(aeo.end);
 
   const html = buildHead(withBody, head);
-  const dir = path.join(DIST, route);
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(path.join(dir, "index.html"), html, "utf8");
-  return path.relative(DIST, path.join(dir, "index.html"));
+  const file = path.join(DIST, PRERENDER_DIR, `${route}.html`);
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(file, html, "utf8");
+  return path.relative(DIST, file);
 }
 
 const TOML = path.join(ROOT, "netlify.toml");
@@ -246,10 +250,10 @@ const BEGIN = "# BEGIN generated blog routes (scripts/prerender.mjs) — do not 
 const END = "# END generated blog routes";
 
 /**
- * Extensionless URLs (the form used in sitemap.xml) do not reliably resolve to
- * a directory's index.html, so emit an explicit 200 rewrite per route. These
- * sit above the catch-all, and an unknown slug matches nothing here and still
- * falls through to the SPA, which soft-redirects it to /blog as before.
+ * Extensionless URLs (the form used in sitemap.xml) do not resolve on their
+ * own, so emit an explicit 200 rewrite per route. These sit above the
+ * catch-all, and an unknown slug matches nothing here and still falls through
+ * to the SPA, which soft-redirects it to /blog as before.
  *
  * netlify.toml is read before the build runs, so this block has to be
  * committed — the build fails loudly if it is stale.
@@ -257,8 +261,11 @@ const END = "# END generated blog routes";
 async function syncNetlifyRoutes(routes) {
   const block = [
     BEGIN,
+    // The rewrite serves these at /blog/..., so this header only applies when
+    // the underlying file is requested directly — keeping it out of the index.
+    `[[headers]]\n  for = "/${PRERENDER_DIR}/*"\n  [headers.values]\n    X-Robots-Tag = "noindex"`,
     ...routes.map(
-      (r) => `[[redirects]]\n  from = "/${r}"\n  to = "/${r}/index.html"\n  status = 200`
+      (r) => `[[redirects]]\n  from = "/${r}"\n  to = "/${PRERENDER_DIR}/${r}.html"\n  status = 200`
     ),
     END,
   ].join("\n\n");

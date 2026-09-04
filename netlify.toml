@@ -20,84 +20,89 @@
 
 # BEGIN generated blog routes (scripts/prerender.mjs) — do not edit by hand
 
+[[headers]]
+  for = "/_prerender/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
 [[redirects]]
   from = "/blog"
-  to = "/blog/index.html"
+  to = "/_prerender/blog.html"
   status = 200
 
 [[redirects]]
   from = "/blog/what-is-arcai"
-  to = "/blog/what-is-arcai/index.html"
+  to = "/_prerender/blog/what-is-arcai.html"
   status = 200
 
 [[redirects]]
   from = "/blog/free-chatgpt-alternative"
-  to = "/blog/free-chatgpt-alternative/index.html"
+  to = "/_prerender/blog/free-chatgpt-alternative.html"
   status = 200
 
 [[redirects]]
   from = "/blog/free-gemini-alternative"
-  to = "/blog/free-gemini-alternative/index.html"
+  to = "/_prerender/blog/free-gemini-alternative.html"
   status = 200
 
 [[redirects]]
   from = "/blog/free-gpt-4-alternative"
-  to = "/blog/free-gpt-4-alternative/index.html"
+  to = "/_prerender/blog/free-gpt-4-alternative.html"
   status = 200
 
 [[redirects]]
   from = "/blog/free-claude-alternative"
-  to = "/blog/free-claude-alternative/index.html"
+  to = "/_prerender/blog/free-claude-alternative.html"
   status = 200
 
 [[redirects]]
   from = "/blog/best-free-ai-assistant-2026"
-  to = "/blog/best-free-ai-assistant-2026/index.html"
+  to = "/_prerender/blog/best-free-ai-assistant-2026.html"
   status = 200
 
 [[redirects]]
   from = "/blog/free-ai-with-voice"
-  to = "/blog/free-ai-with-voice/index.html"
+  to = "/_prerender/blog/free-ai-with-voice.html"
   status = 200
 
 [[redirects]]
   from = "/blog/free-ai-image-generator"
-  to = "/blog/free-ai-image-generator/index.html"
+  to = "/_prerender/blog/free-ai-image-generator.html"
   status = 200
 
 [[redirects]]
   from = "/blog/ai-that-remembers-conversations"
-  to = "/blog/ai-that-remembers-conversations/index.html"
+  to = "/_prerender/blog/ai-that-remembers-conversations.html"
   status = 200
 
 [[redirects]]
   from = "/blog/ask-arc-what-is-it"
-  to = "/blog/ask-arc-what-is-it/index.html"
+  to = "/_prerender/blog/ask-arc-what-is-it.html"
   status = 200
 
 [[redirects]]
   from = "/blog/arcai-vs-chatgpt"
-  to = "/blog/arcai-vs-chatgpt/index.html"
+  to = "/_prerender/blog/arcai-vs-chatgpt.html"
   status = 200
 
 [[redirects]]
   from = "/blog/arcai-vs-gemini"
-  to = "/blog/arcai-vs-gemini/index.html"
+  to = "/_prerender/blog/arcai-vs-gemini.html"
   status = 200
 
 [[redirects]]
   from = "/blog/free-ai-for-coding"
-  to = "/blog/free-ai-for-coding/index.html"
+  to = "/_prerender/blog/free-ai-for-coding.html"
   status = 200
 
 [[redirects]]
   from = "/blog/free-ai-for-writing"
-  to = "/blog/free-ai-for-writing/index.html"
+  to = "/_prerender/blog/free-ai-for-writing.html"
   status = 200
 
 [[redirects]]
   from = "/blog/how-to-use-arcai-free"
-  to = "/blog/how-to-use-arcai-free/index.html"
+  to = "/_prerender/blog/how-to-use-arcai-free.html"
   status = 200
 
 # END generated blog routes
