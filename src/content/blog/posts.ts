@@ -1,8 +1,10 @@
 // FAQ-style blog posts. Each one is a "glorified CTA" wrapped around a
 // keyword-targeted question. Kept as static data so it ships in the JS bundle
-// and every crawler (Googlebot, GPTBot, ClaudeBot, PerplexityBot) can render
-// the answers via the DOM after hydration — plus the full text lives in a
-// <div class="sr-only"> block so non-JS crawlers also see it.
+// (for Googlebot, which executes JS) and so scripts/prerender.mjs can bundle
+// this module at build time and emit a real static dist/blog/<slug>/index.html.
+// That prerender is what non-JS crawlers — GPTBot, OAI-SearchBot, ClaudeBot,
+// PerplexityBot — actually read; the sr-only block in BlogPostPage is
+// client-rendered and is NOT visible to them.
 
 export interface FAQItem {
   q: string;

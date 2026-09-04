@@ -18,6 +18,90 @@
   status = 200
   force = true
 
+# BEGIN generated blog routes (scripts/prerender.mjs) — do not edit by hand
+
+[[redirects]]
+  from = "/blog"
+  to = "/blog/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/what-is-arcai"
+  to = "/blog/what-is-arcai/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/free-chatgpt-alternative"
+  to = "/blog/free-chatgpt-alternative/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/free-gemini-alternative"
+  to = "/blog/free-gemini-alternative/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/free-gpt-4-alternative"
+  to = "/blog/free-gpt-4-alternative/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/free-claude-alternative"
+  to = "/blog/free-claude-alternative/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/best-free-ai-assistant-2026"
+  to = "/blog/best-free-ai-assistant-2026/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/free-ai-with-voice"
+  to = "/blog/free-ai-with-voice/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/free-ai-image-generator"
+  to = "/blog/free-ai-image-generator/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/ai-that-remembers-conversations"
+  to = "/blog/ai-that-remembers-conversations/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/ask-arc-what-is-it"
+  to = "/blog/ask-arc-what-is-it/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/arcai-vs-chatgpt"
+  to = "/blog/arcai-vs-chatgpt/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/arcai-vs-gemini"
+  to = "/blog/arcai-vs-gemini/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/free-ai-for-coding"
+  to = "/blog/free-ai-for-coding/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/free-ai-for-writing"
+  to = "/blog/free-ai-for-writing/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/blog/how-to-use-arcai-free"
+  to = "/blog/how-to-use-arcai-free/index.html"
+  status = 200
+
+# END generated blog routes
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
