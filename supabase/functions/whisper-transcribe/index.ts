@@ -67,31 +67,31 @@ serve(async (req) => {
       });
     }
 
-    // Forward audio blob to OpenAI Whisper API
-    const whisperFormData = new FormData();
-    whisperFormData.append('file', audioFile, audioFile.name || 'audio.wav');
-    whisperFormData.append('model', 'whisper-1');
-    whisperFormData.append('language', 'en');
+    // Forward audio blob to OpenAI transcription API
+    const transcriptionFormData = new FormData();
+    transcriptionFormData.append('file', audioFile, audioFile.name || 'audio.wav');
+    transcriptionFormData.append('model', 'gpt-transcribe');
+    transcriptionFormData.append('languages[]', 'en');
 
-    const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    const transcriptionRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${openaiApiKey}`,
       },
-      body: whisperFormData,
+      body: transcriptionFormData,
     });
 
-    if (!whisperRes.ok) {
-      const errText = await whisperRes.text().catch(() => '');
-      console.error('[whisper-transcribe] OpenAI Whisper API error:', whisperRes.status, errText);
+    if (!transcriptionRes.ok) {
+      const errText = await transcriptionRes.text().catch(() => '');
+      console.error('[whisper-transcribe] OpenAI transcription API error:', transcriptionRes.status, errText);
       return new Response(JSON.stringify({ error: 'Transcription failed', details: errText }), {
-        status: whisperRes.status,
+        status: transcriptionRes.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const whisperJson = await whisperRes.json();
-    const text = whisperJson.text || '';
+    const transcriptionJson = await transcriptionRes.json();
+    const text = transcriptionJson.text || '';
 
     return new Response(JSON.stringify({ text }), {
       status: 200,

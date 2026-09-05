@@ -773,7 +773,7 @@ export function VoiceModeController() {
           longitude: locationUsed.longitude,
         } : undefined,
         sourceModel: 'cloud-voice',
-        modelUsed: 'gpt-realtime-mini',
+        modelUsed: 'gpt-realtime-2.1-mini',
       });
       return `Weather in ${data.location}: ${data.temperature}°F (feels like ${data.feelsLike}°F), ${data.condition}. High ${data.high}°, low ${data.low}°. Humidity ${data.humidity}%, wind ${data.wind} mph. Briefly tell the user what it's like — keep it casual and short.`;
     } catch (e: any) {

@@ -64,7 +64,7 @@ serve(async (req) => {
   }
 
   const provider = getVideoProvider();
-  if (!provider) return json({ error: "Video backend is not configured" }, 500);
+  if (!provider) return json({ error: "This video is no longer available to download.", errorType: "expired" }, 410);
 
   const upstream = await provider.fetchContent(job.provider_video_id);
 

@@ -196,10 +196,12 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     lastSourceRef.current = source;
     source.onended = () => {
       // Remove from active tracking
-      activeSourcesRef.current.delete(source);
+      const wasActive = activeSourcesRef.current.delete(source);
       try { source.disconnect(); } catch (_) {}
       try { chunkGain.disconnect(); } catch (_) {}
       
+      if (!wasActive) return;
+
       if (isInterruptedRef.current) {
         setIsPlaying(false);
         setIsAudioPlaying(false);

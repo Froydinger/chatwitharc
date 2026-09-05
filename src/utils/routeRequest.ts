@@ -28,7 +28,7 @@ export type RouteDestination =
   | 'cloud-image-pro'           // Deprecated alias — also maps to GPT-Image-2
   | 'cloud-image-edit'          // GPT-Image-2 — edit pass
   | 'cloud-image-edit-fallback' // Edit served by Gemini fallback when GPT-Image-2 failed
-  | 'cloud-video'               // Sora 2 video generation
+  | 'cloud-video'               // Video generation
   | 'cloud-ide';                // Paused App Builder / IDE agent
 
 
@@ -141,7 +141,7 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
     case 'cloud-image-edit-fallback':
       return { label: 'Cloud · Nano Banana 2 (Edit, fallback)', icon: 'cloud', tooltip: 'GPT-Image-2 was unavailable, so this edit was served by Google Gemini Nano Banana 2 as a fallback.' };
     case 'cloud-video':
-      return { label: 'Cloud · Sora 2 (Video)', icon: 'cloud', tooltip: 'Video generation — Sora 2.' };
+      return { label: 'Cloud · Video', icon: 'cloud', tooltip: 'Video generation.' };
     case 'cloud-ide':
       return { label: 'Saved project', icon: 'cloud', tooltip: 'A project saved from an earlier workspace. It is read-only.' };
     default:

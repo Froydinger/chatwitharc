@@ -118,43 +118,18 @@ The underlying code still exists for the rebuild: `AppsPanel.tsx` and
 artifacts, and the `cloud-ide` route in `src/utils/routeRequest.ts`. Leave them
 alone; just do not link anything to them.
 
-## Video generation (Sora 2)
+## Video generation (disabled)
 
-- **Private, not a plan feature.** Access is a hard **email allowlist**, not
-  Boost — the provider shuts down 2026-09-24, so this isn't sold to anyone.
-  The list lives in THREE places that must match: `public.user_can_generate_video`
-  (the latest forward migration), `supabase/functions/generate-video/index.ts`,
-  and `src/hooks/useVideoAccess.tsx`. The server copies are the real gate; the
-  client copy only decides whether UI is offered. For accounts without access the feature
-  is *invisible* — the Animate button doesn't render and video phrasing falls
-  through to normal chat rather than surfacing an upsell.
-- Metered in **seconds** (not clips) because the provider bills per second —
-  $0.10/s at 720p. Currently **60s/day**, which is a runaway-spend guard
-  (~$6.00/day ceiling), not a fairness rule. Unlike the image quota, **admins
-  are metered too** — an unmetered path to a per-second billed API is exactly
-  what's worth capping. Failed renders refund the reservation.
-- **Durations**: the API only accepts `4`, `8` or `12` — 3 and 5 return a 400.
-  Product cap is 4s ($0.40), set by `MAX_SECONDS` in BOTH
-  `supabase/functions/generate-video/index.ts` and
-  `src/store/useVideoGenStore.ts`. Change them together.
-- **Sizes**: only `1280x720` and `720x1280`. Image-to-video requires the first
-  frame to match that size exactly, so `generate-video` cover-crops the source
-  still before upload.
-- **Videos are never stored server-side.** No Postgres bytes, no Supabase
-  Storage, no R2 — the job row is text only. The MP4 streams from the provider
-  through `video-content` straight into the browser's IndexedDB
-  (`src/lib/videoStorage.ts`). On another device, or after a cache clear,
-  `VideoAttachment` renders a "no longer available" placeholder. The UI must
-  keep saying clips are device-local.
-- **Provider is swappable on purpose**: everything vendor-specific lives in
-  `supabase/functions/_shared/videoProvider.ts`. OpenAI deprecated the Videos
-  API on 2026-03-24 and removes `sora-2*` on **2026-09-24** with no announced
-  successor — when that lands, write a new provider object and repoint
-  `getVideoProvider()`.
-- Polling is client-driven: `video-job-status` forwards each client poll to the
-  provider, so no long-running background task can be killed by an edge
-  timeout. Provider content is only fetchable for ~1 hour after a render, so
-  `pollVideoJob` downloads immediately on completion.
+- No video provider is enabled. `getVideoProvider()` returns null, and new
+  requests stop before job creation, quota reservation, or provider calls.
+- Video controls are hidden for all accounts. Do not market video generation.
+- Keep the provider-neutral contract in `_shared/videoProvider.ts` for a future
+  integration. No replacement provider is configured yet.
+- Preserve the existing server allowlist, 60 seconds/day quota (including
+  admins), 4-second cap, and failed-render refunds for any future integration.
+- Old unfinished jobs return a terminal failure and release reservations.
+- Saved videos remain device-local in IndexedDB. Do not delete them or add
+  server-side video storage. Existing attachment playback must keep working.
 
 ## Blog SEO / AEO prerender
 

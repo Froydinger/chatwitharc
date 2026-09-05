@@ -74,12 +74,17 @@ serve(async (req) => {
     return respond(job.status, { progress: job.status === "completed" ? 100 : 0 });
   }
 
-  if (!job.provider_video_id) {
-    return respond("processing", { progress: 0 });
-  }
-
   const provider = getVideoProvider();
-  if (!provider) return json({ error: "Video backend is not configured" }, 500);
+  if (!provider) {
+    // Terminal status stops old clients polling an unavailable provider.
+    const errorMessage = "Video generation is unavailable.";
+    await supabase.from("video_generation_jobs")
+      .update({ status: "failed", error_message: errorMessage, error_type: "provider_unavailable" })
+      .eq("id", job.id).in("status", ["pending", "processing"]);
+    await supabase.rpc("finalize_video_quota", { target_job_id: job.id, succeeded: false });
+    return respond("failed", { progress: 0, errorMessage, errorType: "provider_unavailable" });
+  }
+  if (!job.provider_video_id) return respond("processing", { progress: 0 });
 
   const result = await provider.poll(job.provider_video_id);
 

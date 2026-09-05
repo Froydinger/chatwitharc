@@ -1,3 +1,4 @@
+import { BargeInProbe, BARGE_IN_PROBE_MS } from '@/lib/bargeInProbe';
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { useVoiceModeStore, VoiceName, REALTIME_SUPPORTED_VOICES } from '@/store/useVoiceModeStore';
 import { supabase } from '@/integrations/supabase/client';
@@ -50,20 +51,14 @@ const REALTIME_AUDIO_SAMPLE_RATE = 24000;
 let activeAudioItemId: string | null = null;
 let activeAudioMs = 0;
 const interruptedResponseIds = new Set<string>();
-const BARGE_IN_PROBE_MS = 260;
-const BARGE_IN_PROBE_AMPLITUDE = 0.006;
 let bargeInProbeTimer: ReturnType<typeof setTimeout> | null = null;
-let bargeInProbePeak = 0;
-let bargeInProbeResponseId: string | null = null;
-let stopBargeInProbeAmplitudeWatch: (() => void) | null = null;
+let bargeInProbe: BargeInProbe | null = null;
+let userSpeechInProgress = false;
 
 const clearBargeInProbe = () => {
   if (bargeInProbeTimer) clearTimeout(bargeInProbeTimer);
   bargeInProbeTimer = null;
-  stopBargeInProbeAmplitudeWatch?.();
-  stopBargeInProbeAmplitudeWatch = null;
-  bargeInProbePeak = 0;
-  bargeInProbeResponseId = null;
+  bargeInProbe = null;
 };
 
 const rememberInterruptedResponse = (responseId: string | null) => {
@@ -689,14 +684,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
   }, []);
 
-  // Clear audio buffer to prevent leftover audio from previous turns
-  const clearAudioBuffer = useCallback(() => {
-    if (globalWs?.readyState === WebSocket.OPEN) {
-      console.log('Clearing input audio buffer');
-      sendRealtimeEvent({ type: 'input_audio_buffer.clear' });
-    }
-  }, []);
-
   const handleServerEvent = useCallback((event: any) => {
     const { setStatus, setCurrentTranscript } = useVoiceModeStore.getState();
     
@@ -707,7 +694,13 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           return;
         }
         globalSessionId = event.session?.id;
+        clearBargeInProbe();
+        optionsRef.current.onInterruptProbeRejected?.();
+        responseInProgress = false;
+        userSpeechInProgress = false;
         activeResponseId = null;
+        activeAudioItemId = null;
+        activeAudioMs = 0;
         interruptedResponseIds.clear();
         suppressInterruptedResponseAudio = false;
         sessionReady = true;
@@ -744,10 +737,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'input_audio_buffer.speech_started':
         console.log('VAD: User speech detected');
         const stateAtSpeechStart = useVoiceModeStore.getState();
-        // If Arc has an active response or scheduled audio, server-confirmed
-        // speech is always a barge-in. Do not veto it based on client status,
-        // tool state, volume comparisons, or a cooldown: those secondary gates
-        // allowed Arc to hear the user while continuing to talk over them.
+        // Playback can outlive server generation. Both are interruptible.
         const canBargeIn =
           responseInProgress ||
           stateAtSpeechStart.status === 'speaking' ||
@@ -765,29 +755,19 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           });
         }
         userSpokeAfterLastResponse = true;
-        const voiceStateAtSpeechStart = stateAtSpeechStart;
-        // The server VAD has already classified this audio as speech. Do not
-        // apply a second client-side amplitude test here: echo cancellation can
-        // make a real user's voice look quieter than Arc's output even though
-        // the server clearly heard them, leaving queued playback talking over
-        // the interruption.
-        const isBargeIn = canBargeIn;
+        userSpeechInProgress = true;
 
-        if (isBargeIn && !bargeInProbeTimer) {
+        if (canBargeIn && !bargeInProbeTimer) {
           // At loud speaker volumes iOS can report Arc's own output as speech.
           // Duck the speaker first, then only interrupt if microphone energy
           // remains after the echo source is gone.
           optionsRef.current.onInterruptProbeStart?.();
-          bargeInProbePeak = 0;
-          bargeInProbeResponseId = activeResponseId;
-          stopBargeInProbeAmplitudeWatch = useVoiceModeStore.subscribe((state) => {
-            bargeInProbePeak = Math.max(bargeInProbePeak, state.inputAmplitude);
-          });
+          bargeInProbe = new BargeInProbe(activeResponseId, performance.now());
           bargeInProbeTimer = setTimeout(() => {
-            const confirmedUserSpeech = bargeInProbePeak >= BARGE_IN_PROBE_AMPLITUDE;
-            const interruptedId = bargeInProbeResponseId;
+            const confirmedUserSpeech = bargeInProbe?.confirmed ?? false;
+            const interruptedId = bargeInProbe?.responseId ?? null;
             clearBargeInProbe();
-            if (!confirmedUserSpeech) {
+            if (interruptedId !== activeResponseId || !confirmedUserSpeech) {
               console.log('🔈 Rejected speaker echo after barge-in probe');
               optionsRef.current.onInterruptProbeRejected?.();
               return;
@@ -812,6 +792,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'input_audio_buffer.speech_stopped':
+        userSpeechInProgress = false;
         console.log('VAD: User speech stopped');
         break;
 
@@ -1351,6 +1332,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'response.created':
+        if (bargeInProbeTimer) {
+          clearBargeInProbe();
+          optionsRef.current.onInterruptProbeRejected?.();
+        }
         // Arc talking counts as activity too.
         resetInactivityTimer();
         responseInProgress = true;
@@ -1378,9 +1363,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // started. Never let that stale completion reset the new turn.
         if (completedActiveResponse) {
           responseInProgress = false;
-          activeResponseId = null;
-          suppressInterruptedResponseAudio = false;
+          // Keep the ID and audio item until the next response: queued audio
+          // is still interruptible after generation has completed.
         }
+        if (!completedActiveResponse) break;
         flushPendingFunctionResults();
         setCurrentTranscript('');
         
@@ -1392,30 +1378,18 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         
         // Only reset speech flags on COMPLETED responses, not cancelled ones.
         const responseStatus = event.response?.status;
-        if (responseStatus !== 'cancelled') {
+        if (responseStatus !== 'cancelled' && !userSpeechInProgress && !bargeInProbeTimer && !isInterruptedResponseEvent(event)) {
           userSpokeAfterLastResponse = false;
           hasRealTranscription = false;
           useVoiceModeStore.getState().setHasPendingSpeech(false);
-          clearAudioBuffer();
         } else {
-          console.log('Response was cancelled — keeping speech flags intact');
+          console.log('Keeping pending user speech intact');
         }
         
         // Only transition to listening if audio has finished playing.
         const { isActive: stillActive, isAudioPlaying: audioStillPlaying } = useVoiceModeStore.getState();
         if (stillActive && !audioStillPlaying) {
           setStatus('listening');
-        } else if (stillActive) {
-          // Safety fallback: if onended never fires (AudioContext error, tab background, etc.)
-          // force the state back to listening so the user can speak again
-          setTimeout(() => {
-            const { isActive: active, status: currentStatus } = useVoiceModeStore.getState();
-            if (active && (currentStatus === 'speaking' || currentStatus === 'thinking')) {
-              console.warn('Voice mode stuck — forcing reset to listening');
-              useVoiceModeStore.getState().setIsAudioPlaying(false);
-              useVoiceModeStore.getState().setStatus('listening');
-            }
-          }, 8000);
         }
         break;
 
@@ -1499,7 +1473,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         return;
     }
-  }, [sendFunctionResult, clearAudioBuffer]);
+  }, [sendFunctionResult]);
 
   const connect = useCallback(async (systemPrompt?: string) => {
     const { setStatus } = useVoiceModeStore.getState();
@@ -1624,9 +1598,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             audio: {
               input: {
                 format: { type: 'audio/pcm', rate: 24000 },
-                // whisper-1 is the cheapest transcription tier; do not switch
-                // this to gpt-4o-transcribe, it costs several times more.
-                transcription: { model: 'whisper-1' },
+                // Current input transcription model; conversation stays on Realtime Mini.
+                transcription: { model: 'gpt-transcribe' },
                 turn_detection: {
                   type: 'server_vad',
                   // Deliberately high: typing, breathing and coughing were
@@ -1784,6 +1757,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       };
 
       ws.onmessage = (event) => {
+        if (globalWs !== ws) return;
         try {
           const data = JSON.parse(event.data);
           handleServerEvent(data);
@@ -1964,6 +1938,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   const sendAudio = useCallback((audioData: Int16Array) => {
     if (globalWs?.readyState !== WebSocket.OPEN || !sessionReady) return;
     
+    bargeInProbe?.addAudio(audioData, performance.now());
+
     // Efficient base64 encoding — avoid per-byte string concatenation
     const bytes = new Uint8Array(audioData.buffer, audioData.byteOffset, audioData.byteLength);
     const CHUNK = 0x8000;
@@ -2001,7 +1977,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     console.log('Manually cancelling AI response');
     rememberInterruptedResponse(activeResponseId);
     suppressInterruptedResponseAudio = true;
-    sendRealtimeEvent({ type: 'response.cancel' });
+    clearBargeInProbe();
+    if (responseInProgress) sendRealtimeEvent({ type: 'response.cancel' });
     truncateSpokenAudio(playedMs);
   }, []);
 

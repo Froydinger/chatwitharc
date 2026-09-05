@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Ratio, Check, Images, Zap } from "lucide-react";
+import { ChevronDown, Ratio, Check, Images } from "lucide-react";
 import {
   useImageGenStore,
   IMAGE_ASPECT_OPTIONS,
@@ -25,11 +25,11 @@ interface ImageOptionsDockProps {
 }
 
 /**
- * Inner controls (quick toggle + aspect + count + usage meter). Can be
+ * Inner controls (aspect + count + usage meter). Can be
  * rendered inline inside another panel (e.g. the Selected Images preview) or
  * wrapped by <ImageOptionsDock /> for its own floating dock.
  *
- * `editMode` disables Quick: GPT Image 2 is the only model that can edit.
+ * `editMode` offers the source aspect ratio for edits.
  */
 export function ImageOptionsContent({
   showUsage = true,
@@ -42,8 +42,6 @@ export function ImageOptionsContent({
     aspectRatio,
     editAspectRatio,
     count,
-    quick,
-    setQuick,
     setAspectRatio,
     setEditAspectRatio,
     setCount,
@@ -57,7 +55,6 @@ export function ImageOptionsContent({
   const currentAspect: EditAspectRatio = editMode ? editAspectRatio : aspectRatio;
   const activeAspect = aspectOptions.find((a) => a.id === currentAspect) ?? aspectOptions[0];
   const effectiveCount: ImageCount = count || 1;
-  const quickOn = quick && !editMode;
 
   const handlePickAspect = (a: EditAspectRatio) => {
     if (editMode) setEditAspectRatio(a);
@@ -76,51 +73,6 @@ export function ImageOptionsContent({
       )}
 
       <div className="flex flex-wrap items-end gap-3">
-        {/* Quick toggle — GPT Image 1 Mini for fast generation. Edits are
-            GPT Image 2 only, so this is disabled in edit mode. */}
-        <div className="relative flex flex-col gap-1">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Speed</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={quickOn}
-            aria-label="Quick generation"
-            disabled={editMode}
-            onClick={() => setQuick(!quick)}
-            title={
-              editMode
-                ? "Quick is unavailable for edits — only GPT Image 2 can edit images."
-                : quickOn
-                  ? "Quick on · GPT Image 1 Mini"
-                  : "Quick off · GPT Image 2"
-            }
-            className={cn(
-              "flex items-center gap-2 px-3 h-9 rounded-full border transition-colors text-sm",
-              editMode
-                ? "border-border/40 bg-muted/20 text-muted-foreground/60 cursor-not-allowed"
-                : quickOn
-                  ? "border-primary/50 bg-primary/15 text-foreground hover:bg-primary/20"
-                  : "border-border/50 bg-muted/30 text-foreground hover:bg-muted/50",
-            )}
-          >
-            <Zap className={cn("h-3.5 w-3.5", quickOn && !editMode ? "text-primary" : "text-muted-foreground")} />
-            <span className="font-medium">Quick</span>
-            <span
-              className={cn(
-                "ml-0.5 inline-flex h-4 w-7 items-center rounded-full p-0.5 transition-colors",
-                quickOn && !editMode ? "bg-primary/70" : "bg-muted-foreground/25",
-              )}
-            >
-              <span
-                className={cn(
-                  "h-3 w-3 rounded-full bg-background shadow transition-transform",
-                  quickOn && !editMode ? "translate-x-3" : "translate-x-0",
-                )}
-              />
-            </span>
-          </button>
-        </div>
-
         {/* Aspect ratio picker */}
         <div className="relative flex flex-col gap-1">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Size</span>

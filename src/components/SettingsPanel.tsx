@@ -188,23 +188,9 @@ function Tile({
 
 
 function ImageDefaultsCard() {
-  const { aspectRatio, quick, setQuick, setAspectRatio } = useImageGenStore();
+  const { aspectRatio, setAspectRatio } = useImageGenStore();
   return (
     <SectionCard icon={ImageIcon} title="Image Defaults" subtitle="Used when generating images">
-      <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1 pt-1">Speed</div>
-      <Tile
-        title={
-          <div className="flex items-center gap-2">
-            Quick generation
-            <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">Quick</span>
-          </div>
-        }
-        description="Use GPT Image 1 Mini for new images. Edits always use GPT Image 2."
-        active={quick}
-        onClick={() => setQuick(!quick)}
-        right={quick ? <Check className="h-4 w-4 text-primary" /> : null}
-      />
-
       <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1 pt-3">Aspect Ratio</div>
       <div className="grid grid-cols-2 gap-2">
         {IMAGE_ASPECT_OPTIONS.map((opt) => (

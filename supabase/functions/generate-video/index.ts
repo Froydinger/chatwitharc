@@ -19,13 +19,7 @@ const VIDEO_ACCESS_EMAILS = new Set([
 ]);
 const DAILY_SECONDS_LIMIT = 60;
 
-/**
- * Product cap, deliberately below what the provider allows. Sora bills
- * $0.10/second, so a 4s clip is $0.40. The provider only accepts 4, 8 or 12 —
- * 4 is the longest option that stays under our 5-second ceiling. Raising this
- * to 8 doubles the per-clip cost; change it here and in the client's
- * VIDEO_DURATION_OPTIONS together.
- */
+/** Retained spend guard for a future provider; keep the client cap aligned. */
 const MAX_SECONDS = 4;
 const DEFAULT_SECONDS = 4;
 
@@ -132,7 +126,7 @@ async function reserveAllowlistedQuotaFallback(
 }
 
 /**
- * Map the image picker's aspect ratios onto the only two shapes Sora renders.
+ * Map the image picker's aspect ratios onto the retained video orientations.
  * Square and 3:2 both read better letterboxed into landscape than squeezed
  * into portrait.
  */
@@ -180,7 +174,10 @@ serve(async (req) => {
   }
 
   const provider = getVideoProvider();
-  if (!provider || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!provider) {
+    return jsonResponse({ success: false, error: "Video generation is unavailable.", errorType: "provider_unavailable" });
+  }
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return jsonResponse({ success: false, error: "Video generation backend is not configured.", errorType: "configuration_error" });
   }
 

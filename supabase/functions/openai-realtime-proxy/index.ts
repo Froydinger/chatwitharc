@@ -10,13 +10,11 @@ const corsHeaders = {
 // Arc offers exactly two voices: Marina (marin, default) and Cedric (cedar).
 const ALLOWED_VOICES = new Set(['marin', 'cedar']);
 // Arc voice mode runs only on the lowest-cost Realtime Mini tier. Prefer the
-// newer 2.1 Mini model, with the older Mini alias as the sole fallback family.
+// current 2.1 Mini model, with no legacy or full-price fallback.
 // Never auto-select a full-size Realtime model: that would silently raise the
 // audio rate and recreate the billing risk this proxy is meant to prevent.
 const REALTIME_MODEL_CANDIDATES = [
   'gpt-realtime-2.1-mini',
-  'gpt-realtime-mini',
-  'gpt-realtime-mini-2025-10-06',
 ] as const;
 const OPENAI_REALTIME_MODEL = REALTIME_MODEL_CANDIDATES[0];
 
@@ -53,7 +51,7 @@ async function resolveRealtimeModel(apiKey: string): Promise<string | null> {
       .filter((id: unknown): id is string => typeof id === 'string' && id.includes('realtime'))
       // Hard cost boundary: model discovery may return full-price Realtime
       // models, but Arc voice is allowed to select Mini models only.
-      .filter((id: string) => id.includes('mini'));
+      .filter((id: string) => REALTIME_MODEL_CANDIDATES.some((allowed) => allowed === id));
 
     console.log('[openai-realtime-proxy] Realtime models available:', JSON.stringify(realtime));
     if (realtime.length === 0) return null;

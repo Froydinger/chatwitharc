@@ -1,7 +1,7 @@
 export const FREE_PLAN_FEATURES = [
   "GPT-5.6 Luna chat with Auto, Quick, Balanced, and Deep reasoning",
   "4 Deep Searches and 1 Ultra Deep Search each week",
-  "GPT-Image-1 Mini (40 outputs/day), GPT-Image-1 (10/day), and GPT-Image-2 (3/day)",
+  "GPT-Image-2 (3 outputs/day)",
   "Unlimited real-time voice conversations",
   "Memory, file uploads, canvases, reminders, and shared chats",
 ];

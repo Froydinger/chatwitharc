@@ -1,18 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-/**
- * Video generation prefs.
- *
- * Sora 2 at 720p is the cheapest tier the Videos API offers: $0.10/second,
- * billed per second of output. That makes a clip roughly 100x the cost of a
- * still, which is why the feature is Boost/admin only, metered in seconds
- * server-side, and capped short.
- *
- * The provider only accepts 4, 8 or 12 second durations — 3 and 5 come back
- * as a 400 — so 4s is the longest option that stays under the product's
- * 5-second ceiling. `MAX_SECONDS` here must stay in sync with the same
- * constant in supabase/functions/generate-video/index.ts.
+/** Dormant video preferences, retained for saved clips and a future provider.
+ * Keep the 4-second product cap aligned with generate-video.
  */
 export type VideoSeconds = 4 | 8 | 12;
 

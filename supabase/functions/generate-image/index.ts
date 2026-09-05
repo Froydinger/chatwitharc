@@ -19,7 +19,7 @@ const RETRY_DELAY_MS = 3_000;
 
 // Default all image generation to Image 2. Voice also requests this explicitly.
 const DEFAULT_IMAGE_MODEL = "gpt-image-2";
-const ALLOWED_IMAGE_MODELS = new Set<string>(["gpt-image-1", "gpt-image-1-mini", "gpt-image-1.5-flash", "gpt-image-2"]);
+const ALLOWED_IMAGE_MODELS = new Set<string>(["gpt-image-2"]);
 function pickImageModel(requested?: unknown): string {
   return typeof requested === "string" && ALLOWED_IMAGE_MODELS.has(requested)
     ? requested
@@ -283,32 +283,8 @@ async function processGenerateJob(
 ) {
   try {
     console.log(`[job ${jobId}] generating ${count} image(s) with ${selectedModel} (${size}, medium${isYouTube ? ", 16:9 crop" : ""})`);
-    let result = await callImageGateway(prompt, selectedModel, size, count);
-    let finalModel = selectedModel;
-
-    if (!result.ok && selectedModel === "gpt-image-1.5-flash") {
-      const errorInfo = classifyError(result.status, result.rawText);
-      const canFallback = errorInfo.errorType === "provider_error" || errorInfo.errorType === "timeout" || errorInfo.errorType === "invalid_request";
-      if (canFallback) {
-        console.warn(`[job ${jobId}] voice flash model failed (${result.status}); falling back to ${DEFAULT_IMAGE_MODEL}`);
-        finalModel = DEFAULT_IMAGE_MODEL;
-        result = await callImageGateway(prompt, finalModel, size, count);
-      }
-    }
-
-    // Any non-flash model that hit a transient provider error or timeout gets
-    // one retry on the default model before we give up on the job.
-    if (!result.ok && finalModel !== DEFAULT_IMAGE_MODEL && selectedModel !== "gpt-image-1.5-flash") {
-      const errorInfo = classifyError(result.status, result.rawText);
-      if (errorInfo.errorType === "provider_error" || errorInfo.errorType === "timeout") {
-        console.warn(`[job ${jobId}] ${finalModel} failed (${result.status}); retrying on ${DEFAULT_IMAGE_MODEL}`);
-        const retry = await callImageGateway(prompt, DEFAULT_IMAGE_MODEL, size, count);
-        if (retry.ok) {
-          result = retry;
-          finalModel = DEFAULT_IMAGE_MODEL;
-        }
-      }
-    }
+    const result = await callImageGateway(prompt, selectedModel, size, count);
+    const finalModel = selectedModel;
 
     if (!result.ok) {
       const errorInfo = classifyError(result.status, result.rawText);
@@ -467,7 +443,7 @@ serve(async (req) => {
       await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "Daily image limit reached", error_type: "daily_limit" });
       return jsonResponse({
         success: false,
-        error: `Daily image limit reached. ${quota?.remaining ?? 0} of 20 remaining.`,
+        error: `Daily image limit reached. ${quota?.remaining ?? 0} remaining.`,
         errorType: "daily_limit",
         quota,
       });

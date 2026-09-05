@@ -3285,7 +3285,7 @@ ${safeCode}
                     {/* Active Model Progress Card */}
                     <div className="space-y-2.5 p-4 rounded-2xl bg-white/5 border border-black/10 dark:border-white/5 backdrop-blur-md">
                       <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">
-                        <span>Active model: <strong className="text-foreground">{imageGenModel === 'gpt-image-1-mini' ? 'GPT Image 1 Mini (Quick)' : 'GPT Image 2'}</strong></span>
+                        <span>Active model: <strong className="text-foreground">GPT Image 2</strong></span>
                         <span className="tabular-nums text-foreground">{dailyImagesUsed} / {limit} used</span>
                       </div>
                       <div className="w-full bg-black/30 rounded-full h-2.5 overflow-hidden border border-black/10 dark:border-white/5 p-0.5">
