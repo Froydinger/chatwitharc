@@ -1037,6 +1037,29 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         let didSearchWeb = false;
         const shouldSearchForVideo = shouldForceVideoSearch(newContent);
         const { currentSessionId } = useArcStore.getState();
+
+        const applyActivity = (activity: string) => {
+          if (activity === "web") {
+            setSearchingWeb(true);
+            setSearchingChats(false);
+            setAccessingMemory(false);
+            didSearchWeb = true;
+          } else if (activity === "chats") {
+            setSearchingChats(true);
+            setSearchingWeb(false);
+            setAccessingMemory(false);
+            didSearchChats = true;
+          } else if (activity === "memory") {
+            setAccessingMemory(true);
+            setSearchingWeb(false);
+            setSearchingChats(false);
+          } else if (activity === "code") {
+            useArcStore.getState().setActiveTask("code");
+          } else if (activity === "writing") {
+            useArcStore.getState().setActiveTask("writing");
+          }
+        };
+
         const result = await ai.sendMessage(
           aiMessages,
           undefined,
@@ -1046,33 +1069,41 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             // Set indicators when we detect tool usage
             if (tools.includes("search_past_chats")) {
               console.log("✅ Setting searchingChats indicator");
-              setSearchingChats(true);
-              didSearchChats = true;
+              applyActivity("chats");
             }
-            if (tools.includes("web_search")) {
-              setSearchingWeb(true);
-              didSearchWeb = true;
+            if (tools.includes("web_search") || tools.includes("get_weather")) {
+              applyActivity("web");
             }
-            // save_memory was never wired up, so setAccessingMemory(true) had no
-            // caller anywhere in the cloud path and the memory indicator could
-            // never appear — only ever be switched off.
             if (tools.includes("save_memory")) {
-              setAccessingMemory(true);
+              applyActivity("memory");
+            }
+            if (tools.includes("update_code")) {
+              applyActivity("code");
+            }
+            if (tools.includes("update_canvas")) {
+              applyActivity("writing");
             }
           },
           currentSessionId || undefined,
           shouldSearchForVideo,
+          false,
+          false,
+          false,
+          false,
+          undefined,
+          (status) => {
+            if (status.activity) {
+              applyActivity(status.activity);
+            }
+          },
         );
 
         // Clear the loading state
         setLoading(false);
-
-        // Keep tool indicators visible for 2 seconds so user sees them
-        setTimeout(() => {
-          setSearchingChats(false);
-          setAccessingMemory(false);
-          setSearchingWeb(false);
-        }, 2000);
+        setSearchingChats(false);
+        setAccessingMemory(false);
+        setSearchingWeb(false);
+        useArcStore.getState().setActiveTask(null);
 
         // Determine memory action based on what tools were used
         let memoryAction: any = undefined;
@@ -2487,12 +2518,47 @@ ${safeCode}
             } else {
               // === CLOUD PATH ===
               const ai = new AIService();
+              currentAbortController = new AbortController();
+
+              const applyActivity = (activity: string) => {
+                if (activity === "web") {
+                  didSearchWeb = true;
+                  setSearchingWeb(true);
+                  setSearchingChats(false);
+                  setAccessingMemory(false);
+                } else if (activity === "chats") {
+                  setSearchingChats(true);
+                  setSearchingWeb(false);
+                  setAccessingMemory(false);
+                } else if (activity === "memory") {
+                  setAccessingMemory(true);
+                  setSearchingWeb(false);
+                  setSearchingChats(false);
+                } else if (activity === "code") {
+                  useArcStore.getState().setActiveTask("code");
+                } else if (activity === "writing") {
+                  useArcStore.getState().setActiveTask("writing");
+                }
+              };
+
               const result = await ai.sendMessage(
                 aiMessages,
                 profile,
                 (tools) => {
-                  if (tools.includes("web_search")) {
-                    didSearchWeb = true;
+                  if (tools.includes("web_search") || tools.includes("get_weather")) {
+                    applyActivity("web");
+                  }
+                  if (tools.includes("search_past_chats")) {
+                    applyActivity("chats");
+                  }
+                  if (tools.includes("save_memory")) {
+                    applyActivity("memory");
+                  }
+                  if (tools.includes("update_code")) {
+                    applyActivity("code");
+                  }
+                  if (tools.includes("update_canvas")) {
+                    applyActivity("writing");
                   }
                 },
                 requestSessionId || undefined,
@@ -2502,6 +2568,12 @@ ${safeCode}
                 false, // forceResearch
                 isGuestMode, // guestMode
                 codeContextModelOverride,
+                (status) => {
+                  if (status.activity) {
+                    applyActivity(status.activity);
+                  }
+                },
+                currentAbortController.signal,
               );
 
               // CRITICAL: If cancelled while waiting for response, discard everything
@@ -2614,6 +2686,8 @@ ${safeCode}
       setSearchingChats(false);
       setAccessingMemory(false);
       setSearchingWeb(false);
+      useArcStore.getState().setActiveTask(null);
+      currentAbortController = null;
     }
   };
 

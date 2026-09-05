@@ -666,7 +666,7 @@ serve(async (req) => {
       console.log('👤 Guest mode request (no auth)');
     }
 
-    const { messages, profile, model, reasoningEffort, sessionId, forceWebSearch, forceCanvas, forceCode, stream, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
+    const { messages, profile, model, reasoningEffort, sessionId, forceWebSearch, forceCanvas, forceCode, stream, streamEvents, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
 
     const allowedReasoningEfforts = new Set(['low', 'medium', 'high']);
     const selectedReasoningEffort = allowedReasoningEfforts.has(reasoningEffort)
@@ -682,7 +682,8 @@ serve(async (req) => {
       forceWebSearch: !!forceWebSearch,
       forceCanvas: !!forceCanvas,
       forceCode: !!forceCode,
-      stream: !!stream
+      stream: !!stream,
+      streamEvents: !!streamEvents
     });
 
     // Input validation
@@ -1647,9 +1648,28 @@ serve(async (req) => {
       });
     }
     
-    // ========== NON-STREAMING MODE ==========
-    let response: Response;
-    let usedFallback = false;
+    // ========== NON-STREAMING / EVENT-STREAMING MODE ==========
+    function mapToolToActivity(toolName?: string): 'web' | 'chats' | 'memory' | 'code' | 'writing' | 'thinking' {
+      switch (toolName) {
+        case 'web_search':
+        case 'get_weather':
+          return 'web';
+        case 'search_past_chats':
+          return 'chats';
+        case 'save_memory':
+          return 'memory';
+        case 'update_code':
+          return 'code';
+        case 'update_canvas':
+          return 'writing';
+        default:
+          return 'thinking';
+      }
+    }
+
+    const runChatPipeline = async (sendEvent?: (event: any) => void) => {
+      let response: Response;
+      let usedFallback = false;
     
     try {
       const isReasoning = selectedModel.includes('gpt-5.6') || selectedModel.startsWith('o1') || selectedModel.startsWith('o3');
@@ -1841,12 +1861,29 @@ serve(async (req) => {
         }
       });
       console.log('AI requested tools:', toolsUsed);
-      
+
+      const firstTool = assistantMessage.tool_calls[0]?.function?.name;
+      if (firstTool) {
+        sendEvent?.({
+          type: 'status',
+          activity: mapToolToActivity(firstTool),
+          tool: firstTool,
+        });
+      }
+
       // Add the assistant's tool call to conversation
       conversationMessages.push(assistantMessage);
-      
+
       // Execute all tool calls
       for (const toolCall of assistantMessage.tool_calls) {
+        const toolName = toolCall.function?.name;
+        if (toolName) {
+          sendEvent?.({
+            type: 'status',
+            activity: mapToolToActivity(toolName),
+            tool: toolName,
+          });
+        }
         if (toolCall.function.name === 'open_bug_report') {
           conversationMessages.push({
             role: 'tool',
@@ -2377,6 +2414,60 @@ serve(async (req) => {
     // The frontend's upsertCanvasMessage/upsertCodeMessage/addMessage properly
     // merge with existing session data and handle all save scenarios.
 
+      return finalResponse;
+    };
+
+    if (streamEvents) {
+      const encoder = new TextEncoder();
+      let clientGone = false;
+
+      const transformStream = new ReadableStream({
+        async start(controller) {
+          const safeEnqueue = (chunk: Uint8Array) => {
+            if (clientGone) return;
+            try { controller.enqueue(chunk); } catch { clientGone = true; }
+          };
+
+          try {
+            req.signal.addEventListener('abort', () => { clientGone = true; });
+          } catch {
+            // Signal listener not supported or aborted
+          }
+
+          const sendEvent = (event: Record<string, unknown>) => {
+            if (clientGone) return;
+            safeEnqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          };
+
+          try {
+            sendEvent({ type: 'status', activity: forceWebSearch ? 'web' : 'thinking' });
+            const finalResponse = await runChatPipeline(sendEvent);
+            sendEvent({ type: 'done', result: finalResponse });
+          } catch (pipelineErr: unknown) {
+            console.error('Chat pipeline error in streamEvents:', pipelineErr);
+            const errMsg = pipelineErr instanceof Error ? pipelineErr.message : 'Internal server error';
+            sendEvent({ type: 'error', message: errMsg });
+          } finally {
+            try {
+              controller.close();
+            } catch {
+              // Controller may already be closed
+            }
+          }
+        }
+      });
+
+      return new Response(transformStream, {
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+        }
+      });
+    }
+
+    const finalResponse = await runChatPipeline();
     return new Response(
       JSON.stringify(finalResponse),
       { 

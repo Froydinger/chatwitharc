@@ -1,12 +1,16 @@
 import { useEffect } from "react";
-import { Link, useParams, Navigate } from "react-router-dom";
+import { Link, useParams, Navigate, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { BLOG_POSTS, getPostBySlug } from "@/content/blog/posts";
+import { useAuth } from "@/hooks/useAuth";
 
 const SITE = "https://askarc.chat";
 
 export function BlogPostPage() {
+  const navigate = useNavigate();
+  const { user, isAnonymous } = useAuth();
+  const isAuthenticated = !!user && !isAnonymous;
   const { slug = "" } = useParams();
   const post = getPostBySlug(slug);
 
@@ -26,7 +30,11 @@ export function BlogPostPage() {
   if (!post) return <Navigate to="/blog" replace />;
 
   const handleTry = () => {
-    window.dispatchEvent(new CustomEvent("auth-gate-feature", { detail: { feature: "generic" } }));
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    } else {
+      window.dispatchEvent(new CustomEvent("auth-gate-feature", { detail: { feature: "generic" } }));
+    }
   };
 
   const url = `${SITE}/blog/${post.slug}`;
@@ -97,10 +105,21 @@ export function BlogPostPage() {
           <ArrowLeft className="h-4 w-4" />
           <span className="text-sm">All guides</span>
         </Link>
-        <Link to="/" className="flex items-center gap-2.5">
-          <img src="/arc-logo-ui.png" alt="ArcAI logo" className="h-7 w-7" />
-          <span className="text-base font-semibold">ArcAI</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-2.5">
+            <img src="/arc-logo-ui.png" alt="ArcAI logo" className="h-7 w-7" />
+            <span className="text-base font-semibold">ArcAI</span>
+          </Link>
+          {isAuthenticated && (
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-medium text-white transition-colors"
+            >
+              <span>Open Workspace</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </header>
 
       <article className="mx-auto max-w-3xl px-6 pb-16 pt-8">
@@ -121,10 +140,12 @@ export function BlogPostPage() {
             onClick={handleTry}
             className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-medium text-black transition-transform hover:scale-[1.02]"
           >
-            {post.cta}
+            {isAuthenticated ? "Open Workspace" : post.cta}
             <ArrowRight className="h-4 w-4" />
           </button>
-          <span className="text-xs text-white/40">Free account · No credit card</span>
+          <span className="text-xs text-white/40">
+            {isAuthenticated ? (user?.email ? `Signed in as ${user.email}` : "Signed in") : "Free account · No credit card"}
+          </span>
         </div>
 
         <div className="mt-14 space-y-10">
@@ -153,15 +174,19 @@ export function BlogPostPage() {
 
         {/* Mid-post glorified CTA */}
         <div className="mt-16 rounded-3xl border border-white/10 bg-white/[0.03] p-8 text-center">
-          <div className="text-2xl font-semibold tracking-tight">Ready to try Arc?</div>
+          <div className="text-2xl font-semibold tracking-tight">
+            {isAuthenticated ? "Continue Your Workspace" : "Ready to try Arc?"}
+          </div>
           <p className="mt-2 text-sm text-white/[0.55]">
-            Free forever. Voice, images, code and memory included.
+            {isAuthenticated
+              ? "Return to your active sessions, canvas, and tools."
+              : "Free forever. Voice, images, code and memory included."}
           </p>
           <button
             onClick={handleTry}
             className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-black transition-transform hover:scale-[1.02]"
           >
-            {post.cta}
+            {isAuthenticated ? "Open Workspace" : post.cta}
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>

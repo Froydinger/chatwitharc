@@ -989,7 +989,21 @@ useEffect(() => {
                         >
                           <div className="mb-3 flex items-center justify-between gap-3">
                             <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-xs font-semibold text-primary">{index + 1}</span>
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{timeAgo(session.lastMessageAt || session.createdAt)}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{timeAgo(session.lastMessageAt || session.createdAt)}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteSession(session.id);
+                                }}
+                                className="h-6 w-6 rounded-lg opacity-80 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                title="Delete chat"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           </div>
                           <p className="truncate text-sm font-semibold text-foreground">{session.title || "Untitled chat"}</p>
                           <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{session.messages?.at(-1)?.content || "Open conversation"}</p>
@@ -2017,7 +2031,7 @@ function ChatListItem({ session, currentSessionId, timeAgo, onLoad, onDelete, fo
                 <MoreHorizontal className="h-4.5 w-4.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 rounded-xl glass-card">
+            <DropdownMenuContent align="end" className="w-52 rounded-xl bg-background border border-border shadow-xl z-50">
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="gap-2 cursor-pointer" onClick={e => e.stopPropagation()}>
                   <Folder className="h-4 w-4" />

@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { BLOG_POSTS, BlogPost } from "@/content/blog/posts";
 import { GlassCard } from "@/components/ui/glass-card";
+import { useAuth } from "@/hooks/useAuth";
 
 const SITE = "https://askarc.chat";
 
@@ -103,6 +104,8 @@ function formatDate(dateStr: string): string {
 
 export function BlogIndexPage() {
   const navigate = useNavigate();
+  const { user, isAnonymous } = useAuth();
+  const isAuthenticated = !!user && !isAnonymous;
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
@@ -121,9 +124,13 @@ export function BlogIndexPage() {
   }, []);
 
   const handleTryArc = () => {
-    window.dispatchEvent(
-      new CustomEvent("auth-gate-feature", { detail: { feature: "generic" } })
-    );
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    } else {
+      window.dispatchEvent(
+        new CustomEvent("auth-gate-feature", { detail: { feature: "generic" } })
+      );
+    }
   };
 
   const categoryList = useMemo(() => {
@@ -238,7 +245,7 @@ export function BlogIndexPage() {
             onClick={handleTryArc}
             className="hidden sm:inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black transition-all hover:bg-white/90 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] active:scale-95"
           >
-            <span>Try Arc Free</span>
+            <span>{isAuthenticated ? "Open Workspace" : "Try Arc Free"}</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -565,17 +572,19 @@ export function BlogIndexPage() {
         <section className="mt-20 relative overflow-hidden rounded-3xl border border-white/12 bg-gradient-to-r from-primary/20 via-purple-600/15 to-blue-600/15 p-8 sm:p-12 text-center backdrop-blur-2xl">
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent_70%)]" />
           <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-            Experience ArcAI Free Today
+            {isAuthenticated ? "Continue Your AI Workspace" : "Experience ArcAI Free Today"}
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm text-white/70 leading-relaxed">
-            Unlimited fast chat, real-time voice, code canvas, and cross-session memory — right in your browser.
+            {isAuthenticated
+              ? "Return to your conversations, canvas, and memory."
+              : "Unlimited fast chat, real-time voice, code canvas, and cross-session memory — right in your browser."}
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
             <button
               onClick={handleTryArc}
               className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition-all hover:bg-white/90 hover:scale-105 active:scale-95 shadow-xl shadow-white/10"
             >
-              <span>Get Started Free</span>
+              <span>{isAuthenticated ? "Open Workspace" : "Get Started Free"}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>

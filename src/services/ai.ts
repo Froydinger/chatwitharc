@@ -171,16 +171,21 @@ export class AIService {
   }
 
   // Wrapper for fetch with timeout
-  private async fetchWithTimeout(
-    fn: () => Promise<{ data: any; error: any }>,
+  private async fetchWithTimeout<T = { data: any; error: any }>(
+    fn: () => Promise<T>,
     timeoutMs: number
-  ): Promise<{ data: any; error: any }> {
-    return Promise.race([
-      fn(),
-      new Promise<{ data: any; error: any }>((_, reject) =>
-        setTimeout(() => reject(new Error('Request timed out. Please try again.')), timeoutMs)
-      ),
-    ]);
+  ): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        fn(),
+        new Promise<T>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Request timed out. Please try again.')), timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   async sendMessage(
@@ -193,7 +198,9 @@ export class AIService {
     forceCode?: boolean,
     forceResearch?: boolean,
     guestMode?: boolean,
-    _modelOverride?: string
+    _modelOverride?: string,
+    onStatus?: (status: { type: string; activity?: string; tool?: string; phase?: string }) => void,
+    abortSignal?: AbortSignal
   ): Promise<SendMessageResult> {
     const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content || '';
     const requestsBugReport = /\b(open|create|start|show|file|submit|send|make)\b[\s\S]{0,80}\b(bug\s*report|feedback|suggestion|support\s*(message|report)|message\s+(to|for)\s+(the\s+)?(team|support))\b/i.test(latestUserMessage);
@@ -315,48 +322,123 @@ export class AIService {
       for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
         try {
           const startTime = Date.now();
-          const { data, error } = await this.fetchWithTimeout(() =>
-            supabase.functions.invoke('chat', {
-              body: {
-                messages: [UI_CONTEXT_PROMPT, ...messages],
-                profile: effectiveProfile,
-                model: selectedModel,
-                reasoningEffort,
-                sessionId: sessionId,
-                forceWebSearch: forceWebSearch || false,
-                forceCanvas: forceCanvas || false,
-                forceCode: forceCode || false,
-                useProModel: isComplex || false,
-                clientDateTime: new Date().toString(),
-                clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-                clientTimezoneOffsetMinutes: new Date().getTimezoneOffset()
-              }
-            }),
+          const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+          const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+          if (!supabaseUrl || !supabaseKey) {
+            throw new Error('Supabase environment variables are not configured');
+          }
+
+          const { data: { session } } = await supabase.auth.getSession();
+          const authToken = session?.access_token || supabaseKey;
+
+          const response = await this.fetchWithTimeout(
+            () =>
+              fetch(`${supabaseUrl}/functions/v1/chat`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${authToken}`,
+                  'apikey': supabaseKey,
+                },
+                body: JSON.stringify({
+                  messages: [UI_CONTEXT_PROMPT, ...messages],
+                  profile: effectiveProfile,
+                  model: selectedModel,
+                  reasoningEffort,
+                  sessionId: sessionId,
+                  forceWebSearch: forceWebSearch || false,
+                  forceCanvas: forceCanvas || false,
+                  forceCode: forceCode || false,
+                  useProModel: isComplex || false,
+                  streamEvents: true,
+                  clientDateTime: new Date().toString(),
+                  clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                  clientTimezoneOffsetMinutes: new Date().getTimezoneOffset(),
+                }),
+                signal: abortSignal,
+              }),
             timeoutMs
           );
-          
+
           const elapsed = Date.now() - startTime;
           console.log(`⏱️ AI request completed in ${(elapsed / 1000).toFixed(1)}s`);
 
-          if (error) {
+          if (!response.ok) {
             let serviceMessage = '';
             try {
-              const response = (error as any).context as Response | undefined;
-              if (response) {
-                const payload = await response.clone().json();
-                serviceMessage = payload?.error || payload?.message || '';
-              }
+              const payload = await response.clone().json();
+              serviceMessage = payload?.error || payload?.message || '';
             } catch {
-              // Fall back to the SDK message when no structured body is available.
+              serviceMessage = await response.text().catch(() => '');
             }
-            // Don't retry on client errors (except rate limits)
-            if (serviceMessage.toLowerCase().includes('rate limit') || error.message?.includes('Rate limit')) {
+            if (serviceMessage.toLowerCase().includes('rate limit') || response.status === 429) {
               throw new Error('Rate limit exceeded. Please wait a moment and try again.');
             }
-            throw new Error(serviceMessage || `Chat service error: ${error.message}`);
+            if (response.status === 402) {
+              throw new Error('Payment required. Please add credits.');
+            }
+            throw new Error(serviceMessage || `Chat service error: ${response.status}`);
           }
 
-          if (data.error) {
+          let data: any = null;
+          const contentType = response.headers.get('content-type') || '';
+
+          if (contentType.includes('text/event-stream')) {
+            const reader = response.body?.getReader();
+            if (!reader) throw new Error('No response stream body');
+            const decoder = new TextDecoder();
+            let buffer = '';
+            const deadline = Date.now() + timeoutMs;
+            try {
+            while (true) {
+              if (abortSignal?.aborted) break;
+              const { done, value } = await this.fetchWithTimeout(
+                () => reader.read(),
+                Math.max(1, deadline - Date.now())
+              );
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true });
+
+              let newlineIndex: number;
+              while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+                let line = buffer.slice(0, newlineIndex);
+                buffer = buffer.slice(newlineIndex + 1);
+                if (line.endsWith('\r')) line = line.slice(0, -1);
+                if (!line.startsWith('data: ')) continue;
+                const jsonStr = line.slice(6).trim();
+                if (!jsonStr || jsonStr === '[DONE]') continue;
+
+                let event;
+                try { event = JSON.parse(jsonStr); } catch { continue; }
+                  if (event.type === 'status') {
+                    onStatus?.(event);
+                    if (event.tool) {
+                      onToolUsage?.([event.tool]);
+                    }
+                  } else if (event.type === 'done') {
+                    data = event.result;
+                  } else if (event.type === 'error') {
+                    throw new Error(event.message || 'AI service error');
+                  }
+              }
+              if (data) break;
+            }
+            } finally {
+              void reader.cancel().catch(() => undefined);
+              reader.releaseLock();
+            }
+
+            if (!data && !abortSignal?.aborted) {
+              throw new Error('Stream ended without final result');
+            }
+            if (abortSignal?.aborted) {
+              return { content: '', webSources: [] };
+            }
+          } else {
+            data = await response.json();
+          }
+
+          if (data?.error) {
             throw new Error(data.error);
           }
 
@@ -399,6 +481,9 @@ export class AIService {
             modelUsed: data.model_used,
           };
         } catch (err: any) {
+          if (abortSignal?.aborted || err?.name === 'AbortError') {
+            return { content: '', webSources: [] };
+          }
           lastError = err;
           
           // Check if it's a transient error worth retrying
