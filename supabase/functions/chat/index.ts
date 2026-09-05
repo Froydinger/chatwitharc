@@ -166,6 +166,44 @@ function sanitizeLeakedToolCalls(text: string): string {
   return cleaned;
 }
 
+// Build a readable answer straight from the search payload.
+//
+// A web search that finished must always put something in the chat. When the
+// synthesis call returns nothing usable this turns the retrieved evidence into
+// a real reply rather than leaving the results card blank.
+function buildSearchFallbackAnswer(
+  sources: WebSearchResult[],
+  quickAnswer?: string,
+  query?: string,
+): string | null {
+  if (!sources || sources.length === 0) return quickAnswer?.trim() || null;
+
+  const parts: string[] = [];
+  if (quickAnswer && quickAnswer.trim()) {
+    parts.push(quickAnswer.trim());
+  } else {
+    parts.push(query ? `Here's what the search turned up for "${query}":` : "Here's what the search turned up:");
+  }
+
+  const bullets = sources.slice(0, 5).map((source) => {
+    const title = (source.title || source.url).trim();
+    const snippet = (source.content || '').trim().replace(/\s+/g, ' ').slice(0, 220);
+    return snippet ? `- **${title}** — ${snippet}` : `- **${title}**`;
+  });
+  if (bullets.length > 0) parts.push(bullets.join('\n'));
+
+  return parts.join('\n\n');
+}
+
+// Last-resort fallback for non-search tools: surface the raw tool output rather
+// than returning an empty assistant message.
+function buildToolResultFallback(conversationMessages: any[]): string | null {
+  const toolResults = conversationMessages.filter((m: any) => m.role === 'tool' && typeof m.content === 'string');
+  if (toolResults.length === 0) return null;
+  const joined = toolResults.map((t: any) => t.content).join('\n\n').trim();
+  return joined ? `Here's what I found:\n\n${joined.slice(0, 4000)}` : null;
+}
+
 // Retry wrapper for AI calls
 async function fetchWithRetry(
   url: string,
@@ -220,6 +258,10 @@ interface WebSearchResponse {
   sources: WebSearchResult[];
   searchProvider: 'perplexity' | 'tavily';
   images?: string[];
+  /** Provider-written one-paragraph answer, when the provider returns one.
+   *  Used as the fallback reply if the synthesis call comes back empty, so a
+   *  finished search never lands in the chat as a blank card. */
+  quickAnswer?: string;
 }
 
 const TOOL_CONTEXT_ATTRIBUTION_PROMPT = `=== TOOL CONTEXT ATTRIBUTION ===
@@ -478,7 +520,13 @@ function buildTavilyResponse(data: any): WebSearchResponse {
     return img?.url || '';
   }).filter(Boolean);
 
-  return { summary: searchSummary || 'No relevant results found.', sources, searchProvider: 'tavily', images };
+  return {
+    summary: searchSummary || 'No relevant results found.',
+    sources,
+    searchProvider: 'tavily',
+    images,
+    quickAnswer: typeof data.answer === 'string' ? data.answer.trim() : undefined,
+  };
 }
 
 // Search past chats tool - Fast database-level search + AI-powered analysis
@@ -1825,6 +1873,10 @@ serve(async (req) => {
     let webSources: WebSearchResult[] = [];
     let searchProvider: 'perplexity' | 'tavily' | undefined;
     let searchImages: string[] | undefined = undefined;
+    // Kept so a finished search can still answer in chat when the synthesis
+    // call returns nothing usable.
+    let webSearchQuickAnswer: string | undefined;
+    let webSearchQuery: string | undefined;
     let canvasUpdate: { content: string; label?: string } | null = null;
     let codeUpdate: { code: string; language: string; label?: string } | null = null;
     let weatherData: any = null;
@@ -1861,6 +1913,8 @@ serve(async (req) => {
           webSources = searchResponse.sources;
           searchProvider = searchResponse.searchProvider;
           searchImages = searchResponse.images;
+          webSearchQuickAnswer = searchResponse.quickAnswer;
+          webSearchQuery = typeof args.query === 'string' ? args.query : webSearchQuery;
           
           // Add tool response to conversation
           conversationMessages.push({
@@ -2270,14 +2324,18 @@ serve(async (req) => {
           }
         }
         const synthesisMessages: any[] = [];
+        const toolContextMessages: any[] = [];
         for (const msg of conversationMessages) {
           if (msg.role === 'tool') {
             const toolName = toolNameByCallId.get(msg.tool_call_id) || 'tool';
             const webSearchDirection = toolName === 'web_search'
               ? '\nAnswer the original question directly from this evidence. Do not ask the user to paste a link, quote, chatter, or timestamp. If evidence is incomplete, state that uncertainty and give the best-supported answer.'
               : '';
-            synthesisMessages.push({
-              role: 'assistant',
+            // `system`, not `assistant`: the model must not read tool output as
+            // something the user pasted, and an assistant-role block would also
+            // leave the conversation ending on an assistant turn (see below).
+            toolContextMessages.push({
+              role: 'system',
               content: `[ArcAI Tool Output: ${toolName}]\nThis context was retrieved by ArcAI, not supplied or pasted by the user.${webSearchDirection}\n\n${msg.content}`
             });
           } else if (msg.role === 'assistant' && msg.tool_calls) {
@@ -2286,6 +2344,18 @@ serve(async (req) => {
           } else {
             synthesisMessages.push(msg);
           }
+        }
+        // Splice the tool context in BEFORE the user's last message so the
+        // conversation still ends on a user turn. Appending it after (which is
+        // what happened while tool output was assistant-role) asked the model
+        // to continue its own turn, and gpt-5.6 answers that with an empty
+        // completion often enough that finished searches were landing in chat
+        // as a blank card with sources and no answer.
+        const lastUserIndex = synthesisMessages.map((m: any) => m.role).lastIndexOf('user');
+        if (lastUserIndex === -1) {
+          synthesisMessages.push(...toolContextMessages);
+        } else {
+          synthesisMessages.splice(lastUserIndex, 0, ...toolContextMessages);
         }
         
         // Log the conversation context size for debugging
@@ -2324,19 +2394,17 @@ serve(async (req) => {
         const secondCallContent = data.choices?.[0]?.message?.content;
         console.log(`📊 Second call response: content length=${secondCallContent?.length || 0}, finish_reason=${data.choices?.[0]?.finish_reason}`);
         
-        // If content is empty, try to provide a meaningful fallback
-        if (!secondCallContent) {
+        // If content is empty, try to provide a meaningful fallback. Blank and
+        // whitespace-only both count: a card whose body is " " reads to the
+        // user as "the search never came back".
+        if (!secondCallContent || !secondCallContent.trim()) {
           console.warn('⚠️ Second AI call returned empty content, attempting fallback');
-          // Extract the tool results to use as a direct response
-          const toolResults = conversationMessages.filter((m: any) => m.role === 'tool');
-          if (toolResults.length > 0) {
-            const fallbackContent = toolResults.map((t: any) => t.content).join('\n\n');
+          const fallback = buildSearchFallbackAnswer(webSources, webSearchQuickAnswer, webSearchQuery)
+            ?? buildToolResultFallback(conversationMessages);
+          if (fallback) {
             data = {
               ...data,
-              choices: [{
-                message: { content: `Here's what I found:\n\n${fallbackContent.slice(0, 4000)}` },
-                finish_reason: 'stop'
-              }]
+              choices: [{ message: { content: fallback }, finish_reason: 'stop' }]
             };
           }
         }
@@ -2345,11 +2413,24 @@ serve(async (req) => {
     }
     // Sanitize leaked tool call text from AI response
     const rawContent = data.choices[0]?.message?.content || '';
-    const sanitizedContent = sanitizeLeakedToolCalls(rawContent);
+    let sanitizedContent = sanitizeLeakedToolCalls(rawContent);
     if (sanitizedContent !== rawContent) {
       console.warn('⚠️ Stripped leaked tool call text from AI response');
-      data.choices[0].message.content = sanitizedContent;
     }
+
+    // Final guarantee: a turn that actually ran a web search never leaves the
+    // chat without an answer. The model can come back empty, and sanitizing can
+    // empty it too — either way the results card would render as a blank box
+    // with sources attached, which is exactly the "the search never landed in
+    // chat" report.
+    if (!sanitizedContent.trim() && webSources.length > 0) {
+      const rescued = buildSearchFallbackAnswer(webSources, webSearchQuickAnswer, webSearchQuery);
+      if (rescued) {
+        console.warn('⚠️ Empty answer after a completed web search — answering from the search payload');
+        sanitizedContent = rescued;
+      }
+    }
+    if (data.choices?.[0]?.message) data.choices[0].message.content = sanitizedContent;
     
     // Add tool usage metadata, sources, canvas and code update to the response
     const responseContent = appendFeaturedVideo(sanitizedContent, webSources);

@@ -2,11 +2,15 @@
  * Server VAD supplies the speech decision. This only checks that sound persists
  * once speaker echo has had time to decay. No extra model requests are made.
  */
-export const BARGE_IN_PROBE_MS = 450;
-const ECHO_SETTLE_MS = 100;
+export const BARGE_IN_PROBE_MS = 500;
+const ECHO_SETTLE_MS = 120;
 const FRAME_MS = 10;
-const MIN_VOICED_MS = 40;
-const MIN_RMS = 0.003;
+// 40ms at RMS 0.003 was barely above digital silence: a breath, a cough or a
+// chair creak cleared it, so Arc got cut off by noise. Real speech sustains
+// well past 150ms at a much higher level, so this keeps barge-in working while
+// ignoring the things that were falsely triggering it.
+const MIN_VOICED_MS = 160;
+const MIN_RMS = 0.018;
 
 export class BargeInProbe {
   private voicedMs = 0;

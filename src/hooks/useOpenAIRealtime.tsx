@@ -39,6 +39,20 @@ let userSpokeAfterLastResponse = false;
 // Track whether we received a real (non-garbled, non-empty) transcription
 let hasRealTranscription = false;
 
+// A response the server started off a VAD turn whose transcription has not come
+// back yet. Server VAD fires on any sustained sound, so breathing, a cough or a
+// door can open a turn and make Arc answer nothing. When the transcription for
+// that turn arrives empty or garbled, this response is cancelled instead of
+// being spoken.
+let provisionalResponseId: string | null = null;
+let provisionalResponseTimer: ReturnType<typeof setTimeout> | null = null;
+// Set when a turn transcribed to noise before the response it triggered was
+// announced, so the response can be cancelled the moment it shows up.
+let lastTurnWasNoise = false;
+// Transcription normally lands within a second or two of the turn closing. If
+// it never arrives, stop second-guessing the response and let it speak.
+const PROVISIONAL_RESPONSE_GRACE_MS = 7000;
+
 // Track when we explicitly request a response via sendFunctionResult
 let awaitingToolResponse = false;
 let suppressInterruptedResponseAudio = false;
@@ -129,8 +143,6 @@ const clearSessionTimers = () => {
 // loop. It must never be treated as transient.
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key', 'model_not_found'];
 const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1-mini';
-// Delayed phantom guard timer — gives Whisper time to confirm real speech
-let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Transcript ordering buffer: smooth late events so turns stay strictly user→assistant
 type QueuedTurn = {
@@ -505,6 +517,57 @@ const truncateSpokenAudio = (playedMs: number) => {
   activeAudioMs = 0;
 };
 
+const clearProvisionalResponse = () => {
+  if (provisionalResponseTimer) clearTimeout(provisionalResponseTimer);
+  provisionalResponseTimer = null;
+  provisionalResponseId = null;
+};
+
+// Mark the response the server just started as "waiting on proof the user
+// actually said something".
+const markResponseProvisional = (responseId: string | null) => {
+  clearProvisionalResponse();
+  if (!responseId) return;
+  provisionalResponseId = responseId;
+  provisionalResponseTimer = setTimeout(() => {
+    provisionalResponseTimer = null;
+    provisionalResponseId = null;
+  }, PROVISIONAL_RESPONSE_GRACE_MS);
+};
+
+// The turn that opened this response transcribed to nothing usable — it was
+// breath, a cough, typing or room noise. Kill the reply before it is spoken.
+const cancelPhantomResponse = (
+  optionsRef: { current: UseOpenAIRealtimeOptions },
+  reason: string,
+) => {
+  const phantomId = provisionalResponseId;
+  clearProvisionalResponse();
+  if (!phantomId || phantomId !== activeResponseId) {
+    // The response this turn triggered has not been announced yet. Remember the
+    // verdict so `response.created` can drop it as soon as it arrives.
+    lastTurnWasNoise = true;
+    return false;
+  }
+  lastTurnWasNoise = false;
+
+  console.log(`🤫 Cancelling response triggered by non-speech (${reason})`);
+  rememberInterruptedResponse(phantomId);
+  suppressInterruptedResponseAudio = true;
+  try {
+    optionsRef.current.onInterrupt?.();
+  } catch (err) {
+    console.warn('onInterrupt handler threw while cancelling phantom response:', err);
+  }
+  if (globalWs?.readyState === WebSocket.OPEN && responseInProgress) {
+    sendRealtimeEvent({ type: 'response.cancel' });
+  }
+  const store = useVoiceModeStore.getState();
+  store.setHasPendingSpeech(false);
+  if (store.isActive) store.setStatus('listening');
+  return true;
+};
+
 const scheduleToolResponseRetry = () => {
   if (toolResponseRetryTimer) return;
   toolResponseRetryTimer = setTimeout(() => {
@@ -756,6 +819,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         userSpokeAfterLastResponse = true;
         userSpeechInProgress = true;
+        lastTurnWasNoise = false;
 
         if (canBargeIn && !bargeInProbeTimer) {
           // At loud speaker volumes iOS can report Arc's own output as speech.
@@ -796,23 +860,29 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         console.log('VAD: User speech stopped');
         break;
 
+      case 'conversation.item.input_audio_transcription.failed':
+        // Whisper could not make words out of the turn at all — noise.
+        cancelPhantomResponse(optionsRef, 'transcription failed');
+        return;
+
       case 'conversation.item.input_audio_transcription.completed':
         const userTranscript = event.transcript || '';
         
         if (isGarbledTranscription(userTranscript)) {
           console.warn('Ignoring garbled transcription:', userTranscript);
+          // The VAD turn that produced this was breath, a cough or background
+          // noise. If it already made Arc start answering, take that back
+          // rather than letting Arc reply to nothing.
+          cancelPhantomResponse(optionsRef, `garbled transcript: "${userTranscript.slice(0, 40)}"`);
           return;
         }
+        clearProvisionalResponse();
+        lastTurnWasNoise = false;
         
         console.log('User said:', userTranscript);
         
         if (userTranscript.trim()) {
           hasRealTranscription = true;
-          if (phantomCheckTimer) {
-            clearTimeout(phantomCheckTimer);
-            phantomCheckTimer = null;
-            console.log('Phantom timer cleared — real transcription confirmed');
-          }
           pendingUserTurns.push({
             transcript: userTranscript,
             queuedAt: Date.now(),
@@ -1349,6 +1419,18 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (awaitingToolResponse) {
           console.log('Allowing tool-triggered response');
           awaitingToolResponse = false;
+          clearProvisionalResponse();
+        } else if (lastTurnWasNoise) {
+          // Transcription already came back as noise for the turn that opened
+          // this response — drop it without ever speaking.
+          markResponseProvisional(activeResponseId);
+          if (cancelPhantomResponse(optionsRef, 'noise verdict arrived before response')) break;
+        } else if (!hasRealTranscription) {
+          // Opened straight off a VAD turn with no confirmed words yet. Hold it
+          // provisional until transcription says whether that was speech.
+          markResponseProvisional(activeResponseId);
+        } else {
+          clearProvisionalResponse();
         }
         setStatus('thinking');
         break;
@@ -1370,11 +1452,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         flushPendingFunctionResults();
         setCurrentTranscript('');
         
-        // Clear phantom timer
-        if (phantomCheckTimer) {
-          clearTimeout(phantomCheckTimer);
-          phantomCheckTimer = null;
-        }
+        clearProvisionalResponse();
         
         // Only reset speech flags on COMPLETED responses, not cancelled ones.
         const responseStatus = event.response?.status;
@@ -1602,13 +1680,19 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 transcription: { model: 'gpt-transcribe' },
                 turn_detection: {
                   type: 'server_vad',
-                  // Deliberately high: typing, breathing and coughing were
-                  // tripping the VAD and cutting Arc off mid-sentence. 0.65 was
-                  // high enough that speech over Arc's own voice rarely
-                  // registered at all, which is what made it un-interruptible.
-                  threshold: 0.55,
-                  prefix_padding_ms: 300,
-                  silence_duration_ms: 700,
+                  // Typing, breathing and coughing were tripping the VAD. 0.65
+                  // was high enough that speech over Arc's own voice rarely
+                  // registered at all, which made Arc un-interruptible; 0.55
+                  // swung back too far and let breath through. 0.62 sits
+                  // between them, and the client-side barge-in probe (which now
+                  // needs sustained, real speech energy) covers what leaks past.
+                  threshold: 0.62,
+                  prefix_padding_ms: 400,
+                  // The big one for "it keeps interrupting me": this is how long
+                  // the user may go quiet before the server closes their turn
+                  // and answers. At 700ms an ordinary mid-sentence pause — or a
+                  // breath — ended the turn and Arc talked over them.
+                  silence_duration_ms: 1100,
                   // The client probes after ducking playback so loud iOS
                   // speaker echo is not mistaken for a user interruption.
                   interrupt_response: false,
@@ -1874,11 +1958,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     intentionalDisconnect = true;
     reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
 
-    // Clear phantom timer
-    if (phantomCheckTimer) {
-      clearTimeout(phantomCheckTimer);
-      phantomCheckTimer = null;
-    }
+    clearProvisionalResponse();
 
     // Clear all connection timers
     clearConnectionTimers();

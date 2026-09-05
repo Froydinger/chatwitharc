@@ -9,7 +9,10 @@ import { useState } from "react";
 interface SearchSource {
   title?: string;
   url: string;
+  /** The chat function returns per-source text as `content`; older stored
+   *  messages use `snippet`. Read both so saved chats keep their snippets. */
   snippet?: string;
+  content?: string;
 }
 
 interface SearchResultsCardProps {
@@ -31,6 +34,20 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
   const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const visibleImages = images.slice(0, 4).filter((url) => !failedImages.has(url));
+
+  // A finished search must never render as an empty box. If the model came back
+  // with nothing, show the retrieved snippets instead of a blank card — that
+  // blank card is what read as "the search never landed in chat".
+  const body = content.trim()
+    ? content
+    : sources
+        .slice(0, 5)
+        .map((source) => {
+          const title = (source.title || sourceHost(source.url)).trim();
+          const snippet = (source.snippet || source.content || "").trim().replace(/\s+/g, " ").slice(0, 220);
+          return snippet ? `- **${title}** — ${snippet}` : `- **${title}**`;
+        })
+        .join("\n") || "The search finished but returned nothing to summarize.";
 
   return (
     <>
@@ -86,7 +103,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
               ),
             }}
           >
-            {content}
+            {body}
           </ReactMarkdown>
         </div>
       </div>
