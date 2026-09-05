@@ -1,6 +1,6 @@
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask, resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
-import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext } from "@/lib/userLocation";
+import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext, requestsCurrentLocation } from "@/lib/userLocation";
 
 // Detect if a user message warrants upgrading to a more powerful model
 export function detectComplexQuery(message: string): boolean {
@@ -263,6 +263,7 @@ export class AIService {
       let usedLocation: import('@/lib/userLocation').UserLocation | null = null;
       try {
         const lastUserText = messages.filter(m => m.role === 'user').pop()?.content || '';
+        const asksForCurrentLocation = requestsCurrentLocation(lastUserText);
         let loc = getCachedLocation();
         if (!loc && detectsLocationIntent(lastUserText)) {
           loc = await getUserLocation();
@@ -275,7 +276,16 @@ export class AIService {
             ? `${existing}\n\n${locLine}`
             : locLine;
         } else if (detectsLocationIntent(lastUserText)) {
-          const unavailableLine = "Device location is unavailable or was not allowed. Ask the user which city to use instead of guessing their location.";
+          // Saved geography is not consent to treat it as the device's current
+          // location. Keep it out of this request when "near me" cannot be
+          // resolved, so the model cannot leak or silently substitute it.
+          if (asksForCurrentLocation) {
+            (effectiveProfile as any).context_info = '';
+            (effectiveProfile as any).memory_info = '';
+          }
+          const unavailableLine = asksForCurrentLocation
+            ? "Device location is unavailable or was not allowed. Do not infer, mention, or substitute any location from memory, profile, IP, or old chats. Ask the user to allow device Location access or provide a city or ZIP code."
+            : "Device location is unavailable or was not allowed. Ask the user which city to use instead of guessing their location.";
           const existing = (effectiveProfile as any).context_info || '';
           (effectiveProfile as any).context_info = existing
             ? `${existing}\n\n${unavailableLine}`

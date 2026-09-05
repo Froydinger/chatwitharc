@@ -61,7 +61,7 @@ import { useVideoGenStore, orientationForDimensions } from "@/store/useVideoGenS
 import { useVideoAccess } from "@/hooks/useVideoAccess";
 import { AnimateAttachmentModal } from "@/components/AnimateAttachmentModal";
 import { useImageQuota } from "@/hooks/useImageQuota";
-import { detectsLocationIntent, getCachedLocation, getUserLocation } from "@/lib/userLocation";
+import { detectsLocationIntent, getCachedLocation, getUserLocation, requestsCurrentLocation } from "@/lib/userLocation";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -1441,7 +1441,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     // work introduces a delay that can prevent iOS from showing its sheet.
     // Do not await here: the shared location promise is awaited later by the
     // AI service, while the composer can clear and show the sent message now.
-    if (detectsLocationIntent(userMessage) && !getCachedLocation()) {
+    if (requestsCurrentLocation(userMessage) && !getCachedLocation()) {
       void getUserLocation();
     }
     let images = [...selectedImages];

@@ -20,10 +20,16 @@ let pendingLocationRequest: Promise<UserLocation | null> | null = null;
 
 // Trigger words/phrases that imply the model would benefit from user location.
 const LOCATION_INTENT = /\b(near\s*me|nearby|around\s*(me|here)|in\s*my\s*(area|city|town|region)|where\s*am\s*i|local\b|locally|weather|forecast|temperature|restaurants?|cafes?|coffee|bars?|gas\s*stations?|grocery|grocer(y|ies)|pharmac(y|ies)|hotels?|attractions?|things?\s*to\s*do|what'?s?\s*open|closest|nearest|directions?|how\s*far|distance\s*to|sunset|sunrise|tides?)\b/i;
+const CURRENT_LOCATION_INTENT = /\b(near\s*me|nearby|around\s*(me|here)|in\s*my\s*(area|city|town|region)|where\s*am\s*i|my\s*(location|area|city|town|region)|current\s*location|(closest|nearest)\s+to\s+me)\b/i;
 
 export function detectsLocationIntent(text: string): boolean {
   if (!text) return false;
   return LOCATION_INTENT.test(text);
+}
+
+export function requestsCurrentLocation(text: string): boolean {
+  if (!text) return false;
+  return CURRENT_LOCATION_INTENT.test(text);
 }
 
 export function getCachedLocation(): UserLocation | null {
@@ -72,28 +78,39 @@ export async function getUserLocation(): Promise<UserLocation | null> {
   if (pendingLocationRequest) return pendingLocationRequest;
 
   pendingLocationRequest = (async () => {
-    const coords = await new Promise<GeolocationCoordinates | null>((resolve) => {
+    const requestCoordinates = (enableHighAccuracy: boolean) => new Promise<{
+      coords: GeolocationCoordinates | null;
+      errorCode?: number;
+    }>((resolve) => {
       // Give iOS enough time to present and resolve its native permission sheet.
       const timerId = setTimeout(() => {
         console.warn("Geolocation prompt timed out manually.");
-        resolve(null);
+        resolve({ coords: null });
       }, 15_000);
 
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           clearTimeout(timerId);
-          resolve(pos.coords);
+          resolve({ coords: pos.coords });
         },
-        () => {
+        (error) => {
           clearTimeout(timerId);
           // Do not cache denial here. iOS and embedded browsers can return the
           // same code when no permission sheet was shown; the browser already
           // remembers a genuine user denial itself.
-          resolve(null);
+          resolve({ coords: null, errorCode: error.code });
         },
-        { enableHighAccuracy: true, timeout: 12_000, maximumAge: 0 }
+        { enableHighAccuracy, timeout: 12_000, maximumAge: 0 }
       );
     });
+
+    // Retry transient iOS/provider failures once with lower accuracy. A real
+    // permission denial can only be changed by the user in OS settings.
+    let result = await requestCoordinates(true);
+    if (!result.coords && result.errorCode !== 1) {
+      result = await requestCoordinates(false);
+    }
+    const coords = result.coords;
 
     if (!coords) return null;
 
