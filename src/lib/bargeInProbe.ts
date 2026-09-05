@@ -5,8 +5,11 @@
 export const BARGE_IN_PROBE_MS = 450;
 const ECHO_SETTLE_MS = 100;
 const FRAME_MS = 10;
-const MIN_VOICED_MS = 40;
-const MIN_RMS = 0.003;
+// Require a sustained voice-like signal after speaker echo has settled. The
+// old 40 ms / 0.003 gate was close enough to digital silence that breathing
+// and handling noise on an iPhone could interrupt playback.
+const MIN_VOICED_MS = 160;
+const MIN_RMS = 0.008;
 
 export class BargeInProbe {
   private voicedMs = 0;
@@ -19,7 +22,13 @@ export class BargeInProbe {
     for (let start = skip; start + frameSize <= audio.length; start += frameSize) {
       let sum = 0;
       for (let i = start; i < start + frameSize; i++) sum += (audio[i] / 32768) ** 2;
-      if (Math.sqrt(sum / frameSize) >= MIN_RMS) this.voicedMs += FRAME_MS;
+      // A cough or a few spaced key clicks must not accumulate into a voice
+      // interruption. Only consecutive voice-level frames count.
+      if (Math.sqrt(sum / frameSize) >= MIN_RMS) {
+        this.voicedMs += FRAME_MS;
+      } else {
+        this.voicedMs = 0;
+      }
     }
   }
 

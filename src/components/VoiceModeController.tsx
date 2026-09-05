@@ -662,7 +662,7 @@ export function VoiceModeController() {
             forceWebSearch: true
           }
         }),
-        22000,
+        50000,
         'Web search took too long.'
       );
       
@@ -676,7 +676,7 @@ export function VoiceModeController() {
       
       if (error) {
         console.error('Web search error:', error);
-        return `I couldn't complete the search right now. The error was: ${error.message}. Would you like me to try again?`;
+        return `I couldn't complete that search right now. Please try again in a moment.`;
       }
       
       const response = data?.choices?.[0]?.message?.content || 'No results found for that search.';
@@ -713,6 +713,32 @@ export function VoiceModeController() {
           longitude: locationUsed.longitude,
         } : undefined,
       });
+      // A completed search is a finished chat artifact, not temporary voice
+      // state. Persist it now so an interrupted Realtime summary or an iOS
+      // page suspension cannot make the results disappear until another turn.
+      await flushTurnsBeforeCard();
+      await addMessage({
+        content: response,
+        role: 'assistant',
+        type: 'text',
+        webSources: sources,
+        searchImages,
+        memoryAction: {
+          type: 'web_searched',
+          content: cleanSummary,
+          sources,
+          query,
+          searchProvider: 'tavily',
+        },
+        sourceModel: 'cloud-search-tavily',
+        locationUsed: locationUsed ? {
+          city: locationUsed.city,
+          region: locationUsed.region,
+          country: locationUsed.country,
+          latitude: locationUsed.latitude,
+          longitude: locationUsed.longitude,
+        } : undefined,
+      });
       console.log('VoiceModeController: Web search complete');
       return response;
     } catch (error: any) {
@@ -722,11 +748,11 @@ export function VoiceModeController() {
       }
       
       if (error.name === 'AbortError') {
-        return 'The search took too long and was cancelled. Would you like me to try a simpler search?';
+        return 'That search took too long and was cancelled. Please try again in a moment.';
       }
-      return `I ran into a problem searching for that: ${error.message || 'Unknown error'}. Want me to try again?`;
+      return 'I ran into a problem completing that search. Please try again in a moment.';
     }
-  }, [setIsSearching, setSearchSummary, withTimeout]);
+  }, [addMessage, flushTurnsBeforeCard, setIsSearching, setSearchSummary, withTimeout]);
 
   // Weather handler
   const handleGetWeather = useCallback(async (location: string): Promise<string> => {
@@ -1414,6 +1440,16 @@ When the user shares their camera or attaches an image, describe what you see na
               role: turn.role,
               type: turn.imageUrl ? 'image' : 'text',
               imageUrl: turn.imageUrl,
+              webSources: turn.webSearch?.sources,
+              searchImages: turn.webSearch?.images,
+              memoryAction: turn.webSearch ? {
+                type: 'web_searched',
+                content: turn.webSearch.summary,
+                sources: turn.webSearch.sources,
+                query: turn.webSearch.query,
+                searchProvider: turn.webSearch.provider,
+              } : undefined,
+              locationUsed: turn.webSearch?.locationUsed,
             });
           } catch (_) {}
         });

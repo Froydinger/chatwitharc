@@ -17,6 +17,15 @@ const SILENCE_GAIN = 0.0001;     // exponential ramps cannot target exactly 0
 // mid-sentence (an underrun is a gap, and a gap is a pop).
 const START_LEAD_SECONDS = 0.06;
 
+const holdGainAtCurrentValue = (gain: AudioParam, time: number) => {
+  if (typeof gain.cancelAndHoldAtTime === 'function') {
+    gain.cancelAndHoldAtTime(time);
+    return;
+  }
+  gain.cancelScheduledValues(time);
+  gain.setValueAtTime(Math.max(gain.value, SILENCE_GAIN), time);
+};
+
 export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
   const { sampleRate = 24000 } = options;
   
@@ -284,8 +293,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
 
     if (ctx && masterGain && stopAt) {
       try {
-        masterGain.gain.cancelScheduledValues(ctx.currentTime);
-        masterGain.gain.setValueAtTime(Math.max(masterGain.gain.value, SILENCE_GAIN), ctx.currentTime);
+        holdGainAtCurrentValue(masterGain.gain, ctx.currentTime);
         masterGain.gain.exponentialRampToValueAtTime(SILENCE_GAIN, stopAt);
       } catch (_) {}
     }
@@ -333,8 +341,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     const masterGain = masterGainRef.current;
     if (!ctx || ctx.state === 'closed' || !masterGain) return;
     try {
-      masterGain.gain.cancelScheduledValues(ctx.currentTime);
-      masterGain.gain.setValueAtTime(Math.max(masterGain.gain.value, SILENCE_GAIN), ctx.currentTime);
+      holdGainAtCurrentValue(masterGain.gain, ctx.currentTime);
       masterGain.gain.exponentialRampToValueAtTime(SILENCE_GAIN, ctx.currentTime + BARGE_IN_DUCK_SECONDS);
     } catch (_) {}
   }, []);
@@ -344,8 +351,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
     const masterGain = masterGainRef.current;
     if (!ctx || ctx.state === 'closed' || !masterGain || isInterruptedRef.current) return;
     try {
-      masterGain.gain.cancelScheduledValues(ctx.currentTime);
-      masterGain.gain.setValueAtTime(Math.max(masterGain.gain.value, SILENCE_GAIN), ctx.currentTime);
+      holdGainAtCurrentValue(masterGain.gain, ctx.currentTime);
       masterGain.gain.exponentialRampToValueAtTime(1, ctx.currentTime + BARGE_IN_RESTORE_SECONDS);
     } catch (_) {}
   }, []);
@@ -374,8 +380,7 @@ export function useAudioPlayback(options: UseAudioPlaybackOptions = {}) {
 
     if (ctx && masterGain && stopAt) {
       try {
-        masterGain.gain.cancelScheduledValues(ctx.currentTime);
-        masterGain.gain.setValueAtTime(Math.max(masterGain.gain.value, SILENCE_GAIN), ctx.currentTime);
+        holdGainAtCurrentValue(masterGain.gain, ctx.currentTime);
         masterGain.gain.exponentialRampToValueAtTime(SILENCE_GAIN, stopAt);
       } catch (_) {}
     }

@@ -222,7 +222,13 @@ export function useAudioCapture(options: UseAudioCaptureOptions = {}) {
       };
 
       source.connect(scriptProcessor);
-      scriptProcessor.connect(audioContext.destination);
+      // ScriptProcessor must be connected to run, but routing its output
+      // directly to the speakers can leak mic audio and pop on WebKit. Keep
+      // the processing graph alive through an explicitly silent gain node.
+      const silentOutput = audioContext.createGain();
+      silentOutput.gain.setValueAtTime(0, audioContext.currentTime);
+      scriptProcessor.connect(silentOutput);
+      silentOutput.connect(audioContext.destination);
 
       // Start amplitude monitoring
       const updateAmplitude = () => {

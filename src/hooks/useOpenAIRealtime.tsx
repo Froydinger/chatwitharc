@@ -840,20 +840,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (!aiTranscript.trim()) return;
         console.log('AI said:', aiTranscript);
         
-        const { lastGeneratedImageUrl, searchSummary } = useVoiceModeStore.getState();
+        const { lastGeneratedImageUrl } = useVoiceModeStore.getState();
 
         pendingAssistantTurns.push({
           transcript: aiTranscript,
           queuedAt: Date.now(),
           imageUrl: lastGeneratedImageUrl || undefined,
-          webSearch: searchSummary ? {
-            query: searchSummary.query,
-            summary: searchSummary.summary,
-            sources: searchSummary.sources,
-            images: searchSummary.images,
-            provider: 'tavily',
-            locationUsed: searchSummary.locationUsed,
-          } : undefined,
           // Realtime can finish speaking before Whisper emits the user's final
           // transcript. Hold this reply longer when it belongs to a spoken turn
           // so the saved chat cannot place Arc above the user who triggered it.
@@ -863,10 +855,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (lastGeneratedImageUrl) {
           useVoiceModeStore.getState().setLastGeneratedImageUrl(null);
         }
-        if (searchSummary) {
-          useVoiceModeStore.getState().setSearchSummary(null);
-        }
-
         scheduleTurnFlush();
         break;
 
@@ -1065,7 +1053,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               console.log('Performing web search for:', query);
 
               if (optionsRef.current.onWebSearch) {
-                withToolTimeout('web_search', call_id, optionsRef.current.onWebSearch(query), 25000)
+                // The chat search performs retrieval and synthesis. Give that
+                // existing pipeline enough time to finish before Realtime
+                // converts a successful in-flight search into a tool failure.
+                withToolTimeout('web_search', call_id, optionsRef.current.onWebSearch(query), 55000)
                   .then((results) => {
                     console.log('Web search completed');
                     logVoiceDiagnostic({
@@ -1606,9 +1597,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                   // tripping the VAD and cutting Arc off mid-sentence. 0.65 was
                   // high enough that speech over Arc's own voice rarely
                   // registered at all, which is what made it un-interruptible.
-                  threshold: 0.55,
-                  prefix_padding_ms: 300,
-                  silence_duration_ms: 700,
+                  threshold: 0.60,
+                  prefix_padding_ms: 400,
+                  silence_duration_ms: 1000,
                   // The client probes after ducking playback so loud iOS
                   // speaker echo is not mistaken for a user interruption.
                   interrupt_response: false,

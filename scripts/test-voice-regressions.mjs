@@ -60,6 +60,16 @@ const bundle = async entry => build({
 });
 const result = await bundle('src/hooks/useOpenAIRealtime.tsx');
 const { useOpenAIRealtime } = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`);
+const probeCode = await build({entryPoints:['src/lib/bargeInProbe.ts'],bundle:true,write:false,format:'esm',platform:'node'});
+const { BargeInProbe } = await import(`data:text/javascript;base64,${Buffer.from(probeCode.outputFiles[0].text).toString('base64')}`);
+const clickProbe = new BargeInProbe('clicks', 0);
+clickProbe.addAudio(new Int16Array(240 * 8).fill(1200), 180);
+clickProbe.addAudio(new Int16Array(240 * 2), 200);
+clickProbe.addAudio(new Int16Array(240 * 8).fill(1200), 280);
+assert.equal(clickProbe.confirmed, false, 'separated clicks/cough bursts must not accumulate');
+const speechProbe = new BargeInProbe('speech', 0);
+speechProbe.addAudio(new Int16Array(240 * 16).fill(1200), 260);
+assert.equal(speechProbe.confirmed, true, 'sustained voice-level audio must remain interruptible');
 let ducks = 0, cuts = 0, restores = 0, chunks = 0;
 const hook = useOpenAIRealtime({
   onInterruptProbeStart() { ducks++; }, onInterruptProbeRejected() { restores++; },
@@ -71,11 +81,14 @@ const audio = (id) => socket.emit({ type: 'response.output_audio.delta', respons
 const start = id => { socket.emit({type:'response.created', response:{id}}); audio(id); };
 const done = (id, status = 'completed') => socket.emit({type:'response.done', response:{id,status}});
 const speech = () => socket.emit({type:'input_audio_buffer.speech_started'});
-const feed = (level = 120) => { advance(180); hook.sendAudio(pcm(level)); advance(180); hook.sendAudio(pcm(level)); advance(100); };
+const feed = (level = 1200) => { advance(180); hook.sendAudio(pcm(level)); advance(180); hook.sendAudio(pcm(level)); advance(100); };
 try {
   await hook.connect('Test'); socket.onopen(); socket.emit({type:'session.created',session:{id:'session-1'}});
   assert.equal(socket.sent.find(e=>e.type==='session.update').session.audio.input.transcription.model, 'gpt-transcribe');
-  // Three interruptions, including quiet speech with the visual meter frozen.
+  assert.equal(socket.sent.find(e=>e.type==='session.update').session.audio.input.turn_detection.threshold, 0.60);
+  assert.equal(socket.sent.find(e=>e.type==='session.update').session.audio.input.turn_detection.silence_duration_ms, 1000);
+  // Three sustained speech interruptions, including speech with the visual
+  // meter frozen.
   for (const id of ['one','two','three']) {
     start(id); speech(); feed(); done(id,'cancelled');
     const count = chunks; audio(id); assert.equal(chunks,count,'cancelled audio stays suppressed');
@@ -88,6 +101,10 @@ try {
   start('queued'); done('queued'); speech(); feed();
   assert.equal(cuts,4); assert.equal(socket.sent.filter(e=>e.type==='response.cancel').length,3);
   assert.equal(socket.sent.filter(e=>e.type==='conversation.item.truncate').at(-1).item_id,'item-queued');
+  // Breathing / handling noise may trigger server speech_started, but must not
+  // cut off Arc unless it becomes sustained voice-like audio.
+  start('breath'); speech(); feed(120);
+  assert.equal(cuts,4); assert.ok(restores>=1);
   // Echo vanishes after ducking: restore playback, do not cut.
   start('echo'); speech(); advance(80); hook.sendAudio(pcm(10000)); feed(0);
   assert.equal(cuts,4); assert.ok(restores>=1);

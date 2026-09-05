@@ -391,7 +391,7 @@ export function VoiceModeOverlay() {
                     initial={{ opacity: 0, scale: 0.92, y: 12 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.92, y: 12 }}
-                    className="w-full max-w-[340px]"
+                    className="w-full max-w-[420px]"
                   >
                     <div className="relative rounded-2xl border border-primary/20 bg-background/85 p-4 shadow-xl backdrop-blur-xl">
                       {searchSummary && !isSearching ? (
@@ -407,7 +407,24 @@ export function VoiceModeOverlay() {
                             <Search className="w-3.5 h-3.5" />
                             <span>Web Search</span>
                           </div>
-                          <p className="text-xs text-muted-foreground line-clamp-3">{searchSummary.summary}</p>
+                          <div className="max-h-56 overflow-y-auto pr-1">
+                            <p className="text-xs leading-relaxed text-muted-foreground">{searchSummary.summary}</p>
+                            {searchSummary.sources.length > 0 && (
+                              <div className="mt-3 space-y-1.5 border-t border-border/50 pt-2">
+                                {searchSummary.sources.slice(0, 4).map((source) => (
+                                  <a
+                                    key={source.url}
+                                    href={source.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block truncate text-[11px] text-primary hover:underline"
+                                  >
+                                    {source.title || source.url}
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </>
                       ) : (
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
