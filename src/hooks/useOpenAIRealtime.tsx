@@ -1,4 +1,5 @@
 import { BargeInProbe, BARGE_IN_PROBE_MS } from '@/lib/bargeInProbe';
+import { RealtimeBrowserTransport } from '@/lib/realtimeBrowserTransport';
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { useVoiceModeStore, VoiceName, REALTIME_SUPPORTED_VOICES } from '@/store/useVoiceModeStore';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,7 +30,8 @@ interface UseOpenAIRealtimeOptions {
 }
 
 // Singleton WebSocket instance to prevent duplicates
-let globalWs: WebSocket | null = null;
+let globalWs: WebSocket | RealtimeBrowserTransport | null = null;
+let connectionGeneration = 0;
 let globalConnecting = false;
 let globalSessionId: string | null = null;
 
@@ -657,6 +659,11 @@ const sendRealtimeEvent = (payload: Record<string, unknown>): boolean => {
 };
 
 export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
+  useEffect(() => useVoiceModeStore.subscribe((state, previous) => {
+    if (state.isMuted !== previous.isMuted && globalWs instanceof RealtimeBrowserTransport && sessionReady) {
+      globalWs.setMuted(state.isMuted);
+    }
+  }), []);
   const [isConnected, setIsConnected] = useState(false);
   
   const optionsRef = useRef(options);
@@ -714,6 +721,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'session.updated':
+        if (globalWs instanceof RealtimeBrowserTransport) {
+          globalWs.setMuted(useVoiceModeStore.getState().isMuted);
+        }
         console.log('Session updated');
         // Log what the server ACTUALLY applied. If turn_detection comes back
         // null the model will never detect speech, which looks like "listening
@@ -757,6 +767,15 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         userSpokeAfterLastResponse = true;
         userSpeechInProgress = true;
 
+        // WebRTC owns echo cancellation, interruption and played-audio
+        // truncation. Do not run the PCM duck/probe against native playback.
+        if (globalWs instanceof RealtimeBrowserTransport) {
+          useVoiceModeStore.getState().setHasPendingSpeech(true);
+          if (canBargeIn) rememberInterruptedResponse(activeResponseId);
+          setStatus('listening');
+          break;
+        }
+
         if (canBargeIn && !bargeInProbeTimer) {
           // At loud speaker volumes iOS can report Arc's own output as speech.
           // Duck the speaker first, then only interrupt if microphone energy
@@ -794,6 +813,21 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'input_audio_buffer.speech_stopped':
         userSpeechInProgress = false;
         console.log('VAD: User speech stopped');
+        break;
+
+      case 'output_audio_buffer.started':
+        if (isInterruptedResponseEvent(event)) break;
+        useVoiceModeStore.getState().setIsAudioPlaying(true);
+        setStatus('speaking');
+        break;
+
+      case 'output_audio_buffer.stopped':
+      case 'output_audio_buffer.cleared':
+        if (event.response_id && activeResponseId && event.response_id !== activeResponseId) break;
+        useVoiceModeStore.getState().setIsAudioPlaying(false);
+        useVoiceModeStore.getState().setOutputAmplitude(0);
+        setStatus(responseInProgress && event.type !== 'output_audio_buffer.cleared' ? 'thinking' : 'listening');
+        requestToolResponse();
         break;
 
       case 'conversation.item.input_audio_transcription.completed':
@@ -860,6 +894,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'response.audio.delta':
       case 'response.output_audio.delta':
+        if (globalWs instanceof RealtimeBrowserTransport) break;
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
         if (event.delta) {
           const binaryString = atob(event.delta);
@@ -1467,6 +1502,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   }, [sendFunctionResult]);
 
   const connect = useCallback(async (systemPrompt?: string) => {
+    if (!useVoiceModeStore.getState().isActive) return;
     const { setStatus } = useVoiceModeStore.getState();
 
     // A fresh dial-out clears the intentional-close latch.
@@ -1495,6 +1531,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
 
     globalConnecting = true;
+    const generation = ++connectionGeneration;
     globalSessionId = null;
     sessionReady = false;
     resetTurnOrderingBuffer();
@@ -1526,14 +1563,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       }
 
       const realtimeModel = realtimeSession.model || OPENAI_REALTIME_MODEL;
-      
-      const ws = new WebSocket(
-        `wss://api.openai.com/v1/realtime?model=${encodeURIComponent(realtimeModel)}`,
-        [
-          'realtime',
-          `openai-insecure-api-key.${realtimeSession.client_secret}`,
-        ]
-      );
+      if (generation !== connectionGeneration || !useVoiceModeStore.getState().isActive) return;
+      const ws = new RealtimeBrowserTransport({
+        onInputAmplitude: (level) => useVoiceModeStore.getState().setInputAmplitude(level),
+        onOutputAmplitude: (level) => useVoiceModeStore.getState().setOutputAmplitude(level),
+      });
       globalWs = ws;
 
       const connectTimeout = setTimeout(() => {
@@ -1600,9 +1634,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                   threshold: 0.60,
                   prefix_padding_ms: 400,
                   silence_duration_ms: 1000,
-                  // The client probes after ducking playback so loud iOS
-                  // speaker echo is not mistaken for a user interruption.
-                  interrupt_response: false,
+                  // OpenAI's WebRTC transport manages playback interruption
+                  // and truncation, while the browser performs acoustic echo
+                  // cancellation on its single microphone track.
+                  create_response: true,
+                  interrupt_response: true,
                 },
               },
               output: {
@@ -1822,8 +1858,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           setStatus('connecting');
           setTimeout(async () => {
             const { isActive: stillActive } = useVoiceModeStore.getState();
-            if (stillActive) {
-              connect(await buildReconnectPrompt());
+            if (stillActive && generation === connectionGeneration) {
+              const prompt = await buildReconnectPrompt();
+              if (generation === connectionGeneration && useVoiceModeStore.getState().isActive) await connect(prompt);
             }
           }, delay);
         } else if (isActive && reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
@@ -1840,8 +1877,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
       };
 
+      await ws.connect(realtimeSession.client_secret);
     } catch (error) {
+      if (generation !== connectionGeneration) return;
       console.error('Failed to connect:', error);
+      if (globalWs) {
+        globalWs.onclose = null;
+        globalWs.close();
+      }
       globalConnecting = false;
       globalWs = null;
       globalSessionId = null;
@@ -1863,6 +1906,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
     // Reset reconnect state — this is an intentional disconnect
     intentionalDisconnect = true;
+    connectionGeneration++;
     reconnectAttempts = MAX_RECONNECT_ATTEMPTS;
 
     // Clear phantom timer
@@ -1927,6 +1971,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   }, [connect]);
 
   const sendAudio = useCallback((audioData: Int16Array) => {
+    if (globalWs instanceof RealtimeBrowserTransport) return;
     if (globalWs?.readyState !== WebSocket.OPEN || !sessionReady) return;
     
     bargeInProbe?.addAudio(audioData, performance.now());
@@ -1970,12 +2015,20 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     suppressInterruptedResponseAudio = true;
     clearBargeInProbe();
     if (responseInProgress) sendRealtimeEvent({ type: 'response.cancel' });
+    if (globalWs instanceof RealtimeBrowserTransport) {
+      sendRealtimeEvent({ type: 'output_audio_buffer.clear' });
+      useVoiceModeStore.getState().setIsAudioPlaying(false);
+      return;
+    }
     truncateSpokenAudio(playedMs);
   }, []);
 
   // Commit the current audio buffer and trigger AI response
   const commitAudioAndRespond = useCallback(() => {
     if (globalWs?.readyState !== WebSocket.OPEN) return false;
+    // Disabling the RTP mic track sends silence. Server VAD commits the tail
+    // and responds once; a second manual commit/create duplicates that turn.
+    if (globalWs instanceof RealtimeBrowserTransport) return false;
 
     const { hasPendingSpeech, setHasPendingSpeech, setStatus, status } = useVoiceModeStore.getState();
 

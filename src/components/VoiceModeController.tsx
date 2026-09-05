@@ -1,8 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useVoiceModeStore, REALTIME_SUPPORTED_VOICES, VoiceName } from '@/store/useVoiceModeStore';
 import { useOpenAIRealtime } from '@/hooks/useOpenAIRealtime';
-import { useAudioCapture } from '@/hooks/useAudioCapture';
-import { useAudioPlayback } from '@/hooks/useAudioPlayback';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useArcStore, Message } from '@/store/useArcStore';
 import { useToast } from '@/hooks/use-toast';
@@ -371,6 +369,7 @@ export function VoiceModeController() {
 
   // Track initialization to prevent duplicate setup
   const initRef = useRef(false);
+  const activationGenerationRef = useRef(0);
   const wasActiveRef = useRef(false);
   
   // Abort controller for cancelling pending operations
@@ -385,70 +384,12 @@ export function VoiceModeController() {
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
 
-  // Audio playback for AI responses
-  const { queueAudio, stopPlayback, clearQueue, duckPlayback, restorePlayback } = useAudioPlayback();
-  const toolPulseAudioRef = useRef<AudioContext | null>(null);
-  const toolPulseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const latestWebSearchRunRef = useRef<symbol | null>(null);
   const latestPastChatSearchRunRef = useRef<symbol | null>(null);
   const latestImageRunRef = useRef<symbol | null>(null);
 
-  useEffect(() => {
-    const shouldPulse = isActive && (isGeneratingImage || isSearching || isSearchingPastChats || isFetchingWeather || isSchedulingTask);
-
-    const stopPulse = () => {
-      if (toolPulseTimerRef.current) {
-        clearInterval(toolPulseTimerRef.current);
-        toolPulseTimerRef.current = null;
-      }
-    };
-
-    if (!shouldPulse) {
-      stopPulse();
-      return;
-    }
-
-    const playTick = () => {
-      try {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-        if (!AudioCtx) return;
-        const ctx = toolPulseAudioRef.current || new AudioCtx();
-        toolPulseAudioRef.current = ctx;
-        if (ctx.state === 'suspended') void ctx.resume();
-
-        [0, 0.11, 0.22].forEach((offset, index) => {
-          const start = ctx.currentTime + offset;
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          const filter = ctx.createBiquadFilter();
-
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(520 + index * 44, start);
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(1200, start);
-          gain.gain.setValueAtTime(0.0001, start);
-          gain.gain.exponentialRampToValueAtTime(0.035, start + 0.012);
-          gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.09);
-
-          osc.connect(filter);
-          filter.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(start);
-          osc.stop(start + 0.1);
-        });
-      } catch (error) {
-        console.warn('Voice tool pulse failed:', error);
-        stopPulse();
-      }
-    };
-
-    if (!toolPulseTimerRef.current) {
-      playTick();
-      toolPulseTimerRef.current = setInterval(playTick, 2400);
-    }
-
-    return stopPulse;
-  }, [isActive, isGeneratingImage, isSearching, isSearchingPastChats, isFetchingWeather, isSchedulingTask]);
+  // Tool progress is visual. A second oscillator audio graph competes with
+  // the native call route on iOS and can feed synthetic ticks into the mic.
 
   const withTimeout = useCallback(<T,>(promise: Promise<T>, ms: number, message: string): Promise<T> => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -1113,24 +1054,7 @@ When the user shares their camera or attaches an image, describe what you see na
   }, [saveNewTurns]);
 
   // OpenAI Realtime connection
-  const { isConnected, connect, disconnect, sendAudio, sendImage, cancelResponse, commitAudioAndRespond, reconnectNow, processWhisperSpeechTurn } = useOpenAIRealtime({
-    onAudioData: (audioData) => {
-      queueAudio(audioData);
-    },
-    onInterrupt: () => {
-      console.log('User interrupted — stopping playback and listening');
-      // clearQueue stops every scheduled Web Audio source and briefly blocks
-      // late audio deltas from the cancelled response. Calling stopPlayback
-      // immediately afterward used to clear that protection too early.
-      // It reports how much was heard so the response can be truncated there.
-      const playedMs = clearQueue();
-      const store = useVoiceModeStore.getState();
-      store.setStatus('listening');
-      store.setIsAudioPlaying(false);
-      return playedMs;
-    },
-    onInterruptProbeStart: duckPlayback,
-    onInterruptProbeRejected: restorePlayback,
+  const { isConnected, connect, disconnect, sendImage, cancelResponse, commitAudioAndRespond, reconnectNow } = useOpenAIRealtime({
     onError: (error) => {
       console.error('Voice mode error:', error);
       toast({
@@ -1192,8 +1116,7 @@ When the user shares their camera or attaches an image, describe what you see na
   const handleManualInterrupt = useCallback(() => {
     console.log('Manual interrupt triggered via button');
     // Stop playback first so the truncation point reflects what was really heard.
-    const playedMs = clearQueue();
-    cancelResponse(playedMs);
+    cancelResponse();
     const store = useVoiceModeStore.getState();
     store.setStatus('listening');
     store.setIsAudioPlaying(false);
@@ -1201,7 +1124,7 @@ When the user shares their camera or attaches an image, describe what you see na
     store.setIsSearching(false);
     store.setIsSearchingPastChats(false);
     store.setIsSchedulingTask(false);
-  }, [cancelResponse, clearQueue]);
+  }, [cancelResponse]);
 
   // Register the interrupt handler globally
   useLayoutEffect(() => {
@@ -1291,23 +1214,19 @@ When the user shares their camera or attaches an image, describe what you see na
     }
   }, [attachedImage, attachedImageMime, isConnected, sendImage]);
 
-  // Audio capture from microphone
-  const { startCapture, stopCapture, getRecordedAudioBlob, clearRecordedAudio } = useAudioCapture({
-    onAudioData: (audioData) => {
-      sendAudio(audioData);
-    },
-  });
-
   const isPushToTalkHoldingRef = useRef(false);
+  const wasMutedBeforeHoldRef = useRef(false);
 
   const startPushToTalk = useCallback(() => {
     if (isPushToTalkHoldingRef.current) return;
     isPushToTalkHoldingRef.current = true;
     console.log('🎙️ Push-to-talk started (holding spacebar or orb)');
     if (navigator.vibrate) navigator.vibrate(30);
-    clearRecordedAudio();
+    wasMutedBeforeHoldRef.current = useVoiceModeStore.getState().isMuted;
+    cancelResponse();
+    useVoiceModeStore.getState().setMuted(false);
     useVoiceModeStore.getState().setStatus('listening');
-  }, [clearRecordedAudio]);
+  }, [cancelResponse]);
 
   const endPushToTalk = useCallback(async () => {
     if (!isPushToTalkHoldingRef.current) return;
@@ -1315,17 +1234,10 @@ When the user shares their camera or attaches an image, describe what you see na
     console.log('🎙️ Push-to-talk released, processing turn...');
     if (navigator.vibrate) navigator.vibrate([20, 30]);
 
-    setTimeout(async () => {
-      const blob = getRecordedAudioBlob();
-      if (blob && blob.size > 0) {
-        await processWhisperSpeechTurn(blob);
-        await saveNewTurns(false);
-      } else {
-        console.warn('No audio captured during push-to-talk hold');
-        useVoiceModeStore.getState().setStatus('listening');
-      }
-    }, 150);
-  }, [getRecordedAudioBlob, processWhisperSpeechTurn, saveNewTurns]);
+    // RTP carries this turn through the same Realtime session. Restoring mute
+    // supplies silence to VAD; never transcribe/synthesize it a second time.
+    useVoiceModeStore.getState().setMuted(wasMutedBeforeHoldRef.current);
+  }, []);
 
   useLayoutEffect(() => {
     setGlobalPushToTalkHandlers(startPushToTalk, endPushToTalk);
@@ -1341,6 +1253,7 @@ When the user shares their camera or attaches an image, describe what you see na
 
     if (justActivated && !initRef.current) {
       initRef.current = true;
+      const activationGeneration = ++activationGenerationRef.current;
       savedTurnIndex = 0;
       
       const initVoiceMode = async () => {
@@ -1352,9 +1265,9 @@ When the user shares their camera or attaches an image, describe what you see na
 
           const recentChatSummary = summarizeRecentChats(messagesRef.current);
           const voiceSystemPrompt = await buildVoiceSystemPrompt(profileRef.current, recentChatSummary);
+          if (activationGeneration !== activationGenerationRef.current || !useVoiceModeStore.getState().isActive) return;
           console.log('Voice mode using unified system prompt with dynamic chat search');
 
-          await startCapture();
           await connect(voiceSystemPrompt);
           console.log('Voice mode initialized');
         } catch (error: any) {
@@ -1379,6 +1292,7 @@ When the user shares their camera or attaches an image, describe what you see na
     }
 
     if (justDeactivated && initRef.current) {
+      activationGenerationRef.current++;
       console.log('Deactivating voice mode...');
       
       if (abortControllerRef.current) {
@@ -1391,9 +1305,7 @@ When the user shares their camera or attaches an image, describe what you see na
         autoSaveIntervalRef.current = null;
       }
       
-      stopCapture();
       stopCameraCapture();
-      stopPlayback();
       disconnect();
       initRef.current = false;
 
@@ -1411,7 +1323,7 @@ When the user shares their camera or attaches an image, describe what you see na
         savedTurnIndex = 0;
       });
     }
-  }, [isActive, connect, disconnect, startCapture, stopCapture, stopCameraCapture, stopPlayback, toast, deactivateVoiceMode, saveNewTurns, createNewSession]);
+  }, [isActive, connect, disconnect, stopCameraCapture, toast, deactivateVoiceMode, saveNewTurns, createNewSession]);
 
   // Save finalized voice transcripts into the normal chat thread shortly after
   // each turn lands so voice mode feels like the regular chat, not a separate UI.
@@ -1477,12 +1389,11 @@ When the user shares their camera or attaches an image, describe what you see na
   useEffect(() => {
     return () => {
       if (initRef.current) {
+        activationGenerationRef.current++;
         if (abortControllerRef.current) {
           abortControllerRef.current.abort();
         }
-        stopCapture();
         stopCameraCapture();
-        stopPlayback();
         disconnect();
         initRef.current = false;
 
@@ -1498,7 +1409,7 @@ When the user shares their camera or attaches an image, describe what you see na
         }
       }
     };
-  }, [stopCapture, stopCameraCapture, stopPlayback, disconnect, toast]);
+  }, [stopCameraCapture, disconnect, toast]);
 
   return null;
 }

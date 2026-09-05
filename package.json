@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development && node scripts/prerender.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:media": "node scripts/test-voice-regressions.mjs && node scripts/test-media-guards.mjs"
+    "test:voice": "node scripts/test-realtime-browser-transport.mjs && node scripts/test-voice-webrtc.mjs",
+    "test:activity": "node scripts/test-chat-activity.mjs",
+    "test:media": "npm run test:voice && node scripts/test-media-guards.mjs"
   },
   "dependencies": {
     "@babel/standalone": "^7.28.5",

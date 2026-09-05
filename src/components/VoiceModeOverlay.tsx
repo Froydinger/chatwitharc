@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mic, MicOff, Loader2, Search, Camera, CameraOff, Paperclip, SwitchCamera, Check, RotateCw } from "lucide-react";
+import { X, Mic, MicOff, Loader2, Camera, CameraOff, Paperclip, SwitchCamera, Check, RotateCw } from "lucide-react";
 import { WeatherCard } from "@/components/WeatherCard";
 import { useVoiceModeStore, VoiceName } from "@/store/useVoiceModeStore";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -74,8 +74,6 @@ export function VoiceModeOverlay() {
     setGeneratedImage,
     isSearching,
     isSearchingPastChats,
-    searchSummary,
-    setSearchSummary,
     isFetchingWeather,
     weatherData,
     setWeatherData,
@@ -379,59 +377,6 @@ export function VoiceModeOverlay() {
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Search Summary Card */}
-              <AnimatePresence>
-                {(isSearching || searchSummary) && !generatedImage && !isGeneratingImage && !weatherData && !isFetchingWeather && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.92, y: 12 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.92, y: 12 }}
-                    className="w-full max-w-[420px]"
-                  >
-                    <div className="relative rounded-2xl border border-primary/20 bg-background/85 p-4 shadow-xl backdrop-blur-xl">
-                      {searchSummary && !isSearching ? (
-                        <>
-                          <button
-                            onClick={() => setSearchSummary(null)}
-                            className="absolute top-2 right-2 p-1 rounded-full hover:bg-muted"
-                            aria-label="Close search"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                          <div className="flex items-center gap-2 mb-1.5 text-xs text-primary font-medium">
-                            <Search className="w-3.5 h-3.5" />
-                            <span>Web Search</span>
-                          </div>
-                          <div className="max-h-56 overflow-y-auto pr-1">
-                            <p className="text-xs leading-relaxed text-muted-foreground">{searchSummary.summary}</p>
-                            {searchSummary.sources.length > 0 && (
-                              <div className="mt-3 space-y-1.5 border-t border-border/50 pt-2">
-                                {searchSummary.sources.slice(0, 4).map((source) => (
-                                  <a
-                                    key={source.url}
-                                    href={source.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="block truncate text-[11px] text-primary hover:underline"
-                                  >
-                                    {source.title || source.url}
-                                  </a>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                          <span>Searching the web...</span>
-                        </div>
-                      )}
                     </div>
                   </motion.div>
                 )}
