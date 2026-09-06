@@ -44,6 +44,8 @@ interface VoiceModeState {
   
   // Voice preference
   selectedVoice: VoiceName;
+  voiceSpeed: number;
+  volume: number;
   
   // Image generation state
   generatedImage: string | null;
@@ -110,6 +112,8 @@ interface VoiceModeState {
   addUserTurnOrdered: (turn: VoiceTurn) => void;
   clearConversation: () => void;
   setSelectedVoice: (voice: VoiceName) => void;
+  setVoiceSpeed: (speed: number) => void;
+  setVolume: (volume: number) => void;
   setMuted: (muted: boolean) => void;
   toggleMute: () => void;
   setGeneratedImage: (url: string | null) => void;
@@ -137,6 +141,38 @@ interface VoiceModeState {
   clearAttachment: () => void;
 }
 
+// Volume change listener ref for active transport
+let globalVolumeChangeHandler: ((vol: number) => void) | null = null;
+export function setGlobalVolumeChangeHandler(handler: ((vol: number) => void) | null) {
+  globalVolumeChangeHandler = handler;
+}
+
+export function getStoredVoiceVolume(): number {
+  try {
+    const v = localStorage.getItem('arc_voice_volume');
+    if (v !== null) {
+      const parsed = parseFloat(v);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 1) return parsed;
+    }
+  } catch (_) {
+    // localStorage unavailable
+  }
+  return 1.0;
+}
+
+export function getStoredVoiceSpeed(): number {
+  try {
+    const s = localStorage.getItem('arc_voice_speed');
+    if (s !== null) {
+      const parsed = parseFloat(s);
+      if (!isNaN(parsed) && parsed >= 0.75 && parsed <= 1.5) return parsed;
+    }
+  } catch (_) {
+    // localStorage unavailable
+  }
+  return 1.0;
+}
+
 export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   // Initial state
   isActive: false,
@@ -148,6 +184,8 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   currentTranscript: '',
   conversationTurns: [],
   selectedVoice: 'marin',
+  voiceSpeed: getStoredVoiceSpeed(),
+  volume: getStoredVoiceVolume(),
   generatedImage: null,
   isGeneratingImage: false,
   lastGeneratedImageUrl: null,
@@ -269,6 +307,29 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   }),
   
   setSelectedVoice: (voice) => set({ selectedVoice: voice }),
+
+  setVoiceSpeed: (speed) => {
+    const clamped = Math.max(0.75, Math.min(1.5, Math.round(speed * 100) / 100));
+    try {
+      localStorage.setItem('arc_voice_speed', clamped.toString());
+    } catch (_) {
+      // localStorage unavailable
+    }
+    set({ voiceSpeed: clamped });
+  },
+
+  setVolume: (volume) => {
+    const clamped = Math.max(0, Math.min(1, Math.round(volume * 100) / 100));
+    try {
+      localStorage.setItem('arc_voice_volume', clamped.toString());
+    } catch (_) {
+      // localStorage unavailable
+    }
+    set({ volume: clamped });
+    if (globalVolumeChangeHandler) {
+      globalVolumeChangeHandler(clamped);
+    }
+  },
   
   setMuted: (muted) => set({ isMuted: muted }),
   

@@ -37,6 +37,8 @@ const closeEventOf = (code: number, reason: string): CloseEvent => {
   return { type: 'close', code, reason, wasClean: code === 1000 } as CloseEvent;
 };
 
+import { useVoiceModeStore, setGlobalVolumeChangeHandler } from '@/store/useVoiceModeStore';
+
 export class RealtimeBrowserTransport {
   static readonly CONNECTING = 0;
   static readonly OPEN = 1;
@@ -77,9 +79,32 @@ export class RealtimeBrowserTransport {
     const audio = document.createElement('audio');
     audio.autoplay = true;
     audio.setAttribute('playsinline', '');
-    audio.style.display = 'none';
+    // Avoid display: none on iOS/WebKit which deprioritizes/throttles audio decoding thread.
+    // Fixed off-screen positioning keeps it active in the DOM layout without visual presence.
+    audio.style.position = 'fixed';
+    audio.style.top = '-9999px';
+    audio.style.left = '-9999px';
+    audio.style.width = '1px';
+    audio.style.height = '1px';
+    audio.style.opacity = '0.001';
+    audio.style.pointerEvents = 'none';
+
+    // Set initial volume from store
+    try {
+      const initialVol = useVoiceModeStore.getState().volume;
+      audio.volume = Math.max(0, Math.min(1, initialVol));
+    } catch (_) {
+      // Audio volume setter unavailable
+    }
+
     document.body.appendChild(audio);
     this.audioElement = audio;
+
+    // Listen for volume changes during the active session
+    setGlobalVolumeChangeHandler((vol: number) => {
+      this.setVolume(vol);
+    });
+
     this.audioRetryHandler = () => {
       void audio.play().then(() => this.removeAudioRetry()).catch(() => {
         // Keep the one lightweight listener for the next real interaction.
@@ -106,6 +131,7 @@ export class RealtimeBrowserTransport {
       stream = await navigator.mediaDevices.getUserMedia({
         audio: this.options.audioConstraints ?? {
           channelCount: { ideal: 1 },
+          sampleRate: { ideal: 48000 },
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
@@ -186,9 +212,18 @@ export class RealtimeBrowserTransport {
     return this.localStream;
   }
 
+  setVolume(volume: number): void {
+    try {
+      this.audioElement.volume = Math.max(0, Math.min(1, volume));
+    } catch (_) {
+      // Audio volume setter unavailable
+    }
+  }
+
   close(code = 1000, reason = ''): void {
     if (this.readyState >= RealtimeBrowserTransport.CLOSING) return;
     this.readyState = RealtimeBrowserTransport.CLOSING;
+    setGlobalVolumeChangeHandler(null);
     this.abortController.abort();
     if (this.statsTimer) clearInterval(this.statsTimer);
     this.statsTimer = null;
@@ -243,9 +278,13 @@ export class RealtimeBrowserTransport {
 
   private startStats(): void {
     if (!this.options.onInputAmplitude && !this.options.onOutputAmplitude) return;
+    let isBusy = false;
+    const isMobile = typeof window !== 'undefined' && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768);
+    const intervalMs = isMobile ? 240 : 100;
     this.statsTimer = setInterval(() => {
       const pc = this.peerConnection;
-      if (!pc || pc.connectionState === 'closed') return;
+      if (!pc || pc.connectionState === 'closed' || isBusy) return;
+      isBusy = true;
       void pc.getStats().then((reports) => {
         reports.forEach((report) => {
           if (report.type === 'media-source' && report.kind === 'audio' && typeof report.audioLevel === 'number') {
@@ -257,8 +296,10 @@ export class RealtimeBrowserTransport {
         });
       }).catch(() => {
         // Safari may omit audio-level stats; transport audio remains unaffected.
+      }).finally(() => {
+        isBusy = false;
       });
-    }, 100);
+    }, intervalMs);
   }
 
   private removeAudioRetry(): void {

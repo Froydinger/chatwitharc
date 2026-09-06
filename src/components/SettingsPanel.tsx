@@ -46,6 +46,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
@@ -250,6 +251,9 @@ export function SettingsPanel() {
 
   const [displayNameDraft, setDisplayNameDraft] = useState("");
   const [displayNameDirty, setDisplayNameDirty] = useState(false);
+  const [personaPromptDraft, setPersonaPromptDraft] = useState("");
+  const [personaPromptDirty, setPersonaPromptDirty] = useState(false);
+  const [savingPersona, setSavingPersona] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -273,6 +277,10 @@ export function SettingsPanel() {
     if (!displayNameDirty) setDisplayNameDraft(profile?.display_name || "");
   }, [profile?.display_name, displayNameDirty]);
 
+  useEffect(() => {
+    if (!personaPromptDirty) setPersonaPromptDraft(profile?.context_info || "");
+  }, [profile?.context_info, personaPromptDirty]);
+
   const handleDataDeleted = () => {
     createNewSession();
     toast({ title: "Account Reset", description: "Starting fresh with a new session" });
@@ -284,6 +292,24 @@ export function SettingsPanel() {
       setDisplayNameDirty(false);
     } catch {
       toast({ title: "Save failed", description: "Could not save your name. Try again.", variant: "destructive" });
+    }
+  };
+
+  const handleSavePersonaPrompt = async () => {
+    try {
+      setSavingPersona(true);
+      await updateProfile({ context_info: personaPromptDraft.trim() || null });
+      setPersonaPromptDirty(false);
+      toast({
+        title: "Personalization saved",
+        description: personaPromptDraft.trim()
+          ? "Arc will adapt to your custom persona & instructions."
+          : "Arc will use the default grounded, candid personality.",
+      });
+    } catch {
+      toast({ title: "Save failed", description: "Could not save your preferences. Try again.", variant: "destructive" });
+    } finally {
+      setSavingPersona(false);
     }
   };
 
@@ -647,9 +673,43 @@ export function SettingsPanel() {
 
 
   const VoiceCard = (
-    <SectionCard icon={Mic} title="Voice Mode" subtitle="Choose your assistant's voice">
+    <SectionCard icon={Mic} title="Voice Mode" subtitle="Choose your assistant's voice and speed">
       <Tile>
         <VoiceSelector />
+      </Tile>
+    </SectionCard>
+  );
+
+  const PersonaCard = (
+    <SectionCard icon={Sparkles} title="Arc's Persona & Prompt" subtitle="Customize tone, candor, and behavior">
+      <Tile>
+        <div className="space-y-3">
+          <div className="text-xs text-muted-foreground leading-relaxed">
+            Customize how Arc speaks, responds, and carries conversation. By default, Arc is honest, grounded, warm, and candid with care. Anything you enter here customizes that prompt slot.
+          </div>
+          <Textarea
+            value={personaPromptDraft}
+            onChange={(e) => { setPersonaPromptDraft(e.target.value); setPersonaPromptDirty(true); }}
+            placeholder="e.g. Talk to me like an experienced founder. Be direct and ultra-candid, cut straight to the point, and don't sugarcoat feedback..."
+            className="glass border-glass-border min-h-[96px] text-sm resize-y"
+            disabled={savingPersona}
+          />
+          {personaPromptDirty && (
+            <div className="flex items-center gap-2">
+              <GlassButton variant="ghost" size="sm" onClick={handleSavePersonaPrompt} disabled={savingPersona}>
+                <Save className="w-3 h-3 mr-1" /> {savingPersona ? "Saving..." : "Save"}
+              </GlassButton>
+              <GlassButton
+                variant="ghost"
+                size="sm"
+                onClick={() => { setPersonaPromptDraft(profile?.context_info || ""); setPersonaPromptDirty(false); }}
+                disabled={savingPersona}
+              >
+                Reset
+              </GlassButton>
+            </div>
+          )}
+        </div>
       </Tile>
     </SectionCard>
   );
@@ -793,6 +853,7 @@ export function SettingsPanel() {
         return (
           <>
             {VoiceCard}
+            {PersonaCard}
             <ImageDefaultsCard />
             <LocalAIPanel />
             <Link

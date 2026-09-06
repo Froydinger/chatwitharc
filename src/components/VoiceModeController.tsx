@@ -234,11 +234,24 @@ async function buildVoiceSystemPrompt(
     
     voicePrompt += `\n\n${ARC_VOICE_STYLE_CONTEXT}`;
 
+    const voiceSpeed = useVoiceModeStore.getState().voiceSpeed;
+    if (voiceSpeed && voiceSpeed !== 1.0) {
+      if (voiceSpeed <= 0.85) {
+        voicePrompt += `\n\nPACING DIRECTIVE: Speak at a relaxed, unhurried, measured pace (~${voiceSpeed}x speed). Take your time with phrases without dragging words out unnaturally.`;
+      } else if (voiceSpeed <= 0.95) {
+        voicePrompt += `\n\nPACING DIRECTIVE: Speak at a slightly relaxed, easygoing pace (~${voiceSpeed}x speed).`;
+      } else if (voiceSpeed <= 1.15) {
+        voicePrompt += `\n\nPACING DIRECTIVE: Speak at a brisk, lively conversational cadence (~${voiceSpeed}x speed). Keep pauses between phrases tight.`;
+      } else {
+        voicePrompt += `\n\nPACING DIRECTIVE: Speak at a fast, energetic, punchy pace (~${voiceSpeed}x speed). Keep thoughts concise, minimize pauses between words and sentences, and deliver responses briskly.`;
+      }
+    }
+
     if (profile?.display_name) {
       voicePrompt += `\n\nUser: ${profile.display_name}`;
     }
     if (profile?.context_info?.trim()) {
-      voicePrompt += ` | Context: ${profile.context_info}`;
+      voicePrompt += `\n\nUser Persona & Context: ${profile.context_info.trim()}`;
     }
     if (contextBlocksResult.data && contextBlocksResult.data.length > 0) {
       const blocksText = contextBlocksResult.data.map((b: any) => b.content).join('\n');

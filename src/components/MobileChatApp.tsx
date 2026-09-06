@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal } from "lucide-react";
+import { Plus, Menu, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal, Volume2, Volume1, VolumeX } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
@@ -22,6 +22,8 @@ import { CanvasPanel } from "@/components/CanvasPanel";
 import { SearchCanvas } from "@/components/SearchCanvas";
 // CanvasTile removed - canvas now renders inline as chat message artifacts
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
 import { useTheme } from "@/hooks/useTheme";
@@ -286,6 +288,9 @@ export function MobileChatApp() {
   } = useArcStore();
   const isArcWorking = isLoading || isGeneratingImage || isSearchingChats || isAccessingMemory || isSearchingWeb;
   const isVoiceActive = useVoiceModeStore((s) => s.isActive);
+  const voiceVolume = useVoiceModeStore((s) => s.volume);
+  const setVoiceVolume = useVoiceModeStore((s) => s.setVolume);
+  const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false);
   const { profile } = useProfile();
   const { user, isAnonymous } = useAuth();
   const requireAuth = useRequireAuth();
@@ -961,6 +966,86 @@ export function MobileChatApp() {
               )}
 
 
+
+              {/* Voice Volume Button (when Voice Mode is active) */}
+              <AnimatePresence>
+                {isVoiceActive && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8, x: 10 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, x: 10 }}
+                    transition={{ type: "spring", damping: 20, stiffness: 350 }}
+                    className="relative"
+                  >
+                    <Popover open={isVolumePopoverOpen} onOpenChange={setIsVolumePopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <motion.div
+                          whileHover={{ scale: 1.1, y: -2 }}
+                          whileTap={{ scale: 0.95 }}
+                          transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                          className="cursor-pointer"
+                        >
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className={cn(
+                              "rounded-full glass-shimmer transition-all pointer-events-none",
+                              voiceVolume === 0 ? "text-muted-foreground" : "text-primary ring-2 ring-primary/40"
+                            )}
+                            title={`Voice Volume: ${Math.round(voiceVolume * 100)}%`}
+                            aria-label="Voice Volume"
+                          >
+                            {voiceVolume === 0 ? (
+                              <VolumeX className="h-4 w-4" />
+                            ) : voiceVolume < 0.5 ? (
+                              <Volume1 className="h-4 w-4" />
+                            ) : (
+                              <Volume2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </motion.div>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        side="bottom"
+                        align="end"
+                        sideOffset={8}
+                        className="w-56 p-3 rounded-2xl glass-card border border-primary/25 shadow-2xl backdrop-blur-2xl"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                              {voiceVolume === 0 ? <VolumeX className="h-3.5 w-3.5 text-muted-foreground" /> : <Volume2 className="h-3.5 w-3.5 text-primary" />}
+                              Voice Volume
+                            </span>
+                            <span className="text-xs font-mono text-muted-foreground">
+                              {Math.round(voiceVolume * 100)}%
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setVoiceVolume(voiceVolume === 0 ? 0.8 : 0)}
+                              className="p-1 rounded-lg hover:bg-muted/40 text-muted-foreground hover:text-foreground transition-colors"
+                              title={voiceVolume === 0 ? "Unmute" : "Mute"}
+                            >
+                              {voiceVolume === 0 ? <VolumeX className="h-3.5 w-3.5 text-destructive" /> : <Volume2 className="h-3.5 w-3.5" />}
+                            </button>
+                            <Slider
+                              value={[voiceVolume * 100]}
+                              min={0}
+                              max={100}
+                              step={1}
+                              onValueChange={(vals) => setVoiceVolume(vals[0] / 100)}
+                              className="flex-1"
+                              aria-label="Voice Volume Slider"
+                            />
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Music Player Button */}
               <motion.div 

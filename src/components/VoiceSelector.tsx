@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Loader2, Check, Volume2, MessageCircle } from 'lucide-react';
+import { Play, Loader2, Check, Volume2, MessageCircle, Gauge } from 'lucide-react';
 import { useVoiceModeStore, VoiceName } from '@/store/useVoiceModeStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useProfile } from '@/hooks/useProfile';
 import { cn } from '@/lib/utils';
 import { VOICES, VOICE_AVATARS } from '@/constants/voices';
+import { Slider } from '@/components/ui/slider';
 
 interface VoiceSelectorProps {
   onSave?: () => void;
@@ -14,7 +15,7 @@ interface VoiceSelectorProps {
 
 export function VoiceSelector({ onSave }: VoiceSelectorProps) {
   const { toast } = useToast();
-  const { selectedVoice, setSelectedVoice, isActive } = useVoiceModeStore();
+  const { selectedVoice, setSelectedVoice, voiceSpeed, setVoiceSpeed, isActive } = useVoiceModeStore();
   const { updateProfile } = useProfile();
   
   const [playingVoice, setPlayingVoice] = useState<VoiceName | null>(null);
@@ -177,6 +178,36 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
             </motion.button>
           );
         })}
+      </div>
+
+      {/* Speaking Speed Slider */}
+      <div className="pt-3 border-t border-border/40 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <Gauge className="w-4 h-4 text-primary" />
+            <span>Speaking Speed</span>
+          </div>
+          <span className="text-xs font-mono text-muted-foreground">
+            {voiceSpeed.toFixed(2)}x {voiceSpeed === 1 ? '(Default)' : voiceSpeed < 1 ? '(Relaxed)' : '(Brisk)'}
+          </span>
+        </div>
+        <div className="px-1 pt-1 pb-1">
+          <Slider
+            value={[Math.round(voiceSpeed * 100)]}
+            min={75}
+            max={150}
+            step={5}
+            onValueChange={(vals) => setVoiceSpeed(vals[0] / 100)}
+            className="w-full"
+            aria-label="Speaking Speed Slider"
+          />
+        </div>
+        <div className="flex justify-between text-[10px] text-muted-foreground px-1">
+          <span>0.75x Relaxed</span>
+          <span>1.0x Normal</span>
+          <span>1.25x Brisk</span>
+          <span>1.5x Fast</span>
+        </div>
       </div>
     </div>
   );
