@@ -45,7 +45,7 @@ import { PromptLibrary } from "@/components/PromptLibrary";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSearchStore } from "@/store/useSearchStore";
-import { useVoiceModeStore } from "@/store/useVoiceModeStore";
+import { useVoiceModeStore, prewarmMicrophone } from "@/store/useVoiceModeStore";
 import { cn } from "@/lib/utils";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { routeRequest } from "@/utils/routeRequest";
@@ -3275,6 +3275,10 @@ ${safeCode}
                     requireAuth("voice");
                     return;
                   }
+                  // Start mic acquisition immediately within the user gesture event frame
+                  // so Safari/WebKit and Chrome associate permission with direct user interaction.
+                  prewarmMicrophone();
+
                   const arc = useArcStore.getState();
                   const sessionId = arc.currentSessionId || arc.createNewSession();
                   const targetPath = `/chat/${sessionId}`;

@@ -15,6 +15,7 @@ export type RealtimeBrowserOutputEvent =
 export interface RealtimeBrowserTransportOptions {
   endpoint?: string;
   audioConstraints?: MediaTrackConstraints;
+  prewarmedStream?: Promise<MediaStream> | MediaStream | null;
   onOutputEvent?: (event: RealtimeBrowserOutputEvent) => void;
   onInputAmplitude?: (amplitude: number) => void;
   onOutputAmplitude?: (amplitude: number) => void;
@@ -128,15 +129,19 @@ export class RealtimeBrowserTransport {
     this.bindEvents();
 
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        audio: this.options.audioConstraints ?? {
-          channelCount: { ideal: 1 },
-          sampleRate: { ideal: 48000 },
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      if (this.options.prewarmedStream) {
+        stream = await this.options.prewarmedStream;
+      } else {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: this.options.audioConstraints ?? {
+            channelCount: { ideal: 1 },
+            sampleRate: { ideal: 48000 },
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+      }
 
       if (signal?.aborted || this.readyState !== RealtimeBrowserTransport.CONNECTING) {
         stream.getTracks().forEach((track) => track.stop());

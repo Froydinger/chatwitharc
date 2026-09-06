@@ -1,7 +1,7 @@
 import { BargeInProbe, BARGE_IN_PROBE_MS } from '@/lib/bargeInProbe';
 import { RealtimeBrowserTransport } from '@/lib/realtimeBrowserTransport';
 import { useRef, useCallback, useState, useEffect } from 'react';
-import { useVoiceModeStore, VoiceName, REALTIME_SUPPORTED_VOICES } from '@/store/useVoiceModeStore';
+import { useVoiceModeStore, VoiceName, REALTIME_SUPPORTED_VOICES, consumePendingMicStream } from '@/store/useVoiceModeStore';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UseOpenAIRealtimeOptions {
@@ -1565,6 +1565,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       const realtimeModel = realtimeSession.model || OPENAI_REALTIME_MODEL;
       if (generation !== connectionGeneration || !useVoiceModeStore.getState().isActive) return;
       const ws = new RealtimeBrowserTransport({
+        prewarmedStream: consumePendingMicStream(),
         onInputAmplitude: (level) => useVoiceModeStore.getState().setInputAmplitude(level),
         onOutputAmplitude: (level) => useVoiceModeStore.getState().setOutputAmplitude(level),
       });

@@ -147,6 +147,51 @@ export function setGlobalVolumeChangeHandler(handler: ((vol: number) => void) | 
   globalVolumeChangeHandler = handler;
 }
 
+// User-gesture microphone pre-warming
+let pendingMicPromise: Promise<MediaStream> | null = null;
+
+export function prewarmMicrophone(): Promise<MediaStream> | null {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    return null;
+  }
+  if (pendingMicPromise) return pendingMicPromise;
+
+  try {
+    const promise = navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: { ideal: 1 },
+        sampleRate: { ideal: 48000 },
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    promise.catch(() => {
+      // Handled downstream during connection
+    });
+    pendingMicPromise = promise;
+    return promise;
+  } catch (_) {
+    return null;
+  }
+}
+
+export function consumePendingMicStream(): Promise<MediaStream> | null {
+  const p = pendingMicPromise;
+  pendingMicPromise = null;
+  return p;
+}
+
+export function releasePendingMicStream(): void {
+  if (pendingMicPromise) {
+    const p = pendingMicPromise;
+    pendingMicPromise = null;
+    p.then((stream) => {
+      stream.getTracks().forEach((t) => t.stop());
+    }).catch(() => {});
+  }
+}
+
 export function getStoredVoiceVolume(): number {
   try {
     const v = localStorage.getItem('arc_voice_volume');
@@ -210,6 +255,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   
   // Actions
   activateVoiceMode: () => {
+    prewarmMicrophone();
     set({ 
       isActive: true, 
       status: 'listening',
@@ -236,6 +282,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   },
   
   deactivateVoiceMode: () => {
+    releasePendingMicStream();
     set({ 
       isActive: false, 
       status: 'idle',
