@@ -78,7 +78,7 @@ export async function getUserLocation(): Promise<UserLocation | null> {
   if (pendingLocationRequest) return pendingLocationRequest;
 
   pendingLocationRequest = (async () => {
-    const requestCoordinates = (enableHighAccuracy: boolean) => new Promise<{
+    const requestCoordinates = (enableHighAccuracy: boolean, maximumAge = 300_000) => new Promise<{
       coords: GeolocationCoordinates | null;
       errorCode?: number;
     }>((resolve) => {
@@ -86,7 +86,7 @@ export async function getUserLocation(): Promise<UserLocation | null> {
       const timerId = setTimeout(() => {
         console.warn("Geolocation prompt timed out manually.");
         resolve({ coords: null });
-      }, 15_000);
+      }, 12_000);
 
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -100,17 +100,21 @@ export async function getUserLocation(): Promise<UserLocation | null> {
           // remembers a genuine user denial itself.
           resolve({ coords: null, errorCode: error.code });
         },
-        { enableHighAccuracy, timeout: 12_000, maximumAge: 0 }
+        { enableHighAccuracy, timeout: 8_000, maximumAge }
       );
     });
 
-    // Retry transient iOS/provider failures once with lower accuracy. A real
-    // permission denial can only be changed by the user in OS settings.
-    let result = await requestCoordinates(true);
+    // Try standard accuracy first with OS cached position (resolves in ~50ms on mobile/desktop).
+    // If unavailable and not explicitly denied by the user, fallback to high accuracy.
+    let result = await requestCoordinates(false, 300_000);
     if (!result.coords && result.errorCode !== 1) {
-      result = await requestCoordinates(false);
+      result = await requestCoordinates(true, 0);
     }
     const coords = result.coords;
+
+    if (!coords && result.errorCode === 1 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('arc:location-permission-denied'));
+    }
 
     if (!coords) return null;
 

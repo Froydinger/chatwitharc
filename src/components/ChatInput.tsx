@@ -849,6 +849,21 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     };
   }, []);
 
+  // Notify user when browser/OS denies location access
+  useEffect(() => {
+    const handleLocationDenied = () => {
+      toast({
+        title: "Location access required",
+        description: "Please allow location access in your browser or device settings to find places near you.",
+        variant: "default",
+      });
+    };
+    window.addEventListener("arc:location-permission-denied", handleLocationDenied);
+    return () => {
+      window.removeEventListener("arc:location-permission-denied", handleLocationDenied);
+    };
+  }, [toast]);
+
   // Listen for user image choice selection (from choice button grid)
   useEffect(() => {
     const handleChoice = async (e: Event) => {

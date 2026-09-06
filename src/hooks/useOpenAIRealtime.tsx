@@ -23,6 +23,7 @@ interface UseOpenAIRealtimeOptions {
   onSaveMemory?: (memory: string, replaces?: string[]) => Promise<string>;
   onRecallMemory?: (query?: string) => Promise<string>;
   onDeleteMemory?: (keywords: string[]) => Promise<string>;
+  onGetUserLocation?: () => Promise<string>;
   onOpenBugReport?: (summary?: string) => Promise<string>;
   // Called when a session expires so the controller can inject conversation
   // context into the fresh session's system prompt.
@@ -1137,6 +1138,32 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               }));
               cleanupToolCall();
             }
+          } else if (name === 'get_user_location') {
+            console.log('Retrieving device location for voice session');
+            if (optionsRef.current.onGetUserLocation) {
+              withToolTimeout('get_user_location', call_id, optionsRef.current.onGetUserLocation(), 15000)
+                .then((locResult) => {
+                  sendFunctionResult(call_id, JSON.stringify({
+                    success: true,
+                    location: locResult
+                  }));
+                  cleanupToolCall();
+                })
+                .catch((error) => {
+                  console.error('Location fetch failed:', error);
+                  sendFunctionResult(call_id, JSON.stringify({
+                    success: false,
+                    error: error?.message || 'Location unavailable'
+                  }));
+                  cleanupToolCall();
+                });
+            } else {
+              sendFunctionResult(call_id, JSON.stringify({
+                success: false,
+                error: 'Location service not available'
+              }));
+              cleanupToolCall();
+            }
           } else if (name === 'search_past_chats') {
             try {
               const args = JSON.parse(argsStr || '{}');
@@ -1692,8 +1719,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               },
               {
                 type: 'function',
+                name: 'get_user_location',
+                description: 'Get the user\'s current device location (city, state, coordinates) to answer questions about nearby places, food, restaurants, weather, or recommendations near them.',
+                parameters: { type: 'object', properties: {} }
+              },
+              {
+                type: 'function',
                 name: 'web_search',
-                description: 'Search the web for real-time news, current events, or internet info.',
+                description: 'Search the web for real-time news, current events, local businesses, restaurants, places near the user, or internet info.',
                 parameters: {
                   type: 'object',
                   properties: { query: { type: 'string', description: 'Search query' } },

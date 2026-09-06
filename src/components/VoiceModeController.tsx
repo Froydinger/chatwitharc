@@ -274,6 +274,7 @@ CRITICAL: Always say something BEFORE using any tool so the user isn't left in s
 • IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. Image results and generating states appear directly in the chat thread. For changes like "edit that", "make it darker", "change the last one", or follow-ups after an image, use revise_image; it edits the latest generated/chat image. Do not mention internal retries unless the tool fully fails.
 • WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search ONLY for current/public internet facts, news, videos, places, products, or live information. Do NOT use web_search for personal questions, the user's vibe/preferences, or "based on our chats" — use search_past_chats or memory tools for those. Results and sources appear directly in the chat thread, so summarize naturally.
   IMPORTANT: Listen carefully to exact names and titles. If unsure, confirm before searching.
+• LOCATION & "NEAR ME" QUERIES: If the user asks for restaurants, food, weather, shops, or anything "near me" or nearby, say "Let me check what's near you" and call get_user_location or web_search immediately. Do NOT ask "where are you?" or ask for their city before attempting to retrieve their location via get_user_location.
 • WEATHER: For ANY weather question (current weather, temperature, forecast, conditions for a city), use get_weather — NOT web_search. Say "Let me check" first, then call get_weather. Weather appears directly in the chat thread; give a short, casual spoken summary.
 • REMINDERS / SCHEDULED TASKS: You CAN create reminders. For "remind me...", "set a reminder", "schedule this", "in five minutes", "tomorrow", or recurring reminders, say "I'll set that" FIRST, then use create_scheduled_task. The reminder confirmation card appears directly in the chat thread.
 • BUG REPORT / SUPPORT MESSAGE: When the user wants to report a bug, send feedback, contact the ArcAI team about a problem, or says something is broken, say "I'll open the report form" and use open_bug_report. The user reviews and submits it; never claim it was sent merely because the form opened.
@@ -763,6 +764,19 @@ export function VoiceModeController() {
     }
   }, [addMessage, flushTurnsBeforeCard, setIsFetchingWeather, setWeatherData]);
 
+  const handleGetUserLocation = useCallback(async (): Promise<string> => {
+    console.log('VoiceModeController: Getting device location for user query');
+    try {
+      const loc = getCachedLocation() || await getUserLocation();
+      if (loc) {
+        return `User's current device location: ${locationLabel(loc)} (latitude ${loc.latitude}, longitude ${loc.longitude}).`;
+      }
+      return "Device location is unavailable or permission was not granted by the user. Prompt the user to allow location access in their device settings or ask what city they are in.";
+    } catch (err: any) {
+      return `Failed to obtain device location: ${err?.message || 'unavailable'}. Ask what city to use.`;
+    }
+  }, []);
+
   const handleCreateScheduledTask = useCallback(async (request: string): Promise<string> => {
     const cleanRequest = request?.trim();
     if (!cleanRequest) return 'No reminder request provided.';
@@ -1090,6 +1104,7 @@ When the user shares their camera or attaches an image, describe what you see na
     onSaveMemory: handleSaveMemory,
     onRecallMemory: handleRecallMemory,
     onDeleteMemory: handleDeleteMemory,
+    onGetUserLocation: handleGetUserLocation,
     onOpenBugReport: async (summary) => {
       useBugReport.getState().openBugReport(summary || '');
       return 'The bug report form is open for the user to review and send.';
@@ -1423,6 +1438,20 @@ When the user shares their camera or attaches an image, describe what you see na
       }
     };
   }, [stopCameraCapture, disconnect, toast]);
+
+  useEffect(() => {
+    const handleLocationDenied = () => {
+      toast({
+        title: 'Location access required',
+        description: 'Please enable Location in your browser or device settings so Arc can find spots near you.',
+        variant: 'default',
+      });
+    };
+    window.addEventListener('arc:location-permission-denied', handleLocationDenied);
+    return () => {
+      window.removeEventListener('arc:location-permission-denied', handleLocationDenied);
+    };
+  }, [toast]);
 
   return null;
 }
