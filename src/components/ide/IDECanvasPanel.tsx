@@ -92,6 +92,8 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const setIdeProjectId = useIDEStore((s) => s.setIdeProjectId);
 
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
+  const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   const [files, setFiles] = useState<VirtualFileSystem>(() => {
     const storeFiles = useIDEStore.getState().ideFiles;
@@ -138,9 +140,6 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const [projects, setProjects] = useState<LovableProject[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [newProjectPrompt, setNewProjectPrompt] = useState('');
-
-  const isMobile = useIsMobile();
-  const { toast } = useToast();
   const [reserveTrafficLightSpace, setReserveTrafficLightSpace] = useState(false);
 
   useEffect(() => {
@@ -300,11 +299,20 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
     supabase
       .from('ide_projects')
-      .select('title, netlify_url, netlify_site_id, netlify_subdomain, messages, versions')
+      .select('title, files, netlify_url, netlify_site_id, netlify_subdomain, messages, versions')
       .eq('id', ideProjectId)
       .single()
       .then(({ data }) => {
         if (!data) return;
+
+        // Hydrate files if not already populated or if store was reset on page refresh
+        const storeFiles = useIDEStore.getState().ideFiles;
+        if ((!storeFiles || Object.keys(storeFiles).length === 0) && (data as any).files) {
+          const loadedFiles = ensureSystemFiles((data as any).files);
+          setFiles(loadedFiles);
+          filesRef.current = loadedFiles;
+          useIDEStore.getState().setIdeFiles(loadedFiles);
+        }
 
         setDeployedUrl((data as any).netlify_url || null);
         setNetlifySiteId((data as any).netlify_site_id || null);
@@ -333,6 +341,13 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
           lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesRef.current, dbMessages as ChatMessage[], ideProjectId);
         }
       });
+  }, [ideProjectId]);
+
+  // Keep browser URL in sync with active project ID (/build/:projectId)
+  useEffect(() => {
+    if (ideProjectId && typeof window !== 'undefined' && !window.location.pathname.includes(ideProjectId)) {
+      window.history.replaceState(null, '', `/build/${ideProjectId}`);
+    }
   }, [ideProjectId]);
 
   // Auto-saving snapshot listener

@@ -191,9 +191,28 @@ function detectPlatform() {
 }
 
 export function usePushNotifications() {
-  const [supported, setSupported] = useState(false);
-  const [permission, setPermission] = useState<PushPermission>("default");
-  const [subscribed, setSubscribed] = useState(false);
+  const [supported, setSupported] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return getDesktopNotificationBridge() !== null || ("Notification" in window && "serviceWorker" in navigator);
+  });
+  const [permission, setPermission] = useState<PushPermission>(() => {
+    if (typeof window === "undefined") return "default";
+    const desktopBridge = getDesktopNotificationBridge();
+    if (desktopBridge) {
+      return localStorage.getItem(DESKTOP_NOTIFICATIONS_KEY) === "true" ? "granted" : "default";
+    }
+    if (typeof Notification !== "undefined" && Notification.permission) {
+      return Notification.permission as PushPermission;
+    }
+    return "default";
+  });
+  const [subscribed, setSubscribed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (localStorage.getItem(DESKTOP_NOTIFICATIONS_KEY) === "true") return true;
+    if (localStorage.getItem("push-prompt-enabled") === "true") return true;
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") return true;
+    return false;
+  });
   const [loading, setLoading] = useState(false);
   const [availabilityReason, setAvailabilityReason] =
     useState<PushAvailabilityReason>("ready");

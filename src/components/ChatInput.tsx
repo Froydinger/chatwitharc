@@ -1651,6 +1651,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         }
         const cleanPrompt = extractPrefixPrompt(finalMessage);
         useIDEStore.getState().openIDECanvas(cleanPrompt || "New App", undefined, !!cleanPrompt);
+        navigate('/build');
         setLoading(false);
         return;
       }

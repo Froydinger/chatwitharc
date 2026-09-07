@@ -82,6 +82,7 @@ const BlogPostPage = lazy(() => import("./pages/BlogPostPage").then((m) => ({ de
 const DesktopAuthCallbackPage = lazy(() => import("./pages/DesktopAuthCallbackPage").then((m) => ({ default: m.DesktopAuthCallbackPage })));
 const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage").then((m) => ({ default: m.AuthCallbackPage })));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
+const AppBuilderPage = lazy(() => import("./pages/AppBuilderPage").then((m) => ({ default: m.AppBuilderPage })));
 import { useAuth } from "@/hooks/useAuth";
 import { GUEST_CHAT_ENABLED } from "@/lib/features";
 import { ThemedLogo } from "@/components/ThemedLogo";
@@ -304,8 +305,8 @@ const App = () => {
                     <Route path="/upgrade" element={<UpgradePage />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
-                    <Route path="/build" element={<Navigate to="/" replace />} />
-                    <Route path="/build/:projectId" element={<Navigate to="/" replace />} />
+                    <Route path="/build" element={<AppBuilderPage />} />
+                    <Route path="/build/:projectId" element={<AppBuilderPage />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/unsubscribe" element={<UnsubscribePage />} />
                     <Route path="/support" element={<SupportPage />} />

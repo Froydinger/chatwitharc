@@ -253,6 +253,7 @@ useEffect(() => {
       return;
     }
     openIDECanvas(prompt || "New App", undefined, !!prompt);
+    navigate('/build');
   };
 
   const dashboardEntryRef = useRef<'swipe' | 'default'>(
@@ -961,9 +962,9 @@ useEffect(() => {
             </div>
             <div className="flex items-center gap-2">
               <Button
-                onClick={() => handleLaunchAppBuilder()}
+                onClick={() => setActiveTab("apps")}
                 className="h-8 sm:h-9 px-3 rounded-full bg-purple-500/10 hover:bg-purple-500/15 dark:bg-gradient-to-r dark:from-purple-500/20 dark:via-primary/20 dark:to-purple-500/20 dark:hover:from-purple-500/30 dark:hover:to-primary/30 border border-purple-500/30 text-purple-700 dark:text-purple-200 text-xs font-semibold gap-1.5 shadow-sm transition-all"
-                title="Launch App Builder"
+                title="View All Apps"
               >
                 <Smartphone className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
                 <span className="hidden sm:inline">App Builder</span>
@@ -1097,7 +1098,7 @@ useEffect(() => {
                     {!isAdmin && !hasBoost && <Button variant="outline" size="sm" className="mt-4 w-full rounded-full" onClick={() => openCheckout()}>Explore Boost</Button>}
                   </div>
                   <button 
-                    onClick={() => handleLaunchAppBuilder()} 
+                    onClick={() => setActiveTab("apps")} 
                     className="rounded-3xl border border-purple-500/25 bg-purple-500/10 p-4 text-left shadow-sm transition-all hover:border-purple-500/40 hover:bg-purple-500/15 dark:border-purple-500/30 dark:bg-purple-500/10 dark:hover:border-purple-500/50 dark:hover:bg-purple-500/15"
                   >
                     <div className="flex items-center justify-between">
@@ -1500,6 +1501,7 @@ useEffect(() => {
                               return;
                             }
                             reopenIDECanvas(app.id, app.files || {}, app.messages);
+                            navigate(`/build/${app.id}`);
                           }}
                           className="group relative flex flex-col justify-between rounded-2xl border border-border/40 bg-card/60 hover:bg-card/90 hover:border-purple-500/40 p-4 transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 overflow-hidden"
                         >
@@ -1577,6 +1579,7 @@ useEffect(() => {
                                   return;
                                 }
                                 reopenIDECanvas(app.id, app.files || {}, app.messages);
+                                navigate(`/build/${app.id}`);
                               }}
                               className="h-7 px-2.5 text-xs rounded-lg text-purple-700 hover:text-purple-900 bg-purple-500/10 hover:bg-purple-500/20 dark:text-purple-300 dark:hover:text-purple-100 dark:bg-transparent dark:hover:bg-purple-500/20 ml-auto shrink-0 gap-1 font-semibold"
                             >

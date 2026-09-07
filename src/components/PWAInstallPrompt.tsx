@@ -27,22 +27,30 @@ export function PWAInstallPrompt() {
       setShow(false);
       return;
     }
+    // Directly check browser Notification API: if already granted or denied, NEVER prompt!
+    if (typeof window !== "undefined" && typeof Notification !== "undefined" && Notification.permission !== "default") {
+      setShow(false);
+      return;
+    }
+    // If user already enabled or opted out, never prompt
+    if (
+      typeof window !== "undefined" &&
+      (localStorage.getItem("push-prompt-enabled") === "true" ||
+        localStorage.getItem("arcai-desktop-notifications-enabled") === "true" ||
+        localStorage.getItem(FOREVER_KEY) === "true")
+    ) {
+      setShow(false);
+      return;
+    }
     if (!supported || subscribed) {
       setShow(false);
       return;
     }
-    // Only prompt when permission is in "default" state (user hasn't made a choice yet).
-    // If notifications are already enabled ("granted") or blocked ("denied"), never prompt!
     if (permission !== "default") {
       setShow(false);
       return;
     }
     if (availabilityReason !== "ready") {
-      // ios/macOS-needs-install or unsupported — don't nag
-      setShow(false);
-      return;
-    }
-    if (localStorage.getItem(FOREVER_KEY) === "true") {
       setShow(false);
       return;
     }
@@ -58,6 +66,7 @@ export function PWAInstallPrompt() {
 
   const handleEnable = async () => {
     try {
+      localStorage.setItem("push-prompt-enabled", "true");
       await subscribe();
       toast.success("Push enabled — check for the welcome ping!");
       setShow(false);
@@ -75,6 +84,17 @@ export function PWAInstallPrompt() {
     localStorage.setItem(FOREVER_KEY, "true");
     setShow(false);
   };
+
+  // Immediate synchronous bail out if already granted or previously enabled
+  if (
+    typeof window !== "undefined" &&
+    ((typeof Notification !== "undefined" && Notification.permission !== "default") ||
+      localStorage.getItem("push-prompt-enabled") === "true" ||
+      localStorage.getItem("arcai-desktop-notifications-enabled") === "true" ||
+      localStorage.getItem(FOREVER_KEY) === "true")
+  ) {
+    return null;
+  }
 
   if (!show) return null;
 

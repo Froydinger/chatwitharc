@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Code2, Search, Rocket, ExternalLink, Layers, Trash2, Wrench, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -30,6 +31,7 @@ interface IDEProject {
 }
 
 export function AppsPanel() {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { setRightPanelOpen } = useArcStore();
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
@@ -99,6 +101,7 @@ export function AppsPanel() {
       setRightPanelOpen(false);
     }
     reopenIDECanvas(project.id, project.files, project.messages);
+    navigate(`/build/${project.id}`);
   };
 
   const handleDelete = async (e: React.MouseEvent, projectId: string) => {
