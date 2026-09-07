@@ -2,8 +2,16 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useArcStore } from '@/store/useArcStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { 
-  ArrowLeft, Code2, Eye, Download, Copy, Check, Sparkles, Cloud, Trash2, Rocket, Plus, ExternalLink, Calendar, Loader2, Play 
+  ArrowLeft, Code2, Eye, Download, Copy, Check, Sparkles, Cloud, Trash2, Rocket, Plus, ExternalLink, Calendar, Loader2, Play, GitBranch, ChevronDown, FolderArchive 
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { exportProjectAsZip } from '@/lib/exportZip';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -569,17 +577,26 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleExport = () => {
-    const allCode = Object.entries(files)
-      .map(([path, file]) => `// === ${path} ===\n${file.content}`)
-      .join('\n\n');
-    const blob = new Blob([allCode], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `arc-app-export.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const projectName = messages.find(m => m.role === 'user')?.content?.slice(0, 40) || 'arc-app';
+      const { filename } = await exportProjectAsZip(projectName, files);
+      toast({ 
+        title: 'Codebase Exported (ZIP)',
+        description: `Downloaded ${filename} ready for Git repository initialization.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Export failed',
+        description: err?.message || 'Could not package codebase.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleGoHome = () => {
@@ -590,62 +607,189 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
   // Render Workspace
   return (
-    <div className={cn("h-full flex flex-col bg-[#0b0c0e] text-foreground", className)}>
-      {/* Header */}
-      <header className="px-4 py-2.5 border-b border-border/10 bg-[#0d0e10] flex items-center justify-between shrink-0 select-none">
+    <div className={cn("h-full flex flex-col bg-[#08090c] text-foreground select-none", className)}>
+      {/* Floating Glass Studio Header Dock */}
+      <header className="px-4 py-2.5 mx-3 mt-2.5 mb-1.5 rounded-2xl bg-[#0f1117]/85 border border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+        {/* Left: Project identity & Back */}
         <div className="flex items-center gap-3">
           <Button 
             size="sm" 
             variant="ghost" 
             onClick={handleGoHome}
-            className="h-7 px-2.5 rounded-lg hover:bg-white/5 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            className="h-8 px-2.5 rounded-xl hover:bg-white/10 gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-all"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Dashboard</span>
+            <span className="hidden sm:inline">Dashboard</span>
           </Button>
-          <div className="h-4 w-[1px] bg-border/20 shrink-0" />
+
+          <div className="h-4 w-[1px] bg-white/10 shrink-0" />
+
+          {/* Project Title with Themed Logo */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold max-w-[200px] truncate">
-              {messages.find(m => m.role === 'user')?.content?.slice(0, 50) || 'Active Workspace'}
+            <div className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center p-1 shrink-0">
+              <ThemedLogo className="w-full h-full object-contain" />
+            </div>
+            <span className="text-xs font-semibold max-w-[180px] sm:max-w-[240px] truncate text-foreground">
+              {messages.find(m => m.role === 'user')?.content?.slice(0, 45) || 'Arc Web App'}
             </span>
-            <span className="text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 py-0.2 rounded uppercase tracking-wider select-none scale-90 origin-left">Beta</span>
+            <span className="text-[9px] font-mono font-bold bg-primary/15 text-primary border border-primary/25 px-1.5 py-0.2 rounded-md uppercase tracking-wider select-none">
+              LUNA
+            </span>
           </div>
         </div>
+
+        {/* Center: Segmented View Mode Tabs */}
+        {!isMobile && (
+          <div className="flex items-center bg-[#14161f] border border-white/5 rounded-xl p-1 shadow-inner">
+            <button
+              onClick={() => setActiveTab('preview')}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg font-medium transition-all",
+                activeTab === 'preview' 
+                  ? "bg-white/10 text-foreground shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Eye className="h-3.5 w-3.5" />
+              <span>Preview</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('code')}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg font-medium transition-all",
+                activeTab === 'code' 
+                  ? "bg-white/10 text-foreground shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Code2 className="h-3.5 w-3.5" />
+              <span>Code Editor</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('cloud')}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1 text-xs rounded-lg font-medium transition-all",
+                activeTab === 'cloud' 
+                  ? "bg-white/10 text-foreground shadow-sm" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Cloud className="h-3.5 w-3.5" />
+              <span>Database & Cloud</span>
+            </button>
+          </div>
+        )}
+
+        {/* Right: Actions */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={handleCopyAll} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
-            {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
+          {/* Netlify Publish with askarc.chat domain */}
+          <Button
+            size="sm"
+            onClick={() => setShowPublishDialog(true)}
+            className="h-8 px-3 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium text-xs gap-1.5 shadow-md hover:opacity-95 transition-all"
+          >
+            <Rocket className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{deployedUrl ? 'Update App' : 'Deploy Live'}</span>
           </Button>
-          <Button variant="ghost" size="sm" onClick={handleExport} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
-            <Download className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" onClick={closeIDE} className="text-xs h-7 px-3 rounded-lg hover:bg-white/5">
-            Close Builder
+
+          {/* Export Codebase / Git Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                disabled={isExporting}
+                className="h-8 px-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all gap-1.5 text-xs"
+                title="Export codebase"
+              >
+                {isExporting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                <span className="hidden md:inline">Export</span>
+                <ChevronDown className="w-3 h-3 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-60 bg-[#0f1117]/95 border-white/10 backdrop-blur-xl rounded-xl p-1.5 shadow-2xl">
+              <DropdownMenuItem 
+                onClick={handleExport}
+                className="flex items-center gap-2.5 text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10"
+              >
+                <FolderArchive className="w-4 h-4 text-primary shrink-0" />
+                <div className="flex flex-col">
+                  <span className="font-medium text-foreground">Download Codebase</span>
+                  <span className="text-[10px] text-muted-foreground">Vite + React ZIP ready for Git</span>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem 
+                onClick={handleCopyAll}
+                className="flex items-center gap-2.5 text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10"
+              >
+                {copied ? <Check className="w-4 h-4 text-primary shrink-0" /> : <Copy className="w-4 h-4 text-muted-foreground shrink-0" />}
+                <div className="flex flex-col">
+                  <span className="font-medium text-foreground">Copy All Code</span>
+                  <span className="text-[10px] text-muted-foreground">Copy all files to clipboard</span>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="bg-white/10 my-1" />
+
+              <DropdownMenuItem 
+                onClick={() => {
+                  toast({
+                    title: "GitHub Sync Coming Soon",
+                    description: "Direct 1-click push to GitHub repositories will be supported in an upcoming Arc release. For now, download the ZIP and run git init.",
+                  });
+                }}
+                className="flex items-center justify-between text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10 opacity-80"
+              >
+                <div className="flex items-center gap-2.5">
+                  <GitBranch className="w-4 h-4 text-purple-400 shrink-0" />
+                  <span className="font-medium text-foreground">Push to GitHub</span>
+                </div>
+                <span className="text-[9px] font-mono uppercase bg-purple-500/15 text-purple-400 border border-purple-500/25 px-1.5 py-0.5 rounded">Soon</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={closeIDE} 
+            className="text-xs h-8 px-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+          >
+            Close
           </Button>
         </div>
       </header>
+
+      {/* Boost Entitlement Banner */}
       {!hasBoost && !isAdmin && (
-        <div className="px-4 py-2 bg-gradient-to-r from-purple-500/10 via-primary/10 to-purple-500/10 border-b border-purple-500/20 flex items-center justify-between shrink-0 text-xs">
+        <div className="mx-3 mb-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500/10 via-primary/10 to-purple-500/10 border border-purple-500/20 flex items-center justify-between shrink-0 text-xs">
           <div className="flex items-center gap-2 text-purple-300">
             <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
-            <span>ArcAI Boost is required to generate and edit apps.</span>
+            <span>ArcAI Boost is required to generate, edit, and publish web applications.</span>
           </div>
           <Button
             size="sm"
             onClick={() => openCheckout()}
-            className="h-6 px-2.5 text-[11px] rounded-md bg-purple-500 hover:bg-purple-600 text-white shadow-sm"
+            className="h-6 px-2.5 text-[11px] rounded-lg bg-purple-500 hover:bg-purple-600 text-white shadow-sm"
           >
             Upgrade to Boost
           </Button>
         </div>
       )}
 
-      {/* Workspace Panel Split */}
-      <div className="flex-1 overflow-hidden relative">
+      {/* Workspace Panel Area */}
+      <div className="flex-1 overflow-hidden relative mx-3 mb-2 rounded-2xl border border-white/5 bg-[#0b0c10] shadow-2xl">
         {isMobile ? (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="h-full flex flex-col">
-            <TabsList className="w-full justify-start rounded-none border-b border-border/10 bg-[#0d0e10] px-3 h-9 shrink-0">
-              <TabsTrigger value="preview" className="gap-1.5 text-xs">Preview</TabsTrigger>
-              <TabsTrigger value="code" className="gap-1.5 text-xs">Code</TabsTrigger>
+            <TabsList className="w-full justify-start rounded-none border-b border-white/10 bg-[#0d0e12] px-3 h-10 shrink-0 gap-1">
+              <TabsTrigger value="preview" className="gap-1.5 text-xs rounded-lg">Preview</TabsTrigger>
+              <TabsTrigger value="code" className="gap-1.5 text-xs rounded-lg">Code</TabsTrigger>
+              <TabsTrigger value="cloud" className="gap-1.5 text-xs rounded-lg">Database</TabsTrigger>
             </TabsList>
             <TabsContent value="preview" className="flex-1 m-0 min-h-0">
               <IDEPreviewPanel 
@@ -679,10 +823,14 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 )}
               </div>
             </TabsContent>
+            <TabsContent value="cloud" className="flex-1 m-0 overflow-y-auto">
+              <IDECloudPanel files={files} setFiles={setFiles} />
+            </TabsContent>
           </Tabs>
         ) : (
           <ResizablePanelGroup direction="horizontal">
-            <ResizablePanel defaultSize={32} minSize={20} maxSize={45}>
+            {/* Left AI Sidecar Chat */}
+            <ResizablePanel defaultSize={32} minSize={22} maxSize={45} className="min-w-[280px]">
               <IDEChatPanel
                 messages={messages}
                 liveActions={liveActions}
@@ -693,33 +841,35 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 syncStatus={syncStatus}
               />
             </ResizablePanel>
-            <ResizableHandle withHandle />
+
+            <ResizableHandle className="w-1 bg-white/5 hover:bg-primary/30 transition-colors cursor-col-resize" />
+
+            {/* Right Main Stage: Preview, Code, or Cloud */}
             <ResizablePanel defaultSize={68}>
               <div className="h-full flex flex-col">
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="h-full flex flex-col">
-                  <TabsList className="w-full justify-start rounded-none border-b border-border/10 bg-[#0d0e10] px-3 h-9 shrink-0">
-                    <TabsTrigger value="preview" className="gap-1.5 text-xs">Preview</TabsTrigger>
-                    <TabsTrigger value="code" className="gap-1.5 text-xs">Code</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="preview" className="flex-1 m-0 min-h-0">
-                    <IDEPreviewPanel 
-                      files={files} 
-                      onError={handlePreviewError} 
-                      deployedUrl={deployedUrl}
-                      onPublishClick={() => setShowPublishDialog(true)}
-                    />
-                  </TabsContent>
-                  <TabsContent value="code" className="flex-1 m-0">
-                    <IDECodeEditor 
-                      files={files} 
-                      selectedFile={selectedFile} 
-                      setSelectedFile={setSelectedFile} 
-                      onFileChange={handleFileChange}
-                      onAddFile={handleAddFile}
-                      onDeleteFile={handleDeleteFile}
-                    />
-                  </TabsContent>
-                </Tabs>
+                {activeTab === 'preview' && (
+                  <IDEPreviewPanel 
+                    files={files} 
+                    onError={handlePreviewError} 
+                    deployedUrl={deployedUrl}
+                    onPublishClick={() => setShowPublishDialog(true)}
+                  />
+                )}
+                {activeTab === 'code' && (
+                  <IDECodeEditor 
+                    files={files} 
+                    selectedFile={selectedFile} 
+                    setSelectedFile={setSelectedFile} 
+                    onFileChange={handleFileChange}
+                    onAddFile={handleAddFile}
+                    onDeleteFile={handleDeleteFile}
+                  />
+                )}
+                {activeTab === 'cloud' && (
+                  <div className="h-full overflow-y-auto bg-[#0b0c10]">
+                    <IDECloudPanel files={files} setFiles={setFiles} />
+                  </div>
+                )}
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>

@@ -120,6 +120,7 @@ powered by Luna (`gpt-5.6-luna`) with medium reasoning.
   canvases, tagged with an "App" badge. Clicking an app card reopens it in the IDE.
 - **Backend**: Managed via the `agent` Supabase Edge Function using `gpt-5.6-luna`
   at medium reasoning effort with real-time SSE streaming, keepalive pings, and live action events.
+- **Database, Auth & Export**: Lightweight cloud database SDK (`netlifyDb.ts`) supports key-value records, collections, and end-user accounts/auth (`NetlifyAuthModal.tsx`). Projects can be exported as a full Git-ready Vite+React TypeScript ZIP (`exportZip.ts`) or deployed directly to `*.askarc.chat`.
 
 ## Video generation (disabled)
 
