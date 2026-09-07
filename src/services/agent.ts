@@ -1,7 +1,7 @@
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 import { resolveReasoningEffort, useModelStore } from '@/store/useModelStore';
 
-const AGENT_REQUEST_TIMEOUT_MS = 180000;
+const AGENT_REQUEST_TIMEOUT_MS = 240000;
 const AGENT_INACTIVITY_TIMEOUT_MS = 120000;
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
@@ -65,7 +65,7 @@ export async function sendAgentMessage(
         messages,
         currentFiles,
         model: 'gpt-5.6-luna',
-        reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, 3) || 'high',
+        reasoningEffort: 'medium',
       }),
       signal: requestController.signal,
     });
@@ -129,7 +129,12 @@ export async function sendAgentMessage(
 
   const processLine = (line: string) => {
     if (line.endsWith('\r')) line = line.slice(0, -1);
-    if (line.startsWith(':') || line.trim() === '') return;
+    if (line.startsWith(':')) {
+      // SSE comment / keepalive ping from server
+      resetInactivityTimer();
+      return;
+    }
+    if (line.trim() === '') return;
     if (!line.startsWith('data: ')) return;
 
     const jsonStr = line.slice(6).trim();
@@ -150,6 +155,10 @@ export async function sendAgentMessage(
     const actionId = crypto.randomUUID();
 
     switch (event.type) {
+      case 'ping': {
+        resetInactivityTimer();
+        break;
+      }
       case 'status': {
         const a: AgentAction = { id: actionId, type: 'status', message: event.message, timestamp: Date.now() };
         actions.push(a);

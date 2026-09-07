@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const AI_GATEWAY = "https://api.openai.com/v1/chat/completions";
 const DEFAULT_AGENT_MODEL = "gpt-5.6-luna";
-const AI_REQUEST_TIMEOUT_MS = 150000;
+const AI_REQUEST_TIMEOUT_MS = 240000;
 
 const AGENT_SYSTEM_PROMPT = `You are **Arc Code**, a senior software engineer building production-ready React web apps.
 
@@ -43,6 +43,10 @@ Rules:
 • Keep all your code functional, valid, and syntactically correct.
 `;
 
+function cleanPath(raw: string): string {
+  return raw.replace(/[`*'"[\]]/g, "").trim();
+}
+
 function normalizeMessages(input: any): { role: "user" | "assistant" | "system"; content: string }[] {
   if (!Array.isArray(input)) return [];
 
@@ -62,28 +66,29 @@ function parseFilesFromMarkdown(text: string): { files: Record<string, string>; 
   const deleteRegex = /(?:^|\n)\[DELETE\]\s*([a-zA-Z0-9_\-\.\/]+)/gi;
   let match;
   while ((match = deleteRegex.exec(text)) !== null) {
-    deletions.push(match[1].trim());
+    const p = cleanPath(match[1]);
+    if (p) deletions.push(p);
   }
 
   // Parse files Format A: ### path/to/file.tsx\n```lang\ncode\n```
-  const sectionRegex = /(?:^|\n)(?:###|##|#)\s*([a-zA-Z0-9_\-\.\/]+)\s*[\r\n]+```[a-zA-Z0-9_-]*[\r\n]+([\s\S]*?)[\r\n]+```/gi;
+  const sectionRegex = /(?:^|\n)(?:###|##|#)\s*([a-zA-Z0-9_\-\.\/`*]+)\s*[\r\n]+```[a-zA-Z0-9_-]*[\r\n]+([\s\S]*?)[\r\n]+```/gi;
   while ((match = sectionRegex.exec(text)) !== null) {
-    const path = match[1].trim();
-    files[path] = match[2];
+    const path = cleanPath(match[1]);
+    if (path) files[path] = match[2];
   }
 
   // Parse files Format B: [FILEPATH]\npath\n[CONTENT]\n```...\ncode\n```
   const filepathRegex = /\[FILEPATH\]\s*([^\n\r]+)\s*\[CONTENT\]\s*```[a-zA-Z0-9_-]*[\r\n]+([\s\S]*?)[\r\n]+```/gi;
   while ((match = filepathRegex.exec(text)) !== null) {
-    const path = match[1].trim();
-    files[path] = match[2];
+    const path = cleanPath(match[1]);
+    if (path) files[path] = match[2];
   }
 
   // Fallback: search for any code blocks that specify a filepath in their header or as a preceding line
-  const fallbackRegex = /(?:file|path):\s*([a-zA-Z0-9_\-\.\/]+)\s*[\r\n]+```[a-zA-Z0-9_-]*[\r\n]+([\s\S]*?)[\r\n]+```/gi;
+  const fallbackRegex = /(?:file|path):\s*([a-zA-Z0-9_\-\.\/`*]+)\s*[\r\n]+```[a-zA-Z0-9_-]*[\r\n]+([\s\S]*?)[\r\n]+```/gi;
   while ((match = fallbackRegex.exec(text)) !== null) {
-    const path = match[1].trim();
-    if (!files[path]) {
+    const path = cleanPath(match[1]);
+    if (path && !files[path]) {
       files[path] = match[2];
     }
   }
@@ -118,6 +123,34 @@ serve(async (req) => {
       });
     }
 
+    // Server-side Boost & Admin entitlement check
+    const serviceClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: hasBoost, error: boostError } = await serviceClient.rpc("user_has_boost", {
+      check_user_id: user.id,
+    });
+
+    if (boostError) {
+      console.error("[AGENT] Boost check error:", boostError.message);
+      return new Response(JSON.stringify({ error: "Could not verify App Builder subscription." }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!hasBoost) {
+      return new Response(
+        JSON.stringify({ error: "ArcAI Boost subscription is required to use App Builder." }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const { messages: rawMessages, currentFiles, reasoningEffort } = await req.json();
     const messages = normalizeMessages(rawMessages);
     if (messages.length === 0) {
@@ -144,18 +177,39 @@ serve(async (req) => {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
+        let isClosed = false;
         const send = (event: Record<string, unknown>) => {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          if (isClosed) return;
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+          } catch {
+            isClosed = true;
+          }
         };
 
+        const sendComment = (comment: string) => {
+          if (isClosed) return;
+          try {
+            controller.enqueue(encoder.encode(`: ${comment}\n\n`));
+          } catch {
+            isClosed = true;
+          }
+        };
+
+        // Periodic keepalive to prevent proxies from terminating idle streams
+        const keepaliveInterval = setInterval(() => {
+          sendComment("keepalive");
+        }, 3000);
+
         try {
-          send({ type: "status", message: "Planning and writing code…" });
+          send({ type: "status", message: "Planning architecture with Luna…" });
           const conversationMessages = [{ role: "system", content: systemPrompt }, ...messages];
 
           const targetModel = DEFAULT_AGENT_MODEL;
+          // Default to medium reasoning as requested by user
           const selectedReasoningEffort = ['low', 'medium', 'high'].includes(reasoningEffort)
             ? reasoningEffort
-            : 'high';
+            : 'medium';
           const isReasoning = targetModel.startsWith("o1") || targetModel.startsWith("o3") || targetModel.startsWith("gpt-5.");
 
           const aiAbortController = new AbortController();
@@ -169,10 +223,10 @@ serve(async (req) => {
               body: JSON.stringify({
                 model: targetModel,
                 messages: conversationMessages,
-                stream: false,
+                stream: true,
                 ...(isReasoning
-                  ? { max_completion_tokens: 25000, reasoning_effort: selectedReasoningEffort }
-                  : { max_tokens: 12000, temperature: 0.2 }
+                  ? { max_completion_tokens: 30000, reasoning_effort: selectedReasoningEffort }
+                  : { max_tokens: 16000, temperature: 0.2 }
                 ),
               }),
               signal: aiAbortController.signal,
@@ -188,7 +242,7 @@ serve(async (req) => {
             clearTimeout(aiTimeout);
           }
 
-          if (!aiResp.ok) {
+          if (!aiResp.ok || !aiResp.body) {
             const status = aiResp.status;
             if (status === 429) {
               send({ type: "error", message: "Rate limited — please wait and try again." });
@@ -198,20 +252,82 @@ serve(async (req) => {
               send({ type: "error", message: "AI credits exhausted. Please add funds." });
               return;
             }
-            const t = await aiResp.text();
+            const t = await aiResp.text().catch(() => "");
             console.error("AI gateway error:", status, t);
             send({ type: "error", message: `AI error (${status}): ${t.slice(0, 100)}` });
             return;
           }
 
-          const data = await aiResp.json();
-          const responseText = data?.choices?.[0]?.message?.content;
-          if (!responseText) {
+          send({ type: "status", message: "Generating code…" });
+
+          const reader = aiResp.body.getReader();
+          const decoder = new TextDecoder();
+          let fullResponse = "";
+          let lineBuffer = "";
+          const announcedFiles = new Set<string>();
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            lineBuffer += decoder.decode(value, { stream: true });
+            const lines = lineBuffer.split("\n");
+            lineBuffer = lines.pop() || "";
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed.startsWith("data: ")) continue;
+              const payload = trimmed.slice(6).trim();
+              if (payload === "[DONE]") continue;
+
+              try {
+                const chunk = JSON.parse(payload);
+                const delta = chunk?.choices?.[0]?.delta;
+                if (!delta) continue;
+
+                if (delta.content) {
+                  fullResponse += delta.content;
+
+                  // Detect files as they begin streaming
+                  const match = /(?:###|##|#|\[FILEPATH\])\s*([a-zA-Z0-9_\-\.\/`*]+)/g;
+                  let m;
+                  while ((m = match.exec(fullResponse)) !== null) {
+                    const candidate = cleanPath(m[1]);
+                    if (
+                      (candidate.includes("/") || candidate.endsWith(".tsx") || candidate.endsWith(".ts") || candidate.endsWith(".css")) &&
+                      !announcedFiles.has(candidate)
+                    ) {
+                      announcedFiles.add(candidate);
+                      send({ type: "action", action: "creating", path: candidate });
+                      send({ type: "status", message: `Writing ${candidate}…` });
+                    }
+                  }
+                }
+              } catch {
+                // Ignore chunk parse errors
+              }
+            }
+          }
+
+          if (lineBuffer.trim().startsWith("data: ")) {
+            const payload = lineBuffer.trim().slice(6).trim();
+            if (payload !== "[DONE]") {
+              try {
+                const chunk = JSON.parse(payload);
+                const content = chunk?.choices?.[0]?.delta?.content;
+                if (content) fullResponse += content;
+              } catch {
+                // Ignore
+              }
+            }
+          }
+
+          if (!fullResponse.trim()) {
             send({ type: "error", message: "The AI did not return any code response." });
             return;
           }
 
-          const { files, deletions } = parseFilesFromMarkdown(responseText);
+          const { files, deletions } = parseFilesFromMarkdown(fullResponse);
           const hasFileChanges = Object.keys(files).length > 0 || deletions.length > 0;
 
           if (!hasFileChanges) {
@@ -223,13 +339,11 @@ serve(async (req) => {
             return;
           }
 
-          // Send action events for UI feedback
+          // Send action complete events
           for (const path of Object.keys(files)) {
-            send({ type: "action", action: "creating", path });
             send({ type: "action_complete", action: "created", path, success: true });
           }
           for (const path of deletions) {
-            send({ type: "action", action: "deleting", path });
             send({ type: "action_complete", action: "deleted", path, success: true });
           }
 
@@ -242,6 +356,8 @@ serve(async (req) => {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", message: e instanceof Error ? e.message : "Unknown error" })}\n\n`));
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         } finally {
+          clearInterval(keepaliveInterval);
+          isClosed = true;
           controller.close();
         }
       },

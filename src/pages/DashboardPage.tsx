@@ -1466,6 +1466,14 @@ useEffect(() => {
                             className="group rounded-xl border border-border/30 bg-muted/15 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer overflow-hidden flex flex-col"
                             onClick={() => {
                               if (item.type === 'app' && item.projectId && item.files) {
+                                if (!hasBoost && !isAdmin) {
+                                  openCheckout();
+                                  toast({
+                                    title: "ArcAI Boost Required",
+                                    description: "App Builder is exclusively available to Boost subscribers and admins.",
+                                  });
+                                  return;
+                                }
                                 reopenIDECanvas(item.projectId, item.files, item.messages);
                               } else {
                                 setSelectedCanvas(item);

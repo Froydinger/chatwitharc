@@ -8,9 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useArcStore } from "@/store/useArcStore";
 import { useIDEStore } from "@/store/useIDEStore";
+import { useSubscription } from "@/hooks/useSubscription";
 import type { VirtualFileSystem } from "@/types/ide";
 import { cn } from "@/lib/utils";
 import { getFaviconByLabel } from "@/constants/faviconOptions";
+import { toast } from "sonner";
 
 interface IDEProject {
   id: string;
@@ -29,6 +31,7 @@ interface IDEProject {
 export function AppsPanel() {
   const isMobile = useIsMobile();
   const { setRightPanelOpen } = useArcStore();
+  const { hasBoost, isAdmin, openCheckout } = useSubscription();
   const reopenIDECanvas = useIDEStore((s) => s.reopenIDECanvas);
   const [projects, setProjects] = useState<IDEProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,6 +63,11 @@ export function AppsPanel() {
   };
 
   const handleOpen = (project: IDEProject) => {
+    if (!hasBoost && !isAdmin) {
+      openCheckout();
+      toast.error("ArcAI Boost is required to use App Builder.");
+      return;
+    }
     if (isMobile || window.innerWidth < 1024) {
       setRightPanelOpen(false);
     }

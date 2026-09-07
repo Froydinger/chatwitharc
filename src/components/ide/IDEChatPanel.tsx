@@ -172,8 +172,9 @@ export function IDEChatPanel({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask Arc to change styling, add pages, or fix errors…"
-            className="flex-1 min-h-[44px] max-h-28 resize-none text-xs bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-2"
+            placeholder="Ask Arc to change something..."
+            rows={1}
+            className="flex-1 min-h-[40px] max-h-28 resize-none text-xs bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-2"
             disabled={isLoading}
           />
           <Button 

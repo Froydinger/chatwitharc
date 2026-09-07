@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { RefreshCw, Globe, Monitor, Smartphone, Rocket, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -21,13 +21,18 @@ type ViewMode = 'desktop' | 'phone';
 function SandpackErrorListener({ onError }: { onError?: (error: string) => void }) {
   const { sandpack } = useSandpack();
   const { error } = sandpack;
+  const onErrorRef = useRef(onError);
 
   useEffect(() => {
-    if (error && onError) {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  useEffect(() => {
+    if (error && onErrorRef.current) {
       const errMsg = error.message || String(error);
-      onError(errMsg);
+      onErrorRef.current(errMsg);
     }
-  }, [error, onError]);
+  }, [error]);
 
   return null;
 }
@@ -42,15 +47,14 @@ export function IDEPreviewPanel({
   const [previewKey, setPreviewKey] = useState(0);
 
   // Map VirtualFileSystem to Sandpack files structure
-  const sandpackFiles = Object.entries(files).reduce((acc, [path, file]) => {
-    const sandpackPath = path.startsWith('/') ? path : `/${path}`;
-    acc[sandpackPath] = file.content;
-    return acc;
-  }, {} as Record<string, string>);
+  const sandpackFiles = useMemo(() => {
+    const map = Object.entries(files).reduce((acc, [path, file]) => {
+      const sandpackPath = path.startsWith('/') ? path : `/${path}`;
+      acc[sandpackPath] = file.content;
+      return acc;
+    }, {} as Record<string, string>);
 
-  // Add default configurations
-
-  sandpackFiles['/index.html'] = `<!DOCTYPE html>
+    map['/index.html'] = `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -71,6 +75,9 @@ export function IDEPreviewPanel({
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>`;
+
+    return map;
+  }, [files]);
 
   const handleRefresh = () => {
     setPreviewKey(prev => prev + 1);

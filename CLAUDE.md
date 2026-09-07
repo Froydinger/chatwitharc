@@ -107,17 +107,19 @@ is not the thing deploying edge functions or migrations.
 ## App Builder (IDE)
 
 The App Builder allows users to create full interactive React web applications
-powered by Luna (`gpt-5.6-luna`) with high reasoning.
+powered by Luna (`gpt-5.6-luna`) with medium reasoning.
+- **Entitlement**: Exclusively available to ArcAI Boost subscribers and admins
+  (enforced both client-side and in the `agent` edge function via `user_has_boost`).
 - **Triggers**: Accessible via the `+` Tools & Actions menu ("App" tool card),
   slash commands (`/build`, `/app`, `build/`, `app/`), or natural language app requests.
 - **Icon**: Phone icon (`Smartphone`, `text-purple-400`) swaps onto the `+` button
   when build mode is detected.
 - **Workspace**: Launching build mode opens the IDE Canvas workspace
-  (`IDECanvasPanel`) with real-time preview, code editor, chat, and Netlify deploys.
+  (`IDECanvasPanel`) with real-time Sandpack preview, Monaco editor, chat, and Netlify deploys.
 - **Dashboard**: Integrated into the "Code & Apps" tab alongside code and writing
   canvases, tagged with an "App" badge. Clicking an app card reopens it in the IDE.
 - **Backend**: Managed via the `agent` Supabase Edge Function using `gpt-5.6-luna`
-  at high reasoning effort with 150s timeout.
+  at medium reasoning effort with real-time SSE streaming, keepalive pings, and live action events.
 
 ## Video generation (disabled)
 

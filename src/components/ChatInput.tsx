@@ -577,7 +577,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Guest mode = no user OR anonymous (auto-issued) Supabase session.
   const isGuestMode = !user || isAnonymous;
   const requireAuth = useRequireAuth();
-  const { hasBoost, openCheckout } = useSubscription();
+  const { hasBoost, isAdmin, openCheckout } = useSubscription();
 
   const {
     messages,
@@ -1640,6 +1640,15 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
       // App Builder Mode: launch IDE workspace
       if (wasBuildMode) {
+        if (!hasBoost && !isAdmin) {
+          openCheckout();
+          toast({
+            title: "ArcAI Boost Required",
+            description: "App Builder is exclusively available to Boost subscribers and admins.",
+          });
+          setLoading(false);
+          return;
+        }
         const cleanPrompt = extractPrefixPrompt(finalMessage);
         useIDEStore.getState().openIDECanvas(cleanPrompt, undefined, true);
         setLoading(false);
@@ -3218,6 +3227,15 @@ ${safeCode}
 
                           <button
                             onClick={() => {
+                              if (!hasBoost && !isAdmin) {
+                                setShowMenu(false);
+                                openCheckout();
+                                toast({
+                                  title: "ArcAI Boost Required",
+                                  description: "App Builder is exclusively available to Boost subscribers and admins.",
+                                });
+                                return;
+                              }
                               setForceBuildMode(true);
                               setInputValue("app/ ");
                               setShowMenu(false);
