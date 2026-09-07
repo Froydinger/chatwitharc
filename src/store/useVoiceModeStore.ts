@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getVoiceAudioConstraints } from '@/utils/platform';
 
 export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking';
 
@@ -158,13 +159,7 @@ export function prewarmMicrophone(): Promise<MediaStream> | null {
 
   try {
     const promise = navigator.mediaDevices.getUserMedia({
-      audio: {
-        channelCount: { ideal: 1 },
-        sampleRate: { ideal: 48000 },
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-      },
+      audio: getVoiceAudioConstraints(),
     });
     promise.catch(() => {
       // Handled downstream during connection

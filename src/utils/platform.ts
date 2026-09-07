@@ -15,6 +15,53 @@ export function isMobileLikeDevice(): boolean {
   );
 }
 
+export function isIOSDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1)
+  );
+}
+
+export function isIOSPWA(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    isIOSDevice() &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true)
+  );
+}
+
+/**
+ * Returns audio constraints tailored to the platform.
+ *
+ * For iOS (WebKit / PWA):
+ * - Omits sampleRate and channelCount overrides because WebKit can bypass hardware AEC
+ *   when custom sample rates or channels are requested.
+ * - Disables autoGainControl to prevent iOS hardware AGC from pumping microphone gain during
+ *   assistant speech and sucking loudspeaker bleed into the input.
+ *
+ * For Desktop:
+ * - Keeps standard full-duplex desktop constraints (48kHz, mono, AGC on).
+ */
+export function getVoiceAudioConstraints(): MediaTrackConstraints {
+  if (isIOSDevice()) {
+    return {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: false,
+    };
+  }
+
+  return {
+    channelCount: { ideal: 1 },
+    sampleRate: { ideal: 48000 },
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
+  };
+}
+
 export function isMacDesktopRuntime(): boolean {
   if (typeof window === "undefined") return false;
   const bridge = (window as Window & {

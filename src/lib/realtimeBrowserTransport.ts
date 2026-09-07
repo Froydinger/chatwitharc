@@ -39,6 +39,7 @@ const closeEventOf = (code: number, reason: string): CloseEvent => {
 };
 
 import { useVoiceModeStore, setGlobalVolumeChangeHandler } from '@/store/useVoiceModeStore';
+import { isIOSDevice, getVoiceAudioConstraints } from '@/utils/platform';
 
 export class RealtimeBrowserTransport {
   static readonly CONNECTING = 0;
@@ -133,13 +134,7 @@ export class RealtimeBrowserTransport {
         stream = await this.options.prewarmedStream;
       } else {
         stream = await navigator.mediaDevices.getUserMedia({
-          audio: this.options.audioConstraints ?? {
-            channelCount: { ideal: 1 },
-            sampleRate: { ideal: 48000 },
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
+          audio: this.options.audioConstraints ?? getVoiceAudioConstraints(),
         });
       }
 
@@ -209,8 +204,30 @@ export class RealtimeBrowserTransport {
     this.send(JSON.stringify({ type: 'output_audio_buffer.clear' }));
   }
 
+  private userMuted = false;
+  private speakingGate = false;
+
   setMuted(muted: boolean): void {
-    for (const track of this.localStream?.getAudioTracks() ?? []) track.enabled = !muted;
+    this.userMuted = muted;
+    this.updateTrackState();
+  }
+
+  /**
+   * Gates local microphone transmission during assistant playback on iOS
+   * to eliminate loudspeaker acoustic echo and self-interruption loops.
+   * Completely disabled on desktop (no-op).
+   */
+  setSpeakingGate(speaking: boolean): void {
+    if (!isIOSDevice()) return;
+    this.speakingGate = speaking;
+    this.updateTrackState();
+  }
+
+  private updateTrackState(): void {
+    const shouldDisable = this.userMuted || this.speakingGate;
+    for (const track of this.localStream?.getAudioTracks() ?? []) {
+      track.enabled = !shouldDisable;
+    }
   }
 
   get mediaStream(): MediaStream | null {
@@ -228,6 +245,7 @@ export class RealtimeBrowserTransport {
   close(code = 1000, reason = ''): void {
     if (this.readyState >= RealtimeBrowserTransport.CLOSING) return;
     this.readyState = RealtimeBrowserTransport.CLOSING;
+    this.speakingGate = false;
     setGlobalVolumeChangeHandler(null);
     this.abortController.abort();
     if (this.statsTimer) clearInterval(this.statsTimer);
@@ -276,9 +294,18 @@ export class RealtimeBrowserTransport {
         this.close(1000, 'peer connection closed');
       }
     });
-    this.audioElement.addEventListener('playing', () => this.onOutputEvent?.({ type: 'playing' }));
-    this.audioElement.addEventListener('pause', () => this.onOutputEvent?.({ type: 'paused' }));
-    this.audioElement.addEventListener('ended', () => this.onOutputEvent?.({ type: 'ended' }));
+    this.audioElement.addEventListener('playing', () => {
+      this.setSpeakingGate(true);
+      this.onOutputEvent?.({ type: 'playing' });
+    });
+    this.audioElement.addEventListener('pause', () => {
+      this.setSpeakingGate(false);
+      this.onOutputEvent?.({ type: 'paused' });
+    });
+    this.audioElement.addEventListener('ended', () => {
+      this.setSpeakingGate(false);
+      this.onOutputEvent?.({ type: 'ended' });
+    });
   }
 
   private startStats(): void {

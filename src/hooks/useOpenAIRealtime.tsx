@@ -3,6 +3,7 @@ import { RealtimeBrowserTransport } from '@/lib/realtimeBrowserTransport';
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { useVoiceModeStore, VoiceName, REALTIME_SUPPORTED_VOICES, consumePendingMicStream } from '@/store/useVoiceModeStore';
 import { supabase } from '@/integrations/supabase/client';
+import { isIOSDevice, getVoiceAudioConstraints } from '@/utils/platform';
 
 interface UseOpenAIRealtimeOptions {
   onTranscriptUpdate?: (transcript: string, isFinal: boolean) => void;
@@ -838,7 +839,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // truncation. Do not run the PCM duck/probe against native playback.
         if (globalWs instanceof RealtimeBrowserTransport) {
           useVoiceModeStore.getState().setHasPendingSpeech(true);
-          if (canBargeIn) rememberInterruptedResponse(activeResponseId);
+          if (canBargeIn && !isIOSDevice()) rememberInterruptedResponse(activeResponseId);
           setStatus('listening');
           break;
         }
@@ -885,6 +886,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'output_audio_buffer.started':
         if (isInterruptedResponseEvent(event)) break;
         useVoiceModeStore.getState().setIsAudioPlaying(true);
+        if (globalWs instanceof RealtimeBrowserTransport) {
+          globalWs.setSpeakingGate(true);
+        }
         setStatus('speaking');
         break;
 
@@ -893,6 +897,13 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (event.response_id && activeResponseId && event.response_id !== activeResponseId) break;
         useVoiceModeStore.getState().setIsAudioPlaying(false);
         useVoiceModeStore.getState().setOutputAmplitude(0);
+        if (globalWs instanceof RealtimeBrowserTransport) {
+          setTimeout(() => {
+            if (globalWs instanceof RealtimeBrowserTransport) {
+              globalWs.setSpeakingGate(false);
+            }
+          }, 150);
+        }
         setStatus(responseInProgress && event.type !== 'output_audio_buffer.cleared' ? 'thinking' : 'listening');
         requestToolResponse();
         break;
@@ -1510,6 +1521,13 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (stillActive && !audioStillPlaying) {
           setStatus('listening');
         }
+        if (globalWs instanceof RealtimeBrowserTransport) {
+          setTimeout(() => {
+            if (globalWs instanceof RealtimeBrowserTransport) {
+              globalWs.setSpeakingGate(false);
+            }
+          }, 150);
+        }
         break;
 
       case 'error':
@@ -1658,6 +1676,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       const realtimeModel = realtimeSession.model || OPENAI_REALTIME_MODEL;
       if (generation !== connectionGeneration || !useVoiceModeStore.getState().isActive) return;
       const ws = new RealtimeBrowserTransport({
+        audioConstraints: getVoiceAudioConstraints(),
         prewarmedStream: consumePendingMicStream(),
         onInputAmplitude: (level) => useVoiceModeStore.getState().setInputAmplitude(level),
         onOutputAmplitude: (level) => useVoiceModeStore.getState().setOutputAmplitude(level),
@@ -1703,6 +1722,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // Start inactivity timer
         resetInactivityTimer();
 
+        const isIOS = isIOSDevice();
+
         const sessionUpdateSent = sendRealtimeEvent({
           type: 'session.update',
           session: {
@@ -1719,21 +1740,34 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 format: { type: 'audio/pcm', rate: 24000 },
                 // Current input transcription model; conversation stays on Realtime Mini.
                 transcription: { model: 'gpt-transcribe' },
-                turn_detection: {
-                  type: 'server_vad',
-                  // Deliberately high: typing, breathing and coughing were
-                  // tripping the VAD and cutting Arc off mid-sentence. 0.65 was
-                  // high enough that speech over Arc's own voice rarely
-                  // registered at all, which is what made it un-interruptible.
-                  threshold: 0.60,
-                  prefix_padding_ms: 400,
-                  silence_duration_ms: 1000,
-                  // OpenAI's WebRTC transport manages playback interruption
-                  // and truncation, while the browser performs acoustic echo
-                  // cancellation on its single microphone track.
-                  create_response: true,
-                  interrupt_response: true,
-                },
+                turn_detection: isIOS
+                  ? {
+                      type: 'server_vad',
+                      // On iOS devices/PWA, speaker audio bleeds directly into the iPhone
+                      // microphone. We use OpenAI's recommended higher threshold (0.80)
+                      // and disable interrupt_response to prevent speaker acoustic feedback
+                      // from cutting the assistant off mid-sentence.
+                      threshold: 0.80,
+                      prefix_padding_ms: 300,
+                      silence_duration_ms: 800,
+                      create_response: true,
+                      interrupt_response: false,
+                    }
+                  : {
+                      type: 'server_vad',
+                      // Deliberately high: typing, breathing and coughing were
+                      // tripping the VAD and cutting Arc off mid-sentence. 0.65 was
+                      // high enough that speech over Arc's own voice rarely
+                      // registered at all, which is what made it un-interruptible.
+                      threshold: 0.60,
+                      prefix_padding_ms: 400,
+                      silence_duration_ms: 1000,
+                      // OpenAI's WebRTC transport manages playback interruption
+                      // and truncation, while the browser performs acoustic echo
+                      // cancellation on its single microphone track.
+                      create_response: true,
+                      interrupt_response: true,
+                    },
               },
               output: {
                 format: { type: 'audio/pcm', rate: 24000 },
@@ -2141,6 +2175,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     clearBargeInProbe();
     if (responseInProgress) sendRealtimeEvent({ type: 'response.cancel' });
     if (globalWs instanceof RealtimeBrowserTransport) {
+      globalWs.setSpeakingGate(false);
       sendRealtimeEvent({ type: 'output_audio_buffer.clear' });
       useVoiceModeStore.getState().setIsAudioPlaying(false);
       return;
