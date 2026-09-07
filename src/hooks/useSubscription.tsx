@@ -56,12 +56,17 @@ function incrementDailyImageCount(): number {
   return count;
 }
 
+function isUserBoostedOrAdmin(): boolean {
+  return localStorage.getItem('arcai-has-boost') === 'true';
+}
+
 export function getDailyBalancedCount(): number {
   rolloverIfNeeded();
   return parseInt(localStorage.getItem(DAILY_BALANCED_KEY) || '0', 10);
 }
 
 export function incrementDailyBalancedCount(): number {
+  if (isUserBoostedOrAdmin()) return 0;
   rolloverIfNeeded();
   const count = getDailyBalancedCount() + 1;
   localStorage.setItem(DAILY_BALANCED_KEY, String(count));
@@ -75,6 +80,7 @@ export function getDailyDeepCount(): number {
 }
 
 export function incrementDailyDeepCount(): number {
+  if (isUserBoostedOrAdmin()) return 0;
   rolloverIfNeeded();
   const count = getDailyDeepCount() + 1;
   localStorage.setItem(DAILY_DEEP_KEY, String(count));
@@ -364,6 +370,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, checkSubscription]);
+
+  // Sync boost/admin status to localStorage so non-hook code (e.g. ai.ts) knows user is unlimited
+  useEffect(() => {
+    localStorage.setItem('arcai-has-boost', (hasBoost || isAdmin) ? 'true' : 'false');
+  }, [hasBoost, isAdmin]);
 
   return (
     <SubscriptionContext.Provider value={{
