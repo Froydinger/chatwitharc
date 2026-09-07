@@ -931,10 +931,10 @@ useEffect(() => {
             <div className="flex items-center gap-2">
               <Button
                 onClick={() => handleLaunchAppBuilder()}
-                className="h-8 sm:h-9 px-3 rounded-full bg-gradient-to-r from-purple-500/20 via-primary/20 to-purple-500/20 hover:from-purple-500/30 hover:to-primary/30 border border-purple-500/30 text-purple-200 text-xs font-medium gap-1.5 shadow-sm transition-all"
+                className="h-8 sm:h-9 px-3 rounded-full bg-purple-500/10 hover:bg-purple-500/15 dark:bg-gradient-to-r dark:from-purple-500/20 dark:via-primary/20 dark:to-purple-500/20 dark:hover:from-purple-500/30 dark:hover:to-primary/30 border border-purple-500/30 text-purple-700 dark:text-purple-200 text-xs font-semibold gap-1.5 shadow-sm transition-all"
                 title="Launch App Builder"
               >
-                <Smartphone className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                <Smartphone className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
                 <span className="hidden sm:inline">App Builder</span>
               </Button>
               <Button
@@ -1067,14 +1067,14 @@ useEffect(() => {
                   </div>
                   <button 
                     onClick={() => handleLaunchAppBuilder()} 
-                    className="rounded-3xl border border-purple-500/30 bg-purple-500/10 p-4 text-left shadow-sm transition-all hover:border-purple-500/50 hover:bg-purple-500/15"
+                    className="rounded-3xl border border-purple-500/25 bg-purple-500/10 p-4 text-left shadow-sm transition-all hover:border-purple-500/40 hover:bg-purple-500/15 dark:border-purple-500/30 dark:bg-purple-500/10 dark:hover:border-purple-500/50 dark:hover:bg-purple-500/15"
                   >
                     <div className="flex items-center justify-between">
-                      <Smartphone className="h-5 w-5 text-purple-400" />
-                      <span className="text-[9px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded uppercase">Luna</span>
+                      <Smartphone className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      <span className="text-[9px] font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/30 px-1.5 py-0.5 rounded uppercase dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30">Luna</span>
                     </div>
-                    <p className="mt-3 text-sm font-semibold text-purple-200">App Builder</p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">Build full web apps</p>
+                    <p className="mt-3 text-sm font-semibold text-purple-900 dark:text-purple-200">App Builder</p>
+                    <p className="mt-0.5 text-[11px] text-slate-600 dark:text-muted-foreground font-medium">Build full web apps</p>
                   </button>
                   <div className="grid grid-cols-2 gap-3">
                     <button onClick={() => navigate('/tasks')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Clock className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Reminders</p><p className="mt-1 text-[11px] text-muted-foreground">Scheduled tasks</p></button>
@@ -1409,10 +1409,10 @@ useEffect(() => {
                 </div>
                 <Button
                   onClick={() => handleLaunchAppBuilder()}
-                  className="rounded-full h-9 px-3.5 bg-gradient-to-r from-purple-500/20 via-primary/20 to-purple-500/20 hover:from-purple-500/30 hover:to-primary/30 border border-purple-500/30 text-purple-200 text-xs font-medium gap-1.5 shadow-sm transition-all"
+                  className="rounded-full h-9 px-3.5 bg-purple-500/10 hover:bg-purple-500/15 dark:bg-gradient-to-r dark:from-purple-500/20 dark:via-primary/20 dark:to-purple-500/20 dark:hover:from-purple-500/30 dark:hover:to-primary/30 border border-purple-500/30 text-purple-700 dark:text-purple-200 text-xs font-semibold gap-1.5 shadow-sm transition-all"
                   title="New App"
                 >
-                  <Plus className="h-4 w-4 text-purple-400" />
+                  <Plus className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                   <span>New App</span>
                 </Button>
               </div>
@@ -1432,13 +1432,13 @@ useEffect(() => {
                 </div>
               ) : filteredApps.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-border/60 bg-muted/10 p-12 text-center flex flex-col items-center justify-center">
-                  <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-4">
-                    <Smartphone className="h-7 w-7 text-purple-400" />
+                  <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center mb-4">
+                    <Smartphone className="h-7 w-7 text-purple-600 dark:text-purple-400" />
                   </div>
                   <h3 className="text-base font-semibold text-foreground">
                     {appSearch ? "No matching apps" : "No apps yet"}
                   </h3>
-                  <p className="mt-1 text-xs text-muted-foreground max-w-sm">
+                  <p className="mt-1 text-xs text-slate-600 dark:text-muted-foreground max-w-sm">
                     {appSearch
                       ? `No applications matched "${appSearch}".`
                       : "Build interactive full-stack React applications with instant preview, Netlify database, and live deploys."}
@@ -1475,24 +1475,24 @@ useEffect(() => {
                           <div className="space-y-3">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="h-9 w-9 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center shrink-0">
-                                  <Smartphone className="h-4.5 w-4.5 text-purple-400" />
+                                <div className="h-9 w-9 rounded-xl bg-purple-500/10 border border-purple-500/25 dark:bg-purple-500/15 dark:border-purple-500/30 flex items-center justify-center shrink-0">
+                                  <Smartphone className="h-4.5 w-4.5 text-purple-600 dark:text-purple-400" />
                                 </div>
                                 <div className="min-w-0">
-                                  <h4 className="font-semibold text-sm text-foreground truncate group-hover:text-purple-300 transition-colors">
+                                  <h4 className="font-semibold text-sm text-foreground truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                                     {app.title || "Untitled App"}
                                   </h4>
-                                  <p className="text-[10px] text-muted-foreground">
+                                  <p className="text-[10px] text-slate-500 dark:text-muted-foreground font-medium">
                                     v{app.version || 1} · {timeAgo(app.updated_at || app.created_at)}
                                   </p>
                                 </div>
                               </div>
-                              <span className="text-[9px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full shrink-0">
+                              <span className="text-[9px] font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/30 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 px-2 py-0.5 rounded-full shrink-0">
                                 Luna
                               </span>
                             </div>
 
-                            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                            <p className="text-xs text-slate-700 dark:text-muted-foreground line-clamp-2 leading-relaxed">
                               {app.prompt || "Interactive React web application built with Arc App Builder."}
                             </p>
                           </div>
@@ -1505,15 +1505,15 @@ useEffect(() => {
                                   e.stopPropagation();
                                   window.open(askarcUrl, "_blank", "noopener,noreferrer");
                                 }}
-                                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-purple-300 hover:text-purple-200 truncate group/link"
+                                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-purple-700 hover:text-purple-900 dark:text-purple-300 dark:hover:text-purple-200 truncate group/link"
                                 title={askarcUrl}
                               >
-                                <Globe className="h-3 w-3 shrink-0 text-purple-400" />
+                                <Globe className="h-3 w-3 shrink-0 text-purple-600 dark:text-purple-400" />
                                 <span className="truncate">{app.netlify_subdomain}.askarc.chat</span>
                                 <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-70 group-hover/link:opacity-100" />
                               </button>
                             ) : (
-                              <span className="text-[10px] text-muted-foreground">
+                              <span className="text-[10px] text-slate-500 dark:text-muted-foreground font-medium">
                                 Draft · Local preview
                               </span>
                             )}
@@ -1533,7 +1533,7 @@ useEffect(() => {
                                 }
                                 reopenIDECanvas(app.id, app.files || {}, app.messages);
                               }}
-                              className="h-7 px-2.5 text-xs rounded-lg text-purple-300 hover:text-purple-100 hover:bg-purple-500/20 ml-auto shrink-0 gap-1 font-medium"
+                              className="h-7 px-2.5 text-xs rounded-lg text-purple-700 hover:text-purple-900 bg-purple-500/10 hover:bg-purple-500/20 dark:text-purple-300 dark:hover:text-purple-100 dark:bg-transparent dark:hover:bg-purple-500/20 ml-auto shrink-0 gap-1 font-semibold"
                             >
                               <span>Open</span>
                               <ArrowRight className="h-3 w-3" />

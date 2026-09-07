@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 const DISMISS_KEY = "push-prompt-dismissed-at";
 const FOREVER_KEY = "push-prompt-hidden-forever";
-const COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24h
+const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export function PWAInstallPrompt() {
   const { user } = useAuth();
@@ -31,8 +31,9 @@ export function PWAInstallPrompt() {
       setShow(false);
       return;
     }
-    // Only prompt when the OS prompt is actually available
-    if (permission === "denied") {
+    // Only prompt when permission is in "default" state (user hasn't made a choice yet).
+    // If notifications are already enabled ("granted") or blocked ("denied"), never prompt!
+    if (permission !== "default") {
       setShow(false);
       return;
     }
@@ -41,9 +42,15 @@ export function PWAInstallPrompt() {
       setShow(false);
       return;
     }
-    if (localStorage.getItem(FOREVER_KEY) === "true") return;
+    if (localStorage.getItem(FOREVER_KEY) === "true") {
+      setShow(false);
+      return;
+    }
     const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) || 0);
-    if (dismissedAt && Date.now() - dismissedAt < COOLDOWN_MS) return;
+    if (dismissedAt && Date.now() - dismissedAt < COOLDOWN_MS) {
+      setShow(false);
+      return;
+    }
 
     const t = window.setTimeout(() => setShow(true), 2500);
     return () => window.clearTimeout(t);
