@@ -147,12 +147,35 @@ export function IDEPreviewPanel({
       return acc;
     }, {} as Record<string, string>);
 
-    map['/index.html'] = `<!DOCTYPE html>
+    // Ensure React 18 entrypoint for Sandpack's client-side bundler
+    if (!map['/index.tsx'] && !map['/index.js']) {
+      map['/index.tsx'] = `import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './src/App';
+
+const rootEl = document.getElementById('root');
+if (rootEl) {
+  const root = ReactDOM.createRoot(rootEl);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+}
+`;
+    }
+
+    // Ensure /App.tsx is present if /src/App.tsx exists
+    if (map['/src/App.tsx'] && !map['/App.tsx']) {
+      map['/App.tsx'] = map['/src/App.tsx'];
+    }
+
+    const htmlContent = `<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Arc Sandbox Preview</title>
+    <title>Preview</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -160,14 +183,18 @@ export function IDEPreviewPanel({
         font-family: 'Inter', sans-serif;
         margin: 0;
         padding: 0;
+        background-color: #0b0c10;
+        color: #f3f4f6;
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>`;
+
+    map['/index.html'] = htmlContent;
+    map['/public/index.html'] = htmlContent;
 
     return map;
   }, [files]);
@@ -262,19 +289,22 @@ export function IDEPreviewPanel({
       {/* Sandpack Workspace Area */}
       <div className="flex-1 min-h-0 relative overflow-hidden bg-[#090a0d] flex items-center justify-center p-3">
         <SandpackProvider
-          template="vite-react-ts"
+          template="react-ts"
           customSetup={{
             dependencies: {
+              "react": "^18.3.1",
+              "react-dom": "^18.3.1",
               "react-router-dom": "^6.28.0",
               "framer-motion": "^11.11.9",
               "lucide-react": "^0.453.0",
-              "react-icons": "^5.3.0"
+              "react-icons": "^5.3.0",
+              "canvas-confetti": "^1.9.4"
             }
           }}
           files={sandpackFiles}
           options={{
-            visibleFiles: ["/src/App.tsx"],
-            activeFile: "/src/App.tsx",
+            visibleFiles: ["/src/App.tsx", "/App.tsx"],
+            activeFile: sandpackFiles['/src/App.tsx'] ? "/src/App.tsx" : "/App.tsx",
           }}
           className="h-full w-full min-h-0 flex flex-col overflow-hidden"
           style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', minHeight: 0 }}
