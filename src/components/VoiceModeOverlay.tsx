@@ -231,6 +231,20 @@ export function VoiceModeOverlay() {
     setIsSwitching(false);
   }, [pendingVoiceSwitch, isSwitching]);
 
+  // Tap bar to interrupt Arc when speaking
+  const handleBarTap = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (status === 'speaking' && globalInterruptHandler) {
+      const target = e.target as HTMLElement;
+      // If user tapped a button or interactive child inside the bar, let that button handle its action
+      if (target && target.closest('button')) {
+        return;
+      }
+      if (navigator.vibrate) navigator.vibrate(25);
+      globalInterruptHandler();
+    }
+  }, [status]);
+
+
   // Spacebar push-to-talk listener for desktop
   useEffect(() => {
     if (!isActive) return;
@@ -434,12 +448,30 @@ export function VoiceModeOverlay() {
               </AnimatePresence>
             </div>
 
+            {/* Subtle floating hint when speaking */}
+            <AnimatePresence>
+              {status === 'speaking' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 2, scale: 0.96 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className="pointer-events-none mb-1.5 select-none text-[11px] font-medium tracking-tight text-muted-foreground/75"
+                >
+                  Tap bar to interrupt
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Hero Orb-Focused Voice Bar Pill */}
             <motion.div
               initial={{ opacity: 0, y: 24, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24, scale: 0.96 }}
-              className="relative mx-auto w-full sm:w-fit sm:max-w-fit overflow-hidden rounded-full border border-primary/25 bg-background/90 px-4 py-2 sm:px-6 sm:py-2.5 shadow-2xl backdrop-blur-2xl transition-all"
+              onClick={handleBarTap}
+              className={`relative mx-auto w-full sm:w-fit sm:max-w-fit overflow-hidden rounded-full border border-primary/25 bg-background/90 px-4 py-2 sm:px-6 sm:py-2.5 shadow-2xl backdrop-blur-2xl transition-all ${
+                status === 'speaking' ? 'cursor-pointer active:scale-[0.99]' : ''
+              }`}
               style={{
                 boxShadow: orbTheme === 'dark'
                   ? `0 0 0 1px hsl(var(--primary) / ${0.15 + Math.min(1, amplitude * 1.2) * 0.25}), 0 18px 48px rgba(0, 0, 0, 0.65)`
