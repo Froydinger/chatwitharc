@@ -106,10 +106,14 @@ export function AppsPanel() {
 
   const handleDelete = async (e: React.MouseEvent, projectId: string) => {
     e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this app? This cannot be undone.")) return;
     try {
       const { error } = await supabase.from('ide_projects').delete().eq('id', projectId);
       if (error) throw error;
       setProjects(prev => prev.filter(p => p.id !== projectId));
+      try {
+        localStorage.removeItem(`netlify_mock_users:${projectId}`);
+      } catch {}
       toast.success("Project deleted");
     } catch {
       toast.error("Failed to delete project");
@@ -216,8 +220,9 @@ export function AppsPanel() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 w-7 p-0 text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive"
+                    className="h-7 w-7 p-0 text-muted-foreground opacity-80 sm:opacity-0 sm:group-hover:opacity-100 hover:text-destructive"
                     onClick={(e) => handleDelete(e, project.id)}
+                    title="Delete app"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>

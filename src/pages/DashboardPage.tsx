@@ -7,7 +7,7 @@ import {
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
   Globe, Code2, Eye, Sparkles, ArrowRight, Music, Edit2, Check, X,
   Layers, PenLine, FileCode, MessageCircle, Upload, Users, FolderPlus, Folder, Pin, PinOff, MoreVertical, MoreHorizontal,
-  CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock, Smartphone, ExternalLink
+  CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock, Smartphone, ExternalLink, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -672,6 +672,44 @@ useEffect(() => {
     } catch {}
     return 0;
   }, [appUsersTrigger]);
+
+  const [deletingAppId, setDeletingAppId] = useState<string | null>(null);
+
+  const handleDeleteApp = async (e: React.MouseEvent, appId: string, appTitle?: string) => {
+    e.stopPropagation();
+    if (!window.confirm(`Are you sure you want to delete "${appTitle || 'this app'}"? This cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingAppId(appId);
+    try {
+      const { error } = await supabase
+        .from('ide_projects')
+        .delete()
+        .eq('id', appId);
+
+      if (error) throw error;
+
+      setRecentApps(prev => prev.filter(a => a.id !== appId));
+      try {
+        localStorage.removeItem(`netlify_mock_users:${appId}`);
+      } catch {}
+
+      toast({
+        title: "App deleted",
+        description: `"${appTitle || 'App'}" has been deleted.`,
+      });
+    } catch (err) {
+      console.error('Failed to delete app:', err);
+      toast({
+        title: "Failed to delete app",
+        description: "An error occurred while trying to delete this app.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingAppId(null);
+    }
+  };
 
 
   const allChats = useMemo(() => {
@@ -1565,27 +1603,44 @@ useEffect(() => {
                               </span>
                             )}
 
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (!hasBoost && !isAdmin) {
-                                  openCheckout();
-                                  toast({
-                                    title: "ArcAI Boost Required",
-                                    description: "App Builder is exclusively available to Boost subscribers and admins.",
-                                  });
-                                  return;
-                                }
-                                reopenIDECanvas(app.id, app.files || {}, app.messages);
-                                navigate(`/build/${app.id}`);
-                              }}
-                              className="h-7 px-2.5 text-xs rounded-lg text-purple-700 hover:text-purple-900 bg-purple-500/10 hover:bg-purple-500/20 dark:text-purple-300 dark:hover:text-purple-100 dark:bg-transparent dark:hover:bg-purple-500/20 ml-auto shrink-0 gap-1 font-semibold"
-                            >
-                              <span>Open</span>
-                              <ArrowRight className="h-3 w-3" />
-                            </Button>
+                            <div className="flex items-center gap-1.5 ml-auto shrink-0">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                disabled={deletingAppId === app.id}
+                                onClick={(e) => handleDeleteApp(e, app.id, app.title)}
+                                className="h-7 w-7 p-0 rounded-lg opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-slate-400 hover:text-destructive hover:bg-destructive/10 dark:text-muted-foreground dark:hover:text-red-400"
+                                title="Delete app"
+                              >
+                                {deletingAppId === app.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!hasBoost && !isAdmin) {
+                                    openCheckout();
+                                    toast({
+                                      title: "ArcAI Boost Required",
+                                      description: "App Builder is exclusively available to Boost subscribers and admins.",
+                                    });
+                                    return;
+                                  }
+                                  reopenIDECanvas(app.id, app.files || {}, app.messages);
+                                  navigate(`/build/${app.id}`);
+                                }}
+                                className="h-7 px-2.5 text-xs rounded-lg text-purple-700 hover:text-purple-900 bg-purple-500/10 hover:bg-purple-500/20 dark:text-purple-300 dark:hover:text-purple-100 dark:bg-transparent dark:hover:bg-purple-500/20 gap-1 font-semibold"
+                              >
+                                <span>Open</span>
+                                <ArrowRight className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       );
