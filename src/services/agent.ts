@@ -187,11 +187,14 @@ export async function sendAgentMessage(
         onAction(a);
         break;
       }
-      case 'file_update':
-      case 'file_partial': {
+      case 'file_update': {
         if (event.path && typeof event.content === 'string') {
           onFileUpdate?.(event.path, event.content);
         }
+        break;
+      }
+      case 'file_partial': {
+        // Partial chunk during active token streaming — do not re-trigger runtime compilation
         break;
       }
       case 'error': {

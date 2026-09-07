@@ -923,6 +923,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 deployedUrl={deployedUrl}
                 onPublishClick={() => setShowPublishDialog(true)}
                 projectId={projectIdRef.current || ideProjectId}
+                isBuilding={isAgentRunning}
               />
             </TabsContent>
             <TabsContent value="code" forceMount className={cn("flex-1 m-0 min-h-0 relative", activeTab !== "code" && "hidden")}>
@@ -994,6 +995,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                     deployedUrl={deployedUrl}
                     onPublishClick={() => setShowPublishDialog(true)}
                     projectId={projectIdRef.current || ideProjectId}
+                    isBuilding={isAgentRunning}
                   />
                 </div>
                 <div className={cn("h-full w-full min-h-0", activeTab === 'code' ? "flex flex-col" : "hidden")}>

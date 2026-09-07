@@ -18,11 +18,18 @@ interface IDEPreviewPanelProps {
   deployedUrl?: string | null;
   onPublishClick?: () => void;
   projectId?: string | null;
+  isBuilding?: boolean;
 }
 
 type ViewMode = 'desktop' | 'tablet' | 'phone';
 
-function SandpackErrorListener({ onError }: { onError?: (error: string) => void }) {
+function SandpackErrorListener({ 
+  onError, 
+  isBuilding 
+}: { 
+  onError?: (error: string) => void; 
+  isBuilding?: boolean; 
+}) {
   const { sandpack } = useSandpack();
   const { error } = sandpack;
   const onErrorRef = useRef(onError);
@@ -32,11 +39,12 @@ function SandpackErrorListener({ onError }: { onError?: (error: string) => void 
   }, [onError]);
 
   useEffect(() => {
-    if (error && onErrorRef.current) {
+    // Only report errors when NOT building ("only when were previewing should errors show")
+    if (!isBuilding && error && onErrorRef.current) {
       const errMsg = error.message || String(error);
       onErrorRef.current(errMsg);
     }
-  }, [error]);
+  }, [error, isBuilding]);
 
   return null;
 }
@@ -72,17 +80,42 @@ function SandpackRefreshButton({
   );
 }
 
-function SandpackLoadingOverlay() {
+function SandpackLoadingOverlay({ isBuilding }: { isBuilding?: boolean }) {
   const { listen, sandpack } = useSandpack();
   const [isReady, setIsReady] = useState(() => {
-    return sandpack.status === 'idle' || sandpack.status === 'done';
+    return !isBuilding && (sandpack.status === 'idle' || sandpack.status === 'done');
   });
-  const [loadingStep, setLoadingStep] = useState('Booting sandbox runtime…');
+  const [loadingStep, setLoadingStep] = useState(
+    isBuilding ? 'Building Live App with Luna…' : 'Booting sandbox runtime…'
+  );
 
   useEffect(() => {
-    if (sandpack.status === 'idle' || sandpack.status === 'done') {
-      setIsReady(true);
-      return;
+    if (isBuilding) {
+      setIsReady(false);
+      setLoadingStep('Building Live App with Luna…');
+
+      const timer1 = setTimeout(() => {
+        setLoadingStep('Writing components & interface…');
+      }, 2500);
+
+      const timer2 = setTimeout(() => {
+        setLoadingStep('Wiring state & data persistence…');
+      }, 5500);
+
+      const timer3 = setTimeout(() => {
+        setLoadingStep('Finalizing app bundle…');
+      }, 9000);
+
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+      };
+    }
+
+    if (sandpack.status === 'idle' || sandpack.status === 'done' || sandpack.status === 'running') {
+      const timer = setTimeout(() => setIsReady(true), 200);
+      return () => clearTimeout(timer);
     }
 
     const timer1 = setTimeout(() => {
@@ -98,16 +131,20 @@ function SandpackLoadingOverlay() {
         setIsReady(true);
       }
       if (msg.type === 'action' && msg.action === 'show-error') {
-        setIsReady(true);
+        if (!isBuilding) {
+          setIsReady(true);
+        }
       }
       if (msg.type === 'success' || msg.type === 'done') {
         setIsReady(true);
       }
     });
 
-    // Safety fallback timeout to never trap the user
+    // Safety fallback timeout to never trap the user when previewing
     const safetyTimer = setTimeout(() => {
-      setIsReady(true);
+      if (!isBuilding) {
+        setIsReady(true);
+      }
     }, 4200);
 
     return () => {
@@ -116,7 +153,7 @@ function SandpackLoadingOverlay() {
       clearTimeout(timer2);
       clearTimeout(safetyTimer);
     };
-  }, [listen, sandpack.status]);
+  }, [listen, sandpack.status, isBuilding]);
 
   return (
     <AnimatePresence>
@@ -172,7 +209,8 @@ export function IDEPreviewPanel({
   onError,
   deployedUrl,
   onPublishClick,
-  projectId
+  projectId,
+  isBuilding,
 }: IDEPreviewPanelProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('desktop');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -377,7 +415,7 @@ html, body {
       className="h-full w-full min-h-0 max-h-full overflow-hidden flex flex-col bg-[#0b0c0e]"
       style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', minHeight: 0 }}
     >
-      <SandpackErrorListener onError={onError} />
+      <SandpackErrorListener onError={onError} isBuilding={isBuilding} />
 
       {/* Top Preview Bar */}
       <div className="px-3.5 py-2 border-b border-border/10 flex items-center gap-2.5 shrink-0 bg-[#0d0e12]/80 backdrop-blur-md">
@@ -490,13 +528,14 @@ html, body {
               )}
               style={{ isolation: 'isolate' }}
             >
-              <SandpackLoadingOverlay />
+              <SandpackLoadingOverlay isBuilding={isBuilding} />
 
               <SandpackPreview
                 showNavigator={false}
                 showCube={false}
                 showRestartButton={false}
                 showOpenInCodeSandbox={false}
+                showSandpackErrorOverlay={!isBuilding}
                 className="w-full h-full max-h-full border-none bg-[#090a0f] !h-full !max-h-full rounded-[inherit] overflow-hidden"
                 customStyle={{ height: '100%', width: '100%', flex: 1, maxHeight: '100%', minHeight: 0, background: '#090a0f', backgroundColor: '#090a0f' }}
               />
@@ -538,6 +577,20 @@ html, body {
           background-color: #090a0f !important;
           border-radius: inherit !important;
         }
+        ${isBuilding ? `
+          .sp-overlay.sp-error,
+          .sp-error,
+          .sp-error-message,
+          .sp-overlay-error,
+          [data-sandpack-error],
+          div[class*="errorClassName"],
+          div[class*="overlay"][class*="error"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+          }
+        ` : ''}
       `}</style>
     </SandpackProvider>
   );
