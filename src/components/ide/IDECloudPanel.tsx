@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
-import { Database, Shield, Users, RefreshCw, Trash2, Cloud, UserPlus, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Database, Shield, Users, RefreshCw, Trash2, Cloud, UserPlus, Loader2, Tag, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { VirtualFileSystem } from '@/types/ide';
@@ -14,6 +15,10 @@ interface IDECloudPanelProps {
   onChatSend?: (message: string) => void;
   isAgentRunning?: boolean;
   projectId?: string | null;
+  hideBadge?: boolean;
+  onToggleHideBadge?: (hide: boolean) => Promise<void>;
+  onDeployClick?: () => void;
+  isDeployed?: boolean;
 }
 
 // Detect whether the app's code actually uses netlifyDb
@@ -47,7 +52,17 @@ const isAuthCodeApplied = (vfs: VirtualFileSystem): boolean => {
   });
 };
 
-export function IDECloudPanel({ files, setFiles, onChatSend, isAgentRunning, projectId }: IDECloudPanelProps) {
+export function IDECloudPanel({
+  files,
+  setFiles,
+  onChatSend,
+  isAgentRunning,
+  projectId,
+  hideBadge = false,
+  onToggleHideBadge,
+  onDeployClick,
+  isDeployed = false,
+}: IDECloudPanelProps) {
   const appId = projectId || 'default';
   const dbPrefix = `netlify_db:${appId}:`;
   const currentUserKey = `netlify_current_user:${appId}`;
@@ -364,6 +379,43 @@ export function IDECloudPanel({ files, setFiles, onChatSend, isAgentRunning, pro
           <p className="text-xs text-muted-foreground leading-relaxed">
             Injects <code>netlifyDb.ts</code> helper with collections and CRUD. Toggling requests Arc to wire persistent storage into your code.
           </p>
+        </GlassCard>
+
+        {/* Site Branding & Badge Config */}
+        <GlassCard className="p-4 border-white/10 bg-[#0f1117]/60 space-y-3 md:col-span-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-purple-400" />
+              <div>
+                <span className="text-sm font-semibold text-foreground">"Built with ArcAi" Badge</span>
+                <span className="ml-2 text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full border border-white/10">Voluntary</span>
+              </div>
+            </div>
+            <Switch
+              checked={!hideBadge}
+              onCheckedChange={(checked) => {
+                if (onToggleHideBadge) {
+                  onToggleHideBadge(!checked);
+                }
+              }}
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Display a subtle floating glass tag in the bottom corner of your live site linking to ArcAi. You can shut this off voluntarily anytime.
+            </p>
+            {isDeployed && onDeployClick && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onDeployClick}
+                className="text-[11px] text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg shrink-0 gap-1 h-7 px-2"
+              >
+                <span>Update Live App</span>
+                <ExternalLink className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
         </GlassCard>
       </div>
 

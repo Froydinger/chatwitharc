@@ -136,6 +136,9 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const [netlifySiteId, setNetlifySiteId] = useState<string | null>(null);
   const [netlifySubdomain, setNetlifySubdomain] = useState<string | null>(null);
   const [publishedAppTitle, setPublishedAppTitle] = useState<string | null>(null);
+  const [seoDescription, setSeoDescription] = useState<string>('');
+  const [faviconLabel, setFaviconLabel] = useState<string>('Rocket');
+  const [hideBadge, setHideBadge] = useState<boolean>(false);
   
   const [projects, setProjects] = useState<LovableProject[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
@@ -299,7 +302,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
     supabase
       .from('ide_projects')
-      .select('title, files, netlify_url, netlify_site_id, netlify_subdomain, messages, versions')
+      .select('title, files, favicon_label, netlify_url, netlify_site_id, netlify_subdomain, messages, versions')
       .eq('id', ideProjectId)
       .single()
       .then(({ data }) => {
@@ -321,6 +324,14 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
           setPublishedAppTitle((data as any).title);
         } else if (!(data as any).netlify_url) {
           setPublishedAppTitle(null);
+        }
+        if ((data as any).favicon_label) {
+          setFaviconLabel((data as any).favicon_label);
+        }
+        if ((data as any)?.versions && typeof (data as any).versions === 'object') {
+          const v = (data as any).versions;
+          if (v.seo_description) setSeoDescription(v.seo_description);
+          if (v.hide_badge !== undefined) setHideBadge(!!v.hide_badge);
         }
 
         const appUsers = (data as any)?.versions?.app_users;
@@ -772,8 +783,43 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     });
   };
 
+  const handleToggleHideBadge = async (nextHide: boolean) => {
+    setHideBadge(nextHide);
+    const pid = projectIdRef.current || ideProjectId;
+    if (!pid) return;
+
+    try {
+      const { data: proj } = await supabase
+        .from('ide_projects')
+        .select('versions')
+        .eq('id', pid)
+        .maybeSingle();
+      const currentVersions = (proj?.versions && typeof proj.versions === 'object') ? proj.versions : {};
+      const updatedVersions = { ...currentVersions, hide_badge: nextHide };
+      await supabase
+        .from('ide_projects')
+        .update({ versions: updatedVersions })
+        .eq('id', pid);
+      toast({
+        title: nextHide ? 'ArcAi badge disabled' : 'ArcAi badge enabled',
+        description: deployedUrl
+          ? 'Update or re-deploy your app to sync changes to the live site.'
+          : 'Setting saved for this app.',
+      });
+    } catch (e) {
+      console.error('Failed to update badge setting:', e);
+    }
+  };
+
   // Netlify Publishing
-  const handleDeploy = async (subdomain: string, siteTitle: string, faviconSvg: string) => {
+  const handleDeploy = async (
+    subdomain: string,
+    siteTitle: string,
+    faviconSvg: string,
+    favLabel?: string,
+    seoDesc?: string,
+    shouldHideBadge?: boolean
+  ) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error('Unauthorized');
     if (!projectIdRef.current) throw new Error('Create and save a project first before deploying.');
@@ -784,21 +830,46 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       subdomain,
       netlifySiteId || undefined,
       siteTitle,
-      faviconSvg
+      faviconSvg,
+      seoDesc,
+      shouldHideBadge
     );
 
     setDeployedUrl(result.url);
     setNetlifySiteId(result.siteId);
     setNetlifySubdomain(result.subdomain);
     setPublishedAppTitle(siteTitle);
+    if (seoDesc !== undefined) setSeoDescription(seoDesc);
+    if (favLabel) setFaviconLabel(favLabel);
+    if (shouldHideBadge !== undefined) setHideBadge(shouldHideBadge);
+
+    let currentVersions: any = {};
+    try {
+      const { data: proj } = await supabase
+        .from('ide_projects')
+        .select('versions')
+        .eq('id', projectIdRef.current)
+        .maybeSingle();
+      if (proj?.versions && typeof proj.versions === 'object') {
+        currentVersions = proj.versions;
+      }
+    } catch {}
+
+    const updatedVersions = {
+      ...currentVersions,
+      seo_description: seoDesc || '',
+      hide_badge: !!shouldHideBadge,
+    };
 
     await supabase
       .from('ide_projects')
       .update({
         title: siteTitle,
+        favicon_label: favLabel || null,
         netlify_url: result.url,
         netlify_site_id: result.siteId,
         netlify_subdomain: result.subdomain,
+        versions: updatedVersions,
       })
       .eq('id', projectIdRef.current);
 
@@ -1229,6 +1300,10 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 onChatSend={handleChatSend}
                 isAgentRunning={isAgentRunning}
                 projectId={projectIdRef.current || ideProjectId}
+                hideBadge={hideBadge}
+                onToggleHideBadge={handleToggleHideBadge}
+                onDeployClick={() => setShowPublishDialog(true)}
+                isDeployed={!!deployedUrl}
               />
             </div>
 
@@ -1342,6 +1417,10 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                     onChatSend={handleChatSend}
                     isAgentRunning={isAgentRunning}
                     projectId={projectIdRef.current || ideProjectId}
+                    hideBadge={hideBadge}
+                    onToggleHideBadge={handleToggleHideBadge}
+                    onDeployClick={() => setShowPublishDialog(true)}
+                    isDeployed={!!deployedUrl}
                   />
                 </div>
               </div>
@@ -1357,6 +1436,11 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
         currentSubdomain={netlifySubdomain}
         deployedUrl={deployedUrl}
         siteId={netlifySiteId}
+        prompt={messages.find(m => m.role === 'user')?.content || ''}
+        files={files}
+        initialFaviconLabel={faviconLabel}
+        initialSeoDescription={seoDescription}
+        initialHideBadge={hideBadge}
         onPublish={handleDeploy}
         onUnpublish={handleUnpublish}
       />

@@ -73,20 +73,57 @@ function injectPublishingHead(code: string, pageTitle: string, headExtras: strin
   return `${headBlock}\n${html}`;
 }
 
-function generateDeployHtml(bundledCode: string, appName: string, hasFavicon: boolean): string {
+function generateDeployHtml(
+  bundledCode: string,
+  appName: string,
+  hasFavicon: boolean,
+  seoDescription?: string,
+  hideBadge?: boolean
+): string {
   const base = generatePreviewHtml(bundledCode);
   const faviconTag = hasFavicon
     ? `<link rel="icon" href="/favicon.svg" type="image/svg+xml">`
     : faviconLink();
+
+  const safeTitle = appName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const safeDesc = (seoDescription || `${appName} — Modern web application built with ArcAi`).replace(/"/g, '&quot;');
+
+  const seoTags = `  <title>${safeTitle}</title>
+  <meta name="description" content="${safeDesc}">
+  <meta property="og:title" content="${safeTitle}">
+  <meta property="og:description" content="${safeDesc}">
+  <meta property="twitter:title" content="${safeTitle}">
+  <meta property="twitter:description" content="${safeDesc}">
+  ${faviconTag}`;
+
+  const badgeHtml = hideBadge ? '' : `
+  <!-- Built with ArcAi Floating Badge -->
+  <a href="https://askarc.chat" target="_blank" rel="noopener noreferrer" id="arc-badge" style="position:fixed;bottom:16px;right:16px;z-index:99999;display:inline-flex;align-items:center;gap:6.5px;padding:6px 12px;border-radius:9999px;background:rgba(15,17,23,0.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,Inter,system-ui,sans-serif;font-size:11px;font-weight:500;text-decoration:none;box-shadow:0 4px 20px rgba(0,0,0,0.35);transition:all 0.2s cubic-bezier(0.16,1,0.3,1);cursor:pointer;" onmouseover="this.style.transform='translateY(-2px) scale(1.02)';this.style.borderColor='rgba(168,85,247,0.45)';this.style.boxShadow='0 8px 24px rgba(168,85,247,0.2)';" onmouseout="this.style.transform='none';this.style.borderColor='rgba(255,255,255,0.12)';this.style.boxShadow='0 4px 20px rgba(0,0,0,0.35)';">
+    <svg width="14" height="14" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+      <rect width="100" height="100" rx="20" fill="#090d0b"/>
+      <path d="M72.8 33.6A29 29 0 1 0 71.2 68.8" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+      <path d="M64 41A20 20 0 1 1 59.2 67.3" stroke="#fff" stroke-width="8" stroke-linecap="round"/>
+    </svg>
+    <span>Built with <span style="font-weight:600;color:#c084fc;">ArcAi</span></span>
+  </a>`;
+
   return base
-    .replace('</head>', `  <title>${appName}</title>\n  ${faviconTag}\n</head>`)
+    .replace('</head>', `${seoTags}\n</head>`)
+    .replace('</body>', `${badgeHtml}\n</body>`)
     .replace(`"development"`, `"production"`);
 }
 
-async function buildStaticZip(projectName: string, files: VirtualFileSystem, siteTitle?: string, faviconSvg?: string): Promise<Blob> {
+async function buildStaticZip(
+  projectName: string,
+  files: VirtualFileSystem,
+  siteTitle?: string,
+  faviconSvg?: string,
+  seoDescription?: string,
+  hideBadge?: boolean
+): Promise<Blob> {
   await initializeEsbuild();
   const bundledCode = await bundleProject(files);
-  const html = generateDeployHtml(bundledCode, siteTitle || projectName, !!faviconSvg);
+  const html = generateDeployHtml(bundledCode, siteTitle || projectName, !!faviconSvg, seoDescription, hideBadge);
 
   const zip = new JSZip();
   zip.file('index.html', html);
@@ -270,8 +307,10 @@ export async function deployToNetlify(
   siteId?: string | null,
   siteTitle?: string,
   faviconSvg?: string,
+  seoDescription?: string,
+  hideBadge?: boolean,
 ): Promise<{ url: string; netlifyUrl?: string; siteId: string; subdomain: string }> {
-  const zipBlob = await buildStaticZip(projectName, files, siteTitle, faviconSvg);
+  const zipBlob = await buildStaticZip(projectName, files, siteTitle, faviconSvg, seoDescription, hideBadge);
   const zipBase64 = await blobToBase64(zipBlob);
 
   // Authenticate as the logged-in user — the edge function requires the

@@ -7,8 +7,12 @@ import {
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
   Globe, Code2, Eye, Sparkles, ArrowRight, Music, Edit2, Check, X,
   Layers, PenLine, FileCode, MessageCircle, Upload, Users, FolderPlus, Folder, Pin, PinOff, MoreVertical, MoreHorizontal,
-  CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock, Smartphone, ExternalLink, Loader2
+  CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock, Smartphone, ExternalLink, Loader2, Tag
 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useImageQuota } from "@/hooks/useImageQuota";
@@ -708,6 +712,65 @@ useEffect(() => {
       });
     } finally {
       setDeletingAppId(null);
+    }
+  };
+
+  const [settingsApp, setSettingsApp] = useState<RecentApp | null>(null);
+  const [settingsTitle, setSettingsTitle] = useState('');
+  const [settingsSeoDesc, setSettingsSeoDesc] = useState('');
+  const [settingsHideBadge, setSettingsHideBadge] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  const handleOpenSettings = (e: React.MouseEvent, app: RecentApp) => {
+    e.stopPropagation();
+    setSettingsApp(app);
+    setSettingsTitle(app.title || '');
+    const v = (app.versions && typeof app.versions === 'object') ? (app.versions as any) : {};
+    setSettingsSeoDesc(v.seo_description || '');
+    setSettingsHideBadge(!!v.hide_badge);
+  };
+
+  const handleSaveSettings = async () => {
+    if (!settingsApp) return;
+    setSavingSettings(true);
+    try {
+      const v = (settingsApp.versions && typeof settingsApp.versions === 'object') ? (settingsApp.versions as any) : {};
+      const updatedVersions = {
+        ...v,
+        seo_description: settingsSeoDesc.trim(),
+        hide_badge: settingsHideBadge,
+      };
+
+      const { error } = await supabase
+        .from('ide_projects')
+        .update({
+          title: settingsTitle.trim() || settingsApp.title,
+          versions: updatedVersions,
+        })
+        .eq('id', settingsApp.id);
+
+      if (error) throw error;
+
+      setRecentApps(prev => prev.map(a => a.id === settingsApp.id ? {
+        ...a,
+        title: settingsTitle.trim() || a.title,
+        versions: updatedVersions,
+      } : a));
+
+      toast({
+        title: "Settings saved",
+        description: "App configuration and branding updated.",
+      });
+      setSettingsApp(null);
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+      toast({
+        title: "Error saving settings",
+        description: "Could not update app settings.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -1607,6 +1670,16 @@ useEffect(() => {
                               <Button
                                 size="sm"
                                 variant="ghost"
+                                onClick={(e) => handleOpenSettings(e, app)}
+                                className="h-7 w-7 p-0 rounded-lg opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-slate-400 hover:text-purple-600 hover:bg-purple-500/10 dark:text-muted-foreground dark:hover:text-purple-300"
+                                title="App settings & branding"
+                              >
+                                <Settings className="h-3.5 w-3.5" />
+                              </Button>
+
+                              <Button
+                                size="sm"
+                                variant="ghost"
                                 disabled={deletingAppId === app.id}
                                 onClick={(e) => handleDeleteApp(e, app.id, app.title)}
                                 className="h-7 w-7 p-0 rounded-lg opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-slate-400 hover:text-destructive hover:bg-destructive/10 dark:text-muted-foreground dark:hover:text-red-400"
@@ -1651,6 +1724,105 @@ useEffect(() => {
                     total={Math.ceil(filteredApps.length / ITEMS_PER_PAGE)}
                     onChange={setAppPage}
                   />
+
+                  {settingsApp && (
+                    <Dialog open={!!settingsApp} onOpenChange={(open) => { if (!open) setSettingsApp(null); }}>
+                      <DialogContent className="sm:max-w-md bg-[#0f1117] border-white/10 text-foreground">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+                            <Settings className="h-4 w-4 text-purple-400" />
+                            <span>App Settings & Branding</span>
+                          </DialogTitle>
+                          <DialogDescription className="text-xs text-muted-foreground">
+                            Manage your web application metadata, SEO description, and site branding.
+                          </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-4 py-2">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="settingsTitle" className="text-xs font-medium">App Name</Label>
+                            <Input
+                              id="settingsTitle"
+                              value={settingsTitle}
+                              onChange={(e) => setSettingsTitle(e.target.value)}
+                              placeholder="App Name"
+                              className="h-8 text-xs bg-background/50 border-white/10 rounded-xl"
+                              disabled={savingSettings}
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="settingsSeoDesc" className="text-xs font-medium">SEO & Meta Description</Label>
+                              <span className="text-[10px] text-muted-foreground">{settingsSeoDesc.length}/155</span>
+                            </div>
+                            <Textarea
+                              id="settingsSeoDesc"
+                              value={settingsSeoDesc}
+                              onChange={(e) => setSettingsSeoDesc(e.target.value.slice(0, 160))}
+                              placeholder="Describe your web application for search engines and social links..."
+                              rows={2}
+                              className="text-xs bg-background/50 border-white/10 rounded-xl resize-none min-h-[55px]"
+                              disabled={savingSettings}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-background/40">
+                            <div className="space-y-0.5 pr-3">
+                              <div className="flex items-center gap-1.5">
+                                <Tag className="h-3.5 w-3.5 text-purple-400" />
+                                <span className="text-xs font-semibold text-foreground">"Built with ArcAi" Badge</span>
+                              </div>
+                              <p className="text-[10.5px] text-muted-foreground leading-tight">
+                                Show subtle floating glass tag on your live site. Can be shut off voluntarily anytime.
+                              </p>
+                            </div>
+                            <Switch
+                              checked={!settingsHideBadge}
+                              onCheckedChange={(checked) => setSettingsHideBadge(!checked)}
+                              disabled={savingSettings}
+                            />
+                          </div>
+
+                          {settingsApp.netlify_url && (
+                            <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-white/5 border border-white/10">
+                              <span className="text-muted-foreground">Public URL</span>
+                              <a
+                                href={settingsApp.netlify_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-purple-400 hover:underline flex items-center gap-1 font-mono text-[11px]"
+                              >
+                                <span>{settingsApp.netlify_subdomain}.askarc.chat</span>
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+
+                        <DialogFooter className="pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSettingsApp(null)}
+                            className="rounded-xl border-white/10 hover:bg-white/5 text-xs"
+                            disabled={savingSettings}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveSettings}
+                            disabled={savingSettings || !settingsTitle.trim()}
+                            className="gap-1.5 rounded-xl text-xs bg-purple-600 hover:bg-purple-500 text-white font-semibold"
+                          >
+                            {savingSettings ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                            <span>Save Settings</span>
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </>
               )}
             </motion.div>
