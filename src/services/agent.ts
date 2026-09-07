@@ -1,8 +1,8 @@
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 import { resolveReasoningEffort, useModelStore } from '@/store/useModelStore';
 
-const AGENT_REQUEST_TIMEOUT_MS = 120000;
-const AGENT_INACTIVITY_TIMEOUT_MS = 90000;
+const AGENT_REQUEST_TIMEOUT_MS = 180000;
+const AGENT_INACTIVITY_TIMEOUT_MS = 120000;
 
 const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const SUPABASE_URL =
@@ -65,7 +65,7 @@ export async function sendAgentMessage(
         messages,
         currentFiles,
         model: 'gpt-5.6-luna',
-        reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, 2),
+        reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, 3) || 'high',
       }),
       signal: requestController.signal,
     });

@@ -104,19 +104,20 @@ is not the thing deploying edge functions or migrations.
 - `supabase/functions/chat/index.ts` — main chat edge function (tools,
   scheduling, notifications)
 
-## App Builder (hidden — do not surface it)
+## App Builder (IDE)
 
-The App Builder / IDE is **fully hidden**, not "coming soon". It is being
-rebuilt, and advertising it was actively unwanted. Nothing user-facing may
-mention, link, or promise it — no nav entry, no tool tile, no docs article, no
-FAQ, no SEO copy, and nothing in any model prompt (`supabase/functions/chat`,
-`src/services/ai.ts`, the voice prompts). `/build` redirects to `/` and is not
-a chat command.
-
-The underlying code still exists for the rebuild: `AppsPanel.tsx` and
-`AppsPage.tsx` (both now unreferenced), `IDEArtifactCard.tsx` for legacy saved
-artifacts, and the `cloud-ide` route in `src/utils/routeRequest.ts`. Leave them
-alone; just do not link anything to them.
+The App Builder allows users to create full interactive React web applications
+powered by Luna (`gpt-5.6-luna`) with high reasoning.
+- **Triggers**: Accessible via the `+` Tools & Actions menu ("App" tool card),
+  slash commands (`/build`, `/app`, `build/`, `app/`), or natural language app requests.
+- **Icon**: Phone icon (`Smartphone`, `text-purple-400`) swaps onto the `+` button
+  when build mode is detected.
+- **Workspace**: Launching build mode opens the IDE Canvas workspace
+  (`IDECanvasPanel`) with real-time preview, code editor, chat, and Netlify deploys.
+- **Dashboard**: Integrated into the "Code & Apps" tab alongside code and writing
+  canvases, tagged with an "App" badge. Clicking an app card reopens it in the IDE.
+- **Backend**: Managed via the `agent` Supabase Edge Function using `gpt-5.6-luna`
+  at high reasoning effort with 150s timeout.
 
 ## Video generation (disabled)
 

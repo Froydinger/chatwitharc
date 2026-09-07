@@ -19,12 +19,13 @@ import {
   Rocket,
   FileText,
   ListPlus,
-  Hammer,
+  Smartphone,
   Clapperboard,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
 import { useArcStore } from "@/store/useArcStore";
+import { useIDEStore } from "@/store/useIDEStore";
 import { predictActivity } from "@/lib/activityPrediction";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useToast } from "@/hooks/use-toast";
@@ -278,9 +279,12 @@ function checkForCodingRequest(message: string): boolean {
   return false;
 }
 
-// There is no app builder. /build is not a command — it goes through as
-// ordinary chat rather than advertising a feature that does not exist.
-function checkForBuildRequest(_message: string): boolean {
+// App Builder detection: /build, /app, build/, app/, or natural language
+function checkForBuildRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  if (/^(build|app)\//.test(m) || /^\/(build|app)\b/.test(m)) return true;
+  if (/^(can\s+you\s+)?(please\s+)?(build|create|code|make)\s+(me\s+)?(an?\s+)?(full\s+)?(web\s+)?app\b/i.test(m)) return true;
   return false;
 }
 
@@ -731,6 +735,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     if (val === "/deep" || val === "/research") {
       setInputValue("");
       openSearchMode();
+    } else if (val === "/build" || val === "/app") {
+      setForceBuildMode(true);
+      setInputValue("app/ ");
     }
   }, [inputValue, openSearchMode]);
 
@@ -1505,11 +1512,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     let wasVideoMode = canGenerateVideo && checkForVideoRequest(finalMessage);
     let wasImageMode = !wasVideoMode && (shouldShowBanana || checkForImageRequest(finalMessage));
     let wasSearchMode = shouldShowSearchMode || checkForSearchRequest(finalMessage);
-    let wasBuildMode = checkForBuildRequest(finalMessage);
+    let wasBuildMode = shouldShowBuildMode || checkForBuildRequest(finalMessage);
 
     // Natural language image generation/search routing when no slash command and no UI toggles are active
     const isSlashOrOverride = finalMessage.trim().startsWith("/") ||
-                              shouldShowCanvasMode || shouldShowCodeMode || shouldShowBanana || shouldShowSearchMode;
+                              shouldShowCanvasMode || shouldShowCodeMode || shouldShowBanana || shouldShowSearchMode || shouldShowBuildMode;
 
     if (!isSlashOrOverride && !documents.length && !images.length) {
       const intent = analyzeImageRequestIntent(finalMessage);
@@ -1553,6 +1560,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     setForceCodingMode(false);
     setForceCanvasMode(false);
     setForceSearchMode(false);
+    setForceBuildMode(false);
     setShowMenu(false);
 
     // === CORPORATE MODE: hard-strip every cloud tool from this turn ===
@@ -1616,16 +1624,24 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       // Guest mode restrictions: only basic text chat
       if (
         isGuestMode &&
-        (images.length > 0 || documents.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode)
+        (images.length > 0 || documents.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode || wasBuildMode)
       ) {
         await addMessage({ content: finalMessage || "Sent message", role: "user", type: "text" });
         await addMessage({
           content:
-            "✨ Image generation, canvas, code, and document analysis features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
+            "✨ App builder, image generation, canvas, code, and document analysis features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
           role: "assistant",
           type: "text",
           sourceModel: "cloud-chat",
         });
+        setLoading(false);
+        return;
+      }
+
+      // App Builder Mode: launch IDE workspace
+      if (wasBuildMode) {
+        const cleanPrompt = extractPrefixPrompt(finalMessage);
+        useIDEStore.getState().openIDECanvas(cleanPrompt, undefined, true);
         setLoading(false);
         return;
       }
@@ -3024,7 +3040,7 @@ ${safeCode}
                   ) : shouldShowCodeMode ? (
                     <Code2 className="h-4 w-4 text-emerald-500" />
                   ) : shouldShowBuildMode ? (
-                    <Hammer className="h-4 w-4 text-purple-400" />
+                    <Smartphone className="h-4 w-4 text-purple-400" />
                   ) : showCanvasIndicator ? (
                     <PenLine className="h-4 w-4 text-pink-400" />
                   ) : (
@@ -3044,7 +3060,7 @@ ${safeCode}
                       setForceCanvasMode(false);
                       setForceBuildMode(false);
                       setInputValue((v) =>
-                        v.replace(/^\s*(image|search|code|write|build)\/\s*/i, "")
+                        v.replace(/^\s*(image|search|code|write|build|app)\/\s*/i, "")
                       );
                       textareaRef.current?.focus();
                     }}
@@ -3197,6 +3213,24 @@ ${safeCode}
                             <div className="flex flex-col items-start text-left min-w-0">
                               <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Draft</span>
                               <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">Writing & Layouts</span>
+                            </div>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setForceBuildMode(true);
+                              setInputValue("app/ ");
+                              setShowMenu(false);
+                              textareaRef.current?.focus();
+                            }}
+                            className="flex items-center gap-3 p-2.5 rounded-2xl transition-all duration-200 group border border-purple-500/20 hover:border-purple-500/35 bg-purple-500/5 hover:bg-purple-500/10"
+                          >
+                            <div className="w-8 h-8 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0 group-hover:bg-purple-500/25 transition-colors">
+                              <Smartphone className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                            </div>
+                            <div className="flex flex-col items-start text-left min-w-0">
+                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">App</span>
+                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">Full Web Applications</span>
                             </div>
                           </button>
 

@@ -9,7 +9,7 @@ const corsHeaders = {
 
 const AI_GATEWAY = "https://api.openai.com/v1/chat/completions";
 const DEFAULT_AGENT_MODEL = "gpt-5.6-luna";
-const AI_REQUEST_TIMEOUT_MS = 90000;
+const AI_REQUEST_TIMEOUT_MS = 150000;
 
 const AGENT_SYSTEM_PROMPT = `You are **Arc Code**, a senior software engineer building production-ready React web apps.
 
@@ -155,7 +155,7 @@ serve(async (req) => {
           const targetModel = DEFAULT_AGENT_MODEL;
           const selectedReasoningEffort = ['low', 'medium', 'high'].includes(reasoningEffort)
             ? reasoningEffort
-            : 'medium';
+            : 'high';
           const isReasoning = targetModel.startsWith("o1") || targetModel.startsWith("o3") || targetModel.startsWith("gpt-5.");
 
           const aiAbortController = new AbortController();

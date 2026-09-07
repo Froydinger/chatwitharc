@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useArcStore } from "@/store/useArcStore";
-import { toast } from "sonner";
+import { useIDEStore } from "@/store/useIDEStore";
 import type { VirtualFileSystem } from "@/types/ide";
 import { cn } from "@/lib/utils";
 import { getFaviconByLabel } from "@/constants/faviconOptions";
@@ -29,6 +29,7 @@ interface IDEProject {
 export function AppsPanel() {
   const isMobile = useIsMobile();
   const { setRightPanelOpen } = useArcStore();
+  const reopenIDECanvas = useIDEStore((s) => s.reopenIDECanvas);
   const [projects, setProjects] = useState<IDEProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -62,9 +63,7 @@ export function AppsPanel() {
     if (isMobile || window.innerWidth < 1024) {
       setRightPanelOpen(false);
     }
-    toast.info("App Builder is coming soon", {
-      description: "Existing app projects are read-only while the IDE workspace is offline.",
-    });
+    reopenIDECanvas(project.id, project.files, project.messages);
   };
 
   const handleDelete = async (e: React.MouseEvent, projectId: string) => {
@@ -100,17 +99,8 @@ export function AppsPanel() {
           <h2 className="text-3xl font-bold text-foreground">Apps</h2>
         </div>
         <p className="text-muted-foreground text-base">
-          App Builder IDE is paused while we rebuild it
+          Full web applications built with Luna
         </p>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-amber-500 hover:text-amber-500 gap-1 cursor-not-allowed"
-          disabled
-        >
-          Coming Soon
-          <Wrench className="w-3.5 h-3.5" />
-        </Button>
         <div className="mx-auto max-w-2xl w-full">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -148,7 +138,7 @@ export function AppsPanel() {
                 No apps yet
               </h3>
               <p className="text-muted-foreground mb-8 text-lg">
-                The App Builder is offline while we rebuild it. Check back soon.
+                Type /app or /build in chat to start building your first app.
               </p>
             </GlassCard>
           </div>
@@ -158,7 +148,7 @@ export function AppsPanel() {
               <GlassCard
                 key={project.id}
                 variant="bubble"
-                className="p-0 cursor-not-allowed opacity-80 transition-all group overflow-hidden"
+                className="p-0 cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all group overflow-hidden"
                 onClick={() => handleOpen(project)}
               >
                 {/* Header bar */}

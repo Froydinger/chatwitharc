@@ -7,7 +7,7 @@ import {
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
   Globe, Code2, Eye, Sparkles, ArrowRight, Music, Edit2, Check, X,
   Layers, PenLine, FileCode, MessageCircle, Upload, Users, FolderPlus, Folder, Pin, PinOff, MoreVertical, MoreHorizontal,
-  CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock
+  CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock, Smartphone
 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,6 +15,8 @@ import { useImageQuota } from "@/hooks/useImageQuota";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useArcStore } from "@/store/useArcStore";
+import { useIDEStore } from "@/store/useIDEStore";
+import type { VirtualFileSystem } from "@/types/ide";
 import { useProfile } from "@/hooks/useProfile";
 import { useChatSync } from "@/hooks/useChatSync";
 import { useContextBlocks } from "@/hooks/useContextBlocks";
@@ -58,6 +60,8 @@ interface RecentApp {
   id: string;
   title: string;
   prompt: string;
+  files?: VirtualFileSystem;
+  messages?: unknown[];
   favicon_label: string | null;
   netlify_url: string | null;
   netlify_subdomain: string | null;
@@ -77,13 +81,16 @@ function toDate(ts: unknown): Date | null {
 
 interface CanvasItem {
   id: string;
-  type: 'code' | 'writing';
+  type: 'code' | 'writing' | 'app';
   content: string;
   language?: string;
-  sessionId: string;
-  sessionTitle: string;
+  sessionId?: string;
+  sessionTitle?: string;
   timestamp: Date;
   label?: string;
+  projectId?: string;
+  files?: VirtualFileSystem;
+  messages?: unknown[];
 }
 
 function extractCodeBlocks(content: string): Array<{ code: string; language: string }> {
@@ -229,6 +236,7 @@ useEffect(() => {
   };
   const imageFetchStartedRef = useRef(false);
   const { openWithContent } = useCanvasStore();
+  const reopenIDECanvas = useIDEStore((s) => s.reopenIDECanvas);
   const dashboardEntryRef = useRef<'swipe' | 'default'>(
     sessionStorage.getItem('arc_dashboard_entry') === 'swipe' ? 'swipe' : 'default'
   );
@@ -604,7 +612,7 @@ useEffect(() => {
         if (!session?.user) return;
         const { data } = await supabase
           .from('ide_projects')
-          .select('id, title, prompt, favicon_label, netlify_url, netlify_subdomain, updated_at, created_at, version')
+          .select('id, title, prompt, files, messages, favicon_label, netlify_url, netlify_subdomain, updated_at, created_at, version')
           .eq('user_id', session.user.id)
           .order('updated_at', { ascending: false });
         if (data) setRecentApps(data as RecentApp[]);
@@ -684,11 +692,28 @@ useEffect(() => {
         }
       });
     });
+
+    // Also include full web applications from App Builder (ide_projects)
+    (recentApps || []).forEach(app => {
+      items.push({
+        id: app.id,
+        type: 'app',
+        content: app.prompt || '',
+        language: 'tsx',
+        timestamp: toDate(app.updated_at || app.created_at) || new Date(),
+        label: app.title || 'Web Application',
+        projectId: app.id,
+        files: app.files,
+        messages: app.messages,
+        sessionTitle: app.netlify_subdomain ? `${app.netlify_subdomain}.netlify.app` : 'App Builder',
+      });
+    });
+
     items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     if (!canvasSearch.trim()) return items;
     const q = canvasSearch.toLowerCase();
     return items.filter(i => i.label?.toLowerCase().includes(q) || i.content.toLowerCase().includes(q));
-  }, [chatSessions, canvasSearch]);
+  }, [chatSessions, recentApps, canvasSearch]);
 
   const timeAgo = (date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
@@ -723,7 +748,7 @@ useEffect(() => {
   })();
 
   const tabs: { key: DashboardTab; label: string; icon: typeof MessageSquare }[] = [
-    { key: "canvases", label: "Canvas", icon: Layers },
+    { key: "canvases", label: "Code & Apps", icon: Layers },
     { key: "chats", label: "Chats", icon: MessageSquare },
     { key: "overview", label: "Dash", icon: LayoutDashboard },
     { key: "images", label: "Images", icon: Image },
@@ -736,7 +761,7 @@ useEffect(() => {
   const stats = [
     { label: "Chats", tab: "chats" as DashboardTab, value: quickCounts.chats !== null ? quickCounts.chats : (allChats.length > 0 ? allChats.length : 0), icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
     { label: "Images", tab: "images" as DashboardTab, value: totalImageCount, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
-    { label: "Canvases", tab: "canvases" as DashboardTab, value: filteredCanvases.length, icon: Layers, color: "35 90% 60%", tw: "text-orange-400" },
+    { label: "Code & Apps", tab: "canvases" as DashboardTab, value: filteredCanvases.length, icon: Layers, color: "35 90% 60%", tw: "text-orange-400" },
     { label: "Memories", tab: "memories" as DashboardTab, value: quickCounts.memories !== null ? quickCounts.memories : (contextBlocks.length > 0 ? contextBlocks.length : 0), icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
@@ -1356,7 +1381,7 @@ useEffect(() => {
                   <motion.div key="canvas-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
                     <div className="flex items-center justify-between">
                       <button onClick={() => { setSelectedCanvas(null); setCanvasDetailTab("canvas"); }} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                        <ChevronLeft className="h-4 w-4" /> Back to canvases
+                        <ChevronLeft className="h-4 w-4" /> Back to items
                       </button>
                     </div>
                     <div className="rounded-2xl overflow-hidden border border-border/30 bg-muted/10">
@@ -1424,14 +1449,14 @@ useEffect(() => {
                   <motion.div key="canvas-grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input value={canvasSearch} onChange={e => setCanvasSearch(e.target.value)} placeholder="Search canvases…" className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
+                      <Input value={canvasSearch} onChange={e => setCanvasSearch(e.target.value)} placeholder="Search code & apps…" className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
                     </div>
                     {!allSessionsHydrated ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {[1,2,3,4].map(i => <div key={i} className="rounded-xl border border-border/30 bg-muted/20 overflow-hidden"><Skeleton className="h-32 w-full" /><div className="p-3"><Skeleton className="h-4 w-3/4 mb-1.5" /><Skeleton className="h-3 w-1/2" /></div></div>)}
                       </div>
                     ) : filteredCanvases.length === 0 ? (
-                      <EmptyState icon={Layers} text={canvasSearch ? "No matching canvases" : "No canvases yet"} sub="Ask Arc to write code or use /write" />
+                      <EmptyState icon={Layers} text={canvasSearch ? "No matching items" : "No code or apps yet"} sub="Ask Arc to write code, build an app, or use /write" />
                     ) : (
                       <>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -1439,11 +1464,31 @@ useEffect(() => {
                           <div
                             key={item.id}
                             className="group rounded-xl border border-border/30 bg-muted/15 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer overflow-hidden flex flex-col"
-                            onClick={() => setSelectedCanvas(item)}
+                            onClick={() => {
+                              if (item.type === 'app' && item.projectId && item.files) {
+                                reopenIDECanvas(item.projectId, item.files, item.messages);
+                              } else {
+                                setSelectedCanvas(item);
+                              }
+                            }}
                           >
                             {/* Mini preview */}
                             <div className="relative w-full h-40 bg-background/40 border-b border-border/20 overflow-hidden">
-                              {item.type === 'code' && item.language && canPreview(item.language) ? (
+                              {item.type === 'app' ? (
+                                <div className="absolute inset-0 p-4 flex flex-col justify-between bg-gradient-to-br from-purple-500/10 via-background/40 to-transparent">
+                                  <div className="flex items-center justify-between">
+                                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
+                                      <Smartphone className="h-4 w-4 text-purple-400" />
+                                    </div>
+                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                      App
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-foreground/80 line-clamp-3 leading-relaxed">
+                                    {item.content || 'Full React web application'}
+                                  </p>
+                                </div>
+                              ) : item.type === 'code' && item.language && canPreview(item.language) ? (
                                 <>
                                   <div className="absolute inset-0 pointer-events-none origin-top-left scale-[0.5] w-[200%] h-[200%]">
                                     <CodePreview code={item.content} language={item.language} />
@@ -1465,8 +1510,27 @@ useEffect(() => {
                             <div className="p-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  {item.type === 'code' ? <FileCode className="h-4 w-4 text-primary shrink-0" /> : <PenLine className="h-4 w-4 text-primary shrink-0" />}
+                                  {item.type === 'app' ? (
+                                    <Smartphone className="h-4 w-4 text-purple-400 shrink-0" />
+                                  ) : item.type === 'code' ? (
+                                    <FileCode className="h-4 w-4 text-primary shrink-0" />
+                                  ) : (
+                                    <PenLine className="h-4 w-4 text-primary shrink-0" />
+                                  )}
                                   <p className="font-semibold text-foreground truncate text-sm">{item.label}</p>
+                                  {item.type === 'app' ? (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                                      App
+                                    </span>
+                                  ) : item.type === 'code' ? (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                      Code
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-sky-500/20 text-sky-300 border border-sky-500/30">
+                                      Draft
+                                    </span>
+                                  )}
                                 </div>
                                 <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo(item.timestamp)}</span>
                               </div>

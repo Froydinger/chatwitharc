@@ -20,6 +20,8 @@ import { ChatModelPicker } from "@/components/ChatModelPicker";
 import { CanvasPanel } from "@/components/CanvasPanel";
 
 import { SearchCanvas } from "@/components/SearchCanvas";
+import { useIDEStore } from "@/store/useIDEStore";
+import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
 // CanvasTile removed - canvas now renders inline as chat message artifacts
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -313,6 +315,10 @@ export function MobileChatApp() {
 
   // Search mode state
   const { isOpen: isSearchOpen, closeSearch } = useSearchStore();
+
+  // App Builder (IDE) workspace state
+  const isIDEOpen = useIDEStore((s) => s.isOpen);
+  const closeIDE = useIDEStore((s) => s.closeIDE);
 
   // Pre-generate prompts in background for instant access
   usePromptPreload();
@@ -1476,6 +1482,21 @@ export function MobileChatApp() {
             className="fixed inset-0 z-[100] bg-background"
           >
             <SearchCanvas />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* App Builder IDE Workspace - Full Screen Takeover */}
+      <AnimatePresence>
+        {isIDEOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="fixed inset-0 z-[110] bg-background"
+          >
+            <IDECanvasPanel onClose={closeIDE} />
           </motion.div>
         )}
       </AnimatePresence>
