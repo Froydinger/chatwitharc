@@ -6,6 +6,7 @@ import type { AgentAction } from '@/types/ide';
 interface AgentTimelineProps {
   actions: AgentAction[];
   isRunning: boolean;
+  onSelectFile?: (path: string) => void;
 }
 
 function getActionLabel(action?: string, path?: string) {
@@ -118,25 +119,39 @@ export function AgentTimeline({ actions, isRunning }: AgentTimelineProps) {
             const succeeded = isComplete && action.success !== false;
             const failed = isComplete && action.success === false;
 
+            const isClickable = !!action.path && !!onSelectFile;
+
             return (
-              <div key={action.id} className={cn(
-                'flex items-center gap-2 text-[11px] py-0.5 transition-opacity',
-                inProg && 'text-foreground',
-                succeeded && 'text-muted-foreground',
-                failed && 'text-destructive'
-              )}>
+              <div 
+                key={action.id} 
+                onClick={() => {
+                  if (action.path && onSelectFile) {
+                    onSelectFile(action.path);
+                  }
+                }}
+                className={cn(
+                  'flex items-center gap-2 text-[11px] py-0.5 transition-colors group/item rounded px-1 -mx-1',
+                  isClickable && 'cursor-pointer hover:bg-white/5 hover:text-primary',
+                  inProg && 'text-foreground',
+                  succeeded && 'text-muted-foreground',
+                  failed && 'text-destructive'
+                )}
+                title={isClickable ? `Click to open ${action.path}` : undefined}
+              >
                 {inProg ? (
-                  <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                  <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
                 ) : succeeded ? (
-                  <div className="h-3 w-3 rounded-full bg-primary/20 flex items-center justify-center">
+                  <div className="h-3 w-3 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                     <Check className="h-2 w-2 text-primary" />
                   </div>
                 ) : failed ? (
-                  <X className="h-3 w-3" />
+                  <X className="h-3 w-3 shrink-0" />
                 ) : (
-                  <Sparkles className="h-3 w-3" />
+                  <Sparkles className="h-3 w-3 shrink-0" />
                 )}
-                <span className="break-words">{getActionLabel(action.action, action.path)}</span>
+                <span className="break-words group-hover/item:underline underline-offset-2">
+                  {getActionLabel(action.action, action.path)}
+                </span>
               </div>
             );
           })}

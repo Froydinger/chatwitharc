@@ -46,7 +46,8 @@ export async function sendAgentMessage(
   onAction: (action: AgentAction) => void,
   _model?: string,
   authToken?: string,
-  chatHistory?: { role: string; content: string }[]
+  chatHistory?: { role: string; content: string }[],
+  onToken?: (token: string) => void
 ): Promise<AgentResult> {
   const messages = normalizeMessages(chatHistory, userMessage);
 
@@ -157,6 +158,12 @@ export async function sendAgentMessage(
     switch (event.type) {
       case 'ping': {
         resetInactivityTimer();
+        break;
+      }
+      case 'token': {
+        if (event.token) {
+          onToken?.(event.token);
+        }
         break;
       }
       case 'status': {

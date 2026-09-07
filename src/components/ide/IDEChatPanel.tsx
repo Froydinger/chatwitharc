@@ -23,6 +23,7 @@ interface IDEChatPanelProps {
   generatingId: string | null;
   onSend: (message: string) => void;
   onGoHome?: () => void;
+  onSelectFile?: (path: string) => void;
   syncStatus?: 'saved' | 'saving' | 'unsaved' | 'error';
 }
 
@@ -41,6 +42,7 @@ export function IDEChatPanel({
   generatingId, 
   onSend,
   onGoHome,
+  onSelectFile,
   syncStatus = 'saved'
 }: IDEChatPanelProps) {
   const [input, setInput] = useState('');
@@ -168,18 +170,28 @@ export function IDEChatPanel({
                   )}
                 >
                   {isCurrentlyGenerating ? (
-                    <AgentTimeline actions={liveActions} isRunning={true} />
-                  ) : message.role === 'assistant' && message.agentActions && message.agentActions.length > 0 ? (
-                    <div className="space-y-3">
-                      <AgentTimeline actions={message.agentActions} isRunning={false} />
+                    <div className="space-y-2.5">
                       {message.content && (
-                        <p className="text-xs text-foreground/90 pt-2 border-t border-border/10 leading-relaxed whitespace-pre-wrap">
+                        <div className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">
                           {message.content}
-                        </p>
+                        </div>
+                      )}
+                      <AgentTimeline actions={liveActions} isRunning={true} onSelectFile={onSelectFile} />
+                    </div>
+                  ) : message.role === 'assistant' ? (
+                    <div className="space-y-2.5">
+                      {message.content && (
+                        <div className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                          {message.content}
+                        </div>
+                      )}
+                      {message.agentActions && message.agentActions.length > 0 && (
+                        <AgentTimeline actions={message.agentActions} isRunning={false} onSelectFile={onSelectFile} />
+                      )}
+                      {!message.content && (!message.agentActions || message.agentActions.length === 0) && (
+                        <span className="text-muted-foreground">App generation complete! Check the live preview.</span>
                       )}
                     </div>
-                  ) : !message.content && message.role === 'assistant' ? (
-                    <span className="text-muted-foreground">App generation complete! Look at the live preview.</span>
                   ) : (
                     <span className="whitespace-pre-wrap">{message.content}</span>
                   )}

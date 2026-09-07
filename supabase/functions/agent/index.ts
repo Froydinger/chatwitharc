@@ -147,8 +147,15 @@ Users or UI toggles will frequently ask you in natural language to add or config
 3. "Please update the app to disconnect netlifyDb..." / "Remove database":
    • Rewrite the data management to standard React in-memory state.
 
-4. "Please update the app to remove user authentication..." / "Remove auth":
-   • Remove \`NetlifyAuthModal\` and auth gating, making the UI accessible without sign in.
+━━━ CONVERSATIONAL COMMUNICATION GUIDELINES (LOVABLE & BOLT.NEW STYLE) ━━━
+You are an expert pair-programmer and software architect. ALWAYS communicate clearly and helpfully with the user:
+1. When asked to create or modify code:
+   • Start with a friendly, concise 1-2 sentence overview of what you're doing and the architectural plan.
+   • Output the necessary file changes using the specified markdown format.
+   • End with a brief, helpful summary of the changes made, how the new features work, and how the user can test or use them in the live preview.
+2. When the user asks a question, requests an explanation, or wants to discuss ideas (without asking for code implementation):
+   • Do NOT generate full file replacements. Instead, answer conversationally with clear markdown explanations, code snippets where helpful, and strategic advice.
+3. Be friendly, knowledgeable, and concise. Keep explanations high-signal and easy to understand.
 
 ━━━ OUTPUT FORMAT (CRITICAL) ━━━
 You must output your file changes using markdown headers and code blocks. For each file you want to create or modify, use one of these formats:
@@ -228,7 +235,16 @@ function parseFilesFromMarkdown(text: string): { files: Record<string, string>; 
     }
   }
 
-  return { files, deletions };
+function extractConversationalSummary(text: string): string {
+  // Remove markdown code blocks: ```lang ... ```
+  let clean = text.replace(/```[a-zA-Z0-9_-]*[\r\n]+([\s\S]*?)```/gi, '');
+  // Remove file headers like ### path/to/file.tsx or [FILEPATH] ... [CONTENT]
+  clean = clean.replace(/(?:^|\n)(?:###|##|#)\s*[a-zA-Z0-9_\-\.\/`*]+\s*/gi, '\n');
+  clean = clean.replace(/\[FILEPATH\][^\n\r]+\[CONTENT\]/gi, '');
+  clean = clean.replace(/\[DELETE\]\s*[a-zA-Z0-9_\-\.\/]+/gi, '');
+  // Clean up excess blank lines
+  clean = clean.replace(/\n{3,}/g, '\n\n').trim();
+  return clean;
 }
 
 serve(async (req) => {
@@ -401,6 +417,44 @@ serve(async (req) => {
           let lineBuffer = "";
           const announcedFiles = new Set<string>();
 
+          let prosePos = 0;
+          const getNewProseTokens = (text: string): string => {
+            let textOut = "";
+            let pos = prosePos;
+
+            while (pos < text.length) {
+              const codeStart = text.indexOf("```", pos);
+              if (codeStart === -1) {
+                let safeEnd = text.length;
+                if (text.endsWith("`")) safeEnd = text.lastIndexOf("`");
+                if (safeEnd > pos) {
+                  textOut += text.slice(pos, safeEnd);
+                  pos = safeEnd;
+                }
+                break;
+              }
+
+              if (codeStart > pos) {
+                textOut += text.slice(pos, codeStart);
+                pos = codeStart;
+              }
+
+              const codeEnd = text.indexOf("\n```", codeStart + 3);
+              if (codeEnd === -1) {
+                break;
+              }
+
+              const nextNl = text.indexOf("\n", codeEnd + 4);
+              pos = nextNl === -1 ? codeEnd + 4 : nextNl + 1;
+            }
+
+            prosePos = pos;
+            return textOut
+              .replace(/(?:^|\n)(?:###|##|#)\s*[a-zA-Z0-9_\-\.\/`*]+\s*/g, "\n")
+              .replace(/\[FILEPATH\][^\n\r]+\[CONTENT\]/g, "")
+              .replace(/\[DELETE\]\s*[a-zA-Z0-9_\-\.\/]+/g, "");
+          };
+
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -422,6 +476,12 @@ serve(async (req) => {
 
                 if (delta.content) {
                   fullResponse += delta.content;
+
+                  // Stream conversational prose to chat in real time
+                  const proseChunk = getNewProseTokens(fullResponse);
+                  if (proseChunk) {
+                    send({ type: "token", token: proseChunk });
+                  }
 
                   // Detect files as they begin streaming
                   const match = /(?:###|##|#|\[FILEPATH\])\s*([a-zA-Z0-9_\-\.\/`*]+)/g;
@@ -450,7 +510,13 @@ serve(async (req) => {
               try {
                 const chunk = JSON.parse(payload);
                 const content = chunk?.choices?.[0]?.delta?.content;
-                if (content) fullResponse += content;
+                if (content) {
+                  fullResponse += content;
+                  const proseChunk = getNewProseTokens(fullResponse);
+                  if (proseChunk) {
+                    send({ type: "token", token: proseChunk });
+                  }
+                }
               } catch {
                 // Ignore
               }
@@ -458,17 +524,26 @@ serve(async (req) => {
           }
 
           if (!fullResponse.trim()) {
-            send({ type: "error", message: "The AI did not return any code response." });
+            send({ type: "error", message: "The AI did not return any response." });
             return;
           }
 
           const { files, deletions } = parseFilesFromMarkdown(fullResponse);
           const hasFileChanges = Object.keys(files).length > 0 || deletions.length > 0;
+          const conversationalSummary = extractConversationalSummary(fullResponse);
 
           if (!hasFileChanges) {
+            // Conversational query / planning / explanation mode (Lovable/Bolt style)
+            const chatAnswer = conversationalSummary || fullResponse.trim();
+            if (chatAnswer) {
+              send({ type: "files", files: {}, deletions: [] });
+              send({ type: "done", summary: chatAnswer });
+              controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+              return;
+            }
             send({
               type: "error",
-              message: "No file changes were generated. Please retry with a clearer prompt.",
+              message: "No response or file changes were generated. Please retry with a clearer prompt.",
             });
             controller.enqueue(encoder.encode("data: [DONE]\n\n"));
             return;
@@ -484,7 +559,10 @@ serve(async (req) => {
 
           // Send final payload
           send({ type: "files", files, deletions });
-          send({ type: "done", summary: "Successfully generated codebase." });
+          send({
+            type: "done",
+            summary: conversationalSummary || "Successfully updated project files. Check the live preview.",
+          });
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         } catch (e) {
           console.error("Agent execution error:", e);

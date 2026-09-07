@@ -455,6 +455,15 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
         model,
         session?.access_token,
         historyForAgent,
+        (token: string) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === aId
+                ? { ...msg, content: (msg.content || '') + token }
+                : msg
+            )
+          );
+        }
       );
 
       const hasWrittenFiles = !!result.files && Object.keys(result.files).length > 0;
@@ -478,7 +487,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
           msg.id === aId
             ? {
                 ...msg,
-                content: result.summary,
+                content: result.summary || msg.content || (hasWrittenFiles ? 'Successfully applied updates.' : 'Completed request.'),
                 agentActions: result.actions,
               }
             : msg
@@ -860,6 +869,10 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                     generatingId={generatingId}
                     onSend={handleChatSend}
                     onGoHome={handleGoHome}
+                    onSelectFile={(path) => {
+                      setSelectedFile(path);
+                      setActiveTab('code');
+                    }}
                     syncStatus={syncStatus}
                   />
                 ) : (
@@ -875,7 +888,12 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
               </div>
             </TabsContent>
             <TabsContent value="cloud" forceMount className={cn("flex-1 m-0 min-h-0 overflow-y-auto", activeTab !== "cloud" && "hidden")}>
-              <IDECloudPanel files={files} setFiles={setFiles} />
+              <IDECloudPanel 
+                files={files} 
+                setFiles={setFiles} 
+                onChatSend={handleChatSend}
+                isAgentRunning={isAgentRunning}
+              />
             </TabsContent>
           </Tabs>
         ) : (
@@ -889,6 +907,10 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 generatingId={generatingId}
                 onSend={handleChatSend}
                 onGoHome={handleGoHome}
+                onSelectFile={(path) => {
+                  setSelectedFile(path);
+                  setActiveTab('code');
+                }}
                 syncStatus={syncStatus}
               />
             </ResizablePanel>
