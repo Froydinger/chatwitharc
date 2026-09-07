@@ -639,7 +639,7 @@ useEffect(() => {
         setLoadingApps(false);
       }
     })();
-  }, [user]);
+  }, [user, activeTab]);
 
 
   const allChats = useMemo(() => {

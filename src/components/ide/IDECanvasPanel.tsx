@@ -200,7 +200,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       // When launching a fresh app with a prompt (e.g. from chat /build or App tool card),
       // NEVER resurrect dirty files or prior chat history from local snapshot!
       if (currentPrompt) {
-        const freshAppId = `app_${Math.random().toString(36).substring(2, 9)}`;
+        const freshAppId = crypto.randomUUID();
         projectIdRef.current = freshAppId;
         setIdeProjectId(freshAppId);
         initialFiles = DEFAULT_FILES;
@@ -332,41 +332,42 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
       setSyncStatus('saving');
 
-      if (projectIdRef.current) {
-        const { error } = await supabase
-          .from('ide_projects')
-          .update({
-            files: filesToPersist as any,
-            messages: messagesToPersist as any,
-          })
-          .eq('id', projectIdRef.current);
+      const firstPrompt = messagesToPersist.find((m) => m.role === 'user')?.content || 'Arc App';
+      const projectTitle = firstPrompt ? firstPrompt.slice(0, 100) : 'Untitled Project';
 
-        if (error) throw error;
-      } else {
-        const firstPrompt = messagesToPersist.find((m) => m.role === 'user')?.content || 'Arc App';
-        const projectTitle = firstPrompt ? firstPrompt.slice(0, 100) : 'Untitled Project';
-
-        const { data, error } = await supabase
-          .from('ide_projects')
-          .insert({
-            user_id: session.user.id,
-            title: projectTitle,
-            prompt: firstPrompt,
-            files: filesToPersist as any,
-            messages: messagesToPersist as any,
-          })
-          .select('id')
-          .single();
-
-        if (error) throw error;
-
-        if (data) {
-          projectIdRef.current = data.id;
-          setIdeProjectId(data.id);
-        }
+      // Ensure valid UUID for ide_projects
+      let pid = projectIdRef.current;
+      const isValidUUID = pid && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid);
+      if (!isValidUUID) {
+        pid = crypto.randomUUID();
+        projectIdRef.current = pid;
+        setIdeProjectId(pid);
+        useIDEStore.getState().setIdeProjectId(pid);
       }
 
-      lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesToPersist, messagesToPersist);
+      const { data, error } = await supabase
+        .from('ide_projects')
+        .upsert({
+          id: pid,
+          user_id: session.user.id,
+          title: projectTitle,
+          prompt: firstPrompt,
+          files: filesToPersist as any,
+          messages: messagesToPersist as any,
+          updated_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      if (data?.id) {
+        projectIdRef.current = data.id;
+        setIdeProjectId(data.id);
+        useIDEStore.getState().setIdeProjectId(data.id);
+      }
+
+      lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesToPersist, messagesToPersist, pid);
       setSyncStatus('saved');
     } catch (err) {
       console.error('Failed to save project:', err);
@@ -415,7 +416,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     e.preventDefault();
     if (!newProjectPrompt.trim()) return;
 
-    const freshAppId = `app_${Math.random().toString(36).substring(2, 9)}`;
+    const freshAppId = crypto.randomUUID();
     setFiles(DEFAULT_FILES);
     setMessagesRaw([]);
     setIdeFiles(DEFAULT_FILES);
@@ -529,8 +530,9 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       setIsAgentRunning(false);
       setIdeIsRunning(false);
       setGeneratingId(null);
+      void saveProject();
     }
-  }, [hasBoost, isAdmin, openCheckout, setIdeActions, setIdeIsRunning, setMessages, toast]);
+  }, [hasBoost, isAdmin, openCheckout, saveProject, setIdeActions, setIdeIsRunning, setMessages, toast]);
 
   const handleChatSend = useCallback((message: string, images?: string[]) => {
     autoFixedRef.current = false;

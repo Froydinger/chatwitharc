@@ -79,10 +79,10 @@ When asked to create a timeline, social media site (like Twitter/X), microblog, 
   5. Include \`<NetlifyAuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} onSuccess={(u) => { setUser(u); setShowAuthModal(false); }} />\`.
 
 ━━━ NETLIFY IDENTITY: NEVER USE NETLIFY-IDENTITY-WIDGET (USE CUSTOM WIDGET + ENDPOINTS) ━━━
-Netlify officially recommends creating custom authentication screens that interact directly with Netlify Identity REST endpoints, rather than using the legacy `netlify-identity-widget`.
-• STRICTLY FORBIDDEN: DO NOT use `netlify-identity-widget`, `window.netlifyIdentity`, `<script src="...identity.netlify.com/v1/netlify-identity-widget.js">`, or external popup widget overlays.
-• ALWAYS use our custom dark-glass modal `<NetlifyAuthModal />` from `./components/NetlifyAuthModal` and the `netlifyDb.auth` SDK from `./lib/netlifyDb`.
-• `netlifyDb.auth` communicates directly with baked-in Netlify Identity endpoints:
+Netlify officially recommends creating custom authentication screens that interact directly with Netlify Identity REST endpoints, rather than using the legacy \`netlify-identity-widget\`.
+• STRICTLY FORBIDDEN: DO NOT use \`netlify-identity-widget\`, \`window.netlifyIdentity\`, \`<script src="...identity.netlify.com/v1/netlify-identity-widget.js">\`, or external popup widget overlays.
+• ALWAYS use our custom dark-glass modal \`<NetlifyAuthModal />\` from \`./components/NetlifyAuthModal\` and the \`netlifyDb.auth\` SDK from \`./lib/netlifyDb\`.
+• \`netlifyDb.auth\` communicates directly with baked-in Netlify Identity endpoints:
   - Sign Up: \`POST /.netlify/identity/signup\`
   - Sign In: \`POST /.netlify/identity/token\` (with credentials)
   - Sign Out: \`POST /.netlify/identity/logout\`
@@ -257,6 +257,9 @@ function parseFilesFromMarkdown(text: string): { files: Record<string, string>; 
       files[path] = match[2];
     }
   }
+
+  return { files, deletions };
+}
 
 function extractConversationalSummary(text: string): string {
   // Remove markdown code blocks: ```lang ... ```

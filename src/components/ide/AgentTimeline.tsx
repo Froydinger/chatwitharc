@@ -27,7 +27,7 @@ function isInProgress(action?: string) {
 }
 
 export function AgentTimeline({ actions, isRunning, onSelectFile }: AgentTimelineProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   if (actions.length === 0 && !isRunning) return null;
 
@@ -54,12 +54,12 @@ export function AgentTimeline({ actions, isRunning, onSelectFile }: AgentTimelin
 
   const summaryLabel = isRunning
     ? latestAction?.type === 'status'
-      ? latestAction.message || 'Thinking…'
+      ? latestAction.message || 'Generating app…'
       : latestAction?.type === 'action' && isInProgress(latestAction.action)
         ? getActionLabel(latestAction.action, latestAction.path)
         : latestAction?.type === 'action_complete'
           ? getActionLabel(latestAction.action, latestAction.path)
-          : 'Thinking…'
+          : 'Generating app…'
     : `Completed ${completedCount} action${completedCount !== 1 ? 's' : ''}`;
 
   return (
@@ -159,7 +159,7 @@ export function AgentTimeline({ actions, isRunning, onSelectFile }: AgentTimelin
           {isRunning && displayActions.length > 0 && !displayActions.some(a => a.type === 'action' && isInProgress(a.action)) && (
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground py-0.5">
               <Loader2 className="h-3 w-3 animate-spin text-primary" />
-              <span>Thinking…</span>
+              <span>Generating code…</span>
             </div>
           )}
         </div>
