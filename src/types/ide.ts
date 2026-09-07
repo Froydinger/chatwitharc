@@ -51,19 +51,27 @@ export default function App() {
     language: 'typescript',
   },
   'src/lib/netlifyDb.ts': {
-    content: `// ⚡ Arc & Netlify Cloud Database + User Accounts SDK
+    content: `// ⚡ Arc & Netlify Database + Netlify Identity SDK
 export interface AppUser {
   id: string;
   email: string;
   name?: string;
   avatar?: string;
   role?: string;
+  token?: string;
   created_at: string;
 }
 
 const DB_PREFIX = 'netlify_db:';
-const USERS_KEY = 'netlify_mock_users';
 const CURRENT_USER_KEY = 'netlify_current_user';
+const TOKEN_KEY = 'netlify_identity_token';
+
+function getIdentityEndpoint(): string {
+  if (typeof window !== 'undefined' && (window as any).__NETLIFY_IDENTITY_URL__) {
+    return (window as any).__NETLIFY_IDENTITY_URL__;
+  }
+  return '/.netlify/identity';
+}
 
 export const netlifyDb = {
   // Key-Value Store
@@ -115,7 +123,7 @@ export const netlifyDb = {
     return records;
   },
 
-  // Document Collections / Tables (e.g. netlifyDb.collection('todos'))
+  // Document Collections / Tables (e.g. netlifyDb.collection('posts'))
   collection: <T extends { id?: string }>(collectionName: string) => {
     const collectionKey = \`collection:\${collectionName}\`;
 
@@ -173,10 +181,16 @@ export const netlifyDb = {
         }
         return false;
       },
+
+      subscribe: (callback: (items: T[]) => void) => {
+        const handler = (e: any) => callback(e.detail || []);
+        window.addEventListener(\`netlify-collection:\${collectionName}\`, handler);
+        return () => window.removeEventListener(\`netlify-collection:\${collectionName}\`, handler);
+      },
     };
   },
 
-  // User Accounts & Authentication
+  // Netlify Identity Authentication (Endpoints + Custom Auth Screens, No Widget Needed)
   auth: {
     currentUser: (): AppUser | null => {
       try {
@@ -187,62 +201,131 @@ export const netlifyDb = {
       }
     },
 
-    listUsers: (): AppUser[] => {
-      try {
-        const raw = localStorage.getItem(USERS_KEY);
-        return raw ? JSON.parse(raw) : [];
-      } catch {
-        return [];
-      }
-    },
-
     signUp: async (params: { email: string; password?: string; name?: string; avatar?: string }): Promise<{ user: AppUser | null; error: string | null }> => {
+      const email = params.email.trim().toLowerCase();
+      const password = params.password || 'password123';
+      const name = params.name || email.split('@')[0];
+      const avatar = params.avatar || \`https://api.dicebear.com/7.x/adventurer/svg?seed=\${encodeURIComponent(email)}\`;
+      if (!email) return { user: null, error: 'Email is required' };
+
+      // 1. Try Netlify Identity endpoint
       try {
-        const users = netlifyDb.auth.listUsers();
-        const email = params.email.trim().toLowerCase();
-        if (!email) return { user: null, error: 'Email is required' };
+        const endpoint = getIdentityEndpoint();
+        const res = await fetch(\`\${endpoint}/signup\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            password,
+            user_metadata: { full_name: name, avatar_url: avatar },
+          }),
+        });
 
-        if (users.some((u) => u.email.toLowerCase() === email)) {
-          return { user: null, error: 'User with this email already exists' };
+        if (res.ok) {
+          const data = await res.json();
+          const newUser: AppUser = {
+            id: data.id || Math.random().toString(36).substring(2, 11),
+            email: data.email || email,
+            name: data.user_metadata?.full_name || name,
+            avatar: data.user_metadata?.avatar_url || avatar,
+            role: 'User',
+            created_at: data.created_at || new Date().toISOString(),
+          };
+          localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(newUser));
+          window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { user: newUser } }));
+          return { user: newUser, error: null };
+        } else if (res.status !== 404) {
+          const errData = await res.json().catch(() => ({ msg: 'Sign up failed' }));
+          return { user: null, error: errData.msg || errData.error_description || 'Sign up failed' };
         }
-
-        const newUser: AppUser = {
-          id: Math.random().toString(36).substring(2, 11),
-          email,
-          name: params.name || email.split('@')[0],
-          avatar: params.avatar || \`https://api.dicebear.com/7.x/adventurer/svg?seed=\${encodeURIComponent(email)}\`,
-          role: users.length === 0 ? 'Admin' : 'User',
-          created_at: new Date().toISOString(),
-        };
-
-        users.push(newUser);
-        localStorage.setItem(USERS_KEY, JSON.stringify(users));
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(newUser));
-        window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { user: newUser } }));
-        return { user: newUser, error: null };
-      } catch (err: any) {
-        return { user: null, error: err?.message || 'Sign up failed' };
+      } catch {
+        // Fallback for sandboxed preview
       }
+
+      // 2. Sandboxed preview fallback
+      const newUser: AppUser = {
+        id: Math.random().toString(36).substring(2, 11),
+        email,
+        name,
+        avatar,
+        role: 'User',
+        created_at: new Date().toISOString(),
+      };
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(newUser));
+      window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { user: newUser } }));
+      return { user: newUser, error: null };
     },
 
-    signIn: async (email: string, _password?: string): Promise<{ user: AppUser | null; error: string | null }> => {
+    signIn: async (emailInput: string, passwordInput?: string): Promise<{ user: AppUser | null; error: string | null }> => {
+      const email = emailInput.trim().toLowerCase();
+      const password = passwordInput || 'password123';
+      if (!email) return { user: null, error: 'Email is required' };
+
+      // 1. Try Netlify Identity token endpoint
       try {
-        const users = netlifyDb.auth.listUsers();
-        const cleanEmail = email.trim().toLowerCase();
-        const user = users.find((u) => u.email.toLowerCase() === cleanEmail);
-        if (!user) {
-          return { user: null, error: 'Account not found. Please sign up.' };
+        const endpoint = getIdentityEndpoint();
+        const formParams = new URLSearchParams();
+        formParams.append('grant_type', 'password');
+        formParams.append('username', email);
+        formParams.append('password', password);
+
+        const res = await fetch(\`\${endpoint}/token\`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formParams.toString(),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const userMeta = data.user?.user_metadata || {};
+          const user: AppUser = {
+            id: data.user?.id || Math.random().toString(36).substring(2, 11),
+            email: data.user?.email || email,
+            name: userMeta.full_name || userMeta.name || email.split('@')[0],
+            avatar: userMeta.avatar_url || userMeta.avatar || \`https://api.dicebear.com/7.x/adventurer/svg?seed=\${encodeURIComponent(email)}\`,
+            role: data.user?.app_metadata?.roles?.[0] || 'User',
+            token: data.access_token,
+            created_at: data.user?.created_at || new Date().toISOString(),
+          };
+          localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+          if (data.access_token) localStorage.setItem(TOKEN_KEY, data.access_token);
+          window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { user } }));
+          return { user, error: null };
+        } else if (res.status !== 404) {
+          const errData = await res.json().catch(() => ({ error_description: 'Invalid email or password' }));
+          return { user: null, error: errData.error_description || errData.msg || 'Invalid credentials' };
         }
-        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-        window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { user } }));
-        return { user, error: null };
-      } catch (err: any) {
-        return { user: null, error: err?.message || 'Sign in failed' };
+      } catch {
+        // Fallback for sandboxed preview
       }
+
+      // 2. Sandboxed preview fallback
+      const user: AppUser = {
+        id: Math.random().toString(36).substring(2, 11),
+        email,
+        name: email.split('@')[0],
+        avatar: \`https://api.dicebear.com/7.x/adventurer/svg?seed=\${encodeURIComponent(email)}\`,
+        role: 'User',
+        created_at: new Date().toISOString(),
+      };
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+      window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { user } }));
+      return { user, error: null };
     },
 
-    signOut: (): void => {
+    signOut: async (): Promise<void> => {
+      try {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (token) {
+          const endpoint = getIdentityEndpoint();
+          await fetch(\`\${endpoint}/logout\`, {
+            method: 'POST',
+            headers: { 'Authorization': \`Bearer \${token}\` },
+          }).catch(() => {});
+        }
+      } catch {}
       localStorage.removeItem(CURRENT_USER_KEY);
+      localStorage.removeItem(TOKEN_KEY);
       window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { user: null } }));
     },
 

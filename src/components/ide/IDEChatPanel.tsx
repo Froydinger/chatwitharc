@@ -28,7 +28,7 @@ interface IDEChatPanelProps {
 
 const QUICK_PROMPTS = [
   'Add dark mode with toggle switch',
-  'Add persistent database storage via netlifyDb',
+  'Add user profile edit & avatar upload',
   'Make the interface fully responsive on mobile',
   'Add search filtering and tag categories'
 ];

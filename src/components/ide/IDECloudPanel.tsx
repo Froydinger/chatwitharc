@@ -29,11 +29,29 @@ export function IDECloudPanel({ files, setFiles }: IDECloudPanelProps) {
 
   const loadMockData = () => {
     try {
+      const currentUser = localStorage.getItem('netlify_current_user');
       const storedUsers = localStorage.getItem('netlify_mock_users');
-      const parsedUsers = storedUsers ? JSON.parse(storedUsers) : [
-        { id: '1', email: 'jake@askarc.chat', name: 'Jake', role: 'Admin', status: 'Active', created_at: new Date().toLocaleDateString() },
-        { id: '2', email: 'guest@askarc.chat', name: 'Guest', role: 'User', status: 'Active', created_at: new Date().toLocaleDateString() }
-      ];
+      let parsedUsers: any[] = storedUsers ? JSON.parse(storedUsers) : [];
+      if (currentUser) {
+        try {
+          const cu = JSON.parse(currentUser);
+          if (cu?.email && !parsedUsers.some(u => u.email === cu.email)) {
+            parsedUsers.unshift({
+              id: cu.id || '1',
+              email: cu.email,
+              name: cu.name || cu.email.split('@')[0],
+              role: cu.role || 'User',
+              status: 'Active',
+              created_at: new Date(cu.created_at || Date.now()).toLocaleDateString()
+            });
+          }
+        } catch {}
+      }
+      if (parsedUsers.length === 0) {
+        parsedUsers = [
+          { id: '1', email: 'user@askarc.chat', name: 'App User', role: 'User', status: 'Active', created_at: new Date().toLocaleDateString() }
+        ];
+      }
       setMockUsers(parsedUsers);
 
       const records: Record<string, any> = {};
