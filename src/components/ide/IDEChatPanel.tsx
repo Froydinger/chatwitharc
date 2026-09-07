@@ -27,10 +27,11 @@ interface IDEChatPanelProps {
 }
 
 const QUICK_PROMPTS = [
+  'Let users create accounts & log in',
+  'Add persistent database storage',
   'Add dark mode with toggle switch',
-  'Add user profile edit & avatar upload',
   'Make the interface fully responsive on mobile',
-  'Add search filtering and tag categories'
+  'Add search filtering and categories'
 ];
 
 export function IDEChatPanel({ 
