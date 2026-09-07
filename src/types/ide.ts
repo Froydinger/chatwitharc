@@ -80,6 +80,29 @@ const getCurrentUserKey = () => \`netlify_current_user:\${resolveAppId()}\`;
 const getTokenKey = () => \`netlify_identity_token:\${resolveAppId()}\`;
 const getMockUsersKey = () => \`netlify_mock_users:\${resolveAppId()}\`;
 
+function notifyHost(action: string, payload: any) {
+  if (typeof window === 'undefined') return;
+  const currentAppId = resolveAppId();
+  const eventDetail = { appId: currentAppId, ...payload };
+  try {
+    window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: eventDetail }));
+  } catch {}
+  try {
+    const msg = {
+      source: 'arc-netlify-db',
+      appId: currentAppId,
+      action,
+      payload,
+    };
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(msg, '*');
+    }
+    if (window.top && window.top !== window && window.top !== window.parent) {
+      window.top.postMessage(msg, '*');
+    }
+  } catch {}
+}
+
 function getIdentityEndpoint(): string {
   if (typeof window !== 'undefined' && (window as any).__NETLIFY_IDENTITY_URL__) {
     return (window as any).__NETLIFY_IDENTITY_URL__;
@@ -102,6 +125,7 @@ export const netlifyDb = {
     try {
       localStorage.setItem(\`\${getDbPrefix()}\${key}\`, JSON.stringify(value));
       window.dispatchEvent(new CustomEvent('netlify-db-change', { detail: { appId: resolveAppId(), key, value } }));
+      notifyHost('db-set', { key, value });
       return true;
     } catch (e) {
       console.error('[netlifyDb] Set error:', e);
@@ -113,6 +137,7 @@ export const netlifyDb = {
     try {
       localStorage.removeItem(\`\${getDbPrefix()}\${key}\`);
       window.dispatchEvent(new CustomEvent('netlify-db-change', { detail: { appId: resolveAppId(), key, deleted: true } }));
+      notifyHost('db-delete', { key });
       return true;
     } catch {
       return false;
@@ -149,6 +174,7 @@ export const netlifyDb = {
     const saveItems = (items: T[]) => {
       netlifyDb.set(collectionKey, items);
       window.dispatchEvent(new CustomEvent(\`netlify-collection:\${collectionName}\`, { detail: items }));
+      notifyHost('collection-change', { collection: collectionName, items });
     };
 
     return {
@@ -247,9 +273,10 @@ export const netlifyDb = {
             created_at: data.created_at || new Date().toISOString(),
           };
           localStorage.setItem(getCurrentUserKey(), JSON.stringify(newUser));
+          let userList: any[] = [];
           try {
             const rawUsers = localStorage.getItem(getMockUsersKey());
-            const userList = rawUsers ? JSON.parse(rawUsers) : [];
+            userList = rawUsers ? JSON.parse(rawUsers) : [];
             if (!userList.some((u: any) => u.email === newUser.email)) {
               userList.unshift({
                 id: newUser.id,
@@ -262,7 +289,8 @@ export const netlifyDb = {
               localStorage.setItem(getMockUsersKey(), JSON.stringify(userList));
             }
           } catch {}
-          window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user: newUser } }));
+          window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user: newUser, users: userList } }));
+          notifyHost('auth-signup', { user: newUser, users: userList });
           return { user: newUser, error: null };
         } else if (res.status !== 404) {
           const errData = await res.json().catch(() => ({ msg: 'Sign up failed' }));
@@ -282,9 +310,10 @@ export const netlifyDb = {
         created_at: new Date().toISOString(),
       };
       localStorage.setItem(getCurrentUserKey(), JSON.stringify(newUser));
+      let userList: any[] = [];
       try {
         const rawUsers = localStorage.getItem(getMockUsersKey());
-        const userList = rawUsers ? JSON.parse(rawUsers) : [];
+        userList = rawUsers ? JSON.parse(rawUsers) : [];
         if (!userList.some((u: any) => u.email === newUser.email)) {
           userList.unshift({
             id: newUser.id,
@@ -297,7 +326,8 @@ export const netlifyDb = {
           localStorage.setItem(getMockUsersKey(), JSON.stringify(userList));
         }
       } catch {}
-      window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user: newUser } }));
+      window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user: newUser, users: userList } }));
+      notifyHost('auth-signup', { user: newUser, users: userList });
       return { user: newUser, error: null };
     },
 
@@ -334,7 +364,24 @@ export const netlifyDb = {
           };
           localStorage.setItem(getCurrentUserKey(), JSON.stringify(user));
           if (data.access_token) localStorage.setItem(getTokenKey(), data.access_token);
-          window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user } }));
+          let userList: any[] = [];
+          try {
+            const rawUsers = localStorage.getItem(getMockUsersKey());
+            userList = rawUsers ? JSON.parse(rawUsers) : [];
+            if (!userList.some((u: any) => u.email === user.email)) {
+              userList.unshift({
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                role: user.role || 'User',
+                status: 'Active',
+                created_at: new Date().toLocaleDateString(),
+              });
+              localStorage.setItem(getMockUsersKey(), JSON.stringify(userList));
+            }
+          } catch {}
+          window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user, users: userList } }));
+          notifyHost('auth-signin', { user, users: userList });
           return { user, error: null };
         } else if (res.status !== 404) {
           const errData = await res.json().catch(() => ({ error_description: 'Invalid email or password' }));
@@ -354,7 +401,24 @@ export const netlifyDb = {
         created_at: new Date().toISOString(),
       };
       localStorage.setItem(getCurrentUserKey(), JSON.stringify(user));
-      window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user } }));
+      let userList: any[] = [];
+      try {
+        const rawUsers = localStorage.getItem(getMockUsersKey());
+        userList = rawUsers ? JSON.parse(rawUsers) : [];
+        if (!userList.some((u: any) => u.email === user.email)) {
+          userList.unshift({
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role || 'User',
+            status: 'Active',
+            created_at: new Date().toLocaleDateString(),
+          });
+          localStorage.setItem(getMockUsersKey(), JSON.stringify(userList));
+        }
+      } catch {}
+      window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user, users: userList } }));
+      notifyHost('auth-signin', { user, users: userList });
       return { user, error: null };
     },
 
@@ -371,7 +435,8 @@ export const netlifyDb = {
       } catch {}
       localStorage.removeItem(getCurrentUserKey());
       localStorage.removeItem(getTokenKey());
-      window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user: null } }));
+      window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user: null, users: [] } }));
+      notifyHost('auth-signout', { user: null });
     },
 
     onAuthStateChange: (callback: (user: AppUser | null) => void) => {
@@ -385,6 +450,16 @@ export const netlifyDb = {
     },
   },
 };
+
+// Initial state announcement to host window
+try {
+  if (typeof window !== 'undefined') {
+    const cur = netlifyDb.auth.currentUser();
+    const rawUsers = localStorage.getItem(getMockUsersKey());
+    const initialUsers = rawUsers ? JSON.parse(rawUsers) : [];
+    notifyHost('app-init', { user: cur, users: initialUsers });
+  }
+} catch {}
 `,
     language: 'typescript',
   },

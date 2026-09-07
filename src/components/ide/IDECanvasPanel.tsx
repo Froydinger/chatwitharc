@@ -51,6 +51,7 @@ interface LovableProject {
   created_at: string;
   files: any;
   messages: any;
+  versions?: any;
 }
 
 interface IDECanvasPanelProps {
@@ -291,7 +292,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
     supabase
       .from('ide_projects')
-      .select('title, netlify_url, netlify_site_id, netlify_subdomain, messages')
+      .select('title, netlify_url, netlify_site_id, netlify_subdomain, messages, versions')
       .eq('id', ideProjectId)
       .single()
       .then(({ data }) => {
@@ -304,6 +305,16 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
           setPublishedAppTitle((data as any).title);
         } else if (!(data as any).netlify_url) {
           setPublishedAppTitle(null);
+        }
+
+        const appUsers = (data as any)?.versions?.app_users;
+        if (Array.isArray(appUsers) && appUsers.length > 0) {
+          const key = `netlify_mock_users:${ideProjectId}`;
+          const existing = localStorage.getItem(key);
+          if (!existing || existing === '[]') {
+            localStorage.setItem(key, JSON.stringify(appUsers));
+            window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: ideProjectId, users: appUsers } }));
+          }
         }
 
         const dbMessages = (data as any).messages;
@@ -365,6 +376,33 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
         useIDEStore.getState().setIdeProjectId(pid);
       }
 
+      // Collect registered users for this app to persist into versions
+      let appUsers: any[] = [];
+      try {
+        const rawUsers = localStorage.getItem(`netlify_mock_users:${pid}`) || (pid !== 'default' ? localStorage.getItem('netlify_mock_users:default') : null);
+        if (rawUsers) {
+          appUsers = JSON.parse(rawUsers);
+          if (pid !== 'default') {
+            localStorage.setItem(`netlify_mock_users:${pid}`, rawUsers);
+          }
+        }
+      } catch {}
+
+      const { data: existingData } = await supabase
+        .from('ide_projects')
+        .select('versions')
+        .eq('id', pid)
+        .maybeSingle();
+
+      const existingVersions = (existingData?.versions && typeof existingData.versions === 'object' && !Array.isArray(existingData.versions))
+        ? existingData.versions
+        : {};
+
+      const nextVersions = {
+        ...existingVersions,
+        app_users: appUsers.length > 0 ? appUsers : (existingVersions.app_users || []),
+      };
+
       const { data, error } = await supabase
         .from('ide_projects')
         .upsert({
@@ -374,6 +412,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
           prompt: firstPrompt,
           files: filesToPersist as any,
           messages: messagesToPersist as any,
+          versions: nextVersions as any,
           updated_at: new Date().toISOString(),
         })
         .select('id')
@@ -397,6 +436,95 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
   useEffect(() => { syncStatusRef.current = syncStatus; }, [syncStatus]);
 
+  // Listen for real-time events from preview iframe (auth signup, signin, db changes)
+  useEffect(() => {
+    const handleHostMessage = (event: MessageEvent) => {
+      if (!event.data || event.data.source !== 'arc-netlify-db') return;
+      const { appId: msgAppId, action, payload } = event.data;
+      const currentAppId = msgAppId || projectIdRef.current || ideProjectId || 'default';
+
+      if (action === 'auth-signup' || action === 'auth-signin' || action === 'app-init') {
+        const usersKey = `netlify_mock_users:${currentAppId}`;
+        const curUserKey = `netlify_current_user:${currentAppId}`;
+
+        let currentUsers: any[] = [];
+        try {
+          const raw = localStorage.getItem(usersKey);
+          currentUsers = raw ? JSON.parse(raw) : [];
+        } catch {}
+
+        if (Array.isArray(payload?.users)) {
+          for (const u of payload.users) {
+            if (u?.email && !currentUsers.some(existing => existing.email === u.email)) {
+              currentUsers.unshift(u);
+            }
+          }
+        }
+        if (payload?.user) {
+          try {
+            localStorage.setItem(curUserKey, JSON.stringify(payload.user));
+          } catch {}
+          if (!currentUsers.some(existing => existing.email === payload.user.email)) {
+            currentUsers.unshift({
+              id: payload.user.id || Math.random().toString(36).substring(2, 9),
+              email: payload.user.email,
+              name: payload.user.name || payload.user.email.split('@')[0],
+              role: payload.user.role || 'User',
+              status: 'Active',
+              created_at: new Date().toLocaleDateString(),
+            });
+          }
+        }
+
+        try {
+          localStorage.setItem(usersKey, JSON.stringify(currentUsers));
+          if (projectIdRef.current && projectIdRef.current !== currentAppId) {
+            localStorage.setItem(`netlify_mock_users:${projectIdRef.current}`, JSON.stringify(currentUsers));
+          }
+        } catch {}
+
+        window.dispatchEvent(new CustomEvent('netlify-auth-change', {
+          detail: { appId: currentAppId, user: payload?.user, users: currentUsers }
+        }));
+        window.dispatchEvent(new Event('storage'));
+
+        // Save immediately to Supabase
+        void saveProject();
+      } else if (action === 'auth-signout') {
+        try {
+          localStorage.removeItem(`netlify_current_user:${currentAppId}`);
+        } catch {}
+        window.dispatchEvent(new CustomEvent('netlify-auth-change', {
+          detail: { appId: currentAppId, user: null }
+        }));
+        window.dispatchEvent(new Event('storage'));
+      } else if (action === 'db-set') {
+        if (payload?.key) {
+          try {
+            localStorage.setItem(`netlify_db:${currentAppId}:${payload.key}`, JSON.stringify(payload.value));
+          } catch {}
+          window.dispatchEvent(new CustomEvent('netlify-db-change', {
+            detail: { appId: currentAppId, key: payload.key, value: payload.value }
+          }));
+          window.dispatchEvent(new Event('storage'));
+        }
+      } else if (action === 'db-delete') {
+        if (payload?.key) {
+          try {
+            localStorage.removeItem(`netlify_db:${currentAppId}:${payload.key}`);
+          } catch {}
+          window.dispatchEvent(new CustomEvent('netlify-db-change', {
+            detail: { appId: currentAppId, key: payload.key, deleted: true }
+          }));
+          window.dispatchEvent(new Event('storage'));
+        }
+      }
+    };
+
+    window.addEventListener('message', handleHostMessage);
+    return () => window.removeEventListener('message', handleHostMessage);
+  }, [saveProject, ideProjectId]);
+
   // Open project from dashboard
   const handleOpenProject = (p: LovableProject) => {
     const healed = ensureSystemFiles(p.files || DEFAULT_FILES);
@@ -410,6 +538,15 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     setNetlifySiteId(p.netlify_site_id || null);
     setNetlifySubdomain(p.netlify_subdomain || null);
     setPublishedAppTitle(p.netlify_url ? (p.title || null) : null);
+
+    if (p.versions?.app_users && Array.isArray(p.versions.app_users) && p.versions.app_users.length > 0) {
+      const key = `netlify_mock_users:${p.id}`;
+      const existing = localStorage.getItem(key);
+      if (!existing || existing === '[]') {
+        localStorage.setItem(key, JSON.stringify(p.versions.app_users));
+        window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: p.id, users: p.versions.app_users } }));
+      }
+    }
   };
 
   // Delete project from dashboard

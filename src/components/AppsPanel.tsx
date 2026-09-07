@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Code2, Search, Rocket, ExternalLink, Layers, Trash2, Wrench } from "lucide-react";
+import { Code2, Search, Rocket, ExternalLink, Layers, Trash2, Wrench, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ interface IDEProject {
   favicon_label: string | null;
   created_at: string;
   updated_at: string;
+  versions?: any;
 }
 
 export function AppsPanel() {
@@ -36,9 +37,20 @@ export function AppsPanel() {
   const [projects, setProjects] = useState<IDEProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [authTrigger, setAuthTrigger] = useState(0);
 
   useEffect(() => {
     loadProjects();
+
+    const handleAuthOrStorage = () => {
+      setAuthTrigger(c => c + 1);
+    };
+    window.addEventListener('netlify-auth-change', handleAuthOrStorage);
+    window.addEventListener('storage', handleAuthOrStorage);
+    return () => {
+      window.removeEventListener('netlify-auth-change', handleAuthOrStorage);
+      window.removeEventListener('storage', handleAuthOrStorage);
+    };
   }, []);
 
   const loadProjects = async () => {
@@ -49,7 +61,7 @@ export function AppsPanel() {
 
       const { data, error } = await supabase
         .from('ide_projects')
-        .select('id, title, prompt, files, messages, version, netlify_url, netlify_subdomain, favicon_label, created_at, updated_at')
+        .select('id, title, prompt, files, messages, version, netlify_url, netlify_subdomain, favicon_label, created_at, updated_at, versions')
         .eq('user_id', session.user.id)
         .order('updated_at', { ascending: false });
 
@@ -60,6 +72,21 @@ export function AppsPanel() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getAppUserCount = (project: IDEProject): number => {
+    try {
+      const raw = localStorage.getItem(`netlify_mock_users:${project.id}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.length;
+      }
+      if (project.versions && typeof project.versions === 'object') {
+        const users = (project.versions as any).app_users;
+        if (Array.isArray(users)) return users.length;
+      }
+    } catch {}
+    return 0;
   };
 
   const handleOpen = (project: IDEProject) => {
@@ -208,9 +235,15 @@ export function AppsPanel() {
                       <span>{getFileCount(project.files)} files</span>
                     </div>
                     <span>v{project.version}</span>
-                    <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-500">
-                      Coming soon
-                    </span>
+                    {(() => {
+                      const userCount = getAppUserCount(project);
+                      return (
+                        <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400 font-semibold">
+                          <Users className="w-3 h-3" />
+                          <span>{userCount} {userCount === 1 ? 'user' : 'users'}</span>
+                        </span>
+                      );
+                    })()}
                   </div>
                   {project.netlify_url ? (
                     <a

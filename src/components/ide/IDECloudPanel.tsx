@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { VirtualFileSystem } from '@/types/ide';
 import { DEFAULT_FILES } from '@/types/ide';
+import { supabase } from '@/integrations/supabase/client';
 
 interface IDECloudPanelProps {
   files: VirtualFileSystem;
@@ -60,10 +61,36 @@ export function IDECloudPanel({ files, setFiles, onChatSend, isAgentRunning, pro
   const [newEmail, setNewEmail] = useState('');
   const [newName, setNewName] = useState('');
 
-  const loadMockData = () => {
+  const loadMockData = async () => {
     try {
       const currentUser = localStorage.getItem(currentUserKey);
-      const storedUsers = localStorage.getItem(mockUsersKey);
+      let storedUsers = localStorage.getItem(mockUsersKey);
+
+      // Fallback 1: If empty and appId is not 'default', check 'default'
+      if ((!storedUsers || storedUsers === '[]') && appId !== 'default') {
+        const defaultUsers = localStorage.getItem('netlify_mock_users:default');
+        if (defaultUsers && defaultUsers !== '[]') {
+          storedUsers = defaultUsers;
+          localStorage.setItem(mockUsersKey, defaultUsers);
+        }
+      }
+
+      // Fallback 2: If empty and projectId exists, check Supabase ide_projects versions
+      if ((!storedUsers || storedUsers === '[]') && projectId && projectId !== 'default') {
+        try {
+          const { data } = await supabase
+            .from('ide_projects')
+            .select('versions')
+            .eq('id', projectId)
+            .maybeSingle();
+          if (data?.versions && (data.versions as any).app_users?.length) {
+            const fetched = (data.versions as any).app_users;
+            storedUsers = JSON.stringify(fetched);
+            localStorage.setItem(mockUsersKey, storedUsers);
+          }
+        } catch {}
+      }
+
       let parsedUsers: any[] = storedUsers ? JSON.parse(storedUsers) : [];
 
       // Filter out any legacy dummy accounts
@@ -107,27 +134,41 @@ export function IDECloudPanel({ files, setFiles, onChatSend, isAgentRunning, pro
   useEffect(() => {
     setAuthEnabled(isAuthCodeApplied(files));
     setDbEnabled(isDbCodeApplied(files));
-    loadMockData();
+    void loadMockData();
 
     const handleStorageOrAuth = (e?: any) => {
-      if (!e?.detail || e.detail.appId === undefined || e.detail.appId === appId) {
-        loadMockData();
+      if (!e?.detail || e.detail.appId === undefined || e.detail.appId === appId || appId === 'default' || !projectId) {
+        void loadMockData();
       }
     };
+
+    const handleWindowMessage = (e: MessageEvent) => {
+      if (e.data?.source === 'arc-netlify-db') {
+        const msgAppId = e.data.appId;
+        if (!msgAppId || msgAppId === appId || appId === 'default' || !projectId) {
+          void loadMockData();
+        }
+      }
+    };
+
     window.addEventListener('netlify-auth-change', handleStorageOrAuth);
     window.addEventListener('netlify-db-change', handleStorageOrAuth);
     window.addEventListener('storage', handleStorageOrAuth);
+    window.addEventListener('message', handleWindowMessage);
     return () => {
       window.removeEventListener('netlify-auth-change', handleStorageOrAuth);
       window.removeEventListener('netlify-db-change', handleStorageOrAuth);
       window.removeEventListener('storage', handleStorageOrAuth);
+      window.removeEventListener('message', handleWindowMessage);
     };
-  }, [files, appId]);
+  }, [files, appId, projectId]);
 
   const saveMockData = (users: any[], db: Record<string, any>) => {
     localStorage.setItem(mockUsersKey, JSON.stringify(users));
     setMockUsers(users);
     setDbRecords(db);
+    window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId, users } }));
+    window.dispatchEvent(new Event('storage'));
   };
 
   const handleToggleAuth = () => {

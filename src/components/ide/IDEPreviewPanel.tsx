@@ -217,7 +217,7 @@ export function IDEPreviewPanel({
 
   // Map VirtualFileSystem to Sandpack files structure
   const sandpackFiles = useMemo(() => {
-    const targetAppId = projectId || 'app_default';
+    const targetAppId = projectId || 'default';
 
     const map = Object.entries(files).reduce((acc, [path, file]) => {
       const sandpackPath = path.startsWith('/') ? path : `/${path}`;
@@ -384,7 +384,7 @@ html, body {
     map['/public/index.html'] = htmlContent;
 
     return map;
-  }, [files]);
+  }, [files, projectId]);
 
   const activeSandpackFile = sandpackFiles['/src/App.tsx'] ? '/src/App.tsx' : '/App.tsx';
 

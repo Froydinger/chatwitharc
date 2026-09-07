@@ -69,6 +69,7 @@ interface RecentApp {
   updated_at: string;
   created_at: string;
   version: number;
+  versions?: any;
 }
 
 function toDate(ts: unknown): Date | null {
@@ -629,7 +630,7 @@ useEffect(() => {
         if (!session?.user) return;
         const { data } = await supabase
           .from('ide_projects')
-          .select('id, title, prompt, files, messages, favicon_label, netlify_url, netlify_subdomain, updated_at, created_at, version')
+          .select('id, title, prompt, files, messages, favicon_label, netlify_url, netlify_subdomain, updated_at, created_at, version, versions')
           .eq('user_id', session.user.id)
           .order('updated_at', { ascending: false });
         if (data) setRecentApps(data as RecentApp[]);
@@ -640,6 +641,36 @@ useEffect(() => {
       }
     })();
   }, [user, activeTab]);
+
+  const [appUsersTrigger, setAppUsersTrigger] = useState(0);
+
+  useEffect(() => {
+    const handleAuthOrStorage = () => {
+      setAppUsersTrigger(c => c + 1);
+    };
+    window.addEventListener('netlify-auth-change', handleAuthOrStorage);
+    window.addEventListener('storage', handleAuthOrStorage);
+    return () => {
+      window.removeEventListener('netlify-auth-change', handleAuthOrStorage);
+      window.removeEventListener('storage', handleAuthOrStorage);
+    };
+  }, []);
+
+  const getAppUserCount = useCallback((app: RecentApp): number => {
+    void appUsersTrigger;
+    try {
+      const raw = localStorage.getItem(`netlify_mock_users:${app.id}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.length;
+      }
+      if (app.versions && typeof app.versions === 'object') {
+        const users = (app.versions as any).app_users;
+        if (Array.isArray(users)) return users.length;
+      }
+    } catch {}
+    return 0;
+  }, [appUsersTrigger]);
 
 
   const allChats = useMemo(() => {
@@ -1482,9 +1513,23 @@ useEffect(() => {
                                   <h4 className="font-semibold text-sm text-foreground truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
                                     {app.title || "Untitled App"}
                                   </h4>
-                                  <p className="text-[10px] text-slate-500 dark:text-muted-foreground font-medium">
-                                    v{app.version || 1} · {timeAgo(app.updated_at || app.created_at)}
-                                  </p>
+                                  <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-muted-foreground font-medium">
+                                    <span>v{app.version || 1}</span>
+                                    <span>·</span>
+                                    <span>{timeAgo(app.updated_at || app.created_at)}</span>
+                                    {(() => {
+                                      const uCount = getAppUserCount(app);
+                                      return (
+                                        <>
+                                          <span>·</span>
+                                          <span className="inline-flex items-center gap-1 text-purple-600 dark:text-purple-400 font-semibold">
+                                            <Users className="h-2.5 w-2.5" />
+                                            {uCount} {uCount === 1 ? 'user' : 'users'}
+                                          </span>
+                                        </>
+                                      );
+                                    })()}
+                                  </div>
                                 </div>
                               </div>
                               <span className="text-[9px] font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/30 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 px-2 py-0.5 rounded-full shrink-0">
