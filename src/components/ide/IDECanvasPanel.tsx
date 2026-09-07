@@ -1194,7 +1194,6 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 isLoading={isAgentRunning}
                 generatingId={generatingId}
                 onSend={handleChatSend}
-                onGoHome={handleGoHome}
                 onSelectFile={(path) => {
                   setSelectedFile(path);
                   setActiveTab('code');
@@ -1302,7 +1301,6 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 isLoading={isAgentRunning}
                 generatingId={generatingId}
                 onSend={handleChatSend}
-                onGoHome={handleGoHome}
                 onSelectFile={(path) => {
                   setSelectedFile(path);
                   setActiveTab('code');

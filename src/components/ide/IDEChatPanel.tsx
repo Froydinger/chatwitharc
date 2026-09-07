@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Sparkles, ArrowLeft, Terminal, Bot, CornerDownLeft, Plus, X, Image as ImageIcon, Smartphone, ArrowRight } from 'lucide-react';
+import { Send, Loader2, Sparkles, Terminal, Bot, CornerDownLeft, Plus, X, Image as ImageIcon, Smartphone, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,7 +24,6 @@ interface IDEChatPanelProps {
   isLoading: boolean;
   generatingId: string | null;
   onSend: (message: string, images?: string[]) => void;
-  onGoHome?: () => void;
   onSelectFile?: (path: string) => void;
   syncStatus?: 'saved' | 'saving' | 'unsaved' | 'error';
   onViewPreview?: () => void;
@@ -44,7 +43,6 @@ export function IDEChatPanel({
   isLoading, 
   generatingId, 
   onSend,
-  onGoHome,
   onSelectFile,
   syncStatus = 'saved',
   onViewPreview
@@ -184,17 +182,6 @@ export function IDEChatPanel({
       {/* Assistant Header */}
       <div className="px-4 py-3 border-b border-border/10 flex items-center justify-between shrink-0 bg-[#0d0e12]/80 backdrop-blur-md">
         <div className="flex items-center gap-2.5">
-          {onGoHome && (
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              onClick={onGoHome}
-              className="h-7 w-7 rounded-lg hover:bg-white/5 text-muted-foreground hover:text-foreground"
-              title="Dashboard"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          )}
           <div className="w-6 h-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center p-1">
             <ThemedLogo className="w-full h-full object-contain" />
           </div>
