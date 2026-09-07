@@ -710,27 +710,11 @@ useEffect(() => {
       });
     });
 
-    // Also include full web applications from App Builder (ide_projects)
-    (recentApps || []).forEach(app => {
-      items.push({
-        id: app.id,
-        type: 'app',
-        content: app.prompt || '',
-        language: 'tsx',
-        timestamp: toDate(app.updated_at || app.created_at) || new Date(),
-        label: app.title || 'Web Application',
-        projectId: app.id,
-        files: app.files,
-        messages: app.messages,
-        sessionTitle: app.netlify_subdomain ? `${app.netlify_subdomain}.askarc.chat` : 'App Builder',
-      });
-    });
-
     items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     if (!canvasSearch.trim()) return items;
     const q = canvasSearch.toLowerCase();
     return items.filter(i => i.label?.toLowerCase().includes(q) || i.content.toLowerCase().includes(q));
-  }, [chatSessions, recentApps, canvasSearch]);
+  }, [chatSessions, canvasSearch]);
 
   const timeAgo = (date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
@@ -765,22 +749,22 @@ useEffect(() => {
   })();
 
   const tabs: { key: DashboardTab; label: string; icon: typeof MessageSquare }[] = [
-    { key: "apps", label: "Apps", icon: Smartphone },
-    { key: "canvases", label: "Code", icon: Layers },
+    { key: "overview", label: "Dashboard", icon: LayoutDashboard },
     { key: "chats", label: "Chats", icon: MessageSquare },
-    { key: "overview", label: "Dash", icon: LayoutDashboard },
     { key: "images", label: "Images", icon: Image },
-    { key: "memories", label: "Brain", icon: Brain },
+    { key: "apps", label: "Apps", icon: Smartphone },
+    { key: "canvases", label: "Canvases", icon: Layers },
+    { key: "memories", label: "Memories", icon: Brain },
   ];
 
   const currentImage = viewingImageIndex !== null ? filteredImages[viewingImageIndex] : null;
 
   // Stats for overview
   const stats = [
-    { label: "Apps", tab: "apps" as DashboardTab, value: recentApps.length, icon: Smartphone, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Chats", tab: "chats" as DashboardTab, value: quickCounts.chats !== null ? quickCounts.chats : (allChats.length > 0 ? allChats.length : 0), icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
     { label: "Images", tab: "images" as DashboardTab, value: totalImageCount, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
-    { label: "Code", tab: "canvases" as DashboardTab, value: filteredCanvases.filter(c => c.type !== 'app').length, icon: Layers, color: "35 90% 60%", tw: "text-orange-400" },
+    { label: "Apps", tab: "apps" as DashboardTab, value: recentApps.length, icon: Smartphone, color: "270 80% 65%", tw: "text-purple-400" },
+    { label: "Canvases", tab: "canvases" as DashboardTab, value: filteredCanvases.length, icon: Layers, color: "35 90% 60%", tw: "text-orange-400" },
     { label: "Memories", tab: "memories" as DashboardTab, value: quickCounts.memories !== null ? quickCounts.memories : (contextBlocks.length > 0 ? contextBlocks.length : 0), icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
@@ -1646,24 +1630,15 @@ useEffect(() => {
                     <div className="flex items-center gap-2">
                       <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input value={canvasSearch} onChange={e => setCanvasSearch(e.target.value)} placeholder="Search code & apps…" className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
+                        <Input value={canvasSearch} onChange={e => setCanvasSearch(e.target.value)} placeholder="Search code & canvases…" className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
                       </div>
-                      <Button
-                        variant="outline"
-                        onClick={() => handleLaunchAppBuilder()}
-                        className="rounded-full glass-shimmer text-xs h-9 px-3 gap-1.5 border-purple-500/30 text-purple-200 hover:bg-purple-500/10"
-                        title="New App"
-                      >
-                        <Plus className="h-4 w-4 text-purple-400" />
-                        <span className="hidden sm:inline">New App</span>
-                      </Button>
                     </div>
                     {!allSessionsHydrated ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {[1,2,3,4].map(i => <div key={i} className="rounded-xl border border-border/30 bg-muted/20 overflow-hidden"><Skeleton className="h-32 w-full" /><div className="p-3"><Skeleton className="h-4 w-3/4 mb-1.5" /><Skeleton className="h-3 w-1/2" /></div></div>)}
                       </div>
                     ) : filteredCanvases.length === 0 ? (
-                      <EmptyState icon={Layers} text={canvasSearch ? "No matching items" : "No code or apps yet"} sub="Ask Arc to write code, build an app, or use /write" />
+                      <EmptyState icon={Layers} text={canvasSearch ? "No matching canvases" : "No canvases yet"} sub="Ask Arc to write code, compose text, or use /write in chat." />
                     ) : (
                       <>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -1671,39 +1646,11 @@ useEffect(() => {
                           <div
                             key={item.id}
                             className="group rounded-xl border border-border/30 bg-muted/15 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer overflow-hidden flex flex-col"
-                            onClick={() => {
-                              if (item.type === 'app') {
-                                if (!hasBoost && !isAdmin) {
-                                  openCheckout();
-                                  toast({
-                                    title: "ArcAI Boost Required",
-                                    description: "App Builder is exclusively available to Boost subscribers and admins.",
-                                  });
-                                  return;
-                                }
-                                reopenIDECanvas(item.projectId || item.id, item.files || {}, item.messages);
-                              } else {
-                                setSelectedCanvas(item);
-                              }
-                            }}
+                            onClick={() => setSelectedCanvas(item)}
                           >
                             {/* Mini preview */}
                             <div className="relative w-full h-40 bg-background/40 border-b border-border/20 overflow-hidden">
-                              {item.type === 'app' ? (
-                                <div className="absolute inset-0 p-4 flex flex-col justify-between bg-gradient-to-br from-purple-500/10 via-background/40 to-transparent">
-                                  <div className="flex items-center justify-between">
-                                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center">
-                                      <Smartphone className="h-4 w-4 text-purple-400" />
-                                    </div>
-                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                                      App
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-foreground/80 line-clamp-3 leading-relaxed">
-                                    {item.content || 'Full React web application'}
-                                  </p>
-                                </div>
-                              ) : item.type === 'code' && item.language && canPreview(item.language) ? (
+                              {item.type === 'code' && item.language && canPreview(item.language) ? (
                                 <>
                                   <div className="absolute inset-0 pointer-events-none origin-top-left scale-[0.5] w-[200%] h-[200%]">
                                     <CodePreview code={item.content} language={item.language} />
@@ -1725,19 +1672,13 @@ useEffect(() => {
                             <div className="p-3">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex items-center gap-2 min-w-0">
-                                  {item.type === 'app' ? (
-                                    <Smartphone className="h-4 w-4 text-purple-400 shrink-0" />
-                                  ) : item.type === 'code' ? (
+                                  {item.type === 'code' ? (
                                     <FileCode className="h-4 w-4 text-primary shrink-0" />
                                   ) : (
                                     <PenLine className="h-4 w-4 text-primary shrink-0" />
                                   )}
                                   <p className="font-semibold text-foreground truncate text-sm">{item.label}</p>
-                                  {item.type === 'app' ? (
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                                      App
-                                    </span>
-                                  ) : item.type === 'code' ? (
+                                  {item.type === 'code' ? (
                                     <span className="text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                                       Code
                                     </span>

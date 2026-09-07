@@ -30,14 +30,15 @@ function normalizeRole(role: string): AgentChatRole {
 }
 
 function normalizeMessages(
-  chatHistory: { role: string; content: string }[] | undefined,
+  chatHistory: { role: string; content: string; images?: string[] }[] | undefined,
   userMessage: string,
-): AgentChatMessage[] {
+  images?: string[],
+): any[] {
   const history = (chatHistory || [])
     .filter((msg) => typeof msg?.content === 'string' && msg.content.trim().length > 0)
-    .map((msg) => ({ role: normalizeRole(msg.role), content: msg.content.trim() }));
+    .map((msg) => ({ role: normalizeRole(msg.role), content: msg.content.trim(), images: msg.images }));
 
-  return [...history, { role: 'user', content: userMessage.trim() }];
+  return [...history, { role: 'user', content: userMessage.trim(), images }];
 }
 
 export async function sendAgentMessage(
@@ -46,10 +47,12 @@ export async function sendAgentMessage(
   onAction: (action: AgentAction) => void,
   _model?: string,
   authToken?: string,
-  chatHistory?: { role: string; content: string }[],
-  onToken?: (token: string) => void
+  chatHistory?: { role: string; content: string; images?: string[] }[],
+  onToken?: (token: string) => void,
+  onFileUpdate?: (path: string, content: string) => void,
+  images?: string[],
 ): Promise<AgentResult> {
-  const messages = normalizeMessages(chatHistory, userMessage);
+  const messages = normalizeMessages(chatHistory, userMessage, images);
 
   const requestController = new AbortController();
   const requestTimeout = setTimeout(() => requestController.abort(), AGENT_REQUEST_TIMEOUT_MS);
@@ -182,6 +185,13 @@ export async function sendAgentMessage(
         const a: AgentAction = { id: actionId, type: 'action_complete', action: event.action, path: event.path, success: event.success, timestamp: Date.now() };
         actions.push(a);
         onAction(a);
+        break;
+      }
+      case 'file_update':
+      case 'file_partial': {
+        if (event.path && typeof event.content === 'string') {
+          onFileUpdate?.(event.path, event.content);
+        }
         break;
       }
       case 'error': {

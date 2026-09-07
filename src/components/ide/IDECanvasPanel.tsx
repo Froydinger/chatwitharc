@@ -36,6 +36,7 @@ interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  images?: string[];
   timestamp: number;
   agentActions?: AgentAction[];
 }
@@ -435,7 +436,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   };
 
   // Chat message sender
-  const runAgent = useCallback(async (prompt: string, chatHistory: ChatMessage[] = [], assistantId?: string) => {
+  const runAgent = useCallback(async (prompt: string, chatHistory: ChatMessage[] = [], assistantId?: string, images?: string[]) => {
     if (!hasBoost && !isAdmin) {
       openCheckout();
       toast({
@@ -448,20 +449,15 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     setIsAgentRunning(true);
     setIdeIsRunning(true);
     setLiveActions([]);
-
     const aId = assistantId || crypto.randomUUID();
-    if (!assistantId) {
-      setGeneratingId(aId);
-      setMessages(prev => [...prev, { id: aId, role: 'assistant', content: '', timestamp: Date.now() }]);
-    }
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const model = 'gpt-5.6-luna';
 
       const historyForAgent = chatHistory
-        .filter((m) => m.content && m.content.trim())
-        .map((m) => ({ role: m.role, content: m.content }));
+        .filter((m) => (m.content && m.content.trim()) || (m.images && m.images.length > 0))
+        .map((m) => ({ role: m.role, content: m.content, images: m.images }));
 
       const result: AgentResult = await sendAgentMessage(
         prompt,
@@ -481,7 +477,15 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 : msg
             )
           );
-        }
+        },
+        (filePath: string, fileContent: string) => {
+          setFiles((prev) => ({
+            ...prev,
+            [filePath]: { content: fileContent, language: filePath.endsWith('.css') ? 'css' : 'typescript' }
+          }));
+          setSelectedFile(filePath);
+        },
+        images
       );
 
       const hasWrittenFiles = !!result.files && Object.keys(result.files).length > 0;
@@ -528,14 +532,14 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     }
   }, [hasBoost, isAdmin, openCheckout, setIdeActions, setIdeIsRunning, setMessages, toast]);
 
-  const handleChatSend = useCallback((message: string) => {
+  const handleChatSend = useCallback((message: string, images?: string[]) => {
     autoFixedRef.current = false;
-    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: message, timestamp: Date.now() };
+    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: message, images, timestamp: Date.now() };
     const assistantId = crypto.randomUUID();
     
     setMessages(prev => [...prev, userMsg, { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() }]);
     setGeneratingId(assistantId);
-    runAgent(message, messagesRef.current, assistantId);
+    runAgent(message, messagesRef.current, assistantId, images);
   }, [runAgent, setMessages]);
 
   // Auto-run initial prompt on mount if supplied

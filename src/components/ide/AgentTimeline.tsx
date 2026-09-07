@@ -26,7 +26,7 @@ function isInProgress(action?: string) {
   return ['creating', 'modifying', 'deleting'].includes(action || '');
 }
 
-export function AgentTimeline({ actions, isRunning }: AgentTimelineProps) {
+export function AgentTimeline({ actions, isRunning, onSelectFile }: AgentTimelineProps) {
   const [expanded, setExpanded] = useState(false);
 
   if (actions.length === 0 && !isRunning) return null;

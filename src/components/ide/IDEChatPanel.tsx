@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Sparkles, ArrowLeft, Terminal, Bot, CornerDownLeft } from 'lucide-react';
+import { Send, Loader2, Sparkles, ArrowLeft, Terminal, Bot, CornerDownLeft, Plus, X, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ThemedLogo } from '@/components/ThemedLogo';
 import { AgentTimeline } from './AgentTimeline';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 import type { AgentAction } from '@/types/ide';
 
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  images?: string[];
   timestamp: number;
   agentActions?: AgentAction[];
 }
@@ -21,7 +23,7 @@ interface IDEChatPanelProps {
   liveActions: AgentAction[];
   isLoading: boolean;
   generatingId: string | null;
-  onSend: (message: string) => void;
+  onSend: (message: string, images?: string[]) => void;
   onGoHome?: () => void;
   onSelectFile?: (path: string) => void;
   syncStatus?: 'saved' | 'saving' | 'unsaved' | 'error';
@@ -46,19 +48,126 @@ export function IDEChatPanel({
   syncStatus = 'saved'
 }: IDEChatPanelProps) {
   const [input, setInput] = useState('');
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, liveActions]);
+  }, [messages, liveActions, attachedImages]);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    setUploadingImage(true);
+    try {
+      for (const file of files) {
+        if (!file.type.startsWith('image/')) continue;
+
+        // Immediate preview via dataUrl
+        const reader = new FileReader();
+        const dataUrlPromise = new Promise<string>((resolve) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        const dataUrl = await dataUrlPromise;
+
+        // Attempt Supabase storage upload for permanent public URL
+        let finalUrl = dataUrl;
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          const userId = user?.id || 'anonymous';
+          const ext = file.name.split('.').pop() || 'png';
+          const path = `${userId}/ide-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+
+          const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, file, {
+            contentType: file.type,
+            upsert: true,
+          });
+
+          if (!uploadErr) {
+            const { data: pubData } = supabase.storage.from('avatars').getPublicUrl(path);
+            if (pubData?.publicUrl) {
+              finalUrl = pubData.publicUrl;
+            }
+          }
+        } catch (err) {
+          console.warn('[IDE] Storage upload fallback to data URL:', err);
+        }
+
+        setAttachedImages((prev) => [...prev, finalUrl]);
+      }
+    } catch (err) {
+      console.error('[IDE] Error attaching image:', err);
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageItems = items.filter((item) => item.type.startsWith('image/'));
+    if (imageItems.length === 0) return;
+
+    e.preventDefault();
+    setUploadingImage(true);
+    try {
+      for (const item of imageItems) {
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        const reader = new FileReader();
+        const dataUrlPromise = new Promise<string>((resolve) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        const dataUrl = await dataUrlPromise;
+
+        let finalUrl = dataUrl;
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          const userId = user?.id || 'anonymous';
+          const path = `${userId}/ide-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`;
+
+          const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, file, {
+            contentType: file.type,
+            upsert: true,
+          });
+
+          if (!uploadErr) {
+            const { data: pubData } = supabase.storage.from('avatars').getPublicUrl(path);
+            if (pubData?.publicUrl) {
+              finalUrl = pubData.publicUrl;
+            }
+          }
+        } catch (err) {
+          console.warn('[IDE] Paste storage fallback to data URL:', err);
+        }
+
+        setAttachedImages((prev) => [...prev, finalUrl]);
+      }
+    } catch (err) {
+      console.error('[IDE] Error pasting image:', err);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeAttachedImage = (index: number) => {
+    setAttachedImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!input.trim() || isLoading) return;
-    onSend(input.trim());
+    if ((!input.trim() && attachedImages.length === 0) || isLoading || uploadingImage) return;
+    onSend(input.trim(), attachedImages.length > 0 ? attachedImages : undefined);
     setInput('');
+    setAttachedImages([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -169,6 +278,22 @@ export function IDEChatPanel({
                       : 'bg-[#12141b] border border-white/10 text-foreground rounded-tl-sm'
                   )}
                 >
+                  {message.images && message.images.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {message.images.map((img, idx) => (
+                        <a 
+                          key={idx} 
+                          href={img} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="block relative group overflow-hidden rounded-xl border border-white/20 hover:border-white/40 transition-colors bg-black/20"
+                        >
+                          <img src={img} alt="Attachment" className="w-20 h-20 object-cover rounded-xl transition-transform duration-200 group-hover:scale-105" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
                   {isCurrentlyGenerating ? (
                     <div className="space-y-2.5">
                       {message.content && (
@@ -219,23 +344,74 @@ export function IDEChatPanel({
 
       {/* Prompt input area */}
       <div className="p-3 border-t border-border/10 bg-[#0d0e12]/90 backdrop-blur-md shrink-0">
-        <form onSubmit={handleSubmit} className="relative flex items-end bg-[#13151c] border border-white/10 rounded-xl p-2 focus-within:border-primary/45 transition-colors shadow-inner">
+        {/* Attached image preview tray */}
+        {(attachedImages.length > 0 || uploadingImage) && (
+          <div className="flex items-center gap-2 px-1 pb-2.5 overflow-x-auto no-scrollbar">
+            {attachedImages.map((url, idx) => (
+              <div key={idx} className="relative group shrink-0 w-14 h-14 rounded-xl overflow-hidden border border-white/15 bg-black/40 shadow-md">
+                <img src={url} alt="Attached" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removeAttachedImage(idx)}
+                  className="absolute top-1 right-1 w-4 h-4 rounded-full bg-black/80 hover:bg-black text-white flex items-center justify-center transition-colors shadow-sm"
+                  title="Remove image"
+                >
+                  <X className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            ))}
+            {uploadingImage && (
+              <div className="w-14 h-14 rounded-xl border border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center shrink-0 gap-1">
+                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                <span className="text-[9px] text-muted-foreground">Uploading</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-[#13151c]/90 border border-white/10 rounded-full px-2.5 py-1.5 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all shadow-inner">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading || uploadingImage}
+            className="flex items-center justify-center w-8 h-8 rounded-full transition-all hover:bg-white/10 active:scale-95 text-muted-foreground hover:text-foreground shrink-0"
+            title="Attach image or screenshot"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask Arc to change something..."
+            onPaste={handlePaste}
+            placeholder={isLoading ? "Luna is thinking..." : "Message Arc Studio..."}
             rows={1}
-            className="flex-1 min-h-[38px] max-h-28 resize-none text-xs bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-2 text-foreground placeholder:text-muted-foreground/60"
+            className="flex-1 min-h-[28px] max-h-32 resize-none text-xs bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-1 text-foreground placeholder:text-muted-foreground/60 scrollbar-hide"
             disabled={isLoading}
           />
+
           <Button 
             type="submit" 
             size="icon" 
-            disabled={!input.trim() || isLoading}
-            className="h-8 w-8 rounded-lg shrink-0 transition-all"
+            disabled={(!input.trim() && attachedImages.length === 0) || isLoading || uploadingImage}
+            className={cn(
+              "h-7 w-7 rounded-full shrink-0 transition-all",
+              input.trim() || attachedImages.length > 0
+                ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm"
+                : "bg-white/5 text-muted-foreground/40 hover:bg-white/10"
+            )}
           >
-            {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3 w-3" />}
           </Button>
         </form>
       </div>

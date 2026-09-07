@@ -182,6 +182,10 @@ Rules:
 • Since this is a client-side React App, all routes must be containerized in the main client. If you want navigation, import react-router-dom and set up Routes/Route inside src/App.tsx.
 • Style the interface beautifully using modern Tailwind CSS classes and clean, dark glass aesthetics (dark theme #08090c to #0f1117, text-slate-100, border-white/10, backdrop-blur).
 • Ensure all UI elements (buttons, text inputs, selects, cards, modals, lists, headers) are explicitly styled with Tailwind classes. Never render bare, unstyled HTML elements. Buttons must have background, padding, rounded corners, and hover states. Inputs must have backgrounds, borders, text color, and padding.
+• Images & Media:
+  - If the user attaches an image to use in their app (e.g. logos, hero art, icons, profile photos), reference the exact image URL in the React code (e.g. <img src="{imageUrl}" alt="..." className="w-full h-48 object-cover rounded-xl" />).
+  - If the user attaches an image as a design or wireframe mockup, inspect the visual layout, color scheme, typography, and component hierarchy and reproduce it faithfully in clean React code.
+  - If the user asks to generate or regenerate an image or graphic, build it as inline SVG components with Tailwind classes, or use thematic Unsplash placeholder photos (e.g. https://images.unsplash.com/photo-...).
 • Keep all your code functional, valid, and syntactically correct.
 `;
 
@@ -189,15 +193,34 @@ function cleanPath(raw: string): string {
   return raw.replace(/[`*'"[\]]/g, "").trim();
 }
 
-function normalizeMessages(input: any): { role: "user" | "assistant" | "system"; content: string }[] {
+function normalizeMessages(input: any): { role: "user" | "assistant" | "system"; content: any }[] {
   if (!Array.isArray(input)) return [];
 
   return input
-    .map((m) => ({
-      role: m?.role === "assistant" || m?.role === "system" ? m.role : "user",
-      content: typeof m?.content === "string" ? m.content.trim() : "",
-    }))
-    .filter((m) => m.content.length > 0);
+    .map((m) => {
+      const role = m?.role === "assistant" || m?.role === "system" ? m.role : "user";
+      const images = Array.isArray(m?.images) ? m.images : [];
+      const rawContent = typeof m?.content === "string" ? m.content.trim() : "";
+
+      if (images.length > 0 && role === "user") {
+        return {
+          role,
+          content: [
+            { type: "text", text: rawContent || "Please inspect and use the attached image(s) for this app." },
+            ...images.map((url: string) => ({
+              type: "image_url",
+              image_url: { url }
+            }))
+          ]
+        };
+      }
+
+      return {
+        role,
+        content: rawContent,
+      };
+    })
+    .filter((m) => (typeof m.content === "string" ? m.content.length > 0 : true));
 }
 
 function parseFilesFromMarkdown(text: string): { files: Record<string, string>; deletions: string[] } {
@@ -416,6 +439,9 @@ serve(async (req) => {
           let fullResponse = "";
           let lineBuffer = "";
           const announcedFiles = new Set<string>();
+          const emittedCompletedFiles = new Set<string>();
+          let lastPartialPath = "";
+          let lastPartialLength = 0;
 
           let prosePos = 0;
           const getNewProseTokens = (text: string): string => {
@@ -495,6 +521,30 @@ serve(async (req) => {
                       announcedFiles.add(candidate);
                       send({ type: "action", action: "creating", path: candidate });
                       send({ type: "status", message: `Writing ${candidate}…` });
+                    }
+                  }
+
+                  // Stream completed files as soon as their code block closes
+                  const parsedLive = parseFilesFromMarkdown(fullResponse);
+                  for (const [p, content] of Object.entries(parsedLive.files)) {
+                    if (!emittedCompletedFiles.has(p)) {
+                      emittedCompletedFiles.add(p);
+                      send({ type: "file_update", path: p, content });
+                      send({ type: "action_complete", action: "created", path: p, success: true });
+                    }
+                  }
+
+                  // Stream live partial content for the currently streaming file so Monaco shows code being typed
+                  const activeBlock = /(?:###|##|#|\[FILEPATH\])\s*([a-zA-Z0-9_\-\.\/`*]+)\s*[\r\n]+```[a-zA-Z0-9_-]*[\r\n]+([^`]*)$/s.exec(fullResponse);
+                  if (activeBlock) {
+                    const activePath = cleanPath(activeBlock[1]);
+                    const partialContent = activeBlock[2];
+                    if (activePath && !emittedCompletedFiles.has(activePath)) {
+                      if (activePath !== lastPartialPath || partialContent.length - lastPartialLength > 30) {
+                        lastPartialPath = activePath;
+                        lastPartialLength = partialContent.length;
+                        send({ type: "file_partial", path: activePath, content: partialContent });
+                      }
                     }
                   }
                 }
