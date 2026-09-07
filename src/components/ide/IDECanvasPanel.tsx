@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIDEStore } from '@/store/useIDEStore';
+import { ThemedLogo } from '@/components/ThemedLogo';
 import { IDECodeEditor } from './IDECodeEditor';
 import { IDEPreviewPanel } from './IDEPreviewPanel';
 import { IDEChatPanel } from './IDEChatPanel';

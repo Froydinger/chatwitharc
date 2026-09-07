@@ -279,12 +279,12 @@ function checkForCodingRequest(message: string): boolean {
   return false;
 }
 
-// App Builder detection: /build, /app, build/, app/, or natural language
+// App Builder detection: /build, /app, /apps, build/, app/, apps/, or natural language
 function checkForBuildRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
-  if (/^(build|app)\//.test(m) || /^\/(build|app)\b/.test(m)) return true;
-  if (/^(can\s+you\s+)?(please\s+)?(build|create|code|make)\s+(me\s+)?(an?\s+)?(full\s+)?(web\s+)?app\b/i.test(m)) return true;
+  if (/^(build|app|apps)\//.test(m) || /^\/(build|app|apps)\b/.test(m)) return true;
+  if (/^(can\s+you\s+)?(please\s+)?(build|create|code|make)\s+(me\s+)?(an?\s+)?(full\s+)?(web\s+)?(app|apps)\b/i.test(m)) return true;
   return false;
 }
 
@@ -491,8 +491,8 @@ function referencesCodeSurface(message: string): boolean {
 // Extract the prompt after the prefix (strips prefix/ or /prefix)
 function extractPrefixPrompt(message: string): string {
   return message
-    .replace(/^(image|draw|create|code|write|search|build)\/\s*/i, "")
-    .replace(/^\/(image|draw|create|code|write|canvas|search|build)\s*/i, "")
+    .replace(/^(image|draw|create|code|write|search|build|app|apps)\/\s*/i, "")
+    .replace(/^\/(image|draw|create|code|write|canvas|search|build|app|apps)\s*/i, "")
     .trim();
 }
 
@@ -735,9 +735,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     if (val === "/deep" || val === "/research") {
       setInputValue("");
       openSearchMode();
-    } else if (val === "/build" || val === "/app") {
+    } else if (val === "/build" || val === "/app" || val === "/apps") {
       setForceBuildMode(true);
-      setInputValue("app/ ");
+      setInputValue("apps/ ");
     }
   }, [inputValue, openSearchMode]);
 
@@ -1650,7 +1650,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           return;
         }
         const cleanPrompt = extractPrefixPrompt(finalMessage);
-        useIDEStore.getState().openIDECanvas(cleanPrompt, undefined, true);
+        useIDEStore.getState().openIDECanvas(cleanPrompt || "New App", undefined, !!cleanPrompt);
         setLoading(false);
         return;
       }
@@ -3069,7 +3069,7 @@ ${safeCode}
                       setForceCanvasMode(false);
                       setForceBuildMode(false);
                       setInputValue((v) =>
-                        v.replace(/^\s*(image|search|code|write|build|app)\/\s*/i, "")
+                        v.replace(/^\s*(image|search|code|write|build|app|apps)\/\s*/i, "")
                       );
                       textareaRef.current?.focus();
                     }}

@@ -7,7 +7,7 @@ import {
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
   Globe, Code2, Eye, Sparkles, ArrowRight, Music, Edit2, Check, X,
   Layers, PenLine, FileCode, MessageCircle, Upload, Users, FolderPlus, Folder, Pin, PinOff, MoreVertical, MoreHorizontal,
-  CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock, Smartphone
+  CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock, Smartphone, ExternalLink
 } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -44,8 +44,9 @@ import { useAccentStore } from "@/store/useAccentStore";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
+import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
 
-type DashboardTab = "overview" | "chats" | "images" | "canvases" | "memories";
+type DashboardTab = "overview" | "apps" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
 
 interface GeneratedImage {
@@ -236,7 +237,23 @@ useEffect(() => {
   };
   const imageFetchStartedRef = useRef(false);
   const { openWithContent } = useCanvasStore();
+  const isIDEOpen = useIDEStore((s) => s.isOpen);
+  const openIDECanvas = useIDEStore((s) => s.openIDECanvas);
   const reopenIDECanvas = useIDEStore((s) => s.reopenIDECanvas);
+  const closeIDE = useIDEStore((s) => s.closeIDE);
+
+  const handleLaunchAppBuilder = (prompt?: string) => {
+    if (!hasBoost && !isAdmin) {
+      openCheckout();
+      toast({
+        title: "ArcAI Boost Required",
+        description: "App Builder is exclusively available to Boost subscribers and admins.",
+      });
+      return;
+    }
+    openIDECanvas(prompt || "New App", undefined, !!prompt);
+  };
+
   const dashboardEntryRef = useRef<'swipe' | 'default'>(
     sessionStorage.getItem('arc_dashboard_entry') === 'swipe' ? 'swipe' : 'default'
   );
@@ -705,7 +722,7 @@ useEffect(() => {
         projectId: app.id,
         files: app.files,
         messages: app.messages,
-        sessionTitle: app.netlify_subdomain ? `${app.netlify_subdomain}.netlify.app` : 'App Builder',
+        sessionTitle: app.netlify_subdomain ? `${app.netlify_subdomain}.askarc.chat` : 'App Builder',
       });
     });
 
@@ -748,7 +765,8 @@ useEffect(() => {
   })();
 
   const tabs: { key: DashboardTab; label: string; icon: typeof MessageSquare }[] = [
-    { key: "canvases", label: "Code & Apps", icon: Layers },
+    { key: "apps", label: "Apps", icon: Smartphone },
+    { key: "canvases", label: "Code", icon: Layers },
     { key: "chats", label: "Chats", icon: MessageSquare },
     { key: "overview", label: "Dash", icon: LayoutDashboard },
     { key: "images", label: "Images", icon: Image },
@@ -759,9 +777,10 @@ useEffect(() => {
 
   // Stats for overview
   const stats = [
+    { label: "Apps", tab: "apps" as DashboardTab, value: recentApps.length, icon: Smartphone, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Chats", tab: "chats" as DashboardTab, value: quickCounts.chats !== null ? quickCounts.chats : (allChats.length > 0 ? allChats.length : 0), icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
     { label: "Images", tab: "images" as DashboardTab, value: totalImageCount, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
-    { label: "Code & Apps", tab: "canvases" as DashboardTab, value: filteredCanvases.length, icon: Layers, color: "35 90% 60%", tw: "text-orange-400" },
+    { label: "Code", tab: "canvases" as DashboardTab, value: filteredCanvases.filter(c => c.type !== 'app').length, icon: Layers, color: "35 90% 60%", tw: "text-orange-400" },
     { label: "Memories", tab: "memories" as DashboardTab, value: quickCounts.memories !== null ? quickCounts.memories : (contextBlocks.length > 0 ? contextBlocks.length : 0), icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
@@ -927,6 +946,14 @@ useEffect(() => {
             </div>
             <div className="flex items-center gap-2">
               <Button
+                onClick={() => handleLaunchAppBuilder()}
+                className="h-8 sm:h-9 px-3 rounded-full bg-gradient-to-r from-purple-500/20 via-primary/20 to-purple-500/20 hover:from-purple-500/30 hover:to-primary/30 border border-purple-500/30 text-purple-200 text-xs font-medium gap-1.5 shadow-sm transition-all"
+                title="Launch App Builder"
+              >
+                <Smartphone className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+                <span className="hidden sm:inline">App Builder</span>
+              </Button>
+              <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setIsMusicPopupOpen(!isMusicPopupOpen)}
@@ -1054,6 +1081,17 @@ useEffect(() => {
                     </div>
                     {!isAdmin && !hasBoost && <Button variant="outline" size="sm" className="mt-4 w-full rounded-full" onClick={() => openCheckout()}>Explore Boost</Button>}
                   </div>
+                  <button 
+                    onClick={() => handleLaunchAppBuilder()} 
+                    className="rounded-3xl border border-purple-500/30 bg-purple-500/10 p-4 text-left shadow-sm transition-all hover:border-purple-500/50 hover:bg-purple-500/15"
+                  >
+                    <div className="flex items-center justify-between">
+                      <Smartphone className="h-5 w-5 text-purple-400" />
+                      <span className="text-[9px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1.5 py-0.5 rounded uppercase">Luna</span>
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-purple-200">App Builder</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">Build full web apps</p>
+                  </button>
                   <div className="grid grid-cols-2 gap-3">
                     <button onClick={() => navigate('/tasks')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Clock className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Reminders</p><p className="mt-1 text-[11px] text-muted-foreground">Scheduled tasks</p></button>
                     <button onClick={() => navigate('/shared')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Users className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Shared</p><p className="mt-1 text-[11px] text-muted-foreground">Chats with people</p></button>
@@ -1063,7 +1101,7 @@ useEffect(() => {
 
               <section>
                 <div className="mb-3 flex items-end justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">Your library</p><h2 className="mt-1 text-lg font-semibold">Everything Arc is holding onto</h2></div><p className="hidden text-xs text-muted-foreground sm:block">{insightTip}</p></div>
-                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                   {stats.map(({ label, tab, icon: Icon, value }) => (
                     <button key={label} onClick={() => switchTab(tab)} className="group relative overflow-hidden rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.035] dark:border-border/35 dark:bg-background/40 dark:shadow-none dark:hover:bg-primary/[0.055] sm:p-5">
                       <Icon className="h-5 w-5 text-primary" />
@@ -1372,6 +1410,164 @@ useEffect(() => {
             </motion.div>
           )}
 
+          {/* ====== FULL APPS ====== */}
+          {activeTab === "apps" && (
+            <motion.div key="apps" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={appSearch}
+                    onChange={e => setAppSearch(e.target.value)}
+                    placeholder="Search apps..."
+                    className="pl-9 bg-muted/30 border-border/40 rounded-xl"
+                  />
+                </div>
+                <Button
+                  onClick={() => handleLaunchAppBuilder()}
+                  className="rounded-full h-9 px-3.5 bg-gradient-to-r from-purple-500/20 via-primary/20 to-purple-500/20 hover:from-purple-500/30 hover:to-primary/30 border border-purple-500/30 text-purple-200 text-xs font-medium gap-1.5 shadow-sm transition-all"
+                  title="New App"
+                >
+                  <Plus className="h-4 w-4 text-purple-400" />
+                  <span>New App</span>
+                </Button>
+              </div>
+
+              {loadingApps ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="rounded-2xl border border-border/30 bg-muted/20 p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Skeleton className="h-9 w-9 rounded-xl" />
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : filteredApps.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-border/60 bg-muted/10 p-12 text-center flex flex-col items-center justify-center">
+                  <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-4">
+                    <Smartphone className="h-7 w-7 text-purple-400" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground">
+                    {appSearch ? "No matching apps" : "No apps yet"}
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground max-w-sm">
+                    {appSearch
+                      ? `No applications matched "${appSearch}".`
+                      : "Build interactive full-stack React applications with instant preview, Netlify database, and live deploys."}
+                  </p>
+                  <Button
+                    onClick={() => handleLaunchAppBuilder()}
+                    className="mt-5 rounded-full bg-purple-600 hover:bg-purple-500 text-white font-medium px-4 text-xs gap-1.5 shadow-md"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Create Your First App
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {filteredApps.slice((appPage - 1) * ITEMS_PER_PAGE, appPage * ITEMS_PER_PAGE).map((app) => {
+                      const askarcUrl = app.netlify_subdomain ? `https://${app.netlify_subdomain}.askarc.chat` : null;
+                      return (
+                        <div
+                          key={app.id}
+                          onClick={() => {
+                            if (!hasBoost && !isAdmin) {
+                              openCheckout();
+                              toast({
+                                title: "ArcAI Boost Required",
+                                description: "App Builder is exclusively available to Boost subscribers and admins.",
+                              });
+                              return;
+                            }
+                            reopenIDECanvas(app.id, app.files || {}, app.messages);
+                          }}
+                          className="group relative flex flex-col justify-between rounded-2xl border border-border/40 bg-card/60 hover:bg-card/90 hover:border-purple-500/40 p-4 transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 overflow-hidden"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="h-9 w-9 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center shrink-0">
+                                  <Smartphone className="h-4.5 w-4.5 text-purple-400" />
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="font-semibold text-sm text-foreground truncate group-hover:text-purple-300 transition-colors">
+                                    {app.title || "Untitled App"}
+                                  </h4>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    v{app.version || 1} · {timeAgo(app.updated_at || app.created_at)}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="text-[9px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full shrink-0">
+                                Luna
+                              </span>
+                            </div>
+
+                            <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                              {app.prompt || "Interactive React web application built with Arc App Builder."}
+                            </p>
+                          </div>
+
+                          <div className="mt-4 pt-3 border-t border-border/30 flex items-center justify-between gap-2">
+                            {askarcUrl ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(askarcUrl, "_blank", "noopener,noreferrer");
+                                }}
+                                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-purple-300 hover:text-purple-200 truncate group/link"
+                                title={askarcUrl}
+                              >
+                                <Globe className="h-3 w-3 shrink-0 text-purple-400" />
+                                <span className="truncate">{app.netlify_subdomain}.askarc.chat</span>
+                                <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-70 group-hover/link:opacity-100" />
+                              </button>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground">
+                                Draft · Local preview
+                              </span>
+                            )}
+
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!hasBoost && !isAdmin) {
+                                  openCheckout();
+                                  toast({
+                                    title: "ArcAI Boost Required",
+                                    description: "App Builder is exclusively available to Boost subscribers and admins.",
+                                  });
+                                  return;
+                                }
+                                reopenIDECanvas(app.id, app.files || {}, app.messages);
+                              }}
+                              className="h-7 px-2.5 text-xs rounded-lg text-purple-300 hover:text-purple-100 hover:bg-purple-500/20 ml-auto shrink-0 gap-1 font-medium"
+                            >
+                              <span>Open</span>
+                              <ArrowRight className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <PaginationBar
+                    current={appPage}
+                    total={Math.ceil(filteredApps.length / ITEMS_PER_PAGE)}
+                    onChange={setAppPage}
+                  />
+                </>
+              )}
+            </motion.div>
+          )}
 
           {/* ====== FULL CANVASES ====== */}
           {activeTab === "canvases" && (
@@ -1447,9 +1643,20 @@ useEffect(() => {
                   </motion.div>
                 ) : (
                   <motion.div key="canvas-grid" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input value={canvasSearch} onChange={e => setCanvasSearch(e.target.value)} placeholder="Search code & apps…" className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input value={canvasSearch} onChange={e => setCanvasSearch(e.target.value)} placeholder="Search code & apps…" className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
+                      </div>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleLaunchAppBuilder()}
+                        className="rounded-full glass-shimmer text-xs h-9 px-3 gap-1.5 border-purple-500/30 text-purple-200 hover:bg-purple-500/10"
+                        title="New App"
+                      >
+                        <Plus className="h-4 w-4 text-purple-400" />
+                        <span className="hidden sm:inline">New App</span>
+                      </Button>
                     </div>
                     {!allSessionsHydrated ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -1465,7 +1672,7 @@ useEffect(() => {
                             key={item.id}
                             className="group rounded-xl border border-border/30 bg-muted/15 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer overflow-hidden flex flex-col"
                             onClick={() => {
-                              if (item.type === 'app' && item.projectId && item.files) {
+                              if (item.type === 'app') {
                                 if (!hasBoost && !isAdmin) {
                                   openCheckout();
                                   toast({
@@ -1474,7 +1681,7 @@ useEffect(() => {
                                   });
                                   return;
                                 }
-                                reopenIDECanvas(item.projectId, item.files, item.messages);
+                                reopenIDECanvas(item.projectId || item.id, item.files || {}, item.messages);
                               } else {
                                 setSelectedCanvas(item);
                               }
@@ -1852,6 +2059,15 @@ useEffect(() => {
         isOpen={isMusicPopupOpen}
         onClose={() => setIsMusicPopupOpen(false)}
       />
+
+      {/* IDE Canvas Panel */}
+      <AnimatePresence>
+        {isIDEOpen && (
+          <div className="fixed inset-0 z-[120] bg-background">
+            <IDECanvasPanel onClose={closeIDE} />
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
