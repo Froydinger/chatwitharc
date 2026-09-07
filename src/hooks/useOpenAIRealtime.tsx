@@ -1743,11 +1743,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 turn_detection: isIOS
                   ? {
                       type: 'server_vad',
-                      // On iOS devices/PWA, speaker audio bleeds directly into the iPhone
-                      // microphone. We use OpenAI's recommended higher threshold (0.80)
-                      // and disable interrupt_response to prevent speaker acoustic feedback
+                      // On iOS devices/PWA, use standard 0.60 threshold for responsive speech detection
+                      // with interrupt_response disabled to prevent speaker acoustic feedback
                       // from cutting the assistant off mid-sentence.
-                      threshold: 0.80,
+                      threshold: 0.60,
                       prefix_padding_ms: 300,
                       silence_duration_ms: 800,
                       create_response: true,

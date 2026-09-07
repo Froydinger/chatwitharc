@@ -49,7 +49,7 @@ export function getVoiceAudioConstraints(): MediaTrackConstraints {
     return {
       echoCancellation: true,
       noiseSuppression: true,
-      autoGainControl: false,
+      autoGainControl: true,
     };
   }
 

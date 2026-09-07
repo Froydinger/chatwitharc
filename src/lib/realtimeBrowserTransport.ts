@@ -294,18 +294,9 @@ export class RealtimeBrowserTransport {
         this.close(1000, 'peer connection closed');
       }
     });
-    this.audioElement.addEventListener('playing', () => {
-      this.setSpeakingGate(true);
-      this.onOutputEvent?.({ type: 'playing' });
-    });
-    this.audioElement.addEventListener('pause', () => {
-      this.setSpeakingGate(false);
-      this.onOutputEvent?.({ type: 'paused' });
-    });
-    this.audioElement.addEventListener('ended', () => {
-      this.setSpeakingGate(false);
-      this.onOutputEvent?.({ type: 'ended' });
-    });
+    this.audioElement.addEventListener('playing', () => this.onOutputEvent?.({ type: 'playing' }));
+    this.audioElement.addEventListener('pause', () => this.onOutputEvent?.({ type: 'paused' }));
+    this.audioElement.addEventListener('ended', () => this.onOutputEvent?.({ type: 'ended' }));
   }
 
   private startStats(): void {
