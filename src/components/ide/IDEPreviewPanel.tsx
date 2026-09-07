@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { RefreshCw, Monitor, Smartphone, Tablet, Rocket, ExternalLink, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { ThemedLogo } from '@/components/ThemedLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { type VirtualFileSystem, DEFAULT_FILES } from '@/types/ide';
@@ -212,6 +213,7 @@ export function IDEPreviewPanel({
   projectId,
   isBuilding,
 }: IDEPreviewPanelProps) {
+  const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<ViewMode>('desktop');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -418,7 +420,10 @@ html, body {
       <SandpackErrorListener onError={onError} isBuilding={isBuilding} />
 
       {/* Top Preview Bar */}
-      <div className="px-3.5 py-2 border-b border-border/10 flex items-center gap-2.5 shrink-0 bg-[#0d0e12]/80 backdrop-blur-md">
+      <div className={cn(
+        "border-b border-border/10 flex items-center shrink-0 bg-[#0d0e12]/90 backdrop-blur-md",
+        isMobile ? "px-2.5 py-1.5 gap-1.5 h-10" : "px-3.5 py-2 gap-2.5"
+      )}>
         <SandpackRefreshButton 
           isRefreshing={isRefreshing}
           onRefresh={() => {
@@ -428,43 +433,45 @@ html, body {
         />
         
         {/* Custom URL Bar with askarc.chat address */}
-        <div className="flex-1 flex items-center gap-2 h-7 px-3 rounded-lg bg-[#14161b] border border-white/5 text-[11px] text-muted-foreground select-none">
-          <Lock className="h-3 w-3 text-emerald-400/80 shrink-0" />
-          <span className="truncate font-mono text-[10.5px] text-foreground/85">
+        <div className="flex-1 flex items-center gap-1.5 h-7 px-2.5 rounded-lg bg-[#14161b] border border-white/5 text-[11px] text-muted-foreground select-none min-w-0">
+          <Lock className="h-2.5 w-2.5 text-emerald-400/80 shrink-0" />
+          <span className="truncate font-mono text-[10px] text-foreground/85">
             {deployedUrl ? deployedUrl.replace(/^https?:\/\//, '') : 'app.askarc.chat'}
           </span>
         </div>
         
-        {/* View mode segmented toggle (Desktop / Tablet / Phone) */}
-        <div className="flex items-center gap-0.5 bg-[#14161b] border border-white/5 rounded-lg p-0.5">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setViewMode('desktop')}
-            className={cn('h-6 w-6 p-0 rounded-md transition-all', viewMode === 'desktop' ? 'bg-white/10 shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}
-            title="Desktop view"
-          >
-            <Monitor className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setViewMode('tablet')}
-            className={cn('h-6 w-6 p-0 rounded-md transition-all', viewMode === 'tablet' ? 'bg-white/10 shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}
-            title="Tablet view"
-          >
-            <Tablet className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setViewMode('phone')}
-            className={cn('h-6 w-6 p-0 rounded-md transition-all', viewMode === 'phone' ? 'bg-white/10 shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}
-            title="Mobile phone view"
-          >
-            <Smartphone className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+        {/* View mode segmented toggle (Desktop / Tablet / Phone) - Hidden on mobile */}
+        {!isMobile && (
+          <div className="flex items-center gap-0.5 bg-[#14161b] border border-white/5 rounded-lg p-0.5">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setViewMode('desktop')}
+              className={cn('h-6 w-6 p-0 rounded-md transition-all', viewMode === 'desktop' ? 'bg-white/10 shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}
+              title="Desktop view"
+            >
+              <Monitor className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setViewMode('tablet')}
+              className={cn('h-6 w-6 p-0 rounded-md transition-all', viewMode === 'tablet' ? 'bg-white/10 shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}
+              title="Tablet view"
+            >
+              <Tablet className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setViewMode('phone')}
+              className={cn('h-6 w-6 p-0 rounded-md transition-all', viewMode === 'phone' ? 'bg-white/10 shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}
+              title="Mobile phone view"
+            >
+              <Smartphone className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
 
         {/* External Link */}
         {deployedUrl && (
@@ -487,29 +494,40 @@ html, body {
             variant="ghost"
             size="sm"
             onClick={onPublishClick}
-            className="h-7 px-2.5 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 gap-1.5 rounded-lg text-xs font-medium transition-all"
+            className={cn(
+              "h-7 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 gap-1 rounded-lg text-xs font-medium transition-all shrink-0",
+              isMobile ? "px-2 text-[11px]" : "px-2.5"
+            )}
             title="Publish app live on askarc.chat"
           >
             <Rocket className="w-3.5 h-3.5" />
-            <span className="text-[11px]">{deployedUrl ? 'Update App' : 'Publish'}</span>
+            <span>{deployedUrl ? 'Update' : 'Publish'}</span>
           </Button>
         )}
       </div>
 
       {/* Sandpack Workspace Area */}
-      <div className="flex-1 min-h-0 relative overflow-hidden bg-[#090a0d] flex items-center justify-center p-3">
+      <div className={cn(
+        "flex-1 min-h-0 relative overflow-hidden bg-[#090a0d] flex items-center justify-center",
+        isMobile ? "p-0" : "p-3"
+      )}>
         <div className="h-full w-full min-h-0 flex items-center justify-center overflow-hidden transition-all duration-300">
           <div 
             className={cn(
-              "transition-all duration-300 relative flex flex-col shadow-2xl min-h-0 max-h-full overflow-hidden bg-[#090a0f]",
-              viewMode === 'desktop' && "w-full h-full min-h-0 max-h-full rounded-xl border border-white/5",
-              viewMode === 'tablet' && "w-[720px] h-[520px] max-w-[96%] max-h-[94%] rounded-[2rem] p-[10px] bg-zinc-950 ring-1 ring-white/15",
-              viewMode === 'phone' && "w-[375px] h-[780px] max-h-[96%] rounded-[3rem] p-[10px] bg-zinc-950 ring-1 ring-white/15"
+              "transition-all duration-300 relative flex flex-col min-h-0 max-h-full overflow-hidden bg-[#090a0f]",
+              isMobile 
+                ? "w-full h-full rounded-none border-0 shadow-none"
+                : cn(
+                    "shadow-2xl",
+                    viewMode === 'desktop' && "w-full h-full min-h-0 max-h-full rounded-xl border border-white/5",
+                    viewMode === 'tablet' && "w-[720px] h-[520px] max-w-[96%] max-h-[94%] rounded-[2rem] p-[10px] bg-zinc-950 ring-1 ring-white/15",
+                    viewMode === 'phone' && "w-[375px] h-[780px] max-h-[96%] rounded-[3rem] p-[10px] bg-zinc-950 ring-1 ring-white/15"
+                  )
             )}
             style={{ isolation: 'isolate' }}
           >
-            {/* Phone Dynamic Island */}
-            {viewMode === 'phone' && (
+            {/* Phone Dynamic Island - desktop emulation only */}
+            {!isMobile && viewMode === 'phone' && (
               <div className="flex items-center justify-center my-1 shrink-0">
                 <div className="w-24 h-5 bg-black rounded-full flex items-center justify-center gap-2 border border-white/5 shadow-inner">
                   <div className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
@@ -522,9 +540,10 @@ html, body {
             <div 
               className={cn(
                 "flex-1 min-h-0 relative w-full h-full max-h-full overflow-hidden flex flex-col bg-[#090a0f]",
-                viewMode === 'desktop' && "rounded-xl",
-                viewMode === 'phone' && "rounded-[2.4rem]",
-                viewMode === 'tablet' && "rounded-[1.4rem]"
+                isMobile ? "rounded-none" : (
+                  viewMode === 'desktop' ? "rounded-xl" :
+                  viewMode === 'phone' ? "rounded-[2.4rem]" : "rounded-[1.4rem]"
+                )
               )}
               style={{ isolation: 'isolate' }}
             >
@@ -541,8 +560,8 @@ html, body {
               />
             </div>
 
-            {/* Mobile Home Bar */}
-            {viewMode === 'phone' && (
+            {/* Mobile Home Bar - desktop emulation only */}
+            {!isMobile && viewMode === 'phone' && (
               <div className="flex justify-center mt-2 shrink-0">
                 <div className="w-28 h-1 bg-white/30 rounded-full" />
               </div>

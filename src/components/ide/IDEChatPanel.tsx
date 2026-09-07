@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Sparkles, ArrowLeft, Terminal, Bot, CornerDownLeft, Plus, X, Image as ImageIcon } from 'lucide-react';
+import { Send, Loader2, Sparkles, ArrowLeft, Terminal, Bot, CornerDownLeft, Plus, X, Image as ImageIcon, Smartphone, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -27,6 +27,7 @@ interface IDEChatPanelProps {
   onGoHome?: () => void;
   onSelectFile?: (path: string) => void;
   syncStatus?: 'saved' | 'saving' | 'unsaved' | 'error';
+  onViewPreview?: () => void;
 }
 
 const QUICK_PROMPTS = [
@@ -45,7 +46,8 @@ export function IDEChatPanel({
   onSend,
   onGoHome,
   onSelectFile,
-  syncStatus = 'saved'
+  syncStatus = 'saved',
+  onViewPreview
 }: IDEChatPanelProps) {
   const [input, setInput] = useState('');
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
@@ -316,6 +318,20 @@ export function IDEChatPanel({
                       {!message.content && (!message.agentActions || message.agentActions.length === 0) && (
                         <span className="text-muted-foreground">App generation complete! Check the live preview.</span>
                       )}
+                      {onViewPreview && (
+                        <div className="pt-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={onViewPreview}
+                            className="h-7 px-3 text-[11px] rounded-xl border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary font-medium gap-1.5 shadow-sm transition-all"
+                          >
+                            <Smartphone className="h-3 w-3" />
+                            <span>View Live Preview</span>
+                            <ArrowRight className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <span className="whitespace-pre-wrap">{message.content}</span>
@@ -396,7 +412,7 @@ export function IDEChatPanel({
             onPaste={handlePaste}
             placeholder={isLoading ? "Luna is thinking..." : "Message Arc Studio..."}
             rows={1}
-            className="flex-1 min-h-[28px] max-h-32 resize-none text-xs bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-1 text-foreground placeholder:text-muted-foreground/60 scrollbar-hide"
+            className="flex-1 min-h-[28px] max-h-32 resize-none text-[15px] sm:text-xs bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-1 text-foreground placeholder:text-muted-foreground/60 scrollbar-hide"
             disabled={isLoading}
           />
 

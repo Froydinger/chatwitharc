@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useArcStore } from '@/store/useArcStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { 
-  ArrowLeft, Code2, Eye, Download, Copy, Check, Sparkles, Cloud, Trash2, Rocket, Plus, ExternalLink, Calendar, Loader2, Play, GitBranch, ChevronDown, FolderArchive 
+  ArrowLeft, Code2, Eye, Download, Copy, Check, Sparkles, Cloud, Trash2, Rocket, Plus, ExternalLink, Calendar, Loader2, Play, GitBranch, ChevronDown, FolderArchive, MessageSquare, MoreVertical, X 
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -99,9 +99,17 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     return ensureSystemFiles(initial);
   });
   const [selectedFile, setSelectedFile] = useState<string | null>('src/App.tsx');
-  const [activeTab, setActiveTab] = useState<'preview' | 'code' | 'cloud'>('preview');
-  const [mobileCodeTab, setMobileCodeTab] = useState<'chat' | 'editor'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'preview' | 'code' | 'cloud'>('preview');
   const [copied, setCopied] = useState(false);
+
+  // Default to chat tab on mobile, preview on desktop
+  useEffect(() => {
+    if (isMobile) {
+      setActiveTab('chat');
+    } else if (activeTab === 'chat') {
+      setActiveTab('preview');
+    }
+  }, [isMobile, activeTab]);
   
   const [messages, setMessagesRaw] = useState<ChatMessage[]>(() => {
     const storeMsgs = useIDEStore.getState().ideMessages;
@@ -868,40 +876,152 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       )}
 
       {/* Floating Glass Studio Header Dock */}
-      <header className={cn(
-        "px-4 py-2.5 mx-3 mb-1.5 rounded-2xl bg-[#0f1117]/85 border border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 shadow-[0_8px_32px_rgba(0,0,0,0.4)]",
-        reserveTrafficLightSpace ? "mt-1" : "mt-2.5"
-      )}>
-        {/* Left: Project identity & Back */}
-        <div className="flex items-center gap-3">
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            onClick={handleGoHome}
-            className="h-8 px-2.5 rounded-xl hover:bg-white/10 gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-all"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Dashboard</span>
-          </Button>
+      {isMobile ? (
+        <header className="px-3 py-2 bg-[#0f1117]/95 border-b border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 z-30 pt-[max(0.5rem,env(safe-area-inset-top,0px))]">
+          {/* Left: Project identity & Back */}
+          <div className="flex items-center gap-2 min-w-0">
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              onClick={handleGoHome}
+              className="h-8 w-8 rounded-xl hover:bg-white/10 text-muted-foreground hover:text-foreground shrink-0"
+              title="Dashboard"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
 
-          <div className="h-4 w-[1px] bg-white/10 shrink-0" />
-
-          {/* Project Title with Themed Logo */}
-          <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center p-1 shrink-0">
               <ThemedLogo className="w-full h-full object-contain" />
             </div>
-            <span className="text-xs font-semibold max-w-[180px] sm:max-w-[240px] truncate text-foreground">
-              {publishedAppTitle || messages.find(m => m.role === 'user')?.content?.slice(0, 45) || 'Arc Web App'}
-            </span>
-            <span className="text-[9px] font-mono font-bold bg-primary/15 text-primary border border-primary/25 px-1.5 py-0.2 rounded-md uppercase tracking-wider select-none">
-              LUNA
-            </span>
-          </div>
-        </div>
 
-        {/* Center: Segmented View Mode Tabs */}
-        {!isMobile && (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-xs font-semibold truncate text-foreground max-w-[130px]">
+                {publishedAppTitle || messages.find(m => m.role === 'user')?.content?.slice(0, 45) || 'Arc Web App'}
+              </span>
+              <span className="text-[8px] font-mono font-bold bg-primary/15 text-primary border border-primary/25 px-1 py-0.2 rounded uppercase tracking-wider select-none shrink-0">
+                LUNA
+              </span>
+            </div>
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-1 shrink-0">
+            <Button
+              size="sm"
+              onClick={() => setShowPublishDialog(true)}
+              className="h-7 px-2 rounded-lg bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium text-[11px] gap-1 shadow-sm hover:opacity-95"
+            >
+              <Rocket className="h-3 w-3" />
+              <span>{deployedUrl ? 'Update' : 'Deploy'}</span>
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  title="More options"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="dark arc-ide-workspace w-56 bg-[#0f1117]/95 border-white/10 backdrop-blur-xl rounded-xl p-1.5 shadow-2xl" style={{ colorScheme: 'dark' }}>
+                <DropdownMenuItem 
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  className="flex items-center gap-2 text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10"
+                >
+                  {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> : <FolderArchive className="w-3.5 h-3.5 text-primary shrink-0" />}
+                  <div className="flex flex-col">
+                    <span className="font-medium text-foreground">Download Codebase</span>
+                    <span className="text-[10px] text-muted-foreground">Vite + React ZIP</span>
+                  </div>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem 
+                  onClick={handleCopyAll}
+                  className="flex items-center gap-2 text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-primary shrink-0" /> : <Copy className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+                  <span className="font-medium text-foreground">Copy All Code</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="bg-white/10 my-1" />
+
+                <DropdownMenuItem 
+                  onClick={() => {
+                    toast({
+                      title: "GitHub Sync Coming Soon",
+                      description: "Direct 1-click push to GitHub repositories will be supported in an upcoming Arc release. For now, download the ZIP and run git init.",
+                    });
+                  }}
+                  className="flex items-center justify-between text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10 opacity-80"
+                >
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    <span className="font-medium text-foreground">Push to GitHub</span>
+                  </div>
+                  <span className="text-[8px] font-mono uppercase bg-purple-500/15 text-purple-400 border border-purple-500/25 px-1 py-0.5 rounded">Soon</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator className="bg-white/10 my-1" />
+
+                <DropdownMenuItem 
+                  onClick={closeIDE}
+                  className="flex items-center gap-2 text-xs py-2 px-2.5 rounded-lg cursor-pointer text-destructive focus:bg-destructive/10"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span className="font-medium">Close Studio</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={closeIDE} 
+              className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5"
+              title="Close"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </header>
+      ) : (
+        <header className={cn(
+          "px-4 py-2.5 mx-3 mb-1.5 rounded-2xl bg-[#0f1117]/85 border border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 shadow-[0_8px_32px_rgba(0,0,0,0.4)]",
+          reserveTrafficLightSpace ? "mt-1" : "mt-2.5"
+        )}>
+          {/* Left: Project identity & Back */}
+          <div className="flex items-center gap-3">
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={handleGoHome}
+              className="h-8 px-2.5 rounded-xl hover:bg-white/10 gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-all"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </Button>
+
+            <div className="h-4 w-[1px] bg-white/10 shrink-0" />
+
+            {/* Project Title with Themed Logo */}
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center p-1 shrink-0">
+                <ThemedLogo className="w-full h-full object-contain" />
+              </div>
+              <span className="text-xs font-semibold max-w-[180px] sm:max-w-[240px] truncate text-foreground">
+                {publishedAppTitle || messages.find(m => m.role === 'user')?.content?.slice(0, 45) || 'Arc Web App'}
+              </span>
+              <span className="text-[9px] font-mono font-bold bg-primary/15 text-primary border border-primary/25 px-1.5 py-0.2 rounded-md uppercase tracking-wider select-none">
+                LUNA
+              </span>
+            </div>
+          </div>
+
+          {/* Center: Segmented View Mode Tabs */}
           <div className="flex items-center bg-[#14161f] border border-white/5 rounded-xl p-1 shadow-inner">
             <button
               onClick={() => setActiveTab('preview')}
@@ -940,92 +1060,92 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
               <span>Database & Cloud</span>
             </button>
           </div>
-        )}
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-2">
-          {/* Netlify Publish with askarc.chat domain */}
-          <Button
-            size="sm"
-            onClick={() => setShowPublishDialog(true)}
-            className="h-8 px-3 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium text-xs gap-1.5 shadow-md hover:opacity-95 transition-all"
-          >
-            <Rocket className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{deployedUrl ? 'Update App' : 'Deploy Live'}</span>
-          </Button>
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2">
+            {/* Netlify Publish with askarc.chat domain */}
+            <Button
+              size="sm"
+              onClick={() => setShowPublishDialog(true)}
+              className="h-8 px-3 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-medium text-xs gap-1.5 shadow-md hover:opacity-95 transition-all"
+            >
+              <Rocket className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{deployedUrl ? 'Update App' : 'Deploy Live'}</span>
+            </Button>
 
-          {/* Export Codebase / Git Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                disabled={isExporting}
-                className="h-8 px-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all gap-1.5 text-xs"
-                title="Export codebase"
-              >
-                {isExporting ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
-                ) : (
-                  <Download className="w-3.5 h-3.5" />
-                )}
-                <span className="hidden md:inline">Export</span>
-                <ChevronDown className="w-3 h-3 opacity-60" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="dark arc-ide-workspace w-60 bg-[#0f1117]/95 border-white/10 backdrop-blur-xl rounded-xl p-1.5 shadow-2xl" style={{ colorScheme: 'dark' }}>
-              <DropdownMenuItem 
-                onClick={handleExport}
-                className="flex items-center gap-2.5 text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10"
-              >
-                <FolderArchive className="w-4 h-4 text-primary shrink-0" />
-                <div className="flex flex-col">
-                  <span className="font-medium text-foreground">Download Codebase</span>
-                  <span className="text-[10px] text-muted-foreground">Vite + React ZIP ready for Git</span>
-                </div>
-              </DropdownMenuItem>
+            {/* Export Codebase / Git Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  disabled={isExporting}
+                  className="h-8 px-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all gap-1.5 text-xs"
+                  title="Export codebase"
+                >
+                  {isExporting ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span className="hidden md:inline">Export</span>
+                  <ChevronDown className="w-3 h-3 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="dark arc-ide-workspace w-60 bg-[#0f1117]/95 border-white/10 backdrop-blur-xl rounded-xl p-1.5 shadow-2xl" style={{ colorScheme: 'dark' }}>
+                <DropdownMenuItem 
+                  onClick={handleExport}
+                  className="flex items-center gap-2.5 text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10"
+                >
+                  <FolderArchive className="w-4 h-4 text-primary shrink-0" />
+                  <div className="flex flex-col">
+                    <span className="font-medium text-foreground">Download Codebase</span>
+                    <span className="text-[10px] text-muted-foreground">Vite + React ZIP ready for Git</span>
+                  </div>
+                </DropdownMenuItem>
 
-              <DropdownMenuItem 
-                onClick={handleCopyAll}
-                className="flex items-center gap-2.5 text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10"
-              >
-                {copied ? <Check className="w-4 h-4 text-primary shrink-0" /> : <Copy className="w-4 h-4 text-muted-foreground shrink-0" />}
-                <div className="flex flex-col">
-                  <span className="font-medium text-foreground">Copy All Code</span>
-                  <span className="text-[10px] text-muted-foreground">Copy all files to clipboard</span>
-                </div>
-              </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={handleCopyAll}
+                  className="flex items-center gap-2.5 text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10"
+                >
+                  {copied ? <Check className="w-4 h-4 text-primary shrink-0" /> : <Copy className="w-4 h-4 text-muted-foreground shrink-0" />}
+                  <div className="flex flex-col">
+                    <span className="font-medium text-foreground">Copy All Code</span>
+                    <span className="text-[10px] text-muted-foreground">Copy all files to clipboard</span>
+                  </div>
+                </DropdownMenuItem>
 
-              <DropdownMenuSeparator className="bg-white/10 my-1" />
+                <DropdownMenuSeparator className="bg-white/10 my-1" />
 
-              <DropdownMenuItem 
-                onClick={() => {
-                  toast({
-                    title: "GitHub Sync Coming Soon",
-                    description: "Direct 1-click push to GitHub repositories will be supported in an upcoming Arc release. For now, download the ZIP and run git init.",
-                  });
-                }}
-                className="flex items-center justify-between text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10 opacity-80"
-              >
-                <div className="flex items-center gap-2.5">
-                  <GitBranch className="w-4 h-4 text-purple-400 shrink-0" />
-                  <span className="font-medium text-foreground">Push to GitHub</span>
-                </div>
-                <span className="text-[9px] font-mono uppercase bg-purple-500/15 text-purple-400 border border-purple-500/25 px-1.5 py-0.5 rounded">Soon</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem 
+                  onClick={() => {
+                    toast({
+                      title: "GitHub Sync Coming Soon",
+                      description: "Direct 1-click push to GitHub repositories will be supported in an upcoming Arc release. For now, download the ZIP and run git init.",
+                    });
+                  }}
+                  className="flex items-center justify-between text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10 opacity-80"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <GitBranch className="w-4 h-4 text-purple-400 shrink-0" />
+                    <span className="font-medium text-foreground">Push to GitHub</span>
+                  </div>
+                  <span className="text-[9px] font-mono uppercase bg-purple-500/15 text-purple-400 border border-purple-500/25 px-1.5 py-0.5 rounded">Soon</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={closeIDE} 
-            className="text-xs h-8 px-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
-          >
-            Close
-          </Button>
-        </div>
-      </header>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={closeIDE} 
+              className="text-xs h-8 px-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+            >
+              Close
+            </Button>
+          </div>
+        </header>
+      )}
 
       {/* Boost Entitlement Banner */}
       {!hasBoost && !isAdmin && (
@@ -1045,15 +1165,30 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       )}
 
       {/* Workspace Panel Area */}
-      <div className="flex-1 min-h-0 overflow-hidden relative mx-3 mb-2 rounded-2xl border border-white/5 bg-[#0b0c10] shadow-2xl">
+      <div className={cn(
+        "flex-1 min-h-0 overflow-hidden relative",
+        isMobile ? "m-0 rounded-none border-0 bg-[#08090c]" : "mx-3 mb-2 rounded-2xl border border-white/5 bg-[#0b0c10] shadow-2xl"
+      )}>
         {isMobile ? (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="h-full min-h-0 flex flex-col">
-            <TabsList className="w-full justify-start rounded-none border-b border-white/10 bg-[#0d0e12] px-3 h-10 shrink-0 gap-1">
-              <TabsTrigger value="preview" className="gap-1.5 text-xs rounded-lg">Preview</TabsTrigger>
-              <TabsTrigger value="code" className="gap-1.5 text-xs rounded-lg">Code</TabsTrigger>
-              <TabsTrigger value="cloud" className="gap-1.5 text-xs rounded-lg">Database</TabsTrigger>
-            </TabsList>
-            <TabsContent value="preview" forceMount className={cn("flex-1 m-0 min-h-0 overflow-hidden", activeTab !== "preview" && "hidden")}>
+          <>
+            {/* Mobile Workspace Panels - All kept mounted to preserve live sandbox iframe state */}
+            <div className={cn("absolute inset-0 pb-14", activeTab === 'chat' ? "block" : "hidden pointer-events-none")}>
+              <IDEChatPanel
+                messages={messages}
+                liveActions={liveActions}
+                isLoading={isAgentRunning}
+                generatingId={generatingId}
+                onSend={handleChatSend}
+                onGoHome={handleGoHome}
+                onSelectFile={(path) => {
+                  setSelectedFile(path);
+                  setActiveTab('code');
+                }}
+                syncStatus={syncStatus}
+                onViewPreview={() => setActiveTab('preview')}
+              />
+            </div>
+            <div className={cn("absolute inset-0 pb-14", activeTab === 'preview' ? "block" : "hidden pointer-events-none")}>
               <IDEPreviewPanel 
                 files={files} 
                 onError={handlePreviewError} 
@@ -1062,36 +1197,18 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 projectId={projectIdRef.current || ideProjectId}
                 isBuilding={isAgentRunning}
               />
-            </TabsContent>
-            <TabsContent value="code" forceMount className={cn("flex-1 m-0 min-h-0 relative", activeTab !== "code" && "hidden")}>
-              <div className="absolute inset-0 pb-12">
-                {mobileCodeTab === 'chat' ? (
-                  <IDEChatPanel
-                    messages={messages}
-                    liveActions={liveActions}
-                    isLoading={isAgentRunning}
-                    generatingId={generatingId}
-                    onSend={handleChatSend}
-                    onGoHome={handleGoHome}
-                    onSelectFile={(path) => {
-                      setSelectedFile(path);
-                      setActiveTab('code');
-                    }}
-                    syncStatus={syncStatus}
-                  />
-                ) : (
-                  <IDECodeEditor 
-                    files={files} 
-                    selectedFile={selectedFile} 
-                    setSelectedFile={setSelectedFile} 
-                    onFileChange={handleFileChange}
-                    onAddFile={handleAddFile}
-                    onDeleteFile={handleDeleteFile}
-                  />
-                )}
-              </div>
-            </TabsContent>
-            <TabsContent value="cloud" forceMount className={cn("flex-1 m-0 min-h-0 overflow-y-auto", activeTab !== "cloud" && "hidden")}>
+            </div>
+            <div className={cn("absolute inset-0 pb-14", activeTab === 'code' ? "block" : "hidden pointer-events-none")}>
+              <IDECodeEditor 
+                files={files} 
+                selectedFile={selectedFile} 
+                setSelectedFile={setSelectedFile} 
+                onFileChange={handleFileChange}
+                onAddFile={handleAddFile}
+                onDeleteFile={handleDeleteFile}
+              />
+            </div>
+            <div className={cn("absolute inset-0 pb-14 overflow-y-auto bg-[#0b0c10]", activeTab === 'cloud' ? "block" : "hidden pointer-events-none")}>
               <IDECloudPanel 
                 files={files} 
                 setFiles={setFiles} 
@@ -1099,8 +1216,67 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 isAgentRunning={isAgentRunning}
                 projectId={projectIdRef.current || ideProjectId}
               />
-            </TabsContent>
-          </Tabs>
+            </div>
+
+            {/* Floating Glass Mobile Bottom Navigation Dock */}
+            <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#0c0d12]/95 backdrop-blur-2xl border-t border-white/10 px-2 py-1 pb-[max(0.375rem,env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-[0_-8px_32px_rgba(0,0,0,0.6)]">
+              <button
+                type="button"
+                onClick={() => setActiveTab('chat')}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl transition-all relative",
+                  activeTab === 'chat' ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <div className="relative">
+                  <MessageSquare className="h-5 w-5" />
+                  {isAgentRunning && (
+                    <span className="absolute -top-1 -right-1.5 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500" />
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] tracking-tight">Chat</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('preview')}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl transition-all relative",
+                  activeTab === 'preview' ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Eye className="h-5 w-5" />
+                <span className="text-[10px] tracking-tight">Preview</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('code')}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl transition-all relative",
+                  activeTab === 'code' ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Code2 className="h-5 w-5" />
+                <span className="text-[10px] tracking-tight">Code</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('cloud')}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl transition-all relative",
+                  activeTab === 'cloud' ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Cloud className="h-5 w-5" />
+                <span className="text-[10px] tracking-tight">Cloud</span>
+              </button>
+            </nav>
+          </>
         ) : (
           <ResizablePanelGroup direction="horizontal" className="h-full min-h-0">
             {/* Left AI Sidecar Chat */}
@@ -1117,6 +1293,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                   setActiveTab('code');
                 }}
                 syncStatus={syncStatus}
+                onViewPreview={() => setActiveTab('preview')}
               />
             </ResizablePanel>
 

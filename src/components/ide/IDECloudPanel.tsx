@@ -294,7 +294,7 @@ export function IDECloudPanel({ files, setFiles, onChatSend, isAgentRunning, pro
   };
 
   return (
-    <div className="p-5 space-y-6 max-w-3xl">
+    <div className="p-3 sm:p-5 space-y-4 sm:space-y-6 max-w-3xl pb-24 sm:pb-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
