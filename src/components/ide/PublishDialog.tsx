@@ -372,7 +372,7 @@ export function PublishDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md dark arc-ide-workspace bg-[#0f1117] border-white/10 text-foreground" style={{ colorScheme: 'dark' }}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Rocket className="h-4 w-4" /> {isPublished ? 'Published App' : (deployedUrl ? 'Update App' : 'Publish App to Web')}

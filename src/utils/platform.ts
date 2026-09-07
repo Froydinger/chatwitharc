@@ -62,8 +62,14 @@ export function shouldReserveDesktopTrafficLightSpace(): boolean {
   );
   const isElectron = typeof navigator !== "undefined" && /electron/i.test(navigator.userAgent);
 
-  // Both the Mac desktop app (Electron) and Web app (PWA/standalone/macOS) require traffic light safe area.
-  if (isMac || isElectron) return true;
+  // Desktop BROWSER (regular tabs in Chrome, Safari, Firefox, Breeze, etc.) does NOT need traffic light space.
+  // Traffic light space is ONLY needed when running as:
+  // 1) The Mac desktop app (Electron)
+  // 2) The installed Mac Web App (PWA in standalone mode)
+  if (!isStandaloneRuntime()) {
+    return false;
+  }
 
-  return false;
+  // When running in standalone mode (PWA or Electron), reserve space for macOS window controls
+  return isMac || isElectron;
 }

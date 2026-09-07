@@ -86,6 +86,9 @@ All colors MUST be HSL for perfect glass effects.
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Desktop browser defaults to 0px header reservation; standalone Mac app overrides to 30px */
+    --arcai-desktop-titlebar-safe-area: 0px;
   }
 
   /* Light Theme - activated when accent = "white" */
@@ -1412,6 +1415,10 @@ All colors MUST be HSL for perfect glass effects.
     display: none;
   }
 
+  body.standalone-app.reserve-traffic-lights {
+    --arcai-desktop-titlebar-safe-area: 30px;
+  }
+
   .standalone-app.reserve-traffic-lights .arcai-drag-bar {
     display: block;
     position: fixed;
@@ -1423,6 +1430,38 @@ All colors MUST be HSL for perfect glass effects.
     -webkit-app-region: drag;
     background: transparent;
     pointer-events: none;
+  }
+
+  /* Arc IDE Workspace: ALWAYS dark mode regardless of root theme */
+  .arc-ide-workspace,
+  :root.light .arc-ide-workspace,
+  :root.light .arc-ide-workspace * {
+    color-scheme: dark !important;
+  }
+
+  .arc-ide-workspace,
+  :root.light .arc-ide-workspace {
+    --background: 240 8% 1%;
+    --foreground: 240 5% 96%;
+    --card: 240 8% 12%;
+    --card-foreground: 240 5% 94%;
+    --surface: 240 6% 10%;
+    --surface-foreground: 240 4% 92%;
+    --input-bar: 240 8% 7%;
+    --secondary: 240 6% 28%;
+    --secondary-foreground: 240 4% 88%;
+    --muted: 240 4% 10%;
+    --muted-foreground: 240 3% 68%;
+    --accent: 240 8% 22%;
+    --accent-foreground: 240 4% 94%;
+    --border: 240 8% 20%;
+    --input: 240 8% 12%;
+    --input-dark: 240 10% 15%;
+    --glass-bg: 240 8% 8%;
+    --glass-border: 240 10% 22%;
+    --glass-glow: 200 90% 65%;
+    --ai-message-bg: 240 8% 16%;
+    --ai-message-border: 240 10% 24%;
   }
 
   /* iPad PWA: Apply 30px top padding only in standalone mode */

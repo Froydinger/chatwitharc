@@ -3,6 +3,7 @@ import { useAccentStore, type ThemeMode } from "@/store/useAccentStore";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation } from "react-router-dom";
+import { useIDEStore } from "@/store/useIDEStore";
 
 function isThemeMode(value: unknown): value is ThemeMode {
   return value === "light" || value === "dark" || value === "system";
@@ -11,6 +12,7 @@ function isThemeMode(value: unknown): value is ThemeMode {
 export function useTheme() {
   const themeMode = useAccentStore((s) => s.themeMode);
   const setThemeMode = useAccentStore((s) => s.setThemeMode);
+  const isIDEOpen = useIDEStore((s) => s.isOpen);
   const { user, isAnonymous, loading } = useAuth();
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
   const location = useLocation();
@@ -60,9 +62,9 @@ export function useTheme() {
     const root = document.documentElement;
 
     const apply = (isLight: boolean) => {
-      // Shared chat, pricing, and upgrade pages always render in dark theme
+      // Shared chat, pricing, upgrade pages, and App Builder (IDE) always render in dark theme
       const path = location.pathname;
-      if (path.startsWith("/share/") || path === "/pricing" || path === "/upgrade") {
+      if (path.startsWith("/share/") || path === "/pricing" || path === "/upgrade" || isIDEOpen) {
         root.classList.remove("light");
         root.classList.add("dark");
         return;
@@ -97,5 +99,5 @@ export function useTheme() {
     }
 
     apply(themeMode === "light");
-  }, [themeMode, location.pathname]);
+  }, [themeMode, location.pathname, isIDEOpen]);
 }

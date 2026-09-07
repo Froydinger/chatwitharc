@@ -671,7 +671,10 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
   // Render Workspace
   return (
-    <div className={cn("h-[100dvh] max-h-[100dvh] w-screen max-w-full flex flex-col bg-[#08090c] text-foreground select-none overflow-hidden", className)}>
+    <div
+      className={cn("dark arc-ide-workspace h-[100dvh] max-h-[100dvh] w-screen max-w-full flex flex-col bg-[#08090c] text-foreground select-none overflow-hidden", className)}
+      style={{ colorScheme: 'dark' }}
+    >
       {/* Mac Traffic Light Spacer (Mac App & Web App) */}
       {reserveTrafficLightSpace && (
         <div
@@ -789,7 +792,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 <ChevronDown className="w-3 h-3 opacity-60" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60 bg-[#0f1117]/95 border-white/10 backdrop-blur-xl rounded-xl p-1.5 shadow-2xl">
+            <DropdownMenuContent align="end" className="dark arc-ide-workspace w-60 bg-[#0f1117]/95 border-white/10 backdrop-blur-xl rounded-xl p-1.5 shadow-2xl" style={{ colorScheme: 'dark' }}>
               <DropdownMenuItem 
                 onClick={handleExport}
                 className="flex items-center gap-2.5 text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10"
