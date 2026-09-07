@@ -76,7 +76,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'tts-1',
-        input: phraseToSpeak,
+        input: phraseToSpeak.slice(0, 4096),
         voice: selectedVoice,
         response_format: 'mp3',
       }),

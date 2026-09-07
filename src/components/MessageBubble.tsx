@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Copy, Edit2, Check, MapPin } from "lucide-react";
+import { Copy, Edit2, Check, MapPin, Volume2, Square, Loader2 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -9,6 +9,8 @@ import rehypeKatex from "rehype-katex";
 import { Message } from "@/store/useArcStore";
 import { useArcStore } from "@/store/useArcStore";
 import { useProfile } from "@/hooks/useProfile";
+import { useReadAloudStore } from "@/store/useReadAloudStore";
+import { cn } from "@/lib/utils";
 
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
@@ -137,6 +139,16 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [selectedImageSourceUrl, setSelectedImageSourceUrl] = useState<string | null>(null);
     const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
     const isUser = message.role === "user";
+    const isPlayingSpeech = useReadAloudStore((s) => s.playingMessageId === message.id);
+    const isLoadingSpeech = useReadAloudStore((s) => s.loadingMessageId === message.id);
+    const playMessage = useReadAloudStore((s) => s.playMessage);
+
+    const handleToggleSpeech = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (message.content) {
+        void playMessage(message.id, message.content);
+      }
+    }, [message.id, message.content, playMessage]);
 
     const handleOpenImage = (imgUrl: string, allowSourceLookup = false) => {
       setSelectedImageUrl(imgUrl);
@@ -692,9 +704,32 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                       handleCopy();
                     }}
                     className="h-6 w-6"
+                    title="Copy"
                   >
                     <Copy className="h-3 w-3" />
                   </GlassButton>
+                  {!isUser && message.content && message.type === "text" && (
+                    <GlassButton
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleToggleSpeech}
+                      className={cn(
+                        "h-6 w-6 transition-colors",
+                        isPlayingSpeech && "text-primary bg-primary/10",
+                        isLoadingSpeech && "opacity-75"
+                      )}
+                      title={isPlayingSpeech ? "Stop speaking" : "Read aloud"}
+                      aria-label={isPlayingSpeech ? "Stop speaking" : "Read aloud"}
+                    >
+                      {isLoadingSpeech ? (
+                        <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                      ) : isPlayingSpeech ? (
+                        <Square className="h-2.5 w-2.5 fill-current text-primary" />
+                      ) : (
+                        <Volume2 className="h-3 w-3" />
+                      )}
+                    </GlassButton>
+                  )}
                   {isUser && message.type === "text" && (
                     <GlassButton
                       variant="ghost"
@@ -722,7 +757,30 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               layout="position"
               transition={{ layout: { duration: 0.18, ease: [0.22, 1, 0.36, 1] } }}
             >
-              {message.type !== 'image-generating' && message.type !== 'video-generating' && <MessageMetadata message={message} />}
+              {message.type !== 'image-generating' && message.type !== 'video-generating' && (
+                <div className="flex items-center gap-1 mt-1">
+                  <MessageMetadata message={message} />
+                  {message.content && message.type === 'text' && (
+                    <button
+                      onClick={handleToggleSpeech}
+                      className={cn(
+                        "inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors",
+                        isPlayingSpeech && "text-primary bg-primary/10"
+                      )}
+                      title={isPlayingSpeech ? "Stop speaking" : "Read aloud"}
+                      aria-label={isPlayingSpeech ? "Stop speaking" : "Read aloud"}
+                    >
+                      {isLoadingSpeech ? (
+                        <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                      ) : isPlayingSpeech ? (
+                        <Square className="h-2.5 w-2.5 fill-current text-primary" />
+                      ) : (
+                        <Volume2 className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Arc / Persona avatar - latest assistant message */}
               {isLatestAssistant && (
