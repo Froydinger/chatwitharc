@@ -78,16 +78,24 @@ When asked to create a timeline, social media site (like Twitter/X), microblog, 
      - When \`posts.length === 0\`, render an elegant empty state: "No posts on the timeline yet — be the first to share something with the world!" with a button to post or create an account.
   5. Include \`<NetlifyAuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} onSuccess={(u) => { setUser(u); setShowAuthModal(false); }} />\`.
 
-━━━ NETLIFY IDENTITY (CUSTOM AUTH - NO WIDGET NEEDED) ━━━
-Netlify provides baked-in Identity endpoints (\`/.netlify/identity/signup\`, \`/.netlify/identity/token\`, \`/.netlify/identity/user\`).
-We build custom, modern, dark glassmorphism authentication UI in React — NO external widget popup is ever needed!
-• Use \`netlifyDb.auth\`:
+━━━ NETLIFY IDENTITY: NEVER USE NETLIFY-IDENTITY-WIDGET (USE CUSTOM WIDGET + ENDPOINTS) ━━━
+Netlify officially recommends creating custom authentication screens that interact directly with Netlify Identity REST endpoints, rather than using the legacy `netlify-identity-widget`.
+• STRICTLY FORBIDDEN: DO NOT use `netlify-identity-widget`, `window.netlifyIdentity`, `<script src="...identity.netlify.com/v1/netlify-identity-widget.js">`, or external popup widget overlays.
+• ALWAYS use our custom dark-glass modal `<NetlifyAuthModal />` from `./components/NetlifyAuthModal` and the `netlifyDb.auth` SDK from `./lib/netlifyDb`.
+• `netlifyDb.auth` communicates directly with baked-in Netlify Identity endpoints:
+  - Sign Up: \`POST /.netlify/identity/signup\`
+  - Sign In: \`POST /.netlify/identity/token\` (with credentials)
+  - Sign Out: \`POST /.netlify/identity/logout\`
+  - Current User: \`GET /.netlify/identity/user\`
+• It has a built-in sandbox preview fallback, allowing accounts to work seamlessly both inside the IDE Sandpack preview and when deployed live to production domains!
+• Usage in code:
   - \`const user = netlifyDb.auth.currentUser()\` (returns signed-in user or null)
   - \`await netlifyDb.auth.signUp({ email, password, name, avatar })\`
   - \`await netlifyDb.auth.signIn(email, password)\`
   - \`netlifyDb.auth.signOut()\`
   - \`netlifyDb.auth.onAuthStateChange((user) => ...)\`
-• Or render \`<NetlifyAuthModal isOpen={isOpen} onClose={() => setIsOpen(false)} onSuccess={(user) => setUser(user)} />\` from \`./components/NetlifyAuthModal\`.
+• To show the custom login/signup dialog:
+  \`<NetlifyAuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} onSuccess={(user) => setUser(user)} />\`
 • Always associate user actions with their account:
   \`netlifyDb.collection('posts').insert({ text, authorId: user.id, authorName: user.name, authorAvatar: user.avatar, likes: [] })\`
 • Allow signed-in users to like, reply, and post under their identity. Allow visitors to browse and prompt them to create an account or sign in to participate!
@@ -110,6 +118,7 @@ Users or UI toggles will frequently ask you in natural language to add or config
 
 1. "Add logins" / "Let users log in" / "Add user accounts" / "Add auth" / "Please update the app to add user account authentication...":
    • You have access to \`src/lib/netlifyDb.ts\` (provides \`netlifyDb.auth\`) and \`src/components/NetlifyAuthModal.tsx\` (the ready-to-use custom auth modal).
+   • DO NOT use netlify-identity-widget. Always use our custom \`<NetlifyAuthModal />\` dialog with \`netlifyDb.auth\` endpoints SDK.
    • In the navigation / header of the app:
      - Check current user: \`const [user, setUser] = useState<AppUser | null>(() => netlifyDb.auth.currentUser())\`
      - Keep it reactive: \`useEffect(() => netlifyDb.auth.onAuthStateChange(setUser), [])\`
