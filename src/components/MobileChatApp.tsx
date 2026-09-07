@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Plus, Menu, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal, Volume2, Volume1, VolumeX } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1487,19 +1488,23 @@ export function MobileChatApp() {
       </AnimatePresence>
 
       {/* App Builder IDE Workspace - Full Screen Takeover */}
-      <AnimatePresence>
-        {isIDEOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="fixed inset-0 z-[110] bg-background"
-          >
-            <IDECanvasPanel onClose={closeIDE} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* IDE Workspace Modal (Arc App Builder) — portaled directly to document.body */}
+      {createPortal(
+        <AnimatePresence>
+          {isIDEOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="fixed inset-0 z-[200] bg-background h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col"
+            >
+              <IDECanvasPanel onClose={closeIDE} />
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
 
 

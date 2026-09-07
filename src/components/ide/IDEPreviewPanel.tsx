@@ -177,7 +177,7 @@ export function IDEPreviewPanel({
   };
 
   return (
-    <div className="h-full flex flex-col bg-[#0b0c0e]">
+    <div className="h-full w-full min-h-0 max-h-full overflow-hidden flex flex-col bg-[#0b0c0e]">
       {/* Top Preview Bar */}
       <div className="px-3.5 py-2 border-b border-border/10 flex items-center gap-2.5 shrink-0 bg-[#0d0e12]/80 backdrop-blur-md">
         <Button 
@@ -260,7 +260,7 @@ export function IDEPreviewPanel({
       </div>
 
       {/* Sandpack Workspace Area */}
-      <div className="flex-1 relative overflow-hidden bg-[#090a0d] flex items-center justify-center p-3">
+      <div className="flex-1 min-h-0 relative overflow-hidden bg-[#090a0d] flex items-center justify-center p-3">
         <SandpackProvider
           template="vite-react-ts"
           customSetup={{
@@ -276,16 +276,16 @@ export function IDEPreviewPanel({
             visibleFiles: ["/src/App.tsx"],
             activeFile: "/src/App.tsx",
           }}
-          className="h-full w-full flex flex-col"
-          style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}
+          className="h-full w-full min-h-0 flex flex-col overflow-hidden"
+          style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', minHeight: 0 }}
         >
           <SandpackErrorListener onError={onError} />
           
-          <div className="h-full w-full flex items-center justify-center overflow-auto transition-all duration-300">
+          <div className="h-full w-full min-h-0 flex items-center justify-center overflow-hidden transition-all duration-300">
             <div 
               className={cn(
-                "transition-all duration-300 relative flex flex-col shadow-2xl",
-                viewMode === 'desktop' && "w-full h-full rounded-xl overflow-hidden border border-white/5 bg-background",
+                "transition-all duration-300 relative flex flex-col shadow-2xl min-h-0 max-h-full",
+                viewMode === 'desktop' && "w-full h-full min-h-0 max-h-full rounded-xl overflow-hidden border border-white/5 bg-background",
                 viewMode === 'tablet' && "w-[720px] h-[520px] max-w-[96%] max-h-[94%] rounded-[2rem] p-[10px] bg-zinc-950 ring-1 ring-white/15",
                 viewMode === 'phone' && "w-[375px] h-[780px] max-h-[96%] rounded-[3rem] p-[10px] bg-zinc-950 ring-1 ring-white/15"
               )}
@@ -303,7 +303,7 @@ export function IDEPreviewPanel({
               {/* Screen Area with Animated Loading Overlay */}
               <div 
                 className={cn(
-                  "flex-1 relative w-full h-full overflow-hidden flex flex-col bg-background",
+                  "flex-1 min-h-0 relative w-full h-full max-h-full overflow-hidden flex flex-col bg-background",
                   viewMode === 'phone' && "rounded-[2.4rem]",
                   viewMode === 'tablet' && "rounded-[1.4rem]"
                 )}
@@ -316,8 +316,8 @@ export function IDEPreviewPanel({
                   showCube={false}
                   showRestartButton={false}
                   showOpenInCodeSandbox={false}
-                  className="w-full h-full border-none bg-background"
-                  customStyle={{ height: '100%', width: '100%', flex: 1 }}
+                  className="w-full h-full max-h-full border-none bg-background !h-full !max-h-full"
+                  customStyle={{ height: '100%', width: '100%', flex: 1, maxHeight: '100%', minHeight: 0 }}
                 />
               </div>
 
@@ -331,6 +331,24 @@ export function IDEPreviewPanel({
           </div>
         </SandpackProvider>
       </div>
+
+      {/* Scoped CSS overrides to guarantee Sandpack preview does not overflow window height */}
+      <style>{`
+        .sp-wrapper,
+        .sp-layout,
+        .sp-stack,
+        .sp-preview,
+        .sp-preview-container,
+        .sp-preview-iframe {
+          height: 100% !important;
+          max-height: 100% !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          flex: 1 1 0% !important;
+          min-height: 0 !important;
+          border: none !important;
+        }
+      `}</style>
     </div>
   );
 }

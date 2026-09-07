@@ -137,6 +137,15 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     }
   }, [isAgentRunning]);
 
+  // Lock document body scroll while IDE is mounted
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
+
 
 
   // Load user projects for the dashboard
@@ -608,7 +617,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
   // Render Workspace
   return (
-    <div className={cn("h-full flex flex-col bg-[#08090c] text-foreground select-none", className)}>
+    <div className={cn("h-[100dvh] max-h-[100dvh] w-screen max-w-full flex flex-col bg-[#08090c] text-foreground select-none overflow-hidden", className)}>
       {/* Floating Glass Studio Header Dock */}
       <header className="px-4 py-2.5 mx-3 mt-2.5 mb-1.5 rounded-2xl bg-[#0f1117]/85 border border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
         {/* Left: Project identity & Back */}
@@ -784,15 +793,15 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       )}
 
       {/* Workspace Panel Area */}
-      <div className="flex-1 overflow-hidden relative mx-3 mb-2 rounded-2xl border border-white/5 bg-[#0b0c10] shadow-2xl">
+      <div className="flex-1 min-h-0 overflow-hidden relative mx-3 mb-2 rounded-2xl border border-white/5 bg-[#0b0c10] shadow-2xl">
         {isMobile ? (
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="h-full flex flex-col">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="h-full min-h-0 flex flex-col">
             <TabsList className="w-full justify-start rounded-none border-b border-white/10 bg-[#0d0e12] px-3 h-10 shrink-0 gap-1">
               <TabsTrigger value="preview" className="gap-1.5 text-xs rounded-lg">Preview</TabsTrigger>
               <TabsTrigger value="code" className="gap-1.5 text-xs rounded-lg">Code</TabsTrigger>
               <TabsTrigger value="cloud" className="gap-1.5 text-xs rounded-lg">Database</TabsTrigger>
             </TabsList>
-            <TabsContent value="preview" className="flex-1 m-0 min-h-0">
+            <TabsContent value="preview" className="flex-1 m-0 min-h-0 overflow-hidden">
               <IDEPreviewPanel 
                 files={files} 
                 onError={handlePreviewError} 
@@ -800,7 +809,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 onPublishClick={() => setShowPublishDialog(true)}
               />
             </TabsContent>
-            <TabsContent value="code" className="flex-1 m-0 relative">
+            <TabsContent value="code" className="flex-1 m-0 min-h-0 relative">
               <div className="absolute inset-0 pb-12">
                 {mobileCodeTab === 'chat' ? (
                   <IDEChatPanel
@@ -824,14 +833,14 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 )}
               </div>
             </TabsContent>
-            <TabsContent value="cloud" className="flex-1 m-0 overflow-y-auto">
+            <TabsContent value="cloud" className="flex-1 m-0 min-h-0 overflow-y-auto">
               <IDECloudPanel files={files} setFiles={setFiles} />
             </TabsContent>
           </Tabs>
         ) : (
-          <ResizablePanelGroup direction="horizontal">
+          <ResizablePanelGroup direction="horizontal" className="h-full min-h-0">
             {/* Left AI Sidecar Chat */}
-            <ResizablePanel defaultSize={32} minSize={22} maxSize={45} className="min-w-[280px]">
+            <ResizablePanel defaultSize={32} minSize={22} maxSize={45} className="min-w-[280px] h-full min-h-0">
               <IDEChatPanel
                 messages={messages}
                 liveActions={liveActions}
@@ -846,8 +855,8 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
             <ResizableHandle className="w-1 bg-white/5 hover:bg-primary/30 transition-colors cursor-col-resize" />
 
             {/* Right Main Stage: Preview, Code, or Cloud */}
-            <ResizablePanel defaultSize={68}>
-              <div className="h-full flex flex-col">
+            <ResizablePanel defaultSize={68} className="h-full min-h-0">
+              <div className="h-full min-h-0 flex flex-col overflow-hidden">
                 {activeTab === 'preview' && (
                   <IDEPreviewPanel 
                     files={files} 

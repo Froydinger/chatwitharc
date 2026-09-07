@@ -1898,7 +1898,7 @@ useEffect(() => {
       </div>
 
       {/* ═══ BOTTOM NAVIGATION (portaled so transform parent doesn't break fixed positioning) ═══ */}
-      {createPortal(
+      {!isIDEOpen && createPortal(
       <div className="fixed bottom-0 left-0 right-0 sm:right-auto z-50 pointer-events-none flex justify-center sm:justify-start" style={{ paddingBottom: '20px' }}>
         <motion.div
           ref={setPillRef}
@@ -2060,14 +2060,17 @@ useEffect(() => {
         onClose={() => setIsMusicPopupOpen(false)}
       />
 
-      {/* IDE Canvas Panel */}
-      <AnimatePresence>
-        {isIDEOpen && (
-          <div className="fixed inset-0 z-[120] bg-background">
-            <IDECanvasPanel onClose={closeIDE} />
-          </div>
-        )}
-      </AnimatePresence>
+      {/* IDE Canvas Panel — portaled directly to document.body to escape transformed parent bounds and constrain strictly to window */}
+      {createPortal(
+        <AnimatePresence>
+          {isIDEOpen && (
+            <div className="fixed inset-0 z-[200] bg-background h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col">
+              <IDECanvasPanel onClose={closeIDE} />
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </motion.div>
   );
 }
