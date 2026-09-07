@@ -12,6 +12,7 @@ interface IDECloudPanelProps {
   setFiles: React.Dispatch<React.SetStateAction<VirtualFileSystem>>;
   onChatSend?: (message: string) => void;
   isAgentRunning?: boolean;
+  projectId?: string | null;
 }
 
 // Detect whether the app's code actually uses netlifyDb
@@ -45,7 +46,12 @@ const isAuthCodeApplied = (vfs: VirtualFileSystem): boolean => {
   });
 };
 
-export function IDECloudPanel({ files, setFiles, onChatSend, isAgentRunning }: IDECloudPanelProps) {
+export function IDECloudPanel({ files, setFiles, onChatSend, isAgentRunning, projectId }: IDECloudPanelProps) {
+  const appId = projectId || 'default';
+  const dbPrefix = `netlify_db:${appId}:`;
+  const currentUserKey = `netlify_current_user:${appId}`;
+  const mockUsersKey = `netlify_mock_users:${appId}`;
+
   const [authEnabled, setAuthEnabled] = useState(false);
   const [dbEnabled, setDbEnabled] = useState(false);
   const [mockUsers, setMockUsers] = useState<any[]>([]);
@@ -54,39 +60,13 @@ export function IDECloudPanel({ files, setFiles, onChatSend, isAgentRunning }: I
   const [newEmail, setNewEmail] = useState('');
   const [newName, setNewName] = useState('');
 
-  useEffect(() => {
-    // Determine active status strictly from actual code usage
-    setAuthEnabled(isAuthCodeApplied(files));
-    setDbEnabled(isDbCodeApplied(files));
-    loadMockData();
-
-    const handleStorageOrAuth = () => loadMockData();
-    window.addEventListener('netlify-auth-change', handleStorageOrAuth);
-    window.addEventListener('netlify-db-change', handleStorageOrAuth);
-    window.addEventListener('storage', handleStorageOrAuth);
-    return () => {
-      window.removeEventListener('netlify-auth-change', handleStorageOrAuth);
-      window.removeEventListener('netlify-db-change', handleStorageOrAuth);
-      window.removeEventListener('storage', handleStorageOrAuth);
-    };
-  }, [files]);
-
   const loadMockData = () => {
     try {
-      // Clean up legacy mock dummy seeds if they were previously saved
-      localStorage.removeItem('netlify_mock_db');
-      if (localStorage.getItem('netlify_db:settings:theme') === '"dark"') {
-        localStorage.removeItem('netlify_db:settings:theme');
-      }
-      if (localStorage.getItem('netlify_db:dashboard:stats')) {
-        localStorage.removeItem('netlify_db:dashboard:stats');
-      }
-
-      const currentUser = localStorage.getItem('netlify_current_user');
-      const storedUsers = localStorage.getItem('netlify_mock_users');
+      const currentUser = localStorage.getItem(currentUserKey);
+      const storedUsers = localStorage.getItem(mockUsersKey);
       let parsedUsers: any[] = storedUsers ? JSON.parse(storedUsers) : [];
 
-      // Filter out any legacy dummy account 'user@askarc.chat'
+      // Filter out any legacy dummy accounts
       parsedUsers = parsedUsers.filter(u => u?.email && u.email !== 'user@askarc.chat' && u.name !== 'App User');
 
       if (currentUser) {
@@ -104,14 +84,13 @@ export function IDECloudPanel({ files, setFiles, onChatSend, isAgentRunning }: I
           }
         } catch {}
       }
-      // Never inject fake default users - start cleanly at 0 users
       setMockUsers(parsedUsers);
 
       const records: Record<string, any> = {};
       for (let i = 0; i < localStorage.length; i++) {
         const fullKey = localStorage.key(i);
-        if (fullKey && fullKey.startsWith('netlify_db:')) {
-          const rawKey = fullKey.replace('netlify_db:', '');
+        if (fullKey && fullKey.startsWith(dbPrefix)) {
+          const rawKey = fullKey.slice(dbPrefix.length);
           try {
             records[rawKey] = JSON.parse(localStorage.getItem(fullKey) || 'null');
           } catch {
@@ -119,15 +98,34 @@ export function IDECloudPanel({ files, setFiles, onChatSend, isAgentRunning }: I
           }
         }
       }
-      // Never inject fake default records - start cleanly at empty database
       setDbRecords(records);
     } catch (e) {
       console.error('Failed to load mock data:', e);
     }
   };
 
+  useEffect(() => {
+    setAuthEnabled(isAuthCodeApplied(files));
+    setDbEnabled(isDbCodeApplied(files));
+    loadMockData();
+
+    const handleStorageOrAuth = (e?: any) => {
+      if (!e?.detail || e.detail.appId === undefined || e.detail.appId === appId) {
+        loadMockData();
+      }
+    };
+    window.addEventListener('netlify-auth-change', handleStorageOrAuth);
+    window.addEventListener('netlify-db-change', handleStorageOrAuth);
+    window.addEventListener('storage', handleStorageOrAuth);
+    return () => {
+      window.removeEventListener('netlify-auth-change', handleStorageOrAuth);
+      window.removeEventListener('netlify-db-change', handleStorageOrAuth);
+      window.removeEventListener('storage', handleStorageOrAuth);
+    };
+  }, [files, appId]);
+
   const saveMockData = (users: any[], db: Record<string, any>) => {
-    localStorage.setItem('netlify_mock_users', JSON.stringify(users));
+    localStorage.setItem(mockUsersKey, JSON.stringify(users));
     setMockUsers(users);
     setDbRecords(db);
   };
@@ -249,7 +247,7 @@ export function IDECloudPanel({ files, setFiles, onChatSend, isAgentRunning }: I
   const deleteDbRecord = (key: string) => {
     const next = { ...dbRecords };
     delete next[key];
-    localStorage.removeItem(`netlify_db:${key}`);
+    localStorage.removeItem(`${dbPrefix}${key}`);
     saveMockData(mockUsers, next);
     toast.success("Record deleted");
   };

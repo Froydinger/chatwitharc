@@ -283,9 +283,75 @@ const getConnectionStateLabel = () => {
   return 'none';
 };
 
-// Privacy choice: diagnostics remain available in the local console, but Arc
-// no longer uploads per-session voice events or device details to the database.
-const logVoiceDiagnostic = (_payload: VoiceDiagnosticPayload) => undefined;
+const sanitizeDiagnosticDetails = (value: unknown, depth = 0): unknown => {
+  if (value == null) return value;
+  if (typeof value === 'string') return value.length > 1200 ? `${value.slice(0, 1200)}…` : value;
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
+  if (depth >= 3) return '[truncated]';
+  if (Array.isArray(value)) return value.slice(0, 20).map((item) => sanitizeDiagnosticDetails(item, depth + 1));
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .slice(0, 30)
+        .map(([key, item]) => [key, sanitizeDiagnosticDetails(item, depth + 1)])
+    );
+  }
+  return String(value);
+};
+
+let diagnosticWriteQueue: Promise<void> = Promise.resolve();
+let cachedDiagnosticUserId: string | null = null;
+
+// Privacy choice: Arc does not upload routine per-session voice telemetry,
+// audio chunks, transcripts, or frequent state changes. We only log genuine failures
+// and terminal errors so connection/permission issues can be diagnosed.
+const ERROR_DIAGNOSTIC_EVENTS = new Set([
+  'connect_failed',
+  'websocket_error',
+  'session_update_error',
+  'fatal_error',
+  'tool_call_failed',
+]);
+
+const logVoiceDiagnostic = (payload: VoiceDiagnosticPayload) => {
+  if (!ERROR_DIAGNOSTIC_EVENTS.has(payload.event_type)) {
+    return;
+  }
+
+  diagnosticWriteQueue = diagnosticWriteQueue
+    .catch(() => undefined)
+    .then(async () => {
+      try {
+        if (!cachedDiagnosticUserId) {
+          const { data: { user } } = await supabase.auth.getUser();
+          cachedDiagnosticUserId = user?.id ?? null;
+        }
+        if (!cachedDiagnosticUserId) return;
+
+        const details = sanitizeDiagnosticDetails({
+          ...(payload.details || {}),
+          url: typeof window !== 'undefined' ? window.location?.pathname : undefined,
+          visibility: typeof document !== 'undefined' ? document.visibilityState : undefined,
+          online: typeof navigator !== 'undefined' ? navigator.onLine : undefined,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+          timestamp: new Date().toISOString(),
+        }) as Record<string, unknown>;
+
+        await (supabase as any).from('voice_diagnostics').insert({
+          user_id: cachedDiagnosticUserId,
+          session_id: payload.session_id ?? globalSessionId,
+          event_type: payload.event_type,
+          message: payload.message,
+          tool_name: payload.tool_name,
+          tool_call_id: payload.tool_call_id,
+          connection_state: payload.connection_state ?? getConnectionStateLabel(),
+          details,
+        });
+      } catch (error) {
+        console.warn('Voice diagnostic write failed:', error);
+      }
+    });
+};
 
 class VoiceToolTimeoutError extends Error {
   constructor(message: string) {
@@ -1926,11 +1992,36 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       toolCallsInFlight.clear();
       resetToolCallQueue();
       resetPendingFunctionResults();
+      const err = error as any;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      let userFacingError = 'Failed to connect to voice service';
+
+      if (
+        err?.name === 'NotAllowedError' ||
+        err?.name === 'PermissionDeniedError' ||
+        errorMsg.toLowerCase().includes('permission denied') ||
+        errorMsg.toLowerCase().includes('not allowed')
+      ) {
+        userFacingError = 'Microphone access denied. Please allow microphone access in your browser or device settings.';
+      } else if (err?.name === 'NotFoundError' || err?.name === 'DevicesNotFoundError') {
+        userFacingError = 'No microphone was detected on this device.';
+      } else if (err?.name === 'NotReadableError' || err?.name === 'TrackStartError') {
+        userFacingError = 'Microphone is currently unavailable or in use by another app.';
+      } else if (errorMsg.includes('Failed to create a secure voice session')) {
+        userFacingError = 'Could not start voice session. Please check your network and try again.';
+      } else if (typeof errorMsg === 'string' && errorMsg.length > 0 && !errorMsg.includes('[object Object]')) {
+        userFacingError = errorMsg.length > 120 ? `${errorMsg.slice(0, 117)}...` : errorMsg;
+      }
+
       logVoiceDiagnostic({
         event_type: 'connect_failed',
-        message: error instanceof Error ? error.message : String(error),
+        message: errorMsg,
+        details: {
+          errorName: err?.name,
+          userFacingError,
+        },
       });
-      optionsRef.current.onError?.('Failed to connect to voice service');
+      optionsRef.current.onError?.(userFacingError);
       setStatus('idle');
     }
   }, [handleServerEvent]);

@@ -55,6 +55,8 @@ const bundle = async entry => build({
     ` : `
       export const useVoiceModeStore = Object.assign(() => globalThis.__arcVoiceTest.state, { getState: () => globalThis.__arcVoiceTest.state });
       export const REALTIME_SUPPORTED_VOICES = ['marin','cedar'];
+      export const consumePendingMicStream = () => null;
+      export const setGlobalVolumeChangeHandler = () => {};
     ` }));
   } }],
 });

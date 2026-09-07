@@ -71,6 +71,8 @@ const result = await build({
         subscribe: f => { fixture.listeners.add(f); return () => fixture.listeners.delete(f); }
       });
       export const REALTIME_SUPPORTED_VOICES = ['marin','cedar'];
+      export const consumePendingMicStream = () => null;
+      export const setGlobalVolumeChangeHandler = () => {};
     ` }));
   } }],
 });

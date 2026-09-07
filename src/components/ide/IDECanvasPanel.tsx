@@ -57,8 +57,8 @@ interface IDECanvasPanelProps {
   onClose?: () => void;
 }
 
-const buildPersistenceSnapshot = (nextFiles: VirtualFileSystem, nextMessages: ChatMessage[]) =>
-  JSON.stringify({ files: nextFiles, messages: nextMessages });
+const buildPersistenceSnapshot = (nextFiles: VirtualFileSystem, nextMessages: ChatMessage[], nextProjectId?: string | null) =>
+  JSON.stringify({ projectId: nextProjectId, files: nextFiles, messages: nextMessages });
 
 export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const idePrompt = useIDEStore((s) => s.idePrompt);
@@ -194,7 +194,21 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     if (!ideProjectId) {
       const storeFiles = useIDEStore.getState().ideFiles;
       const storeMsgs = useIDEStore.getState().ideMessages;
-      if (storeFiles && Object.keys(storeFiles).length > 0) {
+      const currentPrompt = useIDEStore.getState().idePrompt;
+
+      // When launching a fresh app with a prompt (e.g. from chat /build or App tool card),
+      // NEVER resurrect dirty files or prior chat history from local snapshot!
+      if (currentPrompt) {
+        const freshAppId = `app_${Math.random().toString(36).substring(2, 9)}`;
+        projectIdRef.current = freshAppId;
+        setIdeProjectId(freshAppId);
+        initialFiles = DEFAULT_FILES;
+        setFiles(DEFAULT_FILES);
+        filesRef.current = DEFAULT_FILES;
+        initialMessages = [];
+        setMessagesRaw([]);
+        messagesRef.current = [];
+      } else if (storeFiles && Object.keys(storeFiles).length > 0) {
         initialFiles = storeFiles;
         setFiles(storeFiles);
         filesRef.current = storeFiles;
@@ -213,12 +227,16 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
               setMessagesRaw(parsed.messages);
               messagesRef.current = parsed.messages;
             }
+            if (parsed.projectId) {
+              projectIdRef.current = parsed.projectId;
+              setIdeProjectId(parsed.projectId);
+            }
           } catch (e) {
             console.error('Failed to parse local IDE snapshot:', e);
           }
         }
       }
-      if (storeMsgs && storeMsgs.length > 0) {
+      if (storeMsgs && storeMsgs.length > 0 && !currentPrompt) {
         initialMessages = storeMsgs;
         setMessagesRaw(storeMsgs as ChatMessage[]);
         messagesRef.current = storeMsgs as ChatMessage[];
@@ -272,14 +290,14 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
           setMessagesRaw(dbMessages as ChatMessage[]);
           useIDEStore.getState().setIdeMessages(dbMessages as ChatMessage[]);
           messagesRef.current = dbMessages as ChatMessage[];
-          lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesRef.current, dbMessages as ChatMessage[]);
+          lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesRef.current, dbMessages as ChatMessage[], ideProjectId);
         }
       });
   }, [ideProjectId]);
 
   // Auto-saving snapshot listener
   useEffect(() => {
-    const currentSnapshot = buildPersistenceSnapshot(files, messages);
+    const currentSnapshot = buildPersistenceSnapshot(files, messages, projectIdRef.current || ideProjectId);
 
     if (!ideProjectId) {
       localStorage.setItem('arc_ide_local_snapshot', currentSnapshot);
@@ -396,12 +414,13 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     e.preventDefault();
     if (!newProjectPrompt.trim()) return;
 
+    const freshAppId = `app_${Math.random().toString(36).substring(2, 9)}`;
     setFiles(DEFAULT_FILES);
     setMessagesRaw([]);
     setIdeFiles(DEFAULT_FILES);
     setIdeMessages([]);
-    setIdeProjectId(null);
-    projectIdRef.current = null;
+    setIdeProjectId(freshAppId);
+    projectIdRef.current = freshAppId;
     setDeployedUrl(null);
     setNetlifySiteId(null);
     setNetlifySubdomain(null);
@@ -410,7 +429,6 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     const initialPrompt = newProjectPrompt.trim();
     setNewProjectPrompt('');
     
-    setIdeProjectId('temp-new-project'); // temporary value to trigger view transition
     setTimeout(() => {
       handleChatSend(initialPrompt);
     }, 100);
@@ -857,6 +875,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 onError={handlePreviewError} 
                 deployedUrl={deployedUrl}
                 onPublishClick={() => setShowPublishDialog(true)}
+                projectId={projectIdRef.current || ideProjectId}
               />
             </TabsContent>
             <TabsContent value="code" forceMount className={cn("flex-1 m-0 min-h-0 relative", activeTab !== "code" && "hidden")}>
@@ -893,6 +912,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 setFiles={setFiles} 
                 onChatSend={handleChatSend}
                 isAgentRunning={isAgentRunning}
+                projectId={projectIdRef.current || ideProjectId}
               />
             </TabsContent>
           </Tabs>
@@ -926,6 +946,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                     onError={handlePreviewError} 
                     deployedUrl={deployedUrl}
                     onPublishClick={() => setShowPublishDialog(true)}
+                    projectId={projectIdRef.current || ideProjectId}
                   />
                 </div>
                 <div className={cn("h-full w-full min-h-0", activeTab === 'code' ? "flex flex-col" : "hidden")}>
@@ -944,6 +965,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                     setFiles={setFiles} 
                     onChatSend={handleChatSend}
                     isAgentRunning={isAgentRunning}
+                    projectId={projectIdRef.current || ideProjectId}
                   />
                 </div>
               </div>

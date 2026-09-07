@@ -17,6 +17,7 @@ interface IDEPreviewPanelProps {
   onError?: (error: string) => void;
   deployedUrl?: string | null;
   onPublishClick?: () => void;
+  projectId?: string | null;
 }
 
 type ViewMode = 'desktop' | 'tablet' | 'phone';
@@ -170,13 +171,16 @@ export function IDEPreviewPanel({
   files, 
   onError,
   deployedUrl,
-  onPublishClick
+  onPublishClick,
+  projectId
 }: IDEPreviewPanelProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('desktop');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Map VirtualFileSystem to Sandpack files structure
   const sandpackFiles = useMemo(() => {
+    const targetAppId = projectId || 'app_default';
+
     const map = Object.entries(files).reduce((acc, [path, file]) => {
       const sandpackPath = path.startsWith('/') ? path : `/${path}`;
       acc[sandpackPath] = file.content;
@@ -203,11 +207,16 @@ export function IDEPreviewPanel({
     const hasSrcApp = Boolean(map['/src/App.tsx'] || map['/src/App.jsx'] || map['/src/App.js']);
     const targetAppImport = hasSrcApp ? './src/App' : './App';
 
-    // Ensure React 18 entrypoint for Sandpack's client-side bundler
+    // Ensure React 18 entrypoint for Sandpack's client-side bundler with isolated app namespace
     if (!map['/index.tsx'] && !map['/index.js']) {
       map['/index.tsx'] = `import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './styles.css';
+
+if (typeof window !== 'undefined') {
+  (window as any).__ARC_APP_ID__ = '${targetAppId}';
+}
+
 import App from '${targetAppImport}';
 
 const rootEl = document.getElementById('root');
@@ -220,6 +229,15 @@ if (rootEl) {
   );
 }
 `;
+    } else {
+      // Incase index.tsx exists, prepend app ID
+      if (map['/index.tsx'] && !map['/index.tsx'].includes('__ARC_APP_ID__')) {
+        map['/index.tsx'] = `if (typeof window !== 'undefined') { (window as any).__ARC_APP_ID__ = '${targetAppId}'; }\n` + map['/index.tsx'];
+      }
+    }
+
+    if (map['/src/main.tsx'] && !map['/src/main.tsx'].includes('__ARC_APP_ID__')) {
+      map['/src/main.tsx'] = `if (typeof window !== 'undefined') { (window as any).__ARC_APP_ID__ = '${targetAppId}'; }\n` + map['/src/main.tsx'];
     }
 
     // Ensure root /App.tsx re-exports ./src/App if /src/App.tsx exists
