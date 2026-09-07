@@ -115,7 +115,14 @@ function DashboardPageInner() {
   const initialTab = (searchParams.get("tab") as DashboardTab) || "overview";
   const { user, loading: authLoading, isAnonymous } = useAuth();
   const { isAdmin, dailyImagesUsed, limit: imageLimit } = useImageQuota();
-  const { hasBoost, openCheckout } = useSubscription();
+  const {
+    hasBoost,
+    openCheckout,
+    dailyBalancedUsed,
+    dailyDeepUsed,
+    FREE_DAILY_BALANCED_LIMIT,
+    FREE_DAILY_DEEP_LIMIT,
+  } = useSubscription();
 
   // Anonymous users are not allowed to view the dashboard at all.
   // Bounce them back to the chat and open the sign-in modal immediately.
@@ -1201,10 +1208,27 @@ useEffect(() => {
                       </div>
                       <button onClick={() => navigate('/dashboard/settings?section=plan')} className="text-[10px] font-semibold uppercase tracking-wider text-primary">Plan</button>
                     </div>
-                    <div className="mt-5 space-y-3">
-                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-3 py-2.5 text-xs"><span className="text-muted-foreground">Luna reasoning</span><span className="font-medium text-primary">Available</span></div>
-                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-3 py-2.5 text-xs"><span className="text-muted-foreground">Image outputs</span><span className="font-mono text-foreground">{isAdmin || imageLimit === Infinity ? "Unlimited" : `${dailyImagesUsed} / ${imageLimit}`}</span></div>
-                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-3 py-2.5 text-xs"><span className="text-muted-foreground">Deep Search</span><span className="font-medium text-primary">{isAdmin || hasBoost ? "Unlimited" : "4 + 1 Ultra / wk"}</span></div>
+                    <div className="mt-5 space-y-2.5">
+                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-3 py-2 text-xs">
+                        <span className="text-muted-foreground">Quick reasoning</span>
+                        <span className="font-medium text-primary">Unlimited</span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-3 py-2 text-xs">
+                        <span className="text-muted-foreground">Balanced reasoning</span>
+                        <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : `${dailyBalancedUsed} / ${FREE_DAILY_BALANCED_LIMIT}`}</span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-3 py-2 text-xs">
+                        <span className="text-muted-foreground">Deep reasoning</span>
+                        <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : `${dailyDeepUsed} / ${FREE_DAILY_DEEP_LIMIT}`}</span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-3 py-2 text-xs">
+                        <span className="text-muted-foreground">Image outputs</span>
+                        <span className="font-mono text-foreground">{isAdmin || imageLimit === Infinity ? "Unlimited" : `${dailyImagesUsed} / ${imageLimit}`}</span>
+                      </div>
+                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-3 py-2 text-xs">
+                        <span className="text-muted-foreground">Deep Search</span>
+                        <span className="font-medium text-primary">{isAdmin || hasBoost ? "Unlimited" : "4 + 1 Ultra / wk"}</span>
+                      </div>
                     </div>
                     {!isAdmin && !hasBoost && <Button variant="outline" size="sm" className="mt-4 w-full rounded-full" onClick={() => openCheckout()}>Explore Boost</Button>}
                   </div>

@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask, resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
+import { incrementDailyBalancedCount, incrementDailyDeepCount } from "@/hooks/useSubscription";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext, requestsCurrentLocation } from "@/lib/userLocation";
 
 // Detect if a user message warrants upgrading to a more powerful model
@@ -470,6 +471,12 @@ export class AIService {
             onToolUsage(data.tool_calls_used);
           }
 
+          if (reasoningEffort === 'medium') {
+            incrementDailyBalancedCount();
+          } else if (reasoningEffort === 'high') {
+            incrementDailyDeepCount();
+          }
+
           return {
             content: data.choices[0]?.message?.content || 'Sorry, I could not generate a response.',
             webSources: data.web_sources,
@@ -682,6 +689,7 @@ export class AIService {
     const STREAM_INACTIVITY_MS = 240000;
     let sawAnyData = false;
     let watchdogTimedOut = false;
+    let reasoningRecorded = false;
 
     const readWithTimeout = () => new Promise<ReadableStreamReadResult<Uint8Array>>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -723,8 +731,24 @@ export class AIService {
             const event = JSON.parse(jsonStr);
 
             if (event.type === 'start') {
+              if (!reasoningRecorded) {
+                reasoningRecorded = true;
+                if (reasoningEffort === 'medium') {
+                  incrementDailyBalancedCount();
+                } else if (reasoningEffort === 'high') {
+                  incrementDailyDeepCount();
+                }
+              }
               onStart?.(event.mode || 'text');
             } else if (event.type === 'delta') {
+              if (!reasoningRecorded) {
+                reasoningRecorded = true;
+                if (reasoningEffort === 'medium') {
+                  incrementDailyBalancedCount();
+                } else if (reasoningEffort === 'high') {
+                  incrementDailyDeepCount();
+                }
+              }
               onDelta?.(event.content);
             } else if (event.type === 'done') {
               onDone?.({

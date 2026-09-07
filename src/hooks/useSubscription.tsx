@@ -7,6 +7,8 @@ import { paymentsAvailable, getStripeEnvironment } from '@/lib/stripe';
 export const FREE_DAILY_IMAGE_LIMIT = 10;
 export const BOOST_DAILY_IMAGE_LIMIT = 30;
 export const FREE_DAILY_SMARTER_CHAT_LIMIT = 20;
+export const FREE_DAILY_BALANCED_LIMIT = 10;
+export const FREE_DAILY_DEEP_LIMIT = 3;
 
 // Voice is no longer capped. Kept as a legacy export so existing imports keep
 // resolving; nothing gates on it any more.
@@ -23,6 +25,8 @@ const UNLIMITED_EMAILS = new Set([
 
 const DAILY_IMAGE_KEY = 'arcai-daily-images';
 const DAILY_SMARTER_CHAT_KEY = 'arcai-daily-smarter-chats';
+const DAILY_BALANCED_KEY = 'arcai-daily-balanced';
+const DAILY_DEEP_KEY = 'arcai-daily-deep';
 const DAILY_DATE_KEY = 'arcai-daily-date';
 
 function getTodayKey(): string {
@@ -35,6 +39,8 @@ function rolloverIfNeeded() {
     localStorage.setItem(DAILY_DATE_KEY, today);
     localStorage.setItem(DAILY_IMAGE_KEY, '0');
     localStorage.setItem(DAILY_SMARTER_CHAT_KEY, '0');
+    localStorage.setItem(DAILY_BALANCED_KEY, '0');
+    localStorage.setItem(DAILY_DEEP_KEY, '0');
   }
 }
 
@@ -47,6 +53,32 @@ function incrementDailyImageCount(): number {
   rolloverIfNeeded();
   const count = getDailyImageCount() + 1;
   localStorage.setItem(DAILY_IMAGE_KEY, String(count));
+  return count;
+}
+
+export function getDailyBalancedCount(): number {
+  rolloverIfNeeded();
+  return parseInt(localStorage.getItem(DAILY_BALANCED_KEY) || '0', 10);
+}
+
+export function incrementDailyBalancedCount(): number {
+  rolloverIfNeeded();
+  const count = getDailyBalancedCount() + 1;
+  localStorage.setItem(DAILY_BALANCED_KEY, String(count));
+  window.dispatchEvent(new CustomEvent('arc-reasoning-quota-changed'));
+  return count;
+}
+
+export function getDailyDeepCount(): number {
+  rolloverIfNeeded();
+  return parseInt(localStorage.getItem(DAILY_DEEP_KEY) || '0', 10);
+}
+
+export function incrementDailyDeepCount(): number {
+  rolloverIfNeeded();
+  const count = getDailyDeepCount() + 1;
+  localStorage.setItem(DAILY_DEEP_KEY, String(count));
+  window.dispatchEvent(new CustomEvent('arc-reasoning-quota-changed'));
   return count;
 }
 
@@ -73,6 +105,16 @@ interface SubscriptionState {
   canGenerateImage: boolean;
   remainingImages: number;
   imageLimit: number;
+
+  // Reasoning quota (daily: unlimited Quick, 10 Balanced, 3 Deep)
+  dailyBalancedUsed: number;
+  dailyDeepUsed: number;
+  balancedLimit: number;
+  deepLimit: number;
+  remainingBalanced: number;
+  remainingDeep: number;
+  canSendBalanced: boolean;
+  canSendDeep: boolean;
 
   // Fast (Mini) chat quota (daily, client-side & server-side matched)
   dailySmarterChatsUsed: number;
@@ -106,6 +148,7 @@ interface SubscriptionState {
   recordVoiceConversation: () => Promise<void>;
   recordImageGeneration: () => void;
   recordSmarterChat: () => void;
+  recordReasoningUsage: (effort: 'medium' | 'high' | string) => void;
   openCheckout: () => void;
   openCustomerPortal: () => Promise<void>;
 
@@ -114,6 +157,8 @@ interface SubscriptionState {
   FREE_DAILY_VOICE_LIMIT: number;
   FREE_DAILY_IMAGE_LIMIT: number;
   FREE_VOICE_LIMIT_30D: number;
+  FREE_DAILY_BALANCED_LIMIT: number;
+  FREE_DAILY_DEEP_LIMIT: number;
 }
 
 const SubscriptionContext = createContext<SubscriptionState | null>(null);
@@ -125,6 +170,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const [dailyImagesUsed, setDailyImagesUsed] = useState(() => getDailyImageCount());
   const [dailySmarterChatsUsed, setDailySmarterChatsUsed] = useState(() => getDailySmarterChatCount());
+  const [dailyBalancedUsed, setDailyBalancedUsed] = useState(() => getDailyBalancedCount());
+  const [dailyDeepUsed, setDailyDeepUsed] = useState(() => getDailyDeepCount());
   const [voiceConversations30d, setVoiceConversations30d] = useState(0);
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState<boolean>(false);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
@@ -139,6 +186,17 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const imageLimit = isAdmin ? Infinity : (hasBoost ? BOOST_DAILY_IMAGE_LIMIT : FREE_DAILY_IMAGE_LIMIT);
   const canGenerateImage = isAdmin || dailyImagesUsed < imageLimit;
   const remainingImages = isAdmin ? Infinity : Math.max(0, imageLimit - dailyImagesUsed);
+
+  // Reasoning quota logic (daily: unlimited Quick, 10 Balanced, 3 Deep)
+  // Admin: unlimited
+  // Boost: unlimited
+  // Free: unlimited Quick, 10 Balanced, 3 Deep
+  const balancedLimit = isAdmin || hasBoost ? Infinity : FREE_DAILY_BALANCED_LIMIT;
+  const deepLimit = isAdmin || hasBoost ? Infinity : FREE_DAILY_DEEP_LIMIT;
+  const remainingBalanced = isAdmin || hasBoost ? Infinity : Math.max(0, balancedLimit - dailyBalancedUsed);
+  const remainingDeep = isAdmin || hasBoost ? Infinity : Math.max(0, deepLimit - dailyDeepUsed);
+  const canSendBalanced = isAdmin || hasBoost || remainingBalanced > 0;
+  const canSendDeep = isAdmin || hasBoost || remainingDeep > 0;
 
   // Fast (Mini) chat quota logic
   // Admin: unlimited
@@ -237,8 +295,20 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
   }, [hasBoost]);
 
+  const recordReasoningUsage = useCallback((effort: 'medium' | 'high' | string) => {
+    if (!isAdmin && !hasBoost) {
+      if (effort === 'medium') {
+        const count = incrementDailyBalancedCount();
+        setDailyBalancedUsed(count);
+      } else if (effort === 'high') {
+        const count = incrementDailyDeepCount();
+        setDailyDeepUsed(count);
+      }
+    }
+  }, [isAdmin, hasBoost]);
+
   // Opens the Boost upgrade modal (mounted globally in App.tsx).
-  const openCheckout = useCallback((priceId?: string | any) => {
+  const openCheckout = useCallback((priceId?: string | unknown) => {
     const cleanPriceId = typeof priceId === 'string' ? priceId : undefined;
     window.dispatchEvent(new CustomEvent('open-upgrade-modal', { detail: { priceId: cleanPriceId } }));
   }, []);
@@ -266,13 +336,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   useEffect(() => { checkSubscription(); }, [checkSubscription]);
 
   useEffect(() => {
-    const handleFocus = () => {
+    const handleFocusAndQuotaChange = () => {
       setDailyImagesUsed(getDailyImageCount());
       setDailySmarterChatsUsed(getDailySmarterChatCount());
+      setDailyBalancedUsed(getDailyBalancedCount());
+      setDailyDeepUsed(getDailyDeepCount());
       refreshVoiceCount();
     };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    window.addEventListener('focus', handleFocusAndQuotaChange);
+    window.addEventListener('arc-reasoning-quota-changed', handleFocusAndQuotaChange);
+    return () => {
+      window.removeEventListener('focus', handleFocusAndQuotaChange);
+      window.removeEventListener('arc-reasoning-quota-changed', handleFocusAndQuotaChange);
+    };
   }, [refreshVoiceCount]);
 
   // Realtime: re-check Boost when a subscription row changes
@@ -302,6 +378,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       canSendSmarterChat,
       remainingSmarterChats,
       smarterChatLimit,
+      dailyBalancedUsed,
+      dailyDeepUsed,
+      balancedLimit,
+      deepLimit,
+      remainingBalanced,
+      remainingDeep,
+      canSendBalanced,
+      canSendDeep,
       voiceConversations30d,
       canStartVoiceConversation,
       remainingVoiceConversations,
@@ -326,12 +410,15 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       recordVoiceConversation,
       recordImageGeneration,
       recordSmarterChat,
+      recordReasoningUsage,
       openCheckout,
       openCustomerPortal,
       FREE_DAILY_MESSAGE_LIMIT,
       FREE_DAILY_VOICE_LIMIT,
       FREE_DAILY_IMAGE_LIMIT,
       FREE_VOICE_LIMIT_30D,
+      FREE_DAILY_BALANCED_LIMIT,
+      FREE_DAILY_DEEP_LIMIT,
     }}>
       {children}
     </SubscriptionContext.Provider>

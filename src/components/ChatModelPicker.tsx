@@ -21,7 +21,15 @@ const PRESETS = [
 ] as const;
 
 export function ChatModelPicker({ className, compact = false }: Props) {
-  const { hasBoost, isAdmin, openCheckout } = useSubscription();
+  const {
+    hasBoost,
+    isAdmin,
+    openCheckout,
+    dailyBalancedUsed,
+    dailyDeepUsed,
+    FREE_DAILY_BALANCED_LIMIT,
+    FREE_DAILY_DEEP_LIMIT,
+  } = useSubscription();
   const reasoningEffort = useModelStore((state) => state.reasoningEffort);
   const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
   const [open, setOpen] = useState(false);
@@ -92,16 +100,27 @@ export function ChatModelPicker({ className, compact = false }: Props) {
                   <div className="text-xs font-semibold">Luna is the only model for now</div>
                   <div className="text-[10px] text-muted-foreground">Choose how much reasoning Luna uses.</div>
                 </div>
-                {PRESETS.map((preset) => (
-                  <Row
-                    key={preset.effort}
-                    icon={<preset.icon className="h-4 w-4 text-primary" />}
-                    title={preset.title}
-                    subtitle={preset.subtitle}
-                    active={reasoningEffort === preset.effort}
-                    onClick={() => pick(preset.effort)}
-                  />
-                ))}
+                {PRESETS.map((preset) => {
+                  let badge: string | undefined;
+                  if (preset.effort === 'low') {
+                    badge = 'Unlimited';
+                  } else if (preset.effort === 'medium') {
+                    badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_BALANCED_LIMIT - dailyBalancedUsed)}/10 left`;
+                  } else if (preset.effort === 'high') {
+                    badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_DEEP_LIMIT - dailyDeepUsed)}/3 left`;
+                  }
+                  return (
+                    <Row
+                      key={preset.effort}
+                      icon={<preset.icon className="h-4 w-4 text-primary" />}
+                      title={preset.title}
+                      subtitle={preset.subtitle}
+                      badge={badge}
+                      active={reasoningEffort === preset.effort}
+                      onClick={() => pick(preset.effort)}
+                    />
+                  );
+                })}
                 {!hasBoost && !isAdmin && (
                   <div className="mt-1 pt-1.5 border-t border-border/40">
                     <button
@@ -134,10 +153,11 @@ export function ChatModelPicker({ className, compact = false }: Props) {
   );
 }
 
-function Row({ icon, title, subtitle, active, onClick }: {
+function Row({ icon, title, subtitle, badge, active, onClick }: {
   icon: React.ReactNode;
   title: string;
   subtitle: string;
+  badge?: string;
   active?: boolean;
   onClick: () => void;
 }) {
@@ -152,7 +172,21 @@ function Row({ icon, title, subtitle, active, onClick }: {
     >
       <div className="w-7 h-7 rounded-lg bg-muted/60 flex items-center justify-center shrink-0">{icon}</div>
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-semibold">{title}</div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-semibold">{title}</span>
+          {badge && (
+            <span
+              className={cn(
+                'text-[9px] font-mono px-1.5 py-0.5 rounded-md leading-none',
+                badge === 'Unlimited'
+                  ? 'bg-primary/10 text-primary font-medium'
+                  : 'bg-muted/80 text-muted-foreground font-medium',
+              )}
+            >
+              {badge}
+            </span>
+          )}
+        </div>
         <div className="text-[10px] text-muted-foreground truncate">{subtitle}</div>
       </div>
       {active && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
