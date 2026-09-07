@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { GlassCard } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Database, Shield, Users, RefreshCw, Trash2, Cloud, UserPlus, Loader2, Tag, ExternalLink } from 'lucide-react';
@@ -312,33 +311,38 @@ export function IDECloudPanel({
     <div className="p-3 sm:p-5 space-y-4 sm:space-y-6 max-w-3xl pb-24 sm:pb-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <Cloud className="h-4 w-4 text-primary" /> Netlify Cloud & Database
+          <h2 className="text-base font-semibold text-white flex items-center gap-2">
+            <Cloud className="h-4 w-4 text-purple-400" /> Netlify Cloud & Database
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Manage user accounts, persistence collections, and credentials</p>
+          <p className="text-xs text-slate-400 mt-0.5">Manage user accounts, persistence collections, and credentials</p>
         </div>
-        <Button size="sm" variant="outline" onClick={loadMockData} className="gap-1.5 rounded-xl border-white/10 hover:bg-white/5">
+        <Button 
+          size="sm" 
+          variant="ghost" 
+          onClick={loadMockData} 
+          className="gap-1.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-slate-200 text-xs"
+        >
           <RefreshCw className="h-3 w-3" /> Refresh
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Auth Config */}
-        <GlassCard className="p-4 border-white/10 bg-[#0f1117]/60 space-y-3">
+        <div className="rounded-2xl border border-white/10 bg-[#12141d]/95 p-4 space-y-3 backdrop-blur-xl shadow-lg">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Shield className="h-4 w-4 text-primary" /> User Accounts & Auth
+            <span className="flex items-center gap-2 text-sm font-semibold text-white">
+              <Shield className="h-4 w-4 text-purple-400" /> User Accounts & Auth
             </span>
             <Button 
               size="sm" 
-              variant={authEnabled ? "default" : "outline"}
+              variant="ghost"
               onClick={handleToggleAuth}
               disabled={isAgentRunning}
               className={cn(
-                "h-8 rounded-xl transition-all gap-1.5",
+                "h-8 rounded-xl transition-all gap-1.5 text-xs font-medium",
                 authEnabled
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "border-white/10 hover:bg-white/5 text-muted-foreground hover:text-foreground"
+                  ? "bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/30 shadow-sm"
+                  : "bg-white/5 hover:bg-white/10 text-slate-200 border border-white/15"
               )}
             >
               {isAgentRunning ? (
@@ -347,27 +351,27 @@ export function IDECloudPanel({
               {authEnabled ? "Enabled" : "Enable"}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Injects <code>NetlifyAuthModal.tsx</code> custom dialog component. Toggling requests Arc to wire up login/signup in your code.
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Injects <code className="px-1.5 py-0.5 rounded bg-white/10 text-purple-300 border border-white/10 font-mono text-[11px]">NetlifyAuthModal.tsx</code> custom dialog component. Toggling requests Arc to wire up login/signup in your code.
           </p>
-        </GlassCard>
+        </div>
 
         {/* Database Config */}
-        <GlassCard className="p-4 border-white/10 bg-[#0f1117]/60 space-y-3">
+        <div className="rounded-2xl border border-white/10 bg-[#12141d]/95 p-4 space-y-3 backdrop-blur-xl shadow-lg">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Database className="h-4 w-4 text-primary" /> Lightweight Database SDK
+            <span className="flex items-center gap-2 text-sm font-semibold text-white">
+              <Database className="h-4 w-4 text-purple-400" /> Lightweight Database SDK
             </span>
             <Button 
               size="sm" 
-              variant={dbEnabled ? "default" : "outline"}
+              variant="ghost"
               onClick={handleToggleDb}
               disabled={isAgentRunning}
               className={cn(
-                "h-8 rounded-xl transition-all gap-1.5",
+                "h-8 rounded-xl transition-all gap-1.5 text-xs font-medium",
                 dbEnabled
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                  : "border-white/10 hover:bg-white/5 text-muted-foreground hover:text-foreground"
+                  ? "bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/30 shadow-sm"
+                  : "bg-white/5 hover:bg-white/10 text-slate-200 border border-white/15"
               )}
             >
               {isAgentRunning ? (
@@ -376,19 +380,19 @@ export function IDECloudPanel({
               {dbEnabled ? "Enabled" : "Enable"}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Injects <code>netlifyDb.ts</code> helper with collections and CRUD. Toggling requests Arc to wire persistent storage into your code.
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Injects <code className="px-1.5 py-0.5 rounded bg-white/10 text-purple-300 border border-white/10 font-mono text-[11px]">netlifyDb.ts</code> helper with collections and CRUD. Toggling requests Arc to wire persistent storage into your code.
           </p>
-        </GlassCard>
+        </div>
 
         {/* Site Branding & Badge Config */}
-        <GlassCard className="p-4 border-white/10 bg-[#0f1117]/60 space-y-3 md:col-span-2">
+        <div className="rounded-2xl border border-white/10 bg-[#12141d]/95 p-4 space-y-3 md:col-span-2 backdrop-blur-xl shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Tag className="h-4 w-4 text-purple-400" />
               <div>
-                <span className="text-sm font-semibold text-foreground">"Built with ArcAi" Badge</span>
-                <span className="ml-2 text-[10px] text-muted-foreground bg-white/5 px-2 py-0.5 rounded-full border border-white/10">Voluntary</span>
+                <span className="text-sm font-semibold text-white">"Built with ArcAi" Badge</span>
+                <span className="ml-2 text-[10px] font-medium text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-full border border-purple-500/30">Voluntary</span>
               </div>
             </div>
             <Switch
@@ -398,10 +402,11 @@ export function IDECloudPanel({
                   onToggleHideBadge(!checked);
                 }
               }}
+              className="data-[state=checked]:bg-purple-600 data-[state=unchecked]:bg-white/20 border border-white/20"
             />
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
-            <p className="text-xs text-muted-foreground leading-relaxed">
+            <p className="text-xs text-slate-300 leading-relaxed">
               Display a subtle floating glass tag in the bottom corner of your live site linking to ArcAi. You can shut this off voluntarily anytime.
             </p>
             {isDeployed && onDeployClick && (
@@ -409,43 +414,43 @@ export function IDECloudPanel({
                 variant="ghost"
                 size="sm"
                 onClick={onDeployClick}
-                className="text-[11px] text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg shrink-0 gap-1 h-7 px-2"
+                className="text-[11px] text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg shrink-0 gap-1 h-7 px-2 border border-purple-500/20"
               >
                 <span>Update Live App</span>
                 <ExternalLink className="h-3 w-3" />
               </Button>
             )}
           </div>
-        </GlassCard>
+        </div>
       </div>
 
       {/* Cloud Manager Dashboard View */}
-      <GlassCard className="border-white/10 bg-[#0f1117]/60 overflow-hidden">
+      <div className="rounded-2xl border border-white/10 bg-[#12141d]/95 overflow-hidden backdrop-blur-xl shadow-lg">
         <div className="bg-white/5 border-b border-white/10 px-4 py-3 flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-foreground">
-            <Users className="h-3.5 w-3.5 text-primary" /> App User Accounts
+          <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-slate-200">
+            <Users className="h-3.5 w-3.5 text-purple-400" /> App User Accounts
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground">{mockUsers.length} registered</span>
+            <span className="text-[11px] text-slate-400 font-medium">{mockUsers.length} registered</span>
             <Button 
               size="sm" 
-              variant="outline" 
+              variant="ghost" 
               onClick={() => setShowAddUser(!showAddUser)}
-              className="h-6 px-2 text-[10px] rounded-lg gap-1 border-white/10"
+              className="h-6 px-2.5 text-[11px] rounded-lg gap-1 border border-white/15 bg-white/5 hover:bg-white/10 text-slate-200 font-medium"
             >
-              <UserPlus className="h-3 w-3" /> Add Account
+              <UserPlus className="h-3 w-3 text-purple-400" /> Add Account
             </Button>
           </div>
         </div>
 
         {showAddUser && (
-          <form onSubmit={handleAddUserSubmit} className="p-3 bg-white/[0.02] border-b border-white/10 flex flex-wrap gap-2 items-center">
+          <form onSubmit={handleAddUserSubmit} className="p-3 bg-black/40 border-b border-white/10 flex flex-wrap gap-2 items-center">
             <input 
               type="text"
               placeholder="Name (e.g. Alex)"
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              className="h-8 px-2.5 rounded-lg bg-white/5 border border-white/10 text-xs text-foreground focus:outline-none focus:border-primary flex-1 min-w-[120px]"
+              className="h-8 px-2.5 rounded-lg bg-[#0b0c10] border border-white/15 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500 flex-1 min-w-[120px]"
             />
             <input 
               type="email"
@@ -453,12 +458,12 @@ export function IDECloudPanel({
               placeholder="Email (e.g. user@app.com)"
               value={newEmail}
               onChange={e => setNewEmail(e.target.value)}
-              className="h-8 px-2.5 rounded-lg bg-white/5 border border-white/10 text-xs text-foreground focus:outline-none focus:border-primary flex-1 min-w-[160px]"
+              className="h-8 px-2.5 rounded-lg bg-[#0b0c10] border border-white/15 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500 flex-1 min-w-[160px]"
             />
-            <Button type="submit" size="sm" className="h-8 text-xs rounded-lg px-3">
+            <Button type="submit" size="sm" className="h-8 text-xs rounded-lg px-3 bg-purple-600 hover:bg-purple-500 text-white font-medium">
               Save Account
             </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddUser(false)} className="h-8 text-xs rounded-lg px-2 text-muted-foreground">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddUser(false)} className="h-8 text-xs rounded-lg px-2 text-slate-400 hover:text-white">
               Cancel
             </Button>
           </form>
@@ -467,59 +472,59 @@ export function IDECloudPanel({
         <div className="divide-y divide-white/5">
           {mockUsers.length > 0 ? (
             mockUsers.map((user) => (
-              <div key={user.id} className="px-4 py-2.5 flex items-center justify-between text-xs">
+              <div key={user.id} className="px-4 py-3 flex items-center justify-between text-xs hover:bg-white/[0.02] transition-colors">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-primary/20 text-primary font-bold text-[11px] flex items-center justify-center border border-primary/30 uppercase">
+                  <div className="w-7 h-7 rounded-full bg-purple-500/20 text-purple-300 font-bold text-[11px] flex items-center justify-center border border-purple-500/30 uppercase">
                     {user.name ? user.name.slice(0, 2) : user.email.slice(0, 2)}
                   </div>
                   <div>
-                    <p className="font-semibold text-foreground">{user.name || user.email}</p>
-                    <p className="text-[10px] text-muted-foreground">{user.email} • Joined {user.created_at}</p>
+                    <p className="font-semibold text-white">{user.name || user.email}</p>
+                    <p className="text-[10px] text-slate-400">{user.email} • Joined {user.created_at}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-mono">{user.role}</span>
-                  <button onClick={() => deleteUser(user.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                  <span className="px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/25 text-[10px] font-mono">{user.role}</span>
+                  <button onClick={() => deleteUser(user.id)} className="text-slate-400 hover:text-red-400 transition-colors p-1" title="Delete user">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
             ))
           ) : (
-            <div className="p-6 text-center text-xs text-muted-foreground">No registered users in this app yet.</div>
+            <div className="p-8 text-center text-xs text-slate-400 font-medium">No registered users in this app yet.</div>
           )}
         </div>
-      </GlassCard>
+      </div>
 
-      <GlassCard className="border-white/10 bg-[#0f1117]/60 overflow-hidden">
+      <div className="rounded-2xl border border-white/10 bg-[#12141d]/95 overflow-hidden backdrop-blur-xl shadow-lg">
         <div className="bg-white/5 border-b border-white/10 px-4 py-3 flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-foreground">
-            <Database className="h-3.5 w-3.5 text-primary" /> Database Records & Collections
+          <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-slate-200">
+            <Database className="h-3.5 w-3.5 text-purple-400" /> Database Records & Collections
           </span>
-          <span className="text-[10px] text-muted-foreground">{Object.keys(dbRecords).length} keys</span>
+          <span className="text-[11px] text-slate-400 font-medium">{Object.keys(dbRecords).length} keys</span>
         </div>
         <div className="divide-y divide-white/5 max-h-[300px] overflow-y-auto">
           {Object.keys(dbRecords).length > 0 ? (
             Object.entries(dbRecords).map(([key, val]) => (
-              <div key={key} className="px-4 py-2.5 flex items-center justify-between text-xs">
-                <div className="font-mono text-[11px] text-primary truncate max-w-[200px] sm:max-w-xs">
+              <div key={key} className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-white/[0.02] transition-colors">
+                <div className="font-mono text-[11px] text-purple-300 font-medium truncate max-w-[200px] sm:max-w-xs">
                   {key}
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="font-mono text-muted-foreground bg-white/5 px-2 py-0.5 rounded text-[10px] max-w-[240px] truncate">
+                  <span className="font-mono text-slate-300 bg-white/5 border border-white/10 px-2 py-0.5 rounded text-[10px] max-w-[240px] truncate">
                     {typeof val === 'object' ? JSON.stringify(val) : String(val)}
                   </span>
-                  <button onClick={() => deleteDbRecord(key)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                  <button onClick={() => deleteDbRecord(key)} className="text-slate-400 hover:text-red-400 transition-colors shrink-0 p-1" title="Delete record">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
             ))
           ) : (
-            <div className="p-6 text-center text-xs text-muted-foreground">No records saved in the database yet.</div>
+            <div className="p-8 text-center text-xs text-slate-400 font-medium">No records saved in the database yet.</div>
           )}
         </div>
-      </GlassCard>
+      </div>
     </div>
   );
 }
