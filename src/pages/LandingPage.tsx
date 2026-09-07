@@ -20,15 +20,23 @@ const SITE = "https://askarc.chat";
 const LANDING_FAQ = [
   {
     q: "What is ArcAI?",
-    a: "ArcAI is a multimodal AI assistant founded and created by Win The Night™ Foundation, built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, voice mode, image generation, a code canvas, and long-term memory, all in your browser.",
+    a: "ArcAI is a multimodal AI assistant founded and created by Win The Night™ Foundation, built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, voice mode, image generation, a code canvas, full React App Builder, and long-term memory, all in your browser.",
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning, canvases, memory, image generation, and weekly research — 4 Deep Searches and 1 Ultra Deep Search. Voice mode is unlimited for everyone. Upgrade to Boost for unlimited research, higher usage limits, and higher image quotas.",
+    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning (unlimited Quick, 10 Balanced, and 3 Deep daily), canvases, long-term memory, image generation, and weekly research — 4 Deep Searches and 1 Ultra Deep Search. Voice mode is unlimited for everyone. Upgrade to Boost for unlimited research, unlimited reasoning, App Builder, and higher image quotas.",
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds higher Luna limits, unlimited Deep Search and Ultra Deep Search, GPT-Image-2 (20/day), full editing, and live web-app publishing.",
+    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds unlimited Luna reasoning, unlimited Deep Search and Ultra Deep Search, GPT-Image-2 (20/day), full image editing, and the full App Builder with live web-app publishing.",
+  },
+  {
+    q: "What is the App Builder in ArcAI?",
+    a: "ArcAI's App Builder is an interactive in-browser IDE powered by Luna that turns your ideas into full-stack React web applications. It includes a Monaco code editor, live Sandpack preview, integrated Netlify database and user authentication, and one-click deployment to custom askarc.chat URLs or complete Git-ready Vite+React ZIP export.",
+  },
+  {
+    q: "How does Arc's memory work?",
+    a: "Arc features a persistent Memory Bank (long-term memory) that remembers key details, preferences, projects, and facts across conversations. Arc automatically recalls relevant context before answering so your assistant grows smarter over time. You have full control in Settings to view, edit, add, or wipe memories in one click.",
   },
   {
     q: "Is ArcAI a free ChatGPT alternative?",
@@ -40,7 +48,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "GPT-5.6 Luna powers chat, code, document analysis, and reasoning. GPT-Image-2 handles images, OpenAI Realtime handles voice, and a dedicated search provider handles live web research.",
+    a: "GPT-5.6 Luna powers chat, code, document analysis, reasoning, and the App Builder. GPT-Image-2 handles images, OpenAI Realtime handles voice, and a dedicated search provider handles live web research.",
   },
   {
     q: "Is ArcAI private?",
@@ -56,11 +64,11 @@ const LANDING_FAQ = [
   },
   {
     q: "Does ArcAI have voice mode?",
-    a: "Yes. Voice mode is available, providing low-latency spoken conversations with multiple natural voices. Unlimited voice mode is included on the Boost tier.",
+    a: "Yes. Voice mode is available, providing low-latency spoken conversations with multiple natural voices. Unlimited voice mode is included for all accounts.",
   },
   {
-    q: "Can ArcAI write code?",
-    a: "Yes. The code canvas generates and edits single-file HTML, CSS, JavaScript, and compact React-style prototypes, with a live preview and follow-up edits in chat.",
+    q: "Can ArcAI write code and build apps?",
+    a: "Yes. For quick scripts and prototypes, the code canvas gives you single-file live previews. For complete applications, Boost subscribers can use the App Builder to construct, test, and publish full interactive multi-file React apps.",
   },
 ];
 

@@ -236,24 +236,49 @@ export function DocsPage() {
       keywords: ["deep search", "ultra deep search", "research", "perplexity", "citations", "sources", "web search"]
     },
     {
-      id: "memory-bank",
-      category: "memory",
-      title: "Managing saved memories",
-      question: "How do I manage what the AI remembers about me?",
+      id: "app-builder",
+      category: "canvas",
+      title: "Building Web Apps with App Builder (IDE)",
+      question: "How do I build, preview, and deploy full web applications?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            ArcAI saves key facts, preferences, and details about you in your secure <strong>Memory Bank</strong> to customize future chat sessions.
+            The <strong>App Builder</strong> is ArcAI's integrated IDE workspace powered by <strong>Luna (gpt-5.6-luna)</strong>. It allows you to generate, edit, run, and deploy complete multi-file interactive React applications directly inside your browser.
           </p>
-          <p>To inspect, edit, or delete these memories:</p>
+          <p>How to access and use the App Builder:</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li>Go directly to the <a href="/settings?tab=memory" className="text-primary hover:underline font-semibold">Settings &gt; Memory Bank tab</a> (or go to <a href="/memory" className="text-primary hover:underline font-semibold">/memory</a>).</li>
-            <li>Here you will see a list of all remembered statements.</li>
-            <li>Click the trash icon next to any memory to delete it, or clear all memory context blocks completely.</li>
+            <li><strong className="text-foreground">Triggers</strong>: Tap the <strong className="text-foreground">+</strong> menu and select <strong className="text-foreground">App</strong>, type slash commands (<code className="text-xs bg-muted px-1.5 py-0.5 rounded">/build</code> or <code className="text-xs bg-muted px-1.5 py-0.5 rounded">/app</code>), or describe what you want to build in chat.</li>
+            <li><strong className="text-foreground">Interactive Workspace</strong>: Opens a dedicated split-view with a real-time Sandpack preview, Monaco code editor, and continuous AI chat refinement.</li>
+            <li><strong className="text-foreground">Built-in Database &amp; Auth</strong>: Ships with Netlify Database and Identity pre-wired for user logins, collections, and reactive data storage without external setup.</li>
+            <li><strong className="text-foreground">Instant Deploys &amp; Export</strong>: Deploy your live app with one click to custom <code className="text-xs bg-muted px-1.5 py-0.5 rounded">*.askarc.chat</code> links or export a complete Git-ready Vite + React TypeScript ZIP project.</li>
+          </ul>
+          <p>
+            App Builder is exclusively available to <strong>ArcAI Boost</strong> subscribers and administrators.
+          </p>
+        </div>
+      ),
+      keywords: ["app builder", "build app", "react app", "ide", "sandpack", "monaco", "deploy app", "export zip", "netlify db", "askarc.chat", "/build", "/app"]
+    },
+    {
+      id: "memory-bank",
+      category: "memory",
+      title: "Arc's Memory: How Persistent Memory Works",
+      question: "How does the bot's memory work and how do I control what Arc remembers?",
+      answer: (
+        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+          <p>
+            Arc features a persistent <strong>Memory Bank (long-term memory)</strong> that allows the bot to retain key facts, personal preferences, project context, and custom instructions across all your sessions.
+          </p>
+          <p>How Arc's memory operates:</p>
+          <ul className="list-disc pl-5 space-y-1.5">
+            <li><strong className="text-foreground">Automatic Learning</strong>: When you share key details (e.g. your tech stack, writing tone, timezone, or project goals), Arc automatically detects and saves them to your memory context blocks.</li>
+            <li><strong className="text-foreground">Direct Instructions</strong>: You can explicitly tell Arc to remember anything by saying <em>"Remember that I prefer TypeScript"</em> or <em>"Remember my brand color palette"</em>.</li>
+            <li><strong className="text-foreground">Context Injection</strong>: Before answering your prompts, Arc reads your active memory blocks so its reasoning is continuously tailored to you.</li>
+            <li><strong className="text-foreground">Full User Control</strong>: You can inspect, edit, add, or delete memories anytime in <a href="/dashboard/settings?section=ai" className="text-primary hover:underline font-semibold">Settings &gt; Memory</a> or on the <a href="/dashboard?tab=memory" className="text-primary hover:underline font-semibold">Dashboard Memory Tab</a>. You can also export or wipe all memories in one click.</li>
           </ul>
         </div>
       ),
-      keywords: ["memory", "memories", "remember", "saved facts", "custom instructions", "memory bank", "profile memory"]
+      keywords: ["memory", "bot memory", "memories", "remember", "saved facts", "custom instructions", "memory bank", "profile memory", "context blocks", "long-term memory"]
     },
     {
       id: "custom-instructions",

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import {
   MessageSquare, Image, Rocket, Brain,
   Plus, Clock, Settings, Search,
@@ -1041,6 +1042,9 @@ useEffect(() => {
         willChange: 'transform, opacity, filter',
       }}
     >
+      <Helmet>
+        <title>ArcAI • Dashboard</title>
+      </Helmet>
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 pt-3 sm:pt-5 pb-8 sm:pb-12 space-y-6 sm:space-y-8">
 
         {/* ═══ HEADER with ambient glow ═══ */}
@@ -2149,7 +2153,7 @@ useEffect(() => {
 
       {/* ═══ BOTTOM NAVIGATION (portaled so transform parent doesn't break fixed positioning) ═══ */}
       {!isIDEOpen && createPortal(
-      <div className="fixed bottom-0 left-0 right-0 sm:right-auto z-50 pointer-events-none flex justify-center sm:justify-start" style={{ paddingBottom: '20px' }}>
+      <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center" style={{ paddingBottom: '20px' }}>
         <motion.div
           ref={setPillRef}
           data-dashboard-nav-pill
@@ -2160,7 +2164,7 @@ useEffect(() => {
           transition={isExiting
             ? { duration: 0.24, ease: [0.4, 0, 0.2, 1] as const }
             : { type: 'spring' as const, stiffness: 280, damping: 24, mass: 0.8, delay: 0.08 }}
-          className="dashboard-nav-pill flex items-center px-2 gap-1 py-3 rounded-full pointer-events-auto relative mx-5 sm:mx-8 w-[calc(100%-40px)] sm:w-[420px] md:w-[480px]"
+          className="dashboard-nav-pill flex items-center px-2 gap-1 py-3 rounded-full pointer-events-auto relative mx-auto w-[calc(100%-40px)] sm:w-[420px] md:w-[480px]"
           style={{
             willChange: 'transform, opacity, filter',
           }}

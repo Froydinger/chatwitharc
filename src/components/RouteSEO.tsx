@@ -83,6 +83,21 @@ const ROUTE_META: Record<string, RouteMeta> = {
     description:
       "View and collaborate in shared project workspaces and chat rooms.",
   },
+  "/build": {
+    title: "ArcAI • App Builder",
+    description:
+      "Build, preview, and deploy full React applications powered by GPT-5.6 Luna.",
+  },
+  "/docs": {
+    title: "ArcAI • Docs",
+    description:
+      "Guides, tutorials, and documentation for ArcAI features, models, and tools.",
+  },
+  "/status": {
+    title: "ArcAI • Status",
+    description:
+      "Real-time service and system status for ArcAI.",
+  },
   "/checkout/return": {
     title: "ArcAI • Checkout Completed",
     description:
@@ -95,6 +110,11 @@ export const RouteSEO = () => {
   const params = useParams();
   let path = location.pathname;
 
+  // Normalize trailing slash
+  if (path.length > 1 && path.endsWith("/")) {
+    path = path.replace(/\/+$/, "");
+  }
+
   // Normalize dynamic chat routes to a canonical /chat path
   if (path.startsWith("/chat/")) {
     path = "/chat";
@@ -105,7 +125,12 @@ export const RouteSEO = () => {
   if (path.startsWith("/shared/")) {
     path = "/shared";
   }
-
+  if (path.startsWith("/build")) {
+    path = "/build";
+  }
+  if (path.startsWith("/dashboard") && path !== "/dashboard/settings") {
+    path = "/dashboard";
+  }
 
   // Let per-post <Helmet> in BlogPostPage own SEO for /blog/:slug.
   if (path.startsWith("/blog/")) {
