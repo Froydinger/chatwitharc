@@ -36,10 +36,15 @@ export function AgentTimeline({ actions, isRunning, onSelectFile }: AgentTimelin
   );
 
   const displayActions = actions.filter(a => {
+    // Exclude malformed intermediate paths lacking file extensions
+    if (a.path && (!a.path.includes('.') || a.path.endsWith('/'))) return false;
+
     if (a.type === 'action') {
       const actionMap: Record<string, string> = { creating: 'created', modifying: 'modified', deleting: 'deleted' };
       const completedKey = `${actionMap[a.action || '']}:${a.path}`;
       if (completedPaths.has(completedKey)) return false;
+      // If the agent run has finished, don't leave lingering uncompleted in-progress actions
+      if (!isRunning) return false;
     }
     return true;
   });
@@ -114,7 +119,7 @@ export function AgentTimeline({ actions, isRunning, onSelectFile }: AgentTimelin
               );
             }
 
-            const inProg = action.type === 'action' && isInProgress(action.action);
+            const inProg = isRunning && action.type === 'action' && isInProgress(action.action);
             const isComplete = action.type === 'action_complete';
             const succeeded = isComplete && action.success !== false;
             const failed = isComplete && action.success === false;

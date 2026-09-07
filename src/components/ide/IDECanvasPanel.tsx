@@ -61,6 +61,25 @@ interface IDECanvasPanelProps {
 const buildPersistenceSnapshot = (nextFiles: VirtualFileSystem, nextMessages: ChatMessage[], nextProjectId?: string | null) =>
   JSON.stringify({ projectId: nextProjectId, files: nextFiles, messages: nextMessages });
 
+export function ensureSystemFiles(vfs: VirtualFileSystem): VirtualFileSystem {
+  let changed = false;
+  const next = { ...vfs };
+
+  const dbFile = next['src/lib/netlifyDb.ts'];
+  if (!dbFile?.content || !dbFile.content.includes('export const netlifyDb =') || !dbFile.content.includes('export interface AppUser')) {
+    next['src/lib/netlifyDb.ts'] = DEFAULT_FILES['src/lib/netlifyDb.ts'];
+    changed = true;
+  }
+
+  const authFile = next['src/components/NetlifyAuthModal.tsx'];
+  if (!authFile?.content || !authFile.content.includes('export function NetlifyAuthModal')) {
+    next['src/components/NetlifyAuthModal.tsx'] = DEFAULT_FILES['src/components/NetlifyAuthModal.tsx'];
+    changed = true;
+  }
+
+  return changed ? next : vfs;
+}
+
 export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const idePrompt = useIDEStore((s) => s.idePrompt);
   const ideAutoRunPrompt = useIDEStore((s) => s.ideAutoRunPrompt);
@@ -75,7 +94,8 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
   const [files, setFiles] = useState<VirtualFileSystem>(() => {
     const storeFiles = useIDEStore.getState().ideFiles;
-    return storeFiles && Object.keys(storeFiles).length > 0 ? storeFiles : DEFAULT_FILES;
+    const initial = storeFiles && Object.keys(storeFiles).length > 0 ? storeFiles : DEFAULT_FILES;
+    return ensureSystemFiles(initial);
   });
   const [selectedFile, setSelectedFile] = useState<string | null>('src/App.tsx');
   const [activeTab, setActiveTab] = useState<'preview' | 'code' | 'cloud'>('preview');
@@ -210,18 +230,18 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
         setMessagesRaw([]);
         messagesRef.current = [];
       } else if (storeFiles && Object.keys(storeFiles).length > 0) {
-        initialFiles = storeFiles;
-        setFiles(storeFiles);
-        filesRef.current = storeFiles;
+        initialFiles = ensureSystemFiles(storeFiles);
+        setFiles(initialFiles);
+        filesRef.current = initialFiles;
       } else {
         const savedLocal = localStorage.getItem('arc_ide_local_snapshot');
         if (savedLocal) {
           try {
             const parsed = JSON.parse(savedLocal);
             if (parsed.files && Object.keys(parsed.files).length > 0) {
-              initialFiles = parsed.files;
-              setFiles(parsed.files);
-              filesRef.current = parsed.files;
+              initialFiles = ensureSystemFiles(parsed.files);
+              setFiles(initialFiles);
+              filesRef.current = initialFiles;
             }
             if (parsed.messages && parsed.messages.length > 0) {
               initialMessages = parsed.messages;
@@ -250,9 +270,9 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       const storeMsgs = useIDEStore.getState().ideMessages;
 
       if (storeFiles && Object.keys(storeFiles).length > 0) {
-        initialFiles = storeFiles;
-        setFiles(storeFiles);
-        filesRef.current = storeFiles;
+        initialFiles = ensureSystemFiles(storeFiles);
+        setFiles(initialFiles);
+        filesRef.current = initialFiles;
       }
 
       if (storeMsgs && storeMsgs.length > 0) {
@@ -379,9 +399,10 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
   // Open project from dashboard
   const handleOpenProject = (p: LovableProject) => {
-    setFiles(p.files || DEFAULT_FILES);
+    const healed = ensureSystemFiles(p.files || DEFAULT_FILES);
+    setFiles(healed);
     setMessagesRaw(p.messages || []);
-    setIdeFiles(p.files || DEFAULT_FILES);
+    setIdeFiles(healed);
     setIdeMessages(p.messages || []);
     setIdeProjectId(p.id);
     projectIdRef.current = p.id;
@@ -480,6 +501,12 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
           );
         },
         (filePath: string, fileContent: string) => {
+          if (filePath === 'src/lib/netlifyDb.ts' && (!fileContent.includes('export const netlifyDb =') || !fileContent.includes('export interface AppUser'))) {
+            return;
+          }
+          if (filePath === 'src/components/NetlifyAuthModal.tsx' && !fileContent.includes('export function NetlifyAuthModal')) {
+            return;
+          }
           setFiles((prev) => ({
             ...prev,
             [filePath]: { content: fileContent, language: filePath.endsWith('.css') ? 'css' : 'typescript' }
@@ -494,14 +521,25 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
       if (hasWrittenFiles || hasDeletions) {
         setFiles((prev) => {
-          const merged: VirtualFileSystem = { ...prev, ...(result.files || {}) };
+          const merged: VirtualFileSystem = { ...prev };
+          for (const [p, f] of Object.entries(result.files || {})) {
+            if (p === 'src/lib/netlifyDb.ts' && (!f.content.includes('export const netlifyDb =') || !f.content.includes('export interface AppUser'))) {
+              continue;
+            }
+            if (p === 'src/components/NetlifyAuthModal.tsx' && !f.content.includes('export function NetlifyAuthModal')) {
+              continue;
+            }
+            merged[p] = f;
+          }
           for (const path of result.deletions || []) {
             delete merged[path];
           }
-          return merged;
+          return ensureSystemFiles(merged);
         });
 
-        const firstNew = hasWrittenFiles ? Object.keys(result.files!)[0] : null;
+        const firstNew = hasWrittenFiles
+          ? Object.keys(result.files!).find(k => k !== 'src/lib/netlifyDb.ts') || Object.keys(result.files!)[0]
+          : null;
         if (firstNew) setSelectedFile(firstNew);
       }
 

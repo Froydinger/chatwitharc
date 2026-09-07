@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemedLogo } from '@/components/ThemedLogo';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { VirtualFileSystem } from '@/types/ide';
+import { type VirtualFileSystem, DEFAULT_FILES } from '@/types/ide';
 import { 
   SandpackProvider, 
   SandpackPreview, 
@@ -201,6 +201,17 @@ export function IDEPreviewPanel({
           },
         },
       }, null, 2);
+    }
+
+    // Ensure system files are never corrupted or missing in sandbox runtime
+    const dbContent = map['/src/lib/netlifyDb.ts'];
+    if (!dbContent || !dbContent.includes('export const netlifyDb =') || !dbContent.includes('export interface AppUser')) {
+      map['/src/lib/netlifyDb.ts'] = DEFAULT_FILES['src/lib/netlifyDb.ts'].content;
+    }
+
+    const authModalContent = map['/src/components/NetlifyAuthModal.tsx'];
+    if (!authModalContent || !authModalContent.includes('export function NetlifyAuthModal')) {
+      map['/src/components/NetlifyAuthModal.tsx'] = DEFAULT_FILES['src/components/NetlifyAuthModal.tsx'].content;
     }
 
     // Determine target app entrypoint

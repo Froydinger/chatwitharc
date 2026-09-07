@@ -113,6 +113,16 @@ Netlify officially recommends creating custom authentication screens that intera
   - \`netlifyDb.set('settings:theme', 'light')\`
   - \`netlifyDb.delete('key')\`
 
+━━━ PRE-INSTALLED SYSTEM UTILITIES (NEVER REWRITE OR RE-OUTPUT) ━━━
+CRITICAL: The workspace ALREADY has these core infrastructure files pre-installed:
+• \`src/lib/netlifyDb.ts\` (contains the complete netlifyDb SDK: collection(), get(), set(), and auth)
+• \`src/components/NetlifyAuthModal.tsx\` (contains the complete dark-glass auth modal)
+
+⚠️ STRICTLY FORBIDDEN: DO NOT OUTPUT, REWRITE, OR OVERWRITE \`src/lib/netlifyDb.ts\` OR \`src/components/NetlifyAuthModal.tsx\`. Never include them in code blocks.
+Instead, simply import and use them in application components (such as \`src/App.tsx\` or \`src/components/...\`):
+  import { netlifyDb, type AppUser } from './lib/netlifyDb';
+  import { NetlifyAuthModal } from './components/NetlifyAuthModal';
+
 ━━━ NATURAL LANGUAGE FEATURE COMMANDS (CRITICAL RECIPES) ━━━
 Users or UI toggles will frequently ask you in natural language to add or configure capabilities. When you see requests like these, follow these exact production implementation recipes:
 
@@ -135,14 +145,27 @@ Users or UI toggles will frequently ask you in natural language to add or config
        \`authorId: user.id, authorName: user.name, authorAvatar: user.avatar\`
    • ALWAYS emit the complete updated code files implementing the full auth flow!
 
-2. "Hook up database" / "Make posts save to database" / "Persist data" / "Please connect and wire up netlifyDb persistent database storage...":
-   • Convert any temporary in-memory \`useState\` arrays into persistent \`netlifyDb.collection\`:
-     - Load on start: \`const [items, setItems] = useState(() => netlifyDb.collection('name').find())\`
-     - Live subscription: \`useEffect(() => netlifyDb.collection('name').subscribe(setItems), [])\`
-     - Saving: \`netlifyDb.collection('name').insert(newDoc)\`
-     - Updating: \`netlifyDb.collection('name').update(id, updates)\`
-     - Deleting: \`netlifyDb.collection('name').remove(id)\`
-   • ALWAYS output the complete files with \`netlifyDb\` fully integrated so data actually persists across reloads and visits.
+2. "Hook up database" / "Make posts save to database" / "Persist data" / "Please connect and wire up netlifyDb persistent database storage..." / "Add persistent db":
+   • CRITICAL: NEVER output or rewrite \`src/lib/netlifyDb.ts\`! It is already pre-installed. Update your application files (like \`src/App.tsx\` and components).
+   • Convert any temporary in-memory \`useState\` arrays (posts, notes, tasks, items, comments, messages) into persistent \`netlifyDb.collection\`:
+     - Load on start: \`const [items, setItems] = useState(() => netlifyDb.collection('posts').find())\`
+     - Live subscription: \`useEffect(() => netlifyDb.collection('posts').subscribe(setItems), [])\`
+     - Real user data persistence:
+       When a user creates an item, ALWAYS save it directly to the database collection stamped with their user identity:
+       \`\`\`tsx
+       const newItem = netlifyDb.collection('posts').insert({
+         ...postData,
+         userId: user?.id,
+         authorName: user?.name || (user?.email ? user.email.split('@')[0] : 'Anonymous'),
+         authorAvatar: user?.avatar,
+         createdAt: new Date().toISOString()
+       });
+       setItems(prev => [newItem, ...prev.filter(i => i.id !== newItem.id)]);
+       \`\`\`
+     - Updating items: \`netlifyDb.collection('posts').update(item.id, updates)\`
+     - Deleting items: \`netlifyDb.collection('posts').remove(item.id)\`
+   • If accounts are present: ensure user-created data is stamped with \`userId: user.id\` and \`authorName: user.name || user.email\`. If the user is logged out, prompt them to sign in via \`setShowAuthModal(true)\`.
+   • ALWAYS output the complete application files with \`netlifyDb\` fully integrated so data actually persists across reloads and visits!
 
 3. "Please update the app to disconnect netlifyDb..." / "Remove database":
    • Rewrite the data management to standard React in-memory state.
@@ -256,6 +279,11 @@ function parseFilesFromMarkdown(text: string): { files: Record<string, string>; 
     if (path && !files[path]) {
       files[path] = match[2];
     }
+  }
+
+  // Never allow broken or truncated writes to pre-installed system SDK
+  if (files['src/lib/netlifyDb.ts'] && !files['src/lib/netlifyDb.ts'].includes('export const netlifyDb')) {
+    delete files['src/lib/netlifyDb.ts'];
   }
 
   return { files, deletions };
@@ -512,13 +540,17 @@ serve(async (req) => {
                     send({ type: "token", token: proseChunk });
                   }
 
-                  // Detect files as they begin streaming
-                  const match = /(?:###|##|#|\[FILEPATH\])\s*([a-zA-Z0-9_\-\.\/`*]+)/g;
+                  // Detect files as they begin streaming — require a complete path with file extension followed by a newline
+                  const fileHeaderRegex = /(?:^|\n)(?:(?:###|##|#)\s*([a-zA-Z0-9_\-\.\/`*]+\.[a-zA-Z0-9]+)\s*[\r\n]+|\[FILEPATH\]\s*[\r\n]*([a-zA-Z0-9_\-\.\/`*]+\.[a-zA-Z0-9]+)\s*[\r\n]+)/gi;
                   let m;
-                  while ((m = match.exec(fullResponse)) !== null) {
-                    const candidate = cleanPath(m[1]);
+                  while ((m = fileHeaderRegex.exec(fullResponse)) !== null) {
+                    const rawPath = m[1] || m[2];
+                    if (!rawPath) continue;
+                    const candidate = cleanPath(rawPath);
                     if (
-                      (candidate.includes("/") || candidate.endsWith(".tsx") || candidate.endsWith(".ts") || candidate.endsWith(".css")) &&
+                      candidate &&
+                      candidate.includes(".") &&
+                      !candidate.endsWith("/") &&
                       !announcedFiles.has(candidate)
                     ) {
                       announcedFiles.add(candidate);
@@ -530,6 +562,7 @@ serve(async (req) => {
                   // Stream completed files as soon as their code block closes
                   const parsedLive = parseFilesFromMarkdown(fullResponse);
                   for (const [p, content] of Object.entries(parsedLive.files)) {
+                    if (p === 'src/lib/netlifyDb.ts' && !content.includes('export const netlifyDb')) continue;
                     if (!emittedCompletedFiles.has(p)) {
                       emittedCompletedFiles.add(p);
                       send({ type: "file_update", path: p, content });
@@ -538,15 +571,17 @@ serve(async (req) => {
                   }
 
                   // Stream live partial content for the currently streaming file so Monaco shows code being typed
-                  const activeBlock = /(?:###|##|#|\[FILEPATH\])\s*([a-zA-Z0-9_\-\.\/`*]+)\s*[\r\n]+```[a-zA-Z0-9_-]*[\r\n]+([^`]*)$/s.exec(fullResponse);
+                  const activeBlock = /(?:###|##|#|\[FILEPATH\])\s*([a-zA-Z0-9_\-\.\/`*]+\.[a-zA-Z0-9]+)\s*[\r\n]+(?:\[CONTENT\]\s*[\r\n]+)?```[a-zA-Z0-9_-]*[\r\n]+([^`]*)$/s.exec(fullResponse);
                   if (activeBlock) {
                     const activePath = cleanPath(activeBlock[1]);
-                    const partialContent = activeBlock[2];
-                    if (activePath && !emittedCompletedFiles.has(activePath)) {
-                      if (activePath !== lastPartialPath || partialContent.length - lastPartialLength > 30) {
-                        lastPartialPath = activePath;
-                        lastPartialLength = partialContent.length;
-                        send({ type: "file_partial", path: activePath, content: partialContent });
+                    if (activePath && activePath !== 'src/lib/netlifyDb.ts') {
+                      const partialContent = activeBlock[2];
+                      if (!emittedCompletedFiles.has(activePath)) {
+                        if (activePath !== lastPartialPath || partialContent.length - lastPartialLength > 30) {
+                          lastPartialPath = activePath;
+                          lastPartialLength = partialContent.length;
+                          send({ type: "file_partial", path: activePath, content: partialContent });
+                        }
                       }
                     }
                   }
@@ -602,12 +637,16 @@ serve(async (req) => {
             return;
           }
 
-          // Send action complete events
+          // Send action complete events for all created and deleted files
           for (const path of Object.keys(files)) {
             send({ type: "action_complete", action: "created", path, success: true });
           }
           for (const path of deletions) {
             send({ type: "action_complete", action: "deleted", path, success: true });
+          }
+          // Ensure any announced file without an explicit complete event is marked complete
+          for (const path of announcedFiles) {
+            send({ type: "action_complete", action: "created", path, success: true });
           }
 
           // Send final payload
