@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, RefreshCcwDot, Scale, Brain, Check, ChevronDown } from 'lucide-react';
+import { Zap, RefreshCcwDot, Scale, Brain, Check, ChevronDown, Crown } from 'lucide-react';
 import { useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
+import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -20,6 +21,7 @@ const PRESETS = [
 ] as const;
 
 export function ChatModelPicker({ className, compact = false }: Props) {
+  const { hasBoost, isAdmin, openCheckout } = useSubscription();
   const reasoningEffort = useModelStore((state) => state.reasoningEffort);
   const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
   const [open, setOpen] = useState(false);
@@ -100,6 +102,28 @@ export function ChatModelPicker({ className, compact = false }: Props) {
                     onClick={() => pick(preset.effort)}
                   />
                 ))}
+                {!hasBoost && !isAdmin && (
+                  <div className="mt-1 pt-1.5 border-t border-border/40">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpen(false);
+                        openCheckout();
+                      }}
+                      className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl bg-primary/10 hover:bg-primary/15 border border-primary/20 text-left transition-colors group cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Crown className="h-3.5 w-3.5 text-primary shrink-0" />
+                        <div className="text-[11px] font-medium text-foreground">
+                          Upgrade to <span className="font-semibold text-primary">Boost</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-medium text-primary group-hover:translate-x-0.5 transition-transform">
+                        Higher limits →
+                      </span>
+                    </button>
+                  </div>
+                )}
               </motion.div>
             </>
           )}

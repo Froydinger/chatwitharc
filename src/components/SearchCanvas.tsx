@@ -41,6 +41,7 @@ import { useAccentStore } from "@/store/useAccentStore";
 import { useSearchStore, SearchResult, SavedLink } from "@/store/useSearchStore";
 import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 import { ImageModal } from "@/components/ImageModal";
@@ -67,6 +68,7 @@ export function SearchCanvas() {
   } = useSearchStore();
 
   const { toast } = useToast();
+  const { openCheckout } = useSubscription();
   const isMobile = useIsMobile();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const followUpInputRef = useRef<HTMLInputElement>(null);
@@ -209,6 +211,7 @@ export function SearchCanvas() {
             ? "Free accounts get one Ultra Deep Search a week. Boost makes it unlimited."
             : "Free accounts get four Deep Searches a week. Boost makes them unlimited.",
         });
+        openCheckout();
         setSearching(false);
         return;
       }

@@ -21,6 +21,7 @@ import {
   ListPlus,
   Smartphone,
   Clapperboard,
+  Crown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
@@ -3248,7 +3249,12 @@ ${safeCode}
                               <Smartphone className="h-4 w-4 text-purple-500 dark:text-purple-400" />
                             </div>
                             <div className="flex flex-col items-start text-left min-w-0">
-                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">App</span>
+                              <div className="flex items-center gap-1.5 w-full">
+                                <span className="text-xs font-semibold text-foreground tracking-wide truncate">App</span>
+                                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30 uppercase tracking-wider">
+                                  Boost
+                                </span>
+                              </div>
                               <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">Full Web Applications</span>
                             </div>
                           </button>
@@ -3270,6 +3276,29 @@ ${safeCode}
                           </button>
                         </div>
 
+                        {!hasBoost && !isAdmin && (
+                          <div className="mt-3 pt-2.5 border-t border-border/40">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowMenu(false);
+                                openCheckout();
+                              }}
+                              className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 hover:from-primary/20 hover:via-primary/15 hover:to-primary/10 border border-primary/25 transition-all text-left group cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-7 h-7 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                                  <Crown className="h-3.5 w-3.5 text-primary" />
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-xs font-semibold text-foreground">Upgrade to ArcAI Boost</span>
+                                  <span className="text-[10px] text-muted-foreground truncate">Unlimited Deep Search, App Builder & 30 images/day</span>
+                                </div>
+                              </div>
+                              <ArrowRight className="h-3.5 w-3.5 text-primary group-hover:translate-x-0.5 transition-transform shrink-0" />
+                            </button>
+                          </div>
+                        )}
 
                       </motion.div>
                       </div>

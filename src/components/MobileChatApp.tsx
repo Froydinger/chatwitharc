@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal, Volume2, Volume1, VolumeX } from "lucide-react";
+import { Plus, Menu, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal, Volume2, Volume1, VolumeX, Crown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { useArcStore } from "@/store/useArcStore";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useSearchStore } from "@/store/useSearchStore";
@@ -320,6 +321,9 @@ export function MobileChatApp() {
   // App Builder (IDE) workspace state
   const isIDEOpen = useIDEStore((s) => s.isOpen);
   const closeIDE = useIDEStore((s) => s.closeIDE);
+
+  // Subscription state for Boost gating & CTAs
+  const { hasBoost, isAdmin, openCheckout } = useSubscription();
 
   // Pre-generate prompts in background for instant access
   usePromptPreload();
@@ -952,6 +956,28 @@ export function MobileChatApp() {
                   top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
                 }}
               >
+              {/* Upgrade / Boost CTA Button for Free Accounts */}
+              {!hasBoost && !isAdmin && (
+                <motion.div 
+                  whileHover={{ scale: 1.05, y: -2 }} 
+                  whileTap={{ scale: 0.95 }} 
+                  transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                  className="cursor-pointer"
+                  onClick={() => openCheckout()}
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10 px-3 sm:px-3.5 rounded-full border-primary/30 bg-primary/10 hover:bg-primary/20 text-primary text-xs font-semibold gap-1.5 shadow-sm transition-all pointer-events-none"
+                    title="Upgrade to Boost"
+                    aria-label="Upgrade to Boost"
+                  >
+                    <Crown className="h-3.5 w-3.5 text-primary shrink-0" />
+                    <span className="hidden xs:inline">Upgrade</span>
+                  </Button>
+                </motion.div>
+              )}
+
               {/* Share Button */}
               {showHeaderUtilityButtons && canShareChat && (
                 <motion.div 

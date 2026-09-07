@@ -7,7 +7,7 @@ import {
   Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
   Globe, Code2, Eye, Sparkles, ArrowRight, Music, Edit2, Check, X,
   Layers, PenLine, FileCode, MessageCircle, Upload, Users, FolderPlus, Folder, Pin, PinOff, MoreVertical, MoreHorizontal,
-  CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock, Smartphone, ExternalLink, Loader2, Tag
+  CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock, Smartphone, ExternalLink, Loader2, Tag, Crown
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -1062,6 +1062,16 @@ useEffect(() => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {!hasBoost && !isAdmin && (
+                <Button
+                  onClick={() => openCheckout()}
+                  className="h-8 sm:h-9 px-3 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold gap-1.5 shadow-sm transition-all"
+                  title="Upgrade to Boost"
+                >
+                  <Crown className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden xs:inline">Upgrade</span>
+                </Button>
+              )}
               <Button
                 onClick={() => setActiveTab("apps")}
                 className="h-8 sm:h-9 px-3 rounded-full bg-purple-500/10 hover:bg-purple-500/15 dark:bg-gradient-to-r dark:from-purple-500/20 dark:via-primary/20 dark:to-purple-500/20 dark:hover:from-purple-500/30 dark:hover:to-primary/30 border border-purple-500/30 text-purple-700 dark:text-purple-200 text-xs font-semibold gap-1.5 shadow-sm transition-all"
