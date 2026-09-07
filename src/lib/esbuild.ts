@@ -69,6 +69,7 @@ function createVirtualFsPlugin(files: VirtualFileSystem): esbuild.Plugin {
     'react-dom': 'module.exports = window.ReactDOM;',
     'react-dom/client': 'module.exports = window.ReactDOM;',
     'framer-motion': 'module.exports = window.Motion || window.FramerMotion || {};',
+    'canvas-confetti': 'module.exports = window.confetti || function() {};',
     'react-router-dom': `
       var RouterDOM = window.ReactRouterDOM || {};
       var BrowserRouterOverride = RouterDOM.HashRouter || function(props) { return null; };
@@ -81,7 +82,7 @@ function createVirtualFsPlugin(files: VirtualFileSystem): esbuild.Plugin {
   return {
     name: 'virtual-fs',
     setup(build) {
-      build.onResolve({ filter: /^(react-dom\/client|react-dom|react|framer-motion|react-router-dom|lucide-react|react-icons.*|.*icons.*)$/ }, (args) => {
+      build.onResolve({ filter: /^(react-dom\/client|react-dom|react|framer-motion|react-router-dom|canvas-confetti|lucide-react|react-icons.*|.*icons.*)$/ }, (args) => {
         return { path: args.path, namespace: 'shim' };
       });
       build.onLoad({ filter: /.*/, namespace: 'shim' }, (args) => {
@@ -92,22 +93,23 @@ function createVirtualFsPlugin(files: VirtualFileSystem): esbuild.Plugin {
           const contents = `
             var React = window.React;
             var h = React.createElement;
-            var IconProxy = new Proxy({}, {
+            var IconComponent = function(props) {
+              return h('span', Object.assign({}, props, {
+                style: Object.assign({
+                  display: 'inline-block',
+                  width: '1em',
+                  height: '1em',
+                  verticalAlign: 'middle'
+                }, props.style)
+              }));
+            };
+            var IconProxy = new Proxy({ __esModule: true, default: IconComponent }, {
               get: function(target, prop) {
-                return function(props) {
-                  return h('span', Object.assign({}, props, {
-                    style: Object.assign({
-                      display: 'inline-block',
-                      width: '1em',
-                      height: '1em',
-                      borderRadius: '0.25em',
-                      border: '1px solid currentColor',
-                      verticalAlign: 'middle',
-                      opacity: 0.7
-                    }, props.style)
-                  }));
-                };
-              }
+                if (prop === '__esModule') return true;
+                if (prop === 'default') return IconComponent;
+                return IconComponent;
+              },
+              has: function() { return true; }
             });
             module.exports = IconProxy;
           `;
@@ -167,7 +169,33 @@ function createVirtualFsPlugin(files: VirtualFileSystem): esbuild.Plugin {
 
 export async function bundleProject(files: VirtualFileSystem): Promise<string> {
   await initializeEsbuild();
-  if (!files['src/main.tsx']) throw new Error('Entry point src/main.tsx not found');
+
+  // Normalize files so paths match both with and without leading slash
+  const normalizedFiles: VirtualFileSystem = {};
+  for (const [path, file] of Object.entries(files)) {
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    normalizedFiles[cleanPath] = file;
+    normalizedFiles['/' + cleanPath] = file;
+  }
+
+  // Ensure src/main.tsx entry point exists
+  if (!normalizedFiles['src/main.tsx']) {
+    const mainContent = `import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+
+const rootEl = document.getElementById('root');
+if (rootEl) {
+  ReactDOM.createRoot(rootEl).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+}
+`;
+    normalizedFiles['src/main.tsx'] = { content: mainContent, language: 'typescript' };
+    normalizedFiles['/src/main.tsx'] = normalizedFiles['src/main.tsx'];
+  }
 
   const result = await esbuild.build({
     entryPoints: ['src/main.tsx'],
@@ -180,7 +208,7 @@ export async function bundleProject(files: VirtualFileSystem): Promise<string> {
     jsxFactory: 'React.createElement',
     jsxFragment: 'React.Fragment',
     loader: { '.tsx': 'tsx', '.ts': 'ts', '.jsx': 'jsx', '.js': 'js' },
-    plugins: [createVirtualFsPlugin(files)],
+    plugins: [createVirtualFsPlugin(normalizedFiles)],
     define: { 'process.env.NODE_ENV': '"development"' },
   });
 
@@ -190,7 +218,7 @@ export async function bundleProject(files: VirtualFileSystem): Promise<string> {
 
 export function generatePreviewHtml(bundledCode: string): string {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -200,7 +228,35 @@ export function generatePreviewHtml(bundledCode: string): string {
   <script src="https://cdn.jsdelivr.net/npm/react-router@6.28.0/dist/umd/react-router.production.min.js" crossorigin><\/script>
   <script src="https://cdn.jsdelivr.net/npm/react-router-dom@6.28.0/dist/umd/react-router-dom.production.min.js" crossorigin><\/script>
   <script src="https://cdn.tailwindcss.com"><\/script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            border: 'rgba(255, 255, 255, 0.1)',
+            background: '#090a0f',
+            foreground: '#f8fafc',
+            primary: {
+              DEFAULT: '#6366f1',
+              foreground: '#ffffff',
+            },
+            muted: {
+              DEFAULT: '#1e293b',
+              foreground: '#94a3b8',
+            },
+            card: {
+              DEFAULT: '#0f1117',
+              foreground: '#f8fafc',
+            }
+          }
+        }
+      }
+    };
+  <\/script>
   <script src="https://cdn.jsdelivr.net/npm/framer-motion@11.11.9/dist/framer-motion.js" crossorigin><\/script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.4/dist/confetti.browser.min.js" crossorigin><\/script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script>
     (function() {
       try { window.localStorage; } catch(e) {
@@ -218,9 +274,24 @@ export function generatePreviewHtml(bundledCode: string): string {
       }
     })();
   <\/script>
-  <style>* { margin: 0; padding: 0; box-sizing: border-box; } html, body, #root { height: 100%; width: 100%; }</style>
+  <style>
+    *, ::before, ::after { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #090a0f;
+      color: #f8fafc;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      width: 100%;
+    }
+    #root {
+      min-height: 100vh;
+      width: 100%;
+    }
+  </style>
 </head>
-<body>
+<body class="bg-[#090a0f] text-slate-100 antialiased min-h-screen">
   <div id="root"></div>
   <script>
     var lastError = '';
@@ -229,7 +300,7 @@ export function generatePreviewHtml(bundledCode: string): string {
       _error.apply(console, arguments);
       var args = Array.prototype.slice.call(arguments);
       var msg = args.map(function(arg) {
-        if (arg && arg.message) return arg.message + (arg.stack ? '\n' + arg.stack : '');
+        if (arg && arg.message) return arg.message + (arg.stack ? '\\n' + arg.stack : '');
         return typeof arg === 'object' ? JSON.stringify(arg) : String(arg);
       }).join(' ');
       
@@ -241,7 +312,7 @@ export function generatePreviewHtml(bundledCode: string): string {
 
     window.addEventListener('unhandledrejection', function(event) {
       var reason = event.reason;
-      var msg = reason && reason.message ? reason.message + (reason.stack ? '\n' + reason.stack : '') : String(reason);
+      var msg = reason && reason.message ? reason.message + (reason.stack ? '\\n' + reason.stack : '') : String(reason);
       reportError('Unhandled Promise Rejection: ' + msg);
     });
 

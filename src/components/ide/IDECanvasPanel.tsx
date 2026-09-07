@@ -103,6 +103,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const [deployedUrl, setDeployedUrl] = useState<string | null>(null);
   const [netlifySiteId, setNetlifySiteId] = useState<string | null>(null);
   const [netlifySubdomain, setNetlifySubdomain] = useState<string | null>(null);
+  const [publishedAppTitle, setPublishedAppTitle] = useState<string | null>(null);
   
   const [projects, setProjects] = useState<LovableProject[]>([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
@@ -251,7 +252,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
     supabase
       .from('ide_projects')
-      .select('netlify_url, netlify_site_id, netlify_subdomain, messages')
+      .select('title, netlify_url, netlify_site_id, netlify_subdomain, messages')
       .eq('id', ideProjectId)
       .single()
       .then(({ data }) => {
@@ -260,6 +261,11 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
         setDeployedUrl((data as any).netlify_url || null);
         setNetlifySiteId((data as any).netlify_site_id || null);
         setNetlifySubdomain((data as any).netlify_subdomain || null);
+        if ((data as any).netlify_url && (data as any).title) {
+          setPublishedAppTitle((data as any).title);
+        } else if (!(data as any).netlify_url) {
+          setPublishedAppTitle(null);
+        }
 
         const dbMessages = (data as any).messages;
         if (Array.isArray(dbMessages) && dbMessages.length > 0 && messagesRef.current.length === 0) {
@@ -359,6 +365,10 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     setIdeMessages(p.messages || []);
     setIdeProjectId(p.id);
     projectIdRef.current = p.id;
+    setDeployedUrl(p.netlify_url || null);
+    setNetlifySiteId(p.netlify_site_id || null);
+    setNetlifySubdomain(p.netlify_subdomain || null);
+    setPublishedAppTitle(p.netlify_url ? (p.title || null) : null);
   };
 
   // Delete project from dashboard
@@ -392,6 +402,10 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     setIdeMessages([]);
     setIdeProjectId(null);
     projectIdRef.current = null;
+    setDeployedUrl(null);
+    setNetlifySiteId(null);
+    setNetlifySubdomain(null);
+    setPublishedAppTitle(null);
 
     const initialPrompt = newProjectPrompt.trim();
     setNewProjectPrompt('');
@@ -545,10 +559,12 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     setDeployedUrl(result.url);
     setNetlifySiteId(result.siteId);
     setNetlifySubdomain(result.subdomain);
+    setPublishedAppTitle(siteTitle);
 
     await supabase
       .from('ide_projects')
       .update({
+        title: siteTitle,
         netlify_url: result.url,
         netlify_site_id: result.siteId,
         netlify_subdomain: result.subdomain,
@@ -568,6 +584,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
     setDeployedUrl(null);
     setNetlifySiteId(null);
     setNetlifySubdomain(null);
+    setPublishedAppTitle(null);
 
     if (projectIdRef.current) {
       await supabase
@@ -618,6 +635,10 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   const handleGoHome = () => {
     setIdeProjectId(null);
     projectIdRef.current = null;
+    setDeployedUrl(null);
+    setNetlifySiteId(null);
+    setNetlifySubdomain(null);
+    setPublishedAppTitle(null);
     if (onClose) onClose();
   };
 
@@ -660,7 +681,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
               <ThemedLogo className="w-full h-full object-contain" />
             </div>
             <span className="text-xs font-semibold max-w-[180px] sm:max-w-[240px] truncate text-foreground">
-              {messages.find(m => m.role === 'user')?.content?.slice(0, 45) || 'Arc Web App'}
+              {publishedAppTitle || messages.find(m => m.role === 'user')?.content?.slice(0, 45) || 'Arc Web App'}
             </span>
             <span className="text-[9px] font-mono font-bold bg-primary/15 text-primary border border-primary/25 px-1.5 py-0.2 rounded-md uppercase tracking-wider select-none">
               LUNA
@@ -907,7 +928,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       <PublishDialog
         open={showPublishDialog}
         onOpenChange={setShowPublishDialog}
-        projectName={messages.find(m => m.role === 'user')?.content?.slice(0, 50) || 'Arc App'}
+        currentAppTitle={publishedAppTitle}
         currentSubdomain={netlifySubdomain}
         deployedUrl={deployedUrl}
         siteId={netlifySiteId}

@@ -15,6 +15,7 @@ import { PUBLISH_DOMAIN } from '@/lib/deploy';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
 import { FAVICON_OPTIONS, type FaviconOption } from '@/constants/faviconOptions';
+import { cn } from '@/lib/utils';
 
 function optionToSvg(option: FaviconOption): string {
   const iconMarkup = renderToStaticMarkup(
@@ -33,7 +34,7 @@ function optionToSvg(option: FaviconOption): string {
 interface PublishDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  projectName: string;
+  currentAppTitle?: string | null;
   currentSubdomain: string | null;
   deployedUrl: string | null;
   siteId: string | null;
@@ -49,12 +50,14 @@ function slugify(name: string): string {
 function PublishedStatusView({
   deployedUrl,
   currentSubdomain,
+  currentAppTitle,
   onEdit,
   onUnpublish,
   onClose,
 }: {
   deployedUrl: string;
   currentSubdomain: string | null;
+  currentAppTitle?: string | null;
   onEdit: () => void;
   onUnpublish: () => Promise<void>;
   onClose: () => void;
@@ -83,7 +86,7 @@ function PublishedStatusView({
       <div className="py-6 text-center space-y-4">
         <CheckCircle2 className="h-10 w-10 text-primary mx-auto" />
         <div className="space-y-1">
-          <p className="font-semibold text-sm">Your site is live</p>
+          <p className="font-semibold text-sm">{currentAppTitle || 'Your app is live'}</p>
           {deployedUrl && (
             <p className="text-xs text-muted-foreground">{deployedUrl.replace(/^https?:\/\//, '')}</p>
           )}
@@ -108,9 +111,9 @@ function PublishedStatusView({
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Unpublish site?</AlertDialogTitle>
+              <AlertDialogTitle>Unpublish app?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will take your site offline and delete it from the web. You can always republish later.
+                This will take your app offline and delete it from the web. You can always republish later.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -126,7 +129,7 @@ function PublishedStatusView({
         </AlertDialog>
 
         <Button onClick={onEdit} className="gap-1.5">
-          <Pencil className="h-3.5 w-3.5" /> Update Site
+          <Pencil className="h-3.5 w-3.5" /> Update App
         </Button>
       </DialogFooter>
     </>
@@ -135,14 +138,16 @@ function PublishedStatusView({
 
 /* ── Edit / new-publish form ── */
 function PublishForm({
-  projectName,
+  open,
+  currentAppTitle,
   currentSubdomain,
   deployedUrl,
   siteId,
   onPublish,
   onOpenChange,
 }: {
-  projectName: string;
+  open: boolean;
+  currentAppTitle?: string | null;
   currentSubdomain: string | null;
   deployedUrl: string | null;
   siteId: string | null;
@@ -150,35 +155,74 @@ function PublishForm({
   onOpenChange: (open: boolean) => void;
 }) {
   const isUpdate = !!deployedUrl;
-  const [subdomain, setSubdomain] = useState(currentSubdomain || slugify(projectName));
-  const [siteTitle, setSiteTitle] = useState(projectName);
+  const [siteTitle, setSiteTitle] = useState(isUpdate ? (currentAppTitle || '') : '');
+  const [subdomain, setSubdomain] = useState(currentSubdomain || (isUpdate && currentAppTitle ? slugify(currentAppTitle) : ''));
+  const [subdomainManuallyEdited, setSubdomainManuallyEdited] = useState(false);
+  const [titleTouched, setTitleTouched] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(currentSubdomain ? true : null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishedUrl, setPublishedUrl] = useState<string | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
 
+  // Sync state whenever dialog opens or edit mode starts
+  useEffect(() => {
+    if (open) {
+      if (isUpdate) {
+        setSiteTitle(currentAppTitle || '');
+        setSubdomain(currentSubdomain || (currentAppTitle ? slugify(currentAppTitle) : ''));
+      } else {
+        setSiteTitle('');
+        setSubdomain('');
+        setSubdomainManuallyEdited(false);
+        setTitleTouched(false);
+      }
+      setPublishedUrl(null);
+      setPublishError(null);
+    }
+  }, [open, isUpdate, currentAppTitle, currentSubdomain]);
+
   useEffect(() => {
     const clean = slugify(subdomain);
     if (currentSubdomain && clean === currentSubdomain) { setIsAvailable(true); return; }
-    if (clean.length < 3) { setIsAvailable(null); return; }
+    if (clean.length === 0) { setIsAvailable(null); return; }
+    if (clean.length < 3) { setIsAvailable(false); return; }
     setIsAvailable(true);
   }, [subdomain, currentSubdomain]);
 
+  const handleTitleChange = (val: string) => {
+    setSiteTitle(val);
+    setTitleTouched(true);
+    // On first publish, auto-sync subdomain with app name as long as user hasn't manually edited subdomain
+    if (!subdomainManuallyEdited && !isUpdate) {
+      setSubdomain(slugify(val));
+      setPublishError(null);
+    }
+  };
+
+  const handleSubdomainChange = (val: string) => {
+    setSubdomain(val);
+    setSubdomainManuallyEdited(true);
+    setPublishError(null);
+  };
+
+  const cleanSubdomain = slugify(subdomain);
+  const isTitleValid = siteTitle.trim().length > 0;
+  const isSubdomainValid = cleanSubdomain.length >= 3;
+
   const handlePublish = async () => {
+    if (!isTitleValid || !isSubdomainValid) return;
     setIsPublishing(true);
     setPublishError(null);
     try {
       const faviconSvg = optionToSvg(FAVICON_OPTIONS[selectedIndex]);
-      await onPublish(slugify(subdomain), siteTitle, faviconSvg);
-      setPublishedUrl(`https://${slugify(subdomain)}.${PUBLISH_DOMAIN}`);
+      await onPublish(cleanSubdomain, siteTitle.trim(), faviconSvg);
+      setPublishedUrl(`https://${cleanSubdomain}.${PUBLISH_DOMAIN}`);
     } catch (err: any) {
       const msg = err?.message || 'Publish failed';
-      setPublishError(msg.includes('already taken') ? `Subdomain "${slugify(subdomain)}" is already taken. Try a different name.` : msg);
+      setPublishError(msg.includes('already taken') ? `Subdomain "${cleanSubdomain}" is already taken. Try a different name.` : msg);
     } finally { setIsPublishing(false); }
   };
-
-  const cleanSubdomain = slugify(subdomain);
 
   if (publishedUrl) {
     return (
@@ -189,7 +233,7 @@ function PublishForm({
           <a href={publishedUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="inline-flex items-center gap-1.5 text-primary hover:underline text-sm">
             <ExternalLink className="h-3.5 w-3.5" /> {publishedUrl}
           </a>
-          <p className="text-xs text-muted-foreground">Your site is now live. Share this link with anyone!</p>
+          <p className="text-xs text-muted-foreground">Your app is now live. Share this link with anyone!</p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Done</Button>
@@ -201,7 +245,7 @@ function PublishForm({
   return (
     <>
       <DialogDescription>
-        Configure your site before {isUpdate ? 'updating' : 'publishing'} to <strong>{cleanSubdomain || '...'}.{PUBLISH_DOMAIN}</strong>
+        Configure your app before {isUpdate ? 'updating' : 'publishing'} to <strong>{cleanSubdomain || '...'}.{PUBLISH_DOMAIN}</strong>
       </DialogDescription>
 
       <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2.5 flex items-start gap-2 mt-2">
@@ -213,9 +257,27 @@ function PublishForm({
 
       <div className="space-y-4 py-2">
         <div className="space-y-2">
-          <Label htmlFor="siteTitle">Site Title</Label>
-          <Input id="siteTitle" value={siteTitle} onChange={(e) => setSiteTitle(e.target.value)} placeholder="My Cool App" className="text-sm" disabled={isPublishing} />
-          <p className="text-[11px] text-muted-foreground">Shown in the browser tab</p>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="siteTitle">App Name</Label>
+            <span className="text-[10px] text-muted-foreground font-medium">Required</span>
+          </div>
+          <Input
+            id="siteTitle"
+            value={siteTitle}
+            onChange={(e) => handleTitleChange(e.target.value)}
+            onBlur={() => setTitleTouched(true)}
+            placeholder="e.g. My Cool App"
+            className={cn("text-sm", titleTouched && !isTitleValid && "border-destructive focus-visible:ring-destructive")}
+            disabled={isPublishing}
+            autoFocus={!isUpdate}
+          />
+          {titleTouched && !isTitleValid ? (
+            <p className="text-[11px] text-destructive flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" /> App name is required
+            </p>
+          ) : (
+            <p className="text-[11px] text-muted-foreground">Shown in the browser tab and app header</p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -252,19 +314,42 @@ function PublishForm({
         <div className="space-y-2">
           <Label htmlFor="subdomain">Subdomain</Label>
           <div className="flex items-center gap-1">
-            <Input id="subdomain" value={subdomain} onChange={(e) => { setSubdomain(e.target.value); setPublishError(null); }} placeholder="my-cool-app" className="font-mono text-sm" disabled={isPublishing} />
+            <Input
+              id="subdomain"
+              value={subdomain}
+              onChange={(e) => handleSubdomainChange(e.target.value)}
+              placeholder="my-cool-app"
+              className="font-mono text-sm"
+              disabled={isPublishing}
+            />
             <span className="text-xs text-muted-foreground whitespace-nowrap">.{PUBLISH_DOMAIN}</span>
           </div>
           <div className="h-5 flex items-center gap-1.5">
-            {!publishError && isAvailable === true && cleanSubdomain.length >= 3 && <span className="text-xs text-primary flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Available</span>}
-            {!publishError && isAvailable === false && <span className="text-xs text-destructive flex items-center gap-1"><XCircle className="h-3 w-3" /> Too short — min 3 characters</span>}
-            {publishError && <span className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5" /> {publishError}</span>}
+            {!publishError && isAvailable === true && cleanSubdomain.length >= 3 && (
+              <span className="text-xs text-primary flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3" /> Available
+              </span>
+            )}
+            {!publishError && isAvailable === false && cleanSubdomain.length > 0 && (
+              <span className="text-xs text-destructive flex items-center gap-1">
+                <XCircle className="h-3 w-3" /> Too short — min 3 characters
+              </span>
+            )}
+            {publishError && (
+              <span className="text-xs text-destructive flex items-center gap-1">
+                <AlertCircle className="h-3.5 w-3.5" /> {publishError}
+              </span>
+            )}
           </div>
         </div>
       </div>
 
       <DialogFooter>
-        <Button onClick={handlePublish} disabled={isPublishing || isAvailable !== true || cleanSubdomain.length < 3 || !siteTitle.trim()} className="gap-1.5">
+        <Button
+          onClick={handlePublish}
+          disabled={isPublishing || !isTitleValid || !isSubdomainValid || isAvailable === false}
+          className="gap-1.5"
+        >
           {isPublishing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Rocket className="h-3.5 w-3.5" />}
           {isPublishing ? (isUpdate ? 'Updating…' : 'Publishing…') : (isUpdate ? 'Update' : 'Publish')}
         </Button>
@@ -275,7 +360,7 @@ function PublishForm({
 
 /* ── Main dialog ── */
 export function PublishDialog({
-  open, onOpenChange, projectName, currentSubdomain, deployedUrl, siteId, onPublish, onUnpublish,
+  open, onOpenChange, currentAppTitle, currentSubdomain, deployedUrl, siteId, onPublish, onUnpublish,
 }: PublishDialogProps) {
   const [showEditForm, setShowEditForm] = useState(false);
 
@@ -290,7 +375,7 @@ export function PublishDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Rocket className="h-4 w-4" /> {isPublished ? 'Published Site' : 'Publish to Web'}
+            <Rocket className="h-4 w-4" /> {isPublished ? 'Published App' : (deployedUrl ? 'Update App' : 'Publish App to Web')}
             <span className="text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider select-none">Beta</span>
           </DialogTitle>
         </DialogHeader>
@@ -299,13 +384,15 @@ export function PublishDialog({
           <PublishedStatusView
             deployedUrl={deployedUrl!}
             currentSubdomain={currentSubdomain}
+            currentAppTitle={currentAppTitle}
             onEdit={() => setShowEditForm(true)}
             onUnpublish={onUnpublish}
             onClose={() => onOpenChange(false)}
           />
         ) : (
           <PublishForm
-            projectName={projectName}
+            open={open}
+            currentAppTitle={currentAppTitle}
             currentSubdomain={currentSubdomain}
             deployedUrl={deployedUrl}
             siteId={siteId}
