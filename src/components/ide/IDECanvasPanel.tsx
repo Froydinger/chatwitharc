@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIDEStore } from '@/store/useIDEStore';
 import { ThemedLogo } from '@/components/ThemedLogo';
+import { shouldReserveDesktopTrafficLightSpace } from '@/utils/platform';
 import { IDECodeEditor } from './IDECodeEditor';
 import { IDEPreviewPanel } from './IDEPreviewPanel';
 import { IDEChatPanel } from './IDEChatPanel';
@@ -109,6 +110,11 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
   const isMobile = useIsMobile();
   const { toast } = useToast();
+  const [reserveTrafficLightSpace, setReserveTrafficLightSpace] = useState(false);
+
+  useEffect(() => {
+    setReserveTrafficLightSpace(shouldReserveDesktopTrafficLightSpace());
+  }, []);
   
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const filesRef = useRef<VirtualFileSystem>(files);
@@ -618,8 +624,22 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
   // Render Workspace
   return (
     <div className={cn("h-[100dvh] max-h-[100dvh] w-screen max-w-full flex flex-col bg-[#08090c] text-foreground select-none overflow-hidden", className)}>
+      {/* Mac Traffic Light Spacer (Mac App & Web App) */}
+      {reserveTrafficLightSpace && (
+        <div
+          className="w-full shrink-0 select-none pointer-events-none"
+          style={{
+            height: 'calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 30px))',
+            WebkitAppRegion: 'drag',
+          } as React.CSSProperties}
+        />
+      )}
+
       {/* Floating Glass Studio Header Dock */}
-      <header className="px-4 py-2.5 mx-3 mt-2.5 mb-1.5 rounded-2xl bg-[#0f1117]/85 border border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+      <header className={cn(
+        "px-4 py-2.5 mx-3 mb-1.5 rounded-2xl bg-[#0f1117]/85 border border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 shadow-[0_8px_32px_rgba(0,0,0,0.4)]",
+        reserveTrafficLightSpace ? "mt-1" : "mt-2.5"
+      )}>
         {/* Left: Project identity & Back */}
         <div className="flex items-center gap-3">
           <Button 

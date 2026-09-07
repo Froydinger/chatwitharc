@@ -47,7 +47,8 @@ function getReliableMacOSMajorVersion(): number | null {
 }
 
 export function shouldReserveDesktopTrafficLightSpace(): boolean {
-  if (!isStandaloneRuntime() || isMobileLikeDevice()) return false;
+  // Never touch mobile devices (iOS, Android, iPad, etc.)
+  if (isMobileLikeDevice()) return false;
 
   if (typeof window !== "undefined") {
     const isFloating = window.location.search.includes("floating=1") ||
@@ -55,13 +56,14 @@ export function shouldReserveDesktopTrafficLightSpace(): boolean {
     if (isFloating) return false;
   }
 
-  const isMac = /Macintosh|Mac OS X/i.test(navigator.userAgent) ||
-    ((navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform === "macOS");
-  const isElectron = /electron/i.test(navigator.userAgent);
-  if (!isMac && !isElectron) return false;
-  if (isMac && isElectron) return true;
+  const isMac = typeof navigator !== "undefined" && (
+    /Macintosh|Mac OS X/i.test(navigator.userAgent) ||
+    ((navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform === "macOS")
+  );
+  const isElectron = typeof navigator !== "undefined" && /electron/i.test(navigator.userAgent);
 
-  const macOSMajor = getReliableMacOSMajorVersion();
+  // Both the Mac desktop app (Electron) and Web app (PWA/standalone/macOS) require traffic light safe area.
+  if (isMac || isElectron) return true;
 
-  return macOSMajor !== null && macOSMajor <= 26;
+  return false;
 }
