@@ -122,6 +122,63 @@ const clearSessionTimers = () => {
   if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
 };
 
+// iOS loudspeaker echo protection: estimates playback duration based on word count
+// and keeps the microphone track muted on iOS while Arc is actively speaking to prevent
+// speaker audio from leaking into VAD and cutting the assistant off.
+let iosSpeakingPlaybackTimer: ReturnType<typeof setTimeout> | null = null;
+let currentResponseTranscript = '';
+let responseStartTime = 0;
+
+const startIosSpeakingGate = () => {
+  if (!isIOSDevice() || !(globalWs instanceof RealtimeBrowserTransport)) return;
+  if (iosSpeakingPlaybackTimer) {
+    clearTimeout(iosSpeakingPlaybackTimer);
+    iosSpeakingPlaybackTimer = null;
+  }
+  globalWs.setSpeakingGate(true);
+  useVoiceModeStore.getState().setIsAudioPlaying(true);
+};
+
+const scheduleIosSpeakingGateRelease = (transcript: string) => {
+  if (!isIOSDevice() || !(globalWs instanceof RealtimeBrowserTransport)) return;
+  if (iosSpeakingPlaybackTimer) {
+    clearTimeout(iosSpeakingPlaybackTimer);
+  }
+
+  // Calculate speech playback duration based on words and punctuation
+  const words = transcript.trim().split(/\s+/).filter(Boolean).length;
+  const punctuationCount = (transcript.match(/[,.?!:;]/g) || []).length;
+  const speed = useVoiceModeStore.getState().voiceSpeed || 1.0;
+  // Conversational cadence: ~400ms per word + 250ms per punctuation pause
+  const totalEstimatedMs = Math.max(1200, ((words * 400 + punctuationCount * 250) / speed));
+  const elapsedMs = responseStartTime > 0 ? (Date.now() - responseStartTime) : 0;
+  // Ensure we keep the gate active for the remaining audio plus 400ms dissipation
+  const remainingMs = Math.max(700, totalEstimatedMs - elapsedMs + 400);
+
+  iosSpeakingPlaybackTimer = setTimeout(() => {
+    iosSpeakingPlaybackTimer = null;
+    if (globalWs instanceof RealtimeBrowserTransport) {
+      globalWs.setSpeakingGate(false);
+    }
+    useVoiceModeStore.getState().setIsAudioPlaying(false);
+    useVoiceModeStore.getState().setOutputAmplitude(0);
+    const { isActive, status } = useVoiceModeStore.getState();
+    if (isActive && status === 'speaking') {
+      useVoiceModeStore.getState().setStatus('listening');
+    }
+  }, remainingMs);
+};
+
+const clearIosSpeakingGate = () => {
+  if (iosSpeakingPlaybackTimer) {
+    clearTimeout(iosSpeakingPlaybackTimer);
+    iosSpeakingPlaybackTimer = null;
+  }
+  if (globalWs instanceof RealtimeBrowserTransport) {
+    globalWs.setSpeakingGate(false);
+  }
+};
+
 // Voice Mode deliberately KEEPS RUNNING when the tab is backgrounded — Jake
 // uses it in the background on purpose. Do not re-add a visibilitychange
 // disconnect here. The 10-minute inactivity timeout applies whether the tab is
@@ -838,8 +895,13 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // WebRTC owns echo cancellation, interruption and played-audio
         // truncation. Do not run the PCM duck/probe against native playback.
         if (globalWs instanceof RealtimeBrowserTransport) {
+          const isAssistantSpeaking = responseInProgress || stateAtSpeechStart.status === 'speaking' || stateAtSpeechStart.isAudioPlaying;
+          if (isIOSDevice() && isAssistantSpeaking) {
+            console.log('🔈 Ignoring VAD speech_started on iOS while assistant is speaking (speaker bleed guard)');
+            break;
+          }
           useVoiceModeStore.getState().setHasPendingSpeech(true);
-          if (canBargeIn && !isIOSDevice()) rememberInterruptedResponse(activeResponseId);
+          if (canBargeIn) rememberInterruptedResponse(activeResponseId);
           setStatus('listening');
           break;
         }
@@ -937,8 +999,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'response.audio_transcript.delta':
       case 'response.output_audio_transcript.delta':
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
+        startIosSpeakingGate();
         setStatus('speaking');
         const partialTranscript = event.delta || '';
+        currentResponseTranscript += partialTranscript;
         // Accumulate AI transcript separately — reset on each new response
         const { currentTranscript: existingTranscript } = useVoiceModeStore.getState();
         setCurrentTranscript(existingTranscript + partialTranscript);
@@ -948,7 +1012,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'response.audio_transcript.done':
       case 'response.output_audio_transcript.done':
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
-        const aiTranscript = event.transcript || '';
+        const aiTranscript = event.transcript || currentResponseTranscript || '';
+        scheduleIosSpeakingGateRelease(aiTranscript);
         if (!aiTranscript.trim()) return;
         console.log('AI said:', aiTranscript);
         
@@ -1468,6 +1533,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         // Arc talking counts as activity too.
         resetInactivityTimer();
+        responseStartTime = Date.now();
+        currentResponseTranscript = '';
+        startIosSpeakingGate();
         responseInProgress = true;
         activeResponseId = event.response?.id || null;
         activeAudioItemId = null;
@@ -1518,16 +1586,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         
         // Only transition to listening if audio has finished playing.
         const { isActive: stillActive, isAudioPlaying: audioStillPlaying } = useVoiceModeStore.getState();
-        if (stillActive && !audioStillPlaying) {
+        if (stillActive && !audioStillPlaying && !isIOSDevice()) {
           setStatus('listening');
         }
-        if (globalWs instanceof RealtimeBrowserTransport) {
-          setTimeout(() => {
-            if (globalWs instanceof RealtimeBrowserTransport) {
-              globalWs.setSpeakingGate(false);
-            }
-          }, 150);
-        }
+        scheduleIosSpeakingGateRelease(currentResponseTranscript);
         break;
 
       case 'error':
@@ -2061,6 +2123,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
   const disconnect = useCallback(() => {
     const { setStatus } = useVoiceModeStore.getState();
+    clearIosSpeakingGate();
 
     // Reset reconnect state — this is an intentional disconnect
     intentionalDisconnect = true;
@@ -2169,6 +2232,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     if (globalWs?.readyState !== WebSocket.OPEN) return;
     
     console.log('Manually cancelling AI response');
+    clearIosSpeakingGate();
     rememberInterruptedResponse(activeResponseId);
     suppressInterruptedResponseAudio = true;
     clearBargeInProbe();

@@ -269,7 +269,8 @@ async function buildVoiceSystemPrompt(
     }
 
     voicePrompt += `\n\n--- VOICE TOOLS ---
-CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
+CRITICAL CAPABILITY DIRECTIVE: You have full live access to tools for web search, current weather, device location, memory, image generation, and reminders. NEVER say "I cannot access real-time information", "I don't have internet access", "I cannot check the weather", or "I cannot do that". Always use the appropriate tool immediately.
+CRITICAL: Always say something brief and natural BEFORE using any tool (e.g. "Let me check that", "Looking into that now", "On it") so the user isn't left in silence.
 
 • IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. Image results and generating states appear directly in the chat thread. For changes like "edit that", "make it darker", "change the last one", or follow-ups after an image, use revise_image; it edits the latest generated/chat image. Do not mention internal retries unless the tool fully fails.
 • WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search ONLY for current/public internet facts, news, videos, places, products, or live information. Do NOT use web_search for personal questions, the user's vibe/preferences, or "based on our chats" — use search_past_chats or memory tools for those. Results and sources appear directly in the chat thread, so summarize naturally.
