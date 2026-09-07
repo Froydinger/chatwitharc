@@ -917,7 +917,12 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                   />
                 </div>
                 <div className={cn("h-full w-full min-h-0 overflow-y-auto bg-[#0b0c10]", activeTab === 'cloud' ? "block" : "hidden")}>
-                  <IDECloudPanel files={files} setFiles={setFiles} />
+                  <IDECloudPanel 
+                    files={files} 
+                    setFiles={setFiles} 
+                    onChatSend={handleChatSend}
+                    isAgentRunning={isAgentRunning}
+                  />
                 </div>
               </div>
             </ResizablePanel>

@@ -232,6 +232,21 @@ export const netlifyDb = {
             created_at: data.created_at || new Date().toISOString(),
           };
           localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(newUser));
+          try {
+            const rawUsers = localStorage.getItem('netlify_mock_users');
+            const userList = rawUsers ? JSON.parse(rawUsers) : [];
+            if (!userList.some((u: any) => u.email === newUser.email)) {
+              userList.unshift({
+                id: newUser.id,
+                email: newUser.email,
+                name: newUser.name,
+                role: 'User',
+                status: 'Active',
+                created_at: new Date().toLocaleDateString(),
+              });
+              localStorage.setItem('netlify_mock_users', JSON.stringify(userList));
+            }
+          } catch {}
           window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { user: newUser } }));
           return { user: newUser, error: null };
         } else if (res.status !== 404) {
@@ -252,6 +267,21 @@ export const netlifyDb = {
         created_at: new Date().toISOString(),
       };
       localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(newUser));
+      try {
+        const rawUsers = localStorage.getItem('netlify_mock_users');
+        const userList = rawUsers ? JSON.parse(rawUsers) : [];
+        if (!userList.some((u: any) => u.email === newUser.email)) {
+          userList.unshift({
+            id: newUser.id,
+            email: newUser.email,
+            name: newUser.name,
+            role: 'User',
+            status: 'Active',
+            created_at: new Date().toLocaleDateString(),
+          });
+          localStorage.setItem('netlify_mock_users', JSON.stringify(userList));
+        }
+      } catch {}
       window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { user: newUser } }));
       return { user: newUser, error: null };
     },

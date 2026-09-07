@@ -1,17 +1,51 @@
 import { useState, useEffect } from 'react';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Button } from '@/components/ui/button';
-import { Database, Shield, Users, RefreshCw, Trash2, Key, ToggleLeft, ToggleRight, Sparkles, Cloud, UserPlus } from 'lucide-react';
+import { Database, Shield, Users, RefreshCw, Trash2, Cloud, UserPlus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import type { VirtualFileSystem } from '@/types/ide';
 import { DEFAULT_FILES } from '@/types/ide';
 
 interface IDECloudPanelProps {
   files: VirtualFileSystem;
   setFiles: React.Dispatch<React.SetStateAction<VirtualFileSystem>>;
+  onChatSend?: (message: string) => void;
+  isAgentRunning?: boolean;
 }
 
-export function IDECloudPanel({ files, setFiles }: IDECloudPanelProps) {
+// Detect whether the app's code actually uses netlifyDb
+const isDbCodeApplied = (vfs: VirtualFileSystem): boolean => {
+  return Object.entries(vfs).some(([path, file]) => {
+    if (path === 'src/lib/netlifyDb.ts') return false;
+    const c = file.content;
+    return (
+      c.includes('netlifyDb.collection') ||
+      c.includes('netlifyDb.get') ||
+      c.includes('netlifyDb.set') ||
+      c.includes("from './lib/netlifyDb'") ||
+      c.includes('from "./lib/netlifyDb"') ||
+      c.includes("from '../lib/netlifyDb'") ||
+      c.includes('from "../lib/netlifyDb"')
+    );
+  });
+};
+
+// Detect whether the app's code actually uses Netlify auth
+const isAuthCodeApplied = (vfs: VirtualFileSystem): boolean => {
+  return Object.entries(vfs).some(([path, file]) => {
+    if (path === 'src/components/NetlifyAuthModal.tsx' || path === 'src/lib/netlifyDb.ts') return false;
+    const c = file.content;
+    return (
+      c.includes('NetlifyAuthModal') ||
+      c.includes('netlifyDb.auth') ||
+      c.includes("from './components/NetlifyAuthModal'") ||
+      c.includes('from "./components/NetlifyAuthModal"')
+    );
+  });
+};
+
+export function IDECloudPanel({ files, setFiles, onChatSend, isAgentRunning }: IDECloudPanelProps) {
   const [authEnabled, setAuthEnabled] = useState(false);
   const [dbEnabled, setDbEnabled] = useState(false);
   const [mockUsers, setMockUsers] = useState<any[]>([]);
@@ -21,21 +55,44 @@ export function IDECloudPanel({ files, setFiles }: IDECloudPanelProps) {
   const [newName, setNewName] = useState('');
 
   useEffect(() => {
-    // Check if auth component or database helper exists in files
-    setAuthEnabled(!!files['src/components/NetlifyAuthModal.tsx']);
-    setDbEnabled(!!files['src/lib/netlifyDb.ts']);
+    // Determine active status strictly from actual code usage
+    setAuthEnabled(isAuthCodeApplied(files));
+    setDbEnabled(isDbCodeApplied(files));
     loadMockData();
+
+    const handleStorageOrAuth = () => loadMockData();
+    window.addEventListener('netlify-auth-change', handleStorageOrAuth);
+    window.addEventListener('netlify-db-change', handleStorageOrAuth);
+    window.addEventListener('storage', handleStorageOrAuth);
+    return () => {
+      window.removeEventListener('netlify-auth-change', handleStorageOrAuth);
+      window.removeEventListener('netlify-db-change', handleStorageOrAuth);
+      window.removeEventListener('storage', handleStorageOrAuth);
+    };
   }, [files]);
 
   const loadMockData = () => {
     try {
+      // Clean up legacy mock dummy seeds if they were previously saved
+      localStorage.removeItem('netlify_mock_db');
+      if (localStorage.getItem('netlify_db:settings:theme') === '"dark"') {
+        localStorage.removeItem('netlify_db:settings:theme');
+      }
+      if (localStorage.getItem('netlify_db:dashboard:stats')) {
+        localStorage.removeItem('netlify_db:dashboard:stats');
+      }
+
       const currentUser = localStorage.getItem('netlify_current_user');
       const storedUsers = localStorage.getItem('netlify_mock_users');
       let parsedUsers: any[] = storedUsers ? JSON.parse(storedUsers) : [];
+
+      // Filter out any legacy dummy account 'user@askarc.chat'
+      parsedUsers = parsedUsers.filter(u => u?.email && u.email !== 'user@askarc.chat' && u.name !== 'App User');
+
       if (currentUser) {
         try {
           const cu = JSON.parse(currentUser);
-          if (cu?.email && !parsedUsers.some(u => u.email === cu.email)) {
+          if (cu?.email && cu.email !== 'user@askarc.chat' && !parsedUsers.some(u => u.email === cu.email)) {
             parsedUsers.unshift({
               id: cu.id || '1',
               email: cu.email,
@@ -47,11 +104,7 @@ export function IDECloudPanel({ files, setFiles }: IDECloudPanelProps) {
           }
         } catch {}
       }
-      if (parsedUsers.length === 0) {
-        parsedUsers = [
-          { id: '1', email: 'user@askarc.chat', name: 'App User', role: 'User', status: 'Active', created_at: new Date().toLocaleDateString() }
-        ];
-      }
+      // Never inject fake default users - start cleanly at 0 users
       setMockUsers(parsedUsers);
 
       const records: Record<string, any> = {};
@@ -66,17 +119,7 @@ export function IDECloudPanel({ files, setFiles }: IDECloudPanelProps) {
           }
         }
       }
-      const legacyDb = localStorage.getItem('netlify_mock_db');
-      if (legacyDb) {
-        try {
-          Object.assign(records, JSON.parse(legacyDb));
-        } catch {}
-      }
-
-      if (Object.keys(records).length === 0) {
-        records['settings:theme'] = 'dark';
-        records['dashboard:stats'] = { visitors: 1420, conversions: 88 };
-      }
+      // Never inject fake default records - start cleanly at empty database
       setDbRecords(records);
     } catch (e) {
       console.error('Failed to load mock data:', e);
@@ -85,45 +128,89 @@ export function IDECloudPanel({ files, setFiles }: IDECloudPanelProps) {
 
   const saveMockData = (users: any[], db: Record<string, any>) => {
     localStorage.setItem('netlify_mock_users', JSON.stringify(users));
-    localStorage.setItem('netlify_mock_db', JSON.stringify(db));
     setMockUsers(users);
     setDbRecords(db);
   };
 
   const handleToggleAuth = () => {
+    if (isAgentRunning) {
+      toast.error("Agent is currently generating code. Please wait a moment.");
+      return;
+    }
+
     if (!authEnabled) {
-      setFiles(prev => ({
-        ...prev,
-        'src/components/NetlifyAuthModal.tsx': DEFAULT_FILES['src/components/NetlifyAuthModal.tsx']
-      }));
-      toast.success("Injected Netlify Authentication widget to src/components/NetlifyAuthModal.tsx!");
-    } else {
+      // User wants to enable auth: ensure helper components exist in files
       setFiles(prev => {
         const next = { ...prev };
-        delete next['src/components/NetlifyAuthModal.tsx'];
+        if (!next['src/lib/netlifyDb.ts']) {
+          next['src/lib/netlifyDb.ts'] = DEFAULT_FILES['src/lib/netlifyDb.ts'];
+        }
+        if (!next['src/components/NetlifyAuthModal.tsx']) {
+          next['src/components/NetlifyAuthModal.tsx'] = DEFAULT_FILES['src/components/NetlifyAuthModal.tsx'];
+        }
         return next;
       });
-      toast.error("Removed Netlify Authentication widget.");
+
+      if (onChatSend) {
+        toast.success("Instructing Arc to wire up user authentication...");
+        onChatSend("Please update the app to add user account authentication and login/signup flow using NetlifyAuthModal and netlifyDb.auth. Show Sign In / Sign Up buttons in the header when logged out, and user avatar / name / Sign Out when logged in. Let logged-in users create and interact with content using their identity.");
+      } else {
+        toast.success("Injected NetlifyAuthModal component! Ask the chat to wire it into the app.");
+      }
+    } else {
+      // User wants to disable auth
+      if (onChatSend) {
+        toast.info("Instructing Arc to remove user authentication...");
+        onChatSend("Please update the app to remove user authentication and NetlifyAuthModal, making the app open and accessible without needing to log in.");
+      } else {
+        setFiles(prev => {
+          const next = { ...prev };
+          delete next['src/components/NetlifyAuthModal.tsx'];
+          return next;
+        });
+        toast.info("Removed NetlifyAuthModal component.");
+      }
     }
-    setAuthEnabled(!authEnabled);
   };
 
   const handleToggleDb = () => {
-    if (!dbEnabled) {
-      setFiles(prev => ({
-        ...prev,
-        'src/lib/netlifyDb.ts': DEFAULT_FILES['src/lib/netlifyDb.ts']
-      }));
-      toast.success("Injected netlifyDb helper to src/lib/netlifyDb.ts!");
-    } else {
-      setFiles(prev => {
-        const next = { ...prev };
-        delete next['src/lib/netlifyDb.ts'];
-        return next;
-      });
-      toast.error("Removed netlifyDb helper.");
+    if (isAgentRunning) {
+      toast.error("Agent is currently generating code. Please wait a moment.");
+      return;
     }
-    setDbEnabled(!dbEnabled);
+
+    if (!dbEnabled) {
+      // User wants to enable database: ensure helper exists in files
+      setFiles(prev => {
+        if (!prev['src/lib/netlifyDb.ts']) {
+          return {
+            ...prev,
+            'src/lib/netlifyDb.ts': DEFAULT_FILES['src/lib/netlifyDb.ts']
+          };
+        }
+        return prev;
+      });
+
+      if (onChatSend) {
+        toast.success("Instructing Arc to connect persistent database storage...");
+        onChatSend("Please connect and wire up netlifyDb persistent database storage for this app. Replace any static mock state or in-memory arrays with netlifyDb.collection() or netlifyDb.get/set so all user data, posts, items, and changes are saved and persist across page reloads.");
+      } else {
+        toast.success("Injected netlifyDb helper to src/lib/netlifyDb.ts! Ask the chat to wire it into the app.");
+      }
+    } else {
+      // User wants to disable database
+      if (onChatSend) {
+        toast.info("Instructing Arc to disconnect database storage...");
+        onChatSend("Please update the app to disconnect netlifyDb persistent database storage and use standard in-memory React state instead.");
+      } else {
+        setFiles(prev => {
+          const next = { ...prev };
+          delete next['src/lib/netlifyDb.ts'];
+          return next;
+        });
+        toast.info("Removed netlifyDb helper.");
+      }
+    }
   };
 
   const handleAddUserSubmit = (e: React.FormEvent) => {
@@ -192,13 +279,22 @@ export function IDECloudPanel({ files, setFiles }: IDECloudPanelProps) {
               size="sm" 
               variant={authEnabled ? "default" : "outline"}
               onClick={handleToggleAuth}
-              className="h-8 rounded-xl"
+              disabled={isAgentRunning}
+              className={cn(
+                "h-8 rounded-xl transition-all gap-1.5",
+                authEnabled
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "border-white/10 hover:bg-white/5 text-muted-foreground hover:text-foreground"
+              )}
             >
+              {isAgentRunning ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : null}
               {authEnabled ? "Enabled" : "Enable"}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Injects <code>NetlifyAuthModal.tsx</code> custom dialog component. Enables user sign-in, account creation, and user-scoped data.
+            Injects <code>NetlifyAuthModal.tsx</code> custom dialog component. Toggling requests Arc to wire up login/signup in your code.
           </p>
         </GlassCard>
 
@@ -212,13 +308,22 @@ export function IDECloudPanel({ files, setFiles }: IDECloudPanelProps) {
               size="sm" 
               variant={dbEnabled ? "default" : "outline"}
               onClick={handleToggleDb}
-              className="h-8 rounded-xl"
+              disabled={isAgentRunning}
+              className={cn(
+                "h-8 rounded-xl transition-all gap-1.5",
+                dbEnabled
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                  : "border-white/10 hover:bg-white/5 text-muted-foreground hover:text-foreground"
+              )}
             >
+              {isAgentRunning ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : null}
               {dbEnabled ? "Enabled" : "Enable"}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Injects <code>netlifyDb.ts</code> helper with collections, CRUD operations, and user auth state. Works in preview and deployed apps.
+            Injects <code>netlifyDb.ts</code> helper with collections and CRUD. Toggling requests Arc to wire persistent storage into your code.
           </p>
         </GlassCard>
       </div>
