@@ -59,7 +59,8 @@ To delete an existing file, output:
 Rules:
 • Always output the COMPLETE file content in the code blocks — no placeholders, no "rest of code here".
 • Since this is a client-side React App, all routes must be containerized in the main client. If you want navigation, import react-router-dom and set up Routes/Route inside src/App.tsx.
-• Style the interface beautifully using modern Tailwind CSS classes and clean, dark glass aesthetics (#08090c to #0f1117, border-white/10, backdrop-blur).
+• Style the interface beautifully using modern Tailwind CSS classes and clean, dark glass aesthetics (dark theme #08090c to #0f1117, text-slate-100, border-white/10, backdrop-blur).
+• Ensure all UI elements (buttons, text inputs, selects, cards, modals, lists, headers) are explicitly styled with Tailwind classes. Never render bare, unstyled HTML elements. Buttons must have background, padding, rounded corners, and hover states. Inputs must have backgrounds, borders, text color, and padding.
 • Keep all your code functional, valid, and syntactically correct.
 `;
 

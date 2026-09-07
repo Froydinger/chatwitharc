@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { RefreshCw, Globe, Monitor, Smartphone, Tablet, Rocket, ExternalLink, Lock, Sparkles, Loader2 } from 'lucide-react';
+import { RefreshCw, Monitor, Smartphone, Tablet, Rocket, ExternalLink, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ThemedLogo } from '@/components/ThemedLogo';
@@ -8,7 +8,8 @@ import type { VirtualFileSystem } from '@/types/ide';
 import { 
   SandpackProvider, 
   SandpackPreview, 
-  useSandpack 
+  useSandpack,
+  useSandpackNavigation 
 } from '@codesandbox/sandpack-react';
 
 interface IDEPreviewPanelProps {
@@ -39,14 +40,49 @@ function SandpackErrorListener({ onError }: { onError?: (error: string) => void 
   return null;
 }
 
-function SandpackLoadingOverlay({ previewKey }: { previewKey: number }) {
+function SandpackRefreshButton({ 
+  isRefreshing, 
+  onRefresh 
+}: { 
+  isRefreshing: boolean; 
+  onRefresh: () => void; 
+}) {
+  const { refresh } = useSandpackNavigation();
+
+  const handleRefreshClick = () => {
+    onRefresh();
+    try {
+      refresh();
+    } catch (err) {
+      console.warn('[Sandpack] Refresh failed:', err);
+    }
+  };
+
+  return (
+    <Button 
+      size="sm" 
+      variant="ghost" 
+      onClick={handleRefreshClick}
+      className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg" 
+      title="Refresh Preview (reload tab)"
+    >
+      <RefreshCw className={cn("h-3.5 w-3.5 transition-transform duration-500", isRefreshing && "animate-spin text-primary")} />
+    </Button>
+  );
+}
+
+function SandpackLoadingOverlay() {
   const { listen, sandpack } = useSandpack();
-  const [isReady, setIsReady] = useState(false);
+  const [isReady, setIsReady] = useState(() => {
+    return sandpack.status === 'idle' || sandpack.status === 'done';
+  });
   const [loadingStep, setLoadingStep] = useState('Booting sandbox runtime…');
 
   useEffect(() => {
-    setIsReady(false);
-    setLoadingStep('Booting sandbox runtime…');
+    if (sandpack.status === 'idle' || sandpack.status === 'done') {
+      setIsReady(true);
+      return;
+    }
 
     const timer1 = setTimeout(() => {
       setLoadingStep('Preparing dependencies & Tailwind…');
@@ -79,15 +115,15 @@ function SandpackLoadingOverlay({ previewKey }: { previewKey: number }) {
       clearTimeout(timer2);
       clearTimeout(safetyTimer);
     };
-  }, [listen, previewKey, sandpack.status]);
+  }, [listen, sandpack.status]);
 
   return (
     <AnimatePresence>
       {!isReady && (
         <motion.div 
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: 0.45, ease: 'easeInOut' } }}
-          className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#090a0d]/90 backdrop-blur-2xl select-none"
+          exit={{ opacity: 0, transition: { duration: 0.35, ease: 'easeInOut' } }}
+          className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#090a0d]/95 backdrop-blur-xl select-none rounded-[inherit] overflow-hidden"
         >
           {/* Subtle radial background glow */}
           <div className="absolute w-72 h-72 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
@@ -137,7 +173,7 @@ export function IDEPreviewPanel({
   onPublishClick
 }: IDEPreviewPanelProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('desktop');
-  const [previewKey, setPreviewKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Map VirtualFileSystem to Sandpack files structure
   const sandpackFiles = useMemo(() => {
@@ -147,11 +183,32 @@ export function IDEPreviewPanel({
       return acc;
     }, {} as Record<string, string>);
 
+    // Ensure tsconfig.json supports path aliases
+    if (!map['/tsconfig.json']) {
+      map['/tsconfig.json'] = JSON.stringify({
+        compilerOptions: {
+          strict: true,
+          esModuleInterop: true,
+          lib: ['dom', 'es2015'],
+          jsx: 'react-jsx',
+          baseUrl: '.',
+          paths: {
+            '@/*': ['src/*', '*'],
+          },
+        },
+      }, null, 2);
+    }
+
+    // Determine target app entrypoint
+    const hasSrcApp = Boolean(map['/src/App.tsx'] || map['/src/App.jsx'] || map['/src/App.js']);
+    const targetAppImport = hasSrcApp ? './src/App' : './App';
+
     // Ensure React 18 entrypoint for Sandpack's client-side bundler
     if (!map['/index.tsx'] && !map['/index.js']) {
       map['/index.tsx'] = `import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './src/App';
+import './styles.css';
+import App from '${targetAppImport}';
 
 const rootEl = document.getElementById('root');
 if (rootEl) {
@@ -165,30 +222,93 @@ if (rootEl) {
 `;
     }
 
-    // Ensure /App.tsx is present if /src/App.tsx exists
+    // Ensure root /App.tsx re-exports ./src/App if /src/App.tsx exists
     if (map['/src/App.tsx'] && !map['/App.tsx']) {
-      map['/App.tsx'] = map['/src/App.tsx'];
+      map['/App.tsx'] = `export { default } from './src/App';\nexport * from './src/App';`;
     }
 
+    // Ensure /styles.css exists with dark background and typography
+    if (!map['/styles.css']) {
+      map['/styles.css'] = `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
+
+*, ::before, ::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: #090a0f;
+  color: #f8fafc;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  min-height: 100vh;
+}
+`;
+    }
+
+    // Ensure index.css and App.css fallbacks exist
+    if (!map['/src/index.css'] && !map['/index.css']) {
+      map['/src/index.css'] = `@import url('./styles.css');\n`;
+      map['/index.css'] = `@import url('./styles.css');\n`;
+    }
+    if (!map['/src/App.css'] && !map['/App.css']) {
+      map['/src/App.css'] = '';
+      map['/App.css'] = '';
+    }
+
+    // Provide HTML shell with Tailwind CSS script + dark mode config
     const htmlContent = `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Preview</title>
+    <title>Arc Live App</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              border: 'rgba(255, 255, 255, 0.1)',
+              background: '#090a0f',
+              foreground: '#f8fafc',
+              primary: {
+                DEFAULT: '#6366f1',
+                foreground: '#ffffff',
+              },
+              muted: {
+                DEFAULT: '#1e293b',
+                foreground: '#94a3b8',
+              },
+              card: {
+                DEFAULT: '#0f1117',
+                foreground: '#f8fafc',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      body {
-        font-family: 'Inter', sans-serif;
+      *, ::before, ::after {
+        box-sizing: border-box;
+      }
+      html, body {
         margin: 0;
         padding: 0;
-        background-color: #0b0c10;
-        color: #f3f4f6;
+        background-color: #090a0f;
+        color: #f8fafc;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        min-height: 100%;
+      }
+      #root {
+        min-height: 100vh;
       }
     </style>
   </head>
-  <body>
+  <body class="bg-[#090a0f] text-slate-100 antialiased min-h-screen">
     <div id="root"></div>
   </body>
 </html>`;
@@ -199,23 +319,46 @@ if (rootEl) {
     return map;
   }, [files]);
 
-  const handleRefresh = () => {
-    setPreviewKey(prev => prev + 1);
-  };
+  const activeSandpackFile = sandpackFiles['/src/App.tsx'] ? '/src/App.tsx' : '/App.tsx';
 
   return (
-    <div className="h-full w-full min-h-0 max-h-full overflow-hidden flex flex-col bg-[#0b0c0e]">
+    <SandpackProvider
+      template="react-ts"
+      theme="dark"
+      customSetup={{
+        dependencies: {
+          "react": "^18.3.1",
+          "react-dom": "^18.3.1",
+          "react-router-dom": "^6.28.0",
+          "framer-motion": "^11.11.9",
+          "lucide-react": "^0.453.0",
+          "react-icons": "^5.3.0",
+          "canvas-confetti": "^1.9.4"
+        }
+      }}
+      files={sandpackFiles}
+      options={{
+        externalResources: [
+          "https://cdn.tailwindcss.com",
+          "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
+        ],
+        visibleFiles: ["/src/App.tsx", "/App.tsx"],
+        activeFile: activeSandpackFile,
+      }}
+      className="h-full w-full min-h-0 max-h-full overflow-hidden flex flex-col bg-[#0b0c0e]"
+      style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', minHeight: 0 }}
+    >
+      <SandpackErrorListener onError={onError} />
+
       {/* Top Preview Bar */}
       <div className="px-3.5 py-2 border-b border-border/10 flex items-center gap-2.5 shrink-0 bg-[#0d0e12]/80 backdrop-blur-md">
-        <Button 
-          size="sm" 
-          variant="ghost" 
-          onClick={handleRefresh}
-          className="h-7 w-7 p-0 shrink-0 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-lg" 
-          title="Refresh Preview"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-        </Button>
+        <SandpackRefreshButton 
+          isRefreshing={isRefreshing}
+          onRefresh={() => {
+            setIsRefreshing(true);
+            setTimeout(() => setIsRefreshing(false), 600);
+          }}
+        />
         
         {/* Custom URL Bar with askarc.chat address */}
         <div className="flex-1 flex items-center gap-2 h-7 px-3 rounded-lg bg-[#14161b] border border-white/5 text-[11px] text-muted-foreground select-none">
@@ -288,88 +431,67 @@ if (rootEl) {
 
       {/* Sandpack Workspace Area */}
       <div className="flex-1 min-h-0 relative overflow-hidden bg-[#090a0d] flex items-center justify-center p-3">
-        <SandpackProvider
-          template="react-ts"
-          customSetup={{
-            dependencies: {
-              "react": "^18.3.1",
-              "react-dom": "^18.3.1",
-              "react-router-dom": "^6.28.0",
-              "framer-motion": "^11.11.9",
-              "lucide-react": "^0.453.0",
-              "react-icons": "^5.3.0",
-              "canvas-confetti": "^1.9.4"
-            }
-          }}
-          files={sandpackFiles}
-          options={{
-            visibleFiles: ["/src/App.tsx", "/App.tsx"],
-            activeFile: sandpackFiles['/src/App.tsx'] ? "/src/App.tsx" : "/App.tsx",
-          }}
-          className="h-full w-full min-h-0 flex flex-col overflow-hidden"
-          style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', minHeight: 0 }}
-        >
-          <SandpackErrorListener onError={onError} />
-          
-          <div className="h-full w-full min-h-0 flex items-center justify-center overflow-hidden transition-all duration-300">
+        <div className="h-full w-full min-h-0 flex items-center justify-center overflow-hidden transition-all duration-300">
+          <div 
+            className={cn(
+              "transition-all duration-300 relative flex flex-col shadow-2xl min-h-0 max-h-full overflow-hidden bg-[#090a0f]",
+              viewMode === 'desktop' && "w-full h-full min-h-0 max-h-full rounded-xl border border-white/5",
+              viewMode === 'tablet' && "w-[720px] h-[520px] max-w-[96%] max-h-[94%] rounded-[2rem] p-[10px] bg-zinc-950 ring-1 ring-white/15",
+              viewMode === 'phone' && "w-[375px] h-[780px] max-h-[96%] rounded-[3rem] p-[10px] bg-zinc-950 ring-1 ring-white/15"
+            )}
+            style={{ isolation: 'isolate' }}
+          >
+            {/* Phone Dynamic Island */}
+            {viewMode === 'phone' && (
+              <div className="flex items-center justify-center my-1 shrink-0">
+                <div className="w-24 h-5 bg-black rounded-full flex items-center justify-center gap-2 border border-white/5 shadow-inner">
+                  <div className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
+                  <div className="w-2 h-2 rounded-full bg-zinc-900 border border-white/10" />
+                </div>
+              </div>
+            )}
+
+            {/* Screen Area with Animated Loading Overlay */}
             <div 
               className={cn(
-                "transition-all duration-300 relative flex flex-col shadow-2xl min-h-0 max-h-full",
-                viewMode === 'desktop' && "w-full h-full min-h-0 max-h-full rounded-xl overflow-hidden border border-white/5 bg-background",
-                viewMode === 'tablet' && "w-[720px] h-[520px] max-w-[96%] max-h-[94%] rounded-[2rem] p-[10px] bg-zinc-950 ring-1 ring-white/15",
-                viewMode === 'phone' && "w-[375px] h-[780px] max-h-[96%] rounded-[3rem] p-[10px] bg-zinc-950 ring-1 ring-white/15"
+                "flex-1 min-h-0 relative w-full h-full max-h-full overflow-hidden flex flex-col bg-[#090a0f]",
+                viewMode === 'desktop' && "rounded-xl",
+                viewMode === 'phone' && "rounded-[2.4rem]",
+                viewMode === 'tablet' && "rounded-[1.4rem]"
               )}
+              style={{ isolation: 'isolate' }}
             >
-              {/* Phone Dynamic Island */}
-              {viewMode === 'phone' && (
-                <div className="flex items-center justify-center my-1 shrink-0">
-                  <div className="w-24 h-5 bg-black rounded-full flex items-center justify-center gap-2 border border-white/5 shadow-inner">
-                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-800" />
-                    <div className="w-2 h-2 rounded-full bg-zinc-900 border border-white/10" />
-                  </div>
-                </div>
-              )}
+              <SandpackLoadingOverlay />
 
-              {/* Screen Area with Animated Loading Overlay */}
-              <div 
-                className={cn(
-                  "flex-1 min-h-0 relative w-full h-full max-h-full overflow-hidden flex flex-col bg-background",
-                  viewMode === 'phone' && "rounded-[2.4rem]",
-                  viewMode === 'tablet' && "rounded-[1.4rem]"
-                )}
-              >
-                <SandpackLoadingOverlay previewKey={previewKey} />
-
-                <SandpackPreview
-                  key={previewKey}
-                  showNavigator={false}
-                  showCube={false}
-                  showRestartButton={false}
-                  showOpenInCodeSandbox={false}
-                  className="w-full h-full max-h-full border-none bg-background !h-full !max-h-full"
-                  customStyle={{ height: '100%', width: '100%', flex: 1, maxHeight: '100%', minHeight: 0 }}
-                />
-              </div>
-
-              {/* Mobile Home Bar */}
-              {viewMode === 'phone' && (
-                <div className="flex justify-center mt-2 shrink-0">
-                  <div className="w-28 h-1 bg-white/30 rounded-full" />
-                </div>
-              )}
+              <SandpackPreview
+                showNavigator={false}
+                showCube={false}
+                showRestartButton={false}
+                showOpenInCodeSandbox={false}
+                className="w-full h-full max-h-full border-none bg-[#090a0f] !h-full !max-h-full rounded-[inherit] overflow-hidden"
+                customStyle={{ height: '100%', width: '100%', flex: 1, maxHeight: '100%', minHeight: 0, background: '#090a0f', backgroundColor: '#090a0f' }}
+              />
             </div>
+
+            {/* Mobile Home Bar */}
+            {viewMode === 'phone' && (
+              <div className="flex justify-center mt-2 shrink-0">
+                <div className="w-28 h-1 bg-white/30 rounded-full" />
+              </div>
+            )}
           </div>
-        </SandpackProvider>
+        </div>
       </div>
 
-      {/* Scoped CSS overrides to guarantee Sandpack preview does not overflow window height */}
+      {/* Scoped CSS overrides to guarantee Sandpack preview does not overflow window height and has zero white corners */}
       <style>{`
         .sp-wrapper,
         .sp-layout,
         .sp-stack,
         .sp-preview,
         .sp-preview-container,
-        .sp-preview-iframe {
+        .sp-preview-iframe,
+        iframe {
           height: 100% !important;
           max-height: 100% !important;
           width: 100% !important;
@@ -377,8 +499,17 @@ if (rootEl) {
           flex: 1 1 0% !important;
           min-height: 0 !important;
           border: none !important;
+          background: #090a0f !important;
+          background-color: #090a0f !important;
+          border-radius: inherit !important;
+          overflow: hidden !important;
+        }
+        .sp-preview-container {
+          background: #090a0f !important;
+          background-color: #090a0f !important;
+          border-radius: inherit !important;
         }
       `}</style>
-    </div>
+    </SandpackProvider>
   );
 }

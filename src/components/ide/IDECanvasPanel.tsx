@@ -821,7 +821,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
               <TabsTrigger value="code" className="gap-1.5 text-xs rounded-lg">Code</TabsTrigger>
               <TabsTrigger value="cloud" className="gap-1.5 text-xs rounded-lg">Database</TabsTrigger>
             </TabsList>
-            <TabsContent value="preview" className="flex-1 m-0 min-h-0 overflow-hidden">
+            <TabsContent value="preview" forceMount className={cn("flex-1 m-0 min-h-0 overflow-hidden", activeTab !== "preview" && "hidden")}>
               <IDEPreviewPanel 
                 files={files} 
                 onError={handlePreviewError} 
@@ -829,7 +829,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 onPublishClick={() => setShowPublishDialog(true)}
               />
             </TabsContent>
-            <TabsContent value="code" className="flex-1 m-0 min-h-0 relative">
+            <TabsContent value="code" forceMount className={cn("flex-1 m-0 min-h-0 relative", activeTab !== "code" && "hidden")}>
               <div className="absolute inset-0 pb-12">
                 {mobileCodeTab === 'chat' ? (
                   <IDEChatPanel
@@ -853,7 +853,7 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                 )}
               </div>
             </TabsContent>
-            <TabsContent value="cloud" className="flex-1 m-0 min-h-0 overflow-y-auto">
+            <TabsContent value="cloud" forceMount className={cn("flex-1 m-0 min-h-0 overflow-y-auto", activeTab !== "cloud" && "hidden")}>
               <IDECloudPanel files={files} setFiles={setFiles} />
             </TabsContent>
           </Tabs>
@@ -876,16 +876,16 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
             {/* Right Main Stage: Preview, Code, or Cloud */}
             <ResizablePanel defaultSize={68} className="h-full min-h-0">
-              <div className="h-full min-h-0 flex flex-col overflow-hidden">
-                {activeTab === 'preview' && (
+              <div className="h-full min-h-0 flex flex-col overflow-hidden relative">
+                <div className={cn("h-full w-full min-h-0", activeTab === 'preview' ? "flex flex-col" : "hidden")}>
                   <IDEPreviewPanel 
                     files={files} 
                     onError={handlePreviewError} 
                     deployedUrl={deployedUrl}
                     onPublishClick={() => setShowPublishDialog(true)}
                   />
-                )}
-                {activeTab === 'code' && (
+                </div>
+                <div className={cn("h-full w-full min-h-0", activeTab === 'code' ? "flex flex-col" : "hidden")}>
                   <IDECodeEditor 
                     files={files} 
                     selectedFile={selectedFile} 
@@ -894,12 +894,10 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
                     onAddFile={handleAddFile}
                     onDeleteFile={handleDeleteFile}
                   />
-                )}
-                {activeTab === 'cloud' && (
-                  <div className="h-full overflow-y-auto bg-[#0b0c10]">
-                    <IDECloudPanel files={files} setFiles={setFiles} />
-                  </div>
-                )}
+                </div>
+                <div className={cn("h-full w-full min-h-0 overflow-y-auto bg-[#0b0c10]", activeTab === 'cloud' ? "block" : "hidden")}>
+                  <IDECloudPanel files={files} setFiles={setFiles} />
+                </div>
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
