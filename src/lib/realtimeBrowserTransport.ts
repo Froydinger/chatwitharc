@@ -16,10 +16,12 @@ export interface RealtimeBrowserTransportOptions {
   endpoint?: string;
   audioConstraints?: MediaTrackConstraints;
   prewarmedStream?: Promise<MediaStream> | MediaStream | null;
+  disableMicrophone?: boolean;
   onOutputEvent?: (event: RealtimeBrowserOutputEvent) => void;
   onInputAmplitude?: (amplitude: number) => void;
   onOutputAmplitude?: (amplitude: number) => void;
 }
+
 
 const DEFAULT_ENDPOINT = 'https://api.openai.com/v1/realtime/calls';
 
@@ -130,24 +132,30 @@ export class RealtimeBrowserTransport {
     this.bindEvents();
 
     try {
-      if (this.options.prewarmedStream) {
-        stream = await this.options.prewarmedStream;
+      if (this.options.disableMicrophone) {
+        // Output-only connection (e.g. simulated read-aloud): no local microphone stream needed.
+        // Add a recvonly audio transceiver so the peer connection negotiates incoming assistant audio.
+        pc.addTransceiver('audio', { direction: 'recvonly' });
       } else {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: this.options.audioConstraints ?? getVoiceAudioConstraints(),
-        });
-      }
+        if (this.options.prewarmedStream) {
+          stream = await this.options.prewarmedStream;
+        } else {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: this.options.audioConstraints ?? getVoiceAudioConstraints(),
+          });
+        }
 
-      if (signal?.aborted || this.readyState !== RealtimeBrowserTransport.CONNECTING) {
-        stream.getTracks().forEach((track) => track.stop());
-        throw new DOMException('Connection cancelled', 'AbortError');
-      }
-      this.localStream = stream;
-      // The caller explicitly enables the mic after session.updated so no
-      // pre-configuration audio can accidentally start a turn.
-      for (const track of stream.getAudioTracks()) {
-        track.enabled = false;
-        pc.addTrack(track, stream);
+        if (signal?.aborted || this.readyState !== RealtimeBrowserTransport.CONNECTING) {
+          stream.getTracks().forEach((track) => track.stop());
+          throw new DOMException('Connection cancelled', 'AbortError');
+        }
+        this.localStream = stream;
+        // The caller explicitly enables the mic after session.updated so no
+        // pre-configuration audio can accidentally start a turn.
+        for (const track of stream.getAudioTracks()) {
+          track.enabled = false;
+          pc.addTrack(track, stream);
+        }
       }
 
       if (signal) {
@@ -159,6 +167,7 @@ export class RealtimeBrowserTransport {
           { once: true },
         );
       }
+
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);

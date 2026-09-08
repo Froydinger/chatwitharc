@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
-import { useVoiceModeStore, type VoiceName } from '@/store/useVoiceModeStore';
+import { useVoiceModeStore, type VoiceName, REALTIME_SUPPORTED_VOICES } from '@/store/useVoiceModeStore';
+import { RealtimeBrowserTransport } from '@/lib/realtimeBrowserTransport';
 
 interface ReadAloudState {
   playingMessageId: string | null;
@@ -9,8 +10,9 @@ interface ReadAloudState {
   stop: () => void;
 }
 
-let currentAudio: HTMLAudioElement | null = null;
-const audioCache = new Map<string, string>();
+let activeReadTransport: RealtimeBrowserTransport | null = null;
+let activeDisconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+let currentBrowserUtterance: SpeechSynthesisUtterance | null = null;
 
 /**
  * Strip code blocks, markdown symbols, links, images, and excessive formatting
@@ -54,20 +56,26 @@ export function cleanTextForSpeech(markdown: string): string {
   // Collapse whitespace
   text = text.replace(/\n\s*\n+/g, ' ').replace(/\s+/g, ' ').trim();
 
-  // OpenAI TTS endpoint max length is 4096 characters
+  // Realtime limit protection
   return text.slice(0, 4000);
 }
 
 function speakWithBrowser(text: string, rate: number, messageId: string) {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    useReadAloudStore.setState({ playingMessageId: null, loadingMessageId: null });
+    return;
+  }
   try {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
+    currentBrowserUtterance = utterance;
     utterance.rate = Math.max(0.7, Math.min(1.8, rate));
     utterance.onend = () => {
+      if (currentBrowserUtterance === utterance) currentBrowserUtterance = null;
       useReadAloudStore.setState((s) => s.playingMessageId === messageId ? { playingMessageId: null } : s);
     };
     utterance.onerror = () => {
+      if (currentBrowserUtterance === utterance) currentBrowserUtterance = null;
       useReadAloudStore.setState((s) => s.playingMessageId === messageId ? { playingMessageId: null } : s);
     };
     useReadAloudStore.setState({ playingMessageId: messageId, loadingMessageId: null });
@@ -79,18 +87,21 @@ function speakWithBrowser(text: string, rate: number, messageId: string) {
 }
 
 export const stopReadAloud = () => {
-  if (currentAudio) {
+  if (activeDisconnectTimeout) {
+    clearTimeout(activeDisconnectTimeout);
+    activeDisconnectTimeout = null;
+  }
+  if (activeReadTransport) {
     try {
-      currentAudio.pause();
-      currentAudio.currentTime = 0;
-      currentAudio.src = '';
+      activeReadTransport.close(1000, 'read_aloud_stopped');
     } catch (_) {}
-    currentAudio = null;
+    activeReadTransport = null;
   }
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     try {
       window.speechSynthesis.cancel();
     } catch (_) {}
+    currentBrowserUtterance = null;
   }
   useReadAloudStore.setState({ playingMessageId: null, loadingMessageId: null });
 };
@@ -123,58 +134,127 @@ export const useReadAloudStore = create<ReadAloudState>((set, get) => ({
     const cleanText = cleanTextForSpeech(rawText);
     if (!cleanText) return;
 
-    const voice = explicitVoice || useVoiceModeStore.getState().selectedVoice || 'marin';
-    const cacheKey = `${messageId}:${voice}`;
+    const currentVoice = explicitVoice || useVoiceModeStore.getState().selectedVoice || 'marin';
+    const safeVoice = REALTIME_SUPPORTED_VOICES.includes(currentVoice) ? currentVoice : 'marin';
 
     set({ loadingMessageId: messageId, playingMessageId: null });
 
     try {
-      let audioUrl = audioCache.get(cacheKey);
-
-      if (!audioUrl) {
-        const { data, error } = await supabase.functions.invoke('test-voice', {
-          body: { voice, text: cleanText }
-        });
-
-        if (error || !data?.audio) {
-          throw new Error(error?.message || 'No audio returned');
-        }
-
-        audioUrl = `data:audio/mpeg;base64,${data.audio}`;
-        audioCache.set(cacheKey, audioUrl);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
       }
 
-      // Check if user clicked stop or clicked another message while loading
+      // Request an ephemeral session for the user's chosen voice
+      const { data: realtimeSession, error: realtimeSessionError } = await supabase.functions.invoke('openai-realtime-proxy', {
+        body: {
+          voice: safeVoice,
+        },
+      });
+
+      if (realtimeSessionError || !realtimeSession?.client_secret) {
+        throw new Error(realtimeSessionError?.message || 'Failed to create voice session');
+      }
+
+      // Check if user clicked stop while loading session
       if (get().loadingMessageId !== messageId) return;
 
-      const audio = new Audio(audioUrl);
-      currentAudio = audio;
+      // Create output-only Realtime WebRTC transport (no mic permissions needed)
+      const transport = new RealtimeBrowserTransport({
+        disableMicrophone: true,
+      });
+      activeReadTransport = transport;
 
-      const voiceSpeed = useVoiceModeStore.getState().voiceSpeed || 1.0;
       const volume = useVoiceModeStore.getState().volume ?? 1.0;
-      audio.playbackRate = Math.max(0.5, Math.min(2.0, voiceSpeed));
-      audio.volume = Math.max(0, Math.min(1.0, volume));
+      transport.setVolume(volume);
 
-      audio.onended = () => {
-        if (currentAudio === audio) {
-          currentAudio = null;
-          set({ playingMessageId: null });
+      let responseDoneReceived = false;
+
+      // Handle server events
+      transport.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.type === 'response.audio_transcript.delta' || data.type === 'output_audio_buffer.started') {
+            if (get().loadingMessageId === messageId) {
+              set({ playingMessageId: messageId, loadingMessageId: null });
+            }
+          }
+
+          if (data.type === 'response.done') {
+            responseDoneReceived = true;
+          }
+
+          if (data.type === 'output_audio_buffer.stopped' || (data.type === 'response.done' && responseDoneReceived)) {
+            // Buffer stopped playing; allow slight delay for last samples to reach speakers
+            if (activeDisconnectTimeout) clearTimeout(activeDisconnectTimeout);
+            activeDisconnectTimeout = setTimeout(() => {
+              if (activeReadTransport === transport) {
+                stopReadAloud();
+              }
+            }, 600);
+          }
+        } catch (_) {}
+      };
+
+      transport.onerror = () => {
+        if (activeReadTransport === transport) {
+          stopReadAloud();
         }
       };
 
-      audio.onerror = () => {
-        if (currentAudio === audio) {
-          currentAudio = null;
-          set({ playingMessageId: null });
+      transport.onclose = () => {
+        if (activeReadTransport === transport) {
+          activeReadTransport = null;
+          set((s) => s.playingMessageId === messageId ? { playingMessageId: null } : s);
         }
-        // Fall back to Web Speech API
-        speakWithBrowser(cleanText, voiceSpeed, messageId);
       };
 
-      await audio.play();
-      set({ playingMessageId: messageId, loadingMessageId: null });
+      transport.onopen = () => {
+        // Send session.update with verbatim read-aloud instructions and exact text prompt
+        transport.send(JSON.stringify({
+          type: 'session.update',
+          session: {
+            instructions: `You are an accurate, verbatim text-to-speech engine. Read the provided text exactly as is without any commentary, conversational intro, summary, filler, or alterations.`,
+            type: 'realtime',
+            output_modalities: ['audio'],
+            audio: {
+              input: {
+                turn_detection: null, // Output-only; no VAD
+              },
+              output: {
+                format: { type: 'audio/pcm', rate: 24000 },
+                voice: safeVoice,
+              },
+            },
+            tool_choice: 'none',
+          },
+        }));
+
+        // Send conversation item containing the text to read
+        transport.send(JSON.stringify({
+          type: 'conversation.item.create',
+          item: {
+            type: 'message',
+            role: 'user',
+            content: [
+              {
+                type: 'input_text',
+                text: `READ THIS EXACTLY AS IS:\n\n${cleanText}`,
+              },
+            ],
+          },
+        }));
+
+        // Request audio generation
+        transport.send(JSON.stringify({
+          type: 'response.create',
+        }));
+      };
+
+      await transport.connect(realtimeSession.client_secret);
     } catch (err) {
-      console.warn('[ReadAloud] Cloud TTS failed, falling back to browser synthesis:', err);
+      console.warn('[ReadAloud] Voice session failed, falling back to browser synthesis:', err);
       if (get().loadingMessageId === messageId) {
         const voiceSpeed = useVoiceModeStore.getState().voiceSpeed || 1.0;
         speakWithBrowser(cleanText, voiceSpeed, messageId);
@@ -184,3 +264,4 @@ export const useReadAloudStore = create<ReadAloudState>((set, get) => ({
 
   stop: stopReadAloud,
 }));
+

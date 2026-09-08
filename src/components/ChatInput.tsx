@@ -516,10 +516,13 @@ function extractImagePrompt(message: string): string {
 
 function isContextualImagePrompt(message: string): boolean {
   const cleaned = extractPrefixPrompt(message).trim().toLowerCase().replace(/[.!?]+$/g, '');
+  // If the prompt has substantial content (> 60 chars), it is an explicit prompt, not a pronoun reference
+  if (cleaned.length > 60) return false;
   return /^(?:okay\s+|ok\s+|yeah\s+|alright\s+)?(?:go\s+for\s+it|do\s+it|make\s+it|generate\s+it|create\s+it|that|this|it)$/i.test(cleaned) ||
-    /\b(?:image|picture|pic|photo|illustration)\s+(?:of\s+)?(?:that|this|it)\b/i.test(cleaned) ||
-    /\b(?:generate|create|make|draw|render|visualize)\b[\s\S]*\b(?:that|this|it)\b/i.test(cleaned);
+    /\b(?:image|picture|pic|photo|illustration)\s+(?:of\s+)?(?:that|this|it)$/i.test(cleaned) ||
+    /^(?:generate|create|make|draw|render|visualize)\s+(?:an?\s+)?(?:image\s+(?:of\s+)?)?(?:that|this|it)$/i.test(cleaned);
 }
+
 
 function findRecentVisualContext(messages: Message[]): string | null {
   for (let index = messages.length - 1; index >= Math.max(0, messages.length - 8); index -= 1) {
@@ -1858,9 +1861,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       // No images: Banana => generate; else text
       if (wasImageMode) {
         // Resolve conversational follow-ups against the concept Arc just
-        // described. Sending literal "go for it"/"that" to the image model
-        // used to discard the conversation and produce an unrelated generic.
-        const contextualPrompt = isContextualImagePrompt(finalMessage || "");
+        // described (e.g. user just said "generate that" or "do it" without an explicit prefix).
+        // If the user explicitly used image/, /image, draw/, etc., or typed a prompt, generate it directly!
+        const hasExplicitImagePrefix = /^(image|draw|create)\//i.test(finalMessage.trim()) || /^\/(image|draw|create)\b/i.test(finalMessage.trim());
+        const contextualPrompt = !hasExplicitImagePrefix && isContextualImagePrompt(finalMessage || "");
         const priorVisualContext = contextualPrompt ? findRecentVisualContext(messages) : null;
         if (contextualPrompt && !priorVisualContext) {
           await addMessage({ content: finalMessage, role: "user", type: "text" });
@@ -1876,7 +1880,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         }
 
         const strippedPrompt = extractPrefixPrompt(finalMessage || "");
-        const imagePrompt = priorVisualContext || extractImagePrompt(strippedPrompt) || "a beautiful image";
+        const imagePrompt = (!hasExplicitImagePrefix && priorVisualContext) || extractImagePrompt(strippedPrompt) || strippedPrompt || "a beautiful image";
+
         await addMessage({ content: finalMessage || imagePrompt, role: "user", type: "text" });
         await addMessage({
           content: `Generating image: ${imagePrompt}`,
