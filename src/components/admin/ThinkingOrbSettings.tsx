@@ -23,6 +23,7 @@ import {
   Bell,
   Play,
   Trash2,
+  Activity,
 } from "lucide-react";
 import { AnimatedCounter } from "@/components/ui/rare-ui/animated-counter";
 import { NotificationBell } from "@/components/ui/rare-ui/notification-bell";
