@@ -1171,11 +1171,14 @@ useEffect(() => {
                     <EmptyState icon={MessageSquare} text="Your next idea starts here" sub="Create a chat and it’ll stay within reach." />
                   ) : (
                     <div className="relative grid gap-2 sm:grid-cols-2">
-                      {allChats.slice(0, 4).map((session, index) => (
+                      {allChats.slice(0, 6).map((session, index) => (
                         <button
                           key={session.id}
                           onClick={() => { loadSession(session.id); navigate(`/chat/${session.id}`); }}
-                          className="group min-w-0 rounded-2xl border border-border/60 bg-background/85 p-4 text-left shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-background dark:border-border/35 dark:bg-background/50 dark:shadow-none dark:hover:bg-background/75"
+                          className={cn(
+                            "group min-w-0 rounded-2xl border border-border/60 bg-background/85 p-4 text-left shadow-sm backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-background dark:border-border/35 dark:bg-background/50 dark:shadow-none dark:hover:bg-background/75",
+                            index >= 4 && "hidden lg:block"
+                          )}
                         >
                           <div className="mb-3 flex items-center justify-between gap-3">
                             <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-xs font-semibold text-primary">{index + 1}</span>
