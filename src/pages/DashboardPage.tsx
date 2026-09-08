@@ -411,97 +411,118 @@ useEffect(() => {
 
     let startX = 0;
     let startY = 0;
-    const isInsideHorizontalScroll = (target: HTMLElement | null): boolean => {
-      let el: HTMLElement | null = target;
-      while (el && el !== document.body && el !== document.documentElement) {
-        if (
-          el.hasAttribute('data-dashboard-nav-pill') ||
-          el.hasAttribute('data-no-swipe') ||
-          el.hasAttribute('data-horizontal-scroll')
-        ) {
-          return true;
-        }
-        if (el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'range') {
-          return true;
-        }
-        try {
-          const style = window.getComputedStyle(el);
-          const overflowX = style.overflowX;
-          if (
-            (overflowX === 'auto' || overflowX === 'scroll') &&
-            el.scrollWidth > el.clientWidth + 4
-          ) {
+    let tracking = false;
+
+    const isInsideHorizontalScroll = (target: EventTarget | null): boolean => {
+      try {
+        if (!target || !(target instanceof Node)) return false;
+        let el: Element | null = target instanceof Element ? target : (target as Node).parentElement;
+        while (el && el !== document.body && el !== document.documentElement) {
+          if (typeof el.hasAttribute === 'function') {
+            if (
+              el.hasAttribute('data-dashboard-nav-pill') ||
+              el.hasAttribute('data-no-swipe') ||
+              el.hasAttribute('data-horizontal-scroll')
+            ) {
+              return true;
+            }
+          }
+          if (el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'range') {
             return true;
           }
-        } catch {
-          // ignore
+          try {
+            const style = window.getComputedStyle(el);
+            const overflowX = style.overflowX;
+            if (
+              (overflowX === 'auto' || overflowX === 'scroll') &&
+              el.scrollWidth > el.clientWidth + 4
+            ) {
+              return true;
+            }
+          } catch {
+            // ignore
+          }
+          el = el.parentElement;
         }
-        el = el.parentElement;
+      } catch {
+        // ignore
       }
       return false;
     };
 
     const onTouchStart = (e: TouchEvent) => {
-      const t = e.touches[0];
-      if (!t) return;
-      const target = e.target as HTMLElement | null;
-      // Ignore swipes that begin inside horizontally scrollable containers or nav pills
-      if (isInsideHorizontalScroll(target)) {
+      try {
+        const t = e.touches[0];
+        if (!t) return;
+        const target = e.target;
+        // Ignore swipes that begin inside horizontally scrollable containers or nav pills
+        if (isInsideHorizontalScroll(target)) {
+          tracking = false;
+          return;
+        }
+        startX = t.clientX;
+        startY = t.clientY;
+        tracking = true;
+      } catch {
         tracking = false;
-        return;
       }
-      startX = t.clientX;
-      startY = t.clientY;
-      tracking = true;
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (!tracking) return;
-      const t = e.touches[0];
-      if (!t) return;
-      const target = e.target as HTMLElement | null;
-      if (isInsideHorizontalScroll(target)) {
-        tracking = false;
-        return;
-      }
-      const dx = t.clientX - startX;
-      const dy = Math.abs(t.clientY - startY);
-      const adx = Math.abs(dx);
-
-      // Strong vertical movement → cancel horizontal swipe tracking
-      if (dy > 30 && dy > adx) { tracking = false; return; }
-
-      // Need a clear horizontal bias before switching tabs
-      if (adx < 50 || adx < dy * 1.8) return;
-
-      tracking = false;
-      // Lock scroll so the page doesn't drift vertically while the swipe animation plays
-      const html = document.documentElement;
-      const body = document.body;
-      const prevHtmlOverflow = html.style.overflow;
-      const prevBodyOverflow = body.style.overflow;
-      const prevTouchAction = body.style.touchAction;
-      html.style.overflow = 'hidden';
-      body.style.overflow = 'hidden';
-      body.style.touchAction = 'none';
-      setTimeout(() => {
-        html.style.overflow = prevHtmlOverflow;
-        body.style.overflow = prevBodyOverflow;
-        body.style.touchAction = prevTouchAction;
-      }, 450);
-
-      const idx = tabs.findIndex(tt => tt.key === activeTab);
-      if (dx < 0) {
-        // swipe-left → next tab
-        const next = tabs[idx + 1];
-        if (next) switchTab(next.key);
-      } else {
-        // swipe-right → previous tab, or back to chat if already at first tab
-        if (idx <= 0) {
-          exitToChat('/');
-        } else {
-          switchTab(tabs[idx - 1].key);
+      try {
+        if (!tracking) return;
+        const t = e.touches[0];
+        if (!t) return;
+        const target = e.target;
+        if (isInsideHorizontalScroll(target)) {
+          tracking = false;
+          return;
         }
+        const dx = t.clientX - startX;
+        const dy = Math.abs(t.clientY - startY);
+        const adx = Math.abs(dx);
+
+        // Strong vertical movement → cancel horizontal swipe tracking
+        if (dy > 30 && dy > adx) { tracking = false; return; }
+
+        // Need a clear horizontal bias before switching tabs
+        if (adx < 50 || adx < dy * 1.8) return;
+
+        tracking = false;
+        // Lock scroll so the page doesn't drift vertically while the swipe animation plays
+        const html = document.documentElement;
+        const body = document.body;
+        const prevHtmlOverflow = html.style.overflow;
+        const prevBodyOverflow = body.style.overflow;
+        const prevTouchAction = body.style.touchAction;
+        html.style.overflow = 'hidden';
+        body.style.overflow = 'hidden';
+        body.style.touchAction = 'none';
+        setTimeout(() => {
+          try {
+            html.style.overflow = prevHtmlOverflow;
+            body.style.overflow = prevBodyOverflow;
+            body.style.touchAction = prevTouchAction;
+          } catch {
+            // ignore
+          }
+        }, 450);
+
+        const idx = tabs.findIndex(tt => tt.key === activeTab);
+        if (dx < 0) {
+          // swipe-left → next tab
+          const next = tabs[idx + 1];
+          if (next) switchTab(next.key);
+        } else {
+          // swipe-right → previous tab, or back to chat if already at first tab
+          if (idx <= 0) {
+            exitToChat('/');
+          } else {
+            switchTab(tabs[idx - 1].key);
+          }
+        }
+      } catch {
+        tracking = false;
       }
     };
 
