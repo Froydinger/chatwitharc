@@ -3289,18 +3289,18 @@ ${safeCode}
                                 setShowMenu(false);
                                 openCheckout();
                               }}
-                              className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-gradient-to-r from-primary/15 via-primary/10 to-primary/5 hover:from-primary/20 hover:via-primary/15 hover:to-primary/10 border border-primary/25 transition-all text-left group cursor-pointer"
+                              className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-gradient-to-r from-purple-500/15 via-primary/10 to-purple-500/5 hover:from-purple-500/25 hover:via-purple-500/15 hover:to-primary/10 border border-purple-500/30 transition-all text-left group cursor-pointer"
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-7 h-7 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                                  <Crown className="h-3.5 w-3.5 text-primary" />
+                                <div className="w-7 h-7 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
+                                  <Crown className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
                                 </div>
                                 <div className="flex flex-col min-w-0">
-                                  <span className="text-xs font-semibold text-foreground">Upgrade to ArcAI Boost</span>
+                                  <span className="text-xs font-semibold text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">Upgrade to ArcAI Boost</span>
                                   <span className="text-[10px] text-muted-foreground truncate">Unlimited Deep Search, App Builder & 30 images/day</span>
                                 </div>
                               </div>
-                              <ArrowRight className="h-3.5 w-3.5 text-primary group-hover:translate-x-0.5 transition-transform shrink-0" />
+                              <ArrowRight className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
                             </button>
                           </div>
                         )}
@@ -3363,7 +3363,7 @@ ${safeCode}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleSend()}
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-transparent text-primary hover:bg-primary/10 transition-all"
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-transparent text-primary hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-500/10 transition-all"
                 aria-label="Send"
               >
                 <ArrowRight className="h-4 w-4" />

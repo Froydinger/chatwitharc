@@ -212,7 +212,7 @@ export function WelcomeSection({
           >
             <img src={heroAvatar} alt="Arc" className="h-24 w-24 rounded-full" />
             <motion.div
-              className="absolute -inset-1 bg-primary/30 rounded-full blur-xl"
+              className="absolute -inset-1 bg-gradient-to-tr from-purple-500/25 to-primary/25 rounded-full blur-xl"
               animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             />

@@ -1051,7 +1051,7 @@ useEffect(() => {
         <div className="relative">
           {/* Ambient glow behind greeting */}
           <div className="absolute -top-12 left-1/4 w-48 h-48 rounded-full bg-primary/8 blur-[80px] pointer-events-none" />
-          <div className="absolute -top-8 right-1/3 w-32 h-32 rounded-full bg-primary/5 blur-[60px] pointer-events-none" />
+          <div className="absolute -top-8 right-1/3 w-32 h-32 rounded-full bg-purple-500/10 blur-[70px] pointer-events-none" />
           
           <div className="relative flex items-center justify-between rounded-3xl border border-border/30 bg-background/35 px-3 py-3 sm:px-5 sm:py-4 backdrop-blur-xl">
             <div className="flex items-center gap-3">
@@ -1076,7 +1076,7 @@ useEffect(() => {
               {!hasBoost && !isAdmin && (
                 <Button
                   onClick={() => openCheckout()}
-                  className="h-8 sm:h-9 px-3 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold gap-1.5 shadow-sm transition-all"
+                  className="h-8 sm:h-9 px-3 rounded-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-500 hover:to-purple-400 text-white text-xs font-semibold gap-1.5 shadow-sm shadow-purple-500/20 transition-all"
                   title="Upgrade to Boost"
                 >
                   <Crown className="h-3.5 w-3.5 shrink-0" />
@@ -1260,13 +1260,28 @@ useEffect(() => {
               <section>
                 <div className="mb-3 flex items-end justify-between"><div><p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">Your library</p><h2 className="mt-1 text-lg font-semibold">Everything Arc is holding onto</h2></div><p className="hidden text-xs text-muted-foreground sm:block">{insightTip}</p></div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                  {stats.map(({ label, tab, icon: Icon, value }) => (
-                    <button key={label} onClick={() => switchTab(tab)} className="group relative overflow-hidden rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.035] dark:border-border/35 dark:bg-background/40 dark:shadow-none dark:hover:bg-primary/[0.055] sm:p-5">
-                      <Icon className="h-5 w-5 text-primary" />
-                      <p className="mt-7 text-3xl font-light tabular-nums text-foreground">{value ?? 0}</p>
-                      <div className="mt-1 flex items-center justify-between"><span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span><ArrowRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-1 group-hover:text-primary" /></div>
-                    </button>
-                  ))}
+                  {stats.map(({ label, tab, icon: Icon, value }) => {
+                    const isPurpleCard = tab === 'apps' || tab === 'images';
+                    return (
+                      <button 
+                        key={label} 
+                        onClick={() => switchTab(tab)} 
+                        className={cn(
+                          "group relative overflow-hidden rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 sm:p-5",
+                          isPurpleCard 
+                            ? "hover:border-purple-500/35 hover:bg-purple-500/[0.04] dark:border-border/35 dark:bg-background/40 dark:shadow-none dark:hover:border-purple-500/40 dark:hover:bg-purple-500/[0.06]"
+                            : "hover:border-primary/35 hover:bg-primary/[0.035] dark:border-border/35 dark:bg-background/40 dark:shadow-none dark:hover:bg-primary/[0.055]"
+                        )}
+                      >
+                        <Icon className={cn("h-5 w-5 transition-colors", isPurpleCard ? "text-purple-600 dark:text-purple-400" : "text-primary")} />
+                        <p className="mt-7 text-3xl font-light tabular-nums text-foreground">{value ?? 0}</p>
+                        <div className="mt-1 flex items-center justify-between">
+                          <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
+                          <ArrowRight className={cn("h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-1", isPurpleCard ? "group-hover:text-purple-500" : "group-hover:text-primary")} />
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
 
@@ -2293,7 +2308,7 @@ useEffect(() => {
                   onClick={() => switchTab(key)}
                   className={cn(
                     "flex items-center justify-center px-3 py-3 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation",
-                    isActive ? "text-purple-600 dark:text-purple-400" : "text-muted-foreground/60 hover:text-muted-foreground"
+                    isActive ? "text-purple-600 dark:text-purple-400" : "text-muted-foreground/60 hover:text-purple-500/80 dark:hover:text-purple-400/80"
                   )}
                   style={{ zIndex: 20, opacity: isHiddenByBubble ? 0 : 1, transitionProperty: 'opacity', transitionDuration: '0.15s' }}
                 >

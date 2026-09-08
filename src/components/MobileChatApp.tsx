@@ -1736,12 +1736,12 @@ export function MobileChatApp() {
              colored core renders BEHIND the child (z-index:-1). A translucent
              base let that core bleed through as a horizontal glow bar. */
           background:
-            linear-gradient(115deg, hsl(var(--primary) / 0.07), transparent 38%, hsl(var(--primary) / 0.05)),
+            linear-gradient(115deg, rgba(168, 85, 247, 0.08), transparent 38%, rgba(168, 85, 247, 0.05)),
             hsl(var(--input-bar));
-          border-color: hsl(var(--primary) / 0.36);
+          border-color: rgba(168, 85, 247, 0.4);
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,0.12),
-            0 0 28px hsl(var(--primary) / 0.09);
+            0 0 28px rgba(168, 85, 247, 0.12);
         }
         .glass-dock::before{ display: none; }
         .glass-dock:hover{
@@ -1749,8 +1749,8 @@ export function MobileChatApp() {
           box-shadow: none;
         }
         .glass-dock:focus-within{
-          border-color: hsl(var(--primary) / 0.4);
-          box-shadow: none;
+          border-color: rgba(168, 85, 247, 0.35);
+          box-shadow: 0 0 24px rgba(168, 85, 247, 0.06);
         }
 
         /* Hide button borders inside input bar for unified appearance */

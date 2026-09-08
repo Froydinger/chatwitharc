@@ -55,11 +55,11 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
               whileHover={createHoverVariants(1.05, 0)}
               whileTap={createTapVariants(0.98)}
               onClick={() => onSelectPrompt(suggestion.fullPrompt || suggestion.prompt)}
-              className="group relative px-4 py-2.5 rounded-full bg-background/40 backdrop-blur-sm border border-border/50 hover:border-primary/40 hover:bg-background/60 transition-[background-color,border-color] duration-200"
+              className="group relative px-4 py-2.5 rounded-full bg-background/40 backdrop-blur-sm border border-border/50 hover:border-purple-500/35 hover:bg-background/60 transition-[background-color,border-color] duration-200"
             >
-              <span className="text-sm font-medium">{suggestion.label}</span>
+              <span className="text-sm font-medium transition-colors group-hover:text-purple-600 dark:group-hover:text-purple-300">{suggestion.label}</span>
               <motion.div
-                className="absolute inset-0 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                className="absolute inset-0 rounded-full bg-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                 initial={false}
               />
             </motion.button>
@@ -77,9 +77,9 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
           variant="ghost"
           size="sm"
           onClick={onShowMore}
-          className="text-muted-foreground hover:text-foreground gap-2"
+          className="text-muted-foreground hover:text-purple-600 dark:hover:text-purple-300 gap-2 transition-colors"
         >
-        <Lightbulb className="h-4 w-4" />
+        <Lightbulb className="h-4 w-4 text-muted-foreground group-hover:text-purple-400" />
           Quick Ideas
         </Button>
       </motion.div>

@@ -817,7 +817,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </div>
                 {isThinking && (
                   <motion.div
-                    className="absolute inset-0 rounded-full bg-primary/20 blur-xl"
+                    className="absolute inset-0 rounded-full bg-gradient-to-tr from-purple-500/25 to-primary/20 blur-xl"
                     animate={{
                       scale: [0.9, 1.15, 0.9],
                       opacity: [0.2, 0.5, 0.2]

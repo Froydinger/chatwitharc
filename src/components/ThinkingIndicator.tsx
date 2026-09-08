@@ -288,7 +288,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
             className="h-10 w-10"
             style={{ width: 40, height: 40 }}
           />
-          <div className="absolute inset-1 -z-10 rounded-full bg-primary/25 blur-xl" aria-hidden="true" />
+          <div className="absolute inset-1 -z-10 rounded-full bg-gradient-to-tr from-purple-500/25 to-primary/20 blur-xl" aria-hidden="true" />
         </div>
         <div className="relative flex items-center min-w-0">
           <AnimatePresence mode="wait">
