@@ -5,7 +5,7 @@ import { Helmet } from "react-helmet-async";
 import {
   MessageSquare, Image, Rocket, Brain,
   Plus, Clock, Settings, Search,
-  Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight,
+  Trash2, Download, LayoutDashboard, ChevronLeft, ChevronRight, ChevronDown,
   Globe, Code2, Eye, Sparkles, ArrowRight, Music, Edit2, Check, X,
   Layers, PenLine, FileCode, MessageCircle, Upload, Users, FolderPlus, Folder, Pin, PinOff, MoreVertical, MoreHorizontal,
   CircleGauge, Sun, Moon, Monitor, Palette, Lock, Unlock, Smartphone, ExternalLink, Loader2, Tag, Crown
@@ -52,6 +52,7 @@ import { isMobileLocalDevice } from "@/utils/mobileLocal";
 import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
+import { KineticDeleteButton } from "@/components/ui/rare-ui/kinetic-delete-button";
 
 type DashboardTab = "overview" | "apps" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -227,6 +228,8 @@ useEffect(() => {
   const [canvasDetailTab, setCanvasDetailTab] = useState<CanvasDetailTab>("canvas");
   const [tabDirection, setTabDirection] = useState<1 | -1>(1);
   const [isExiting, setIsExiting] = useState(false);
+  const [libraryNudged, setLibraryNudged] = useState(false);
+  const [usageExpandedMobile, setUsageExpandedMobile] = useState(false);
 
   // Folder states
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
@@ -1067,15 +1070,15 @@ useEffect(() => {
               >
                 <MessageSquare className="h-4.5 w-4.5 text-primary" />
               </Button>
-              <div>
-                <p className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70 sm:block">Your Arc</p>
+              <div className="hidden sm:block">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">Your Arc</p>
                 <h1 className="text-base sm:text-2xl font-light text-foreground tracking-tight">
                   {greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}.
                 </h1>
-                <p className="hidden text-xs text-muted-foreground sm:block">Everything you’ve made, saved, and scheduled.</p>
+                <p className="text-xs text-muted-foreground">Everything you’ve made, saved, and scheduled.</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Button
                 onClick={() => {
                   if (!hasBoost && !isAdmin) {
@@ -1084,17 +1087,17 @@ useEffect(() => {
                     setActiveTab("apps");
                   }
                 }}
-                className="h-8 sm:h-9 px-3 rounded-full bg-purple-500/10 hover:bg-purple-500/15 dark:bg-gradient-to-r dark:from-purple-500/20 dark:via-primary/20 dark:to-purple-500/20 dark:hover:from-purple-500/30 dark:hover:to-primary/30 border border-purple-500/30 text-purple-700 dark:text-purple-200 text-xs font-semibold gap-1.5 shadow-sm transition-all"
+                className="h-8 w-8 p-0 sm:w-auto sm:h-9 sm:px-3 rounded-full bg-purple-500/10 hover:bg-purple-500/15 dark:bg-gradient-to-r dark:from-purple-500/20 dark:via-primary/20 dark:to-purple-500/20 dark:hover:from-purple-500/30 dark:hover:to-primary/30 border border-purple-500/30 text-purple-700 dark:text-purple-200 text-xs font-semibold gap-1.5 shadow-sm transition-all shrink-0"
                 title={!hasBoost && !isAdmin ? "Unlock App Builder with Boost" : "View All Apps"}
               >
                 {!hasBoost && !isAdmin ? (
-                  <Crown className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <Crown className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
                 ) : (
-                  <Smartphone className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <Smartphone className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
                 )}
-                <span>App Builder</span>
+                <span className="hidden sm:inline">App Builder</span>
                 {!hasBoost && !isAdmin && (
-                  <span className="text-[9px] font-mono font-bold bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 px-1 py-0.2 rounded uppercase">Boost</span>
+                  <span className="hidden sm:inline text-[9px] font-mono font-bold bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 px-1 py-0.2 rounded uppercase">Boost</span>
                 )}
               </Button>
               <Button
@@ -1158,14 +1161,19 @@ useEffect(() => {
           {/* ====== OVERVIEW ====== */}
           {activeTab === "overview" && (
             <motion.div key="overview" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-6">
+              {/* Mobile Greeting above Recent chats */}
+              <div className="sm:hidden px-1 pt-0.5 pb-1">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70">Your Arc</p>
+                <h1 className="text-xl font-light text-foreground tracking-tight mt-0.5">
+                  {greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}.
+                </h1>
+              </div>
+
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(19rem,0.75fr)]">
                 <section className="relative overflow-hidden rounded-[2rem] border border-border/55 bg-gradient-to-br from-primary/[0.035] via-background/90 to-muted/20 p-4 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.32)] dark:border-primary/20 dark:from-primary/[0.10] dark:via-background/70 dark:to-background/35 dark:shadow-[0_24px_80px_-48px_hsl(var(--primary)/0.7)] sm:p-6">
                   <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/[0.035] blur-3xl dark:bg-primary/10" />
-                  <div className="relative mb-5 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary/75">Pick up where you left off</p>
-                      <h2 className="mt-1 text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Recent chats</h2>
-                    </div>
+                  <div className="relative mb-4 sm:mb-5 flex items-center justify-between gap-3">
+                    <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Recent chats</h2>
                     <div className="flex items-center gap-2">
                       <Button variant="ghost" size="sm" className="rounded-full text-xs" onClick={() => switchTab("chats")}>View all</Button>
                       <Button size="sm" className="rounded-full gap-1.5" onClick={() => { const id = createNewSession(); navigate(`/chat/${id}`); }}>
@@ -1191,18 +1199,12 @@ useEffect(() => {
                             <span className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-xs font-semibold text-primary">{index + 1}</span>
                             <div className="flex items-center gap-1.5">
                               <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{timeAgo(session.lastMessageAt || session.createdAt)}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteSession(session.id);
-                                }}
-                                className="h-6 w-6 rounded-lg opacity-80 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              <KineticDeleteButton
+                                onDelete={() => deleteSession(session.id)}
                                 title="Delete chat"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                                size={13}
+                                className="h-6 w-6 rounded-lg opacity-80 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+                              />
                             </div>
                           </div>
                           <p className="truncate text-sm font-semibold text-foreground">{session.title || "Untitled chat"}</p>
@@ -1215,42 +1217,71 @@ useEffect(() => {
 
                 <aside className="flex flex-col gap-4">
                   <div className="rounded-[2rem] border border-border/60 bg-background/80 p-4 sm:p-5 shadow-sm backdrop-blur-xl dark:border-border/35 dark:bg-background/45 dark:shadow-none">
-                    <div className="flex items-center justify-between">
+                    <div 
+                      onClick={() => isMobile && setUsageExpandedMobile(!usageExpandedMobile)}
+                      className={cn("flex items-center justify-between", isMobile && "cursor-pointer select-none")}
+                    >
                       <div className="flex items-center gap-2.5 sm:gap-3">
-                        <span className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10"><CircleGauge className="h-4 w-4 sm:h-5 sm:w-5 text-primary" /></span>
-                        <div><p className="text-sm font-semibold">Usage</p><p className="text-[10px] sm:text-xs text-muted-foreground">Resets daily at 00:00 UTC</p></div>
+                        <span className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 shrink-0"><CircleGauge className="h-4 w-4 sm:h-5 sm:w-5 text-primary" /></span>
+                        <div>
+                          <p className="text-sm font-semibold">Usage</p>
+                          <p className="text-[10px] sm:text-xs text-muted-foreground">
+                            <span className="sm:hidden">{usageExpandedMobile ? "Tap to collapse" : "Tap to view daily limits"}</span>
+                            <span className="hidden sm:inline">Resets daily at 00:00 UTC</span>
+                          </p>
+                        </div>
                       </div>
-                      <button onClick={() => navigate('/dashboard/settings?section=plan')} className="text-[10px] font-semibold uppercase tracking-wider text-primary">Plan</button>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); navigate('/dashboard/settings?section=plan'); }} 
+                          className="text-[10px] font-semibold uppercase tracking-wider text-primary hover:underline"
+                        >
+                          Plan
+                        </button>
+                        <div className="sm:hidden flex h-6 w-6 items-center justify-center rounded-full bg-muted/20">
+                          <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform duration-200", usageExpandedMobile && "rotate-180")} />
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Mobile: compact 2-column grid; Desktop: clean vertical list */}
-                    <div className="mt-3 sm:mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-col sm:space-y-2.5 sm:gap-0">
-                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs col-span-2 sm:col-span-1">
-                        <span className="text-muted-foreground">Quick reasoning</span>
-                        <span className="font-medium text-primary">Unlimited</span>
+                    {/* Mobile: compact button that expands into full usage tile; Desktop: clean vertical list */}
+                    <motion.div
+                      animate={{
+                        height: isMobile && !usageExpandedMobile ? 0 : "auto",
+                        opacity: isMobile && !usageExpandedMobile ? 0 : 1,
+                      }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-3 sm:mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-col sm:space-y-2.5 sm:gap-0">
+                        <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs col-span-2 sm:col-span-1">
+                          <span className="text-muted-foreground">Quick reasoning</span>
+                          <span className="font-medium text-primary">Unlimited</span>
+                        </div>
+                        <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
+                          <span className="text-muted-foreground">Balanced</span>
+                          <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : `${dailyBalancedUsed}/${FREE_DAILY_BALANCED_LIMIT}`}</span>
+                        </div>
+                        <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
+                          <span className="text-muted-foreground">Deep</span>
+                          <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : `${dailyDeepUsed}/${FREE_DAILY_DEEP_LIMIT}`}</span>
+                        </div>
+                        <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
+                          <span className="text-muted-foreground">Images</span>
+                          <span className="font-mono text-foreground">{isAdmin || imageLimit === Infinity ? "Unlimited" : `${dailyImagesUsed}/${imageLimit}`}</span>
+                        </div>
+                        <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
+                          <span className="text-muted-foreground">Search</span>
+                          <span className="font-medium text-primary truncate max-w-[70px] sm:max-w-none">{isAdmin || hasBoost ? "Unlimited" : "4+1/wk"}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
-                        <span className="text-muted-foreground">Balanced</span>
-                        <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : `${dailyBalancedUsed}/${FREE_DAILY_BALANCED_LIMIT}`}</span>
-                      </div>
-                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
-                        <span className="text-muted-foreground">Deep</span>
-                        <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : `${dailyDeepUsed}/${FREE_DAILY_DEEP_LIMIT}`}</span>
-                      </div>
-                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
-                        <span className="text-muted-foreground">Images</span>
-                        <span className="font-mono text-foreground">{isAdmin || imageLimit === Infinity ? "Unlimited" : `${dailyImagesUsed}/${imageLimit}`}</span>
-                      </div>
-                      <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
-                        <span className="text-muted-foreground">Search</span>
-                        <span className="font-medium text-primary truncate max-w-[70px] sm:max-w-none">{isAdmin || hasBoost ? "Unlimited" : "4+1/wk"}</span>
-                      </div>
-                    </div>
-                    {!isAdmin && !hasBoost && (
-                      <Button variant="outline" size="sm" className="mt-3 sm:mt-4 w-full rounded-full hover:border-purple-500/40 hover:text-purple-600 dark:hover:text-purple-300 transition-colors text-xs" onClick={() => openCheckout()}>
-                        Explore Boost
-                      </Button>
-                    )}
+                      {!isAdmin && !hasBoost && (
+                        <Button variant="outline" size="sm" className="mt-3 sm:mt-4 w-full rounded-full hover:border-purple-500/40 hover:text-purple-600 dark:hover:text-purple-300 transition-colors text-xs" onClick={() => openCheckout()}>
+                          Explore Boost
+                        </Button>
+                      )}
+                    </motion.div>
                   </div>
                   <button 
                     onClick={() => {
@@ -1297,30 +1328,45 @@ useEffect(() => {
                   </div>
                   <p className="hidden text-xs text-muted-foreground sm:block">{insightTip}</p>
                 </div>
-                {/* On mobile: compact swipeable horizontal row with snap alignment; on desktop: 3-5 col grid */}
-                <div className="flex gap-2.5 overflow-x-auto pb-2 pt-1 -mx-4 px-4 scrollbar-hide snap-x sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 lg:grid-cols-5 sm:gap-3">
-                  {stats.map(({ label, tab, icon: Icon, value }) => {
-                    const isPurpleCard = tab === 'apps' || tab === 'images';
-                    return (
-                      <button 
-                        key={label} 
-                        onClick={() => switchTab(tab)} 
-                        className={cn(
-                          "group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border/60 bg-background/80 p-3.5 sm:p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 shrink-0 min-w-[130px] sm:min-w-0 snap-start flex-1",
-                          isPurpleCard 
-                            ? "hover:border-purple-500/35 hover:bg-purple-500/[0.04] dark:border-border/35 dark:bg-background/40 dark:shadow-none dark:hover:border-purple-500/40 dark:hover:bg-purple-500/[0.06]"
-                            : "hover:border-primary/35 hover:bg-primary/[0.035] dark:border-border/35 dark:bg-background/40 dark:shadow-none dark:hover:bg-primary/[0.055]"
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 transition-colors", isPurpleCard ? "text-purple-600 dark:text-purple-400" : "text-primary")} />
-                          <ArrowRight className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-1", isPurpleCard ? "group-hover:text-purple-500" : "group-hover:text-primary")} />
-                        </div>
-                        <p className="mt-3 sm:mt-6 text-2xl sm:text-3xl font-light tabular-nums text-foreground">{value ?? 0}</p>
-                        <p className="mt-0.5 sm:mt-1 text-xs uppercase tracking-wider text-muted-foreground truncate">{label}</p>
-                      </button>
-                    );
-                  })}
+                {/* On mobile: compact swipeable horizontal row resting within margins with subtle slide affordance hint; on desktop: 3-5 col grid */}
+                <div 
+                  className="w-full overflow-x-auto pb-2 pt-1 scrollbar-hide snap-x sm:overflow-visible"
+                  onTouchStart={() => setLibraryNudged(true)}
+                  onScroll={() => setLibraryNudged(true)}
+                >
+                  <motion.div
+                    animate={isMobile && !libraryNudged ? { x: [0, -36, 0] } : { x: 0 }}
+                    transition={{
+                      duration: 0.85,
+                      delay: 0.45,
+                      ease: [0.25, 1, 0.5, 1],
+                    }}
+                    onAnimationComplete={() => setLibraryNudged(true)}
+                    className="flex gap-2.5 sm:grid sm:grid-cols-3 lg:grid-cols-5 sm:gap-3"
+                  >
+                    {stats.map(({ label, tab, icon: Icon, value }) => {
+                      const isPurpleCard = tab === 'apps' || tab === 'images';
+                      return (
+                        <button 
+                          key={label} 
+                          onClick={() => switchTab(tab)} 
+                          className={cn(
+                            "group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border/60 bg-background/80 p-3 sm:p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 shrink-0 w-[calc((100vw-52px)/3)] min-w-[100px] max-w-[140px] snap-start sm:w-auto sm:min-w-0 sm:max-w-none sm:flex-1",
+                            isPurpleCard 
+                              ? "hover:border-purple-500/35 hover:bg-purple-500/[0.04] dark:border-border/35 dark:bg-background/40 dark:shadow-none dark:hover:border-purple-500/40 dark:hover:bg-purple-500/[0.06]"
+                              : "hover:border-primary/35 hover:bg-primary/[0.035] dark:border-border/35 dark:bg-background/40 dark:shadow-none dark:hover:bg-primary/[0.055]"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 transition-colors", isPurpleCard ? "text-purple-600 dark:text-purple-400" : "text-primary")} />
+                            <ArrowRight className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-1", isPurpleCard ? "group-hover:text-purple-500" : "group-hover:text-primary")} />
+                          </div>
+                          <p className="mt-2.5 sm:mt-6 text-xl sm:text-3xl font-light tabular-nums text-foreground">{value ?? 0}</p>
+                          <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground truncate">{label}</p>
+                        </button>
+                      );
+                    })}
+                  </motion.div>
                 </div>
               </section>
 
@@ -2191,9 +2237,12 @@ useEffect(() => {
                             <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => { setEditingMemoryId(block.id); setEditMemoryContent(block.content); }}>
                               <Edit2 className="h-3.5 w-3.5" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => deleteBlock(block.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            <KineticDeleteButton
+                              onDelete={() => deleteBlock(block.id)}
+                              title="Delete memory"
+                              size={14}
+                              className="h-8 w-8 rounded-lg"
+                            />
                           </div>
                         </div>
                       )}
