@@ -267,9 +267,16 @@ export function SettingsPanel() {
   }, []);
 
   useEffect(() => {
-    const sectionParam = searchParams.get("section") as SectionId | null;
-    if (sectionParam && SECTIONS.some((s) => s.id === sectionParam)) {
-      setSection(sectionParam);
+    const sectionParam = searchParams.get("section")?.toLowerCase();
+    if (!sectionParam) return;
+    if (SECTIONS.some((s) => s.id === sectionParam)) {
+      setSection(sectionParam as SectionId);
+    } else if (sectionParam === "billing" || sectionParam === "subscription") {
+      setSection("plan");
+    } else if (sectionParam === "profile" || sectionParam === "general") {
+      setSection("account");
+    } else if (sectionParam === "models" || sectionParam === "voice") {
+      setSection("ai");
     }
   }, [searchParams]);
 
@@ -891,6 +898,17 @@ export function SettingsPanel() {
             {PlanCard}
           </>
         );
+      default:
+        return (
+          <>
+            {ProfileCard}
+            {EmailCard}
+            <PushNotificationsCard />
+            {ConnectedAccountsCard}
+            {DangerZoneCard}
+            {AdminCard}
+          </>
+        );
     }
   };
 
@@ -932,7 +950,7 @@ export function SettingsPanel() {
       {/* Mobile dropdown */}
       <div className="lg:hidden sticky top-0 z-20 -mx-1 px-1 pt-1 pb-3 bg-background/60 backdrop-blur-md">
         {(() => {
-          const current = SECTIONS.find((s) => s.id === section)!;
+          const current = SECTIONS.find((s) => s.id === section) || SECTIONS[0];
           const CurrentIcon = current.icon;
           return (
             <DropdownMenu>

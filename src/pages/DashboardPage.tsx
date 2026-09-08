@@ -411,14 +411,45 @@ useEffect(() => {
 
     let startX = 0;
     let startY = 0;
-    let tracking = false;
+    const isInsideHorizontalScroll = (target: HTMLElement | null): boolean => {
+      let el: HTMLElement | null = target;
+      while (el && el !== document.body && el !== document.documentElement) {
+        if (
+          el.hasAttribute('data-dashboard-nav-pill') ||
+          el.hasAttribute('data-no-swipe') ||
+          el.hasAttribute('data-horizontal-scroll')
+        ) {
+          return true;
+        }
+        if (el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'range') {
+          return true;
+        }
+        try {
+          const style = window.getComputedStyle(el);
+          const overflowX = style.overflowX;
+          if (
+            (overflowX === 'auto' || overflowX === 'scroll') &&
+            el.scrollWidth > el.clientWidth + 4
+          ) {
+            return true;
+          }
+        } catch {
+          // ignore
+        }
+        el = el.parentElement;
+      }
+      return false;
+    };
 
     const onTouchStart = (e: TouchEvent) => {
       const t = e.touches[0];
       if (!t) return;
-      // Ignore swipes that begin on the horizontal nav pill so drag-to-pick still works
       const target = e.target as HTMLElement | null;
-      if (target?.closest('[data-dashboard-nav-pill]')) return;
+      // Ignore swipes that begin inside horizontally scrollable containers or nav pills
+      if (isInsideHorizontalScroll(target)) {
+        tracking = false;
+        return;
+      }
       startX = t.clientX;
       startY = t.clientY;
       tracking = true;
@@ -428,6 +459,11 @@ useEffect(() => {
       if (!tracking) return;
       const t = e.touches[0];
       if (!t) return;
+      const target = e.target as HTMLElement | null;
+      if (isInsideHorizontalScroll(target)) {
+        tracking = false;
+        return;
+      }
       const dx = t.clientX - startX;
       const dy = Math.abs(t.clientY - startY);
       const adx = Math.abs(dx);
@@ -1330,6 +1366,8 @@ useEffect(() => {
                 </div>
                 {/* On mobile: compact swipeable horizontal row resting within margins with subtle slide affordance hint; on desktop: 3-5 col grid */}
                 <div 
+                  data-horizontal-scroll="true"
+                  data-no-swipe="true"
                   className="w-full overflow-x-auto pb-2 pt-1 scrollbar-hide snap-x sm:overflow-visible"
                   onTouchStart={() => setLibraryNudged(true)}
                   onScroll={() => setLibraryNudged(true)}
@@ -2721,46 +2759,55 @@ function ChatListItem({ session, currentSessionId, timeAgo, onLoad, onDelete, fo
             </div>
           </div>
         </div>
-        <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1">
+        <div className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground">
-                <MoreHorizontal className="h-4.5 w-4.5" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                title="Folder options"
+              >
+                <Folder className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52 rounded-xl bg-background border border-border shadow-xl z-50">
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="gap-2 cursor-pointer" onClick={e => e.stopPropagation()}>
-                  <Folder className="h-4 w-4" />
-                  <span>Move to Folder</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuPortal>
-                  <DropdownMenuSubContent className="w-48 rounded-xl bg-background border-border">
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(session.id, null); }} className="gap-2 cursor-pointer">
-                      <X className="h-4 w-4" />
-                      <span>Remove from folder</span>
-                    </DropdownMenuItem>
-                    {folders.length > 0 && <DropdownMenuSeparator />}
-                    {folders.map(f => (
-                      <DropdownMenuItem key={f.id} onClick={(e) => { e.stopPropagation(); onMove(session.id, f.id); }} className="gap-2 cursor-pointer">
-                        <Folder className="h-4 w-4" />
-                        <span>{f.name}</span>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuPortal>
-              </DropdownMenuSub>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={(e) => { e.stopPropagation(); onDelete(); }} 
-                className="gap-2 cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4" />
-                <span>Delete Chat</span>
-              </DropdownMenuItem>
+              <div className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Move to Folder
+              </div>
+              {session.folderId && (
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(session.id, null); }} className="gap-2 cursor-pointer text-xs">
+                  <X className="h-3.5 w-3.5" />
+                  <span>Remove from folder</span>
+                </DropdownMenuItem>
+              )}
+              {session.folderId && folders.length > 0 && <DropdownMenuSeparator />}
+              {folders.length === 0 ? (
+                <div className="px-2 py-2 text-xs text-muted-foreground italic">No folders created yet</div>
+              ) : (
+                folders.map(f => (
+                  <DropdownMenuItem
+                    key={f.id}
+                    onClick={(e) => { e.stopPropagation(); onMove(session.id, f.id); }}
+                    className={cn("gap-2 cursor-pointer text-xs", session.folderId === f.id && "bg-primary/10 font-semibold text-primary")}
+                  >
+                    <Folder className="h-3.5 w-3.5" />
+                    <span className="truncate">{f.name}</span>
+                    {session.folderId === f.id && <span className="ml-auto text-[10px] text-primary">Current</span>}
+                  </DropdownMenuItem>
+                ))
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
-          <ArrowRight className="h-4 w-4 text-muted-foreground/30 hidden md:block" />
+
+          <KineticDeleteButton
+            onDelete={onDelete}
+            title="Delete chat"
+            size={14}
+            className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          />
+
+          <ArrowRight className="h-4 w-4 text-muted-foreground/30 hidden md:block ml-0.5" />
         </div>
       </div>
     </div>

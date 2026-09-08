@@ -16,6 +16,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    const message = error ? String(error.message || error) : '';
+    const isChunkError = /dynamically imported module|module script|loading chunk|chunkloaderror|not a valid javascript mime type/i.test(message);
+    if (isChunkError) {
+      // Chunk errors are recovered automatically without flashing the error boundary
+      return { hasError: false, error: null };
+    }
     return { hasError: true, error };
   }
 

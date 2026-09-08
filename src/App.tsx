@@ -42,29 +42,40 @@ const AdminPage = lazy(() => import("./pages/AdminPage").then((m) => ({ default:
 const DownloadPage = lazy(() => import("./pages/DownloadPage").then((m) => ({ default: m.DownloadPage })));
 const PricingPage = lazy(() => import("./pages/PricingPage").then((m) => ({ default: m.PricingPage })));
 const UpgradePage = lazy(() => import("./pages/UpgradePage").then((m) => ({ default: m.UpgradePage })));
-const DASHBOARD_CHUNK_RELOAD_KEY = "arc:dashboard-chunk-reload";
-const DashboardPage = lazy(async () => {
-  try {
-    const module = await import("./pages/DashboardPage");
-    sessionStorage.removeItem(DASHBOARD_CHUNK_RELOAD_KEY);
-    return { default: module.DashboardPage };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const isStaleDeploymentChunk = /dynamically imported module|module script|loading chunk|chunkloaderror/i.test(message);
+const CHUNK_RELOAD_KEY = "arc:chunk-reload-ts";
 
-    // An open Arc tab can retain the previous deployment's asset manifest.
-    // Recover once with a full reload instead of dropping into ErrorBoundary.
-    if (isStaleDeploymentChunk && !sessionStorage.getItem(DASHBOARD_CHUNK_RELOAD_KEY)) {
-      sessionStorage.setItem(DASHBOARD_CHUNK_RELOAD_KEY, "1");
-      window.location.reload();
-      return new Promise<never>(() => undefined);
+function lazyWithChunkRetry<T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T } | Record<string, any>>,
+  namedExport?: string
+) {
+  return lazy(async () => {
+    try {
+      const module = await factory();
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+      const Component = namedExport ? (module as any)[namedExport] : ((module as any).default || module);
+      return { default: Component };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const isStaleChunk = /dynamically imported module|module script|loading chunk|chunkloaderror|not a valid javascript mime type/i.test(message);
+
+      const lastReload = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || 0);
+      const canReload = Date.now() - lastReload > 15000;
+
+      if (isStaleChunk && canReload) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
+        window.location.reload();
+        // Return an unresolved promise to keep FastLoader in Suspense without triggering ErrorBoundary
+        return new Promise<never>(() => undefined);
+      }
+
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+      throw error;
     }
+  });
+}
 
-    sessionStorage.removeItem(DASHBOARD_CHUNK_RELOAD_KEY);
-    throw error;
-  }
-});
-const DashboardSettingsPage = lazy(() => import("./pages/DashboardSettingsPage").then((m) => ({ default: m.DashboardSettingsPage })));
+const DashboardPage = lazyWithChunkRetry(() => import("./pages/DashboardPage"), "DashboardPage");
+const DashboardSettingsPage = lazyWithChunkRetry(() => import("./pages/DashboardSettingsPage"), "DashboardSettingsPage");
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const SupportPage = lazy(() => import("./pages/SupportPage").then((m) => ({ default: m.SupportPage })));
 const DocsPage = lazy(() => import("./pages/DocsPage").then((m) => ({ default: m.DocsPage })));

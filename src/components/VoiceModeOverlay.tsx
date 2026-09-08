@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useToast } from "@/hooks/use-toast";
 import { UsageMeter } from "@/components/UsageMeter";
 import { ThinkingOrb } from "thinking-orbs";
+import { MetalFx, PRESETS } from "metal-fx";
 import { useResolvedOrbTheme } from "@/components/ThinkingIndicator";
 import { normalizedOrbSpeed, useVoiceOrbConfig, useThinkingOrbConfig, useMotionConfig, type VoicePhase } from "@/hooks/useThinkingOrbConfig";
 
@@ -305,14 +306,51 @@ export function VoiceModeOverlay() {
     ? (thinkingOrbConfig.image ?? 'working')
     : (voiceOrbConfig[status as VoicePhase] ?? voiceOrbConfig.listening);
 
-  // Normalize the library's very different per-state base speeds, then add a
-  // small amplitude response without allowing any phase to race on startup.
+  // Fixed steady base pace per voice phase so ThinkingOrb's internal canvas
+  // RAF loop is NEVER torn down and recreated every frame by audio amplitude changes.
   const orbTargetPace = status === 'speaking'
-    ? 0.72 + Math.min(1, amplitude) * 0.18
+    ? 1.05
+    : status === 'thinking'
+    ? 0.95
     : status === 'listening'
-    ? 0.68 + Math.min(1, amplitude) * 0.15
-    : 0.75;
+    ? 0.85
+    : 0.9;
   const orbSpeed = normalizedOrbSpeed(voiceOrbState, orbTargetPace, motionConfig.voiceSpeed);
+
+  const effectTheme = orbTheme === 'dark' ? 'dark' : 'light';
+
+  // Vary metal-fx shader speed dynamically as Arc talks / listens / thinks
+  useEffect(() => {
+    if (!PRESETS?.silver?.modes) return;
+    const targetSpeed =
+      status === 'speaking'
+        ? 2.1
+        : status === 'thinking'
+        ? 1.4
+        : status === 'listening'
+        ? 0.75
+        : 1.0;
+    PRESETS.silver.modes.dark.speed = targetSpeed;
+    PRESETS.silver.modes.light.speed = targetSpeed;
+  }, [status]);
+
+  const metalStrength =
+    status === 'speaking'
+      ? 0.55
+      : status === 'thinking'
+      ? 0.45
+      : status === 'listening'
+      ? 0.25
+      : 0.35;
+
+  const metalOpacity =
+    status === 'speaking'
+      ? 0.75
+      : status === 'thinking'
+      ? 0.6
+      : status === 'listening'
+      ? 0.4
+      : 0.5;
 
   const pendingVoiceInfo = pendingVoiceSwitch 
     ? REALTIME_VOICES.find(v => v.id === pendingVoiceSwitch) 
@@ -479,6 +517,25 @@ export function VoiceModeOverlay() {
                   : `0 0 0 1px hsl(var(--primary) / 0.15), 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)`,
               }}
             >
+              {/* Liquid Metal sheen ring / glow */}
+              <div
+                className="absolute inset-0 rounded-full pointer-events-none overflow-hidden transition-opacity duration-500"
+                style={{ zIndex: 0, opacity: orbTheme === 'dark' ? metalOpacity : metalOpacity * 0.75 }}
+                aria-hidden="true"
+              >
+                <MetalFx
+                  preset="silver"
+                  strength={metalStrength}
+                  theme={effectTheme}
+                  borderRadius={9999}
+                  disableGlow={false}
+                  normalizeHostStyles={false}
+                  style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
+                >
+                  <span style={{ width: '100%', height: '100%', display: 'block', borderRadius: 9999 }} />
+                </MetalFx>
+              </div>
+
               {/* Radial ambient sheen */}
               <div
                 className="pointer-events-none absolute inset-0 -z-10 transition-opacity duration-300"
@@ -490,7 +547,7 @@ export function VoiceModeOverlay() {
                 aria-hidden="true"
               />
 
-              <div className="flex items-center justify-between sm:justify-center gap-3 sm:gap-4">
+              <div className="relative z-10 flex items-center justify-between sm:justify-center gap-3 sm:gap-4">
                 {/* Left Action Controls */}
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
@@ -536,13 +593,17 @@ export function VoiceModeOverlay() {
                     onTouchEnd={() => globalEndPushToTalk?.()}
                     onTouchCancel={() => globalEndPushToTalk?.()}
                     className="relative flex h-14 w-14 shrink-0 items-center justify-center cursor-pointer select-none active:scale-95 transition-transform"
+                    style={{
+                      transform: status === 'speaking' ? `scale(${1 + Math.min(0.18, amplitude * 0.16)})` : undefined,
+                      transition: 'transform 80ms cubic-bezier(0.2, 0, 0, 1)',
+                    }}
                     role="button"
                     aria-label="Hold orb or spacebar to speak"
                   >
                     {/* Glow halo only in dark mode to prevent black smudging in light mode */}
                     {orbTheme === 'dark' && (
                       <div
-                        className="absolute -inset-2 -z-10 rounded-full bg-primary/30 blur-xl transition-opacity duration-300"
+                        className="absolute -inset-2 -z-10 rounded-full bg-primary/30 blur-xl transition-opacity duration-150"
                         style={{ opacity: 0.35 + Math.min(1, amplitude * 1.2) * 0.55 }}
                         aria-hidden="true"
                       />
