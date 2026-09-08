@@ -1,8 +1,32 @@
 import { useState } from "react";
-import { ExternalLink } from "lucide-react";
+import {
+  ExternalLink,
+  Headphones,
+  Coffee,
+  Music2,
+  Orbit,
+  Music,
+  Brain,
+  Zap,
+  CloudRain,
+  Radio,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMusicStore, YOUTUBE_PRESETS } from "@/store/useMusicStore";
 import { cn } from "@/lib/utils";
+
+const STATION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  'lofi-radio': Headphones,
+  'chillhop-radio': Coffee,
+  'jazz-radio': Music2,
+  'ambient-space': Orbit,
+  'classical': Music,
+  'study-beats': Brain,
+  'chill-synth': Zap,
+  'nature-sounds': CloudRain,
+  'coffee-shop': Coffee,
+};
 
 function extractYoutubeId(url: string): string | null {
   const patterns = [
@@ -97,22 +121,49 @@ export function YouTubeMusicEmbed() {
           </button>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
-          {YOUTUBE_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              onClick={() => setYoutubeVideoId(preset.videoId)}
-              className={cn(
-                "px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200",
-                youtubeVideoId === preset.videoId
-                  ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/40 scale-[1.02]"
-                  : "bg-muted/40 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-              )}
-            >
-              {preset.name}
-            </button>
-          ))}
-        </div>
+        <ScrollArea className="h-[148px] pr-2">
+          <div className="grid grid-cols-2 gap-1.5 p-0.5">
+            {YOUTUBE_PRESETS.map((preset) => {
+              const Icon = STATION_ICONS[preset.id] || Radio;
+              const isSelected = youtubeVideoId === preset.videoId;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => setYoutubeVideoId(preset.videoId)}
+                  className={cn(
+                    "group relative flex items-center gap-2 p-2 rounded-xl text-xs font-medium transition-all text-left border min-w-0",
+                    isSelected
+                      ? "border-primary/50 bg-primary/15 text-foreground shadow-sm ring-1 ring-primary/25"
+                      : "border-border/40 bg-muted/20 text-muted-foreground hover:bg-muted/40 hover:text-foreground hover:border-border/60"
+                  )}
+                  title={preset.name}
+                >
+                  <div
+                    className={cn(
+                      "h-6 w-6 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                      isSelected
+                        ? "bg-primary/25 text-primary"
+                        : "bg-muted/40 text-muted-foreground group-hover:text-foreground group-hover:bg-muted/60"
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="truncate flex-1 min-w-0 text-[11px] leading-tight font-medium">
+                    {preset.name}
+                  </span>
+                  {isSelected && (
+                    <div className="flex items-end gap-[1.5px] h-2.5 shrink-0">
+                      <div className="w-[2px] bg-primary rounded-full animate-pulse" style={{ height: '70%', animationDelay: '0ms' }} />
+                      <div className="w-[2px] bg-primary rounded-full animate-pulse" style={{ height: '100%', animationDelay: '150ms' }} />
+                      <div className="w-[2px] bg-primary rounded-full animate-pulse" style={{ height: '40%', animationDelay: '300ms' }} />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </ScrollArea>
       </div>
 
       {/* Custom URL Input */}
