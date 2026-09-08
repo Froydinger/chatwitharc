@@ -21,19 +21,19 @@ Driven by JS (three-phase sequence):
 
 | Variable | Default | Notes |
 | --- | --- | --- |
-| `--text-swap-dur` | `200ms` | sourced from `--p6-dur` |
-| `--text-swap-translate-y` | `8px` | sourced from `--p6-translate-y` |
+| `--text-swap-dur` | `150ms` | sourced from `--p6-dur` |
+| `--text-swap-translate-y` | `4px` | sourced from `--p6-translate-y` |
 | `--text-swap-blur` | `2px` | sourced from `--p6-blur` |
-| `--text-swap-ease` | `ease-out` | sourced from `--p6-ease` |
+| `--text-swap-ease` | `ease-in-out` | sourced from `--p6-ease` |
 
 The `:root` defaults below match the live tuning on [transitions.dev](https://transitions.dev). Drop them into your global stylesheet once — every transition in this skill reads from semantic names like these, so multiple transitions can share a single `:root` block.
 
 ```css
 :root {
-  --text-swap-dur: 200ms;
-  --text-swap-translate-y: 8px;
+  --text-swap-dur: 150ms;
+  --text-swap-translate-y: 4px;
   --text-swap-blur: 2px;
-  --text-swap-ease: ease-out;
+  --text-swap-ease: ease-in-out;
 }
 ```
 

@@ -549,19 +549,321 @@ All colors MUST be HSL for perfect glass effects.
     color: white !important;
   }
 
-  /* transitions.dev — shared tokens.
-     Installed once from the transitions-dev skill; every t-* snippet reads
-     these semantic names, so tuning happens here rather than per component.
-     Only the tokens for the transitions actually in use are kept. */
+  /* transitions.dev — shared tokens from Jakub Antalik's transitions library.
+     Every t-* snippet reads these semantic names, so tuning happens here rather than per component.
+     Full 32-transition token set synced from transitions-dev. */
   :root {
-    /* Card resize */
-    --resize-dur: 300ms;
+    /* ── Motion tokens — shared scale ────────────────────────────── */
+    --motion-speed-scale: 1;
+
+    /* Durations */
+    --duration-stagger: calc(40ms * var(--motion-speed-scale));
+    --duration-micro: calc(80ms * var(--motion-speed-scale));
+    --duration-quick: calc(150ms * var(--motion-speed-scale));
+    --duration-fast: calc(250ms * var(--motion-speed-scale));
+    --duration-medium: calc(350ms * var(--motion-speed-scale));
+    --duration-slow: calc(400ms * var(--motion-speed-scale));
+    --duration-very-slow: calc(500ms * var(--motion-speed-scale));
+
+    /* Easings */
+    --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: ease-in-out;
+    --ease-out: ease-out;
+    --ease-linear: linear;
+    --ease-bounce: cubic-bezier(0.34, 1.36, 0.64, 1);
+    --ease-bounce-strong: cubic-bezier(0.34, 3.85, 0.64, 1);
+
+    /* Distances */
+    --distance-micro: 4px;
+    --distance-small: 6px;
+    --distance-base: 8px;
+    --distance-medium: 12px;
+    --distance-large: 30px;
+
+    /* Scales */
+    --scale-large: 0.96;
+    --scale-medium: 0.97;
+    --scale-small: 0.98;
+    --scale-tiny: 0.99;
+
+    /* Blur */
+    --blur-small: 2px;
+    --blur-medium: 3px;
+    --blur-large: 8px;
+
+    /* 01 Card resize */
+    --resize-dur: calc(300ms * var(--motion-speed-scale));
     --resize-ease: cubic-bezier(0.22, 1, 0.36, 1);
-    /* Text states swap */
-    --text-swap-dur: 200ms;
-    --text-swap-translate-y: 8px;
+
+    /* 02 Number pop-in */
+    --digit-dur: calc(500ms * var(--motion-speed-scale));
+    --digit-distance: 8px;
+    --digit-stagger: 70ms;
+    --digit-blur: 2px;
+    --digit-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+    --digit-dir-x: 0;
+    --digit-dir-y: 1;
+
+    /* 03 Notification badge */
+    --badge-slide-dur: calc(260ms * var(--motion-speed-scale));
+    --badge-pop-dur: calc(500ms * var(--motion-speed-scale));
+    --badge-pop-close-dur: calc(180ms * var(--motion-speed-scale));
+    --badge-fade-dur: calc(400ms * var(--motion-speed-scale));
+    --badge-fade-close-dur: calc(180ms * var(--motion-speed-scale));
+    --badge-blur: 2px;
+    --badge-offset-x: -8.2px;
+    --badge-offset-y: 12.4px;
+    --badge-slide-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --badge-pop-ease: cubic-bezier(0.34, 1.36, 0.64, 1);
+    --badge-close-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* 04 Text states swap */
+    --text-swap-dur: calc(150ms * var(--motion-speed-scale));
+    --text-swap-translate-y: 4px;
     --text-swap-blur: 2px;
-    --text-swap-ease: ease-out;
+    --text-swap-ease: ease-in-out;
+
+    /* 05 Menu dropdown */
+    --dropdown-open-dur: calc(250ms * var(--motion-speed-scale));
+    --dropdown-close-dur: calc(150ms * var(--motion-speed-scale));
+    --dropdown-pre-scale: 0.97;
+    --dropdown-closing-scale: 0.99;
+    --dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 06 Modal open / close */
+    --modal-open-dur: calc(250ms * var(--motion-speed-scale));
+    --modal-close-dur: calc(150ms * var(--motion-speed-scale));
+    --modal-scale: 0.96;
+    --modal-scale-close: 0.96;
+    --modal-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 07 Panel reveal */
+    --panel-open-dur: calc(400ms * var(--motion-speed-scale));
+    --panel-close-dur: calc(350ms * var(--motion-speed-scale));
+    --panel-translate-y: 100px;
+    --panel-blur: 2px;
+    --panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 08 Page side-by-side */
+    --page-slide-dur: calc(250ms * var(--motion-speed-scale));
+    --page-fade-dur: calc(250ms * var(--motion-speed-scale));
+    --page-slide-distance: 8px;
+    --page-blur: 3px;
+    --page-stagger: 0ms;
+    --page-exit-enabled: 1;
+    --page-slide-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --page-fade-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 09 Icon swap */
+    --icon-swap-dur: calc(250ms * var(--motion-speed-scale));
+    --icon-swap-blur: 2px;
+    --icon-swap-start-scale: 0.25;
+    --icon-swap-ease: ease-in-out;
+
+    /* 10 Success check */
+    --check-opacity-dur: calc(500ms * var(--motion-speed-scale));
+    --check-rotate-dur: calc(500ms * var(--motion-speed-scale));
+    --check-rotate-from: 80deg;
+    --check-bob-dur: calc(500ms * var(--motion-speed-scale));
+    --check-y-amount: 40px;
+    --check-blur-dur: calc(500ms * var(--motion-speed-scale));
+    --check-blur-from: 10px;
+    --check-path-dur: calc(500ms * var(--motion-speed-scale));
+    --check-path-delay: 80ms;
+    --check-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --check-ease-opacity: cubic-bezier(0.22, 1, 0.36, 1);
+    --check-ease-rotate: cubic-bezier(0.22, 1, 0.36, 1);
+    --check-ease-bob: cubic-bezier(0.34, 1.35, 0.64, 1);
+    --check-ease-path: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 11 Avatar group hover */
+    --avatar-lift: -4px;
+    --avatar-dur: calc(320ms * var(--motion-speed-scale));
+    --avatar-scale: 1.05;
+    --avatar-falloff: 0.45;
+    --avatar-ease-in: cubic-bezier(0.22, 1, 0.36, 1);
+    --avatar-ease-out: cubic-bezier(0.34, 3.85, 0.64, 1);
+
+    /* 12 Error state shake */
+    --shake-distance: 6px;
+    --shake-overshoot: 4px;
+    --shake-dur-a: calc(80ms * var(--motion-speed-scale));
+    --shake-dur-b: calc(60ms * var(--motion-speed-scale));
+    --shake-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --revert-hold: 3000ms;
+    --revert-dur: calc(280ms * var(--motion-speed-scale));
+
+    /* 13 Input clear with dissolve */
+    --clear-dur: calc(1000ms * var(--motion-speed-scale));
+    --clear-out-dur: calc(400ms * var(--motion-speed-scale));
+    --clear-in-dur: calc(400ms * var(--motion-speed-scale));
+    --clear-out-fly: 12px;
+    --clear-in-fly: 12px;
+    --clear-out-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --clear-in-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --clear-blur: 2px;
+    --glow-delay: 50ms;
+    --glow-peak-at: 0.15;
+    --glow-opacity: 0.42;
+    --glow-spread: 1.5;
+
+    /* 14 Skeleton loader and reveal */
+    --pulse-dur: calc(1000ms * var(--motion-speed-scale));
+    --pulse-count: 1;
+    --pulse-min: 0.5;
+    --reveal-dur: calc(400ms * var(--motion-speed-scale));
+    --reveal-blur: 2px;
+    --reveal-ease: ease-in-out;
+
+    /* 15 Shimmer text */
+    --shimmer-dur: calc(2000ms * var(--motion-speed-scale));
+    --shimmer-base: #7c7c7c;
+    --shimmer-highlight: #0d0d0d;
+    --shimmer-band: 400%;
+    --shimmer-ease: linear;
+
+    /* 16 Tabs sliding */
+    --tabs-dur: calc(250ms * var(--motion-speed-scale));
+    --tabs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --tabs-text-muted: rgba(15, 15, 15, 0.8);
+    --tabs-text-active: #0f0f0f;
+    --tabs-bar-bg: #f1f1f1;
+    --tabs-pill-bg: #ffffff;
+
+    /* 17 Tooltip open/close */
+    --tt-in-dur: calc(150ms * var(--motion-speed-scale));
+    --tt-out-dur: calc(50ms * var(--motion-speed-scale));
+    --tt-scale: 0.98;
+    --tt-delay: 80ms;
+    --tt-in-ease: ease-out;
+    --tt-out-ease: ease-out;
+    --tt-bg: #ffffff;
+    --tt-fg: #2f2f2f;
+
+    /* 18 Texts reveal */
+    --stagger-dur: calc(500ms * var(--motion-speed-scale));
+    --stagger-distance: 12px;
+    --stagger-stagger: 40ms;
+    --stagger-blur: 3px;
+    --stagger-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 19 Card hover tilt */
+    --tilt-perspective: 1000px;
+    --tilt-return: calc(1000ms * var(--motion-speed-scale));
+    --tilt-return-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --tilt-follow: calc(400ms * var(--motion-speed-scale));
+    --tilt-follow-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --tilt-glare-opacity: 0.32;
+    --tilt-glare-fade: calc(300ms * var(--motion-speed-scale));
+    --tilt-glare-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 20 Plus to menu morph */
+    --morph-open-dur: calc(350ms * var(--motion-speed-scale));
+    --morph-close-dur: calc(250ms * var(--motion-speed-scale));
+    --morph-ease: cubic-bezier(0.34, 1.25, 0.64, 1);
+    --morph-close-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --morph-r-closed: 40px;
+    --morph-r-open: 20px;
+    --morph-fade-dur: calc(200ms * var(--motion-speed-scale));
+    --morph-slide: 40px;
+    --morph-rotate: 45deg;
+    --morph-scale: 0.97;
+    --morph-blur: 2px;
+
+    /* 21 Accordion expand */
+    --acc-expand: calc(250ms * var(--motion-speed-scale));
+    --acc-collapse: calc(250ms * var(--motion-speed-scale));
+    --acc-chevron: calc(250ms * var(--motion-speed-scale));
+    --acc-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 22 Toast open / close */
+    --toast-open: calc(350ms * var(--motion-speed-scale));
+    --toast-close: calc(250ms * var(--motion-speed-scale));
+    --toast-distance: 16px;
+    --toast-blur: 2px;
+    --toast-scale: 0.97;
+    --toast-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 23 Like button */
+    --like-color: #f40051;
+    --like-fill: calc(150ms * var(--motion-speed-scale));
+    --like-pop: calc(350ms * var(--motion-speed-scale));
+    --like-pop-ease: cubic-bezier(0.34, 1.96, 0.64, 1);
+    --like-particle-dur: calc(600ms * var(--motion-speed-scale));
+    --like-particle-dist: 20px;
+    --like-particle-size: 2.5px;
+    --like-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 24 Learn more hover */
+    --learn-shift: 2px;
+    --learn-spread: 8deg;
+    --learn-in: calc(350ms * var(--motion-speed-scale));
+    --learn-out: calc(350ms * var(--motion-speed-scale));
+    --learn-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 25 Checkbox check */
+    --check-box: calc(150ms * var(--motion-speed-scale));
+    --check-draw: calc(350ms * var(--motion-speed-scale));
+    --check-delay: 0ms;
+    --check-uncheck: calc(150ms * var(--motion-speed-scale));
+    --check-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 26 Spinning counter */
+    --reel-dur: calc(1400ms * var(--motion-speed-scale));
+    --reel-cell: 30px;
+    --reel-spin-blur: 3px;
+    --reel-stagger: 90ms;
+    --reel-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* 27 Toggle */
+    --toggle-dur: calc(350ms * var(--motion-speed-scale));
+    --toggle-travel: 14.66px;
+    --toggle-ov1: 1px;
+    --toggle-ov2: 0px;
+    --toggle-track: 0ms;
+    --toggle-ease: cubic-bezier(0.34, 1.35, 0.64, 1);
+
+    /* 28 Thinking states */
+    --think-hold: 2000ms;
+    --think-swap: calc(150ms * var(--motion-speed-scale));
+    --think-gap: 50ms;
+    --think-distance: 8px;
+    --think-blur: 2px;
+    --think-shimmer: calc(2000ms * var(--motion-speed-scale));
+    --think-base: #7c7c7c;
+    --think-highlight: #0d0d0d;
+    --think-ease: ease-in-out;
+
+    /* 29 Reasoning stream */
+    --reason-hold: 840ms;
+    --reason-step: calc(500ms * var(--motion-speed-scale));
+    --reason-lines: 2;
+    --reason-fade: 28px;
+    --reason-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 30 Streaming text */
+    --stream-gap: 60ms;
+    --stream-fade: calc(350ms * var(--motion-speed-scale));
+    --stream-blur: 1px;
+    --stream-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+    /* 31 Matrix dot loader */
+    --matrix-cycle: calc(1200ms * var(--motion-speed-scale));
+    --matrix-base: #d9d9d9;
+    --matrix-active: #85858f;
+    --matrix-ease: ease-in-out;
+
+    /* 32 Banner stacking */
+    --stack-open: calc(350ms * var(--motion-speed-scale));
+    --stack-close: calc(250ms * var(--motion-speed-scale));
+    --stack-rise: 80px;
+    --stack-blur: 2px;
+    --stack-scale: 0.97;
+    --stack-peek: 12px;
+    --stack-spread-gap: 8px;
+    --stack-depth-scale: 0.06;
+    --stack-depth-fade: 0.4;
+    --stack-ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   /* Card resize — tween a container between two sizes. */
@@ -610,6 +912,51 @@ All colors MUST be HSL for perfect glass effects.
       transform: none !important;
       filter: none !important;
       opacity: 1 !important;
+    }
+  }
+
+  /* Like button — spring pop & heart fill */
+  .t-like-heart {
+    color: currentColor;
+    transition: color var(--like-fill) var(--like-ease);
+  }
+  .t-like-heart path {
+    fill: transparent;
+    stroke: currentColor;
+    transition: fill var(--like-fill) var(--like-ease), stroke var(--like-fill) var(--like-ease);
+  }
+  .t-like[data-liked="true"] .t-like-heart {
+    color: var(--like-color);
+  }
+  .t-like[data-liked="true"] .t-like-heart path {
+    fill: currentColor;
+  }
+  .t-like[data-liked="true"] .t-like-icon {
+    animation: t-like-pop var(--like-pop) var(--like-pop-ease);
+  }
+  @keyframes t-like-pop {
+    0% { transform: scale(1); }
+    30% { transform: scale(0.82); }
+    100% { transform: scale(1); }
+  }
+
+  /* Error state shake */
+  @keyframes t-shake-anim {
+    0%   { transform: translateX(0); }
+    20%  { transform: translateX(calc(var(--shake-distance) * -1)); }
+    40%  { transform: translateX(var(--shake-distance)); }
+    60%  { transform: translateX(calc(var(--shake-overshoot) * -1)); }
+    80%  { transform: translateX(var(--shake-overshoot)); }
+    100% { transform: translateX(0); }
+  }
+  .t-shake {
+    animation: t-shake-anim calc(var(--shake-dur-a) * 4) var(--shake-ease);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .t-like[data-liked="true"] .t-like-icon,
+    .t-shake {
+      animation: none !important;
     }
   }
 

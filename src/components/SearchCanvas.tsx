@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThinkingOrb } from "thinking-orbs";
 import { useResolvedOrbTheme } from "@/components/ThinkingIndicator";
-import { normalizedOrbSpeed } from "@/hooks/useThinkingOrbConfig";
+import { normalizedOrbSpeed, useThinkingOrbConfig, useMotionConfig } from "@/hooks/useThinkingOrbConfig";
 import {
   Search,
   Loader2,
@@ -78,6 +78,9 @@ export function SearchCanvas() {
   const [copied, setCopied] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showSources, setShowSources] = useState(false);
+  const orbConfig = useThinkingOrbConfig();
+  const motionConfig = useMotionConfig();
+  const webOrbState = orbConfig.web ?? "searching";
   const [followUpInput, setFollowUpInput] = useState("");
   const [showSavedLinks, setShowSavedLinks] = useState(false);
   const [selectedLinks, setSelectedLinks] = useState<Set<string>>(new Set());
@@ -1404,9 +1407,9 @@ export function SearchCanvas() {
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <ThinkingOrb
-                      state="solving"
+                      state={webOrbState}
                       size={64}
-                      speed={normalizedOrbSpeed('searching')}
+                      speed={normalizedOrbSpeed(webOrbState, 1.05, motionConfig.chatSpeed)}
                       theme={orbTheme}
                       aria-label="Searching the web"
                     />

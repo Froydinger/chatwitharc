@@ -121,8 +121,8 @@ const ORB_BASE_SPEED: Record<OrbState, number> = {
   shaping: 2.405,
 };
 
-export function normalizedOrbSpeed(state: OrbState, targetPace = 1.05): number {
-  return targetPace / ORB_BASE_SPEED[state];
+export function normalizedOrbSpeed(state: OrbState, targetPace = 1.05, speedMultiplier = 1.0): number {
+  return (targetPace / ORB_BASE_SPEED[state]) * speedMultiplier;
 }
 
 export type ThinkingOrbConfig = Record<ThinkingActivity, OrbState>;
@@ -234,6 +234,31 @@ export const DEFAULT_IMGFX_CONFIG: ImgFxConfig = {
 const VALID_PRESETS = new Set<string>(IMGFX_PRESETS.map((p) => p.id));
 
 // -----------------------------------------------------------------------------
+// Motion & Orb Speed Scaling
+// -----------------------------------------------------------------------------
+
+export interface MotionConfig {
+  /** Multiplier for chat thinking indicator pace (0.5 to 2.5) */
+  chatSpeed: number;
+  /** Multiplier for voice mode orb pace (0.5 to 2.5) */
+  voiceSpeed: number;
+  /** Multiplier for global UI transitions & CSS animations (0.5 to 2.0) */
+  motionSpeed: number;
+}
+
+export const MOTION_KEYS = {
+  chatSpeed: 'thinking_orb_speed',
+  voiceSpeed: 'voice_orb_speed',
+  motionSpeed: 'motion_speed',
+} as const;
+
+export const DEFAULT_MOTION_CONFIG: MotionConfig = {
+  chatSpeed: 1,
+  voiceSpeed: 1,
+  motionSpeed: 1,
+};
+
+// -----------------------------------------------------------------------------
 // Shared cache + pub/sub, deliberately mirroring useAdminBanner.
 //
 // This config is read by every chat view but changes roughly never, so it gets
@@ -247,6 +272,7 @@ const ALL_KEYS = [
   ...THINKING_ACTIVITIES.map((a) => a.key),
   ...VOICE_PHASES.map((p) => p.key),
   ...Object.values(IMGFX_KEYS),
+  ...Object.values(MOTION_KEYS),
 ];
 
 /**
@@ -264,6 +290,13 @@ interface PersistedConfig {
   orb: ThinkingOrbConfig;
   voice: VoiceOrbConfig;
   imgFx: ImgFxConfig;
+  motion?: MotionConfig;
+}
+
+function applyMotionCss(speed: number) {
+  if (typeof document !== 'undefined') {
+    document.documentElement.style.setProperty('--motion-speed-scale', String(speed));
+  }
 }
 
 function readPersisted(): PersistedConfig | null {
@@ -286,6 +319,25 @@ function readPersisted(): PersistedConfig | null {
     }, {} as VoiceOrbConfig);
     const preset = parsed.imgFx?.preset;
     const scale = Number(parsed.imgFx?.pixelScale);
+
+    const chatSpeedRaw = Number(parsed.motion?.chatSpeed);
+    const voiceSpeedRaw = Number(parsed.motion?.voiceSpeed);
+    const motionSpeedRaw = Number(parsed.motion?.motionSpeed);
+    const motion: MotionConfig = {
+      chatSpeed:
+        Number.isFinite(chatSpeedRaw) && chatSpeedRaw > 0
+          ? Math.min(3, Math.max(0.2, chatSpeedRaw))
+          : DEFAULT_MOTION_CONFIG.chatSpeed,
+      voiceSpeed:
+        Number.isFinite(voiceSpeedRaw) && voiceSpeedRaw > 0
+          ? Math.min(3, Math.max(0.2, voiceSpeedRaw))
+          : DEFAULT_MOTION_CONFIG.voiceSpeed,
+      motionSpeed:
+        Number.isFinite(motionSpeedRaw) && motionSpeedRaw > 0
+          ? Math.min(3, Math.max(0.2, motionSpeedRaw))
+          : DEFAULT_MOTION_CONFIG.motionSpeed,
+    };
+
     return {
       orb,
       voice,
@@ -297,6 +349,7 @@ function readPersisted(): PersistedConfig | null {
             ? Math.min(4, Math.max(0.25, scale))
             : DEFAULT_IMGFX_CONFIG.pixelScale,
       },
+      motion,
     };
   } catch {
     return null;
@@ -308,9 +361,12 @@ const persisted = typeof window !== 'undefined' ? readPersisted() : null;
 let cachedConfig: ThinkingOrbConfig = persisted?.orb ?? DEFAULT_ORB_CONFIG;
 let cachedVoiceConfig: VoiceOrbConfig = persisted?.voice ?? DEFAULT_VOICE_CONFIG;
 let cachedImgFx: ImgFxConfig = persisted?.imgFx ?? DEFAULT_IMGFX_CONFIG;
+let cachedMotion: MotionConfig = persisted?.motion ?? DEFAULT_MOTION_CONFIG;
 let inFlight: Promise<void> | null = null;
 let lastFetchedAt = 0;
 const subscribers = new Set<() => void>();
+
+applyMotionCss(cachedMotion.motionSpeed);
 
 function notify() {
   subscribers.forEach((fn) => fn());
@@ -320,7 +376,12 @@ function persist() {
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ orb: cachedConfig, voice: cachedVoiceConfig, imgFx: cachedImgFx }),
+      JSON.stringify({
+        orb: cachedConfig,
+        voice: cachedVoiceConfig,
+        imgFx: cachedImgFx,
+        motion: cachedMotion,
+      }),
     );
   } catch {
     // Private mode or a full quota — the in-memory cache still works.
@@ -382,6 +443,26 @@ async function fetchConfigOnce(force = false): Promise<void> {
             ? Math.min(4, Math.max(0.25, storedScale))
             : DEFAULT_IMGFX_CONFIG.pixelScale,
       };
+
+      const storedChatSpeed = Number.parseFloat(byKey[MOTION_KEYS.chatSpeed] ?? '');
+      const storedVoiceSpeed = Number.parseFloat(byKey[MOTION_KEYS.voiceSpeed] ?? '');
+      const storedMotionSpeed = Number.parseFloat(byKey[MOTION_KEYS.motionSpeed] ?? '');
+
+      cachedMotion = {
+        chatSpeed:
+          Number.isFinite(storedChatSpeed) && storedChatSpeed > 0
+            ? Math.min(3, Math.max(0.2, storedChatSpeed))
+            : DEFAULT_MOTION_CONFIG.chatSpeed,
+        voiceSpeed:
+          Number.isFinite(storedVoiceSpeed) && storedVoiceSpeed > 0
+            ? Math.min(3, Math.max(0.2, storedVoiceSpeed))
+            : DEFAULT_MOTION_CONFIG.voiceSpeed,
+        motionSpeed:
+          Number.isFinite(storedMotionSpeed) && storedMotionSpeed > 0
+            ? Math.min(3, Math.max(0.2, storedMotionSpeed))
+            : DEFAULT_MOTION_CONFIG.motionSpeed,
+      };
+      applyMotionCss(cachedMotion.motionSpeed);
 
       lastFetchedAt = Date.now();
       persist();
@@ -457,3 +538,9 @@ export function useVoiceOrbConfig(): VoiceOrbConfig {
 export function useImgFxConfig(): ImgFxConfig {
   return useConfigSlice(() => cachedImgFx);
 }
+
+/** Read the motion and orb speed configuration. */
+export function useMotionConfig(): MotionConfig {
+  return useConfigSlice(() => cachedMotion);
+}
+

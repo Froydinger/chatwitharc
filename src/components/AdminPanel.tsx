@@ -468,7 +468,7 @@ export function AdminPanel() {
     { id: "status",      label: "Public Status",   icon: Activity,        subtitle: "Live Service Controls" },
     { id: "banner",      label: "Announcements",   icon: Megaphone,       subtitle: "Banner Settings" },
     { id: "ai",          label: "AI Config",       icon: Sparkles,        subtitle: "Prompts & Rules" },
-    { id: "thinking",    label: "Thinking Orb",    icon: Loader,          subtitle: "Loading Animations" },
+    { id: "thinking",    label: "Animations & Motion", icon: Loader,   subtitle: "Orbs, Shaders & Transitions" },
     { id: "system",      label: "System Settings", icon: Settings,        subtitle: "General Options" },
     { id: "downloads",   label: "Downloads",       icon: Download,        subtitle: "Build Binary Manager" },
   ];
@@ -1690,18 +1690,18 @@ export function AdminPanel() {
               onSaved={(ok, error) => {
                 if (ok) {
                   toast({
-                    title: "Thinking indicator updated",
-                    description: "Everyone sees the new animations on their next load.",
+                    title: "Animations & motion updated",
+                    description: "All orb, shader, and motion settings are saved live.",
                   });
                   return;
                 }
-                console.error("Failed to save thinking orb settings:", error);
+                console.error("Failed to save animation settings:", error);
                 const err = error as { message?: string } | string | undefined;
                 toast({
                   title: "Error",
                   description:
                     (typeof err === "string" ? err : err?.message) ||
-                    "Failed to update thinking indicator settings.",
+                    "Failed to update animation settings.",
                   variant: "destructive",
                 });
               }}

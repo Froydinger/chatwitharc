@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UsageMeter } from "@/components/UsageMeter";
 import { ThinkingOrb } from "thinking-orbs";
 import { useResolvedOrbTheme } from "@/components/ThinkingIndicator";
-import { normalizedOrbSpeed, useVoiceOrbConfig, useThinkingOrbConfig, type VoicePhase } from "@/hooks/useThinkingOrbConfig";
+import { normalizedOrbSpeed, useVoiceOrbConfig, useThinkingOrbConfig, useMotionConfig, type VoicePhase } from "@/hooks/useThinkingOrbConfig";
 
 // Global ref to allow interrupt from overlay - set by VoiceModeController
 let globalInterruptHandler: (() => void) | null = null;
@@ -276,6 +276,7 @@ export function VoiceModeOverlay() {
 
   const voiceOrbConfig = useVoiceOrbConfig();
   const thinkingOrbConfig = useThinkingOrbConfig();
+  const motionConfig = useMotionConfig();
   const orbTheme = useResolvedOrbTheme();
 
   const amplitude = status === 'speaking' ? outputAmplitude : (isMuted ? 0 : inputAmplitude);
@@ -311,7 +312,7 @@ export function VoiceModeOverlay() {
     : status === 'listening'
     ? 0.68 + Math.min(1, amplitude) * 0.15
     : 0.75;
-  const orbSpeed = normalizedOrbSpeed(voiceOrbState, orbTargetPace);
+  const orbSpeed = normalizedOrbSpeed(voiceOrbState, orbTargetPace, motionConfig.voiceSpeed);
 
   const pendingVoiceInfo = pendingVoiceSwitch 
     ? REALTIME_VOICES.find(v => v.id === pendingVoiceSwitch) 

@@ -3,7 +3,7 @@ import { Sparkles, Music } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { ThinkingOrb, type OrbState } from "thinking-orbs";
-import { normalizedOrbSpeed, useThinkingOrbConfig } from "@/hooks/useThinkingOrbConfig";
+import { normalizedOrbSpeed, useThinkingOrbConfig, useMotionConfig } from "@/hooks/useThinkingOrbConfig";
 import { useArcStore } from "@/store/useArcStore";
 import { ImageGenerationFx } from "@/components/ImageGenerationFx";
 
@@ -86,6 +86,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   // changes the hook count between renders.
   const orbTheme = useResolvedOrbTheme();
   const orbConfig = useThinkingOrbConfig();
+  const motionConfig = useMotionConfig();
   const storeActiveTask = useArcStore((s) => s.activeTask);
   // The admin preview drives the state through props, so it must not also pick
   // up whatever the live store happens to be doing.
@@ -281,7 +282,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
           <ThinkingOrb
             state={orbState}
             size={64}
-            speed={normalizedOrbSpeed(orbState)}
+            speed={normalizedOrbSpeed(orbState, 1.05, motionConfig.chatSpeed)}
             theme={orbTheme}
             aria-label={searchingWeb || searchingChats ? "Arc is searching" : "Arc is thinking"}
             className="h-10 w-10"
