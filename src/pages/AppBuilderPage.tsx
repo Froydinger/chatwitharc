@@ -33,7 +33,7 @@ export function AppBuilderPage() {
 
   return (
     <div className="fixed inset-0 z-[200] bg-[#08090c] h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col">
-      <IDECanvasPanel onClose={handleClose} />
+      <IDECanvasPanel projectId={projectId} onClose={handleClose} />
     </div>
   );
 }

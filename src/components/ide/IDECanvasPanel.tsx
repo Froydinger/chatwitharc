@@ -57,6 +57,7 @@ interface LovableProject {
 interface IDECanvasPanelProps {
   className?: string;
   onClose?: () => void;
+  projectId?: string;
 }
 
 const buildPersistenceSnapshot = (nextFiles: VirtualFileSystem, nextMessages: ChatMessage[], nextProjectId?: string | null) =>
@@ -67,7 +68,7 @@ export function ensureSystemFiles(vfs: VirtualFileSystem): VirtualFileSystem {
   const next = { ...vfs };
 
   const dbFile = next['src/lib/netlifyDb.ts'];
-  if (!dbFile?.content || !dbFile.content.includes('export const netlifyDb =') || !dbFile.content.includes('export interface AppUser')) {
+  if (!dbFile?.content || !dbFile.content.includes('syncCloud') || !dbFile.content.includes('getAllStoredUsers')) {
     next['src/lib/netlifyDb.ts'] = DEFAULT_FILES['src/lib/netlifyDb.ts'];
     changed = true;
   }
@@ -81,24 +82,60 @@ export function ensureSystemFiles(vfs: VirtualFileSystem): VirtualFileSystem {
   return changed ? next : vfs;
 }
 
-export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
+export function IDECanvasPanel({ className, onClose, projectId: propProjectId }: IDECanvasPanelProps) {
   const idePrompt = useIDEStore((s) => s.idePrompt);
   const ideAutoRunPrompt = useIDEStore((s) => s.ideAutoRunPrompt);
-  const ideProjectId = useIDEStore((s) => s.ideProjectId);
+  const storeProjectId = useIDEStore((s) => s.ideProjectId);
   const closeIDE = useIDEStore((s) => s.closeIDE);
   const setIdeIsRunning = useIDEStore((s) => s.setIdeIsRunning);
   const setIdeActions = useIDEStore((s) => s.setIdeActions);
   const clearIdePrompt = useIDEStore((s) => s.clearIdePrompt);
   const setIdeProjectId = useIDEStore((s) => s.setIdeProjectId);
 
+  // Synchronously resolve active project ID on initial render
+  const initialProjectId = (() => {
+    if (propProjectId) return propProjectId;
+    if (storeProjectId) return storeProjectId;
+    if (typeof window !== 'undefined') {
+      const match = window.location.pathname.match(/\/build\/([a-zA-Z0-9_-]+)/);
+      if (match?.[1] && match[1] !== 'new') return match[1];
+      const searchParam = new URLSearchParams(window.location.search).get('projectId');
+      if (searchParam) return searchParam;
+    }
+    return null;
+  })();
+
+  const ideProjectId = storeProjectId || initialProjectId;
+
+  useEffect(() => {
+    if (initialProjectId && !storeProjectId) {
+      setIdeProjectId(initialProjectId);
+    }
+  }, [initialProjectId, storeProjectId, setIdeProjectId]);
+
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
+  const isProjectHydratedRef = useRef<boolean>(!ideProjectId);
+
   const [files, setFiles] = useState<VirtualFileSystem>(() => {
     const storeFiles = useIDEStore.getState().ideFiles;
-    const initial = storeFiles && Object.keys(storeFiles).length > 0 ? storeFiles : DEFAULT_FILES;
-    return ensureSystemFiles(initial);
+    if (storeFiles && Object.keys(storeFiles).length > 0) {
+      return ensureSystemFiles(storeFiles);
+    }
+    if (ideProjectId) {
+      try {
+        const cached = localStorage.getItem(`arc_ide_cached_files_${ideProjectId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && Object.keys(parsed).length > 0) {
+            return ensureSystemFiles(parsed);
+          }
+        }
+      } catch {}
+    }
+    return ensureSystemFiles(DEFAULT_FILES);
   });
   const [selectedFile, setSelectedFile] = useState<string | null>('src/App.tsx');
   const [activeTab, setActiveTab] = useState<'chat' | 'preview' | 'code' | 'cloud'>('preview');
@@ -308,13 +345,15 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       .then(({ data }) => {
         if (!data) return;
 
-        // Hydrate files if not already populated or if store was reset on page refresh
-        const storeFiles = useIDEStore.getState().ideFiles;
-        if ((!storeFiles || Object.keys(storeFiles).length === 0) && (data as any).files) {
+        // Always hydrate files from database when loading a saved project
+        if ((data as any).files && Object.keys((data as any).files).length > 0) {
           const loadedFiles = ensureSystemFiles((data as any).files);
           setFiles(loadedFiles);
           filesRef.current = loadedFiles;
           useIDEStore.getState().setIdeFiles(loadedFiles);
+          try {
+            localStorage.setItem(`arc_ide_cached_files_${ideProjectId}`, JSON.stringify(loadedFiles));
+          } catch {}
         }
 
         setDeployedUrl((data as any).netlify_url || null);
@@ -337,20 +376,33 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
         const appUsers = (data as any)?.versions?.app_users;
         if (Array.isArray(appUsers) && appUsers.length > 0) {
           const key = `netlify_mock_users:${ideProjectId}`;
-          const existing = localStorage.getItem(key);
-          if (!existing || existing === '[]') {
-            localStorage.setItem(key, JSON.stringify(appUsers));
-            window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: ideProjectId, users: appUsers } }));
+          localStorage.setItem(key, JSON.stringify(appUsers));
+          window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: ideProjectId, users: appUsers } }));
+        }
+
+        const appDb = (data as any)?.versions?.app_db;
+        if (appDb && typeof appDb === 'object') {
+          for (const [k, v] of Object.entries(appDb)) {
+            try {
+              localStorage.setItem(`netlify_db:${ideProjectId}:${k}`, JSON.stringify(v));
+            } catch {}
           }
+          window.dispatchEvent(new CustomEvent('netlify-db-change', { detail: { appId: ideProjectId } }));
         }
 
         const dbMessages = (data as any).messages;
-        if (Array.isArray(dbMessages) && dbMessages.length > 0 && messagesRef.current.length === 0) {
+        if (Array.isArray(dbMessages) && dbMessages.length > 0) {
           setMessagesRaw(dbMessages as ChatMessage[]);
           useIDEStore.getState().setIdeMessages(dbMessages as ChatMessage[]);
           messagesRef.current = dbMessages as ChatMessage[];
-          lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesRef.current, dbMessages as ChatMessage[], ideProjectId);
         }
+
+        isProjectHydratedRef.current = true;
+        lastSavedSnapshotRef.current = buildPersistenceSnapshot(
+          (data as any).files ? ensureSystemFiles((data as any).files) : filesRef.current,
+          Array.isArray(dbMessages) && dbMessages.length > 0 ? (dbMessages as ChatMessage[]) : messagesRef.current,
+          ideProjectId
+        );
       });
   }, [ideProjectId]);
 
@@ -363,6 +415,8 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
   // Auto-saving snapshot listener
   useEffect(() => {
+    if (ideProjectId && !isProjectHydratedRef.current) return;
+
     const currentSnapshot = buildPersistenceSnapshot(files, messages, projectIdRef.current || ideProjectId);
 
     if (!ideProjectId) {
@@ -548,8 +602,9 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       const currentAppId = msgAppId || projectIdRef.current || ideProjectId || 'default';
 
       if (action === 'auth-signup' || action === 'auth-signin' || action === 'app-init') {
-        const usersKey = `netlify_mock_users:${currentAppId}`;
-        const curUserKey = `netlify_current_user:${currentAppId}`;
+        const targetAppId = projectIdRef.current || ideProjectId || currentAppId;
+        const usersKey = `netlify_mock_users:${targetAppId}`;
+        const curUserKey = `netlify_current_user:${targetAppId}`;
 
         let currentUsers: any[] = [];
         try {
@@ -559,12 +614,12 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
         if (Array.isArray(payload?.users)) {
           for (const u of payload.users) {
-            if (u?.email && !currentUsers.some(existing => existing.email === u.email)) {
+            if (u?.email && u.email !== 'user@askarc.chat' && !currentUsers.some(existing => existing.email === u.email)) {
               currentUsers.unshift(u);
             }
           }
         }
-        if (payload?.user) {
+        if (payload?.user && payload.user.email && payload.user.email !== 'user@askarc.chat') {
           try {
             localStorage.setItem(curUserKey, JSON.stringify(payload.user));
           } catch {}
@@ -582,18 +637,24 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
 
         try {
           localStorage.setItem(usersKey, JSON.stringify(currentUsers));
-          if (projectIdRef.current && projectIdRef.current !== currentAppId) {
-            localStorage.setItem(`netlify_mock_users:${projectIdRef.current}`, JSON.stringify(currentUsers));
+          localStorage.setItem(`netlify_mock_users:${currentAppId}`, JSON.stringify(currentUsers));
+          if (targetAppId !== currentAppId) {
+            localStorage.setItem(`netlify_mock_users:${targetAppId}`, JSON.stringify(currentUsers));
           }
         } catch {}
 
         window.dispatchEvent(new CustomEvent('netlify-auth-change', {
           detail: { appId: currentAppId, user: payload?.user, users: currentUsers }
         }));
+        window.dispatchEvent(new CustomEvent('netlify-auth-change', {
+          detail: { appId: targetAppId, user: payload?.user, users: currentUsers }
+        }));
         window.dispatchEvent(new Event('storage'));
 
-        // Save immediately to Supabase
-        void saveProject();
+        // Save immediately to Supabase if we have users
+        if (currentUsers.length > 0) {
+          void saveProject();
+        }
       } else if (action === 'auth-signout') {
         try {
           localStorage.removeItem(`netlify_current_user:${currentAppId}`);
@@ -1538,6 +1599,18 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
         onPublish={handleDeploy}
         onUnpublish={handleUnpublish}
       />
+
+      {/* Background sync worker: loads published site to recover accounts/database from its origin */}
+      {deployedUrl && (
+        <iframe
+          src={deployedUrl}
+          title="arc-deployed-sync-worker"
+          aria-hidden="true"
+          tabIndex={-1}
+          className="hidden w-0 h-0 border-0 pointer-events-none opacity-0 fixed -bottom-96"
+          style={{ display: 'none' }}
+        />
+      )}
     </div>
   );
 }

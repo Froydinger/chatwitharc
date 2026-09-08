@@ -151,7 +151,7 @@ export function IDECloudPanel({
         try {
           const { data } = await supabase
             .from('ide_projects')
-            .select('versions')
+            .select('versions, netlify_subdomain')
             .eq('id', projectId)
             .maybeSingle();
 
@@ -172,8 +172,50 @@ export function IDECloudPanel({
               }
             }
           }
+
+          // 4. Also query edge function backend directly by projectId or subdomain
+          const sub = (data as any)?.netlify_subdomain;
+          const queryParam = projectId ? `projectId=${encodeURIComponent(projectId)}` : `subdomain=${encodeURIComponent(sub || '')}`;
+          const res = await fetch(`https://olhptgffasqrmeyqjtrq.supabase.co/functions/v1/app-backend?${queryParam}&action=get-data`);
+          if (res.ok) {
+            const cloudData = await res.json();
+            if (Array.isArray(cloudData?.users)) {
+              for (const u of cloudData.users) {
+                if (u?.email && u.email !== 'user@askarc.chat' && !parsedUsers.some(existing => existing.email === u.email)) {
+                  parsedUsers.push(u);
+                }
+              }
+            }
+            if (cloudData?.db && typeof cloudData.db === 'object') {
+              for (const [k, val] of Object.entries(cloudData.db)) {
+                if (records[k] === undefined) {
+                  records[k] = val;
+                }
+              }
+            }
+          }
         } catch (e) {
           console.error('[IDECloudPanel] Supabase fetch error:', e);
+        }
+      }
+
+      // 5. Recover any user records stored inside database collections (e.g. users, profiles, accounts)
+      const userCollections = ['collection:users', 'collection:profiles', 'collection:accounts', 'collection:members', 'collection:registered_users'];
+      for (const colKey of userCollections) {
+        const items = records[colKey];
+        if (Array.isArray(items)) {
+          for (const item of items) {
+            if (item?.email && item.email !== 'user@askarc.chat' && !parsedUsers.some(existing => existing.email === item.email)) {
+              parsedUsers.push({
+                id: item.id || Math.random().toString(36).substring(2, 9),
+                email: item.email,
+                name: item.name || item.username || item.fullName || item.email.split('@')[0],
+                role: item.role || 'User',
+                status: 'Active',
+                created_at: item.created_at ? new Date(item.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+              });
+            }
+          }
         }
       }
 
@@ -209,6 +251,29 @@ export function IDECloudPanel({
 
     const handleWindowMessage = (e: MessageEvent) => {
       if (e.data?.source === 'arc-netlify-db') {
+        if (e.data.payload?.user || Array.isArray(e.data.payload?.users)) {
+          const u = e.data.payload?.user;
+          const uList = e.data.payload?.users || [];
+          setMockUsers(prev => {
+            const next = [...prev];
+            for (const item of (Array.isArray(uList) ? uList : [])) {
+              if (item?.email && item.email !== 'user@askarc.chat' && !next.some(ex => ex.email === item.email)) {
+                next.push(item);
+              }
+            }
+            if (u?.email && u.email !== 'user@askarc.chat' && !next.some(ex => ex.email === u.email)) {
+              next.unshift({
+                id: u.id || Math.random().toString(36).substring(2, 9),
+                email: u.email,
+                name: u.name || u.email.split('@')[0],
+                role: u.role || 'User',
+                status: 'Active',
+                created_at: new Date(u.created_at || Date.now()).toLocaleDateString(),
+              });
+            }
+            return next;
+          });
+        }
         void loadMockData();
       }
     };

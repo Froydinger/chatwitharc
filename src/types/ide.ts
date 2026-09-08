@@ -147,6 +147,42 @@ function getIdentityEndpoint(): string {
   return '/.netlify/identity';
 }
 
+function getAllStoredUsers(): AppUser[] {
+  const users: AppUser[] = [];
+  if (typeof window === 'undefined') return users;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (k.startsWith('netlify_mock_users:')) {
+        const raw = localStorage.getItem(k);
+        const list = raw ? JSON.parse(raw) : [];
+        if (Array.isArray(list)) {
+          for (const u of list) {
+            if (u?.email && u.email !== 'user@askarc.chat' && u.name !== 'App User' && !users.some((ex: any) => ex.email === u.email)) {
+              users.push(u);
+            }
+          }
+        }
+      } else if (k.startsWith('netlify_current_user:')) {
+        const raw = localStorage.getItem(k);
+        const cu = raw ? JSON.parse(raw) : null;
+        if (cu?.email && cu.email !== 'user@askarc.chat' && cu.name !== 'App User' && !users.some((ex: any) => ex.email === cu.email)) {
+          users.unshift({
+            id: cu.id || Math.random().toString(36).substring(2, 9),
+            email: cu.email,
+            name: cu.name || cu.email.split('@')[0],
+            role: cu.role || 'User',
+            status: 'Active',
+            created_at: cu.created_at || new Date().toLocaleDateString(),
+          });
+        }
+      }
+    }
+  } catch {}
+  return users;
+}
+
 export const netlifyDb = {
   // Key-Value Store
   get: <T = any>(key: string, defaultValue: T | null = null): T | null => {
@@ -276,7 +312,10 @@ export const netlifyDb = {
     currentUser: (): AppUser | null => {
       try {
         const raw = localStorage.getItem(getCurrentUserKey());
-        return raw ? JSON.parse(raw) : null;
+        if (raw) return JSON.parse(raw);
+        const fallback = getAllStoredUsers();
+        if (fallback.length > 0) return fallback[0];
+        return null;
       } catch {
         return null;
       }
@@ -498,10 +537,23 @@ export const netlifyDb = {
 // Initial state announcement to host window
 try {
   if (typeof window !== 'undefined') {
-    const cur = netlifyDb.auth.currentUser();
-    const rawUsers = localStorage.getItem(getMockUsersKey());
-    const initialUsers = rawUsers ? JSON.parse(rawUsers) : [];
-    notifyHost('app-init', { user: cur, users: initialUsers });
+    const allUsers = getAllStoredUsers();
+    let cur = netlifyDb.auth.currentUser();
+    if (!cur && allUsers.length > 0) {
+      cur = allUsers[0];
+      try {
+        localStorage.setItem(getCurrentUserKey(), JSON.stringify(cur));
+      } catch {}
+    }
+    if (allUsers.length > 0) {
+      try {
+        localStorage.setItem(getMockUsersKey(), JSON.stringify(allUsers));
+      } catch {}
+    }
+    notifyHost('app-init', { user: cur, users: allUsers });
+    if (allUsers.length > 0 || cur) {
+      syncCloud('auth-signup', { user: cur, users: allUsers });
+    }
   }
 } catch {}
 `,

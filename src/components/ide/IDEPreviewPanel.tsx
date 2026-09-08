@@ -245,7 +245,7 @@ export function IDEPreviewPanel({
 
     // Ensure system files are never corrupted or missing in sandbox runtime
     const dbContent = map['/src/lib/netlifyDb.ts'];
-    if (!dbContent || !dbContent.includes('export const netlifyDb =') || !dbContent.includes('export interface AppUser')) {
+    if (!dbContent || !dbContent.includes('syncCloud') || !dbContent.includes('getAllStoredUsers')) {
       map['/src/lib/netlifyDb.ts'] = DEFAULT_FILES['src/lib/netlifyDb.ts'].content;
     }
 
