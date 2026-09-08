@@ -10,25 +10,30 @@ interface QuickPrompt {
 // prompts are plain chat and need no prefix — they lean on Arc's tools (web
 // search, weather, memory, past-chat search, reminders, file reading) instead.
 
-// ASK — day-to-day usefulness: lookups, plans, decisions, learning. Practical
-// only; anything inward belongs in Reflect.
+// ASK — everyday practical AI queries leveraging Arc's best features:
+// web search with citations, app builder (/build), reminders, document analysis,
+// weather, practical drafting, troubleshooting, and daily productivity.
 const askPromptPool: QuickPrompt[] = [
-  { label: "🌐 Search The Web", prompt: "Search the web and tell me what's happening with a topic I'm following — give me the sources you used." },
-  { label: "🌦️ Local Weather", prompt: "What's the weather where I am right now, and what should I plan around it today?" },
-  { label: "📄 Read My File", prompt: "I'm attaching a document. Read it and give me the key points, anything surprising, and what I should do next." },
-  { label: "⚖️ Weigh My Options", prompt: "Compare a few options I'm choosing between. Look up current details if it helps, and give me your actual recommendation." },
-  { label: "🧠 Explain It Simply", prompt: "Explain a topic I'm curious about in plain language, then check whether I actually followed it." },
-  { label: "⏰ Remind Me", prompt: "Set me a reminder for something I keep forgetting, and pick a time that actually makes sense." },
-  { label: "🔎 Fact Check This", prompt: "Fact-check a claim I heard. Search for it, tell me what holds up, and link where it came from." },
-  { label: "🗂️ Find That Chat", prompt: "Search my past chats for something we talked about before — I can't remember when or what we decided." },
-  { label: "🎤 Practice With Me", prompt: "Role-play an interview or a call I'm preparing for. Play the other side properly, then tell me how I did." },
-  { label: "🧭 Plan My Week", prompt: "Help me lay out the week so the important things actually get a slot, not just the urgent ones." },
-  { label: "🍳 What Should I Cook", prompt: "Suggest something to cook tonight based on what I have and how much energy I've got left." },
-  { label: "📚 Teach Me Something", prompt: "Teach me something genuinely interesting I probably don't know, and tell me why it matters." },
-  { label: "🧮 Break It Down", prompt: "I'm stuck on a practical problem. Break it into steps and walk me through the first one." },
-  { label: "🧾 Sort This Out", prompt: "Help me untangle an admin task I've been putting off — walk me through it in order." },
-  { label: "🛠️ How Do I Fix", prompt: "Walk me through fixing something around the house, step by step, and tell me when to call someone instead." },
-  { label: "✈️ Help Me Plan", prompt: "Help me plan a trip or an outing — look up what's worth knowing and keep it realistic." },
+  { label: "🌐 Search The Web", prompt: "Search the web and give me a clear, up-to-date summary of the latest news on a topic with sources." },
+  { label: "🧭 Plan My Day", prompt: "Help me structure my day: organize my tasks into time blocks with realistic priorities and breaks." },
+  { label: "📧 Polish This Email", prompt: "I need to send an important email. Help me write it clearly, politely, and to the point." },
+  { label: "📄 Summarize Document", prompt: "I'm uploading a file or document. Break it down into the core takeaways and actionable next steps." },
+  { label: "🍳 Quick Dinner Idea", prompt: "Here's what I have in my fridge and pantry — suggest two quick, delicious meal ideas I can make tonight." },
+  { label: "⏰ Set A Reminder", prompt: "Schedule a reminder for me with a specific time and task so I don't forget to follow up." },
+  { label: "⚖️ Compare Options", prompt: "I'm choosing between two products or approaches. Compare their pros, cons, and give me a clear recommendation." },
+  { label: "📱 Build An App", prompt: "/build Build me a clean, interactive mini web app or tool for this idea with a live preview." },
+  { label: "🌦️ Weather & Outfit", prompt: "What's the weather forecast where I am today, and what should I wear or plan around it?" },
+  { label: "🎙️ Practice Interview", prompt: "Act as an interviewer for a role I'm preparing for. Ask me one question at a time and give constructive feedback." },
+  { label: "💡 Brainstorm Ideas", prompt: "Brainstorm 10 fresh, practical ideas for a project I'm starting, ranked from easiest to most ambitious." },
+  { label: "🔍 Fact Check Claim", prompt: "Search the web to fact-check this claim and tell me whether it's verified, misleading, or debunked." },
+  { label: "📊 Create A Table", prompt: "Organize this information into a clean comparison table so I can see the differences at a glance." },
+  { label: "✈️ Trip Itinerary", prompt: "Build a practical, day-by-day travel itinerary with great local spots, realistic timing, and travel tips." },
+  { label: "📝 Rewrite & Simplify", prompt: "Rewrite this text to make it punchy, engaging, and easy for anyone to understand without jargon." },
+  { label: "🛠️ Fix & Troubleshoot", prompt: "I'm dealing with a technical or household issue. Walk me step-by-step through troubleshooting it safely." },
+  { label: "🧮 Budget Breakdown", prompt: "Help me calculate and budget costs for an upcoming purchase or event with realistic itemized estimates." },
+  { label: "📚 Explain Simply", prompt: "Explain this complex concept in simple, intuitive terms with an everyday analogy that clicks." },
+  { label: "🗂️ Search Past Chats", prompt: "Search my past conversations with you and find what we previously decided or discussed about this." },
+  { label: "⚡ Quick Decision", prompt: "I'm experiencing decision fatigue. Ask me 3 quick questions and make a clear recommendation for me." },
 ];
 
 // REFLECT — therapy-adjacent, journaling, deep thought. Leans on Arc's memory

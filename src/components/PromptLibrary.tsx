@@ -28,10 +28,19 @@ type TabType = 'ask' | 'reflect' | 'create';
 export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: PromptLibraryProps) {
   const [activeTab, setActiveTab] = useState<TabType>('ask');
 
-  // State for dynamically generated prompts
-  const [askPrompts, setAskPrompts] = useState<QuickPrompt[]>([]);
-  const [reflectPrompts, setReflectPrompts] = useState<QuickPrompt[]>([]);
-  const [createPrompts, setCreatePrompts] = useState<QuickPrompt[]>([]);
+  // State for dynamically generated prompts (initialized immediately so tabs never show empty or wrong prompts)
+  const [askPrompts, setAskPrompts] = useState<QuickPrompt[]>(() => {
+    const cached = getCachedPrompts('ask');
+    return cached && cached.length > 0 ? cached : generatePromptsByCategory('ask');
+  });
+  const [reflectPrompts, setReflectPrompts] = useState<QuickPrompt[]>(() => {
+    const cached = getCachedPrompts('reflect');
+    return cached && cached.length > 0 ? cached : generatePromptsByCategory('reflect');
+  });
+  const [createPrompts, setCreatePrompts] = useState<QuickPrompt[]>(() => {
+    const cached = getCachedPrompts('create');
+    return cached && cached.length > 0 ? cached : generatePromptsByCategory('create');
+  });
 
   // Loading states for each category
   const [isLoadingAsk, setIsLoadingAsk] = useState(false);
@@ -88,12 +97,10 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
         return generatePromptsByCategory(category);
       }
 
-      // An older deployment that does not know this category answers with its
-      // own default set, which is how Ask and Reflect ended up showing the same
-      // prompts. Only trust a response that says it is for what we asked for.
-      const answeredForCategory = !data?.category || data.category === category;
+      // Strictly verify category — reject responses meant for a different category
+      const answeredForCategory = data?.category === category;
       if (!answeredForCategory) {
-        console.warn(`Prompt service answered for "${data.category}" when asked for "${category}" — using local prompts`);
+        console.warn(`Prompt service answered for "${data?.category}" when asked for "${category}" — using local prompts`);
         return generatePromptsByCategory(category);
       }
 
@@ -144,9 +151,9 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
 
   const getCurrentPrompts = () => {
     switch (activeTab) {
-      case 'ask': return askPrompts;
-      case 'reflect': return reflectPrompts;
-      case 'create': return createPrompts;
+      case 'ask': return askPrompts.length > 0 ? askPrompts : generatePromptsByCategory('ask');
+      case 'reflect': return reflectPrompts.length > 0 ? reflectPrompts : generatePromptsByCategory('reflect');
+      case 'create': return createPrompts.length > 0 ? createPrompts : generatePromptsByCategory('create');
       default: return askPrompts;
     }
   };

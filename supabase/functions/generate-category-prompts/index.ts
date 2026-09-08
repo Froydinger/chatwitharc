@@ -8,12 +8,14 @@ const corsHeaders = {
 
 const fallbackPrompts = {
   ask: [
-    { label: "🌐 Search The Web", prompt: "Search the web and tell me what's happening with a topic I'm following — give me the sources you used." },
-    { label: "🌦️ Local Weather", prompt: "What's the weather where I am right now, and what should I plan around it today?" },
-    { label: "⚖️ Weigh A Decision", prompt: "Help me weigh a decision I'm sitting on. Ask me what matters most, then lay out the tradeoffs honestly." },
-    { label: "⏰ Remind Me", prompt: "Set me a reminder for something I keep forgetting, and pick a time that actually makes sense." },
-    { label: "🔎 Fact Check This", prompt: "Fact-check a claim I heard. Search for it, tell me what holds up, and link where it came from." },
-    { label: "🧠 Explain It Simply", prompt: "Explain a topic I'm curious about in plain language, then check whether I actually followed it." },
+    { label: "🌐 Search The Web", prompt: "Search the web and give me a clear, up-to-date summary of the latest news on a topic with sources." },
+    { label: "🧭 Plan My Day", prompt: "Help me structure my day: organize my tasks into time blocks with realistic priorities and breaks." },
+    { label: "📧 Polish This Email", prompt: "I need to send an important email. Help me write it clearly, politely, and to the point." },
+    { label: "📄 Summarize Document", prompt: "I'm uploading a file or document. Break it down into the core takeaways and actionable next steps." },
+    { label: "🍳 Quick Dinner Idea", prompt: "Here's what I have in my fridge and pantry — suggest two quick, delicious meal ideas I can make tonight." },
+    { label: "⏰ Set A Reminder", prompt: "Schedule a reminder for me with a specific time and task so I don't forget to follow up." },
+    { label: "⚖️ Compare Options", prompt: "I'm choosing between two products or approaches. Compare their pros, cons, and give me a clear recommendation." },
+    { label: "📱 Build An App", prompt: "/build Build me a clean, interactive mini web app or tool for this idea with a live preview." },
   ],
   reflect: [
     { label: "🌙 Rough Day", prompt: "I had a rough day. Help me talk through what happened without rushing me to a solution." },
@@ -79,13 +81,26 @@ serve(async (req) => {
 
     // Define prompts for each category - PRACTICAL, DOWN-TO-EARTH
     const categoryPrompts = {
-      ask: `Generate 6 prompts for the ASK tab: ordinary, day-to-day usefulness.
+      ask: `Generate 6 prompts for the ASK tab: everyday, practical AI queries that leverage Arc's best features.
 
-This is the practical tab — errands, plans, questions, logistics, decisions, learning something. Lean on what Arc can actually do: live web search with citations, current weather, reading an attached file or PDF, searching the user's own past chats, setting reminders and recurring tasks.
+This is the practical, day-to-day tab — questions, planning, lookups, productivity, comparisons, and building.
+Lean heavily on Arc's best features:
+- Real-time live web search with citations
+- Interactive App Builder (/build)
+- File, document, and PDF analysis
+- Reminders and scheduled tasks
+- Weather and day planning
+- Practical drafting and polishing (emails, recipes, troubleshooting, comparisons)
 
-Examples of the RIGHT register: look something up, plan the week, compare two options, explain a topic, what to cook, draft a plan, set a reminder, practise for an interview.
+Examples of the RIGHT register:
+- "🌐 Search The Web" → "Search the web and give me a clear, up-to-date summary of what's happening with sources."
+- "🧭 Plan My Day" → "Help me structure my tasks today into time blocks with realistic priorities."
+- "📧 Polish This Email" → "Help me write a concise, polite email that clearly communicates my point."
+- "🍳 Quick Dinner" → "Suggest a quick dinner recipe based on ingredients I already have."
+- "📱 Build An App" → "/build Build me an interactive calculator or tracker tool in real time."
+- "📄 Summarize Document" → "Break down the main takeaways and key action points from this document."
 
-STAY OUT of feelings, therapy, journaling, self-reflection or personal growth — that is the Reflect tab and must not appear here. No prefix on these; they are plain chat.`,
+STRICTLY STAY OUT of therapy, emotional reflection, rough days, journaling, or self-analysis — that belongs strictly in the Reflect tab. These must be practical, everyday AI prompts!`,
 
       reflect: `Generate 6 prompts for the REFLECT tab: therapy-adjacent, journaling, deep thought.
 
