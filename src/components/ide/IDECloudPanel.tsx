@@ -77,91 +77,139 @@ export function IDECloudPanel({
 
   const loadMockData = async () => {
     try {
-      const currentUser = localStorage.getItem(currentUserKey);
-      let storedUsers = localStorage.getItem(mockUsersKey);
-
-      // Fallback 1: If empty and appId is not 'default', check 'default'
-      if ((!storedUsers || storedUsers === '[]') && appId !== 'default') {
-        const defaultUsers = localStorage.getItem('netlify_mock_users:default');
-        if (defaultUsers && defaultUsers !== '[]') {
-          storedUsers = defaultUsers;
-          localStorage.setItem(mockUsersKey, defaultUsers);
-        }
-      }
-
-      // Fallback 2: If empty and projectId exists, check Supabase ide_projects versions
-      if ((!storedUsers || storedUsers === '[]') && projectId && projectId !== 'default') {
-        try {
-          const { data } = await supabase
-            .from('ide_projects')
-            .select('versions')
-            .eq('id', projectId)
-            .maybeSingle();
-          if (data?.versions && (data.versions as any).app_users?.length) {
-            const fetched = (data.versions as any).app_users;
-            storedUsers = JSON.stringify(fetched);
-            localStorage.setItem(mockUsersKey, storedUsers);
-          }
-        } catch {}
-      }
-
-      let parsedUsers: any[] = storedUsers ? JSON.parse(storedUsers) : [];
-
-      // Filter out any legacy dummy accounts
-      parsedUsers = parsedUsers.filter(u => u?.email && u.email !== 'user@askarc.chat' && u.name !== 'App User');
-
-      if (currentUser) {
-        try {
-          const cu = JSON.parse(currentUser);
-          if (cu?.email && cu.email !== 'user@askarc.chat' && !parsedUsers.some(u => u.email === cu.email)) {
-            parsedUsers.unshift({
-              id: cu.id || '1',
-              email: cu.email,
-              name: cu.name || cu.email.split('@')[0],
-              role: cu.role || 'User',
-              status: 'Active',
-              created_at: new Date(cu.created_at || Date.now()).toLocaleDateString()
-            });
-          }
-        } catch {}
-      }
-      setMockUsers(parsedUsers);
-
+      let parsedUsers: any[] = [];
       const records: Record<string, any> = {};
+
+      // 1. Primary check: mockUsersKey
+      const storedUsers = localStorage.getItem(mockUsersKey);
+      if (storedUsers) {
+        try {
+          const list = JSON.parse(storedUsers);
+          if (Array.isArray(list)) parsedUsers = list;
+        } catch {}
+      }
+
+      // 2. Scan all localStorage keys for any mock users or current user or db records
       for (let i = 0; i < localStorage.length; i++) {
         const fullKey = localStorage.key(i);
-        if (fullKey && fullKey.startsWith(dbPrefix)) {
+        if (!fullKey) continue;
+
+        if (fullKey.startsWith('netlify_mock_users:')) {
+          try {
+            const raw = localStorage.getItem(fullKey);
+            const list = raw ? JSON.parse(raw) : [];
+            if (Array.isArray(list)) {
+              for (const u of list) {
+                if (u?.email && u.email !== 'user@askarc.chat' && u.name !== 'App User' && !parsedUsers.some(existing => existing.email === u.email)) {
+                  parsedUsers.push(u);
+                }
+              }
+            }
+          } catch {}
+        } else if (fullKey.startsWith('netlify_current_user:')) {
+          try {
+            const raw = localStorage.getItem(fullKey);
+            const cu = raw ? JSON.parse(raw) : null;
+            if (cu?.email && cu.email !== 'user@askarc.chat' && cu.name !== 'App User' && !parsedUsers.some(existing => existing.email === cu.email)) {
+              parsedUsers.unshift({
+                id: cu.id || Math.random().toString(36).substring(2, 9),
+                email: cu.email,
+                name: cu.name || cu.email.split('@')[0],
+                role: cu.role || 'User',
+                status: 'Active',
+                created_at: new Date(cu.created_at || Date.now()).toLocaleDateString()
+              });
+            }
+          } catch {}
+        } else if (fullKey.startsWith(dbPrefix)) {
           const rawKey = fullKey.slice(dbPrefix.length);
           try {
             records[rawKey] = JSON.parse(localStorage.getItem(fullKey) || 'null');
           } catch {
             records[rawKey] = localStorage.getItem(fullKey);
           }
+        } else if (fullKey.startsWith('netlify_db:')) {
+          const parts = fullKey.split(':');
+          if (parts.length >= 3) {
+            const keyAppId = parts[1];
+            const rawKey = parts.slice(2).join(':');
+            if (keyAppId === 'default' || keyAppId === appId) {
+              if (records[rawKey] === undefined) {
+                try {
+                  records[rawKey] = JSON.parse(localStorage.getItem(fullKey) || 'null');
+                } catch {
+                  records[rawKey] = localStorage.getItem(fullKey);
+                }
+              }
+            }
+          }
         }
       }
+
+      // 3. Cloud fetch: Fetch from Supabase ide_projects versions (handles published sites & cross-device)
+      if (projectId && projectId !== 'default') {
+        try {
+          const { data } = await supabase
+            .from('ide_projects')
+            .select('versions')
+            .eq('id', projectId)
+            .maybeSingle();
+
+          if (data?.versions && typeof data.versions === 'object') {
+            const v = data.versions as any;
+            if (Array.isArray(v.app_users)) {
+              for (const u of v.app_users) {
+                if (u?.email && u.email !== 'user@askarc.chat' && !parsedUsers.some(existing => existing.email === u.email)) {
+                  parsedUsers.push(u);
+                }
+              }
+            }
+            if (v.app_db && typeof v.app_db === 'object') {
+              for (const [k, val] of Object.entries(v.app_db)) {
+                if (records[k] === undefined) {
+                  records[k] = val;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error('[IDECloudPanel] Supabase fetch error:', e);
+        }
+      }
+
+      // Filter out dummy test account if any
+      parsedUsers = parsedUsers.filter(u => u?.email && u.email !== 'user@askarc.chat' && u.name !== 'App User');
+
+      setMockUsers(parsedUsers);
       setDbRecords(records);
+
+      if (parsedUsers.length > 0) setAuthEnabled(true);
+      if (Object.keys(records).length > 0) setDbEnabled(true);
+
+      // Cache locally under current appId
+      try {
+        localStorage.setItem(mockUsersKey, JSON.stringify(parsedUsers));
+        for (const [k, val] of Object.entries(records)) {
+          localStorage.setItem(`${dbPrefix}${k}`, JSON.stringify(val));
+        }
+      } catch {}
     } catch (e) {
       console.error('Failed to load mock data:', e);
     }
   };
 
   useEffect(() => {
-    setAuthEnabled(isAuthCodeApplied(files));
-    setDbEnabled(isDbCodeApplied(files));
+    setAuthEnabled(isAuthCodeApplied(files) || mockUsers.length > 0);
+    setDbEnabled(isDbCodeApplied(files) || Object.keys(dbRecords).length > 0);
     void loadMockData();
 
-    const handleStorageOrAuth = (e?: any) => {
-      if (!e?.detail || e.detail.appId === undefined || e.detail.appId === appId || appId === 'default' || !projectId) {
-        void loadMockData();
-      }
+    const handleStorageOrAuth = () => {
+      void loadMockData();
     };
 
     const handleWindowMessage = (e: MessageEvent) => {
       if (e.data?.source === 'arc-netlify-db') {
-        const msgAppId = e.data.appId;
-        if (!msgAppId || msgAppId === appId || appId === 'default' || !projectId) {
-          void loadMockData();
-        }
+        void loadMockData();
       }
     };
 
@@ -177,12 +225,37 @@ export function IDECloudPanel({
     };
   }, [files, appId, projectId]);
 
-  const saveMockData = (users: any[], db: Record<string, any>) => {
+  const saveMockData = async (users: any[], db: Record<string, any>) => {
     localStorage.setItem(mockUsersKey, JSON.stringify(users));
     setMockUsers(users);
     setDbRecords(db);
     window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId, users } }));
     window.dispatchEvent(new Event('storage'));
+
+    if (projectId && projectId !== 'default') {
+      try {
+        const { data: existing } = await supabase
+          .from('ide_projects')
+          .select('versions')
+          .eq('id', projectId)
+          .maybeSingle();
+
+        const versions = (existing?.versions && typeof existing.versions === 'object') ? existing.versions : {};
+        await supabase
+          .from('ide_projects')
+          .update({
+            versions: {
+              ...versions,
+              app_users: users,
+              app_db: db,
+            },
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', projectId);
+      } catch (err) {
+        console.error('[IDECloudPanel] Failed to save to Supabase:', err);
+      }
+    }
   };
 
   const handleToggleAuth = () => {

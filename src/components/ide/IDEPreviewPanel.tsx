@@ -258,6 +258,8 @@ export function IDEPreviewPanel({
     const hasSrcApp = Boolean(map['/src/App.tsx'] || map['/src/App.jsx'] || map['/src/App.js']);
     const targetAppImport = hasSrcApp ? './src/App' : './App';
 
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://olhptgffasqrmeyqjtrq.supabase.co';
+
     // Ensure React 18 entrypoint for Sandpack's client-side bundler with isolated app namespace
     if (!map['/index.tsx'] && !map['/index.js']) {
       map['/index.tsx'] = `import React from 'react';
@@ -266,6 +268,8 @@ import './styles.css';
 
 if (typeof window !== 'undefined') {
   (window as any).__ARC_APP_ID__ = '${targetAppId}';
+  (window as any).__ARC_PROJECT_ID__ = '${targetAppId}';
+  (window as any).__ARC_SUPABASE_URL__ = '${supabaseUrl}';
 }
 
 import App from '${targetAppImport}';
@@ -281,14 +285,14 @@ if (rootEl) {
 }
 `;
     } else {
-      // Incase index.tsx exists, prepend app ID
+      // Incase index.tsx exists, prepend app ID and Supabase URL
       if (map['/index.tsx'] && !map['/index.tsx'].includes('__ARC_APP_ID__')) {
-        map['/index.tsx'] = `if (typeof window !== 'undefined') { (window as any).__ARC_APP_ID__ = '${targetAppId}'; }\n` + map['/index.tsx'];
+        map['/index.tsx'] = `if (typeof window !== 'undefined') { (window as any).__ARC_APP_ID__ = '${targetAppId}'; (window as any).__ARC_PROJECT_ID__ = '${targetAppId}'; (window as any).__ARC_SUPABASE_URL__ = '${supabaseUrl}'; }\n` + map['/index.tsx'];
       }
     }
 
     if (map['/src/main.tsx'] && !map['/src/main.tsx'].includes('__ARC_APP_ID__')) {
-      map['/src/main.tsx'] = `if (typeof window !== 'undefined') { (window as any).__ARC_APP_ID__ = '${targetAppId}'; }\n` + map['/src/main.tsx'];
+      map['/src/main.tsx'] = `if (typeof window !== 'undefined') { (window as any).__ARC_APP_ID__ = '${targetAppId}'; (window as any).__ARC_PROJECT_ID__ = '${targetAppId}'; (window as any).__ARC_SUPABASE_URL__ = '${supabaseUrl}'; }\n` + map['/src/main.tsx'];
     }
 
     // Ensure root /App.tsx re-exports ./src/App if /src/App.tsx exists
@@ -331,7 +335,11 @@ html, body {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Arc Live App</title>
+    <script>
+      window.__ARC_APP_ID__ = '${targetAppId}';
+      window.__ARC_PROJECT_ID__ = '${targetAppId}';
+      window.__ARC_SUPABASE_URL__ = '${supabaseUrl}';
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {

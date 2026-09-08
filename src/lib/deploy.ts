@@ -78,7 +78,9 @@ function generateDeployHtml(
   appName: string,
   hasFavicon: boolean,
   seoDescription?: string,
-  hideBadge?: boolean
+  hideBadge?: boolean,
+  subdomain?: string,
+  projectId?: string
 ): string {
   const base = generatePreviewHtml(bundledCode);
   const faviconTag = hasFavicon
@@ -88,13 +90,21 @@ function generateDeployHtml(
   const safeTitle = appName.replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const safeDesc = (seoDescription || `${appName} — Modern web application built with ArcAi`).replace(/"/g, '&quot;');
 
+  const envScript = `  <script>
+    window.__ARC_SUPABASE_URL__ = ${JSON.stringify(SUPABASE_URL)};
+    window.__ARC_SUBDOMAIN__ = ${JSON.stringify(subdomain || '')};
+    window.__ARC_PROJECT_ID__ = ${JSON.stringify(projectId || '')};
+    window.__ARC_APP_ID__ = ${JSON.stringify(subdomain || projectId || 'default')};
+  </script>`;
+
   const seoTags = `  <title>${safeTitle}</title>
   <meta name="description" content="${safeDesc}">
   <meta property="og:title" content="${safeTitle}">
   <meta property="og:description" content="${safeDesc}">
   <meta property="twitter:title" content="${safeTitle}">
   <meta property="twitter:description" content="${safeDesc}">
-  ${faviconTag}`;
+  ${faviconTag}
+${envScript}`;
 
   const badgeHtml = hideBadge ? '' : `
   <!-- Built with ArcAi Floating Badge -->
@@ -119,11 +129,21 @@ async function buildStaticZip(
   siteTitle?: string,
   faviconSvg?: string,
   seoDescription?: string,
-  hideBadge?: boolean
+  hideBadge?: boolean,
+  subdomain?: string,
+  projectId?: string
 ): Promise<Blob> {
   await initializeEsbuild();
   const bundledCode = await bundleProject(files);
-  const html = generateDeployHtml(bundledCode, siteTitle || projectName, !!faviconSvg, seoDescription, hideBadge);
+  const html = generateDeployHtml(
+    bundledCode,
+    siteTitle || projectName,
+    !!faviconSvg,
+    seoDescription,
+    hideBadge,
+    subdomain,
+    projectId || projectName
+  );
 
   const zip = new JSZip();
   zip.file('index.html', html);
@@ -309,8 +329,18 @@ export async function deployToNetlify(
   faviconSvg?: string,
   seoDescription?: string,
   hideBadge?: boolean,
+  projectId?: string,
 ): Promise<{ url: string; netlifyUrl?: string; siteId: string; subdomain: string }> {
-  const zipBlob = await buildStaticZip(projectName, files, siteTitle, faviconSvg, seoDescription, hideBadge);
+  const zipBlob = await buildStaticZip(
+    projectName,
+    files,
+    siteTitle,
+    faviconSvg,
+    seoDescription,
+    hideBadge,
+    subdomain,
+    projectId || projectName
+  );
   const zipBase64 = await blobToBase64(zipBlob);
 
   // Authenticate as the logged-in user — the edge function requires the

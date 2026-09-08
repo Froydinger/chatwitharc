@@ -416,8 +416,62 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
         const rawUsers = localStorage.getItem(`netlify_mock_users:${pid}`) || (pid !== 'default' ? localStorage.getItem('netlify_mock_users:default') : null);
         if (rawUsers) {
           appUsers = JSON.parse(rawUsers);
-          if (pid !== 'default') {
-            localStorage.setItem(`netlify_mock_users:${pid}`, rawUsers);
+        }
+      } catch {}
+
+      // Fallback: scan all netlify_mock_users:* and netlify_current_user:* in localStorage
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (!k) continue;
+          if (k.startsWith('netlify_mock_users:')) {
+            const raw = localStorage.getItem(k);
+            const list = raw ? JSON.parse(raw) : [];
+            if (Array.isArray(list)) {
+              for (const u of list) {
+                if (u?.email && u.email !== 'user@askarc.chat' && u.name !== 'App User' && !appUsers.some(ex => ex.email === u.email)) {
+                  appUsers.push(u);
+                }
+              }
+            }
+          } else if (k.startsWith('netlify_current_user:')) {
+            const raw = localStorage.getItem(k);
+            const cur = raw ? JSON.parse(raw) : null;
+            if (cur?.email && cur.email !== 'user@askarc.chat' && cur.name !== 'App User' && !appUsers.some(ex => ex.email === cur.email)) {
+              appUsers.unshift({
+                id: cur.id || Math.random().toString(36).substring(2, 9),
+                email: cur.email,
+                name: cur.name || cur.email.split('@')[0],
+                role: cur.role || 'User',
+                status: 'Active',
+                created_at: cur.created_at ? new Date(cur.created_at).toLocaleDateString() : new Date().toLocaleDateString(),
+              });
+            }
+          }
+        }
+      } catch {}
+
+      // Collect database records for this app to persist into versions
+      const appDb: Record<string, any> = {};
+      try {
+        const prefixes = [`netlify_db:${pid}:`, 'netlify_db:default:'];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (!k) continue;
+          for (const prefix of prefixes) {
+            if (k.startsWith(prefix)) {
+              const recordKey = k.slice(prefix.length);
+              try {
+                const val = JSON.parse(localStorage.getItem(k) || 'null');
+                if (appDb[recordKey] === undefined) {
+                  appDb[recordKey] = val;
+                }
+              } catch {
+                if (appDb[recordKey] === undefined) {
+                  appDb[recordKey] = localStorage.getItem(k);
+                }
+              }
+            }
           }
         }
       } catch {}
@@ -435,7 +489,23 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
       const nextVersions = {
         ...existingVersions,
         app_users: appUsers.length > 0 ? appUsers : (existingVersions.app_users || []),
+        app_db: Object.keys(appDb).length > 0 ? { ...(existingVersions.app_db || {}), ...appDb } : (existingVersions.app_db || {}),
       };
+
+      if (pid && pid !== 'default') {
+        if (nextVersions.app_users?.length) {
+          try {
+            localStorage.setItem(`netlify_mock_users:${pid}`, JSON.stringify(nextVersions.app_users));
+          } catch {}
+        }
+        if (nextVersions.app_db) {
+          for (const [k, v] of Object.entries(nextVersions.app_db)) {
+            try {
+              localStorage.setItem(`netlify_db:${pid}:${k}`, JSON.stringify(v));
+            } catch {}
+          }
+        }
+      }
 
       const { data, error } = await supabase
         .from('ide_projects')
@@ -536,21 +606,45 @@ export function IDECanvasPanel({ className, onClose }: IDECanvasPanelProps) {
         if (payload?.key) {
           try {
             localStorage.setItem(`netlify_db:${currentAppId}:${payload.key}`, JSON.stringify(payload.value));
+            if (projectIdRef.current && projectIdRef.current !== currentAppId) {
+              localStorage.setItem(`netlify_db:${projectIdRef.current}:${payload.key}`, JSON.stringify(payload.value));
+            }
           } catch {}
           window.dispatchEvent(new CustomEvent('netlify-db-change', {
             detail: { appId: currentAppId, key: payload.key, value: payload.value }
           }));
           window.dispatchEvent(new Event('storage'));
+          void saveProject();
+        }
+      } else if (action === 'collection-change') {
+        if (payload?.collection) {
+          const collKey = `collection:${payload.collection}`;
+          try {
+            localStorage.setItem(`netlify_db:${currentAppId}:${collKey}`, JSON.stringify(payload.items));
+            if (projectIdRef.current && projectIdRef.current !== currentAppId) {
+              localStorage.setItem(`netlify_db:${projectIdRef.current}:${collKey}`, JSON.stringify(payload.items));
+            }
+          } catch {}
+          window.dispatchEvent(new CustomEvent(`netlify-collection:${payload.collection}`, { detail: payload.items }));
+          window.dispatchEvent(new CustomEvent('netlify-db-change', {
+            detail: { appId: currentAppId, key: collKey, value: payload.items }
+          }));
+          window.dispatchEvent(new Event('storage'));
+          void saveProject();
         }
       } else if (action === 'db-delete') {
         if (payload?.key) {
           try {
             localStorage.removeItem(`netlify_db:${currentAppId}:${payload.key}`);
+            if (projectIdRef.current && projectIdRef.current !== currentAppId) {
+              localStorage.removeItem(`netlify_db:${projectIdRef.current}:${payload.key}`);
+            }
           } catch {}
           window.dispatchEvent(new CustomEvent('netlify-db-change', {
             detail: { appId: currentAppId, key: payload.key, deleted: true }
           }));
           window.dispatchEvent(new Event('storage'));
+          void saveProject();
         }
       }
     };

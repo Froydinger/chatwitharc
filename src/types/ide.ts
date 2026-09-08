@@ -64,9 +64,15 @@ export interface AppUser {
 
 function resolveAppId(): string {
   if (typeof window !== 'undefined') {
+    if ((window as any).__ARC_PROJECT_ID__) return (window as any).__ARC_PROJECT_ID__;
     if ((window as any).__ARC_APP_ID__) return (window as any).__ARC_APP_ID__;
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramId = urlParams.get('appId') || urlParams.get('projectId');
+      if (paramId) return paramId;
+    } catch {}
     const host = window.location?.hostname || '';
-    if (host && !host.includes('localhost') && !host.startsWith('127.') && host !== 'askarc.chat') {
+    if (host && !host.includes('localhost') && !host.startsWith('127.') && host !== 'askarc.chat' && !host.includes('csb.app')) {
       return host.split('.')[0];
     }
   }
@@ -79,6 +85,37 @@ const getDbPrefix = () => \`netlify_db:\${resolveAppId()}:\`;
 const getCurrentUserKey = () => \`netlify_current_user:\${resolveAppId()}\`;
 const getTokenKey = () => \`netlify_identity_token:\${resolveAppId()}\`;
 const getMockUsersKey = () => \`netlify_mock_users:\${resolveAppId()}\`;
+
+function getSupabaseUrl(): string {
+  if (typeof window !== 'undefined' && (window as any).__ARC_SUPABASE_URL__) {
+    return (window as any).__ARC_SUPABASE_URL__;
+  }
+  return 'https://olhptgffasqrmeyqjtrq.supabase.co';
+}
+
+function syncCloud(action: string, payload: any) {
+  if (typeof window === 'undefined') return;
+  try {
+    const projectId = (window as any).__ARC_PROJECT_ID__ || (window as any).__ARC_APP_ID__ || resolveAppId();
+    let subdomain = (window as any).__ARC_SUBDOMAIN__;
+    if (!subdomain && window.location?.hostname && !window.location.hostname.includes('csb.app') && !window.location.hostname.includes('localhost')) {
+      subdomain = window.location.hostname.split('.')[0];
+    }
+    const supabaseUrl = getSupabaseUrl();
+    if (!supabaseUrl) return;
+
+    fetch(\`\${supabaseUrl}/functions/v1/app-backend\`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId,
+        subdomain,
+        action,
+        payload,
+      }),
+    }).catch(() => {});
+  } catch {}
+}
 
 function notifyHost(action: string, payload: any) {
   if (typeof window === 'undefined') return;
@@ -126,6 +163,7 @@ export const netlifyDb = {
       localStorage.setItem(\`\${getDbPrefix()}\${key}\`, JSON.stringify(value));
       window.dispatchEvent(new CustomEvent('netlify-db-change', { detail: { appId: resolveAppId(), key, value } }));
       notifyHost('db-set', { key, value });
+      syncCloud('db-set', { key, value });
       return true;
     } catch (e) {
       console.error('[netlifyDb] Set error:', e);
@@ -138,6 +176,7 @@ export const netlifyDb = {
       localStorage.removeItem(\`\${getDbPrefix()}\${key}\`);
       window.dispatchEvent(new CustomEvent('netlify-db-change', { detail: { appId: resolveAppId(), key, deleted: true } }));
       notifyHost('db-delete', { key });
+      syncCloud('db-delete', { key });
       return true;
     } catch {
       return false;
@@ -175,6 +214,7 @@ export const netlifyDb = {
       netlifyDb.set(collectionKey, items);
       window.dispatchEvent(new CustomEvent(\`netlify-collection:\${collectionName}\`, { detail: items }));
       notifyHost('collection-change', { collection: collectionName, items });
+      syncCloud('collection-change', { collection: collectionName, items });
     };
 
     return {
@@ -291,6 +331,7 @@ export const netlifyDb = {
           } catch {}
           window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user: newUser, users: userList } }));
           notifyHost('auth-signup', { user: newUser, users: userList });
+          syncCloud('auth-signup', { user: newUser, users: userList });
           return { user: newUser, error: null };
         } else if (res.status !== 404) {
           const errData = await res.json().catch(() => ({ msg: 'Sign up failed' }));
@@ -328,6 +369,7 @@ export const netlifyDb = {
       } catch {}
       window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user: newUser, users: userList } }));
       notifyHost('auth-signup', { user: newUser, users: userList });
+      syncCloud('auth-signup', { user: newUser, users: userList });
       return { user: newUser, error: null };
     },
 
@@ -382,6 +424,7 @@ export const netlifyDb = {
           } catch {}
           window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user, users: userList } }));
           notifyHost('auth-signin', { user, users: userList });
+          syncCloud('auth-signin', { user, users: userList });
           return { user, error: null };
         } else if (res.status !== 404) {
           const errData = await res.json().catch(() => ({ error_description: 'Invalid email or password' }));
@@ -419,6 +462,7 @@ export const netlifyDb = {
       } catch {}
       window.dispatchEvent(new CustomEvent('netlify-auth-change', { detail: { appId: resolveAppId(), user, users: userList } }));
       notifyHost('auth-signin', { user, users: userList });
+      syncCloud('auth-signin', { user, users: userList });
       return { user, error: null };
     },
 
