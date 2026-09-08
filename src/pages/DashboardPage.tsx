@@ -2174,7 +2174,7 @@ useEffect(() => {
         >
           {/* Jelly bubble — rendered first so tabs stack above it visually but bubble captures pointer via z-index */}
           <motion.div
-            className="absolute top-1/2 rounded-full touch-none select-none"
+            className="absolute top-1/2 rounded-full touch-none select-none border-2 border-purple-600/85 dark:border-purple-400/85"
             style={{
               left: bubbleLeft,
               width: BUBBLE_R * 2,
@@ -2185,11 +2185,10 @@ useEffect(() => {
               zIndex: 30,
               cursor: isBubbleDragging ? 'grabbing' : 'grab',
               overflow: 'hidden',
-              border: '2px solid hsl(var(--primary))',
               background: isBubbleDragging ? 'hsl(var(--background) / 0.9)' : 'transparent',
               boxShadow: isBubbleDragging
-                ? '0 0 12px 3px hsl(var(--primary) / 0.7), 0 0 32px 6px hsl(var(--primary) / 0.35), inset 0 0 16px 2px hsl(var(--primary) / 0.15)'
-                : '0 0 8px 2px hsl(var(--primary) / 0.55), 0 0 22px 4px hsl(var(--primary) / 0.25), inset 0 0 10px 1px hsl(var(--primary) / 0.08)',
+                ? '0 0 14px 3px rgba(168, 85, 247, 0.7), 0 0 32px 6px rgba(168, 85, 247, 0.35), inset 0 0 16px 2px rgba(168, 85, 247, 0.2)'
+                : '0 0 10px 2px rgba(168, 85, 247, 0.55), 0 0 24px 5px rgba(168, 85, 247, 0.28), inset 0 0 10px 1px rgba(168, 85, 247, 0.12)',
               pointerEvents: 'auto',
             }}
             onPointerDown={onBubblePtrDown}
@@ -2208,7 +2207,7 @@ useEffect(() => {
                   transition={{ duration: 0.45, ease: "easeOut" }}
                   style={{
                     zIndex: 45,
-                    background: 'radial-gradient(circle, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.2) 30%, transparent 60%)',
+                    background: 'radial-gradient(circle, rgba(216, 180, 254, 0.85) 0%, rgba(168, 85, 247, 0.25) 35%, transparent 65%)',
                     mixBlendMode: 'screen',
                   }}
                 />
@@ -2238,9 +2237,9 @@ useEffect(() => {
                         width: 20,
                         height: 20,
                         color: bubbleHoverIdx === i
-                          ? 'hsl(var(--primary))'
+                          ? 'rgb(168 85 247)'
                           : 'hsl(var(--muted-foreground))',
-                        filter: bubbleHoverIdx === i ? 'drop-shadow(0 0 12px hsl(var(--primary) / 0.7))' : 'none',
+                        filter: bubbleHoverIdx === i ? 'drop-shadow(0 0 12px rgba(168, 85, 247, 0.7))' : 'none',
                         opacity: 1,
                       }}
                     />
@@ -2272,10 +2271,10 @@ useEffect(() => {
                 className="px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap border"
                 style={{
                   background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%), rgba(20, 20, 25, 0.65)',
-                  border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: 'hsl(var(--primary))',
+                  border: '1px solid rgba(168, 85, 247, 0.3)',
+                  color: 'rgb(192 132 252)',
                   backdropFilter: 'blur(16px)',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.3), 0 0 12px rgba(168, 85, 247, 0.25)',
                 }}
               >
                 {tabs[bubbleHoverIdx].label}
@@ -2294,13 +2293,13 @@ useEffect(() => {
                   onClick={() => switchTab(key)}
                   className={cn(
                     "flex items-center justify-center px-3 py-3 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation",
-                    isActive ? "text-primary" : "text-muted-foreground/60 hover:text-muted-foreground"
+                    isActive ? "text-purple-600 dark:text-purple-400" : "text-muted-foreground/60 hover:text-muted-foreground"
                   )}
                   style={{ zIndex: 20, opacity: isHiddenByBubble ? 0 : 1, transitionProperty: 'opacity', transitionDuration: '0.15s' }}
                 >
                   <Icon className={cn(
                     "h-5 w-5 transition-all duration-300",
-                    isActive && "drop-shadow-[0_0_12px_hsl(var(--primary)/0.6)]"
+                    isActive && "drop-shadow-[0_0_12px_rgba(168,85,247,0.55)]"
                   )} />
                 </button>
               );
