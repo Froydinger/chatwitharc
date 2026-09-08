@@ -1,5 +1,6 @@
 import { Sparkles, Mic, Crown } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
+import { AnimatedCounter } from "@/components/ui/rare-ui/animated-counter";
 import { cn } from "@/lib/utils";
 
 interface UsageMeterProps {
@@ -100,13 +101,21 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
       ) : (
         <Icon className="h-3.5 w-3.5 shrink-0" />
       )}
-      <span className="tabular-nums hidden sm:inline">
-        {isExhausted
-          ? `Daily limit reached · Upgrade to Boost`
-          : `${remaining} / ${limit} ${isImage ? "images" : "voice"} left ${periodLabel}`}
+      <span className="tabular-nums hidden sm:inline-flex items-center gap-1">
+        {isExhausted ? (
+          "Daily limit reached · Upgrade to Boost"
+        ) : (
+          <>
+            <AnimatedCounter value={remaining} height={15} /> / {limit} {isImage ? "images" : "voice"} left {periodLabel}
+          </>
+        )}
       </span>
-      <span className="tabular-nums sm:hidden">
-        {isExhausted ? "Upgrade" : `${used}/${limit}`}
+      <span className="tabular-nums sm:hidden inline-flex items-center gap-0.5">
+        {isExhausted ? "Upgrade" : (
+          <>
+            <AnimatedCounter value={used} height={14} />/{limit}
+          </>
+        )}
       </span>
       {/* mini progress bar */}
       <span className="hidden sm:inline-block w-10 h-1 rounded-full bg-muted/70 overflow-hidden">

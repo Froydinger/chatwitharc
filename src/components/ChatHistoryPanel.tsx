@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useChatSync } from "@/hooks/useChatSync";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { KineticDeleteButton } from "@/components/ui/rare-ui/kinetic-delete-button";
+import { AnimatedCounter } from "@/components/ui/rare-ui/animated-counter";
 import { cn } from "@/lib/utils";
 
 type UnifiedSession = {
@@ -546,8 +548,9 @@ function ChatSessionItem({ session, isActive, onLoad, onDelete, onShare, folders
           >
             {session.title}
           </h4>
-          <div className="mt-0.5 text-[11px] text-muted-foreground truncate">
-            {session.itemCount} msg{session.itemCount === 1 ? "" : "s"} · {shortDate(session.timestamp)}
+          <div className="mt-0.5 text-[11px] text-muted-foreground truncate flex items-center gap-1">
+            <AnimatedCounter value={session.itemCount} height={14} />
+            <span>msg{session.itemCount === 1 ? "" : "s"} · {shortDate(session.timestamp)}</span>
           </div>
         </div>
         <div className="shrink-0 flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
@@ -581,18 +584,14 @@ function ChatSessionItem({ session, isActive, onLoad, onDelete, onShare, folders
           >
             <Share2 className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 rounded-full hover:bg-destructive/15 hover:text-destructive"
-            onClick={(e) => {
-              e.stopPropagation();
+          <KineticDeleteButton
+            onDelete={(e) => {
               onDelete(e);
             }}
-            aria-label="Delete chat"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
+            title="Delete chat"
+            size={13}
+            className="h-7 w-7 rounded-full"
+          />
         </div>
       </div>
     </div>

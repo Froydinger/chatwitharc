@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { GooeyTabNav } from "@/components/ui/rare-ui/gooey-tab-nav";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { YouTubeMusicEmbed } from "@/components/YouTubeMusicEmbed";
 import { cn } from "@/lib/utils";
-import type { PlaybackMode } from "@/store/useMusicStore";
+import type { PlaybackMode, MusicSource } from "@/store/useMusicStore";
 
 const PLAYBACK_MODE_ICONS: Record<PlaybackMode, typeof Repeat1> = {
   'loop-track': Repeat1,
@@ -107,11 +108,17 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
 
         {/* Source Tabs */}
         <div className="px-5 pb-3">
-          <Tabs value={musicSource} onValueChange={(v) => setMusicSource(v as any)}>
-            <TabsList className="w-full">
-              <TabsTrigger value="built-in" className="flex-1 text-xs">Built-in</TabsTrigger>
-              <TabsTrigger value="youtube" className="flex-1 text-xs">YouTube</TabsTrigger>
-            </TabsList>
+          <Tabs value={musicSource} onValueChange={(v) => setMusicSource(v as MusicSource)}>
+            <GooeyTabNav
+              tabs={[
+                { id: "built-in", label: "Built-in Tracks" },
+                { id: "youtube", label: "Live Radio" },
+              ]}
+              activeTab={musicSource}
+              onChange={(v) => setMusicSource(v as MusicSource)}
+              layoutId="music-popup-tab-pill"
+              size="sm"
+            />
 
             <TabsContent value="built-in" className="mt-3 space-y-0">
               {/* Album Art Vinyl */}

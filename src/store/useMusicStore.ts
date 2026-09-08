@@ -29,11 +29,12 @@ export const musicTracks: MusicTrack[] = [
 export type PlaybackMode = 'loop-track' | 'loop-all' | 'shuffle' | 'sequential';
 export type MusicSource = 'built-in' | 'youtube';
 
-const LOFI_RADIO_VIDEO_ID = 'EWrX250Zhko';
-const RETIRED_LOFI_RADIO_VIDEO_ID = 'jfKfPfyJRdk';
+export const LOFI_RADIO_VIDEO_ID = 'rFZHOHl-L8A';
+export const RETIRED_LOFI_RADIO_VIDEO_IDS = ['jfKfPfyJRdk', 'EWrX250Zhko'];
 
 export const YOUTUBE_PRESETS = [
   { id: 'lofi-radio', name: 'Lo-Fi Radio', videoId: LOFI_RADIO_VIDEO_ID },
+  { id: 'chillhop-radio', name: 'Chillhop Radio', videoId: 'jiua2V9q9V0' },
   { id: 'jazz-radio', name: 'Jazz Radio', videoId: 'Dx5qFachd3A' },
   { id: 'ambient-space', name: 'Ambient Space', videoId: 'S_MOd40zlYU' },
   { id: 'classical', name: 'Classical Piano', videoId: '4Tr0otuiQuU' },
@@ -228,10 +229,12 @@ export const useMusicStore = create<MusicState>()(
     }),
     {
       name: 'arc-music-storage',
-      version: 1,
+      version: 2,
       migrate: (persistedState) => {
         const state = persistedState as Partial<MusicState>;
-        return state.youtubeVideoId === RETIRED_LOFI_RADIO_VIDEO_ID
+        const currentId = state.youtubeVideoId;
+        const isRetired = currentId ? RETIRED_LOFI_RADIO_VIDEO_IDS.includes(currentId) : false;
+        return isRetired
           ? { ...state, youtubeVideoId: LOFI_RADIO_VIDEO_ID }
           : state;
       },

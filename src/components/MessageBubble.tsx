@@ -138,6 +138,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
     const [selectedImageSourceUrl, setSelectedImageSourceUrl] = useState<string | null>(null);
     const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
+    const [hasCopied, setHasCopied] = useState(false);
     const isUser = message.role === "user";
     const isPlayingSpeech = useReadAloudStore((s) => s.playingMessageId === message.id);
     const isLoadingSpeech = useReadAloudStore((s) => s.loadingMessageId === message.id);
@@ -204,8 +205,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const handleCopy = async () => {
       try {
         await navigator.clipboard.writeText(message.content || "");
-        
-        setShowActions(false);
+        setHasCopied(true);
+        setTimeout(() => setHasCopied(false), 2000);
       } catch {
         toast({
           title: "Copy failed",
@@ -704,9 +705,13 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                       handleCopy();
                     }}
                     className="h-6 w-6"
-                    title="Copy"
+                    title={hasCopied ? "Copied!" : "Copy"}
                   >
-                    <Copy className="h-3 w-3" />
+                    {hasCopied ? (
+                      <Check className="h-3 w-3 text-primary animate-in zoom-in-50 duration-150" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
                   </GlassButton>
                   {!isUser && message.content && message.type === "text" && (
                     <GlassButton

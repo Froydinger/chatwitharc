@@ -70,32 +70,49 @@ export function YouTubeMusicEmbed() {
       </div>
 
       {/* YouTube Player (small) */}
-      <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/20">
+      <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/40 border border-border/30 shadow-inner">
         <iframe
-          src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=0&rel=0`}
+          src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=0&rel=0&modestbranding=1`}
           className="absolute inset-0 w-full h-full"
-          allow="autoplay; encrypted-media"
+          allow="autoplay; encrypted-media; picture-in-picture"
           allowFullScreen
           title="YouTube Music"
         />
       </div>
 
-      {/* Preset Playlists */}
-      <div className="flex flex-wrap gap-2">
-        {YOUTUBE_PRESETS.map((preset) => (
+      {/* Preset Playlists & Next Station Switcher */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+          <span className="font-medium uppercase tracking-wider text-[10px]">Curated Stations</span>
           <button
-            key={preset.id}
-            onClick={() => setYoutubeVideoId(preset.videoId)}
-            className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-              youtubeVideoId === preset.videoId
-                ? "bg-primary text-primary-foreground shadow-md"
-                : "bg-muted/50 text-muted-foreground hover:bg-muted"
-            )}
+            type="button"
+            onClick={() => {
+              const currentIdx = YOUTUBE_PRESETS.findIndex((p) => p.videoId === youtubeVideoId);
+              const nextIdx = (currentIdx + 1) % YOUTUBE_PRESETS.length;
+              setYoutubeVideoId(YOUTUBE_PRESETS[nextIdx].videoId);
+            }}
+            className="text-primary hover:underline flex items-center gap-1 text-[11px] font-medium"
           >
-            {preset.name}
+            Next station →
           </button>
-        ))}
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
+          {YOUTUBE_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              onClick={() => setYoutubeVideoId(preset.videoId)}
+              className={cn(
+                "px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200",
+                youtubeVideoId === preset.videoId
+                  ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/40 scale-[1.02]"
+                  : "bg-muted/40 text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+              )}
+            >
+              {preset.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Custom URL Input */}
