@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 export const DAILY_IMAGE_OUTPUT_LIMIT = 20;
 
 import { useImageGenStore, useResolvedImageModel } from "@/store/useImageGenStore";
+import { useSubscription } from "@/hooks/useSubscription";
 
 interface ImageQuotaSnapshot {
   used: number;
@@ -32,7 +33,8 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
   const { user, isAnonymous } = useAuth();
   const [loading, setLoading] = useState(true);
   const [quota, setQuota] = useState<ImageQuotaSnapshot | null>(null);
-  const selectedModel = useResolvedImageModel();
+  const { hasBoost, isAdmin } = useSubscription();
+  const selectedModel = useResolvedImageModel(hasBoost || isAdmin);
 
   const refreshQuota = useCallback(async () => {
     if (!user || isAnonymous) {
@@ -52,7 +54,7 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
     } finally {
       setLoading(false);
     }
-  }, [isAnonymous, user]);
+  }, [isAnonymous, selectedModel, user]);
 
   useEffect(() => { void refreshQuota(); }, [refreshQuota, selectedModel]);
 

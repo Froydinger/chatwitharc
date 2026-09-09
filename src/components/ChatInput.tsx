@@ -700,10 +700,17 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const shouldShowBuildMode = forceBuildMode || (!!inputValue && checkForBuildRequest(inputValue));
 
   // Persisted user-chosen image model + aspect ratio (for /image, "draw…", etc.)
-  const { aspectRatio: imageGenAspect, editAspectRatio: imageEditAspect, count: imageGenCount } = useImageGenStore();
-  const imageGenModel = useResolvedImageModel();
-  // Edits are GPT Image 2 only — never send the Quick (mini) model to an edit.
-  const imageEditModel = useEditImageModel();
+  const {
+    aspectRatio: imageGenAspect,
+    editAspectRatio: imageEditAspect,
+    count: imageGenCount,
+    proImage,
+    toggleProImage,
+  } = useImageGenStore();
+  const isBoostTier = Boolean(hasBoost || isAdmin);
+  const isProActive = isBoostTier && proImage;
+  const imageGenModel = useResolvedImageModel(isBoostTier);
+  const imageEditModel = useEditImageModel(isBoostTier);
 
   // Video is allowlisted by email rather than sold with Boost — see
   // useVideoAccess for why. The server enforces the same list.
@@ -3167,15 +3174,20 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex items-center gap-3 p-2.5 rounded-2xl transition-all duration-200 group border border-rose-500/20 hover:border-rose-500/35 bg-rose-500/5 hover:bg-rose-500/10"
+                            className="flex items-center justify-between p-2.5 rounded-2xl transition-all duration-200 group border border-rose-500/20 hover:border-rose-500/35 bg-rose-500/5 hover:bg-rose-500/10"
                           >
-                            <div className="w-8 h-8 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0 group-hover:bg-rose-500/25 transition-colors">
-                              <ImagePlus className="h-4 w-4 text-rose-500 dark:text-rose-400" />
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-8 h-8 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0 group-hover:bg-rose-500/25 transition-colors">
+                                <ImagePlus className="h-4 w-4 text-rose-500 dark:text-rose-400" />
+                              </div>
+                              <div className="flex flex-col items-start text-left min-w-0">
+                                <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Generate</span>
+                                <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">AI Image Creation</span>
+                              </div>
                             </div>
-                            <div className="flex flex-col items-start text-left min-w-0">
-                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Generate</span>
-                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">AI Image Creation</span>
-                            </div>
+                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-400 shrink-0 ml-1">
+                              {isProActive ? "Pro (2.5)" : "Quick (2.5)"}
+                            </span>
                           </button>
 
                           <button
@@ -3348,6 +3360,43 @@ ${safeCode}
 
           {/* Action Button - Voice or Send or Stop */}
           <div className="flex items-center gap-1.5 shrink-0 self-center">
+            {/* Inline Pro / Quick Image Toggle when in image generation or edit mode */}
+            {(shouldShowBanana || (selectedImages.length > 0 && allImagesEditMode)) && !isLoading && !isGeneratingImage && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isBoostTier) {
+                    openCheckout();
+                    return;
+                  }
+                  toggleProImage();
+                }}
+                className={cn(
+                  "flex items-center gap-1 px-2.5 h-8 rounded-full border text-xs font-medium transition-all select-none shrink-0",
+                  isProActive
+                    ? "border-primary/50 bg-primary/20 text-primary font-semibold shadow-xs"
+                    : "border-border/50 bg-muted/40 hover:bg-muted/70 text-muted-foreground hover:text-foreground"
+                )}
+                title={
+                  !isBoostTier
+                    ? "Upgrade to ArcAI Boost to unlock GPT Image 2.5 Pro (Sunburst)"
+                    : isProActive
+                    ? "GPT Image 2.5 Pro (Sunburst) active · Click to switch to Quick"
+                    : "GPT Image 2.5 Quick (Flare) active · Click to switch to Pro"
+                }
+                aria-label="Toggle Image Model"
+              >
+                <Sparkles className={cn("h-3 w-3", isProActive ? "text-primary fill-primary/30" : "text-muted-foreground")} />
+                <span>{isProActive ? "Pro (2.5)" : "Quick (2.5)"}</span>
+                {!isBoostTier && (
+                  <span className="text-[8px] uppercase font-bold tracking-wider px-1 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 ml-0.5">
+                    Boost
+                  </span>
+                )}
+              </button>
+            )}
+
             {isLoading || isGeneratingImage ? (
               <motion.button
                 whileHover={{ scale: 1.05 }}

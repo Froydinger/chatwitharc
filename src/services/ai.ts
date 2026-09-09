@@ -855,7 +855,7 @@ export class AIService {
     }
 
     try {
-      const modelToUse = preferredModel || 'gpt-image-2';
+      const modelToUse = preferredModel || 'gpt-image-2.5-flare';
       const safeCount = Math.max(1, Math.min(3, Math.floor(count) || 1));
 
       console.log('generateImage called with:', { prompt, preferredModel, aspectRatio, modelToUse, count: safeCount });
@@ -912,12 +912,8 @@ export class AIService {
       const images = Array.isArray(baseImageUrls) ? baseImageUrls : [baseImageUrls];
       if (images.length > 10) throw new Error('Maximum 10 images allowed for combining');
 
-      // GPT Image 2 is the only model that can edit. Quick mode (mini) and the
-      // legacy model are silently upgraded rather than failing at the API.
-      const modelToUse = 'gpt-image-2';
-      if (imageModel && imageModel !== modelToUse) {
-        console.info(`🖼️ Edit requested with ${imageModel}; using ${modelToUse} (only model that can edit).`);
-      }
+      // GPT Image 2.5 Sunburst is the primary edit model for high precision.
+      const modelToUse = imageModel || 'gpt-image-2.5-sunburst';
       const safeCount = Math.max(1, Math.min(3, Math.floor(count) || 1));
 
       const { invokeEdgeFunction } = await import('@/lib/invokeEdgeFunction');

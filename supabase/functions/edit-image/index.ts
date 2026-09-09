@@ -16,8 +16,12 @@ const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const OPENAI_TIMEOUT_MS = 180_000;
-const DEFAULT_IMAGE_MODEL = 'gpt-image-2';
-const ALLOWED_IMAGE_MODELS = new Set<string>(['gpt-image-2']);
+const DEFAULT_IMAGE_MODEL = 'gpt-image-2.5-sunburst';
+const ALLOWED_IMAGE_MODELS = new Set<string>([
+  'gpt-image-2.5-sunburst',
+  'gpt-image-2.5-flare',
+  'gpt-image-2',
+]);
 function pickModel(requested?: string): string {
   return requested && ALLOWED_IMAGE_MODELS.has(requested) ? requested : DEFAULT_IMAGE_MODEL;
 }
@@ -302,7 +306,7 @@ async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filena
     // /v1/images/edits only accepts 1024x1024, 512x512, 256x256. Do NOT pass quality parameter.
     form.append('size', '1024x1024');
     form.append('n', '1');
-    if (modelName === 'gpt-image-2' && wantsTransparentBackground(prompt)) {
+    if ((modelName === 'gpt-image-2' || modelName.startsWith('gpt-image-2')) && wantsTransparentBackground(prompt)) {
       form.append('background', 'transparent');
       form.append('output_format', 'png');
     }
@@ -534,7 +538,9 @@ serve(async (req) => {
       });
     }
     const isYouTube = aspect === '16:9';
-    const transparent = selectedModel === 'gpt-image-2' && wantsTransparentBackground(prompt);
+    const transparent =
+      (selectedModel === 'gpt-image-2' || selectedModel.startsWith('gpt-image-2')) &&
+      wantsTransparentBackground(prompt);
     const editPrompt = buildEditPrompt(prompt, imageArray.length, isYouTube && !transparent);
 
     // Kick off processing in background; respond immediately so we never get killed

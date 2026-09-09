@@ -134,10 +134,24 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
     }
 
     case 'cloud-image':
-    case 'cloud-image-pro':
-      return { label: 'Cloud · GPT Image 2', icon: 'cloud', tooltip: 'Image generation — GPT-Image-2 (medium quality).' };
-    case 'cloud-image-edit':
-      return { label: 'Cloud · GPT Image 2 (Edit)', icon: 'cloud', tooltip: 'Image editing — GPT-Image-2 (medium quality).' };
+    case 'cloud-image-pro': {
+      if (modelUsed === 'gpt-image-2.5-sunburst') {
+        return { label: 'Cloud · GPT Image 2.5 Pro', icon: 'cloud', tooltip: 'Image generation — GPT-Image-2.5 Pro (Sunburst).' };
+      }
+      if (modelUsed === 'gpt-image-2') {
+        return { label: 'Cloud · GPT Image 2', icon: 'cloud', tooltip: 'Image generation — GPT-Image-2 (medium quality).' };
+      }
+      return { label: 'Cloud · GPT Image 2.5 Quick', icon: 'cloud', tooltip: 'Image generation — GPT-Image-2.5 Quick (Flare).' };
+    }
+    case 'cloud-image-edit': {
+      if (modelUsed === 'gpt-image-2.5-sunburst') {
+        return { label: 'Cloud · GPT Image 2.5 Pro (Edit)', icon: 'cloud', tooltip: 'Image editing — GPT-Image-2.5 Pro (Sunburst).' };
+      }
+      if (modelUsed === 'gpt-image-2') {
+        return { label: 'Cloud · GPT Image 2 (Edit)', icon: 'cloud', tooltip: 'Image editing — GPT-Image-2 (medium quality).' };
+      }
+      return { label: 'Cloud · GPT Image 2.5 Quick (Edit)', icon: 'cloud', tooltip: 'Image editing — GPT-Image-2.5 Quick (Flare).' };
+    }
     case 'cloud-image-edit-fallback':
       return { label: 'Cloud · Nano Banana 2 (Edit, fallback)', icon: 'cloud', tooltip: 'GPT-Image-2 was unavailable, so this edit was served by Google Gemini Nano Banana 2 as a fallback.' };
     case 'cloud-video':

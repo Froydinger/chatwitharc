@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Ratio, Check, Images } from "lucide-react";
+import { ChevronDown, Ratio, Check, Images, Sparkles } from "lucide-react";
 import {
   useImageGenStore,
   IMAGE_ASPECT_OPTIONS,
@@ -9,6 +9,7 @@ import {
   type EditAspectRatio,
   type ImageCount,
 } from "@/store/useImageGenStore";
+import { useSubscription } from "@/hooks/useSubscription";
 import { cn } from "@/lib/utils";
 import { UsageMeter } from "@/components/UsageMeter";
 
@@ -42,10 +43,15 @@ export function ImageOptionsContent({
     aspectRatio,
     editAspectRatio,
     count,
+    proImage,
     setAspectRatio,
     setEditAspectRatio,
     setCount,
+    toggleProImage,
   } = useImageGenStore();
+  const { hasBoost, isAdmin, openCheckout } = useSubscription();
+  const isBoost = Boolean(hasBoost || isAdmin);
+  const isProActive = isBoost && proImage;
 
   const [openMenu, setOpenMenu] = useState<null | "aspect" | "count">(null);
 
@@ -144,6 +150,42 @@ export function ImageOptionsContent({
               </div>
             )}
           </div>
+
+        {/* Model toggle: Quick (2.5 Flare) vs Pro (2.5 Sunburst) */}
+        <div className="relative flex flex-col gap-1">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Model</span>
+          <button
+            type="button"
+            onClick={() => {
+              if (!isBoost) {
+                openCheckout();
+                return;
+              }
+              toggleProImage();
+            }}
+            className={cn(
+              "flex items-center gap-1.5 px-3 h-9 rounded-full border transition-all text-sm select-none",
+              isProActive
+                ? "border-primary/50 bg-primary/15 text-primary font-semibold shadow-sm"
+                : "border-border/50 bg-muted/30 hover:bg-muted/50 text-foreground font-medium"
+            )}
+            title={
+              !isBoost
+                ? "Upgrade to ArcAI Boost to unlock GPT Image 2.5 Pro"
+                : isProActive
+                ? "GPT Image 2.5 Pro (Sunburst) enabled · Click to switch to Quick"
+                : "GPT Image 2.5 Quick (Flare) enabled · Click to switch to Pro"
+            }
+          >
+            <Sparkles className={cn("h-3.5 w-3.5 transition-colors", isProActive ? "text-primary fill-primary/30" : "text-muted-foreground")} />
+            <span>{isProActive ? "Pro (2.5)" : "Quick (2.5)"}</span>
+            {!isBoost && (
+              <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 ml-0.5">
+                Boost
+              </span>
+            )}
+          </button>
+        </div>
       </div>
     </>
   );
@@ -170,8 +212,8 @@ export function ImageOptionsDock({ portalRoot, bottomOffset, leftPx, widthPx }: 
     <div
       className={
         useAnchored
-          ? "fixed z-[33]"
-          : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"
+          ? "fixed z-[60]"
+          : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[60]"
       }
       style={style}
     >

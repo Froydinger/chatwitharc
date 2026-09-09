@@ -189,25 +189,61 @@ function Tile({
 
 
 function ImageDefaultsCard() {
-  const { aspectRatio, setAspectRatio } = useImageGenStore();
+  const { aspectRatio, setAspectRatio, proImage, setProImage } = useImageGenStore();
+  const { hasBoost, isAdmin, openCheckout } = useSubscription();
+  const isBoost = Boolean(hasBoost || isAdmin);
+
   return (
     <SectionCard icon={ImageIcon} title="Image Defaults" subtitle="Used when generating images">
-      <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1 pt-3">Aspect Ratio</div>
-      <div className="grid grid-cols-2 gap-2">
-        {IMAGE_ASPECT_OPTIONS.map((opt) => (
-          <button
-            key={opt.id}
-            onClick={() => setAspectRatio(opt.id as ImageAspectRatio)}
-            className={cn(
-              "px-3 py-2 rounded-lg border text-xs font-medium transition-all",
-              aspectRatio === opt.id
-                ? "border-primary bg-primary/10 text-foreground"
-                : "border-border/40 bg-muted/20 text-muted-foreground hover:border-border/60"
-            )}
-          >
-            {opt.label}
-          </button>
-        ))}
+      <div className="space-y-4 pt-1">
+        <div>
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1 mb-2">Aspect Ratio</div>
+          <div className="grid grid-cols-2 gap-2">
+            {IMAGE_ASPECT_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => setAspectRatio(opt.id as ImageAspectRatio)}
+                className={cn(
+                  "px-3 py-2 rounded-lg border text-xs font-medium transition-all",
+                  aspectRatio === opt.id
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border/40 bg-muted/20 text-muted-foreground hover:border-border/60"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+              <span>Pro Image Mode (2.5)</span>
+              {!isBoost && (
+                <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
+                  Boost
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {isBoost
+                ? "Uses GPT-Image-2.5 Pro (Sunburst) for maximum fidelity and precision edits. Flare (Quick) is used when off."
+                : "Unlock GPT-Image-2.5 Pro (Sunburst) with ArcAI Boost."}
+            </p>
+          </div>
+          <Switch
+            checked={isBoost && proImage}
+            onCheckedChange={(checked) => {
+              if (!isBoost) {
+                openCheckout();
+                return;
+              }
+              setProImage(checked);
+            }}
+            aria-label="Toggle Pro Image mode"
+          />
+        </div>
       </div>
     </SectionCard>
   );

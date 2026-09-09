@@ -175,6 +175,11 @@ review markup risks a manual action against the rich results the site earns.
   selections normalize to Luna on both client and server so stale sessions keep
   working. Specialized image, realtime voice, video, and search provider models
   remain separate. Luna calls use `reasoning_effort`, never `temperature`.
+- **Image models: GPT Image 2.5 Quick & Pro.** Default image generation uses
+  `gpt-image-2.5-flare` ("Quick", low-latency everyday generation). Boost
+  subscribers and admins can toggle on "Pro Image" mode to use `gpt-image-2.5-sunburst`
+  ("Pro", maximum fidelity and creative precision). Edits default to
+  `gpt-image-2.5-sunburst`. Legacy `gpt-image-2` remains supported as a fallback.
 - **Accent color: Noir only.** Arc went black-and-white a long time ago and
   accent selection is retired — there is no picker to add colors back to.
   `useAccentStore.ts` force-writes `noir` to `localStorage` on every start, so

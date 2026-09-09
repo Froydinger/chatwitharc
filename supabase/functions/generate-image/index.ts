@@ -17,9 +17,13 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 const REQUEST_TIMEOUT_MS = 180_000;
 const RETRY_DELAY_MS = 3_000;
 
-// Default all image generation to Image 2. Voice also requests this explicitly.
-const DEFAULT_IMAGE_MODEL = "gpt-image-2";
-const ALLOWED_IMAGE_MODELS = new Set<string>(["gpt-image-2"]);
+// Default image generation to GPT Image 2.5 Flare (Quick). Pro Image uses Sunburst.
+const DEFAULT_IMAGE_MODEL = "gpt-image-2.5-flare";
+const ALLOWED_IMAGE_MODELS = new Set<string>([
+  "gpt-image-2.5-flare",
+  "gpt-image-2.5-sunburst",
+  "gpt-image-2",
+]);
 function pickImageModel(requested?: unknown): string {
   return typeof requested === "string" && ALLOWED_IMAGE_MODELS.has(requested)
     ? requested
@@ -138,12 +142,15 @@ async function updateJob(supabase: any, jobId: string, values: Record<string, un
 }
 
 async function callImageGatewaySingle(prompt: string, model: string, size: string) {
-  const transparent = model === "gpt-image-2" && wantsTransparentBackground(prompt);
+  const transparent =
+    (model === "gpt-image-2" || model.startsWith("gpt-image-2")) &&
+    wantsTransparentBackground(prompt);
+  const quality = model === "gpt-image-2.5-sunburst" ? "high" : "medium";
   const requestBody = JSON.stringify({
     model,
     prompt,
     size,
-    quality: "medium",
+    quality,
     n: 1,
     ...(transparent ? { background: "transparent", output_format: "png" } : {}),
   });
@@ -390,7 +397,9 @@ serve(async (req) => {
     const selectedModel = pickImageModel(body?.preferredModel);
     const size = aspectToSize(aspectRatio);
     const isYouTube = aspectRatio === "16:9";
-    const transparent = selectedModel === "gpt-image-2" && wantsTransparentBackground(rawPrompt);
+    const transparent =
+      (selectedModel === "gpt-image-2" || selectedModel.startsWith("gpt-image-2")) &&
+      wantsTransparentBackground(rawPrompt);
     const requestedCount = Number(body?.count);
     const count = Number.isFinite(requestedCount)
       ? Math.max(1, Math.min(3, Math.floor(requestedCount)))

@@ -6,6 +6,7 @@ import { useArcStore, Message } from '@/store/useArcStore';
 import { useToast } from '@/hooks/use-toast';
 import { useBugReport } from '@/hooks/useBugReport';
 import { AIService } from '@/services/ai';
+import { getResolvedImageModel } from '@/store/useImageGenStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { detectsLocationIntent, formatLocationForContext, getCachedLocation, getUserLocation, UserLocation } from '@/lib/userLocation';
@@ -475,20 +476,21 @@ export function VoiceModeController() {
     setIsGeneratingImage(true);
     // The card waits for the user's transcript so it lands under the request,
     // but the render must not wait for anything — kick it off first.
+    const voiceImageModel = getResolvedImageModel();
     const placeholderPromise = flushTurnsBeforeCard().then(() => addMessage({
       content: `Generating image: ${prompt}`,
       role: 'assistant',
       type: 'image-generating',
       imagePrompt: prompt,
       sourceModel: 'cloud-image',
-      modelUsed: 'gpt-image-2',
+      modelUsed: voiceImageModel,
     })).catch((error) => {
       console.warn('Could not write the image placeholder:', error);
       return '';
     });
     
     try {
-      const urls = await aiService.generateImage(prompt, 'gpt-image-2', aspectRatio);
+      const urls = await aiService.generateImage(prompt, voiceImageModel, aspectRatio);
       const placeholderId = await placeholderPromise;
       const imageUrl = urls[0];
       if (latestImageRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
@@ -503,7 +505,7 @@ export function VoiceModeController() {
         type: 'image',
         imageUrl,
         sourceModel: 'cloud-image',
-        modelUsed: 'gpt-image-2',
+        modelUsed: voiceImageModel,
       });
       setIsGeneratingImage(false);
       return imageUrl;
@@ -516,14 +518,14 @@ export function VoiceModeController() {
         role: 'assistant',
         type: 'text',
         sourceModel: 'cloud-image',
-        modelUsed: 'gpt-image-2',
+        modelUsed: voiceImageModel,
       });
       setIsGeneratingImage(false);
       throw error;
     }
   }, [addMessage, flushTurnsBeforeCard, replaceMessage, setGeneratedImage, setIsGeneratingImage, setLastGeneratedImageUrl]);
 
-  // Image revision handler: voice edits always go through the Image 2 edit path.
+  // Image revision handler: voice edits go through the Image 2.5 Sunburst edit path.
   const handleImageRevise = useCallback(async (prompt: string, aspectRatio?: string): Promise<string> => {
     const baseImageUrl = useVoiceModeStore.getState().generatedImage || getLastChatImageUrl();
     if (!baseImageUrl) {
@@ -534,20 +536,21 @@ export function VoiceModeController() {
     const runId = Symbol('voice-image-revise');
     latestImageRunRef.current = runId;
     setIsGeneratingImage(true);
+    const reviseModel = 'gpt-image-2.5-sunburst';
     const placeholderPromise = flushTurnsBeforeCard().then(() => addMessage({
       content: `Editing image: ${prompt}`,
       role: 'assistant',
       type: 'image-generating',
       imagePrompt: prompt,
       sourceModel: 'cloud-image-edit',
-      modelUsed: 'gpt-image-2',
+      modelUsed: reviseModel,
     })).catch((error) => {
       console.warn('Could not write the image placeholder:', error);
       return '';
     });
 
     try {
-      const urls = await aiService.editImage(prompt, baseImageUrl, 'gpt-image-2', aspectRatio);
+      const urls = await aiService.editImage(prompt, baseImageUrl, reviseModel, aspectRatio);
       const imageUrl = urls[0];
       const placeholderId = await placeholderPromise;
       if (latestImageRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
@@ -562,7 +565,7 @@ export function VoiceModeController() {
         type: 'image',
         imageUrl,
         sourceModel: 'cloud-image-edit',
-        modelUsed: 'gpt-image-2',
+        modelUsed: reviseModel,
       });
       setIsGeneratingImage(false);
       return imageUrl;
@@ -575,7 +578,7 @@ export function VoiceModeController() {
         role: 'assistant',
         type: 'text',
         sourceModel: 'cloud-image-edit',
-        modelUsed: 'gpt-image-2',
+        modelUsed: reviseModel,
       });
       setIsGeneratingImage(false);
       throw error;
