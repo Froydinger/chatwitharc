@@ -114,7 +114,14 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
   }, [initialProjectId, storeProjectId, setIdeProjectId]);
 
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
-  const isMobile = useIsMobile();
+  const isMobileHook = useIsMobile();
+  const [isMobileWindow, setIsMobileWindow] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 768 : false));
+  useEffect(() => {
+    const handleResize = () => setIsMobileWindow(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  const isMobile = isMobileHook || isMobileWindow;
   const { toast } = useToast();
 
   const isProjectHydratedRef = useRef<boolean>(!ideProjectId);
@@ -1118,7 +1125,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
 
       {/* Floating Glass Studio Header Dock */}
       {isMobile ? (
-        <header className="px-3 py-2 bg-[#0f1117]/95 border-b border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 z-30 pt-[max(0.5rem,env(safe-area-inset-top,0px))]">
+        <header className="px-3 pb-2.5 bg-[#0f1117]/95 border-b border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 z-30 pt-[max(56px,calc(env(safe-area-inset-top,0px)+12px))]">
           {/* Left: Project identity & Back */}
           <div className="flex items-center gap-2 min-w-0">
             <Button 
@@ -1406,14 +1413,11 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
       )}
 
       {/* Workspace Panel Area */}
-      <div className={cn(
-        "flex-1 min-h-0 overflow-hidden relative",
-        isMobile ? "m-0 rounded-none border-0 bg-[#08090c]" : "mx-3 mb-2 rounded-2xl border border-white/5 bg-[#0b0c10] shadow-2xl"
-      )}>
-        {isMobile ? (
-          <>
-            {/* Mobile Workspace Panels - All kept mounted to preserve live sandbox iframe state */}
-            <div className={cn("absolute inset-0 pb-14", activeTab === 'chat' ? "block" : "hidden pointer-events-none")}>
+      {isMobile ? (
+        <>
+          {/* Mobile Workspace Panels - All kept mounted to preserve live sandbox iframe state */}
+          <div className="flex-1 min-h-0 overflow-hidden relative m-0 rounded-none border-0 bg-[#08090c]">
+            <div className={cn("absolute inset-0", activeTab === 'chat' ? "block" : "hidden pointer-events-none")}>
               <IDEChatPanel
                 messages={messages}
                 liveActions={liveActions}
@@ -1428,7 +1432,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
                 onViewPreview={() => setActiveTab('preview')}
               />
             </div>
-            <div className={cn("absolute inset-0 pb-14", activeTab === 'preview' ? "block" : "hidden pointer-events-none")}>
+            <div className={cn("absolute inset-0", activeTab === 'preview' ? "block" : "hidden pointer-events-none")}>
               <IDEPreviewPanel 
                 files={files} 
                 onError={handlePreviewError} 
@@ -1438,7 +1442,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
                 isBuilding={isAgentRunning}
               />
             </div>
-            <div className={cn("absolute inset-0 pb-14", activeTab === 'code' ? "block" : "hidden pointer-events-none")}>
+            <div className={cn("absolute inset-0", activeTab === 'code' ? "block" : "hidden pointer-events-none")}>
               <IDECodeEditor 
                 files={files} 
                 selectedFile={selectedFile} 
@@ -1448,7 +1452,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
                 onDeleteFile={handleDeleteFile}
               />
             </div>
-            <div className={cn("absolute inset-0 pb-14 overflow-y-auto bg-[#0b0c10]", activeTab === 'cloud' ? "block" : "hidden pointer-events-none")}>
+            <div className={cn("absolute inset-0 overflow-y-auto bg-[#0b0c10]", activeTab === 'cloud' ? "block" : "hidden pointer-events-none")}>
               <IDECloudPanel 
                 files={files} 
                 setFiles={setFiles} 
@@ -1461,67 +1465,69 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
                 isDeployed={!!deployedUrl}
               />
             </div>
+          </div>
 
-            {/* Floating Glass Mobile Bottom Navigation Dock */}
-            <nav className="fixed bottom-0 inset-x-0 z-40 bg-[#0c0d12]/95 backdrop-blur-2xl border-t border-white/10 px-2 py-1 pb-[max(0.375rem,env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-[0_-8px_32px_rgba(0,0,0,0.6)]">
-              <button
-                type="button"
-                onClick={() => setActiveTab('chat')}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl transition-all relative",
-                  activeTab === 'chat' ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+          {/* Floating Glass Mobile Bottom Navigation Dock */}
+          <nav className="shrink-0 z-40 bg-[#0c0d12]/95 backdrop-blur-2xl border-t border-white/10 px-3 pt-2 pb-[max(20px,calc(env(safe-area-inset-bottom,0px)+14px))] flex items-center justify-around shadow-[0_-8px_32px_rgba(0,0,0,0.6)]">
+            <button
+              type="button"
+              onClick={() => setActiveTab('chat')}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl transition-all relative",
+                activeTab === 'chat' ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <div className="relative">
+                <MessageSquare className="h-5 w-5" />
+                {isAgentRunning && (
+                  <span className="absolute -top-1 -right-1.5 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500" />
+                  </span>
                 )}
-              >
-                <div className="relative">
-                  <MessageSquare className="h-5 w-5" />
-                  {isAgentRunning && (
-                    <span className="absolute -top-1 -right-1.5 flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500" />
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] tracking-tight">Chat</span>
-              </button>
+              </div>
+              <span className="text-[10px] tracking-tight">Chat</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('preview')}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl transition-all relative",
-                  activeTab === 'preview' ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Eye className="h-5 w-5" />
-                <span className="text-[10px] tracking-tight">Preview</span>
-              </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('preview')}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl transition-all relative",
+                activeTab === 'preview' ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Eye className="h-5 w-5" />
+              <span className="text-[10px] tracking-tight">Preview</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('code')}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl transition-all relative",
-                  activeTab === 'code' ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Code2 className="h-5 w-5" />
-                <span className="text-[10px] tracking-tight">Code</span>
-              </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('code')}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl transition-all relative",
+                activeTab === 'code' ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Code2 className="h-5 w-5" />
+              <span className="text-[10px] tracking-tight">Code</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setActiveTab('cloud')}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl transition-all relative",
-                  activeTab === 'cloud' ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <Cloud className="h-5 w-5" />
-                <span className="text-[10px] tracking-tight">Cloud</span>
-              </button>
-            </nav>
-          </>
-        ) : (
+            <button
+              type="button"
+              onClick={() => setActiveTab('cloud')}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 py-1 px-3 rounded-xl transition-all relative",
+                activeTab === 'cloud' ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Cloud className="h-5 w-5" />
+              <span className="text-[10px] tracking-tight">Cloud</span>
+            </button>
+          </nav>
+        </>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-hidden relative mx-3 mb-2 rounded-2xl border border-white/5 bg-[#0b0c10] shadow-2xl">
           <ResizablePanelGroup direction="horizontal" className="h-full min-h-0">
             {/* Left AI Sidecar Chat */}
             <ResizablePanel defaultSize={32} minSize={22} maxSize={45} className="min-w-[280px] h-full min-h-0">
@@ -1581,8 +1587,8 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
-        )}
-      </div>
+        </div>
+      )}
 
       <PublishDialog
         open={showPublishDialog}
