@@ -172,7 +172,7 @@ const SubscriptionContext = createContext<SubscriptionState | null>(null);
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [hasBoostSub, setHasBoostSub] = useState(false);
+  const [hasBoostSub, setHasBoostSub] = useState(() => isUserBoostedOrAdmin());
   const [loading, setLoading] = useState(true);
   const [dailyImagesUsed, setDailyImagesUsed] = useState(() => getDailyImageCount());
   const [dailySmarterChatsUsed, setDailySmarterChatsUsed] = useState(() => getDailySmarterChatCount());
@@ -373,8 +373,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   // Sync boost/admin status to localStorage so non-hook code (e.g. ai.ts) knows user is unlimited
   useEffect(() => {
-    localStorage.setItem('arcai-has-boost', (hasBoost || isAdmin) ? 'true' : 'false');
-  }, [hasBoost, isAdmin]);
+    if (!loading) {
+      localStorage.setItem('arcai-has-boost', (hasBoost || isAdmin) ? 'true' : 'false');
+    }
+  }, [hasBoost, isAdmin, loading]);
 
   return (
     <SubscriptionContext.Provider value={{

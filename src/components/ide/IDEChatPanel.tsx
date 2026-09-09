@@ -303,7 +303,7 @@ export function IDEChatPanel({
                         <AgentTimeline actions={message.agentActions} isRunning={false} onSelectFile={onSelectFile} />
                       )}
                       {!message.content && (!message.agentActions || message.agentActions.length === 0) && (
-                        <span className="text-muted-foreground">App generation complete! Check the live preview.</span>
+                        <span className="text-muted-foreground">Ready to build! Describe what you'd like to create or change.</span>
                       )}
                       {onViewPreview && (
                         <div className="pt-2">

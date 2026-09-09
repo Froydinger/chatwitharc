@@ -492,8 +492,8 @@ function referencesCodeSurface(message: string): boolean {
 // Extract the prompt after the prefix (strips prefix/ or /prefix)
 function extractPrefixPrompt(message: string): string {
   return message
-    .replace(/^(image|draw|create|code|write|search|build|app|apps)\/\s*/i, "")
-    .replace(/^\/(image|draw|create|code|write|canvas|search|build|app|apps)\s*/i, "")
+    .replace(/^(image|draw|create|code|write|search|build|app|apps)[\/:]\s*/i, "")
+    .replace(/^\/(image|draw|create|code|write|canvas|search|build|app|apps)[\/:\s-]\s*/i, "")
     .trim();
 }
 
@@ -748,7 +748,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       openSearchMode();
     } else if (val === "/build" || val === "/app" || val === "/apps") {
       setForceBuildMode(true);
-      setInputValue("apps/ ");
+      setInputValue("app/ ");
     }
   }, [inputValue, openSearchMode]);
 

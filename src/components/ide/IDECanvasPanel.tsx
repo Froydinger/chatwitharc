@@ -113,7 +113,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
     }
   }, [initialProjectId, storeProjectId, setIdeProjectId]);
 
-  const { hasBoost, isAdmin, openCheckout } = useSubscription();
+  const { hasBoost, isAdmin, loading: subscriptionLoading, openCheckout } = useSubscription();
   const isMobileHook = useIsMobile();
   const [isMobileWindow, setIsMobileWindow] = useState(() => (typeof window !== 'undefined' ? window.innerWidth < 768 : false));
   useEffect(() => {
@@ -792,7 +792,16 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
 
   // Chat message sender
   const runAgent = useCallback(async (prompt: string, chatHistory: ChatMessage[] = [], assistantId?: string, images?: string[]) => {
-    if (!hasBoost && !isAdmin) {
+    const cachedBoost = typeof window !== 'undefined' && localStorage.getItem('arcai-has-boost') === 'true';
+    const isEntitled = hasBoost || isAdmin || cachedBoost;
+
+    if (!isEntitled && !subscriptionLoading) {
+      if (assistantId) {
+        setMessages(prev => prev.filter(m => m.id !== assistantId));
+      }
+      setGeneratingId(null);
+      setIsAgentRunning(false);
+      setIdeIsRunning(false);
       openCheckout();
       toast({
         title: 'ArcAI Boost Required',
@@ -903,7 +912,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
       setGeneratingId(null);
       void saveProject();
     }
-  }, [hasBoost, isAdmin, openCheckout, saveProject, setIdeActions, setIdeIsRunning, setMessages, toast]);
+  }, [hasBoost, isAdmin, subscriptionLoading, openCheckout, saveProject, setIdeActions, setIdeIsRunning, setMessages, toast]);
 
   const handleChatSend = useCallback((message: string, images?: string[]) => {
     autoFixedRef.current = false;
@@ -915,14 +924,16 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
     runAgent(message, messagesRef.current, assistantId, images);
   }, [runAgent, setMessages]);
 
-  // Auto-run initial prompt on mount if supplied
+  // Auto-run initial prompt on mount once subscription verification completes
   useEffect(() => {
+    if (subscriptionLoading) return;
     if (idePrompt && ideAutoRunPrompt && !didAutoRunInitialPromptRef.current) {
       didAutoRunInitialPromptRef.current = true;
+      const promptToRun = idePrompt;
       clearIdePrompt();
-      handleChatSend(idePrompt);
+      handleChatSend(promptToRun);
     }
-  }, [idePrompt, ideAutoRunPrompt, handleChatSend, clearIdePrompt]);
+  }, [idePrompt, ideAutoRunPrompt, subscriptionLoading, handleChatSend, clearIdePrompt]);
 
   // Track compilation/runtime errors in preview without triggering recursive loops
   const handlePreviewError = useCallback((error: string) => {

@@ -34,6 +34,7 @@ export const useIDEStore = create<IDEState>((set) => ({
   ideMessages: [],
 
   openIDECanvas: (prompt, files, autoRunPrompt = false) => {
+    const freshAppId = crypto.randomUUID();
     set({
       isOpen: true,
       idePrompt: prompt,
@@ -41,7 +42,7 @@ export const useIDEStore = create<IDEState>((set) => ({
       ideFiles: files || null,
       ideActions: [],
       ideIsRunning: false,
-      ideProjectId: null,
+      ideProjectId: freshAppId,
       ideMessages: [],
     });
   },
