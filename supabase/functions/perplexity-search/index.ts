@@ -15,6 +15,61 @@ interface SearchResult {
   snippet: string;
 }
 
+function parsePerplexityResponse(data: any): { content: string; sources: SearchResult[] } {
+  let content = '';
+  let sources: SearchResult[] = [];
+
+  // 1. Agent API format: inspect output array
+  if (Array.isArray(data?.output)) {
+    for (const item of data.output) {
+      if (item?.type === 'message' && Array.isArray(item.content)) {
+        for (const part of item.content) {
+          if (part?.type === 'output_text' && typeof part.text === 'string') {
+            content += part.text;
+          }
+        }
+      } else if (item?.type === 'search_results' && Array.isArray(item.results)) {
+        sources = item.results.slice(0, 8).map((r: any, i: number) => ({
+          title: r.title || `Source ${i + 1}`,
+          url: r.url,
+          snippet: r.snippet || '',
+        }));
+      }
+    }
+  }
+
+  // 2. Direct output_text if exposed by SDK or gateway
+  if (!content && typeof data?.output_text === 'string') {
+    content = data.output_text;
+  }
+
+  // 3. Legacy chat completions format fallback
+  if (!content && data?.choices?.[0]?.message?.content) {
+    content = data.choices[0].message.content;
+  }
+
+  // 4. Legacy search_results or citations array fallback
+  if (sources.length === 0) {
+    const proResults: any[] = data?.search_results || [];
+    const proCitations: string[] = data?.citations || [];
+    if (proResults.length > 0) {
+      sources = proResults.slice(0, 8).map((r: any, i: number) => ({
+        title: r.title || `Source ${i + 1}`,
+        url: r.url,
+        snippet: r.snippet || '',
+      }));
+    } else if (proCitations.length > 0) {
+      sources = proCitations.slice(0, 8).map((url: string, i: number) => ({
+        title: `Source ${i + 1}`,
+        url,
+        snippet: '',
+      }));
+    }
+  }
+
+  return { content, sources };
+}
+
 // No upstream call gets to stall the whole search. A provider that misses its
 // window is treated as a failure so the fallback path can run.
 const fetchWithTimeout = async (url: string, init: RequestInit, timeoutMs: number) => {
@@ -179,10 +234,24 @@ serve(async (req) => {
     let ultraSources: SearchResult[] = [];
 
     if (ultra && PERPLEXITY_API_KEY) {
-      const callPro = async (includeSearchType: boolean) => {
-        const webSearchOptions: Record<string, unknown> = { search_context_size: 'high' };
-        if (includeSearchType) webSearchOptions.search_type = 'pro';
+      const systemPrompt =
+        'You are an expert research analyst. Answer thoroughly and specifically, comparing and reconciling sources rather than summarizing one. Use clear markdown headings and short paragraphs. Cite inline with [1], [2] matching your sources. State uncertainty plainly where the evidence is thin or conflicting. Never mention which search engine or model produced this.';
 
+      // Primary: Perplexity Agent API (/v1/agent)
+      // preset: 'low' is Perplexity's official multi-step Pro Search equivalent for sonar-pro.
+      const callAgentApi = async (body: Record<string, unknown>) => {
+        return fetchWithTimeout('https://api.perplexity.ai/v1/agent', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(body),
+        }, 90000);
+      };
+
+      // Fallback: Legacy Chat Completions (/chat/completions) valid through September 27, 2026
+      const callLegacyChat = async () => {
         return fetchWithTimeout('https://api.perplexity.ai/chat/completions', {
           method: 'POST',
           headers: {
@@ -192,42 +261,48 @@ serve(async (req) => {
           body: JSON.stringify({
             model: 'sonar-pro',
             messages: [
-              {
-                role: 'system',
-                content: 'You are an expert research analyst. Answer thoroughly and specifically, comparing and reconciling sources rather than summarizing one. Use clear markdown headings and short paragraphs. Cite inline with [1], [2] matching your sources. State uncertainty plainly where the evidence is thin or conflicting. Never mention which search engine or model produced this.',
-              },
+              { role: 'system', content: systemPrompt },
               { role: 'user', content: userQuery },
             ],
-            web_search_options: webSearchOptions,
+            web_search_options: { search_context_size: 'high' },
           }),
         }, 90000);
       };
 
       try {
-        let proResp = await callPro(true);
-        // search_type is the newer agentic flag; if this account or version
-        // rejects it, fall back to plain Sonar Pro rather than failing.
+        // Attempt 1: Agent API with 'low' (Pro Search) preset
+        let proResp = await callAgentApi({
+          preset: 'low',
+          instructions: systemPrompt,
+          input: userQuery,
+        });
+
+        // Attempt 2: If preset rejected (400), try explicit model with web_search tool
         if (proResp.status === 400) {
-          console.warn('Pro Search rejected search_type — retrying without it');
-          proResp = await callPro(false);
+          console.warn('Agent API preset "low" rejected — retrying with perplexity/sonar + web_search');
+          proResp = await callAgentApi({
+            model: 'perplexity/sonar',
+            instructions: systemPrompt,
+            input: userQuery,
+            tools: [{ type: 'web_search' }],
+            tool_choice: { type: 'web_search' },
+          });
+        }
+
+        // Attempt 3: If Agent API fails completely, fall back to legacy chat completions endpoint
+        if (!proResp.ok && proResp.status !== 429) {
+          console.warn(`Agent API returned ${proResp.status} — falling back to legacy chat completions endpoint`);
+          const legacyResp = await callLegacyChat();
+          if (legacyResp.ok) {
+            proResp = legacyResp;
+          }
         }
 
         if (proResp.ok) {
           const proData = await proResp.json();
-          ultraContent = proData.choices?.[0]?.message?.content || '';
-          const proResults: any[] = proData.search_results || [];
-          const proCitations: string[] = proData.citations || [];
-          ultraSources = proResults.length > 0
-            ? proResults.slice(0, 8).map((r: any, i: number) => ({
-                title: r.title || `Source ${i + 1}`,
-                url: r.url,
-                snippet: r.snippet || '',
-              }))
-            : proCitations.slice(0, 8).map((url: string, i: number) => ({
-                title: `Source ${i + 1}`,
-                url,
-                snippet: '',
-              }));
+          const parsed = parsePerplexityResponse(proData);
+          ultraContent = parsed.content;
+          ultraSources = parsed.sources;
         } else {
           console.error('Pro Search failed:', proResp.status, await proResp.text());
         }
