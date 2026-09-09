@@ -217,18 +217,22 @@ export interface ImgFxConfig {
   preset: ImgFxPreset;
   /** Cell-size multiplier: 0.5 = finer grid, 2 = chunkier. */
   pixelScale: number;
+  /** Blur in pixels: 0 = sharp / unblurred, up to 30px. */
+  blur: number;
 }
 
 export const IMGFX_KEYS = {
   enabled: 'imgfx_enabled',
   preset: 'imgfx_preset',
   pixelScale: 'imgfx_pixel_scale',
+  blur: 'imgfx_blur',
 } as const;
 
 export const DEFAULT_IMGFX_CONFIG: ImgFxConfig = {
   enabled: true,
   preset: 'pixels-organic',
   pixelScale: 1,
+  blur: 0,
 };
 
 const VALID_PRESETS = new Set<string>(IMGFX_PRESETS.map((p) => p.id));
@@ -319,6 +323,11 @@ function readPersisted(): PersistedConfig | null {
     }, {} as VoiceOrbConfig);
     const preset = parsed.imgFx?.preset;
     const scale = Number(parsed.imgFx?.pixelScale);
+    const blurRaw = Number(parsed.imgFx?.blur);
+    const blur =
+      Number.isFinite(blurRaw) && blurRaw >= 0
+        ? Math.min(30, Math.max(0, blurRaw))
+        : DEFAULT_IMGFX_CONFIG.blur;
 
     const chatSpeedRaw = Number(parsed.motion?.chatSpeed);
     const voiceSpeedRaw = Number(parsed.motion?.voiceSpeed);
@@ -348,6 +357,7 @@ function readPersisted(): PersistedConfig | null {
           Number.isFinite(scale) && scale > 0
             ? Math.min(4, Math.max(0.25, scale))
             : DEFAULT_IMGFX_CONFIG.pixelScale,
+        blur,
       },
       motion,
     };
@@ -431,6 +441,7 @@ async function fetchConfigOnce(force = false): Promise<void> {
 
       const storedPreset = byKey[IMGFX_KEYS.preset];
       const storedScale = Number.parseFloat(byKey[IMGFX_KEYS.pixelScale] ?? '');
+      const storedBlur = Number.parseFloat(byKey[IMGFX_KEYS.blur] ?? '');
       cachedImgFx = {
         // Absent means "never configured", which should keep the effect on.
         enabled: byKey[IMGFX_KEYS.enabled] !== 'false',
@@ -442,6 +453,10 @@ async function fetchConfigOnce(force = false): Promise<void> {
           Number.isFinite(storedScale) && storedScale > 0
             ? Math.min(4, Math.max(0.25, storedScale))
             : DEFAULT_IMGFX_CONFIG.pixelScale,
+        blur:
+          Number.isFinite(storedBlur) && storedBlur >= 0
+            ? Math.min(30, Math.max(0, storedBlur))
+            : DEFAULT_IMGFX_CONFIG.blur,
       };
 
       const storedChatSpeed = Number.parseFloat(byKey[MOTION_KEYS.chatSpeed] ?? '');

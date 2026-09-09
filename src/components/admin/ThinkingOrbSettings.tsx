@@ -144,6 +144,8 @@ export function ThinkingOrbSettings({
     : DEFAULT_IMGFX_CONFIG.preset) as ImgFxPreset;
   const imgFxScaleRaw = Number.parseFloat(getCurrentValue(IMGFX_KEYS.pixelScale));
   const imgFxScale = Number.isFinite(imgFxScaleRaw) && imgFxScaleRaw > 0 ? imgFxScaleRaw : 1;
+  const imgFxBlurRaw = Number.parseFloat(getCurrentValue(IMGFX_KEYS.blur));
+  const imgFxBlur = Number.isFinite(imgFxBlurRaw) && imgFxBlurRaw >= 0 ? imgFxBlurRaw : DEFAULT_IMGFX_CONFIG.blur;
 
   const allRows = [...THINKING_ACTIVITIES, ...VOICE_PHASES];
   const isDirty =
@@ -151,6 +153,7 @@ export function ThinkingOrbSettings({
     !imgFxEnabled ||
     imgFxPreset !== DEFAULT_IMGFX_CONFIG.preset ||
     imgFxScale !== DEFAULT_IMGFX_CONFIG.pixelScale ||
+    imgFxBlur !== DEFAULT_IMGFX_CONFIG.blur ||
     chatSpeed !== DEFAULT_MOTION_CONFIG.chatSpeed ||
     voiceSpeed !== DEFAULT_MOTION_CONFIG.voiceSpeed ||
     motionSpeed !== DEFAULT_MOTION_CONFIG.motionSpeed;
@@ -183,6 +186,11 @@ export function ThinkingOrbSettings({
         "img-fx pixel cell size multiplier",
       );
       await updateSetting(
+        IMGFX_KEYS.blur,
+        String(imgFxBlur),
+        "img-fx blur effect in pixels",
+      );
+      await updateSetting(
         MOTION_KEYS.chatSpeed,
         String(chatSpeed),
         "Chat thinking orb animation speed multiplier",
@@ -209,6 +217,7 @@ export function ThinkingOrbSettings({
     onValueChange(IMGFX_KEYS.enabled, String(DEFAULT_IMGFX_CONFIG.enabled));
     onValueChange(IMGFX_KEYS.preset, DEFAULT_IMGFX_CONFIG.preset);
     onValueChange(IMGFX_KEYS.pixelScale, String(DEFAULT_IMGFX_CONFIG.pixelScale));
+    onValueChange(IMGFX_KEYS.blur, String(DEFAULT_IMGFX_CONFIG.blur));
     onValueChange(MOTION_KEYS.chatSpeed, String(DEFAULT_MOTION_CONFIG.chatSpeed));
     onValueChange(MOTION_KEYS.voiceSpeed, String(DEFAULT_MOTION_CONFIG.voiceSpeed));
     handleMotionSpeedChange(DEFAULT_MOTION_CONFIG.motionSpeed);
@@ -604,6 +613,7 @@ export function ThinkingOrbSettings({
                       forceEnabled
                       presetOverride={preset.id}
                       pixelScaleOverride={imgFxScale}
+                      blurOverride={imgFxBlur}
                     >
                       <div
                         className="w-full rounded-xl bg-white/5 border border-white/10"
@@ -638,6 +648,26 @@ export function ThinkingOrbSettings({
                 max={4}
                 step={0.25}
                 onValueChange={([v]) => onValueChange(IMGFX_KEYS.pixelScale, String(v))}
+                className="pt-2"
+              />
+            </div>
+
+            <div className="space-y-2 p-4 rounded-2xl bg-muted/20 border border-border/40">
+              <div className="flex items-center justify-between">
+                <Label className="font-semibold text-sm">Blur effect</Label>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">
+                  {imgFxBlur === 0 ? "Off (0px)" : `${imgFxBlur}px`}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Softens or diffuses the image generation animations and shaders. 0px is crisp, higher values give a dreamy, frosted blur.
+              </p>
+              <Slider
+                value={[imgFxBlur]}
+                min={0}
+                max={30}
+                step={1}
+                onValueChange={([v]) => onValueChange(IMGFX_KEYS.blur, String(v))}
                 className="pt-2"
               />
             </div>
