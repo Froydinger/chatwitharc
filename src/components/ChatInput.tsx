@@ -3129,44 +3129,25 @@ ${safeCode}
                           </button>
                         </div>
 
-                        {/* Featured Banner: Deep Search */}
-                        <div className="grid grid-cols-1 gap-2 mb-2">
-                          <button
-                            onClick={() => {
-                              setShowMenu(false);
-                              openSearchMode();
-                            }}
-                            className="flex items-center gap-3 p-3 rounded-2xl transition-all duration-200 group border border-indigo-500/20 hover:border-indigo-500/35 bg-indigo-500/5 hover:bg-indigo-500/10 shadow-[0_0_20px_-5px_rgba(99,102,241,0.1)]"
-                          >
-                            <div className="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0 group-hover:bg-indigo-500/30 transition-colors">
-                              <Search className="h-4.5 w-4.5 text-indigo-400 group-hover:scale-110 transition-transform duration-200" />
-                            </div>
-                            <div className="flex flex-col items-start text-left min-w-0">
-                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Deep Search™</span>
-                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 line-clamp-2">Scan the live web with citations</span>
-                            </div>
-                          </button>
-
-                        </div>
-
-                        {/* Core tools: one per row so they read cleanly on mobile */}
-                        <div className="grid grid-cols-1 gap-2">
+                        {/* 2x4 Icon Grid: Top row (Attach, Generate, Write, Code), Bottom row (Search, Deep Search, App, Prompts) */}
+                        <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                          {/* Row 1: Attach */}
                           <button
                             onClick={() => {
                               fileInputRef.current?.click();
                               setShowMenu(false);
                             }}
-                            className="flex items-center gap-3 p-2.5 rounded-2xl transition-all duration-200 group border border-blue-500/20 hover:border-blue-500/35 bg-blue-500/5 hover:bg-blue-500/10"
+                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-blue-500/20 hover:border-blue-500/35 bg-blue-500/5 hover:bg-blue-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                           >
-                            <div className="w-8 h-8 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0 group-hover:bg-blue-500/25 transition-colors">
-                              <Paperclip className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                            <div className="w-11 h-11 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0 group-hover:bg-blue-500/25 transition-colors mb-1.5">
+                              <Paperclip className="h-5 w-5 text-blue-500 dark:text-blue-400 group-hover:scale-110 transition-transform duration-200" />
                             </div>
-                            <div className="flex flex-col items-start text-left min-w-0">
-                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Attach</span>
-                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">Files, PDFs, Docs</span>
-                            </div>
+                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
+                              Attach
+                            </span>
                           </button>
 
+                          {/* Row 1: Generate */}
                           <button
                             onClick={() => {
                               setForceImageMode(true);
@@ -3174,58 +3155,22 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex items-center justify-between p-2.5 rounded-2xl transition-all duration-200 group border border-rose-500/20 hover:border-rose-500/35 bg-rose-500/5 hover:bg-rose-500/10"
+                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-rose-500/20 hover:border-rose-500/35 bg-rose-500/5 hover:bg-rose-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                           >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-8 h-8 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0 group-hover:bg-rose-500/25 transition-colors">
-                                <ImagePlus className="h-4 w-4 text-rose-500 dark:text-rose-400" />
-                              </div>
-                              <div className="flex flex-col items-start text-left min-w-0">
-                                <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Generate</span>
-                                <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">AI Image Creation</span>
-                              </div>
+                            {isProActive && (
+                              <span className="absolute top-1.5 right-1.5 text-[7px] font-semibold px-1 py-0.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-400 leading-none">
+                                Pro
+                              </span>
+                            )}
+                            <div className="w-11 h-11 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0 group-hover:bg-rose-500/25 transition-colors mb-1.5">
+                              <ImagePlus className="h-5 w-5 text-rose-500 dark:text-rose-400 group-hover:scale-110 transition-transform duration-200" />
                             </div>
-                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-400 shrink-0 ml-1">
-                              {isProActive ? "Pro (2.5)" : "Quick (2.5)"}
+                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
+                              Generate
                             </span>
                           </button>
 
-                          <button
-                            onClick={() => {
-                              setForceSearchMode(true);
-                              setInputValue("search/ ");
-                              setShowMenu(false);
-                              textareaRef.current?.focus();
-                            }}
-                            className="flex items-center gap-3 p-2.5 rounded-2xl transition-all duration-200 group border border-emerald-500/20 hover:border-emerald-500/35 bg-emerald-500/5 hover:bg-emerald-500/10"
-                          >
-                            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/25 transition-colors">
-                              <Globe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                            </div>
-                            <div className="flex flex-col items-start text-left min-w-0">
-                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Search</span>
-                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">Live Web Results</span>
-                            </div>
-                          </button>
-
-                          <button
-                            onClick={() => {
-                              setForceCodingMode(true);
-                              setInputValue("code/ ");
-                              setShowMenu(false);
-                              textareaRef.current?.focus();
-                            }}
-                            className="flex items-center gap-3 p-2.5 rounded-2xl transition-all duration-200 group border border-amber-500/20 hover:border-amber-500/35 bg-amber-500/5 hover:bg-amber-500/10"
-                          >
-                            <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 group-hover:bg-amber-500/25 transition-colors">
-                              <Code2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <div className="flex flex-col items-start text-left min-w-0">
-                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Code</span>
-                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">Scripting & logic</span>
-                            </div>
-                          </button>
-
+                          {/* Row 1: Write */}
                           <button
                             onClick={() => {
                               setForceCanvasMode(true);
@@ -3233,17 +3178,69 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex items-center gap-3 p-2.5 rounded-2xl transition-all duration-200 group border border-sky-500/20 hover:border-sky-500/35 bg-sky-500/5 hover:bg-sky-500/10"
+                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-sky-500/20 hover:border-sky-500/35 bg-sky-500/5 hover:bg-sky-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                           >
-                            <div className="w-8 h-8 rounded-xl bg-sky-500/15 flex items-center justify-center shrink-0 group-hover:bg-sky-500/25 transition-colors">
-                              <PenLine className="h-4 w-4 text-sky-600 dark:text-sky-400" />
+                            <div className="w-11 h-11 rounded-xl bg-sky-500/15 flex items-center justify-center shrink-0 group-hover:bg-sky-500/25 transition-colors mb-1.5">
+                              <PenLine className="h-5 w-5 text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform duration-200" />
                             </div>
-                            <div className="flex flex-col items-start text-left min-w-0">
-                              <span className="text-xs font-semibold text-foreground tracking-wide truncate w-full">Draft</span>
-                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">Writing & Layouts</span>
-                            </div>
+                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
+                              Write
+                            </span>
                           </button>
 
+                          {/* Row 1: Code */}
+                          <button
+                            onClick={() => {
+                              setForceCodingMode(true);
+                              setInputValue("code/ ");
+                              setShowMenu(false);
+                              textareaRef.current?.focus();
+                            }}
+                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-amber-500/20 hover:border-amber-500/35 bg-amber-500/5 hover:bg-amber-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                          >
+                            <div className="w-11 h-11 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 group-hover:bg-amber-500/25 transition-colors mb-1.5">
+                              <Code2 className="h-5 w-5 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform duration-200" />
+                            </div>
+                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
+                              Code
+                            </span>
+                          </button>
+
+                          {/* Row 2: Search */}
+                          <button
+                            onClick={() => {
+                              setForceSearchMode(true);
+                              setInputValue("search/ ");
+                              setShowMenu(false);
+                              textareaRef.current?.focus();
+                            }}
+                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-emerald-500/20 hover:border-emerald-500/35 bg-emerald-500/5 hover:bg-emerald-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                          >
+                            <div className="w-11 h-11 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/25 transition-colors mb-1.5">
+                              <Globe className="h-5 w-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform duration-200" />
+                            </div>
+                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
+                              Search
+                            </span>
+                          </button>
+
+                          {/* Row 2: Deep Search */}
+                          <button
+                            onClick={() => {
+                              setShowMenu(false);
+                              openSearchMode();
+                            }}
+                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-indigo-500/20 hover:border-indigo-500/35 bg-indigo-500/5 hover:bg-indigo-500/10 shadow-[0_0_15px_-5px_rgba(99,102,241,0.15)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                          >
+                            <div className="w-11 h-11 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0 group-hover:bg-indigo-500/30 transition-colors mb-1.5">
+                              <Search className="h-5 w-5 text-indigo-400 group-hover:scale-110 transition-transform duration-200" />
+                            </div>
+                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
+                              Deep Search
+                            </span>
+                          </button>
+
+                          {/* Row 2: App */}
                           <button
                             onClick={() => {
                               if (!hasBoost && !isAdmin) {
@@ -3260,36 +3257,33 @@ ${safeCode}
                               setShowMenu(false);
                               textareaRef.current?.focus();
                             }}
-                            className="flex items-center gap-3 p-2.5 rounded-2xl transition-all duration-200 group border border-purple-500/20 hover:border-purple-500/35 bg-purple-500/5 hover:bg-purple-500/10"
+                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-purple-500/20 hover:border-purple-500/35 bg-purple-500/5 hover:bg-purple-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                           >
-                            <div className="w-8 h-8 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0 group-hover:bg-purple-500/25 transition-colors">
-                              <Smartphone className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+                            <span className="absolute top-1.5 right-1.5 text-[7px] font-bold px-1 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30 uppercase tracking-wider leading-none">
+                              Boost
+                            </span>
+                            <div className="w-11 h-11 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0 group-hover:bg-purple-500/25 transition-colors mb-1.5">
+                              <Smartphone className="h-5 w-5 text-purple-500 dark:text-purple-400 group-hover:scale-110 transition-transform duration-200" />
                             </div>
-                            <div className="flex flex-col items-start text-left min-w-0">
-                              <div className="flex items-center gap-1.5 w-full">
-                                <span className="text-xs font-semibold text-foreground tracking-wide truncate">App</span>
-                                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30 uppercase tracking-wider">
-                                  Boost
-                                </span>
-                              </div>
-                              <span className="text-[9px] text-muted-foreground font-normal leading-tight mt-0.5 truncate w-full">Full Web Applications</span>
-                            </div>
+                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
+                              App
+                            </span>
                           </button>
 
+                          {/* Row 2: Prompts */}
                           <button
                             onClick={() => {
                               setShowPromptLibrary(true);
                               setShowMenu(false);
                             }}
-                            className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-all group border border-fuchsia-500/20 hover:border-fuchsia-500/35 bg-[linear-gradient(100deg,rgba(244,63,94,0.06),rgba(245,158,11,0.06),rgba(16,185,129,0.06),rgba(99,102,241,0.06))] hover:bg-[linear-gradient(100deg,rgba(244,63,94,0.12),rgba(245,158,11,0.12),rgba(16,185,129,0.12),rgba(99,102,241,0.12))] shadow-[0_0_20px_-5px_rgba(217,70,239,0.12)]"
+                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-fuchsia-500/20 hover:border-fuchsia-500/35 bg-fuchsia-500/5 hover:bg-fuchsia-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                           >
-                            <div className="w-10 h-10 rounded-xl bg-[linear-gradient(100deg,rgba(244,63,94,0.18),rgba(245,158,11,0.18),rgba(16,185,129,0.18),rgba(99,102,241,0.18))] flex items-center justify-center transition-colors">
-                              <ListPlus className="h-4.5 w-4.5 text-fuchsia-500 dark:text-fuchsia-400 group-hover:text-fuchsia-400 transition-colors" />
+                            <div className="w-11 h-11 rounded-xl bg-fuchsia-500/15 flex items-center justify-center shrink-0 group-hover:bg-fuchsia-500/25 transition-colors mb-1.5">
+                              <ListPlus className="h-5 w-5 text-fuchsia-500 dark:text-fuchsia-400 group-hover:scale-110 transition-transform duration-200" />
                             </div>
-                            <div className="flex flex-col items-center text-center">
-                              <span className="text-xs font-semibold text-foreground">Prompts</span>
-                              <span className="text-[9px] text-muted-foreground font-normal mt-0.5">Template library</span>
-                            </div>
+                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
+                              Prompts
+                            </span>
                           </button>
                         </div>
 
