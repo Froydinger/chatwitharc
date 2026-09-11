@@ -28,6 +28,18 @@ const normalizeSdp = (value: unknown): string | null => {
   return /^v=0(?:\r?\n|$)/.test(sdp) ? sdp : null;
 };
 
+// Safari can hand us an SDP offer with bare LF line endings. The browser is
+// happy with that, but Live's SDP parser expects the wire-format CRLF form.
+// Normalize only line endings and trailing whitespace; do not rewrite SDP
+// attributes, candidates, fingerprints, or codecs.
+const normalizeOfferSdp = (value: string): string => {
+  const lines = value
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.trimEnd());
+  return `${lines.join('\r\n').replace(/\r\n$/, '')}\r\n`;
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -73,7 +85,9 @@ serve(async (req) => {
     if (typeof body?.voice === 'string' && ALLOWED_VOICES.has(body.voice)) {
       requestedVoice = body.voice;
     }
-    if (typeof body?.sdp === 'string' && body.sdp.trim()) sdpOffer = body.sdp.trim();
+    if (typeof body?.sdp === 'string' && body.sdp.trim()) {
+      sdpOffer = normalizeOfferSdp(body.sdp.trim());
+    }
     if (typeof body?.instructions === 'string' && body.instructions.trim()) instructions = body.instructions.trim();
     if (typeof body?.backendInstructions === 'string' && body.backendInstructions.trim()) {
       backendInstructions = body.backendInstructions.trim();
