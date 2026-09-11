@@ -111,10 +111,7 @@ export function CorporateModePanel() {
   const cachedAt = memorySnapshot?.cached_at
     ? new Date(memorySnapshot.cached_at).toLocaleString()
     : null;
-  const memoryCount = memorySnapshot?.memory_info
-    ? memorySnapshot.memory_info.split('\n').filter((l) => l.trim()).length
-    : 0;
-  const blockCount = memorySnapshot?.context_blocks?.length || 0;
+  const hasLivingMemory = Boolean(memorySnapshot?.memory_info?.trim());
 
   return (
     <>
@@ -176,7 +173,7 @@ export function CorporateModePanel() {
                   <>
                     <div className="flex items-center gap-1.5">
                       <Brain className="h-3 w-3 text-primary" />
-                      <span>{memoryCount} memories · {blockCount} context blocks cached</span>
+                      <span>{hasLivingMemory ? "Living memory summary cached" : "No living memory saved"}</span>
                     </div>
                     {cachedAt && <div className="opacity-70">Last synced: {cachedAt}</div>}
                   </>

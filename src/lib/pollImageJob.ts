@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 export type ImageJobResult = {
   imageUrls: string[];
   fallbackModel?: string | null;
+  modelUsed?: string | null;
+  jobType?: 'generate' | 'edit' | null;
 };
 
 export type PollOptions = {
@@ -45,7 +47,12 @@ export async function pollImageJob(jobId: string, opts: PollOptions = {}): Promi
         err.errorType = "no_image_returned";
         throw err;
       }
-      return { imageUrls: urls, fallbackModel: data.fallbackModel ?? null };
+      return {
+        imageUrls: urls,
+        fallbackModel: data.fallbackModel ?? null,
+        modelUsed: data.fallbackModel || data.preferredModel || null,
+        jobType: data.jobType ?? null,
+      };
     }
 
     if (data?.status === "failed") {

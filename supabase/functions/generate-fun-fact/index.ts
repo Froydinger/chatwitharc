@@ -31,19 +31,18 @@ serve(async (req) => {
     const userId = claimsData.claims.sub;
 
     // Fetch user's context blocks and profile
-    const [blocksRes, profileRes] = await Promise.all([
-      supabase.from("context_blocks").select("content").eq("user_id", userId).limit(20),
+    const [profileRes, summaryRes] = await Promise.all([
       supabase.from("profiles").select("display_name, context_info, memory_info").eq("user_id", userId).maybeSingle(),
+      supabase.from("memory_summaries").select("summary").eq("user_id", userId).maybeSingle(),
     ]);
 
-    const blocks = blocksRes.data?.map(b => b.content) || [];
     const profile = profileRes.data;
+    const livingMemory = summaryRes.data?.summary?.trim() || profile?.memory_info?.trim() || "";
 
     const contextSummary = [
       profile?.display_name ? `User's name: ${profile.display_name}` : "",
       profile?.context_info ? `About: ${profile.context_info}` : "",
-      profile?.memory_info ? `Memories: ${profile.memory_info}` : "",
-      blocks.length > 0 ? `Context blocks:\n${blocks.join("\n")}` : "",
+      livingMemory ? `Living memory: ${livingMemory}` : "",
     ].filter(Boolean).join("\n\n");
 
     if (!contextSummary.trim()) {

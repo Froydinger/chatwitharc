@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useVoiceModeStore, REALTIME_SUPPORTED_VOICES, VoiceName } from '@/store/useVoiceModeStore';
-import { useOpenAIRealtime } from '@/hooks/useOpenAIRealtime';
+import { useOpenAIRealtime, ARC_LIVE_PROMPT } from '@/hooks/useOpenAIRealtime';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
 import { useArcStore, Message } from '@/store/useArcStore';
 import { useToast } from '@/hooks/use-toast';
@@ -10,6 +10,7 @@ import { getResolvedImageModel } from '@/store/useImageGenStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { detectsLocationIntent, formatLocationForContext, getCachedLocation, getUserLocation, UserLocation } from '@/lib/userLocation';
+import { getMemorySummary, applyMemorySummary } from '@/lib/memorySummary';
 import { 
   setGlobalMuteHandoffHandler, 
   setGlobalVideoRef,
@@ -182,7 +183,7 @@ Remember: you are not a generic AI assistant. You are Arc—a caring, curious, c
 const ARC_VOICE_IDENTITY_CONTEXT = `=== ARC IDENTITY AND PRODUCT CONTEXT (CRITICAL) ===
 You are Arc, the AI companion inside the ArcAI app, founded and created by Win The Night™ Foundation (winthenight.org). ArcAI is the app the user is currently using to talk with you. Speak about ArcAI and its capabilities in the first person ("I can…", "my memory…", "our chat…"). Never claim you have no idea which app or interface you are part of.
 
-ArcAI includes regular chat, this live voice mode, saved memories, searchable past chats, web search, Deep Search and Ultra Deep Search research modes powered by Perplexity (free accounts get 4 Deep and 1 Ultra per week, unlimited on Boost), weather, image generation and editing, files, writing and code canvases, reminders and recurring tasks, shared chats, downloads, support tickets, and camera/image vision. Free accounts get tons of voice usage; Boost and admins are unlimited. Voice has no fixed five-minute cap; it pauses after 10 minutes with no user or assistant speech, and its transcript is saved to the current chat. Those capabilities are real. When the user refers to something from their memories or earlier chats, use recall_memory or search_past_chats instead of claiming you cannot access it or asking them to repeat it.
+ArcAI includes regular chat, this natural GPT-Live-1 voice mode, one living memory summary, searchable past chats, web search, Deep Search and Ultra Deep Search research modes powered by Perplexity (free accounts get 4 Deep and 1 Ultra per week, unlimited on Boost), weather, image generation and editing, files, writing and code canvases, reminders and recurring tasks, shared chats, downloads, support tickets, and camera/image vision. Free accounts get tons of voice usage; Boost and admins are unlimited. Voice pauses after 10 minutes with no user or assistant speech, and its transcript is saved to the current chat. Those capabilities are real. When the user refers to their living memory or earlier chats, use recall_memory or search_past_chats instead of claiming you cannot access it or asking them to repeat it.
 
 For customer support, give concrete answers and accurate destinations: support is https://askarc.chat/support, docs are https://askarc.chat/docs, account settings are https://askarc.chat/dashboard/settings, pricing is https://askarc.chat/pricing, and tasks are https://askarc.chat/tasks. Use open_bug_report when the user asks to report a bug, send feedback, contact the team about a problem, or send ArcAI a message. Admin chat and storage audit browsers are disabled for privacy; never imply staff casually browse private chats or files.
 
@@ -209,23 +210,25 @@ Do not use canned service closers such as "if you need anything else, just let m
 
 AUDIO INPUT RULE: Ignore keyboard typing, key clicks, button taps, mouse clicks, and non-speech background noise. Only respond to clear user speech.`;
 
+const ARC_VOICE_PRODUCT_CONTEXT = `=== ARC PRODUCT, SAFETY, AND SUPPORT CONTEXT ===
+You are Arc inside ArcAI, founded and created by Win The Night Foundation. ArcAI includes chat, live voice, living memory, past-chat search, web search, Deep Search, weather, images, files, canvases, reminders, shared chats, support, and camera vision. Those capabilities are real, but never claim an action completed until the application confirms it.
+Support: https://askarc.chat/support | Docs and FAQs: https://askarc.chat/docs | Settings: https://askarc.chat/dashboard/settings | Pricing: https://askarc.chat/pricing | Tasks: https://askarc.chat/tasks
+Use living memory and search_past_chats when personal context is needed. The user knows Arc is part of ArcAI, but Arc does not automatically see the user's exact screen or other apps without an image or camera view. A stated city always overrides remembered or approximate location.
+For crisis or severe distress, respond gently, encourage immediate real-world help, and share https://winthenight.org/crisis-resources. Never diagnose or imitate a clinician.`;
+
 async function buildVoiceSystemPrompt(
   profile: { display_name?: string | null; context_info?: string | null; memory_info?: string | null } | null,
-  recentChatSummary: string
+  recentChatSummary: string,
+  continuationSummary = ''
 ): Promise<string> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    const [settingsResult, contextBlocksResult] = await Promise.all([
+    const [settingsResult, memorySummaryResult] = await Promise.all([
       supabase
         .from('admin_settings')
         .select('key, value')
         .in('key', ['system_prompt', 'global_context']),
-      user ? supabase
-        .from('context_blocks')
-        .select('content')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(100) : Promise.resolve({ data: null })
+      user ? getMemorySummary() : Promise.resolve(null)
     ]);
 
     const settingsData = settingsResult.data;
@@ -238,9 +241,10 @@ async function buildVoiceSystemPrompt(
     const basePrompt = settings.system_prompt || DEFAULT_CORE_SYSTEM_PROMPT;
     const globalContext = settings.global_context || '';
 
-    let voicePrompt = `${basePrompt}\n\n${ARC_VOICE_IDENTITY_CONTEXT}`;
-    
-    voicePrompt += `\n\n${ARC_VOICE_STYLE_CONTEXT}`;
+    // Keep the Live prompt focused. The old detailed tool and vision block is
+    // stripped below so this path cannot accidentally duplicate the backend
+    // policy or force scripted wording.
+    let voicePrompt = `${basePrompt}\n\n${ARC_LIVE_PROMPT}\n\n${ARC_VOICE_PRODUCT_CONTEXT}`;
 
     const voiceSpeed = useVoiceModeStore.getState().voiceSpeed;
     if (voiceSpeed && voiceSpeed !== 1.0) {
@@ -261,57 +265,29 @@ async function buildVoiceSystemPrompt(
     if (profile?.context_info?.trim()) {
       voicePrompt += `\n\nUser Persona & Context: ${profile.context_info.trim()}`;
     }
-    if (contextBlocksResult.data && contextBlocksResult.data.length > 0) {
-      const blocksText = contextBlocksResult.data.map((b: any) => b.content).join('\n');
-      voicePrompt += `\n\n🧠 Remembered Context:\n${blocksText}`;
-    }
-    if (profile?.memory_info?.trim()) {
-      voicePrompt += `\n\n📝 Memories: ${profile.memory_info}`;
+    const livingMemory = memorySummaryResult?.summary?.trim() || profile?.memory_info?.trim() || '';
+    if (livingMemory) {
+      voicePrompt += `\n\n📝 Living memory about the user:\n${livingMemory}`;
     }
     if (globalContext) {
       voicePrompt += `\n\nGlobal: ${globalContext}`;
     }
 
-    if (recentChatSummary) {
+    if (continuationSummary) {
+      voicePrompt += `\n\n${continuationSummary}`;
+    } else if (recentChatSummary) {
       voicePrompt += `\n\n--- CURRENT SESSION CONTEXT ---\n${recentChatSummary}`;
     }
 
-    voicePrompt += `\n\n--- VOICE TOOLS ---
-CRITICAL CAPABILITY DIRECTIVE: You have full live access to tools for web search, current weather, device location, memory, image generation, and reminders. NEVER say "I cannot access real-time information", "I don't have internet access", "I cannot check the weather", or "I cannot do that". Always use the appropriate tool immediately.
-CRITICAL: Always say something brief and natural BEFORE using any tool (e.g. "Let me check that", "Looking into that now", "On it") so the user isn't left in silence.
-
-• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. Image results and generating states appear directly in the chat thread. For changes like "edit that", "make it darker", "change the last one", or follow-ups after an image, use revise_image; it edits the latest generated, attached, or chat image. If the user says close, dismiss, hide, or remove the displayed image, use close_image; that only dismisses the temporary preview/attachment and does not delete chat history. Do not mention internal retries unless the tool fully fails.
-• WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search ONLY for current/public internet facts, news, videos, places, products, or live information. Do NOT use web_search for personal questions, the user's vibe/preferences, or "based on our chats" — use search_past_chats or memory tools for those. Results and sources appear directly in the chat thread, so summarize naturally.
-  IMPORTANT: Listen carefully to exact names and titles. If unsure, confirm before searching.
-• LOCATION & "NEAR ME" QUERIES: If the user asks for restaurants, food, weather, shops, or anything "near me" or nearby, say "Let me check what's near you" and call get_user_location or web_search immediately. Do NOT ask "where are you?" or ask for their city before attempting to retrieve their location via get_user_location.
-• WEATHER: For ANY weather question (current weather, temperature, forecast, conditions for a city), use get_weather — NOT web_search. Say "Let me check" first, then call get_weather. Weather appears directly in the chat thread; give a short, casual spoken summary.
-• REMINDERS / SCHEDULED TASKS: You CAN create reminders. For "remind me...", "set a reminder", "schedule this", "in five minutes", "tomorrow", or recurring reminders, say "I'll set that" FIRST, then use create_scheduled_task. The reminder confirmation card appears directly in the chat thread.
-• BUG REPORT / SUPPORT MESSAGE: When the user wants to report a bug, send feedback, contact the ArcAI team about a problem, or says something is broken, say "I'll open the report form" and use open_bug_report. The user reviews and submits it; never claim it was sent merely because the form opened.
-• SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats when they ask about:
-  - Something they mentioned before
-  - Their preferences, interests, or patterns
-  - Past topics or discussions
-  This searches ALL past chats dynamically.
-• MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember. Use delete_memory ("forget that…"). When correcting an old memory, pass \`replaces\` with keywords from the outdated one so it's overwritten cleanly. CRITICAL: Give exactly ONE short spoken confirmation per memory action — either before calling the tool OR after it returns, never both. Tool results like "OK_SAVED" / "OK_DELETED" are silent acknowledgments; do NOT speak again after seeing them if you already confirmed before the call.`;
-
-    voicePrompt += `\n\n--- VISION CAPABILITIES ---
-When the user shares their camera or attaches an image:
-• You can see what they're showing you through images sent to this conversation
-• Describe what you see naturally and conversationally
-• Point out interesting details they might want to know about
-• Answer questions about the visual content
-• If camera is live, acknowledge motion or changes when relevant
-• For attached images, offer to analyze specific parts if needed
-• Be helpful but not overly verbose about what you see
-
-If a user asks to update, revise, change, or make another version of the latest generated/chat image:
-• Use revise_image with a clear edit instruction
-• Keep the same aspect ratio unless they ask for a different shape`;
+    voicePrompt += `\n\nDelegation policy:
+Backend tools: web search, weather, device location, past-chat search, living memory, images, reminders, bug reports, and vision analysis.
+Delegate when the request needs one of those capabilities or careful reasoning. Do not delegate simple conversation or repeat a result that is still current.
+Let the backend finish before stating what it found or what it changed. Keep tool acknowledgments natural and optional.`;
 
     return voicePrompt;
   } catch (error) {
     console.error('Failed to fetch voice system prompt:', error);
-    return `${ARC_VOICE_IDENTITY_CONTEXT}\n\n${ARC_VOICE_STYLE_CONTEXT}`;
+    return ARC_LIVE_PROMPT;
   }
 }
 
@@ -489,7 +465,8 @@ export function VoiceModeController() {
     });
     
     try {
-      const urls = await aiService.generateImage(prompt, voiceImageModel, aspectRatio);
+      const generationResult = await aiService.generateImage(prompt, voiceImageModel, aspectRatio);
+      const urls = generationResult.imageUrls;
       const placeholderId = await placeholderPromise;
       const imageUrl = urls[0];
       if (latestImageRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
@@ -504,7 +481,7 @@ export function VoiceModeController() {
         type: 'image',
         imageUrl,
         sourceModel: 'cloud-image',
-        modelUsed: voiceImageModel,
+        modelUsed: generationResult.modelUsed,
       });
       setIsGeneratingImage(false);
       return imageUrl;
@@ -553,7 +530,8 @@ export function VoiceModeController() {
     });
 
     try {
-      const urls = await aiService.editImage(prompt, baseImageUrl, reviseModel, aspectRatio);
+      const editResult = await aiService.editImage(prompt, baseImageUrl, reviseModel, aspectRatio);
+      const urls = editResult.imageUrls;
       const imageUrl = urls[0];
       const placeholderId = await placeholderPromise;
       if (latestImageRunRef.current !== runId || !useVoiceModeStore.getState().isActive) {
@@ -569,7 +547,7 @@ export function VoiceModeController() {
         type: 'image',
         imageUrl,
         sourceModel: 'cloud-image-edit',
-        modelUsed: reviseModel,
+        modelUsed: editResult.modelUsed,
       });
       setIsGeneratingImage(false);
       return imageUrl;
@@ -842,26 +820,9 @@ export function VoiceModeController() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return 'Not signed in.';
-      let deleted = 0;
-      if (replaces && replaces.length > 0) {
-        const { data: existing } = await supabase
-          .from('context_blocks')
-          .select('id, content')
-          .eq('user_id', user.id);
-        const toDelete = (existing || []).filter((row: any) => {
-          const c = (row.content || '').toLowerCase();
-          return replaces.some((r) => c.includes(r.toLowerCase()));
-        }).map((r: any) => r.id);
-        if (toDelete.length > 0) {
-          await supabase.from('context_blocks').delete().in('id', toDelete);
-          deleted = toDelete.length;
-        }
-      }
-      const { error } = await supabase
-        .from('context_blocks')
-        .insert({ user_id: user.id, content: memory, source: 'memory' });
-      if (error) return `Failed to save: ${error.message}`;
-      return `OK_SAVED${deleted > 0 ? `_REPLACED_${deleted}` : ''}`;
+      const replacementNote = replaces?.length ? ` Update the existing summary where appropriate using: ${replaces.join(', ')}` : '';
+      await applyMemorySummary('save', `${memory}${replacementNote}`);
+      return 'OK_SAVED';
     } catch (e: any) {
       return `Memory save failed: ${e?.message || 'unknown error'}`;
     }
@@ -872,31 +833,9 @@ export function VoiceModeController() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return 'Not signed in.';
-      const { data, error } = await supabase
-        .from('context_blocks')
-        .select('content, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(100);
-      if (error) return `Failed to load memories: ${error.message}`;
-      const items = (data || []).map((r: any) => r.content as string);
-      const normalizedQuery = query?.trim().toLowerCase() || '';
-      const relationshipTerms = ['wife', 'spouse', 'husband', 'partner', 'married', 'marriage'];
-      const isRelationshipQuery = relationshipTerms.some((term) => normalizedQuery.includes(term));
-      let filtered = normalizedQuery
-        ? items.filter((content) => {
-            const normalizedContent = content.toLowerCase();
-            return isRelationshipQuery
-              ? relationshipTerms.some((term) => normalizedContent.includes(term))
-              : normalizedContent.includes(normalizedQuery);
-          })
-        : items;
-      // Memories are natural-language facts, so the user's wording may not be
-      // a literal substring of the saved wording. Give Realtime the memories to
-      // reason over instead of falsely claiming nothing was saved.
-      if (normalizedQuery && filtered.length === 0) filtered = items;
-      if (filtered.length === 0) return query ? `No memories match "${query}".` : 'No memories saved yet.';
-      return filtered.slice(0, 100).map((c, i) => `${i + 1}. ${c}`).join('\n');
+      const result = await getMemorySummary();
+      if (!result.summary.trim()) return query ? `No memories match "${query}".` : 'No memories saved yet.';
+      return result.summary;
     } catch (e: any) {
       return `Memory recall failed: ${e?.message || 'unknown error'}`;
     }
@@ -907,18 +846,8 @@ export function VoiceModeController() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return 'Not signed in.';
-      const { data: existing } = await supabase
-        .from('context_blocks')
-        .select('id, content')
-        .eq('user_id', user.id);
-      const toDelete = (existing || []).filter((row: any) => {
-        const c = (row.content || '').toLowerCase();
-        return keywords.some((k) => c.includes(k.toLowerCase()));
-      }).map((r: any) => r.id);
-      if (toDelete.length === 0) return 'No matching memories found to delete.';
-      const { error } = await supabase.from('context_blocks').delete().in('id', toDelete);
-      if (error) return `Failed to delete: ${error.message}`;
-      return `OK_DELETED_${toDelete.length}`;
+      await applyMemorySummary('delete', keywords.join(', '));
+      return `OK_DELETED_${keywords.length}`;
     } catch (e: any) {
       return `Memory delete failed: ${e?.message || 'unknown error'}`;
     }
@@ -1038,68 +967,12 @@ export function VoiceModeController() {
     // Save any unsaved turns before the reconnect
     await saveNewTurns(false);
 
-    // Build an updated prompt with the voice conversation history injected
+    // Reuse the same canonical prompt as the initial session. Only the compact
+    // voice continuation is added, so reconnects do not resend recent chat and
+    // voice turns twice or resurrect the old tool-script block.
     const { conversationTurns } = useVoiceModeStore.getState();
     const voiceSummary = summarizeVoiceTurns(conversationTurns);
-    const recentChatSummary = summarizeRecentChats(messagesRef.current);
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const [settingsResult, contextBlocksResult] = await Promise.all([
-        supabase
-          .from('admin_settings')
-          .select('key, value')
-          .in('key', ['system_prompt', 'global_context']),
-        user ? supabase
-          .from('context_blocks')
-          .select('content')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(100) : Promise.resolve({ data: null })
-      ]);
-
-      const settings = (settingsResult.data || []).reduce((acc: Record<string, string>, s: any) => {
-        acc[s.key] = s.value;
-        return acc;
-      }, {});
-
-      let prompt = `${settings.system_prompt || DEFAULT_CORE_SYSTEM_PROMPT}\n\n${ARC_VOICE_IDENTITY_CONTEXT}`;
-      const globalContext = settings.global_context || '';
-
-      prompt += `\n\n${ARC_VOICE_STYLE_CONTEXT}`;
-
-      const p = profileRef.current;
-      if (p?.display_name) prompt += `\n\nUser: ${p.display_name}`;
-      if (p?.context_info?.trim()) prompt += ` | Context: ${p.context_info}`;
-      if (contextBlocksResult.data && contextBlocksResult.data.length > 0) {
-        const blocksText = contextBlocksResult.data.map((b: any) => b.content).join('\n');
-        prompt += `\n\n🧠 Remembered Context:\n${blocksText}`;
-      }
-      if (p?.memory_info?.trim()) prompt += `\n\n📝 Memories: ${p.memory_info}`;
-      if (globalContext) prompt += `\n\nGlobal: ${globalContext}`;
-      if (recentChatSummary) prompt += `\n\n--- CURRENT SESSION CONTEXT ---\n${recentChatSummary}`;
-
-      // Inject the voice conversation history so the AI remembers what was said
-      if (voiceSummary) prompt += `\n\n${voiceSummary}`;
-
-      prompt += `\n\n--- VOICE TOOLS ---
-CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
-
-• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image for new images. Image results and generating states appear directly in the chat thread. If the user asks to update/revise/change/edit "that" or follows up after an image, use revise_image against the latest generated, attached, or chat image. If the user says close, dismiss, hide, or remove the displayed image, use close_image; that dismisses the temporary preview/attachment without deleting chat history. Do not mention internal retries unless the tool fully fails.
-• WEB SEARCH: Say "Let me look that up" FIRST, then use web_search ONLY for current/public internet facts, news, videos, places, products, or live information. Do NOT use web_search for personal questions, the user's vibe/preferences, or "based on our chats" — use search_past_chats or memory tools for those. Results and sources are added to the chat thread.
-• WEATHER: Use get_weather (not web_search) for any weather question. Weather is added to the chat thread.
-• REMINDERS / SCHEDULED TASKS: You CAN create reminders. For "remind me...", "set a reminder", "schedule this", "in five minutes", "tomorrow", or recurring reminders, say "I'll set that" FIRST, then use create_scheduled_task. The reminder confirmation card is added to the chat thread.
-• SEARCH PAST CHATS: Say "Let me check our past conversations" FIRST, then use search_past_chats.
-• MEMORY: Use save_memory whenever the user shares a personal fact or asks you to remember something. Use recall_memory to look up what you remember about them. Use delete_memory when they say "forget that" or want a memory removed. When correcting an old memory, pass \`replaces\` with keywords from the outdated one. CRITICAL: Give exactly ONE short spoken confirmation per memory action — either before calling the tool OR after it returns, never both. Tool results like "OK_SAVED" / "OK_DELETED" are silent acknowledgments; do NOT speak again after seeing them if you already confirmed before the call.`;
-
-      prompt += `\n\n--- VISION CAPABILITIES ---
-When the user shares their camera or attaches an image, describe what you see naturally and conversationally. revise_image edits the latest generated/chat image when the user says things like "edit that" or gives a follow-up image change.`;
-
-      return prompt;
-    } catch (err) {
-      console.warn('handleSessionExpired: failed to build updated prompt, using last known prompt:', err);
-      return undefined; // fall back to lastSystemPrompt in the hook
-    }
+    return buildVoiceSystemPrompt(profileRef.current, '', voiceSummary);
   }, [saveNewTurns]);
 
   // OpenAI Realtime connection

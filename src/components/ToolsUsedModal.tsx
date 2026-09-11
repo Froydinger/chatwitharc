@@ -112,7 +112,7 @@ export function ToolsUsedModal({ isOpen, onClose, actions, messageContent }: Too
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm text-foreground">Memory</div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {memoryActions.length} item{memoryActions.length !== 1 ? 's' : ''} saved
+                        Living summary updated
                       </p>
                     </div>
                   </div>

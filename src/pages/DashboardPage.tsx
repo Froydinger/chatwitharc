@@ -145,7 +145,7 @@ function DashboardPageInner() {
     syncFromSupabase, currentSessionId, messages,
     folders, createFolder, deleteFolder, pinFolder, moveChatToFolder
   } = useArcStore();
-  const { blocks: contextBlocks, loading: blocksLoading, deleteBlock, updateBlock, addBlock } = useContextBlocks();
+  const { blocks: contextBlocks, loading: blocksLoading, updateBlock, addBlock } = useContextBlocks();
   const isAdminBannerActive = useAdminBanner();
 
 // Detect desktop standalone (PWA/Electron) for traffic light safe area
@@ -192,7 +192,6 @@ useEffect(() => {
   const [chatSearch, setChatSearch] = useState("");
   const [imageSearch, setImageSearch] = useState("");
   const [appSearch, setAppSearch] = useState("");
-  const [memorySearch, setMemorySearch] = useState("");
   const [editingMemoryId, setEditingMemoryId] = useState<string | null>(null);
   const [editMemoryContent, setEditMemoryContent] = useState("");
   const [isAddingMemory, setIsAddingMemory] = useState(false);
@@ -223,7 +222,6 @@ useEffect(() => {
     memories: null,
   });
   const [appPage, setAppPage] = useState(1);
-  const [memoryPage, setMemoryPage] = useState(1);
   const [canvasSearch, setCanvasSearch] = useState("");
   const [canvasPage, setCanvasPage] = useState(1);
   const [selectedCanvas, setSelectedCanvas] = useState<CanvasItem | null>(null);
@@ -344,7 +342,6 @@ useEffect(() => {
   useEffect(() => { setChatPage(1); }, [chatSearch]);
   useEffect(() => { setImagePage(1); }, [imageSearch]);
   useEffect(() => { setAppPage(1); }, [appSearch]);
-  useEffect(() => { setMemoryPage(1); }, [memorySearch]);
   useEffect(() => { setCanvasPage(1); }, [canvasSearch]);
 
   // Animate lens scale when dragging
@@ -631,11 +628,11 @@ useEffect(() => {
         const [chatsRes, memoriesRes, imagesResWithArg] = await Promise.all([
           supabase
             .from('chat_sessions')
-            .select('id', { count: 'exact', head: true })
+            .select('user_id', { count: 'exact', head: true })
             .eq('user_id', user.id),
           supabase
-            .from('context_blocks')
-            .select('id', { count: 'exact', head: true })
+            .from('memory_summaries')
+            .select('summary')
             .eq('user_id', user.id),
           supabase.rpc('count_user_images', { target_user_id: user.id } as any),
         ]);
@@ -650,9 +647,10 @@ useEffect(() => {
           localStorage.setItem(`arc_chat_count_${user.id}`, String(chatsRes.count ?? 0));
         }
 
-        if (typeof memoriesRes.count === 'number') {
-          setQuickCounts(prev => ({ ...prev, memories: memoriesRes.count ?? 0 }));
-          localStorage.setItem(`arc_memory_count_${user.id}`, String(memoriesRes.count ?? 0));
+        if (!memoriesRes.error) {
+          const hasSummary = Boolean(memoriesRes.data?.[0]?.summary?.trim());
+          setQuickCounts(prev => ({ ...prev, memories: hasSummary ? 1 : 0 }));
+          localStorage.setItem(`arc_memory_count_${user.id}`, hasSummary ? '1' : '0');
         }
 
         if (typeof imageCountResult.data === 'number') {
@@ -874,12 +872,6 @@ useEffect(() => {
     return recentApps.filter(app => (app.title || '').toLowerCase().includes(q));
   }, [recentApps, appSearch]);
 
-  const filteredMemories = useMemo(() => {
-    if (!memorySearch.trim()) return contextBlocks;
-    const q = memorySearch.toLowerCase();
-    return contextBlocks.filter(b => (b.content || '').toLowerCase().includes(q));
-  }, [contextBlocks, memorySearch]);
-
   const filteredCanvases = useMemo(() => {
     const items: CanvasItem[] = [];
     (chatSessions || []).forEach(s => {
@@ -938,7 +930,7 @@ useEffect(() => {
     const tips = [
       chatCount > 0 ? `You've had ${chatCount} conversations with Arc.` : null,
       totalImageCount != null && totalImageCount > 0 ? `You've generated ${totalImageCount} image${totalImageCount === 1 ? '' : 's'} with Arc so far.` : null,
-      contextBlocks.length > 0 ? `Arc is remembering ${contextBlocks.length} key details about you.` : null,
+      contextBlocks.length > 0 ? "Arc's living memory is up to date." : null,
       "Start a new chat to brainstorm your next big idea.",
       "Use /code to have Arc write or debug code for you.",
     ].filter(Boolean) as string[];
@@ -971,7 +963,7 @@ useEffect(() => {
     { label: "Images", tab: "images" as DashboardTab, value: totalImageCount, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Apps", tab: "apps" as DashboardTab, value: recentApps.length, icon: Smartphone, color: "270 80% 65%", tw: "text-purple-400" },
     { label: "Canvases", tab: "canvases" as DashboardTab, value: filteredCanvases.length, icon: Code2, color: "35 90% 60%", tw: "text-orange-400" },
-    { label: "Memories", tab: "memories" as DashboardTab, value: quickCounts.memories !== null ? quickCounts.memories : (contextBlocks.length > 0 ? contextBlocks.length : 0), icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
+    { label: "Living memory", tab: "memories" as DashboardTab, value: quickCounts.memories !== null ? quickCounts.memories : (contextBlocks.length > 0 ? 1 : 0), icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
   const getIdxFromCX = (cx: number) => {
@@ -1437,7 +1429,7 @@ useEffect(() => {
 
               <section className="grid gap-4 lg:grid-cols-[1fr_0.65fr]">
                 <div className="rounded-[2rem] border border-border/35 bg-background/40 p-5 sm:p-6">
-                  <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><Brain className="h-5 w-5 text-primary" /><div><h2 className="text-sm font-semibold">Fresh memories</h2><p className="text-xs text-muted-foreground">What Arc remembers about you</p></div></div><button onClick={() => switchTab('memories')} className="text-xs text-primary">See all</button></div>
+                  <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><Brain className="h-5 w-5 text-primary" /><div><h2 className="text-sm font-semibold">Living memory</h2><p className="text-xs text-muted-foreground">The summary Arc carries forward</p></div></div><button onClick={() => switchTab('memories')} className="text-xs text-primary">Open</button></div>
                   {blocksLoading ? <SkeletonList count={3} /> : contextBlocks.length === 0 ? <EmptyState icon={Brain} text="No memories yet" sub='Say “remember that…” in chat.' /> : (
                     <div className="grid gap-2 sm:grid-cols-2">{contextBlocks.slice(0, 4).map((block) => <div key={block.id} className="rounded-2xl border border-border/30 bg-muted/15 p-3.5"><p className="line-clamp-2 text-sm leading-relaxed text-foreground/90">{block.content}</p><span className="mt-2 block text-[10px] uppercase tracking-wider text-muted-foreground">{timeAgo(block.created_at)}</span></div>)}</div>
                   )}
@@ -2188,29 +2180,29 @@ useEffect(() => {
             </motion.div>
           )}
 
-          {/* ====== MEMORIES ====== */}
+          {/* ====== LIVING MEMORY ====== */}
           {activeTab === "memories" && (
             <motion.div key="memories" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input value={memorySearch} onChange={e => setMemorySearch(e.target.value)} placeholder="Search memories..." className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-semibold">Arc's living memory</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">One detailed summary that grows with your conversations. Tell Arc things naturally, or ask Arc to remember them.</p>
                 </div>
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => {
-                    const data = contextBlocks.map(b => ({ content: b.content, source: b.source }));
-                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const data = { summary: contextBlocks[0]?.content || "", format: "arc-living-memory-v1" };
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `arc-memories-${new Date().toISOString().slice(0, 10)}.json`;
+                    a.download = `arc-living-memory-${new Date().toISOString().slice(0, 10)}.json`;
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
                   className="rounded-full glass-shimmer"
-                  title="Export memories"
+                  title="Export living memory"
                   disabled={contextBlocks.length === 0}
                 >
                   <Download className="h-4 w-4 text-primary" />
@@ -2228,19 +2220,17 @@ useEffect(() => {
                       try {
                         const text = await file.text();
                         const imported = JSON.parse(text);
-                        if (!Array.isArray(imported)) throw new Error('Invalid format');
-                        let count = 0;
-                        for (const item of imported) {
-                          if (item.content && typeof item.content === 'string') {
-                            const saved = await addBlock(item.content);
-                            if (saved) count++;
-                          }
-                        }
-                        const { toast } = await import("@/hooks/use-toast");
+                        const importedSummary = typeof imported?.summary === "string"
+                          ? imported.summary
+                          : Array.isArray(imported)
+                            ? imported.map((item) => typeof item?.content === "string" ? item.content : "").filter(Boolean).join("\n")
+                            : "";
+                        if (!importedSummary.trim()) throw new Error("Invalid format");
+                        const saved = await addBlock(importedSummary.trim());
                         toast({
-                          title: count > 0 ? `Imported ${count} memories` : "No memories were imported",
-                          description: count > 0 ? undefined : "Please wait a second after sign-in, then try again.",
-                          variant: count > 0 ? "default" : "destructive",
+                          title: saved ? "Living memory imported" : "No memory was imported",
+                          description: saved ? "Arc merged it into your existing summary." : "Please wait a second after sign-in, then try again.",
+                          variant: saved ? "default" : "destructive",
                         });
                       } catch {
                         const { toast } = await import("@/hooks/use-toast");
@@ -2250,16 +2240,16 @@ useEffect(() => {
                     input.click();
                   }}
                   className="rounded-full glass-shimmer"
-                  title="Import memories"
+                  title="Import living memory"
                 >
                   <Upload className="h-4 w-4 text-primary" />
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => { setIsAddingMemory(true); setNewMemoryContent(""); }}
+                  onClick={() => { setIsAddingMemory(true); setEditingMemoryId(null); setNewMemoryContent(""); }}
                   className="rounded-full glass-shimmer"
-                  title="Add memory"
+                  title="Tell Arc something"
                 >
                   <Plus className="h-4.5 w-4.5 text-primary" />
                 </Button>
@@ -2267,55 +2257,42 @@ useEffect(() => {
 
               {isAddingMemory && (
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-4 rounded-2xl border border-primary/20 bg-primary/5 space-y-3">
-                  <Textarea value={newMemoryContent} onChange={e => setNewMemoryContent(e.target.value)} placeholder="What should Arc remember?" className="bg-background/50 border-border/40 rounded-xl min-h-[100px]" autoFocus />
+                  <Textarea value={newMemoryContent} onChange={e => setNewMemoryContent(e.target.value)} placeholder="Tell Arc something about you. It will merge this into the living summary." className="bg-background/50 border-border/40 rounded-xl min-h-[120px]" autoFocus />
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="sm" onClick={() => setIsAddingMemory(false)} className="rounded-xl">Cancel</Button>
-                    <Button size="sm" disabled={!newMemoryContent.trim()} onClick={async () => { await addBlock(newMemoryContent); setIsAddingMemory(false); }} className="rounded-xl">Save Memory</Button>
+                    <Button size="sm" disabled={!newMemoryContent.trim()} onClick={async () => { await addBlock(newMemoryContent); setIsAddingMemory(false); }} className="rounded-xl">Merge into summary</Button>
                   </div>
                 </motion.div>
               )}
 
               {blocksLoading ? (
                 <SkeletonList count={5} />
-              ) : filteredMemories.length === 0 ? (
-                <EmptyState icon={Brain} text={memorySearch ? "No matching memories" : "No memories yet"} sub='Tell Arc "remember that..." to save context' />
+              ) : contextBlocks.length === 0 ? (
+                <EmptyState icon={Brain} text="Your living memory is empty" sub='Tell Arc "remember that..." or add something here.' />
               ) : (
-                <>
-                <div className="space-y-2">
-                  {filteredMemories.slice((memoryPage - 1) * ITEMS_PER_PAGE, memoryPage * ITEMS_PER_PAGE).map((block) => (
-                    <div key={block.id} className="group p-4 rounded-xl border border-border/30 bg-muted/15 hover:border-primary/20 hover:bg-primary/5 transition-all">
-                      {editingMemoryId === block.id ? (
-                        <div className="space-y-3">
-                          <Textarea value={editMemoryContent} onChange={e => setEditMemoryContent(e.target.value)} className="bg-background/50 border-border/40 rounded-xl min-h-[80px]" autoFocus />
-                          <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="sm" onClick={() => setEditingMemoryId(null)} className="rounded-xl">Cancel</Button>
-                            <Button size="sm" onClick={async () => { await updateBlock(block.id, editMemoryContent); setEditingMemoryId(null); }} className="rounded-xl">Update</Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-foreground/90 leading-relaxed">{block.content}</p>
-                            <span className="text-[10px] text-muted-foreground mt-2 block uppercase tracking-wider">{timeAgo(block.created_at)}</span>
-                          </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => { setEditingMemoryId(block.id); setEditMemoryContent(block.content); }}>
-                              <Edit2 className="h-3.5 w-3.5" />
-                            </Button>
-                            <KineticDeleteButton
-                              onDelete={() => deleteBlock(block.id)}
-                              title="Delete memory"
-                              size={14}
-                              className="h-8 w-8 rounded-lg"
-                            />
-                          </div>
-                        </div>
-                      )}
+                <div className="rounded-[2rem] border border-primary/20 bg-primary/[0.04] p-5 sm:p-7">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <Sparkles className="mt-1 h-5 w-5 shrink-0 text-primary" />
+                      <div className="min-w-0">
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{contextBlocks[0].content}</p>
+                        <span className="mt-3 block text-[10px] uppercase tracking-wider text-muted-foreground">Living summary · updated {timeAgo(contextBlocks[0].updated_at)}</span>
+                      </div>
                     </div>
-                  ))}
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => { setEditingMemoryId(contextBlocks[0].id); setEditMemoryContent(contextBlocks[0].content); }} title="Edit living memory">
+                      <Edit2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  {editingMemoryId === contextBlocks[0].id && (
+                    <div className="mt-4 space-y-3">
+                      <Textarea value={editMemoryContent} onChange={e => setEditMemoryContent(e.target.value)} className="bg-background/50 border-border/40 rounded-xl min-h-[180px]" autoFocus />
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setEditingMemoryId(null)} className="rounded-xl">Cancel</Button>
+                        <Button size="sm" disabled={!editMemoryContent.trim()} onClick={async () => { await updateBlock(contextBlocks[0].id, editMemoryContent); setEditingMemoryId(null); }} className="rounded-xl">Save summary</Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <PaginationBar current={memoryPage} total={Math.ceil(filteredMemories.length / ITEMS_PER_PAGE)} onChange={setMemoryPage} />
-                </>
               )}
             </motion.div>
           )}

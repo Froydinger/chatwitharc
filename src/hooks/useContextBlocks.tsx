@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { applyMemorySummary, getMemorySummary } from '@/lib/memorySummary';
 
+// Kept for compatibility with existing panels and dashboard code. There is now
+// one canonical living-memory document instead of a list of memory slots.
 export interface ContextBlock {
   id: string;
   content: string;
@@ -17,7 +20,6 @@ export function useContextBlocks() {
 
   const getActiveUserId = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) return null;
-
     const { data: { user: authUser } } = await supabase.auth.getUser();
     return user?.id || authUser?.id || null;
   }, [user]);
@@ -29,9 +31,7 @@ export function useContextBlocks() {
       return;
     }
 
-    // Resolve user from auth directly to avoid race with useAuth context
     const activeUserId = await getActiveUserId();
-
     if (!activeUserId) {
       setBlocks([]);
       setLoading(false);
@@ -40,17 +40,17 @@ export function useContextBlocks() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('context_blocks')
-        .select('*')
-        .eq('user_id', activeUserId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      console.log(`[useContextBlocks] Loaded ${data?.length || 0} memories for user ${activeUserId}`);
-      setBlocks((data as any[]) || []);
+      const data = await getMemorySummary();
+      const now = new Date().toISOString();
+      setBlocks(data.summary.trim() ? [{
+        id: `memory-summary:${activeUserId}`,
+        content: data.summary,
+        source: 'memory',
+        created_at: now,
+        updated_at: now,
+      }] : []);
     } catch (err) {
-      console.error('Error fetching context blocks:', err);
+      console.error('Error fetching living memory summary:', err);
     } finally {
       setLoading(false);
     }
@@ -60,14 +60,11 @@ export function useContextBlocks() {
     fetchBlocks();
   }, [fetchBlocks]);
 
-  // Listen for external updates (e.g. memory saved via edge function)
   useEffect(() => {
-    const handler = () => {
-      fetchBlocks();
-    };
+    const handler = () => { fetchBlocks(); };
     window.addEventListener('context-blocks-updated', handler);
+    window.addEventListener('memory-summary-updated', handler);
 
-    // Also refetch on auth state changes (sign-in, token refresh)
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         fetchBlocks();
@@ -76,113 +73,90 @@ export function useContextBlocks() {
 
     return () => {
       window.removeEventListener('context-blocks-updated', handler);
+      window.removeEventListener('memory-summary-updated', handler);
       sub.subscription.unsubscribe();
     };
   }, [fetchBlocks]);
 
   const addBlock = useCallback(async (content: string, source: 'manual' | 'memory' = 'manual') => {
-    if (!supabase || !isSupabaseConfigured) return null;
-
+    if (!supabase || !isSupabaseConfigured || !content.trim()) return null;
     const activeUserId = await getActiveUserId();
     if (!activeUserId) return null;
 
     try {
-      const { data, error } = await supabase
-        .from('context_blocks')
-        .insert({ user_id: activeUserId, content, source })
-        .select()
-        .single();
-
-      if (error) throw error;
-      setBlocks(prev => [data as any, ...prev]);
-      return data as ContextBlock;
+      const data = await applyMemorySummary('save', content.trim());
+      const now = new Date().toISOString();
+      const block: ContextBlock = {
+        id: `memory-summary:${activeUserId}`,
+        content: data.summary,
+        source,
+        created_at: now,
+        updated_at: now,
+      };
+      setBlocks(data.summary.trim() ? [block] : []);
+      window.dispatchEvent(new CustomEvent('memory-summary-updated'));
+      return block;
     } catch (err) {
-      console.error('Error adding context block:', err);
+      console.error('Error adding to living memory:', err);
       return null;
     }
   }, [getActiveUserId]);
 
   const updateBlock = useCallback(async (id: string, content: string) => {
     if (!supabase || !isSupabaseConfigured) return;
-
     const activeUserId = await getActiveUserId();
     if (!activeUserId) return;
 
     try {
-      const { error } = await supabase
-        .from('context_blocks')
-        .update({ content })
-        .eq('id', id)
-        .eq('user_id', activeUserId);
-
-      if (error) throw error;
-      setBlocks(prev => prev.map(b => b.id === id ? { ...b, content } : b));
+      const data = await applyMemorySummary('replace_summary', undefined, content.trim());
+      const now = new Date().toISOString();
+      setBlocks(data.summary.trim() ? [{ id, content: data.summary, source: 'memory', created_at: now, updated_at: now }] : []);
+      window.dispatchEvent(new CustomEvent('memory-summary-updated'));
     } catch (err) {
-      console.error('Error updating context block:', err);
+      console.error('Error updating living memory:', err);
     }
   }, [getActiveUserId]);
 
-  const deleteBlock = useCallback(async (id: string) => {
+  const deleteBlock = useCallback(async (_id: string) => {
     if (!supabase || !isSupabaseConfigured) return;
-
     const activeUserId = await getActiveUserId();
     if (!activeUserId) return;
-
     try {
-      const { error } = await supabase
-        .from('context_blocks')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', activeUserId);
-
-      if (error) throw error;
-      setBlocks(prev => prev.filter(b => b.id !== id));
+      await applyMemorySummary('replace_summary', undefined, '');
+      setBlocks([]);
+      window.dispatchEvent(new CustomEvent('memory-summary-updated'));
     } catch (err) {
-      console.error('Error deleting context block:', err);
+      console.error('Error deleting living memory:', err);
     }
   }, [getActiveUserId]);
 
   const clearAll = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) return;
-
     const activeUserId = await getActiveUserId();
     if (!activeUserId) return;
-
     try {
-      const { error } = await supabase
-        .from('context_blocks')
-        .delete()
-        .eq('user_id', activeUserId);
-
-      if (error) throw error;
+      await applyMemorySummary('replace_summary', undefined, '');
       setBlocks([]);
+      window.dispatchEvent(new CustomEvent('memory-summary-updated'));
     } catch (err) {
-      console.error('Error clearing context blocks:', err);
+      console.error('Error clearing living memory:', err);
     }
   }, [getActiveUserId]);
 
   return { blocks, loading, addBlock, updateBlock, deleteBlock, clearAll, refetch: fetchBlocks };
 }
 
-// Standalone function to add a context block (for use outside React components)
-export async function addContextBlockDirect(content: string, source: 'manual' | 'memory' = 'memory'): Promise<boolean> {
+export async function addContextBlockDirect(content: string, _source: 'manual' | 'memory' = 'memory'): Promise<boolean> {
   if (!supabase || !isSupabaseConfigured) return false;
-
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
-
-    const { error } = await supabase
-      .from('context_blocks')
-      .insert({ user_id: user.id, content, source });
-
-    if (error) throw error;
-    
-    // Dispatch event so any open ContextBlocksPanel can refresh
+    await applyMemorySummary('save', content.trim());
     window.dispatchEvent(new CustomEvent('context-blocks-updated'));
+    window.dispatchEvent(new CustomEvent('memory-summary-updated'));
     return true;
   } catch (err) {
-    console.error('Error adding context block:', err);
+    console.error('Error adding to living memory:', err);
     return false;
   }
 }

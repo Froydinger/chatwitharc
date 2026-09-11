@@ -33,6 +33,8 @@ function toOpenAIModel(model: string): string {
 function wantsTransparentBackground(prompt: string): boolean {
   const normalized = prompt.toLowerCase().replace(/[\s_-]+/g, ' ');
   return [
+    /\btransparent\b/,
+    /\b(?:alpha|cutout|cut out|sticker|isolated)\b.*\b(?:background|canvas|subject|object)\b/,
     /\btransparent (?:background|backdrop|canvas|png)\b/,
     /\b(?:background|backdrop|canvas) (?:is |should be )?transparent\b/,
     /\b(?:with|on) (?:an? )?(?:actual(?:ly)? |fully )?transparent background\b/,
@@ -41,6 +43,11 @@ function wantsTransparentBackground(prompt: string): boolean {
     /\bcut ?out (?:with|on) (?:an? )?transparent background\b/,
     /\btransparent alpha\b/,
   ].some((pattern) => pattern.test(normalized));
+}
+
+function addTransparentOutputInstruction(prompt: string): string {
+  if (!wantsTransparentBackground(prompt)) return prompt;
+  return `${prompt}\n\nOUTPUT REQUIREMENT: Return a true transparent alpha channel. Do not draw, simulate, or include a checkerboard transparency grid, white matte, colored matte, or any background pixels outside the subject.`;
 }
 
 function aspectToSize(aspectRatio: string): string {
@@ -113,6 +120,7 @@ function buildEditPrompt(userPrompt: string, imageCount: number, isYouTube: bool
     finalPrompt += "Keep the same person and preserve facial identity.\n\n";
   }
   finalPrompt += userPrompt;
+  finalPrompt = addTransparentOutputInstruction(finalPrompt);
   if (isYouTube) {
     finalPrompt += `\n\nIMPORTANT COMPOSITION RULE: Render this as a 16:9 widescreen image. The full canvas is 1536x1024, but place ALL meaningful content within the centered 1536x864 region. Add solid pure black (#000000) letterbox bars exactly 80 pixels tall at the very top and very bottom of the image. The black bars must be uniformly solid black, edge-to-edge, with no gradients, textures, or content. Treat them as off-screen padding.`;
   }
@@ -306,7 +314,7 @@ async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filena
     // /v1/images/edits only accepts 1024x1024, 512x512, 256x256. Do NOT pass quality parameter.
     form.append('size', '1024x1024');
     form.append('n', '1');
-    if ((modelName === 'gpt-image-2' || modelName.startsWith('gpt-image-2')) && wantsTransparentBackground(prompt)) {
+    if (wantsTransparentBackground(prompt)) {
       form.append('background', 'transparent');
       form.append('output_format', 'png');
     }
@@ -538,9 +546,7 @@ serve(async (req) => {
       });
     }
     const isYouTube = aspect === '16:9';
-    const transparent =
-      (selectedModel === 'gpt-image-2' || selectedModel.startsWith('gpt-image-2')) &&
-      wantsTransparentBackground(prompt);
+    const transparent = wantsTransparentBackground(prompt);
     const editPrompt = buildEditPrompt(prompt, imageArray.length, isYouTube && !transparent);
 
     // Kick off processing in background; respond immediately so we never get killed

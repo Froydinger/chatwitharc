@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { applyMemorySummary, getMemorySummary } from "@/lib/memorySummary";
 
 export interface MemoryItem {
   content: string;
@@ -201,12 +202,8 @@ export async function detectMemoryCommand(
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('memory_info')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      existingMemories = profile?.memory_info || "";
+      const summary = await getMemorySummary();
+      existingMemories = summary.summary;
     }
   } catch (err) {
     console.error('Error fetching existing memories:', err);
@@ -241,67 +238,11 @@ export async function addToMemoryBank(memoryItem: MemoryItem): Promise<boolean> 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No user found');
 
-    // Fetch current profile to get existing memory
-    const { data: profile, error: fetchError } = await supabase
-      .from('profiles')
-      .select('memory_info')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (fetchError) throw fetchError;
-
-    const existingMemory = profile?.memory_info || '';
     const sanitized = sanitizeMemoryText(memoryItem.content);
+    const result = await applyMemorySummary('save', sanitized);
 
-    // Build a normalized set of existing entries to avoid duplicates
-    const existingLines = existingMemory
-      .split('\n')
-      .map(l => l.replace(/^\[[^\]]+\]\s*/, '').trim().toLowerCase())
-      .filter(Boolean);
-
-    // Robust duplicate detection - check for semantic similarity
-    const normalizedNew = sanitized.toLowerCase().replace(/[^\w\s]/g, '').trim();
-    const isDuplicate = existingLines.some(existing => {
-      const normalizedExisting = existing.replace(/[^\w\s]/g, '').trim();
-      // Check for exact match
-      if (normalizedExisting === normalizedNew) return true;
-      
-      // Check for substantial word overlap (70% threshold for flexibility)
-      const newWords = new Set(normalizedNew.split(/\s+/).filter(w => w.length > 2));
-      const existingWords = new Set(normalizedExisting.split(/\s+/).filter(w => w.length > 2));
-      const intersection = new Set([...newWords].filter(x => existingWords.has(x)));
-      const similarity = intersection.size / Math.max(newWords.size, existingWords.size);
-      
-      return similarity > 0.7;
-    });
-
-    if (isDuplicate) {
-      console.log('Memory already exists, skipping duplicate');
-      return false;
-    }
-
-    const memoryEntry = `[${memoryItem.timestamp.toLocaleDateString()}] ${sanitized}`;
-
-    // Append new memory to existing memory
-    const updatedMemory = existingMemory
-      ? `${existingMemory}\n${memoryEntry}`
-      : memoryEntry;
-
-    // Use upsert to handle case where profile might not exist yet
-    // (can happen with OAuth users if trigger failed)
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .upsert({
-        user_id: user.id,
-        memory_info: updatedMemory
-      }, {
-        onConflict: 'user_id'
-      });
-
-    if (updateError) throw updateError;
-
-    console.log('Memory added successfully:', sanitized);
-    return true;
+    console.log('Living memory updated:', result.summary);
+    return result.summary.trim().length > 0;
   } catch (error) {
     console.error('Error adding to memory bank:', error);
     throw error;

@@ -854,6 +854,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
           onClose={() => setEditImageUrls(null)}
           imageUrl={editImageUrls || []}
           originalPrompt={message.content}
+          lastUsedModel={message.modelUsed}
         />
       </div>
     );

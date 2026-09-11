@@ -126,6 +126,8 @@ function normalizeAspectRatio(aspectRatio?: unknown) {
 function wantsTransparentBackground(prompt: string): boolean {
   const normalized = prompt.toLowerCase().replace(/[\s_-]+/g, " ");
   return [
+    /\btransparent\b/,
+    /\b(?:alpha|cutout|cut out|sticker|isolated)\b.*\b(?:background|canvas|subject|object)\b/,
     /\btransparent (?:background|backdrop|canvas|png)\b/,
     /\b(?:background|backdrop|canvas) (?:is |should be )?transparent\b/,
     /\b(?:with|on) (?:an? )?(?:actual(?:ly)? |fully )?transparent background\b/,
@@ -136,15 +138,18 @@ function wantsTransparentBackground(prompt: string): boolean {
   ].some((pattern) => pattern.test(normalized));
 }
 
+function addTransparentOutputInstruction(prompt: string): string {
+  if (!wantsTransparentBackground(prompt)) return prompt;
+  return `${prompt}\n\nOUTPUT REQUIREMENT: Return a true transparent alpha channel. Do not draw, simulate, or include a checkerboard transparency grid, white matte, colored matte, or any background pixels outside the subject.`;
+}
+
 async function updateJob(supabase: any, jobId: string, values: Record<string, unknown>) {
   const { error } = await supabase.from("image_generation_jobs").update(values as any).eq("id", jobId);
   if (error) console.error("Failed to update image job:", jobId, error);
 }
 
 async function callImageGatewaySingle(prompt: string, model: string, size: string) {
-  const transparent =
-    (model === "gpt-image-2" || model.startsWith("gpt-image-2")) &&
-    wantsTransparentBackground(prompt);
+  const transparent = wantsTransparentBackground(prompt);
   const quality = model === "gpt-image-2.5-sunburst" ? "high" : "medium";
   const requestBody = JSON.stringify({
     model,
@@ -397,17 +402,17 @@ serve(async (req) => {
     const selectedModel = pickImageModel(body?.preferredModel);
     const size = aspectToSize(aspectRatio);
     const isYouTube = aspectRatio === "16:9";
-    const transparent =
-      (selectedModel === "gpt-image-2" || selectedModel.startsWith("gpt-image-2")) &&
-      wantsTransparentBackground(rawPrompt);
+    const transparent = wantsTransparentBackground(rawPrompt);
     const requestedCount = Number(body?.count);
     const count = Number.isFinite(requestedCount)
       ? Math.max(1, Math.min(3, Math.floor(requestedCount)))
       : 1;
 
-    const prompt = isYouTube && !transparent
-      ? `${rawPrompt}\n\nIMPORTANT COMPOSITION RULE: Render this as a 16:9 widescreen image. The full canvas is 1536x1024, but place ALL meaningful content within the centered 1536x864 region. Add solid pure black (#000000) letterbox bars exactly 80 pixels tall at the very top and very bottom of the image. The black bars must be uniformly solid black, edge-to-edge, with no gradients, textures, or content. Treat them as off-screen padding.`
-      : rawPrompt;
+    const prompt = transparent
+      ? addTransparentOutputInstruction(rawPrompt)
+      : isYouTube
+        ? `${rawPrompt}\n\nIMPORTANT COMPOSITION RULE: Render this as a 16:9 widescreen image. The full canvas is 1536x1024, but place ALL meaningful content within the centered 1536x864 region. Add solid pure black (#000000) letterbox bars exactly 80 pixels tall at the very top and very bottom of the image. The black bars must be uniformly solid black, edge-to-edge, with no gradients, textures, or content. Treat them as off-screen padding.`
+        : rawPrompt;
 
     if (!rawPrompt) {
       return jsonResponse({ success: false, error: "Prompt is required.", errorType: "invalid_request" });

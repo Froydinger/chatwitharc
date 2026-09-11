@@ -758,11 +758,11 @@ export function SettingsPanel() {
   );
 
   const MemoryCard = (
-    <SectionCard icon={Brain} title="Memory" subtitle="View & manage what Arc remembers">
+    <SectionCard icon={Brain} title="Living memory" subtitle="View and manage Arc's evolving summary about you">
       <Tile
         icon={Brain}
-        title="Arc's Brain"
-        description="Open the full memory manager"
+        title="Arc's living memory"
+        description="Open the single detailed memory summary"
         onClick={() => navigate('/dashboard?tab=memories')}
         right={<span className="text-xs text-primary">Open →</span>}
       />

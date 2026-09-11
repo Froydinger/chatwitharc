@@ -10,7 +10,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/": {
     title: "ArcAI • Ask, Reflect, Create",
     description:
-      "Talk to Arc, generate images, write code and prose in one place. Free multimodal AI with realtime voice.",
+      "Talk naturally with Arc through GPT-Live-1, generate images, write code and prose in one place. Free multimodal AI with living memory.",
   },
   "/pricing": {
     title: "ArcAI • Pricing",
@@ -56,7 +56,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/welcome": {
     title: "ArcAI — Free AI Assistant with Voice, Images & Memory",
     description:
-      "ArcAI is a free multimodal AI assistant with real-time voice, image generation, code and long-term memory. A free ChatGPT, Gemini and Claude alternative.",
+      "ArcAI is a free multimodal AI assistant with natural GPT-Live-1 voice conversations, image generation, code and living memory. A free ChatGPT, Gemini and Claude alternative.",
   },
   "/blog": {
     title: "ArcAI Guides & FAQs — Free AI Assistant",
@@ -66,7 +66,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/upgrade": {
     title: "ArcAI • Upgrade to Boost",
     description:
-      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited premium reasoning, higher image quotas, and unlimited voice sessions. Free accounts get tons of voice usage.",
+      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited premium reasoning, higher image quotas, and unlimited GPT-Live-1 voice sessions. Free accounts get tons of voice usage.",
   },
   "/share": {
     title: "ArcAI • Shared Conversation",
@@ -149,7 +149,7 @@ export const RouteSEO = () => {
       : {
           title: "ArcAI • Page Not Found",
           description:
-            "Talk to Arc, generate images, write code and prose in one place. Free multimodal AI with realtime voice.",
+            "Talk naturally with Arc through GPT-Live-1, generate images, write code and prose in one place. Free multimodal AI with living memory.",
         });
 
   return <SEO title={meta.title} description={meta.description} path={path} />;

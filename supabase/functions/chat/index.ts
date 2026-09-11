@@ -11,6 +11,31 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
+async function applyLivingMemoryFromChat(
+  change: string,
+  authHeader: string | null,
+  operation: 'save' | 'delete' | 'edit' = 'save',
+  replaces: string[] = [],
+): Promise<{ summary: string } | null> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  if (!supabaseUrl || !authHeader) return null;
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/memory-summary`, {
+    method: 'POST',
+    headers: {
+      Authorization: authHeader,
+      apikey: Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ action: 'apply', operation, change, replaces }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok || typeof data?.summary !== 'string') {
+    throw new Error(data?.error || `Memory summary service failed (${response.status})`);
+  }
+  return { summary: data.summary };
+}
+
 // NOTE: saveResponseToDatabase was removed - frontend now handles all persistence
 // to avoid race conditions and duplicate messages from double-saves.
 
@@ -826,15 +851,20 @@ serve(async (req) => {
     const nowUtcIso = new Date().toISOString();
     enhancedSystemPrompt += `\n\nCurrent date and time (user local): ${nowString}\nUser timezone: ${clientTimezone || 'UTC'} (getTimezoneOffset=${parsedClientOffset})\nCurrent UTC ISO (reference for when_iso math): ${nowUtcIso}`;
 
-    // Add user context (keep this minimal)
+    // Add user context (keep this minimal). The living summary is authoritative;
+    // profile.memory_info remains only as a legacy fallback for older sessions.
+    const { data: livingMemoryRow } = user
+      ? await supabase.from('memory_summaries').select('summary').eq('user_id', user.id).maybeSingle()
+      : { data: null };
+    const livingMemory = livingMemoryRow?.summary?.trim() || profile?.memory_info?.trim() || '';
     if (profile?.display_name) {
       enhancedSystemPrompt += `\n\nUser: ${profile.display_name}`;
     }
     if (profile?.context_info?.trim()) {
       enhancedSystemPrompt += ` | Context: ${profile.context_info}`;
     }
-    if (profile?.memory_info?.trim()) {
-      enhancedSystemPrompt += `\n\n📝 Memories: ${profile.memory_info}`;
+    if (livingMemory) {
+      enhancedSystemPrompt += `\n\n📝 Living memory about the user: ${livingMemory}`;
     }
     if (globalContext) {
       enhancedSystemPrompt += `\n\nGlobal: ${globalContext}`;
@@ -1993,53 +2023,20 @@ serve(async (req) => {
         } else if (toolCall.function.name === 'save_memory') {
           const args = JSON.parse(toolCall.function.arguments);
           const memoryContent = args.memory?.trim();
-          const replaces: string[] = Array.isArray(args.replaces) ? args.replaces.filter((s: any) => typeof s === 'string' && s.trim().length > 0) : [];
+          const replaces = Array.isArray(args.replaces)
+            ? args.replaces.filter((item: unknown): item is string => typeof item === 'string').slice(0, 20)
+            : [];
           
           if (memoryContent) {
             try {
-              // Delete any existing memories that match the `replaces` substrings (case-insensitive)
-              let deletedCount = 0;
-              if (replaces.length > 0) {
-                const { data: existing } = await supabase
-                  .from('context_blocks')
-                  .select('id, content')
-                  .eq('user_id', user.id);
-                const toDelete = (existing || []).filter((row: any) => {
-                  const c = (row.content || '').toLowerCase();
-                  return replaces.some(r => c.includes(r.toLowerCase()));
-                }).map((r: any) => r.id);
-                if (toDelete.length > 0) {
-                  await supabase.from('context_blocks').delete().in('id', toDelete);
-                  deletedCount = toDelete.length;
-                  console.log(`🗑️ Replaced ${deletedCount} outdated memory block(s)`);
-                }
-              }
-
-              const { error: insertError } = await supabase
-                .from('context_blocks')
-                .insert({
-                  user_id: user.id,
-                  content: memoryContent,
-                  source: 'memory'
-                });
-              
-              if (insertError) {
-                console.error('Error saving memory:', insertError);
-                conversationMessages.push({
-                  role: 'tool',
-                  tool_call_id: toolCall.id,
-                  content: 'Failed to save memory. Continue the conversation normally.'
-                });
-              } else {
-                console.log('💾 Memory saved:', memoryContent);
-                memorySaved = { content: memoryContent };
-                const replaceNote = deletedCount > 0 ? ` (replaced ${deletedCount} outdated entry/entries)` : '';
-                conversationMessages.push({
-                  role: 'tool',
-                  tool_call_id: toolCall.id,
-                  content: `Memory saved successfully${replaceNote}: "${memoryContent}". Briefly acknowledge you'll remember this, then continue the conversation naturally.`
-                });
-              }
+              await applyLivingMemoryFromChat(memoryContent, authHeader, 'save', replaces);
+              console.log('💾 Living memory updated:', memoryContent);
+              memorySaved = { content: memoryContent };
+              conversationMessages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: `Living memory updated with: "${memoryContent}". Briefly acknowledge the update, then continue naturally.`
+              });
             } catch (err) {
               console.error('Error in save_memory:', err);
               conversationMessages.push({

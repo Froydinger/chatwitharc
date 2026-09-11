@@ -183,18 +183,17 @@ Never minimize, never lecture, never suggest 911 unless there is an immediate ph
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const [profileRes, blocksRes] = await Promise.all([
+        const [profileRes, summaryRes] = await Promise.all([
           supabase
             .from('profiles')
             .select('display_name, context_info, memory_info')
             .eq('user_id', user.id)
             .maybeSingle(),
           supabase
-            .from('context_blocks')
-            .select('content')
+            .from('memory_summaries')
+            .select('summary')
             .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(isLite ? 8 : 20), // Lite: fewer blocks fetched too
+            .maybeSingle(),
         ]);
 
         const eff = { ...(profile || {}), ...(profileRes.data || {}) };
@@ -206,19 +205,14 @@ Never minimize, never lecture, never suggest 911 unless there is an immediate ph
           parts.push(`# About the user (these facts describe the USER, not you)\n${userBits.join('\n')}`);
         }
 
-        if (eff.memory_info && eff.memory_info.trim()) {
+        const livingMemory = summaryRes.data?.summary?.trim() || eff.memory_info?.trim() || '';
+        if (livingMemory) {
           pushMaybeTruncated(
             `# 📝 Memories about the user (NOT your beliefs)\nThese are facts, beliefs, and preferences belonging to the user. Reference them only when relevant — never claim them as your own.\n`,
-            eff.memory_info,
+            livingMemory,
             LITE_BUDGET.memoryInfo
           );
         }
-
-        const blockText = (blocksRes.data || [])
-          .map((b: any) => (b.content || '').trim())
-          .filter(Boolean)
-          .join('\n');
-        pushMaybeTruncated(`# Additional context blocks about the user`, blockText, LITE_BUDGET.contextBlocks);
       }
     } catch (e) {
       console.warn('[Arc Local] Failed to load user memory/context:', e);

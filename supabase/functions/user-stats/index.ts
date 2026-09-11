@@ -46,7 +46,7 @@ serve(async (req) => {
       supabase.from("chat_sessions").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", weekAgo),
       supabase.from("chat_sessions").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", monthAgo),
       supabase.from("chat_sessions").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", yearAgo),
-      supabase.from("context_blocks").select("id", { count: "exact", head: true }).eq("user_id", userId),
+      supabase.from("memory_summaries").select("user_id", { count: "exact", head: true }).eq("user_id", userId),
       // Count images from chat session messages JSONB
       serviceClient.rpc("count_user_images", { target_user_id: userId }),
     ]);

@@ -162,6 +162,12 @@ export interface SendMessageResult {
   modelUsed?: string;
 }
 
+export interface ImageTaskResult {
+  imageUrls: string[];
+  modelUsed: string;
+  fallbackModel?: string | null;
+}
+
 export class AIService {
   private maxRetries = 2;
   private defaultTimeoutMs = 120000; // 120 second timeout for regular requests
@@ -225,34 +231,28 @@ export class AIService {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          // Fetch profile and context blocks in parallel
-          const [profileResult, contextBlocksResult] = await Promise.all([
+          // Fetch the profile and canonical living memory in parallel. Legacy
+          // context blocks remain as migration backups and are not re-injected
+          // into every request.
+          const [profileResult, memorySummaryResult] = await Promise.all([
             supabase
               .from('profiles')
               .select('display_name, context_info, memory_info, preferred_model')
               .eq('user_id', user.id)
               .maybeSingle(),
             supabase
-              .from('context_blocks')
-              .select('content, source')
+              .from('memory_summaries')
+              .select('summary')
               .eq('user_id', user.id)
-              .order('created_at', { ascending: false })
-              .limit(50)
+              .maybeSingle()
           ]);
 
           if (profileResult.data) {
             effectiveProfile = { ...effectiveProfile, ...profileResult.data };
           }
 
-          // Merge context blocks into context_info for the AI
-          if (contextBlocksResult.data && contextBlocksResult.data.length > 0) {
-            const blocksText = contextBlocksResult.data
-              .map((b: any) => b.content)
-              .join('\n');
-            const existing = (effectiveProfile as any).context_info || '';
-            (effectiveProfile as any).context_info = existing
-              ? `${existing}\n\n--- Remembered Context ---\n${blocksText}`
-              : blocksText;
+          if (memorySummaryResult.data?.summary?.trim()) {
+            (effectiveProfile as any).memory_info = memorySummaryResult.data.summary;
           }
         }
       } catch (e) {
@@ -598,24 +598,19 @@ export class AIService {
             : getModelForTask('chat', complexity);
     const reasoningEffort = resolveReasoningEffort(useModelStore.getState().reasoningEffort, complexity);
 
-    // Enrich profile with context blocks (same as sendMessage)
+    // Enrich profile with the canonical living memory (same as sendMessage).
     let enrichedProfile = profile || {};
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: contextBlocksData } = await supabase
-          .from('context_blocks')
-          .select('content')
+        const { data: memorySummaryData } = await supabase
+          .from('memory_summaries')
+          .select('summary')
           .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(50);
+          .maybeSingle();
 
-        if (contextBlocksData && contextBlocksData.length > 0) {
-          const blocksText = contextBlocksData.map((b: any) => b.content).join('\n');
-          const existing = (enrichedProfile as any).context_info || '';
-          (enrichedProfile as any).context_info = existing
-            ? `${existing}\n\n--- Remembered Context ---\n${blocksText}`
-            : blocksText;
+        if (memorySummaryData?.summary?.trim()) {
+          (enrichedProfile as any).memory_info = memorySummaryData.summary;
         }
       }
     } catch (e) {
@@ -849,7 +844,7 @@ export class AIService {
     }
   }
 
-  async generateImage(prompt: string, preferredModel?: string, aspectRatio?: string, count: number = 1): Promise<string[]> {
+  async generateImage(prompt: string, preferredModel?: string, aspectRatio?: string, count: number = 1): Promise<ImageTaskResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Image generation service is not available. Please configure Supabase.');
     }
@@ -883,7 +878,11 @@ export class AIService {
           } catch {}
         }
         window.dispatchEvent(new Event('arc-image-quota-changed'));
-        return result.imageUrls;
+        return {
+          imageUrls: result.imageUrls,
+          modelUsed: result.modelUsed || result.fallbackModel || modelToUse,
+          fallbackModel: result.fallbackModel,
+        };
       }
 
       // Legacy synchronous path (still supported)
@@ -896,14 +895,18 @@ export class AIService {
       }
 
       window.dispatchEvent(new Event('arc-image-quota-changed'));
-      return urls;
+      return {
+        imageUrls: urls,
+        modelUsed: data?.preferredModel || data?.modelUsed || modelToUse,
+        fallbackModel: data?.fallbackModel ?? null,
+      };
     } catch (error) {
       console.error('Image generation error:', error);
       throw error;
     }
   }
 
-  async editImage(prompt: string, baseImageUrls: string | string[], imageModel?: string, aspectRatio?: string, count: number = 1): Promise<string[]> {
+  async editImage(prompt: string, baseImageUrls: string | string[], imageModel?: string, aspectRatio?: string, count: number = 1): Promise<ImageTaskResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Image editing service is not available. Please configure Supabase.');
     }
@@ -938,7 +941,11 @@ export class AIService {
           } catch {}
         }
         window.dispatchEvent(new Event('arc-image-quota-changed'));
-        return result.imageUrls;
+        return {
+          imageUrls: result.imageUrls,
+          modelUsed: result.modelUsed || result.fallbackModel || modelToUse,
+          fallbackModel: result.fallbackModel,
+        };
       }
 
       // Legacy synchronous path (still supported)
@@ -947,7 +954,11 @@ export class AIService {
         : (data?.imageUrl ? [data.imageUrl] : []);
       if (!data?.success || urls.length === 0) throw new Error('Failed to edit image');
       window.dispatchEvent(new Event('arc-image-quota-changed'));
-      return urls;
+      return {
+        imageUrls: urls,
+        modelUsed: data?.preferredModel || data?.modelUsed || modelToUse,
+        fallbackModel: data?.fallbackModel ?? null,
+      };
     } catch (error) {
       console.error('Image editing error:', error);
       throw error;

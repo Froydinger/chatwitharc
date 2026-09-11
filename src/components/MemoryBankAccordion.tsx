@@ -88,8 +88,8 @@ export function MemoryBankAccordion({
       {/* Header section with proper spacing */}
       <div className="space-y-2 sm:space-y-3">
         <div>
-          <h3 className="text-base sm:text-lg font-semibold text-foreground">Memory Bank</h3>
-          <p className="text-xs sm:text-sm text-muted-foreground">Information Arc remembers from conversations</p>
+          <h3 className="text-base sm:text-lg font-semibold text-foreground">Living memory</h3>
+          <p className="text-xs sm:text-sm text-muted-foreground">The evolving summary Arc carries forward</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <GlassButton

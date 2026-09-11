@@ -189,7 +189,8 @@ export function SharedChatRoomPage() {
     setAiThinking(true);
     try {
       const ai = new AIService();
-      const urls = await ai.generateImage(prompt);
+      const result = await ai.generateImage(prompt);
+      const urls = result.imageUrls;
       const imageUrl = urls[0];
       if (!imageUrl) throw new Error("No image was generated");
       await supabase.from("shared_chat_messages").insert({

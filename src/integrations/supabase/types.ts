@@ -561,6 +561,36 @@ export type Database = {
         }
         Relationships: []
       }
+      memory_summaries: {
+        Row: {
+          created_at: string
+          legacy_item_count: number
+          migrated_from_legacy: boolean
+          revision: number
+          summary: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          legacy_item_count?: number
+          migrated_from_legacy?: boolean
+          revision?: number
+          summary?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          legacy_item_count?: number
+          migrated_from_legacy?: boolean
+          revision?: number
+          summary?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           accent_color: string | null

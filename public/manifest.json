@@ -1,7 +1,7 @@
 {
   "name": "ArcAI - Ask, Reflect, Create",
   "short_name": "ArcAI",
-  "description": "Ask, Reflect, Create with advanced AI conversations and realtime voice capabilities",
+  "description": "Ask, Reflect, Create with advanced AI conversations and natural GPT-Live-1 voice capabilities",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

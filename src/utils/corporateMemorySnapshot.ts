@@ -15,30 +15,27 @@ export async function fetchCorporateMemorySnapshot(): Promise<CorporateMemorySna
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    const [profileRes, blocksRes] = await Promise.all([
+    const [profileRes, summaryRes] = await Promise.all([
       supabase
         .from('profiles')
         .select('display_name, context_info, memory_info')
         .eq('user_id', user.id)
         .maybeSingle(),
       supabase
-        .from('context_blocks')
-        .select('content')
+        .from('memory_summaries')
+        .select('summary')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50),
+        .maybeSingle(),
     ]);
 
     const profile = (profileRes.data || {}) as { display_name?: string | null; context_info?: string | null; memory_info?: string | null };
-    const blocks = (blocksRes.data || [])
-      .map((b: any) => (b.content || '').trim())
-      .filter(Boolean);
+    const livingMemory = summaryRes.data?.summary?.trim() || profile.memory_info?.trim() || '';
 
     return {
       display_name: profile.display_name ?? null,
       context_info: profile.context_info ?? null,
-      memory_info: profile.memory_info ?? null,
-      context_blocks: blocks,
+      memory_info: livingMemory || null,
+      context_blocks: [],
       cached_at: new Date().toISOString(),
     };
   } catch (err) {

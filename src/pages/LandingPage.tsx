@@ -20,15 +20,15 @@ const SITE = "https://askarc.chat";
 const LANDING_FAQ = [
   {
     q: "What is ArcAI?",
-    a: "ArcAI is a multimodal AI assistant founded and created by Win The Night™ Foundation, built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, voice mode, image generation, a code canvas, full React App Builder, and long-term memory, all in your browser.",
+    a: "ArcAI is a multimodal AI assistant founded and created by Win The Night™ Foundation, built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, natural GPT-Live-1 voice conversations, image generation, a code canvas, full React App Builder, and living memory, all in your browser.",
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning (unlimited Quick, 10 Balanced, and 3 Deep daily), canvases, long-term memory, image generation, weekly research, and tons of free voice usage. Upgrade to Boost for unlimited research, unlimited reasoning, App Builder, higher image quotas, and unlimited voice sessions.",
+    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning, canvases, a living memory summary, image generation, weekly research, and tons of GPT-Live-1 voice usage. Upgrade to Boost for unlimited research, unlimited reasoning, App Builder, higher image quotas, and unlimited voice sessions.",
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds unlimited Luna reasoning, unlimited Deep Search and Ultra Deep Search, GPT-Image-2.5 Pro and Quick (20/day), full image editing, unlimited real-time voice, and the full App Builder with live web-app publishing.",
+    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds unlimited Luna reasoning, unlimited Deep Search and Ultra Deep Search, GPT Image 2.5 Pro and Quick (20/day), full image editing, unlimited GPT-Live-1 voice, and the full App Builder with live web-app publishing.",
   },
   {
     q: "What is the App Builder in ArcAI?",
@@ -36,7 +36,7 @@ const LANDING_FAQ = [
   },
   {
     q: "How does Arc's memory work?",
-    a: "Arc features a persistent Memory Bank (long-term memory) that remembers key details, preferences, projects, and facts across conversations. Arc automatically recalls relevant context before answering so your assistant grows smarter over time. You have full control in Settings to view, edit, add, or wipe memories in one click.",
+    a: "Arc keeps one detailed living memory summary that remembers important details, preferences, projects, and facts across conversations. Arc updates it when you tell it to remember, recalls it when relevant, and lets you edit, export, or clear it in one screen.",
   },
   {
     q: "Is ArcAI a free ChatGPT alternative?",
@@ -48,7 +48,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "GPT-5.6 Luna powers chat, code, document analysis, reasoning, and the App Builder. GPT-Image-2 handles images, OpenAI Realtime handles voice, and a dedicated search provider handles live web research.",
+    a: "GPT-5.6 Luna powers chat, code, document analysis, reasoning, and the App Builder. GPT Image 2.5 Flare and Sunburst power images, GPT-Live-1 powers natural voice conversations, and a dedicated search provider handles live web research.",
   },
   {
     q: "Is ArcAI private?",
@@ -64,7 +64,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Does ArcAI have voice mode?",
-    a: "Yes. Voice mode is available, providing low-latency spoken conversations with multiple natural voices. Free accounts get tons of voice usage, while Boost includes unlimited voice sessions.",
+    a: "Yes. Voice mode provides low-latency, interruptible conversations with Arc through GPT-Live-1 and multiple natural voices. Free accounts get tons of voice usage, while Boost includes unlimited voice sessions.",
   },
   {
     q: "Can ArcAI write code and build apps?",
@@ -208,7 +208,7 @@ export function LandingPage() {
           {[
             { category: "Ask", icon: MessageSquare, title: "GPT-5.6 Luna Inside", body: "Choose Auto, Quick, Balanced, or Deep reasoning while Luna powers every chat, writing, code, and analysis task. Auto starts fast and steps up when needed." },
             { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
-            { category: "Reflect", icon: Brain, title: "Deep Cross-Session Memory", body: "Arc is built to reflect and remember. It automatically builds a persistent Memory Bank of your preferences, goals, and facts across sessions, recalling context so it genuinely knows who you are." },
+            { category: "Reflect", icon: Brain, title: "Living Cross-Session Memory", body: "Arc keeps one detailed, evolving summary of the preferences, goals, facts, and boundaries you want it to remember, then recalls it when relevant." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },
             { category: "Create", icon: Code2, title: "Code Canvas", body: "Turn thoughts into running web apps instantly, with a visual canvas to preview, build, and publish your creations." },
             { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create custom images and art with state-of-the-art vision models, bringing visual ideas to life in seconds." },
@@ -252,13 +252,13 @@ export function LandingPage() {
               Free is powerful. <span className="text-white/70">Boost is optional.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              Arc is built to be a safe, helpful hub for everyone. The free plan has no catch, you get memory, real-time voice, search, and coding out of the box. Upgrade to Boost for $10/month only if you want to publish creations to public custom links or need higher quotas.
+              Arc is built to be a safe, helpful hub for everyone. The free plan includes a living memory summary, GPT-Live-1 voice, search, and coding out of the box. Upgrade to Boost for $10/month if you want higher quotas, unlimited voice, or public app publishing.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
                 { icon: ImageIcon, title: "10 free images a day", body: "Generate and edit up to 10 images daily for free, or 20 with Boost." },
-                { icon: Mic, title: "Real-time voice & audio", body: "Speak naturally with instant spoken audio. Free accounts get tons of voice usage, and Boost removes the session cap." },
+                { icon: Mic, title: "GPT-Live-1 voice conversations", body: "Speak naturally with low-latency, interruptible audio. Free accounts get tons of usage, and Boost includes unlimited live voice sessions." },
                 { icon: Search, title: "Deep research, powered by Perplexity", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. 4 Deep and 1 Ultra a week free, unlimited on Boost." },
                 { icon: Code2, title: "Publish code online", body: "Share your canvases and running web creations with custom Arc links on Boost." },
               ].map((b) => (

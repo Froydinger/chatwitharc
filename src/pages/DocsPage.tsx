@@ -267,18 +267,18 @@ export function DocsPage() {
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            Arc features a persistent <strong>Memory Bank (long-term memory)</strong> that allows the bot to retain key facts, personal preferences, project context, and custom instructions across all your sessions.
+            Arc keeps one persistent <strong>living memory summary</strong> that retains useful facts, personal preferences, project context, boundaries, and communication preferences across your sessions.
           </p>
           <p>How Arc's memory operates:</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Automatic Learning</strong>: When you share key details (e.g. your tech stack, writing tone, timezone, or project goals), Arc automatically detects and saves them to your memory context blocks.</li>
-            <li><strong className="text-foreground">Direct Instructions</strong>: You can explicitly tell Arc to remember anything by saying <em>"Remember that I prefer TypeScript"</em> or <em>"Remember my brand color palette"</em>.</li>
-            <li><strong className="text-foreground">Context Injection</strong>: Before answering your prompts, Arc reads your active memory blocks so its reasoning is continuously tailored to you.</li>
-            <li><strong className="text-foreground">Full User Control</strong>: You can inspect, edit, add, or delete memories anytime in <a href="/dashboard/settings?section=ai" className="text-primary hover:underline font-semibold">Settings &gt; Memory</a> or on the <a href="/dashboard?tab=memory" className="text-primary hover:underline font-semibold">Dashboard Memory Tab</a>. You can also export or wipe all memories in one click.</li>
+            <li><strong className="text-foreground">Natural updates</strong>: When you share meaningful details, Arc merges them into the living summary instead of creating a separate slot for every fact.</li>
+            <li><strong className="text-foreground">Direct instructions</strong>: Tell Arc to remember something by saying <em>"Remember that I prefer TypeScript"</em> or <em>"Remember my brand color palette"</em>.</li>
+            <li><strong className="text-foreground">Relevant recall</strong>: Arc reads the summary when it is useful and can search past chats for older, specific context instead of loading everything into every reply.</li>
+            <li><strong className="text-foreground">Full user control</strong>: Inspect, edit, add to, export, or clear the summary anytime in <a href="/dashboard/settings?section=ai" className="text-primary hover:underline font-semibold">Settings &gt; Memory</a> or on the <a href="/dashboard?tab=memories" className="text-primary hover:underline font-semibold">Dashboard Memory tab</a>.</li>
           </ul>
         </div>
       ),
-      keywords: ["memory", "bot memory", "memories", "remember", "saved facts", "custom instructions", "memory bank", "profile memory", "context blocks", "long-term memory"]
+      keywords: ["memory", "bot memory", "memories", "remember", "saved facts", "custom instructions", "living memory", "profile memory", "long-term memory"]
     },
     {
       id: "custom-instructions",
@@ -327,13 +327,13 @@ export function DocsPage() {
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            Voice Mode lets you converse with Arc naturally using OpenAI Realtime.
+            Voice Mode gives you natural, low-latency conversations with Arc using GPT-Live-1 through OpenAI Realtime.
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li>Click the <strong>microphone</strong> or <strong>headphone</strong> icon next to the chat input to start the connection.</li>
             <li>Grant microphone permissions in your browser when prompted.</li>
             <li>Choose your preferred voice character inside <a href="/settings?tab=voice" className="text-primary hover:underline font-semibold">Settings &gt; Voice Settings</a>.</li>
-            <li>Speak naturally—Arc will listen and reply in real-time. Click the red mute or hangup buttons to terminate the session.</li>
+            <li>Speak naturally and interrupt when you need to. Arc listens and replies in real time. Use the local controls to mute or end the session.</li>
           </ul>
         </div>
       ),

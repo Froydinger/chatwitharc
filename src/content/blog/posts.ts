@@ -52,7 +52,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How does the bot's memory work in ArcAI?",
-        a: "Arc features a persistent Memory Bank (long-term memory) that automatically records user preferences, ongoing projects, and key facts across conversations. You have complete control to inspect, edit, or delete any memory in Settings.",
+        a: "Arc keeps one persistent living memory summary that preserves user preferences, ongoing projects, and key facts across conversations. You can inspect, edit, export, or clear the summary in Settings.",
       },
       {
         q: "Do I need an account to use ArcAI?",
@@ -64,7 +64,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which AI models does ArcAI use?",
-        a: "GPT-5.6 Luna powers ArcAI chat, code, writing, document analysis, reasoning, and the App Builder. GPT-Image-2 powers images, OpenAI Realtime handles voice, and Perplexity powers Deep Search and Ultra Deep Search research.",
+        a: "GPT-5.6 Luna powers ArcAI chat, code, writing, document analysis, reasoning, and the App Builder. GPT Image 2.5 Flare and Sunburst power images, GPT-Live-1 powers natural voice conversations through OpenAI Realtime, and Perplexity powers Deep Search and Ultra Deep Search research.",
       },
     ],
     cta: "Try ArcAI now",
@@ -85,11 +85,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Does ArcAI offer an App Builder and persistent memory?",
-        a: "Yes. ArcAI features both a transparent, fully editable Memory Bank and an in-browser App Builder IDE for full-stack React apps with built-in database and hosting — going far beyond standard chat snippets or custom GPTs.",
+        a: "Yes. ArcAI features one transparent, fully editable living memory summary and an in-browser App Builder IDE for full-stack React apps with built-in database and hosting.",
       },
       {
         q: "How does ArcAI's memory compare to ChatGPT memory?",
-        a: "ArcAI gives you complete transparency and granular control over the bot's memory. Memories are organized into searchable context blocks that you can inspect, edit, delete, or export in one click, and they are automatically recalled across all chats and devices.",
+        a: "ArcAI gives you complete transparency and control over the bot's memory. Memories live in one detailed summary that you can inspect, edit, export, or clear, while Arc can search past chats for older specific context.",
       },
       {
         q: "Is ArcAI as good as ChatGPT Plus?",
@@ -126,7 +126,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How does the bot's memory work in ArcAI compared to Gemini?",
-        a: "Arc stores clear, user-accessible memory blocks. You can view every memory on your dashboard, edit it, add instructions, or wipe your memory completely at any time.",
+        a: "Arc stores one clear, user-accessible living memory summary. You can view it on your dashboard, edit it, add instructions, export it, or wipe it completely at any time.",
       },
       {
         q: "Does ArcAI use Gemini?",
@@ -192,7 +192,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Does ArcAI remember past conversations?",
-        a: "Yes. Signed-in users get a persistent Memory Bank that Arc reads before every response, so it truly remembers what you told it — something Claude's free tier doesn't offer.",
+        a: "Yes. Signed-in users get a persistent living memory summary that Arc recalls when relevant, so it remembers what you told it without repeating the whole memory payload in every reply.",
       },
     ],
     cta: "Try the Claude alternative",
@@ -217,7 +217,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which AI has voice mode?",
-        a: "ArcAI has real-time voice conversations powered by the OpenAI Realtime API. Free accounts get tons of voice usage, while Boost includes unlimited voice sessions.",
+        a: "ArcAI has natural, interruptible voice conversations powered by GPT-Live-1 through OpenAI Realtime. Free accounts get tons of voice usage, while Boost includes unlimited voice sessions.",
       },
       {
         q: "Which free AI generates images?",
@@ -230,19 +230,19 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     slug: "free-ai-with-voice",
     title: "An AI with advanced real-time voice mode",
     description:
-      "Want to talk to an AI? ArcAI has real-time voice conversations built in, powered by OpenAI Realtime and connected to your long-term memory.",
+      "Want to talk to an AI? ArcAI has natural, interruptible voice conversations built in, powered by GPT-Live-1 through OpenAI Realtime and connected to your living memory.",
     keywords: ["free AI voice", "voice AI free", "talk to AI free", "voice AI with memory"],
     updated: UPDATED,
     intro:
-      "Most AI assistants charge for voice. ArcAI gives free accounts tons of real-time voice usage through the OpenAI Realtime API, while Boost includes unlimited voice sessions.",
+      "Most AI assistants charge for voice. ArcAI gives free accounts tons of natural GPT-Live-1 voice usage through OpenAI Realtime, while Boost includes unlimited voice sessions.",
     faq: [
       {
         q: "Which AI has voice conversations?",
-        a: "ArcAI. It uses the OpenAI Realtime API to deliver low-latency spoken conversations with multiple natural voice options. Free accounts get tons of voice usage, while Boost includes unlimited sessions.",
+        a: "ArcAI. It uses GPT-Live-1 through OpenAI Realtime to deliver low-latency spoken conversations with multiple natural voice options. Free accounts get tons of voice usage, while Boost includes unlimited sessions.",
       },
       {
         q: "Does voice mode connect to the bot's memory?",
-        a: "Yes. Arc's real-time voice mode shares the exact same long-term Memory Bank as text chat, so spoken conversations recall your past projects, tone, and preferences seamlessly.",
+        a: "Yes. Arc's GPT-Live-1 voice mode shares the same living memory summary as text chat, so spoken conversations can recall your past projects, tone, and preferences seamlessly.",
       },
       {
         q: "Can I interrupt the AI while it's talking?",
@@ -288,23 +288,23 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["AI with memory", "AI that remembers", "personal AI assistant", "bot memory"],
     updated: UPDATED,
     intro:
-      "Most chatbots forget you the moment you close the tab. ArcAI has a persistent Memory Bank that stores what you tell it and reads it before every reply.",
+      "Most chatbots forget you the moment you close the tab. ArcAI has a persistent living memory summary that stores what you tell it and recalls it when relevant.",
     faq: [
       {
         q: "Which AI assistant remembers conversations?",
-        a: "ArcAI's Memory Bank stores up to 50 personal memory blocks (preferences, facts, ongoing projects) and injects them into every future conversation so Arc genuinely remembers you.",
+        a: "ArcAI keeps one detailed living memory summary for your preferences, facts, ongoing projects, and boundaries. It updates when you ask Arc to remember and is recalled when relevant.",
       },
       {
         q: "How does the bot's memory work under the hood?",
-        a: "ArcAI continuously analyzes conversational context to detect meaningful facts, project details, and user preferences, storing them into structured memory blocks. Before generating a reply, Arc automatically retrieves relevant blocks so you never have to repeat yourself.",
+        a: "ArcAI analyzes meaningful facts, project details, and preferences and merges them into one readable summary. Arc uses it when relevant and can search older chats instead of loading every detail all the time.",
       },
       {
         q: "Can I build apps using Arc's memory?",
-        a: "Yes. The App Builder and chat both draw upon your Memory Bank, allowing Arc to remember your favorite UI frameworks, styling rules, and architectural patterns when building apps.",
+        a: "Yes. The App Builder and chat can draw upon your living memory summary, allowing Arc to remember your favorite UI frameworks, styling rules, and architectural patterns when building apps.",
       },
       {
         q: "Can I control what the AI remembers?",
-        a: "Yes. Open Arc's Brain in settings to view, edit, add, or delete any memory. Full export and import as JSON is supported.",
+        a: "Yes. Open Arc's living memory in Settings or the Dashboard to view, edit, add to, export, import, or clear the summary. Existing saved memories were carried forward into the new format.",
       },
     ],
     cta: "Try AI with real memory",
@@ -328,8 +328,8 @@ const RAW_BLOG_POSTS: BlogPost[] = [
         a: "The App Builder is Ask Arc's in-browser development environment. It lets you create, preview in real time, and publish full interactive React applications to custom askarc.chat URLs.",
       },
       {
-        q: "What is Arc's Memory Bank?",
-        a: "Arc's Memory Bank is the bot's long-term memory. It saves your key preferences and facts across sessions, and can be viewed or edited anytime in Settings.",
+        q: "What is Arc's living memory?",
+        a: "Arc's living memory is one detailed summary of the key preferences and facts you want carried across sessions. It can be viewed or edited anytime in Settings.",
       },
       {
         q: "How do I start using Ask Arc?",
@@ -366,7 +366,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Does ArcAI have GPTs like ChatGPT?",
-        a: "No — ArcAI is one assistant rather than a library of separate bots. Instead of building a custom GPT, you save what matters to the Memory Bank and Arc carries that context into every conversation, and you set how hard it thinks per chat with Quick, Balanced or Deep.",
+        a: "No. ArcAI is one assistant rather than a library of separate bots. You tell Arc what matters, it carries that living summary forward, and you set how hard it thinks per chat with Quick, Balanced or Deep.",
       },
       {
         q: "Can I move from ChatGPT to ArcAI?",
@@ -391,7 +391,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Does Gemini have an App Builder or persistent memory like ArcAI?",
-        a: "Gemini focuses on Google Workspace integration, whereas ArcAI provides a dedicated in-browser App Builder IDE for publishing live web apps and a cross-session Memory Bank that keeps your personal context intact.",
+        a: "Gemini focuses on Google Workspace integration, whereas ArcAI provides a dedicated in-browser App Builder IDE for publishing live web apps and living memory that keeps your personal context intact.",
       },
       {
         q: "Does ArcAI work without Google?",
@@ -420,7 +420,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Does ArcAI remember my coding preferences and tech stack?",
-        a: "Yes. Through the bot's Memory Bank, Arc automatically remembers your preferred libraries, styling frameworks, and project requirements across chats.",
+        a: "Yes. Through Arc's living memory summary, Arc can remember your preferred libraries, styling frameworks, and project requirements across chats.",
       },
     ],
     cta: "Try the code canvas & App Builder",
@@ -441,7 +441,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Does the writing canvas use the bot's memory?",
-        a: "Yes. Arc's Memory Bank ensures the writing canvas matches your preferred voice, vocabulary, brand guidelines, and formatting style across every document.",
+        a: "Yes. Arc's living memory summary helps the writing canvas match your preferred voice, vocabulary, brand guidelines, and formatting style across every document.",
       },
     ],
     cta: "Try free AI writing",
@@ -466,7 +466,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How do I use voice mode?",
-        a: "Tap the microphone icon in the sidebar or dashboard. Voice mode uses OpenAI Realtime — free accounts get tons of voice usage, and Boost includes unlimited sessions.",
+        a: "Tap the microphone icon in the sidebar or dashboard. Voice mode uses GPT-Live-1 through OpenAI Realtime, with natural interruptions. Free accounts get tons of voice usage, and Boost includes unlimited sessions.",
       },
       {
         q: "How do I generate an image?",
@@ -474,7 +474,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How do I save what I want Arc to remember?",
-        a: "Tell Arc directly ('remember that I prefer terse replies') or open Arc's Brain in settings to add memories manually. Arc will automatically recall these memories in future conversations.",
+        a: "Tell Arc directly ('remember that I prefer terse replies') or open Arc's living memory in Settings to add to the summary manually. Arc recalls it when relevant in future conversations.",
       },
     ],
     cta: "Start using ArcAI free",
@@ -490,7 +490,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   },
   "free-chatgpt-alternative": {
     angle: "The reason people search for an alternative to ChatGPT is not because they hate ChatGPT — it is because the features they actually want (persistent memory, full web app building, uncapped voice, cited search) are often split across paid plans, usage caps, or separate apps.",
-    useCases: ["unlimited everyday chat", "in-browser App Builder", "real-time voice", "persistent bot memory", "web search", "document analysis"],
+    useCases: ["unlimited everyday chat", "in-browser App Builder", "natural GPT-Live-1 voice", "living memory", "web search", "document analysis"],
     freeAccess: "ArcAI provides a robust free tier with unlimited chats, search citations, canvases, and memory, plus an optional Boost upgrade for $10/month to unlock advanced reasoning, the App Builder, and custom web publishing.",
     proof: "ArcAI is strongest when you want ChatGPT-style answers plus the builder tools and transparent memory that people usually associate with premium AI setups.",
   },
@@ -521,7 +521,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-ai-with-voice": {
     angle: "Voice changes the way people use AI: it turns the assistant into a thinking partner while walking, driving, cooking, planning, or working through an idea out loud.",
     useCases: ["hands-free brainstorming", "voice notes with memory", "planning your day", "talking through code", "capturing ideas", "voice-first coaching"],
-    freeAccess: "Voice mode includes tons of usage on Free and unlimited sessions on Boost, sharing the exact same memory bank as chat.",
+    freeAccess: "Voice mode includes tons of usage on Free and unlimited sessions on Boost, sharing the same living memory summary as chat.",
     proof: "Because voice shares context with the rest of ArcAI, spoken conversations connect directly back to memory, chat, research, and creative work.",
   },
   "free-ai-image-generator": {

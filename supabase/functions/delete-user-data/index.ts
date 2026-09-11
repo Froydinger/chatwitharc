@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
         { table: 'saved_links' },
         { table: 'generated_files' },
         { table: 'context_blocks' },
+        { table: 'memory_summaries' },
         { table: 'ide_projects' },
         { table: 'image_generation_jobs' },
         { table: 'published_sites' },

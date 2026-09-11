@@ -1306,10 +1306,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         role: "assistant",
         type: "image-generating",
         imagePrompt: editInstruction,
+        modelUsed: imageModel || imageEditModel,
       });
 
       const effectiveCount = Math.max(1, Math.min(3, Math.floor(Number(countOverride ?? imageGenCount) || 1)));
-      const finalUrls = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio, effectiveCount);
+      const editResult = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio, effectiveCount);
+      const finalUrls = editResult.imageUrls;
 
       const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
       await replaceLastMessage({
@@ -1319,6 +1321,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         imageUrl: finalUrls[0],
         imageUrls: finalUrls,
         sourceModel: fallbackModel ? "cloud-image-edit-fallback" : "cloud-image-edit",
+        modelUsed: editResult.modelUsed,
       });
     } catch (err: any) {
       const errMsg = err?.message || "Image editing failed. Please try again.";
@@ -1805,11 +1808,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             type: "image-generating",
             imagePrompt: finalMessage,
             sourceModel: "cloud-image-edit",
+            modelUsed: imageEditModel,
           });
           setGeneratingImage(true);
 
           try {
-            const finalUrls = await ai.editImage(finalMessage, imageUrls, imageEditModel, imageEditAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
+            const editResult = await ai.editImage(finalMessage, imageUrls, imageEditModel, imageEditAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
+            const finalUrls = editResult.imageUrls;
             const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
             await replaceLastMessage({
               content: finalUrls.length > 1 ? `Edited ${finalUrls.length} images: ${finalMessage}` : `Edited image: ${finalMessage}`,
@@ -1818,6 +1823,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               imageUrl: finalUrls[0],
               imageUrls: finalUrls,
               sourceModel: fallbackModel ? "cloud-image-edit-fallback" : "cloud-image-edit",
+              modelUsed: editResult.modelUsed,
             });
           } catch (err: any) {
             const errMsg = err?.message || "Image editing failed. Please try again.";
@@ -1923,13 +1929,15 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           type: "image-generating",
           imagePrompt,
           sourceModel: "cloud-image",
+          modelUsed: imageGenModel,
         });
         setGeneratingImage(true);
 
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
           const requestedCount = Math.max(1, Math.min(3, imageGenCount || 1));
-          const genUrls = await ai.generateImage(apiPrompt, imageGenModel, imageGenAspect, requestedCount);
+          const generationResult = await ai.generateImage(apiPrompt, imageGenModel, imageGenAspect, requestedCount);
+          const genUrls = generationResult.imageUrls;
 
           // Replace placeholder with a single message containing all generated images
           // (renders as an inline grid via MessageBubble's imageUrls path)
@@ -1942,6 +1950,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             imageUrl: genUrls[0],
             imageUrls: genUrls,
             sourceModel: "cloud-image",
+            modelUsed: generationResult.modelUsed,
           });
         } catch (err: any) {
           const errMsg = err?.message || "Image generation failed. Please try again.";
@@ -1996,11 +2005,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             type: "image-generating",
             imagePrompt: finalMessage,
             sourceModel: "cloud-image-edit",
+            modelUsed: imageEditModel,
           });
           setGeneratingImage(true);
 
           try {
-            const finalUrls = await ai.editImage(finalMessage, sourceImageUrls, imageEditModel, imageEditAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
+            const editResult = await ai.editImage(finalMessage, sourceImageUrls, imageEditModel, imageEditAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
+            const finalUrls = editResult.imageUrls;
             const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
             await replaceLastMessage({
               content: finalUrls.length > 1 ? `Edited ${finalUrls.length} images: ${finalMessage}` : `Edited image: ${finalMessage}`,
@@ -2009,6 +2020,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               imageUrl: finalUrls[0],
               imageUrls: finalUrls,
               sourceModel: fallbackModel ? "cloud-image-edit-fallback" : "cloud-image-edit",
+              modelUsed: editResult.modelUsed,
             });
           } catch (err: any) {
             const errMsg = err?.message || "Image editing failed. Please try again.";
@@ -3493,7 +3505,7 @@ ${safeCode}
                   if (!hasBoost && !isAdmin && !canStartVoiceConversation) {
                     toast({
                       title: "Daily voice limit reached",
-                      description: "Free accounts get tons of voice usage. Boost includes unlimited voice sessions.",
+                      description: "Free accounts get tons of natural GPT-Live-1 voice usage. Boost includes unlimited live voice sessions.",
                       variant: "destructive",
                     });
                     openCheckout();

@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight m-0">Privacy Notice</h1>
           </div>
-          <p className="text-sm text-muted-foreground mb-10">Last updated: May 22, 2026</p>
+          <p className="text-sm text-muted-foreground mb-10">Last updated: September 11, 2026</p>
 
           <div className="space-y-8 text-[15px] leading-relaxed text-foreground/90">
             <section>
@@ -38,9 +38,8 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">ArcAI is free for everyone</h2>
               <p className="text-muted-foreground">
-                There is no subscription, no checkout, and no billing system. We do not collect payment information,
-                billing addresses, or anything tied to a paid plan — because there isn't one. The only usage limit is 20
-                image generations per day for non-admin accounts.
+                ArcAI has a free tier and an optional Boost subscription. Boost billing is handled by Stripe. We do not
+                store full payment card numbers in ArcAI's application database.
               </p>
             </section>
 
@@ -52,7 +51,7 @@ export default function PrivacyPolicyPage() {
                 </li>
                 <li>
                   <strong>Content:</strong> chats, prompts, uploads, generated images and files, voice transcripts, and
-                  memories you create inside Arc's Brain.
+                  the living memory summary you create or update with Arc.
                 </li>
                 <li>
                   <strong>Support data:</strong> tickets and attachments you submit through the in-app support flow.

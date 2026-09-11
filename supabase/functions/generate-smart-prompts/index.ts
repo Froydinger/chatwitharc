@@ -58,6 +58,12 @@ serve(async (req) => {
       .select('display_name, memory_info, context_info')
       .eq('user_id', user.id)
       .single();
+    const { data: memorySummary } = await supabase
+      .from('memory_summaries')
+      .select('summary')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    const livingMemory = memorySummary?.summary?.trim() || profile?.memory_info || '';
 
     // Build context from recent chats
     let chatContext = '';
@@ -71,7 +77,7 @@ serve(async (req) => {
     }
 
     // Skip AI call if there's no meaningful context
-    const hasContext = chatContext.trim().length > 0 || profile?.display_name || profile?.memory_info || profile?.context_info;
+    const hasContext = chatContext.trim().length > 0 || profile?.display_name || livingMemory || profile?.context_info;
     if (!hasContext) {
       return new Response(JSON.stringify({ prompts: [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -86,7 +92,7 @@ serve(async (req) => {
 
 IMPORTANT CONTEXT - This is information ABOUT THE USER that you already know:
 ${profile?.display_name ? `- The user's name is: ${profile.display_name}` : ''}
-${profile?.memory_info ? `- Things the user has shared about themselves: ${profile.memory_info}` : ''}
+${livingMemory ? `- Things the user has shared about themselves: ${livingMemory}` : ''}
 ${profile?.context_info ? `- Additional context about the user: ${profile.context_info}` : ''}
 
 ${chatContext}
@@ -121,7 +127,7 @@ Example format:
 
 IMPORTANT CONTEXT - This is information ABOUT THE USER that you already know:
 ${profile?.display_name ? `- The user's name is: ${profile.display_name}` : ''}
-${profile?.memory_info ? `- Things the user has shared about themselves: ${profile.memory_info}` : ''}
+${livingMemory ? `- Things the user has shared about themselves: ${livingMemory}` : ''}
 ${profile?.context_info ? `- Additional context about the user: ${profile.context_info}` : ''}
 
 ${chatContext}

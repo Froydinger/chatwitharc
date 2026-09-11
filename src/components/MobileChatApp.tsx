@@ -1446,7 +1446,7 @@ export function MobileChatApp() {
           onClose={() => setIsMusicPopupOpen(false)}
         />
 
-        {/* Context Blocks Panel */}
+        {/* Living memory panel */}
         <ContextBlocksPanel
           isOpen={isContextPanelOpen}
           onClose={() => setIsContextPanelOpen(false)}
