@@ -1793,7 +1793,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             },
           });
           if (error) throw new Error(error.message || 'Failed to create GPT-Live session.');
-          const answerSdp = data?.transport?.sdp;
+          // Accept the official Live response and the top-level `sdp` alias
+          // used by the immediately previous Edge Function deployment. This
+          // keeps a frontend/function rollout overlap from breaking WebRTC.
+          const answerSdp = typeof data?.transport?.sdp === 'string'
+            ? data.transport.sdp
+            : data?.sdp;
           if (typeof answerSdp !== 'string' || !/^v=0(?:\r?\n|$)/.test(answerSdp)) {
             throw new Error(data?.error || 'GPT-Live returned an invalid WebRTC SDP answer.');
           }

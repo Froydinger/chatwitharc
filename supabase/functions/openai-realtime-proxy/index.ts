@@ -16,9 +16,16 @@ const ALLOWED_VOICES = new Set([
 ]);
 
 type LiveSessionResponse = {
-  transport?: { sdp?: unknown };
+  transport?: { type?: unknown; sdp?: unknown };
   session?: { id?: unknown };
+  sdp?: unknown;
   [key: string]: unknown;
+};
+
+const normalizeSdp = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  const sdp = value.replace(/^\uFEFF/, '').trimStart();
+  return /^v=0(?:\r?\n|$)/.test(sdp) ? sdp : null;
 };
 
 serve(async (req) => {
@@ -119,7 +126,12 @@ serve(async (req) => {
     const text = await response.text();
     let data: LiveSessionResponse | null;
     try { data = JSON.parse(text); } catch { data = null; }
-    const answerSdp = data?.transport?.sdp;
+    // The official Live response is { transport: { sdp } }. During the first
+    // rollout, an older Arc function returned the same answer as top-level
+    // `sdp`; accept that shape too so frontend/function deploys can overlap.
+    const answerSdp = normalizeSdp(data?.transport?.sdp)
+      ?? normalizeSdp(data?.sdp)
+      ?? normalizeSdp(text);
     if (!response.ok) {
       return new Response(JSON.stringify({ error: `GPT-Live session creation failed: ${text.slice(0, 500)}` }), {
         status: response.status,
@@ -133,7 +145,19 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    return new Response(JSON.stringify(data), {
+    const responseData: LiveSessionResponse = data ?? {
+      session: { id: null },
+      transport: { type: 'webrtc', sdp: answerSdp },
+    };
+    responseData.transport = {
+      ...(responseData.transport ?? {}),
+      type: responseData.transport?.type ?? 'webrtc',
+      sdp: answerSdp,
+    };
+    // Keep this alias temporarily for clients from the previous deployment.
+    responseData.sdp = answerSdp;
+    responseData.session_id = responseData.session?.id ?? null;
+    return new Response(JSON.stringify(responseData), {
       status: response.status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

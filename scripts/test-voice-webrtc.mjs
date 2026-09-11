@@ -36,12 +36,15 @@ for (const field of ['status', 'currentTranscript', 'hasPendingSpeech', 'isAudio
   state[`set${field[0].toUpperCase()}${field.slice(1)}`] = value => { state[field] = value; };
 }
 let tokenGate = null;
+let useLegacySessionShape = false;
 globalThis.__arcWebRTCTest = {
   state, listeners, transports,
   async invoke(name, args) {
     invocations.push({ name, args });
     if (tokenGate) await tokenGate;
-    return { data: { transport: { sdp: 'v=0\r\n' }, session: { id: 'live-test' }, model: 'gpt-live-1' } };
+    return useLegacySessionShape
+      ? { data: { sdp: 'v=0\r\n', session_id: 'live-test', model: 'gpt-live-1' } }
+      : { data: { transport: { sdp: 'v=0\r\n' }, session: { id: 'live-test' }, model: 'gpt-live-1' } };
   },
 };
 const result = await build({
@@ -90,13 +93,23 @@ const done = (transport, id, status = 'completed') => transport.emit({ type: 're
 const search = (transport, id) => transport.emit({ type: 'response.event', delegation_id: 'delegation_1', event: { type: 'response.output_item.done', item: { type: 'function_call', name: 'web_search', call_id: id, arguments: JSON.stringify({ query: 'Chicago weather' }) } } });
 try {
   await hook.connect('Test instructions');
-  const transport = transports.at(-1);
+  let transport = transports.at(-1);
   transport.emit({ type: 'session.started', session: { id: 'first' } });
   assert.equal(invocations.length, 1);
   assert.equal(invocations[0].args.body.sdp, 'offer-sdp');
   assert.equal(invocations[0].args.body.voice, 'marin');
   assert.equal(invocations[0].args.body.instructions, 'Test instructions');
   assert.equal(invocations[0].args.body.tools.length, 12);
+
+  // A frontend can overlap an older Edge Function deployment briefly. The
+  // browser still accepts that function's legacy top-level SDP alias.
+  useLegacySessionShape = true;
+  hook.disconnect();
+  await hook.connect('Legacy response shape');
+  transport = transports.at(-1);
+  assert.equal(transport.negotiation.answerSdp, 'v=0\r\n');
+  transport.emit({ type: 'session.started', session: { id: 'legacy' } });
+  useLegacySessionShape = false;
 
   start(transport, 'first-response');
   transport.emit({ type: 'output_audio_buffer.started', response_id: 'first-response' });
