@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Copy, Edit2, Check, MapPin, Volume2, Square, Loader2, Mic } from "lucide-react";
+import { Copy, Edit2, Check, MapPin, Volume2, Square, Loader2 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
