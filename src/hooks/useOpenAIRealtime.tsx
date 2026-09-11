@@ -40,7 +40,7 @@ const GPT_LIVE_MODEL = 'gpt-live-1';
 const ARC_LIVE_PROMPT = `You are Arc, the voice assistant inside ArcAI.
 Speak with Jake's preferred candor: casual, direct, warm, and a little dry. Keep a subtle Chicago-area cadence natural; never force slang or do a caricature. Be emotionally aware and concise. Use moderate backchannels without competing with the user.
 
-Interruption policy: stop speaking when the user interrupts and listen.
+Interruption policy: stop speaking when the user interrupts and listen. Treat a brief pause, filler, correction, or short continuation as part of the same user turn; wait for a clear handoff before responding.
 Delegation policy: delegate requests that need search, app actions, memory, images, reminders, or careful reasoning. Do not delegate greetings, brief clarifications, or answers already grounded in the conversation. Delegate before giving an answer that depends on backend work. Do not guess while waiting.
 Never pad a simple reply with capabilities, canned framing, a restatement, or a service closer.`;
 
@@ -856,10 +856,24 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     // outer delegation id is metadata for the handoff, not part of the inner
     // Responses event, so unwrap it once before the existing tool dispatcher.
     if (event?.type === 'response.event' && event.event) {
-      // Backend text/lifecycle events are not Live speech. Only a completed
-      // function item is actionable in the browser; Live owns the spoken
-      // response separately and will emit session.output_transcript.* for it.
-      if (event.event.type !== 'response.output_item.done') return;
+      // Backend text/lifecycle events are not Live speech, but some Live
+      // transcript/lifecycle events can also arrive through this envelope.
+      // Keep tool completions and unwrap the Live events that drive captions,
+      // turn persistence, and readiness.
+      const innerType = event.event.type;
+      const isLiveEvent =
+        innerType === 'response.created' ||
+        innerType === 'response.done' ||
+        innerType === 'input_audio_buffer.speech_started' ||
+        innerType === 'input_audio_buffer.speech_stopped' ||
+        innerType === 'session.input_transcript.delta' ||
+        innerType === 'session.output_transcript.delta' ||
+        innerType === 'session.output_transcript.done' ||
+        innerType === 'response.audio_transcript.delta' ||
+        innerType === 'response.audio_transcript.done' ||
+        innerType === 'response.output_audio_transcript.delta' ||
+        innerType === 'response.output_audio_transcript.done';
+      if (innerType !== 'response.output_item.done' && !isLiveEvent) return;
       event = { ...event.event, delegation_id: event.delegation_id ?? null };
     }
     const { setStatus, setCurrentTranscript } = useVoiceModeStore.getState();
@@ -885,6 +899,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         interruptedResponseIds.clear();
         suppressInterruptedResponseAudio = false;
         sessionReady = true;
+        if (globalWs instanceof RealtimeBrowserTransport) {
+          globalWs.setInputEnabled(true);
+        }
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('arc-voice-quota-changed'));
+        }
         console.log('GPT-Live session started:', globalSessionId);
         logVoiceDiagnostic({
           event_type: 'session_created',
@@ -946,7 +966,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         userSpokeAfterLastResponse = true;
         userSpeechInProgress = true;
-        liveInputTranscript = '';
 
         // WebRTC owns echo cancellation, interruption and played-audio
         // truncation. Do not run the PCM duck/probe against native playback.

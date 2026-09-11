@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useProfile } from '@/hooks/useProfile';
 import { cn } from '@/lib/utils';
-import { VOICES, VOICE_AVATARS } from '@/constants/voices';
+import { VOICES, REALTIME_VOICES, VOICE_AVATARS } from '@/constants/voices';
 import { Slider } from '@/components/ui/slider';
 
 interface VoiceSelectorProps {
@@ -93,7 +93,7 @@ export function VoiceSelector({ onSave }: VoiceSelectorProps) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        {VOICES.map((voice) => {
+        {REALTIME_VOICES.map((voice) => {
           const isSelected = selectedVoice === voice.id;
           const isPlaying = playingVoice === voice.id;
 

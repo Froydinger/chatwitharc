@@ -9,7 +9,7 @@ interface UsageMeterProps {
 }
 
 /**
-  * Tiny floating pill for the daily image allowance. Voice is unlimited.
+ * Tiny usage pill for daily image and voice allowances.
   */
 export function UsageMeter({ kind, className }: UsageMeterProps) {
   const {
@@ -17,15 +17,15 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
     hasBoost,
     dailyImagesUsed,
     imageLimit,
-    voiceConversations30d,
+    dailyVoiceSessionsUsed,
     remainingVoiceConversations,
-    FREE_VOICE_LIMIT_30D,
+    FREE_DAILY_VOICE_LIMIT,
     openCheckout,
   } = useSubscription();
 
   const isImage = kind === "image";
 
-  if (isAdmin || (isImage && hasBoost && imageLimit === Infinity)) {
+  if (isAdmin || hasBoost && (isImage ? imageLimit === Infinity : true)) {
     const Icon = isImage ? Sparkles : Mic;
     return (
       <div
@@ -44,15 +44,15 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
     );
   }
 
-  const used = isImage ? dailyImagesUsed : voiceConversations30d;
-  const limit = isImage ? imageLimit : FREE_VOICE_LIMIT_30D;
+  const used = isImage ? dailyImagesUsed : dailyVoiceSessionsUsed;
+  const limit = isImage ? imageLimit : FREE_DAILY_VOICE_LIMIT;
   const remaining = isImage ? Math.max(0, limit - used) : remainingVoiceConversations;
   const pct = Math.min(100, (used / limit) * 100);
   const isExhausted = remaining === 0;
   const isLow = remaining > 0 && remaining <= Math.max(1, Math.floor(limit * 0.3));
 
   const Icon = isImage ? Sparkles : Mic;
-  const periodLabel = isImage ? "today" : "this month";
+  const periodLabel = "today";
 
   const handleClick = () => {
     if (isImage) {
@@ -61,16 +61,18 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
       } else {
         window.dispatchEvent(new CustomEvent("open-image-limits-modal"));
       }
+    } else if (isExhausted && !hasBoost && !isAdmin) {
+      openCheckout();
     }
   };
 
   return (
     <div
-      role={isImage ? "button" : undefined}
-      tabIndex={isImage ? 0 : undefined}
+      role={isImage || !hasBoost ? "button" : undefined}
+      tabIndex={isImage || !hasBoost ? 0 : undefined}
       onClick={handleClick}
       onKeyDown={(e) => {
-        if (isImage && (e.key === "Enter" || e.key === " ")) {
+        if ((isImage || !hasBoost) && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
           handleClick();
         }
@@ -86,7 +88,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
         "group flex items-center gap-2 px-3 py-1.5 rounded-full transition-all",
         "border bg-background/70 backdrop-blur-xl shadow-lg",
         "text-xs font-medium",
-        isImage && "cursor-pointer select-none active:scale-95",
+        (isImage || !hasBoost) && "cursor-pointer select-none active:scale-95",
         isExhausted
           ? "border-destructive/60 text-destructive hover:bg-destructive/10 hover:border-destructive"
           : isLow
@@ -94,7 +96,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border",
         className,
       )}
-      aria-label={`${remaining} ${isImage ? "images" : "voice calls"} remaining ${periodLabel}.`}
+      aria-label={`${remaining} ${isImage ? "images" : "voice sessions"} remaining ${periodLabel}.`}
     >
       {isExhausted && !hasBoost && !isAdmin ? (
         <Crown className="h-3.5 w-3.5 shrink-0 text-destructive animate-pulse" />
@@ -106,7 +108,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           "Daily limit reached · Upgrade to Boost"
         ) : (
           <>
-            <AnimatedCounter value={remaining} height={15} /> / {limit} {isImage ? "images" : "voice"} left {periodLabel}
+            <AnimatedCounter value={remaining} height={15} /> / {limit} {isImage ? "images" : "voice sessions"} left {periodLabel}
           </>
         )}
       </span>

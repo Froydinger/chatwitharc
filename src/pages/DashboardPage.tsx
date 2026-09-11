@@ -124,6 +124,8 @@ function DashboardPageInner() {
     openCheckout,
     dailyBalancedUsed,
     dailyDeepUsed,
+    dailyVoiceSessionsUsed,
+    FREE_DAILY_VOICE_LIMIT,
     FREE_DAILY_BALANCED_LIMIT,
     FREE_DAILY_DEEP_LIMIT,
   } = useSubscription();
@@ -1327,6 +1329,10 @@ useEffect(() => {
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
                           <span className="text-muted-foreground">Images</span>
                           <span className="font-mono text-foreground">{isAdmin || imageLimit === Infinity ? "Unlimited" : `${dailyImagesUsed}/${imageLimit}`}</span>
+                        </div>
+                        <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
+                          <span className="text-muted-foreground">Voice sessions</span>
+                          <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : `${dailyVoiceSessionsUsed}/${FREE_DAILY_VOICE_LIMIT}`}</span>
                         </div>
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
                           <span className="text-muted-foreground">Search</span>

@@ -73,6 +73,7 @@ export class RealtimeBrowserTransport {
   private statsTimer: ReturnType<typeof setInterval> | null = null;
   private audioRetryHandler: (() => void) | null = null;
   private closeEmitted = false;
+  private sessionInputReady = false;
 
   constructor(options: RealtimeBrowserTransportOptions = {}) {
     this.options = options;
@@ -154,9 +155,12 @@ export class RealtimeBrowserTransport {
         }
         this.localStream = stream;
         // GPT-Live is full duplex. WebRTC echo cancellation and Live's
-        // interruption handling own the speaking turn.
+        // interruption handling own the speaking turn. Keep the track quiet
+        // until the data channel confirms the Live session is ready; otherwise
+        // speech during SDP/session startup can queue and return as delayed,
+        // duplicated responses.
         for (const track of stream.getAudioTracks()) {
-          track.enabled = true;
+          track.enabled = false;
           pc.addTrack(track, stream);
         }
       }
@@ -256,8 +260,13 @@ export class RealtimeBrowserTransport {
     }
   }
 
+  setInputEnabled(enabled: boolean): void {
+    this.sessionInputReady = enabled;
+    this.updateTrackState();
+  }
+
   private updateTrackState(): void {
-    const shouldDisable = this.userMuted;
+    const shouldDisable = this.userMuted || !this.sessionInputReady;
     for (const track of this.localStream?.getAudioTracks() ?? []) {
       track.enabled = !shouldDisable;
     }

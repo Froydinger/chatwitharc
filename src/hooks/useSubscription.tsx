@@ -9,14 +9,14 @@ export const BOOST_DAILY_IMAGE_LIMIT = 30;
 export const FREE_DAILY_SMARTER_CHAT_LIMIT = 20;
 export const FREE_DAILY_BALANCED_LIMIT = 10;
 export const FREE_DAILY_DEEP_LIMIT = 3;
+export const FREE_DAILY_VOICE_LIMIT = 3;
 
-// Voice is no longer capped. Kept as a legacy export so existing imports keep
-// resolving; nothing gates on it any more.
-export const FREE_VOICE_LIMIT_30D = Infinity;
+// Legacy export kept for older call sites. Voice is now limited by sessions
+// per UTC day, not by a rolling 30-day conversation count.
+export const FREE_VOICE_LIMIT_30D = FREE_DAILY_VOICE_LIMIT;
 
 // Legacy exports kept so existing call sites don't break.
 const FREE_DAILY_MESSAGE_LIMIT = Infinity;
-const FREE_DAILY_VOICE_LIMIT = FREE_VOICE_LIMIT_30D;
 
 const UNLIMITED_EMAILS = new Set([
   'j@froydinger.com',
@@ -128,7 +128,7 @@ interface SubscriptionState {
   remainingSmarterChats: number;
   smarterChatLimit: number;
 
-  // Voice quota (rolling 30 days, server-side)
+  // Voice quota (daily sessions, server-side)
   voiceConversations30d: number;
   canStartVoiceConversation: boolean;
   remainingVoiceConversations: number;
@@ -178,7 +178,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [dailySmarterChatsUsed, setDailySmarterChatsUsed] = useState(() => getDailySmarterChatCount());
   const [dailyBalancedUsed, setDailyBalancedUsed] = useState(() => getDailyBalancedCount());
   const [dailyDeepUsed, setDailyDeepUsed] = useState(() => getDailyDeepCount());
-  const [voiceConversations30d, setVoiceConversations30d] = useState(0);
+  const [dailyVoiceSessionsUsed, setDailyVoiceSessionsUsed] = useState(0);
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState<boolean>(false);
   const [currentPeriodEnd, setCurrentPeriodEnd] = useState<string | null>(null);
 
@@ -212,22 +212,21 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const canSendSmarterChat = hasBoost;
   const remainingSmarterChats = hasBoost ? Infinity : 0;
 
-  // Voice is unlimited for everyone — it is cheap enough not to meter, and a
-  // capped voice mode made the product feel stingier than it is. The 30-day
-  // count is still tracked for usage visibility, it just no longer gates.
-  const canStartVoiceConversation = true;
-  const remainingVoiceConversations = Infinity;
+  // Boost/admin users can keep a voice session alive across the provider's
+  // reconnects. Free users get three new sessions per UTC day.
+  const canStartVoiceConversation = hasBoost || dailyVoiceSessionsUsed < FREE_DAILY_VOICE_LIMIT;
+  const remainingVoiceConversations = hasBoost
+    ? Infinity
+    : Math.max(0, FREE_DAILY_VOICE_LIMIT - dailyVoiceSessionsUsed);
 
   const refreshVoiceCount = useCallback(async () => {
     if (!user || !supabase) {
-      setVoiceConversations30d(0);
+      setDailyVoiceSessionsUsed(0);
       return;
     }
     try {
-      const { data, error } = await supabase.rpc('count_voice_conversations_30d', {
-        target_user_id: user.id,
-      });
-      if (!error && typeof data === 'number') setVoiceConversations30d(data);
+      const { data, error } = await supabase.rpc('count_voice_sessions_today');
+      if (!error && typeof data === 'number') setDailyVoiceSessionsUsed(data);
     } catch (err) {
       console.error('[subscription] voice count failed', err);
     }
@@ -275,17 +274,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [user, refreshVoiceCount]);
 
   const recordMessage = useCallback(() => { /* unlimited */ }, []);
-  const recordVoiceSession = useCallback(() => { /* legacy no-op */ }, []);
+  const recordVoiceSession = useCallback(() => { /* reserved server-side at session start */ }, []);
 
   const recordVoiceConversation = useCallback(async () => {
-    if (!user || !supabase || hasBoost) return;
-    try {
-      await supabase.rpc('record_voice_conversation', { target_user_id: user.id });
-      setVoiceConversations30d((c) => c + 1);
-    } catch (err) {
-      console.error('[subscription] record voice convo failed', err);
-    }
-  }, [user, hasBoost]);
+    // Legacy API retained for callers from the old rolling-count model. New
+    // sessions are reserved atomically by openai-realtime-proxy.
+  }, []);
 
   const recordImageGeneration = useCallback(() => {
     if (!isAdmin) {
@@ -351,9 +345,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     };
     window.addEventListener('focus', handleFocusAndQuotaChange);
     window.addEventListener('arc-reasoning-quota-changed', handleFocusAndQuotaChange);
+    window.addEventListener('arc-voice-quota-changed', handleFocusAndQuotaChange);
     return () => {
       window.removeEventListener('focus', handleFocusAndQuotaChange);
       window.removeEventListener('arc-reasoning-quota-changed', handleFocusAndQuotaChange);
+      window.removeEventListener('arc-voice-quota-changed', handleFocusAndQuotaChange);
     };
   }, [refreshVoiceCount]);
 
@@ -399,7 +395,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       remainingDeep,
       canSendBalanced,
       canSendDeep,
-      voiceConversations30d,
+      voiceConversations30d: dailyVoiceSessionsUsed,
       canStartVoiceConversation,
       remainingVoiceConversations,
       cancelAtPeriodEnd,
@@ -410,7 +406,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       canSendMessage: true,
       canUseVoice: canStartVoiceConversation,
       dailyMessagesUsed: 0,
-      dailyVoiceSessionsUsed: voiceConversations30d,
+      dailyVoiceSessionsUsed,
       remainingMessages: Infinity,
       remainingVoiceSessions: remainingVoiceConversations,
       subscriptionEnd: null,

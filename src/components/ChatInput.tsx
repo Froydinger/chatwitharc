@@ -10,6 +10,8 @@ import {
   Plus,
   ImagePlus,
   AudioWaveform,
+  Check,
+  ChevronDown,
   Code2,
   PenLine,
   Search,
@@ -48,6 +50,9 @@ import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { useVoiceModeStore, prewarmMicrophone } from "@/store/useVoiceModeStore";
+import type { VoiceName } from "@/store/useVoiceModeStore";
+import { REALTIME_VOICES, VOICE_AVATARS } from "@/constants/voices";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { routeRequest } from "@/utils/routeRequest";
@@ -572,7 +577,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   { onImagesChange, rightPanelOpen = false, inline = false },
   ref,
 ) {
-  useProfile();
   const portalRoot = useSafePortalRoot();
   const { toast } = useToast();
   const openBugReport = useBugReport((state) => state.openBugReport);
@@ -581,7 +585,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Guest mode = no user OR anonymous (auto-issued) Supabase session.
   const isGuestMode = !user || isAnonymous;
   const requireAuth = useRequireAuth();
-  const { hasBoost, isAdmin, openCheckout } = useSubscription();
+  const { hasBoost, isAdmin, canStartVoiceConversation, openCheckout } = useSubscription();
 
   const {
     messages,
@@ -753,7 +757,17 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   }, [inputValue, openSearchMode]);
 
   // Voice mode store
-  const { activateVoiceMode, isActive: isVoiceActive } = useVoiceModeStore();
+  const { activateVoiceMode, isActive: isVoiceActive, selectedVoice, setSelectedVoice } = useVoiceModeStore();
+  const currentVoice = REALTIME_VOICES.find((voice) => voice.id === selectedVoice) ?? REALTIME_VOICES[0];
+
+  const handleVoiceSelection = useCallback(async (voice: VoiceName) => {
+    setSelectedVoice(voice);
+    try {
+      await updateProfile({ preferred_voice: voice });
+    } catch (error) {
+      console.error("Failed to persist voice preference:", error);
+    }
+  }, [setSelectedVoice, updateProfile]);
   // Only claim "accessing memories" when memories were actually attached to
   // the request — with none, a self-referential question is just a question.
   const { blocks: memoryBlocks } = useContextBlocks();
@@ -3320,6 +3334,48 @@ ${safeCode}
                 )}
               </div>
 
+              {/* Compact voice picker: changing the voice never starts a session. */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex h-8 max-w-[118px] shrink-0 items-center gap-1.5 rounded-full border border-border/40 bg-muted/25 px-2 text-[11px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                    aria-label={`Voice: ${currentVoice?.name ?? "Cedric"}`}
+                    title="Choose voice"
+                  >
+                    <AudioWaveform className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    <span className="truncate">{currentVoice?.name ?? "Cedric"}</span>
+                    <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" side="top" className="w-60 p-2">
+                  <div className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Voice
+                  </div>
+                  <div className="space-y-0.5">
+                    {REALTIME_VOICES.map((voice) => {
+                      const isSelected = selectedVoice === voice.id;
+                      return (
+                        <button
+                          key={voice.id}
+                          type="button"
+                          onClick={() => handleVoiceSelection(voice.id)}
+                          className={cn(
+                            "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors",
+                            isSelected ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                          )}
+                        >
+                          <img src={VOICE_AVATARS[voice.id]} alt="" className="h-6 w-6 rounded-full object-cover" />
+                          <span className="min-w-0 flex-1 truncate text-xs">{voice.name}</span>
+                          {voice.recommended && <span className="text-[9px] font-medium text-green-600 dark:text-green-400">Best</span>}
+                          {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
 
 
 
@@ -3418,6 +3474,15 @@ ${safeCode}
                 onClick={() => {
                   if (isGuestMode) {
                     requireAuth("voice");
+                    return;
+                  }
+                  if (!hasBoost && !isAdmin && !canStartVoiceConversation) {
+                    toast({
+                      title: "Daily voice limit reached",
+                      description: "Free accounts get 3 voice sessions per day. Boost includes unlimited voice sessions.",
+                      variant: "destructive",
+                    });
+                    openCheckout();
                     return;
                   }
                   // Start mic acquisition immediately within the user gesture event frame

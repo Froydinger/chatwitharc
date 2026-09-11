@@ -9,11 +9,7 @@ const corsHeaders = {
 
 const LIVE_MODEL = 'gpt-live-1';
 const BACKEND_MODEL = 'gpt-5.6-luna';
-const ALLOWED_VOICES = new Set([
-  'alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'fable', 'marin',
-  'nova', 'onyx', 'sage', 'shimmer', 'verse', 'quartz', 'ripple', 'vesper',
-  'willow', 'stone', 'gleam', 'meridian', 'bossa', 'tempo', 'beacon', 'delta', 'cinder',
-]);
+const ALLOWED_VOICES = new Set(['cedar', 'marin', 'quartz', 'ripple']);
 
 type LiveSessionResponse = {
   transport?: { type?: unknown; sdp?: unknown };
@@ -109,6 +105,30 @@ serve(async (req) => {
   if (!sdpOffer) {
     return new Response(JSON.stringify({ error: 'Missing WebRTC SDP offer' }), {
       status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Reserve a free-tier voice session before spending on OpenAI negotiation.
+  // The RPC is authenticated and atomic, so the daily cap is shared across
+  // mobile, desktop, and multiple simultaneous browser tabs.
+  const { data: voiceQuota, error: voiceQuotaError } = await supabase.rpc('reserve_voice_session');
+  if (voiceQuotaError) {
+    console.error('[openai-realtime-proxy] voice quota reservation failed:', voiceQuotaError.message);
+    return new Response(JSON.stringify({ error: 'Could not verify voice usage. Please try again.' }), {
+      status: 503,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  if (!voiceQuota?.allowed) {
+    return new Response(JSON.stringify({
+      error: 'Free accounts can start up to 3 voice sessions per day. Boost includes unlimited voice sessions.',
+      code: 'voice_daily_limit',
+      used: voiceQuota?.used ?? 3,
+      remaining: 0,
+      limit: 3,
+    }), {
+      status: 429,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

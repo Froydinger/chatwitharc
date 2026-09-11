@@ -3,13 +3,11 @@ import { getVoiceAudioConstraints } from '@/utils/platform';
 
 export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking';
 
-// GPT-Live's 13 existing voices plus its 12 new voices.
+// The four GPT-Live voices currently enabled and stable for ArcAI.
 export type VoiceName = 'alloy' | 'ash' | 'ballad' | 'cedar' | 'coral' | 'echo' | 'fable' | 'marin' | 'nova' | 'onyx' | 'sage' | 'shimmer' | 'verse' | 'quartz' | 'ripple' | 'vesper' | 'willow' | 'stone' | 'gleam' | 'meridian' | 'bossa' | 'tempo' | 'beacon' | 'delta' | 'cinder';
 
 export const REALTIME_SUPPORTED_VOICES: VoiceName[] = [
-  'alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'fable', 'marin',
-  'nova', 'onyx', 'sage', 'shimmer', 'verse', 'quartz', 'ripple', 'vesper',
-  'willow', 'stone', 'gleam', 'meridian', 'bossa', 'tempo', 'beacon', 'delta', 'cinder',
+  'cedar', 'marin', 'ripple', 'quartz',
 ];
 
 interface VoiceTurn {

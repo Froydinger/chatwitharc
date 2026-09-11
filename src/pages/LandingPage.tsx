@@ -24,7 +24,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning (unlimited Quick, 10 Balanced, and 3 Deep daily), canvases, long-term memory, image generation, and weekly research — 4 Deep Searches and 1 Ultra Deep Search. Voice mode is unlimited for everyone. Upgrade to Boost for unlimited research, unlimited reasoning, App Builder, and higher image quotas.",
+    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning (unlimited Quick, 10 Balanced, and 3 Deep daily), canvases, long-term memory, image generation, weekly research, and 3 voice sessions per day. Upgrade to Boost for unlimited research, unlimited reasoning, App Builder, higher image quotas, and unlimited voice sessions.",
   },
   {
     q: "Is there a paid tier?",
@@ -64,7 +64,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Does ArcAI have voice mode?",
-    a: "Yes. Voice mode is available, providing low-latency spoken conversations with multiple natural voices. Unlimited voice mode is included for all accounts.",
+    a: "Yes. Voice mode is available, providing low-latency spoken conversations with multiple natural voices. Free accounts get 3 sessions per day, while Boost includes unlimited voice sessions.",
   },
   {
     q: "Can ArcAI write code and build apps?",
@@ -258,7 +258,7 @@ export function LandingPage() {
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
                 { icon: ImageIcon, title: "10 free images a day", body: "Generate and edit up to 10 images daily for free, or 30 with Boost." },
-                { icon: Mic, title: "Unlimited voice & audio", body: "Speak naturally with instant spoken audio, free and open to everyone." },
+                { icon: Mic, title: "Real-time voice & audio", body: "Speak naturally with instant spoken audio. Free accounts get 3 voice sessions each day, and Boost removes the session cap." },
                 { icon: Search, title: "Deep research, powered by Perplexity", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. 4 Deep and 1 Ultra a week free, unlimited on Boost." },
                 { icon: Code2, title: "Publish code online", body: "Share your canvases and running web creations with custom Arc links on Boost." },
               ].map((b) => (
@@ -371,7 +371,7 @@ export function LandingPage() {
           Find your creative center.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-          Start with 20 daily reasoning chats, 10 images a day, and limited voice conversations. Upgrade to Boost for higher limits and unlimited voice.
+              Start with 20 daily reasoning chats, 10 images a day, and 3 voice sessions per day. Upgrade to Boost for higher limits and unlimited voice sessions.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button

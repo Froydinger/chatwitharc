@@ -579,11 +579,11 @@ export function VoiceModeOverlay() {
                   {/* Status Info */}
                   <div className="flex flex-col justify-center min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-base font-semibold tracking-wide text-foreground select-none">
+                      <span className="truncate text-[11px] sm:text-xs font-semibold tracking-wide text-foreground select-none">
                         {getStatusText()}
                       </span>
                       {(isLoading || status === 'connecting') && (
-                        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+                        <Loader2 className="h-3 w-3 shrink-0 animate-spin text-primary" />
                       )}
                     </div>
                   </div>
