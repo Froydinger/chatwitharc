@@ -1677,7 +1677,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         const completedTranscript = queueCurrentAssistantTranscript(
           extractAssistantTranscript(event.response),
         );
-        setCurrentTranscript('');
+        // Keep the live chat bubble visible until VoiceModeController persists
+        // the finalized assistant turn. MobileChatApp hides it automatically
+        // once the ordinary saved message is present.
         
         // Clear phantom timer
         if (phantomCheckTimer) {

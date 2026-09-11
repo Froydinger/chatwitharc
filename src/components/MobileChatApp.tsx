@@ -293,6 +293,9 @@ export function MobileChatApp() {
   const isArcWorking = isLoading || isGeneratingImage || isSearchingChats || isAccessingMemory || isSearchingWeb;
   const isVoiceActive = useVoiceModeStore((s) => s.isActive);
   const liveVoiceReply = useVoiceModeStore((s) => s.currentTranscript);
+  const hasCommittedLiveReply = messages[messages.length - 1]?.role === 'assistant'
+    && messages[messages.length - 1]?.sourceModel === 'cloud-voice'
+    && messages[messages.length - 1]?.content.trim() === liveVoiceReply.trim();
   const voiceVolume = useVoiceModeStore((s) => s.volume);
   const setVoiceVolume = useVoiceModeStore((s) => s.setVolume);
   const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false);
@@ -1257,7 +1260,7 @@ export function MobileChatApp() {
                         </motion.div>
                       );
                     })}
-                    {isVoiceActive && liveVoiceReply.trim() && (
+                    {isVoiceActive && liveVoiceReply.trim() && !hasCommittedLiveReply && (
                       <motion.div
                         key="voice-live-reply"
                         initial={{ opacity: 0, y: 6 }}
