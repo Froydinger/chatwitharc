@@ -121,7 +121,7 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
       return { label: `Cloud · ${name} (Docs)`, icon: 'cloud', tooltip: `Document analysis — ${providerName}.` };
     }
     case 'cloud-voice':
-      return { label: 'Cloud · Realtime', icon: 'cloud', tooltip: 'Voice mode — Realtime API.' };
+      return { label: 'Cloud · GPT-Live-1', icon: 'cloud', tooltip: 'Natural live voice conversation — GPT-Live-1 through OpenAI Realtime.' };
     case 'cloud-code': {
       const m = modelUsed || useModelStore.getState().chatModel;
       const { name, providerName } = getModelInfo(m);
