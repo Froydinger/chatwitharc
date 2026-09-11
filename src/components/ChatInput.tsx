@@ -9,7 +9,7 @@ import {
   Sparkles,
   Plus,
   ImagePlus,
-  Mic,
+  AudioWaveform,
   Code2,
   PenLine,
   Search,
@@ -3440,7 +3440,7 @@ ${safeCode}
                 className="flex items-center justify-center w-9 h-9 rounded-full bg-muted/40 hover:bg-primary/15 text-foreground hover:text-primary transition-all"
                 title="Voice mode"
               >
-                <Mic className="h-4 w-4" />
+                <AudioWaveform className="h-4 w-4" />
               </motion.button>
             )}
           </div>

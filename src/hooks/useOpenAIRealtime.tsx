@@ -156,6 +156,7 @@ const clearSessionTimers = () => {
 // playback lifecycle, but never gate the microphone based on estimated speech.
 let iosSpeakingPlaybackTimer: ReturnType<typeof setTimeout> | null = null;
 let currentResponseTranscript = '';
+let currentResponseTranscriptQueued = false;
 let responseStartTime = 0;
 let liveInputTranscript = '';
 
@@ -172,6 +173,40 @@ const scheduleIosSpeakingGateRelease = (_transcript: string) => {
     clearTimeout(iosSpeakingPlaybackTimer);
     iosSpeakingPlaybackTimer = null;
   }
+};
+
+// GPT-Live transcript deltas are a display stream, not a reliable turn
+// boundary. Some transports emit a transcript.done event and some finish the
+// response with response.done after the last delta. Queue the assistant turn
+// from either path, exactly once, so it reaches the ordinary chat stream.
+const queueCurrentAssistantTranscript = (transcriptOverride?: string): string => {
+  if (currentResponseTranscriptQueued) return transcriptOverride?.trim() || currentResponseTranscript.trim();
+
+  const transcript = (transcriptOverride || currentResponseTranscript).trim();
+  if (!transcript) return '';
+
+  // The user's final input transcript can trail the assistant's first output
+  // event. Move it into the ordering buffer before Arc's reply.
+  if (liveInputTranscript.trim()) {
+    pendingUserTurns.push({ transcript: liveInputTranscript.trim(), queuedAt: Date.now() });
+    liveInputTranscript = '';
+    userSpeechInProgress = false;
+  }
+
+  const { lastGeneratedImageUrl } = useVoiceModeStore.getState();
+  pendingAssistantTurns.push({
+    transcript,
+    queuedAt: Date.now(),
+    imageUrl: lastGeneratedImageUrl || undefined,
+    waitForUser: userSpokeAfterLastResponse || hasRealTranscription,
+  });
+  currentResponseTranscriptQueued = true;
+
+  if (lastGeneratedImageUrl) {
+    useVoiceModeStore.getState().setLastGeneratedImageUrl(null);
+  }
+  scheduleTurnFlush();
+  return transcript;
 };
 
 const clearIosSpeakingGate = () => {
@@ -845,6 +880,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         activeResponseId = null;
         activeAudioItemId = null;
         activeAudioMs = 0;
+        currentResponseTranscript = '';
+        currentResponseTranscriptQueued = false;
         interruptedResponseIds.clear();
         suppressInterruptedResponseAudio = false;
         sessionReady = true;
@@ -1043,25 +1080,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
         const aiTranscript = event.transcript || currentResponseTranscript || '';
         scheduleIosSpeakingGateRelease(aiTranscript);
-        if (!aiTranscript.trim()) return;
-        console.log('AI said:', aiTranscript);
-        
-        const { lastGeneratedImageUrl } = useVoiceModeStore.getState();
-
-        pendingAssistantTurns.push({
-          transcript: aiTranscript,
-          queuedAt: Date.now(),
-          imageUrl: lastGeneratedImageUrl || undefined,
-          // Realtime can finish speaking before Whisper emits the user's final
-          // transcript. Hold this reply longer when it belongs to a spoken turn
-          // so the saved chat cannot place Arc above the user who triggered it.
-          waitForUser: userSpokeAfterLastResponse || hasRealTranscription,
-        });
-
-        if (lastGeneratedImageUrl) {
-          useVoiceModeStore.getState().setLastGeneratedImageUrl(null);
-        }
-        scheduleTurnFlush();
+        const queuedTranscript = queueCurrentAssistantTranscript(aiTranscript);
+        if (queuedTranscript) console.log('AI said:', queuedTranscript);
         break;
 
       case 'response.audio.delta':
@@ -1564,6 +1584,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         resetInactivityTimer();
         responseStartTime = Date.now();
         currentResponseTranscript = '';
+        currentResponseTranscriptQueued = false;
         startIosSpeakingGate();
         responseInProgress = true;
         activeResponseId = event.response?.id || null;
@@ -1595,6 +1616,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         if (!completedActiveResponse) break;
         flushPendingFunctionResults();
+        const completedTranscript = queueCurrentAssistantTranscript();
         setCurrentTranscript('');
         
         // Clear phantom timer
@@ -1618,7 +1640,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (stillActive && !audioStillPlaying) {
           setStatus('listening');
         }
-        scheduleIosSpeakingGateRelease(currentResponseTranscript);
+        scheduleIosSpeakingGateRelease(completedTranscript);
         break;
 
       case 'error':
@@ -1714,7 +1736,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     if (globalWs?.readyState === WebSocket.OPEN) {
       console.log('Already connected to OpenAI Realtime (global check)');
       setIsConnected(true);
-      setStatus('listening');
+      if (sessionReady) setStatus('listening');
       return;
     }
     
@@ -1766,17 +1788,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             useVoiceModeStore.getState().setIsAudioPlaying(true);
             useVoiceModeStore.getState().setStatus('speaking');
           } else if (event.type === 'paused' || event.type === 'ended') {
-            const transcript = currentResponseTranscript.trim();
-            if (transcript) {
-              pendingAssistantTurns.push({
-                transcript,
-                queuedAt: Date.now(),
-                imageUrl: useVoiceModeStore.getState().lastGeneratedImageUrl || undefined,
-                waitForUser: userSpokeAfterLastResponse || hasRealTranscription,
-              });
-              currentResponseTranscript = '';
-              scheduleTurnFlush();
-            }
             responseInProgress = false;
             useVoiceModeStore.getState().setIsAudioPlaying(false);
             useVoiceModeStore.getState().setOutputAmplitude(0);
@@ -1845,7 +1856,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         audioChunksSent = 0;
         loggedFirstSpeech = false;
         setIsConnected(true);
-        setStatus('listening');
+        // The data channel being open is not the same as the Live session
+        // being ready. session.created/session.started is the authoritative
+        // point at which the UI may tell the user it is listening.
         
         // Periodic cleanup of stale tool calls during long sessions.
         // Use a single shared interval so reconnects don't accumulate timers.

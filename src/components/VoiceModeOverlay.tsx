@@ -12,8 +12,6 @@ import { MetalFx, PRESETS } from "metal-fx";
 import { useResolvedOrbTheme } from "@/components/ThinkingIndicator";
 import { normalizedOrbSpeed, useVoiceOrbConfig, useThinkingOrbConfig, useMotionConfig, type VoicePhase } from "@/hooks/useThinkingOrbConfig";
 
-// Global ref to allow interrupt from overlay - set by VoiceModeController
-let globalInterruptHandler: (() => void) | null = null;
 // Global ref for mute-handoff (commit audio and get response when user mutes after speaking)
 let globalMuteHandoffHandler: (() => boolean) | null = null;
 // Global ref for camera video element - set by VoiceModeController
@@ -24,10 +22,6 @@ let globalSwitchCameraHandler: (() => void) | null = null;
 let globalVoiceSwitchHandler: ((voiceId: VoiceName) => Promise<void>) | null = null;
 // Global ref for reconnect handler - set by VoiceModeController
 let globalReconnectHandler: (() => void | Promise<void>) | null = null;
-
-export function setGlobalInterruptHandler(handler: (() => void) | null) {
-  globalInterruptHandler = handler;
-}
 
 export function setGlobalMuteHandoffHandler(handler: (() => boolean) | null) {
   globalMuteHandoffHandler = handler;
@@ -80,8 +74,6 @@ export function VoiceModeOverlay() {
     setWeatherData,
     isSchedulingTask,
     selectedVoice,
-    conversationTurns,
-    currentTranscript,
     // Camera state
     isCameraActive,
     activateCamera,
@@ -234,20 +226,6 @@ export function VoiceModeOverlay() {
     setIsSwitching(false);
   }, [pendingVoiceSwitch, isSwitching]);
 
-  // Tap bar to interrupt Arc when speaking
-  const handleBarTap = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    if (status === 'speaking' && globalInterruptHandler) {
-      const target = e.target as HTMLElement;
-      // If user tapped a button or interactive child inside the bar, let that button handle its action
-      if (target && target.closest('button')) {
-        return;
-      }
-      if (navigator.vibrate) navigator.vibrate(25);
-      globalInterruptHandler();
-    }
-  }, [status]);
-
-
   // Spacebar push-to-talk listener for desktop
   useEffect(() => {
     if (!isActive) return;
@@ -357,9 +335,6 @@ export function VoiceModeOverlay() {
   const pendingVoiceInfo = pendingVoiceSwitch 
     ? REALTIME_VOICES.find(v => v.id === pendingVoiceSwitch) 
     : null;
-
-  const visibleTurns = conversationTurns.slice(-8);
-  const liveAssistantTranscript = currentTranscript.trim();
 
   return (
     <AnimatePresence>
@@ -492,65 +467,12 @@ export function VoiceModeOverlay() {
               </AnimatePresence>
             </div>
 
-            {/* Live captions and the recent voice transcript. GPT-Live sends
-                assistant text separately from audio, so keep it visible even
-                while the native audio track is speaking. */}
-            {(visibleTurns.length > 0 || liveAssistantTranscript) && (
-              <div
-                className="mb-2 max-h-56 w-full max-w-[620px] overflow-y-auto rounded-2xl border border-primary/15 bg-background/85 p-3 shadow-xl backdrop-blur-xl"
-                aria-live="polite"
-                aria-label="Voice conversation transcript"
-              >
-                <div className="flex flex-col gap-2">
-                  {visibleTurns.map((turn, index) => (
-                    <div
-                      key={`${turn.role}-${turn.timestamp instanceof Date ? turn.timestamp.getTime() : index}-${index}`}
-                      className={`rounded-xl px-3 py-2 text-sm leading-relaxed ${
-                        turn.role === 'assistant'
-                          ? 'bg-primary/10 text-foreground'
-                          : 'bg-muted/60 text-muted-foreground'
-                      }`}
-                    >
-                      <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                        {turn.role === 'assistant' ? 'Arc' : 'You'}
-                      </div>
-                      {turn.transcript}
-                    </div>
-                  ))}
-                  {liveAssistantTranscript && (
-                    <div className="rounded-xl bg-primary/10 px-3 py-2 text-sm leading-relaxed text-foreground">
-                      <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Arc</div>
-                      {liveAssistantTranscript}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Subtle floating hint when speaking */}
-            <AnimatePresence>
-              {status === 'speaking' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 4, scale: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 2, scale: 0.96 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                  className="pointer-events-none mb-1.5 select-none text-[11px] font-medium tracking-tight text-muted-foreground/75"
-                >
-                  Tap bar to interrupt
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             {/* Hero Orb-Focused Voice Bar Pill */}
             <motion.div
               initial={{ opacity: 0, y: 24, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 24, scale: 0.96 }}
-              onClick={handleBarTap}
-              className={`relative mx-auto w-full sm:w-fit sm:max-w-fit overflow-hidden rounded-full border border-primary/25 bg-background/90 px-4 py-2 sm:px-6 sm:py-2.5 shadow-2xl backdrop-blur-2xl transition-all ${
-                status === 'speaking' ? 'cursor-pointer active:scale-[0.99]' : ''
-              }`}
+              className="relative mx-auto w-full sm:w-fit sm:max-w-fit overflow-hidden rounded-full border border-primary/25 bg-background/90 px-4 py-2 sm:px-6 sm:py-2.5 shadow-2xl backdrop-blur-2xl transition-all"
               style={{
                 boxShadow: orbTheme === 'dark'
                   ? `0 0 0 1px hsl(var(--primary) / ${0.15 + Math.min(1, amplitude * 1.2) * 0.25}), 0 18px 48px rgba(0, 0, 0, 0.65)`
@@ -624,21 +546,15 @@ export function VoiceModeOverlay() {
 
                 {/* Center Hero ThinkingOrb & Status */}
                 <div className="flex flex-1 sm:flex-initial items-center justify-center gap-3 sm:gap-4 px-1 py-0.5 min-w-0">
-                  {/* GPT-Live stays open full-duplex; tap the orb to interrupt playback. */}
+                  {/* GPT-Live stays open full-duplex; interruption is handled by
+                      natural speech detection, not by tapping the orb. */}
                   <div
-                    onClick={() => {
-                      if (status === 'speaking' && globalInterruptHandler) {
-                        if (navigator.vibrate) navigator.vibrate(25);
-                        globalInterruptHandler();
-                      }
-                    }}
-                    className="relative flex h-14 w-14 shrink-0 items-center justify-center cursor-pointer select-none active:scale-95 transition-transform"
+                    className="relative flex h-14 w-14 shrink-0 items-center justify-center select-none transition-transform"
                     style={{
                       transform: status === 'speaking' ? `scale(${1 + Math.min(0.18, amplitude * 0.16)})` : undefined,
                       transition: 'transform 80ms cubic-bezier(0.2, 0, 0, 1)',
                     }}
-                    role="button"
-                    aria-label={status === 'speaking' ? 'Tap to interrupt while Arc speaks' : 'Arc Voice Orb'}
+                    aria-label="Arc Voice Orb"
                   >
                     {/* Glow halo only in dark mode to prevent black smudging in light mode */}
                     {orbTheme === 'dark' && (

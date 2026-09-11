@@ -11,7 +11,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
 import { detectsLocationIntent, formatLocationForContext, getCachedLocation, getUserLocation, UserLocation } from '@/lib/userLocation';
 import { 
-  setGlobalInterruptHandler, 
   setGlobalMuteHandoffHandler, 
   setGlobalVideoRef,
   setGlobalSwitchCameraHandler,
@@ -1151,26 +1150,6 @@ When the user shares their camera or attaches an image, describe what you see na
   // Export commitAudioAndRespond for the overlay's mute button to use
   const commitAudioAndRespondRef = useRef(commitAudioAndRespond);
   commitAudioAndRespondRef.current = commitAudioAndRespond;
-
-  // Manual interrupt handler
-  const handleManualInterrupt = useCallback(() => {
-    console.log('Manual interrupt triggered via button');
-    // Stop playback first so the truncation point reflects what was really heard.
-    cancelResponse();
-    const store = useVoiceModeStore.getState();
-    store.setStatus('listening');
-    store.setIsAudioPlaying(false);
-    store.setIsGeneratingImage(false);
-    store.setIsSearching(false);
-    store.setIsSearchingPastChats(false);
-    store.setIsSchedulingTask(false);
-  }, [cancelResponse]);
-
-  // Register the interrupt handler globally
-  useLayoutEffect(() => {
-    setGlobalInterruptHandler(handleManualInterrupt);
-    return () => { setGlobalInterruptHandler(null); };
-  }, [handleManualInterrupt]);
 
   // Register the mute-handoff handler globally
   useLayoutEffect(() => {

@@ -252,7 +252,9 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
     prewarmMicrophone();
     set({ 
       isActive: true, 
-      status: 'listening',
+      // The microphone may be prewarmed before GPT-Live is ready. Keep the
+      // UI in Connecting until the live session confirms it can listen.
+      status: 'connecting',
       currentTranscript: '',
       conversationTurns: [],
       isMuted: false,
