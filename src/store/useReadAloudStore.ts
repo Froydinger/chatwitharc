@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import { useVoiceModeStore, type VoiceName, REALTIME_SUPPORTED_VOICES } from '@/store/useVoiceModeStore';
 import { RealtimeBrowserTransport } from '@/lib/realtimeBrowserTransport';
+import { readEdgeErrorBody } from '@/lib/invokeEdgeFunction';
 
 interface ReadAloudState {
   playingMessageId: string | null;
@@ -145,23 +146,41 @@ export const useReadAloudStore = create<ReadAloudState>((set, get) => ({
         throw new Error('Not authenticated');
       }
 
-      // Request an ephemeral session for the user's chosen voice
-      const { data: realtimeSession, error: realtimeSessionError } = await supabase.functions.invoke('openai-realtime-proxy', {
-        body: {
-          voice: safeVoice,
-        },
-      });
-
-      if (realtimeSessionError || !realtimeSession?.client_secret) {
-        throw new Error(realtimeSessionError?.message || 'Failed to create voice session');
-      }
-
       // Check if user clicked stop while loading session
       if (get().loadingMessageId !== messageId) return;
 
-      // Create output-only Realtime WebRTC transport (no mic permissions needed)
+      // Create an output-only GPT-Live WebRTC transport. This deliberately
+      // does not acquire a microphone or share the active Voice Mode socket.
       const transport = new RealtimeBrowserTransport({
         disableMicrophone: true,
+        negotiateSdp: async (offerSdp) => {
+          const { data, error } = await supabase.functions.invoke('openai-realtime-proxy', {
+            body: {
+              sdp: offerSdp,
+              voice: safeVoice,
+              instructions: 'Read the supplied text exactly as written. Do not add commentary, summarize, or answer it.',
+              backendInstructions: 'No backend reasoning or tools are needed for this output-only read-aloud request.',
+              tools: [],
+            },
+          });
+
+          if (error) {
+            const details = await readEdgeErrorBody(error);
+            throw new Error(
+              typeof details?.error === 'string'
+                ? details.error
+                : error.message || 'Failed to create read-aloud voice session',
+            );
+          }
+
+          const answerSdp = typeof data?.transport?.sdp === 'string'
+            ? data.transport.sdp
+            : data?.sdp;
+          if (typeof answerSdp !== 'string' || !/^v=0(?:\r?\n|$)/.test(answerSdp)) {
+            throw new Error(data?.error || 'GPT-Live returned an invalid read-aloud SDP answer.');
+          }
+          return { answerSdp, sessionId: data?.session?.id };
+        },
       });
       activeReadTransport = transport;
 
@@ -252,7 +271,7 @@ export const useReadAloudStore = create<ReadAloudState>((set, get) => ({
         }));
       };
 
-      await transport.connect(realtimeSession.client_secret);
+      await transport.connect();
     } catch (err) {
       console.warn('[ReadAloud] Voice session failed, falling back to browser synthesis:', err);
       if (get().loadingMessageId === messageId) {
@@ -264,4 +283,3 @@ export const useReadAloudStore = create<ReadAloudState>((set, get) => ({
 
   stop: stopReadAloud,
 }));
-

@@ -2071,7 +2071,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     globalConnecting = false;
     globalSessionId = null;
     sessionReady = false;
-    resetTurnOrderingBuffer();
+    // Do not discard transcripts that arrived just before the user ended the
+    // call. The controller saves conversationTurns after disconnect returns.
+    forceFlushTurnOrderingBuffer();
     toolCallsInFlight.clear();
     resetToolCallQueue();
     resetPendingFunctionResults();
