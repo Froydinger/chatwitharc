@@ -998,6 +998,19 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     setSelectedDocuments([]);
   };
 
+  // Voice can dismiss the same temporary image/attachment preview while the
+  // composer is mounted underneath the voice overlay.
+  useEffect(() => {
+    const handleVoiceImageDismiss = () => {
+      setSelectedImages([]);
+      setImagePreviewUrls([]);
+      setAllImagesEditMode(false);
+      setSelectedDocuments([]);
+    };
+    window.addEventListener('arc-close-image-preview', handleVoiceImageDismiss);
+    return () => window.removeEventListener('arc-close-image-preview', handleVoiceImageDismiss);
+  }, []);
+
   // Global drag & drop handlers — attach to document so overlay covers full screen
   useEffect(() => {
     const onDragEnter = (e: DragEvent) => {
@@ -3334,47 +3347,7 @@ ${safeCode}
                 )}
               </div>
 
-              {/* Compact voice picker: changing the voice never starts a session. */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="flex h-8 max-w-[118px] shrink-0 items-center gap-1.5 rounded-full border border-border/40 bg-muted/25 px-2 text-[11px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-                    aria-label={`Voice: ${currentVoice?.name ?? "Cedric"}`}
-                    title="Choose voice"
-                  >
-                    <AudioWaveform className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span className="truncate">{currentVoice?.name ?? "Cedric"}</span>
-                    <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="start" side="top" className="w-60 p-2">
-                  <div className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Voice
-                  </div>
-                  <div className="space-y-0.5">
-                    {REALTIME_VOICES.map((voice) => {
-                      const isSelected = selectedVoice === voice.id;
-                      return (
-                        <button
-                          key={voice.id}
-                          type="button"
-                          onClick={() => handleVoiceSelection(voice.id)}
-                          className={cn(
-                            "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors",
-                            isSelected ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                          )}
-                        >
-                          <img src={VOICE_AVATARS[voice.id]} alt="" className="h-6 w-6 rounded-full object-cover" />
-                          <span className="min-w-0 flex-1 truncate text-xs">{voice.name}</span>
-                          {voice.recommended && <span className="text-[9px] font-medium text-green-600 dark:text-green-400">Best</span>}
-                          {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </PopoverContent>
-              </Popover>
+
 
 
 
@@ -3401,7 +3374,7 @@ ${safeCode}
                 onPaste={handlePaste}
                 onFocus={handleInputFocus}
                 disabled={isVoiceActive}
-                placeholder={isVoiceActive ? "Voice mode is listening..." : isLoading ? "Thinking..." : "Message Arc..."}
+                placeholder={isVoiceActive ? "Voice mode is listening..." : isLoading ? "Thinking..." : "Chat or talk to Arc"}
                 className="flex-1 min-h-[28px] max-h-[200px] border-0 bg-transparent pt-[4px] pb-[4px] pr-4 focus-visible:ring-0 resize-none text-base placeholder:text-muted-foreground/60 scrollbar-hide"
                 rows={1}
               />
@@ -3468,7 +3441,48 @@ ${safeCode}
                 <ArrowRight className="h-4 w-4" />
               </motion.button>
             ) : (
-              <motion.button
+              <div className="flex items-center gap-1 shrink-0">
+                {/* Keep voice selection beside the waveform control. */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex h-8 max-w-[104px] shrink-0 items-center gap-1 rounded-full border border-border/40 bg-muted/25 px-2 text-[11px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                      aria-label={`Choose voice: ${currentVoice?.name ?? "Cedric"}`}
+                      title="Choose voice"
+                    >
+                      <span className="truncate">{currentVoice?.name ?? "Cedric"}</span>
+                      <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" side="top" className="w-60 p-2">
+                    <div className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Voice
+                    </div>
+                    <div className="space-y-0.5">
+                      {REALTIME_VOICES.map((voice) => {
+                        const isSelected = selectedVoice === voice.id;
+                        return (
+                          <button
+                            key={voice.id}
+                            type="button"
+                            onClick={() => handleVoiceSelection(voice.id)}
+                            className={cn(
+                              "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors",
+                              isSelected ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+                            )}
+                          >
+                            <img src={VOICE_AVATARS[voice.id]} alt="" className="h-6 w-6 rounded-full object-cover" />
+                            <span className="min-w-0 flex-1 truncate text-xs">{voice.name}</span>
+                            {voice.recommended && <span className="text-[9px] font-medium text-green-600 dark:text-green-400">Best</span>}
+                            {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
@@ -3506,7 +3520,8 @@ ${safeCode}
                 title="Voice mode"
               >
                 <AudioWaveform className="h-4 w-4" />
-              </motion.button>
+                </motion.button>
+              </div>
             )}
           </div>
         </div>

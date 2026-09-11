@@ -280,7 +280,7 @@ async function buildVoiceSystemPrompt(
 CRITICAL CAPABILITY DIRECTIVE: You have full live access to tools for web search, current weather, device location, memory, image generation, and reminders. NEVER say "I cannot access real-time information", "I don't have internet access", "I cannot check the weather", or "I cannot do that". Always use the appropriate tool immediately.
 CRITICAL: Always say something brief and natural BEFORE using any tool (e.g. "Let me check that", "Looking into that now", "On it") so the user isn't left in silence.
 
-• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. Image results and generating states appear directly in the chat thread. For changes like "edit that", "make it darker", "change the last one", or follow-ups after an image, use revise_image; it edits the latest generated/chat image. Do not mention internal retries unless the tool fully fails.
+• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image. Image results and generating states appear directly in the chat thread. For changes like "edit that", "make it darker", "change the last one", or follow-ups after an image, use revise_image; it edits the latest generated, attached, or chat image. If the user says close, dismiss, hide, or remove the displayed image, use close_image; that only dismisses the temporary preview/attachment and does not delete chat history. Do not mention internal retries unless the tool fully fails.
 • WEB SEARCH: Say "Let me look that up" or "I'll search for that" FIRST, then use web_search ONLY for current/public internet facts, news, videos, places, products, or live information. Do NOT use web_search for personal questions, the user's vibe/preferences, or "based on our chats" — use search_past_chats or memory tools for those. Results and sources appear directly in the chat thread, so summarize naturally.
   IMPORTANT: Listen carefully to exact names and titles. If unsure, confirm before searching.
 • LOCATION & "NEAR ME" QUERIES: If the user asks for restaurants, food, weather, shops, or anything "near me" or nearby, say "Let me check what's near you" and call get_user_location or web_search immediately. Do NOT ask "where are you?" or ask for their city before attempting to retrieve their location via get_user_location.
@@ -526,7 +526,11 @@ export function VoiceModeController() {
 
   // Image revision handler: voice edits go through the Image 2.5 Sunburst edit path.
   const handleImageRevise = useCallback(async (prompt: string, aspectRatio?: string): Promise<string> => {
-    const baseImageUrl = useVoiceModeStore.getState().generatedImage || getLastChatImageUrl();
+    const { generatedImage, attachedImage, attachedImageMime } = useVoiceModeStore.getState();
+    const attachedImageUrl = attachedImage
+      ? `data:${attachedImageMime || 'image/jpeg'};base64,${attachedImage}`
+      : null;
+    const baseImageUrl = generatedImage || attachedImageUrl || getLastChatImageUrl();
     if (!baseImageUrl) {
       throw new Error('No recent chat image is available to edit.');
     }
@@ -557,6 +561,7 @@ export function VoiceModeController() {
       }
       console.log('VoiceModeController: Image revised:', imageUrl);
       setGeneratedImage(imageUrl);
+      useVoiceModeStore.getState().clearAttachment();
       setLastGeneratedImageUrl(null);
       await replaceMessage(placeholderId, {
         content: prompt || 'Revised image',
@@ -588,6 +593,12 @@ export function VoiceModeController() {
   const handleImageDismiss = useCallback(() => {
     console.log('VoiceModeController: Dismissing image');
     setGeneratedImage(null);
+    useVoiceModeStore.getState().setIsGeneratingImage(false);
+    useVoiceModeStore.getState().setLastGeneratedImageUrl(null);
+    useVoiceModeStore.getState().clearAttachment();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('arc-close-image-preview'));
+    }
   }, [setGeneratedImage]);
 
   // Web search handler with abort support
@@ -1074,7 +1085,7 @@ export function VoiceModeController() {
       prompt += `\n\n--- VOICE TOOLS ---
 CRITICAL: Always say something BEFORE using any tool so the user isn't left in silence.
 
-• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image for new images. Image results and generating states appear directly in the chat thread. If the user asks to update/revise/change/edit "that" or follows up after an image, use revise_image against the latest generated/chat image. Do not mention internal retries unless the tool fully fails.
+• IMAGE GENERATION: Say "Let me create that for you" or "I'll whip that up" FIRST, then use generate_image for new images. Image results and generating states appear directly in the chat thread. If the user asks to update/revise/change/edit "that" or follows up after an image, use revise_image against the latest generated, attached, or chat image. If the user says close, dismiss, hide, or remove the displayed image, use close_image; that dismisses the temporary preview/attachment without deleting chat history. Do not mention internal retries unless the tool fully fails.
 • WEB SEARCH: Say "Let me look that up" FIRST, then use web_search ONLY for current/public internet facts, news, videos, places, products, or live information. Do NOT use web_search for personal questions, the user's vibe/preferences, or "based on our chats" — use search_past_chats or memory tools for those. Results and sources are added to the chat thread.
 • WEATHER: Use get_weather (not web_search) for any weather question. Weather is added to the chat thread.
 • REMINDERS / SCHEDULED TASKS: You CAN create reminders. For "remind me...", "set a reminder", "schedule this", "in five minutes", "tomorrow", or recurring reminders, say "I'll set that" FIRST, then use create_scheduled_task. The reminder confirmation card is added to the chat thread.
