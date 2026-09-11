@@ -3,61 +3,13 @@ import { getVoiceAudioConstraints } from '@/utils/platform';
 
 export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking';
 
-// All OpenAI voices supported by GPT-Live and Realtime
-export type VoiceName =
-  | 'marin'
-  | 'cedar'
-  | 'quartz'
-  | 'ripple'
-  | 'vesper'
-  | 'willow'
-  | 'stone'
-  | 'gleam'
-  | 'meridian'
-  | 'bossa'
-  | 'tempo'
-  | 'beacon'
-  | 'delta'
-  | 'cinder'
-  | 'alloy'
-  | 'ash'
-  | 'ballad'
-  | 'coral'
-  | 'echo'
-  | 'fable'
-  | 'nova'
-  | 'onyx'
-  | 'sage'
-  | 'shimmer'
-  | 'verse';
+// GPT-Live's 13 existing voices plus its 12 new voices.
+export type VoiceName = 'alloy' | 'ash' | 'ballad' | 'cedar' | 'coral' | 'echo' | 'fable' | 'marin' | 'nova' | 'onyx' | 'sage' | 'shimmer' | 'verse' | 'quartz' | 'ripple' | 'vesper' | 'willow' | 'stone' | 'gleam' | 'meridian' | 'bossa' | 'tempo' | 'beacon' | 'delta' | 'cinder';
 
-// Voices validated and available for GPT-Live and Realtime sessions
 export const REALTIME_SUPPORTED_VOICES: VoiceName[] = [
-  'marin',
-  'cedar',
-  'quartz',
-  'ripple',
-  'vesper',
-  'willow',
-  'stone',
-  'gleam',
-  'meridian',
-  'bossa',
-  'tempo',
-  'beacon',
-  'delta',
-  'cinder',
-  'alloy',
-  'ash',
-  'ballad',
-  'coral',
-  'echo',
-  'fable',
-  'nova',
-  'onyx',
-  'sage',
-  'shimmer',
-  'verse',
+  'alloy', 'ash', 'ballad', 'cedar', 'coral', 'echo', 'fable', 'marin',
+  'nova', 'onyx', 'sage', 'shimmer', 'verse', 'quartz', 'ripple', 'vesper',
+  'willow', 'stone', 'gleam', 'meridian', 'bossa', 'tempo', 'beacon', 'delta', 'cinder',
 ];
 
 interface VoiceTurn {

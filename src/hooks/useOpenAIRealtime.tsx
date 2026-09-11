@@ -3,7 +3,7 @@ import { RealtimeBrowserTransport } from '@/lib/realtimeBrowserTransport';
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { useVoiceModeStore, VoiceName, REALTIME_SUPPORTED_VOICES, consumePendingMicStream } from '@/store/useVoiceModeStore';
 import { supabase } from '@/integrations/supabase/client';
-import { isIOSDevice, getVoiceAudioConstraints } from '@/utils/platform';
+import { getVoiceAudioConstraints } from '@/utils/platform';
 
 interface UseOpenAIRealtimeOptions {
   onTranscriptUpdate?: (transcript: string, isFinal: boolean) => void;
@@ -30,6 +30,35 @@ interface UseOpenAIRealtimeOptions {
   // context into the fresh session's system prompt.
   onSessionExpired?: () => Promise<string | undefined>;
 }
+
+const GPT_LIVE_MODEL = 'gpt-live-1';
+
+// Keep the live prompt short. OpenAI recommends putting detailed procedures
+// and tool schemas in the delegated backend prompt, not in the voice model's
+// small conversational context.
+const ARC_LIVE_PROMPT = `You are Arc, the voice assistant inside ArcAI.
+Speak with Jake's preferred candor: casual, direct, warm, and a little dry. Keep a subtle Chicago-area cadence natural; never force slang or do a caricature. Be emotionally aware and concise. Use moderate backchannels without competing with the user.
+
+Interruption policy: stop speaking when the user interrupts and listen.
+Delegation policy: delegate requests that need search, app actions, memory, images, reminders, or careful reasoning. Do not delegate greetings, brief clarifications, or answers already grounded in the conversation. Delegate before giving an answer that depends on backend work. Do not guess while waiting.
+Never pad a simple reply with capabilities, canned framing, a restatement, or a service closer.`;
+
+const ARC_BACKEND_PROMPT = `You are Arc's backend reasoning agent. Execute only the supplied application tools, respect the application's permissions and confirmations, and return concise grounded results for spoken delivery. Do not claim an action succeeded until its tool confirms it. For long-running image work, return a started status and let the application announce completion separately.`;
+
+const LIVE_TOOL_DEFINITIONS = [
+  { type: 'function', name: 'open_bug_report', description: 'Open the in-app bug report form when the user wants to report a bug, send feedback, contact support, or message the team.', parameters: { type: 'object', properties: { summary: { type: 'string' } } } },
+  { type: 'function', name: 'generate_image', description: 'Generate a new image from a prompt.', parameters: { type: 'object', properties: { prompt: { type: 'string' }, aspect_ratio: { type: 'string', enum: ['3:2', '1:1', '16:9', '9:16', '4:3', '3:4'] } }, required: ['prompt', 'aspect_ratio'] } },
+  { type: 'function', name: 'revise_image', description: 'Revise the current image based on the user instruction.', parameters: { type: 'object', properties: { prompt: { type: 'string' }, aspect_ratio: { type: 'string', enum: ['source', '3:2', '1:1', '16:9', '9:16', '4:3', '3:4'] } }, required: ['prompt', 'aspect_ratio'] } },
+  { type: 'function', name: 'close_image', description: 'Close the displayed image.', parameters: { type: 'object', properties: {} } },
+  { type: 'function', name: 'get_user_location', description: 'Get the user device location for nearby or local questions.', parameters: { type: 'object', properties: {} } },
+  { type: 'function', name: 'web_search', description: 'Search the web for current information, news, local places, or internet questions.', parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } },
+  { type: 'function', name: 'search_past_chats', description: 'Search the user past conversation history.', parameters: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] } },
+  { type: 'function', name: 'get_weather', description: 'Get current weather for a city or place.', parameters: { type: 'object', properties: { location: { type: 'string' } }, required: ['location'] } },
+  { type: 'function', name: 'create_scheduled_task', description: 'Create a reminder or scheduled task for the user.', parameters: { type: 'object', properties: { request: { type: 'string' } }, required: ['request'] } },
+  { type: 'function', name: 'save_memory', description: 'Save or update a long-term personal fact about the user.', parameters: { type: 'object', properties: { memory: { type: 'string' }, replaces: { type: 'array', items: { type: 'string' } } }, required: ['memory'] } },
+  { type: 'function', name: 'recall_memory', description: 'List relevant saved long-term memories.', parameters: { type: 'object', properties: { query: { type: 'string' } } } },
+  { type: 'function', name: 'delete_memory', description: 'Delete saved memories matching keyword phrases.', parameters: { type: 'object', properties: { keywords: { type: 'array', items: { type: 'string' } } }, required: ['keywords'] } },
+] as const;
 
 // Singleton WebSocket instance to prevent duplicates
 let globalWs: WebSocket | RealtimeBrowserTransport | null = null;
@@ -122,14 +151,18 @@ const clearSessionTimers = () => {
   if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
 };
 
-// Under gpt-live-1 full-duplex speech-to-speech architecture, native WebRTC
-// hardware echo cancellation handles duplex playback without muting local microphone
-// tracks, eliminating artificial mute gates that caused tap-to-reply issues on mobile.
+// GPT-Live is full duplex. Keep this compatibility helper for the shared
+// playback lifecycle, but never gate the microphone based on estimated speech.
 let iosSpeakingPlaybackTimer: ReturnType<typeof setTimeout> | null = null;
 let currentResponseTranscript = '';
 let responseStartTime = 0;
+let liveInputTranscript = '';
 
 const startIosSpeakingGate = () => {
+  if (iosSpeakingPlaybackTimer) {
+    clearTimeout(iosSpeakingPlaybackTimer);
+    iosSpeakingPlaybackTimer = null;
+  }
   useVoiceModeStore.getState().setIsAudioPlaying(true);
 };
 
@@ -157,7 +190,6 @@ const clearIosSpeakingGate = () => {
 // model that will never exist, which is exactly the "reconnecting with context"
 // loop. It must never be treated as transient.
 const FATAL_ERROR_CODES = ['auth_failed', 'upstream_init_failed', 'invalid_api_key', 'model_not_found'];
-const OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1-mini';
 // Delayed phantom guard timer — gives Whisper time to confirm real speech
 let phantomCheckTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -480,7 +512,8 @@ const deliverFunctionResult = (
   });
 
   const outputSent = sendRealtimeEvent({
-    type: 'conversation.item.create',
+    type: 'response.item.create',
+    event_id: `tool_result_${callId}_${Date.now()}`,
     item: {
       type: 'function_call_output',
       call_id: callId,
@@ -563,17 +596,11 @@ const requestToolResponse = () => {
 const announceBackgroundWork = (text: string) => {
   if (globalWs?.readyState !== WebSocket.OPEN) return;
 
-  // In gpt-live-1, session.commentary.append injects real-time updates directly into the live turn
   const sent = sendRealtimeEvent({
     type: 'session.commentary.append',
-    text,
-  }) || sendRealtimeEvent({
-    type: 'conversation.item.create',
-    item: {
-      type: 'message',
-      role: 'system',
-      content: [{ type: 'input_text', text }],
-    },
+    event_id: `commentary_${Date.now()}`,
+    delegation_id: null,
+    content: text.slice(0, 1800),
   });
   if (!sent) return;
 
@@ -789,16 +816,27 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
   }, []);
 
   const handleServerEvent = useCallback((event: any) => {
+    // Responses delegation wraps every backend event in response.event. The
+    // outer delegation id is metadata for the handoff, not part of the inner
+    // Responses event, so unwrap it once before the existing tool dispatcher.
+    if (event?.type === 'response.event' && event.event) {
+      // Backend text/lifecycle events are not Live speech. Only a completed
+      // function item is actionable in the browser; Live owns the spoken
+      // response separately and will emit session.output_transcript.* for it.
+      if (event.event.type !== 'response.output_item.done') return;
+      event = { ...event.event, delegation_id: event.delegation_id ?? null };
+    }
     const { setStatus, setCurrentTranscript } = useVoiceModeStore.getState();
     
     switch (event.type) {
       case 'session.created':
-      case 'session.started':
-        if (globalSessionId === (event.session?.id || event.session_id)) {
-          console.log('Duplicate session start event, ignoring');
+      case 'session.started': {
+        const incomingSessionId = event.session?.id || event.session_id || null;
+        if (sessionReady && globalSessionId === incomingSessionId) {
+          console.log('Duplicate Live session event, ignoring');
           return;
         }
-        globalSessionId = event.session?.id || event.session_id;
+        globalSessionId = incomingSessionId;
         clearBargeInProbe();
         optionsRef.current.onInterruptProbeRejected?.();
         responseInProgress = false;
@@ -809,13 +847,19 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         interruptedResponseIds.clear();
         suppressInterruptedResponseAudio = false;
         sessionReady = true;
-        console.log('Session created:', globalSessionId);
+        console.log('GPT-Live session started:', globalSessionId);
         logVoiceDiagnostic({
           event_type: 'session_created',
-          message: 'Realtime session created',
+          message: 'GPT-Live session started',
           session_id: globalSessionId,
           details: { model: event.session?.model },
         });
+        setStatus('listening');
+        break;
+      }
+
+      case 'session.delegation.created':
+        console.log('GPT-Live delegated backend work:', event.delegation_id);
         break;
 
       case 'session.updated':
@@ -864,10 +908,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         userSpokeAfterLastResponse = true;
         userSpeechInProgress = true;
+        liveInputTranscript = '';
 
         // WebRTC owns echo cancellation, interruption and played-audio
-        // truncation.
+        // truncation. Do not run the PCM duck/probe against native playback.
         if (globalWs instanceof RealtimeBrowserTransport) {
+          const isAssistantSpeaking = responseInProgress || stateAtSpeechStart.status === 'speaking' || stateAtSpeechStart.isAudioPlaying;
           useVoiceModeStore.getState().setHasPendingSpeech(true);
           if (canBargeIn) rememberInterruptedResponse(activeResponseId);
           setStatus('listening');
@@ -913,12 +959,22 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         console.log('VAD: User speech stopped');
         break;
 
+      case 'session.input_transcript.delta': {
+        const delta = typeof event.delta === 'string' ? event.delta : '';
+        if (!delta) break;
+        if (!userSpeechInProgress && liveInputTranscript) liveInputTranscript = '';
+        userSpeechInProgress = true;
+        userSpokeAfterLastResponse = true;
+        hasRealTranscription = true;
+        liveInputTranscript += delta;
+        useVoiceModeStore.getState().setHasPendingSpeech(true);
+        optionsRef.current.onTranscriptUpdate?.(delta, false);
+        break;
+      }
+
       case 'output_audio_buffer.started':
         if (isInterruptedResponseEvent(event)) break;
         useVoiceModeStore.getState().setIsAudioPlaying(true);
-        if (globalWs instanceof RealtimeBrowserTransport) {
-          globalWs.setSpeakingGate(true);
-        }
         setStatus('speaking');
         break;
 
@@ -927,19 +983,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         if (event.response_id && activeResponseId && event.response_id !== activeResponseId) break;
         useVoiceModeStore.getState().setIsAudioPlaying(false);
         useVoiceModeStore.getState().setOutputAmplitude(0);
-        if (globalWs instanceof RealtimeBrowserTransport) {
-          setTimeout(() => {
-            if (globalWs instanceof RealtimeBrowserTransport) {
-              globalWs.setSpeakingGate(false);
-            }
-          }, 150);
-        }
         setStatus(responseInProgress && event.type !== 'output_audio_buffer.cleared' ? 'thinking' : 'listening');
         requestToolResponse();
         break;
 
       case 'conversation.item.input_audio_transcription.completed':
-      case 'session.input_transcript.completed':
         const userTranscript = event.transcript || '';
         
         if (isGarbledTranscription(userTranscript)) {
@@ -969,6 +1017,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'response.output_audio_transcript.delta':
       case 'session.output_transcript.delta':
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
+        if (liveInputTranscript.trim()) {
+          pendingUserTurns.push({ transcript: liveInputTranscript.trim(), queuedAt: Date.now() });
+          liveInputTranscript = '';
+          userSpeechInProgress = false;
+          scheduleTurnFlush();
+        }
         startIosSpeakingGate();
         setStatus('speaking');
         const partialTranscript = event.delta || '';
@@ -1555,7 +1609,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           console.log('Keeping pending user speech intact');
         }
         
-        // Transition to listening once response is done and audio is not playing.
+        // Only transition to listening if audio has finished playing.
         const { isActive: stillActive, isAudioPlaying: audioStillPlaying } = useVoiceModeStore.getState();
         if (stillActive && !audioStillPlaying) {
           setStatus('listening');
@@ -1696,35 +1750,54 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       const { selectedVoice: currentVoice } = useVoiceModeStore.getState();
       const safeVoice = REALTIME_SUPPORTED_VOICES.includes(currentVoice) ? currentVoice : 'marin';
 
-      const voiceInstructions = systemPrompt || lastSystemPrompt || `You are Arc inside the ArcAI app, founded and created by Win The Night™ Foundation (winthenight.org). Speak casually and directly, like someone from the South Side suburbs of Chicago. Let a subtle local cadence and vowel feel come through naturally, but never exaggerate it, force slang, or turn it into a "Da Bears" caricature. Be emotionally aware, punchy, human, and collaborative. Default verbosity is low to medium. Natural fillers like "um," "hmm," "uh," "oh," and "I mean" are welcome when they genuinely fit, but vary them and use them sparingly. Let amusement, curiosity, warmth, excitement, and seriousness come through naturally in vocal tone without announcing the emotion. For casual back-and-forth, default to one brief conversational thought, usually around 5–25 spoken words; only go longer when the user asks for something substantial. Never pad a simple reply with your capabilities, role, or suggestions for what to ask next. Avoid polished AI-assistant language, canned framing, restating the user's message, and service closers. Never speak unless the user has spoken first; silence needs no filler. Ignore keyboard typing, key clicks, and background noise.`;
-
+      const realtimeModel = GPT_LIVE_MODEL;
       if (generation !== connectionGeneration || !useVoiceModeStore.getState().isActive) return;
-
       const ws = new RealtimeBrowserTransport({
         audioConstraints: getVoiceAudioConstraints(),
         prewarmedStream: consumePendingMicStream(),
         onInputAmplitude: (level) => useVoiceModeStore.getState().setInputAmplitude(level),
         onOutputAmplitude: (level) => useVoiceModeStore.getState().setOutputAmplitude(level),
+        onOutputEvent: (event) => {
+          if (event.type === 'playing') {
+            useVoiceModeStore.getState().setIsAudioPlaying(true);
+            useVoiceModeStore.getState().setStatus('speaking');
+          } else if (event.type === 'paused' || event.type === 'ended') {
+            const transcript = currentResponseTranscript.trim();
+            if (transcript) {
+              pendingAssistantTurns.push({
+                transcript,
+                queuedAt: Date.now(),
+                imageUrl: useVoiceModeStore.getState().lastGeneratedImageUrl || undefined,
+                waitForUser: userSpokeAfterLastResponse || hasRealTranscription,
+              });
+              currentResponseTranscript = '';
+              scheduleTurnFlush();
+            }
+            responseInProgress = false;
+            useVoiceModeStore.getState().setIsAudioPlaying(false);
+            useVoiceModeStore.getState().setOutputAmplitude(0);
+            if (useVoiceModeStore.getState().isActive && !responseInProgress) {
+              useVoiceModeStore.getState().setStatus('listening');
+            }
+            requestToolResponse();
+          }
+        },
         negotiateSdp: async (offerSdp) => {
           const { data, error } = await supabase.functions.invoke('openai-realtime-proxy', {
             body: {
               sdp: offerSdp,
               voice: safeVoice,
-              instructions: voiceInstructions,
-              backendInstructions: voiceInstructions,
+              instructions: systemPrompt || lastSystemPrompt || ARC_LIVE_PROMPT,
+              backendInstructions: ARC_BACKEND_PROMPT,
+              tools: LIVE_TOOL_DEFINITIONS,
             },
           });
-          if (error || !data?.sdp) {
-            // Fallback: if backend returns client_secret, negotiate via client_secret
-            if (data?.client_secret) {
-              return { answerSdp: '', sessionId: data.session_id || 'realtime-fallback' };
-            }
-            throw new Error(error?.message || data?.error || 'Failed to negotiate voice WebRTC session.');
+          if (error) throw new Error(error.message || 'Failed to create GPT-Live session.');
+          const answerSdp = data?.transport?.sdp;
+          if (typeof answerSdp !== 'string' || !/^v=0(?:\r?\n|$)/.test(answerSdp)) {
+            throw new Error(data?.error || 'GPT-Live returned an invalid WebRTC SDP answer.');
           }
-          if (data.session_id) {
-            globalSessionId = data.session_id;
-          }
-          return { answerSdp: data.sdp, sessionId: data.session_id };
+          return { answerSdp, sessionId: data?.session?.id };
         },
       });
       globalWs = ws;
@@ -1768,197 +1841,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         // Start inactivity timer
         resetInactivityTimer();
 
-        const isIOS = isIOSDevice();
-
-        const sessionUpdateSent = sendRealtimeEvent({
-          type: 'session.update',
-          session: {
-            instructions: systemPrompt || lastSystemPrompt || `You are Arc inside the ArcAI app, founded and created by Win The Night™ Foundation (winthenight.org). Speak casually and directly, like someone from the South Side suburbs of Chicago. Let a subtle local cadence and vowel feel come through naturally, but never exaggerate it, force slang, or turn it into a "Da Bears" caricature. Be emotionally aware, punchy, human, and collaborative. Default verbosity is low to medium. Natural fillers like "um," "hmm," "uh," "oh," and "I mean" are welcome when they genuinely fit, but vary them and use them sparingly. Let amusement, curiosity, warmth, excitement, and seriousness come through naturally in vocal tone without announcing the emotion. For casual back-and-forth, default to one brief conversational thought, usually around 5–25 spoken words; only go longer when the user asks for something substantial. Never pad a simple reply with your capabilities, role, or suggestions for what to ask next. Avoid polished AI-assistant language, canned framing, restating the user's message, and service closers. Never speak unless the user has spoken first; silence needs no filler. Ignore keyboard typing, key clicks, and background noise.`,
-            // GA Realtime session schema. The previous-generation keys
-            // (`modalities`, `input_audio_format`, top-level `voice`,
-            // `input_audio_transcription`) are rejected by the GA mini model
-            // with a session_update_error, which is what produced the endless
-            // "reconnecting" loop with no audio.
-            type: 'realtime',
-            output_modalities: ['audio'],
-            audio: {
-              input: {
-                format: { type: 'audio/pcm', rate: 24000 },
-                // Current input transcription model; conversation stays on Realtime Mini.
-                transcription: { model: 'gpt-transcribe' },
-                turn_detection: isIOS
-                  ? {
-                      type: 'server_vad',
-                      // On iOS devices/PWA, full duplex with interrupt_response enabled
-                      // for continuous natural back-and-forth speech without tap-to-reply.
-                      threshold: 0.60,
-                      prefix_padding_ms: 300,
-                      silence_duration_ms: 800,
-                      create_response: true,
-                      interrupt_response: true,
-                    }
-                  : {
-                      type: 'server_vad',
-                      // Deliberately high: typing, breathing and coughing were
-                      // tripping the VAD and cutting Arc off mid-sentence. 0.65 was
-                      // high enough that speech over Arc's own voice rarely
-                      // registered at all, which is what made it un-interruptible.
-                      threshold: 0.60,
-                      prefix_padding_ms: 400,
-                      silence_duration_ms: 1000,
-                      // OpenAI's WebRTC transport manages playback interruption
-                      // and truncation, while the browser performs acoustic echo
-                      // cancellation on its single microphone track.
-                      create_response: true,
-                      interrupt_response: true,
-                    },
-              },
-              output: {
-                format: { type: 'audio/pcm', rate: 24000 },
-                voice: safeVoice,
-              },
-            },
-            tool_choice: 'auto',
-            tools: [
-              {
-                type: 'function',
-                name: 'open_bug_report',
-                description: 'Open the in-app ArcAI bug report form when the user wants to report a bug, send feedback, contact support, or send the team a message.',
-                parameters: {
-                  type: 'object',
-                  properties: { summary: { type: 'string', description: 'Short issue summary if one was provided.' } }
-                }
-              },
-              {
-                type: 'function',
-                name: 'generate_image',
-                description: 'Generate a new image from a prompt. Aspect ratios: 16:9 (wide), 9:16 (tall), 1:1 (square).',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    prompt: { type: 'string', description: 'Image prompt' },
-                    aspect_ratio: { type: 'string', enum: ['3:2', '1:1', '16:9', '9:16', '4:3', '3:4'] }
-                  },
-                  required: ['prompt', 'aspect_ratio']
-                }
-              },
-              {
-                type: 'function',
-                name: 'revise_image',
-                description: 'Revise the current image based on user instruction.',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    prompt: { type: 'string', description: 'Revision prompt' },
-                    aspect_ratio: { type: 'string', enum: ['source', '3:2', '1:1', '16:9', '9:16', '4:3', '3:4'] }
-                  },
-                  required: ['prompt', 'aspect_ratio']
-                }
-              },
-              {
-                type: 'function',
-                name: 'close_image',
-                description: 'Close the displayed image.',
-                parameters: { type: 'object', properties: {} }
-              },
-              {
-                type: 'function',
-                name: 'get_user_location',
-                description: 'Get the user\'s current device location (city, state, coordinates) to answer questions about nearby places, food, restaurants, weather, or recommendations near them.',
-                parameters: { type: 'object', properties: {} }
-              },
-              {
-                type: 'function',
-                name: 'web_search',
-                description: 'Search the web for real-time news, current events, local businesses, restaurants, places near the user, or internet info.',
-                parameters: {
-                  type: 'object',
-                  properties: { query: { type: 'string', description: 'Search query' } },
-                  required: ['query']
-                }
-              },
-              {
-                type: 'function',
-                name: 'search_past_chats',
-                description: 'Search user past conversation history.',
-                parameters: {
-                  type: 'object',
-                  properties: { query: { type: 'string', description: 'Query for past chats' } },
-                  required: ['query']
-                }
-              },
-              {
-                type: 'function',
-                name: 'get_weather',
-                description: 'Get current weather for a city or place.',
-                parameters: {
-                  type: 'object',
-                  properties: { location: { type: 'string', description: 'City/location name' } },
-                  required: ['location']
-                }
-              },
-              {
-                type: 'function',
-                name: 'create_scheduled_task',
-                description: 'Create a reminder, timed task, alarm-like reminder, or recurring scheduled task for the user. Use when the user says things like "remind me in five minutes", "remind me tomorrow", "set a reminder", "schedule this", or asks Arc to notify them later. The reminder card is added directly to the chat thread.',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    request: {
-                      type: 'string',
-                      description: 'The full reminder request exactly as the user intended, including what to remind them about and when.'
-                    }
-                  },
-                  required: ['request']
-                }
-              },
-              {
-                type: 'function',
-                name: 'save_memory',
-                description: 'Save or UPDATE a long-term personal fact about the user. Use this whenever the user shares info about themselves, asks you to remember something, OR corrects a previous memory. Save a clear third-person statement like "Jake prefers Cedric voice". When correcting/replacing outdated info, pass `replaces` with distinctive keywords from the OLD fact so it gets removed.',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    memory: { type: 'string', description: 'Clear, concise third-person fact about the user.' },
-                    replaces: { type: 'array', items: { type: 'string' }, description: 'Optional keywords from any OLD memory this replaces.' }
-                  },
-                  required: ['memory']
-                }
-              },
-              {
-                type: 'function',
-                name: 'recall_memory',
-                description: 'List the user\'s saved long-term memories. Use when the user asks what you remember about them, or when you need to look up a saved fact mid-conversation. Pass an optional query to filter to relevant memories.',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    query: { type: 'string', description: 'Optional. Topic or keyword to filter memories.' }
-                  }
-                }
-              },
-              {
-                type: 'function',
-                name: 'delete_memory',
-                description: 'Delete one or more saved memories that match the given keyword phrases. Use when the user says things like "forget that I…", "delete the memory about X", "you can forget X". Pass distinctive keywords from the memory to remove.',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    keywords: { type: 'array', items: { type: 'string' }, description: 'Distinctive keywords/phrases from the memory to delete.' }
-                  },
-                  required: ['keywords']
-                }
-              }
-            ]
-          }
-        });
-
-        logVoiceDiagnostic({
-          event_type: 'session_update_sent',
-          message: sessionUpdateSent
-            ? 'session.update dispatched'
-            : 'session.update FAILED to dispatch',
-          details: { sent: sessionUpdateSent, voice: safeVoice, model: realtimeModel },
-        });
       };
 
       ws.onmessage = (event) => {
@@ -2125,6 +2007,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
     if (globalWs) {
       if (globalWs instanceof RealtimeBrowserTransport) {
+        // Give GPT-Live its explicit close signal before tearing down the
+        // browser transport. No reconnect can be scheduled after this point.
         globalWs.closeSession();
       }
       globalWs.close();
@@ -2222,13 +2106,15 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     rememberInterruptedResponse(activeResponseId);
     suppressInterruptedResponseAudio = true;
     clearBargeInProbe();
-    if (responseInProgress) sendRealtimeEvent({ type: 'response.cancel' });
     if (globalWs instanceof RealtimeBrowserTransport) {
-      globalWs.setSpeakingGate(false);
-      sendRealtimeEvent({ type: 'output_audio_buffer.clear' });
+      // GPT-Live handles natural barge-in itself. A manual tap only needs to
+      // stop local playback; Realtime-only cancel/clear events are invalid on
+      // the Live data channel.
+      globalWs.stopOutput();
       useVoiceModeStore.getState().setIsAudioPlaying(false);
       return;
     }
+    if (responseInProgress) sendRealtimeEvent({ type: 'response.cancel' });
     truncateSpokenAudio(playedMs);
   }, []);
 
@@ -2279,8 +2165,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
     console.log(`Sending ${isLiveCamera ? 'camera frame' : 'attached image'} (${mimeType}) to conversation`);
 
-    // Realtime API expects input_image content. Pair with a brief text nudge so the
-    // model knows the image is part of the user's current turn, not just ambient.
+    // GPT-Live's audio frontend is not vision-capable. Images must be queued as
+    // Responses delegation input, then explicitly run through the delegated
+    // backend. The old conversation.item.create/input_image payload was a
+    // Realtime shape and is rejected by GPT-Live.
     const content: any[] = [
       {
         type: 'input_image',
@@ -2296,19 +2184,18 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
 
     sendRealtimeEvent({
-      type: 'conversation.item.create',
-      item: {
-        type: 'message',
-        role: 'user',
-        content,
-      },
+      type: globalWs instanceof RealtimeBrowserTransport ? 'response.item.create' : 'conversation.item.create',
+      event_id: `image_${Date.now()}`,
+      item: { type: 'message', role: 'user', content },
     });
 
     if (!isLiveCamera) {
-      // Vision turns ask for a response like any other; the Realtime API has no
-      // per-response reasoning control (see deliverFunctionResult).
+      // Attached-image turns must explicitly resume the delegated Responses
+      // workflow. Camera frames stay queued as context to avoid starting a
+      // costly backend response for every preview frame.
       sendRealtimeEvent({
         type: 'response.create',
+        event_id: `image_response_${Date.now()}`,
       });
     }
   }, []);

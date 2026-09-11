@@ -41,7 +41,7 @@ globalThis.__arcWebRTCTest = {
   async invoke(name, args) {
     invocations.push({ name, args });
     if (tokenGate) await tokenGate;
-    return { data: { client_secret: 'test-only', model: 'gpt-realtime-2.1-mini' } };
+    return { data: { transport: { sdp: 'v=0\r\n' }, session: { id: 'live-test' }, model: 'gpt-live-1' } };
   },
 };
 const result = await build({
@@ -58,9 +58,10 @@ const result = await build({
       export class RealtimeBrowserTransport {
         readyState = 0; sent = []; muted = [];
         constructor(options) { this.options = options; globalThis.__arcWebRTCTest.transports.push(this); }
-        async connect(secret) { this.secret = secret; this.readyState = 1; this.onopen?.(); }
+        async connect() { this.negotiation = await this.options.negotiateSdp?.('offer-sdp'); this.readyState = 1; this.onopen?.(); }
         setMuted(value) { this.muted.push(value); }
-        setSpeakingGate(value) {}
+        stopOutput() {}
+        closeSession() { this.sent.push({ type: 'session.close' }); }
         send(value) { this.sent.push(JSON.parse(value)); }
         close() { this.readyState = 3; this.onclose?.({code:1000,reason:'test close'}); }
         emit(event) { this.onmessage?.({data:JSON.stringify(event)}); }
@@ -86,20 +87,16 @@ const hook = useOpenAIRealtime({
 });
 const start = (transport, id) => transport.emit({ type: 'response.created', response: { id } });
 const done = (transport, id, status = 'completed') => transport.emit({ type: 'response.done', response: { id, status } });
-const search = (transport, id) => transport.emit({ type: 'response.output_item.done', item: { type: 'function_call', name: 'web_search', call_id: id, arguments: JSON.stringify({ query: 'Chicago weather' }) } });
+const search = (transport, id) => transport.emit({ type: 'response.event', delegation_id: 'delegation_1', event: { type: 'response.output_item.done', item: { type: 'function_call', name: 'web_search', call_id: id, arguments: JSON.stringify({ query: 'Chicago weather' }) } } });
 try {
   await hook.connect('Test instructions');
   const transport = transports.at(-1);
-  transport.emit({ type: 'session.created', session: { id: 'first' } });
-  transport.emit({ type: 'session.updated', session: {} });
-  assert.deepEqual(invocations, [{ name: 'openai-realtime-proxy', args: { body: { voice: 'marin' } } }]);
-  assert.equal(transport.secret, 'test-only');
-  const session = transport.sent.find(event => event.type === 'session.update').session;
-  assert.equal(session.audio.input.transcription.model, 'gpt-transcribe');
-  assert.equal(session.audio.input.turn_detection.interrupt_response, true);
-  assert.equal(session.audio.input.turn_detection.create_response, true);
-  assert.equal(session.audio.output.voice, 'marin');
-  assert.equal(session.instructions, 'Test instructions');
+  transport.emit({ type: 'session.started', session: { id: 'first' } });
+  assert.equal(invocations.length, 1);
+  assert.equal(invocations[0].args.body.sdp, 'offer-sdp');
+  assert.equal(invocations[0].args.body.voice, 'marin');
+  assert.equal(invocations[0].args.body.instructions, 'Test instructions');
+  assert.equal(invocations[0].args.body.tools.length, 12);
 
   start(transport, 'first-response');
   transport.emit({ type: 'output_audio_buffer.started', response_id: 'first-response' });
@@ -123,7 +120,8 @@ try {
   assert.equal(state.currentTranscript, 'fresh text'); assert.equal(state.hasPendingSpeech, true);
   assert.equal(state.status, 'speaking'); assert.equal(state.isAudioPlaying, true);
   hook.cancelResponse();
-  assert.deepEqual(transport.sent.slice(-2).map(event => event.type), ['response.cancel', 'output_audio_buffer.clear']);
+  assert.equal(transport.sent.some(event => event.type === 'response.cancel'), false);
+  assert.equal(transport.sent.some(event => event.type === 'output_audio_buffer.clear'), false);
   assert.equal(transport.sent.filter(event => event.type === 'conversation.item.truncate').length, 0);
   done(transport, 'second-response', 'cancelled');
 
@@ -141,7 +139,9 @@ try {
   assert.equal(outputs.length, 1); assert.equal(outputs[0].item.call_id, 'search-one');
   assert.deepEqual(JSON.parse(outputs[0].item.output), { success: true, results: 'Sunny with sources' });
   assert.equal(transport.sent.filter(event => event.type === 'response.create').length, 0, 'wait for current response to finish');
-  done(transport, 'search-response'); advance(700); await settle();
+  done(transport, 'search-response');
+  transport.emit({ type: 'output_audio_buffer.stopped', response_id: 'search-response' });
+  advance(700); await settle();
   assert.equal(transport.sent.filter(event => event.type === 'response.create').length, 1);
   start(transport, 'search-spoken'); transport.emit({ type: 'output_audio_buffer.started', response_id: 'search-spoken' });
   done(transport, 'search-spoken');

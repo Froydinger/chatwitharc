@@ -584,7 +584,7 @@ export function VoiceModeOverlay() {
 
                 {/* Center Hero ThinkingOrb & Status */}
                 <div className="flex flex-1 sm:flex-initial items-center justify-center gap-3 sm:gap-4 px-1 py-0.5 min-w-0">
-                  {/* Hero ThinkingOrb Container — Tap to Interrupt */}
+                  {/* GPT-Live stays open full-duplex; tap the orb to interrupt playback. */}
                   <div
                     onClick={() => {
                       if (status === 'speaking' && globalInterruptHandler) {
@@ -598,7 +598,7 @@ export function VoiceModeOverlay() {
                       transition: 'transform 80ms cubic-bezier(0.2, 0, 0, 1)',
                     }}
                     role="button"
-                    aria-label={status === 'speaking' ? "Tap to interrupt while Arc speaks" : "Arc Voice Orb"}
+                    aria-label={status === 'speaking' ? 'Tap to interrupt while Arc speaks' : 'Arc Voice Orb'}
                   >
                     {/* Glow halo only in dark mode to prevent black smudging in light mode */}
                     {orbTheme === 'dark' && (

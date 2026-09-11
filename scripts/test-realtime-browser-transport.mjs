@@ -56,6 +56,7 @@ class FakeDataChannel extends Target {
 const peers = [];
 class FakePeerConnection extends Target {
   connectionState = 'new';
+  iceGatheringState = 'complete';
   channel = new FakeDataChannel();
   tracks = [];
   localDescription = null;
@@ -77,19 +78,24 @@ const makeStream = (track = makeTrack()) => ({ getAudioTracks: () => [track], ge
 let getUserMedia;
 Object.defineProperty(globalThis, 'navigator', {
   configurable: true,
-  value: { mediaDevices: { getUserMedia: (...args) => getUserMedia(...args) } },
+  value: {
+    userAgent: '',
+    platform: '',
+    maxTouchPoints: 0,
+    mediaDevices: { getUserMedia: (...args) => getUserMedia(...args) },
+  },
 });
 
 let requests = [];
 globalThis.fetch = async (url, init) => {
   requests.push({ url, init });
-  return { ok: true, status: 200, text: async () => 'answer-sdp' };
+  return { ok: true, status: 200, text: async () => 'v=0\r\n' };
 };
 
 const moduleUrl = `data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].text).toString('base64')}`;
 const { RealtimeBrowserTransport } = await import(moduleUrl);
 
-// Happy path: one mic, muted until explicitly enabled, one SDP request, and
+// Legacy path: one mic, one SDP request, and
 // WebSocket-shaped event delivery over the data channel.
 {
   const track = makeTrack();
@@ -118,7 +124,9 @@ const { RealtimeBrowserTransport } = await import(moduleUrl);
   assert.equal(track.enabled, true);
   transport.send('{"type":"session.update"}');
   transport.clearOutput();
-  assert.deepEqual(peers.at(-1).channel.sent, [
+  assert.equal(peers.at(-1).channel.sent.length, 3);
+  assert.match(peers.at(-1).channel.sent[0], /^\{"type":"session\.input_audio\.unmute","event_id":"mute_/);
+  assert.deepEqual(peers.at(-1).channel.sent.slice(1), [
     '{"type":"session.update"}',
     '{"type":"output_audio_buffer.clear"}',
   ]);
@@ -135,6 +143,37 @@ const { RealtimeBrowserTransport } = await import(moduleUrl);
   assert.equal(peers.at(-1).closed, true);
   assert.equal(elements.at(-1).removed, true);
   assert.equal(closed, 1);
+}
+
+// GPT-Live path: the browser sends its offer to the application negotiator,
+// which returns the JSON-wrapped Live SDP answer. Live keeps the microphone
+// active for full-duplex conversation.
+{
+  const track = makeTrack();
+  getUserMedia = async () => makeStream(track);
+  const transport = new RealtimeBrowserTransport({
+    negotiateSdp: async (offer) => {
+      assert.equal(offer, 'offer-sdp');
+      return { answerSdp: 'v=0\r\n', sessionId: 'live_test' };
+    },
+  });
+  await transport.connect();
+  assert.equal(track.enabled, true);
+  assert.equal(peers.at(-1).remoteDescription.sdp, 'v=0\r\n');
+  transport.close();
+}
+
+// An empty/invalid answer must fail before WebRTC sees setRemoteDescription.
+{
+  getUserMedia = async () => makeStream();
+  const transport = new RealtimeBrowserTransport({ negotiateSdp: async () => ({ answerSdp: '' }) });
+  const originalConsoleError = console.error;
+  console.error = () => {};
+  try {
+    await assert.rejects(transport.connect(), /invalid WebRTC SDP answer/);
+  } finally {
+    console.error = originalConsoleError;
+  }
 }
 
 // Closing while microphone permission is pending stops the eventually granted

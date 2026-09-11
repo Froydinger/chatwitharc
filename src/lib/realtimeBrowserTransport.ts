@@ -42,7 +42,7 @@ const closeEventOf = (code: number, reason: string): CloseEvent => {
 };
 
 import { useVoiceModeStore, setGlobalVolumeChangeHandler } from '@/store/useVoiceModeStore';
-import { isIOSDevice, getVoiceAudioConstraints } from '@/utils/platform';
+import { getVoiceAudioConstraints } from '@/utils/platform';
 
 export class RealtimeBrowserTransport {
   static readonly CONNECTING = 0;
@@ -153,7 +153,8 @@ export class RealtimeBrowserTransport {
           throw new DOMException('Connection cancelled', 'AbortError');
         }
         this.localStream = stream;
-        // In full-duplex Live mode, microphone tracks are active immediately upon connection
+        // GPT-Live is full duplex. WebRTC echo cancellation and Live's
+        // interruption handling own the speaking turn.
         for (const track of stream.getAudioTracks()) {
           track.enabled = true;
           pc.addTrack(track, stream);
@@ -170,48 +171,47 @@ export class RealtimeBrowserTransport {
         );
       }
 
+
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-
       let answerSdp = '';
       if (this.options.negotiateSdp) {
         if (pc.iceGatheringState !== 'complete') {
-          await new Promise<void>((resolve) => {
-            const timeout = setTimeout(() => {
+          await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Timed out while gathering ICE candidates')), 10000);
+            const onState = () => {
+              if (pc.iceGatheringState !== 'complete') return;
+              clearTimeout(timeout);
               pc.removeEventListener('icegatheringstatechange', onState);
               resolve();
-            }, 1500);
-            function onState() {
-              if (pc.iceGatheringState === 'complete') {
-                clearTimeout(timeout);
-                pc.removeEventListener('icegatheringstatechange', onState);
-                resolve();
-              }
-            }
+            };
             pc.addEventListener('icegatheringstatechange', onState);
-            if (pc.iceGatheringState === 'complete') onState();
+            onState();
           });
         }
-        const offerSdp = pc.localDescription?.sdp ?? offer.sdp ?? '';
-        const negotiation = await this.options.negotiateSdp(offerSdp, this.abortController.signal);
+        const negotiation = await this.options.negotiateSdp(
+          pc.localDescription?.sdp ?? offer.sdp ?? '',
+          this.abortController.signal,
+        );
         answerSdp = negotiation.answerSdp;
       } else {
         const response = await fetch(this.options.endpoint ?? DEFAULT_ENDPOINT, {
-          method: 'POST',
-          body: pc.localDescription?.sdp ?? offer.sdp ?? '',
-          headers: {
-            Authorization: `Bearer ${ephemeralKey}`,
-            'Content-Type': 'application/sdp',
-          },
-          signal: this.abortController.signal,
+        method: 'POST',
+        body: pc.localDescription?.sdp ?? offer.sdp ?? '',
+        headers: {
+          Authorization: `Bearer ${ephemeralKey}`,
+          'Content-Type': 'application/sdp',
+        },
+        signal: this.abortController.signal,
         });
-
         answerSdp = await response.text();
         if (!response.ok) {
           throw new Error(`Realtime WebRTC negotiation failed (${response.status}): ${answerSdp.slice(0, 240)}`);
         }
       }
-
+      if (!/^v=0(?:\r?\n|$)/.test(answerSdp)) {
+        throw new Error('OpenAI returned an invalid WebRTC SDP answer.');
+      }
       await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
       this.startStats();
       return this;
@@ -240,21 +240,20 @@ export class RealtimeBrowserTransport {
     this.send(JSON.stringify({ type: 'output_audio_buffer.clear' }));
   }
 
-  private userMuted = false;
-  private speakingGate = false;
+  stopOutput(): void {
+    try { this.audioElement.pause(); } catch (_) { /* already detached */ }
+  }
 
+  private userMuted = false;
   setMuted(muted: boolean): void {
     this.userMuted = muted;
     this.updateTrackState();
-  }
-
-  /**
-   * Under gpt-live-1 full-duplex speech-to-speech architecture, native WebRTC
-   * echo cancellation handles duplex acoustic echo without muting local microphone
-   * tracks, eliminating the need for an artificial speaking gate or tap-to-reply.
-   */
-  setSpeakingGate(_speaking: boolean): void {
-    // No-op in gpt-live-1 full-duplex mode
+    if (this.dataChannel?.readyState === 'open') {
+      this.dataChannel.send(JSON.stringify({
+        type: muted ? 'session.input_audio.mute' : 'session.input_audio.unmute',
+        event_id: `mute_${Date.now()}`,
+      }));
+    }
   }
 
   private updateTrackState(): void {
@@ -276,19 +275,14 @@ export class RealtimeBrowserTransport {
     }
   }
 
-  /** Send graceful session.close event over the data channel if connected */
   closeSession(): void {
-    try {
-      if (this.dataChannel && this.dataChannel.readyState === 'open') {
-        this.dataChannel.send(JSON.stringify({ type: 'session.close' }));
-      }
-    } catch (_) {}
+    if (this.dataChannel?.readyState !== 'open') return;
+    this.dataChannel.send(JSON.stringify({ type: 'session.close', event_id: `close_${Date.now()}` }));
   }
 
   close(code = 1000, reason = ''): void {
     if (this.readyState >= RealtimeBrowserTransport.CLOSING) return;
     this.readyState = RealtimeBrowserTransport.CLOSING;
-    this.speakingGate = false;
     setGlobalVolumeChangeHandler(null);
     this.abortController.abort();
     if (this.statsTimer) clearInterval(this.statsTimer);
