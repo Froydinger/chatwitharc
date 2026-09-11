@@ -3455,7 +3455,7 @@ ${safeCode}
                       <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" side="top" className="w-60 p-2">
+                  <PopoverContent align="end" side="top" className="w-60 border-border/60 bg-background p-2 shadow-2xl backdrop-blur-xl">
                     <div className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Voice
                     </div>
