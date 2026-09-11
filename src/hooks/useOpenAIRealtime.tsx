@@ -4,7 +4,7 @@ import { useRef, useCallback, useState, useEffect } from 'react';
 import { useVoiceModeStore, VoiceName, REALTIME_SUPPORTED_VOICES, consumePendingMicStream } from '@/store/useVoiceModeStore';
 import { supabase } from '@/integrations/supabase/client';
 import { readEdgeErrorBody } from '@/lib/invokeEdgeFunction';
-import { getVoiceAudioConstraints } from '@/utils/platform';
+import { getVoiceAudioConstraints, isIOSDevice } from '@/utils/platform';
 
 interface UseOpenAIRealtimeOptions {
   onTranscriptUpdate?: (transcript: string, isFinal: boolean) => void;
@@ -137,6 +137,7 @@ let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
 let cleanupInterval: ReturnType<typeof setInterval> | null = null;
 let proactiveRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let keepaliveInterval: ReturnType<typeof setInterval> | null = null;
+let liveSessionReadyTimer: ReturnType<typeof setTimeout> | null = null;
 
 const resetInactivityTimer = () => {
   if (inactivityTimer) clearTimeout(inactivityTimer);
@@ -150,6 +151,7 @@ const resetInactivityTimer = () => {
 
 const clearSessionTimers = () => {
   if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
+  if (liveSessionReadyTimer) { clearTimeout(liveSessionReadyTimer); liveSessionReadyTimer = null; }
 };
 
 // GPT-Live is full duplex. Keep this compatibility helper for the shared
@@ -158,6 +160,7 @@ let iosSpeakingPlaybackTimer: ReturnType<typeof setTimeout> | null = null;
 let currentResponseTranscript = '';
 let currentResponseTranscriptQueued = false;
 let currentResponseTranscriptSource: 'audio' | 'text' | null = null;
+let currentResponseId: string | null = null;
 let responseStartTime = 0;
 let liveInputTranscript = '';
 
@@ -187,12 +190,11 @@ const queueCurrentAssistantTranscript = (transcriptOverride?: string): string =>
   if (!transcript) return '';
 
   // The user's final input transcript can trail the assistant's first output
-  // event. Move it into the ordering buffer before Arc's reply.
-  if (liveInputTranscript.trim()) {
-    pendingUserTurns.push({ transcript: liveInputTranscript.trim(), queuedAt: Date.now() });
-    liveInputTranscript = '';
-    userSpeechInProgress = false;
-  }
+  // event. Move the display-only input accumulator into the ordering buffer
+  // before Arc's reply, but only once. The old code also did this in the
+  // transcript-delta handler, which could split one iOS utterance into a
+  // partial user turn plus its later finalized turn.
+  queuePendingLiveInputTranscript();
 
   const { lastGeneratedImageUrl } = useVoiceModeStore.getState();
   pendingAssistantTurns.push({
@@ -208,6 +210,59 @@ const queueCurrentAssistantTranscript = (transcriptOverride?: string): string =>
   }
   scheduleTurnFlush();
   return transcript;
+};
+
+const normalizeTranscriptForMatch = (transcript: string) =>
+  transcript.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+const queueUserTranscript = (transcript: string) => {
+  const trimmed = transcript.trim();
+  if (!trimmed) return;
+
+  const normalized = normalizeTranscriptForMatch(trimmed);
+  const previous = pendingUserTurns[pendingUserTurns.length - 1];
+  if (previous) {
+    const previousNormalized = normalizeTranscriptForMatch(previous.transcript);
+    // A late finalized iOS transcript may be a longer version of the partial
+    // fallback already queued. Replace that pending partial instead of
+    // emitting two user bubbles for one utterance.
+    if (
+      normalized === previousNormalized ||
+      normalized.includes(previousNormalized) ||
+      previousNormalized.includes(normalized)
+    ) {
+      if (trimmed.length > previous.transcript.length) previous.transcript = trimmed;
+      return;
+    }
+  }
+
+  pendingUserTurns.push({ transcript: trimmed, queuedAt: Date.now() });
+  scheduleTurnFlush();
+};
+
+const queuePendingLiveInputTranscript = () => {
+  const transcript = liveInputTranscript.trim();
+  if (!transcript) return;
+  queueUserTranscript(transcript);
+  liveInputTranscript = '';
+  userSpeechInProgress = false;
+};
+
+const resetResponseAccumulator = (clearLiveBubble = false) => {
+  currentResponseTranscript = '';
+  currentResponseTranscriptQueued = false;
+  currentResponseTranscriptSource = null;
+  currentResponseId = null;
+  if (clearLiveBubble) useVoiceModeStore.getState().setCurrentTranscript('');
+};
+
+const startResponseSegment = (responseId: string | null) => {
+  if (!responseId) return;
+  if (currentResponseId && currentResponseId !== responseId && currentResponseTranscript.trim()) {
+    queueCurrentAssistantTranscript();
+    resetResponseAccumulator(true);
+  }
+  currentResponseId = responseId;
 };
 
 const extractAssistantTranscript = (responseOrEvent: any): string => {
@@ -275,6 +330,7 @@ let turnFlushTimer: ReturnType<typeof setTimeout> | null = null;
 const resetTurnOrderingBuffer = () => {
   pendingUserTurns = [];
   pendingAssistantTurns = [];
+  resetResponseAccumulator(true);
   if (turnFlushTimer) {
     clearTimeout(turnFlushTimer);
     turnFlushTimer = null;
@@ -355,6 +411,12 @@ const forceFlushTurnOrderingBuffer = () => {
     clearTimeout(turnFlushTimer);
     turnFlushTimer = null;
   }
+
+  // Closing WebRTC can happen before response.done reaches the browser. Save
+  // any in-flight speech transcript first so ending the call cannot erase the
+  // last assistant reply that was already visible live.
+  queuePendingLiveInputTranscript();
+  queueCurrentAssistantTranscript();
 
   const { addConversationTurn } = useVoiceModeStore.getState();
   while (pendingUserTurns.length > 0) {
@@ -823,6 +885,10 @@ const clearConnectionTimers = () => {
     clearTimeout(inactivityTimer);
     inactivityTimer = null;
   }
+  if (liveSessionReadyTimer) {
+    clearTimeout(liveSessionReadyTimer);
+    liveSessionReadyTimer = null;
+  }
 };
 
 const sendRealtimeEvent = (payload: Record<string, unknown>): boolean => {
@@ -916,14 +982,29 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         activeResponseId = null;
         activeAudioItemId = null;
         activeAudioMs = 0;
-        currentResponseTranscript = '';
-        currentResponseTranscriptQueued = false;
-        currentResponseTranscriptSource = null;
+        resetResponseAccumulator(false);
         interruptedResponseIds.clear();
         suppressInterruptedResponseAudio = false;
         sessionReady = true;
-        if (globalWs instanceof RealtimeBrowserTransport) {
+        if (liveSessionReadyTimer) clearTimeout(liveSessionReadyTimer);
+        const enableLiveInput = () => {
+          liveSessionReadyTimer = null;
+          if (
+            globalSessionId !== incomingSessionId ||
+            !(globalWs instanceof RealtimeBrowserTransport) ||
+            !useVoiceModeStore.getState().isActive
+          ) return;
           globalWs.setInputEnabled(true);
+          setStatus('listening');
+        };
+        if (isIOSDevice()) {
+          // iOS can report session.created before its WebRTC audio route and
+          // Live transcription pipeline have settled. Keep the mic closed and
+          // the UI in Connecting during that short handoff so the first words
+          // cannot land in a half-ready turn.
+          liveSessionReadyTimer = setTimeout(enableLiveInput, 320);
+        } else {
+          enableLiveInput();
         }
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('arc-voice-quota-changed'));
@@ -935,7 +1016,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           session_id: globalSessionId,
           details: { model: event.session?.model },
         });
-        setStatus('listening');
         break;
       }
 
@@ -1087,11 +1167,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             phantomCheckTimer = null;
             console.log('Phantom timer cleared — real transcription confirmed');
           }
-          pendingUserTurns.push({
-            transcript: userTranscript,
-            queuedAt: Date.now(),
-          });
-          scheduleTurnFlush();
+          // This is the canonical user turn. It may arrive after the partial
+          // display transcript, so coalesce it with a queued fallback instead
+          // of creating a second bubble.
+          queueUserTranscript(userTranscript);
+          liveInputTranscript = '';
+          userSpeechInProgress = false;
         }
         optionsRef.current.onTranscriptUpdate?.(userTranscript, true);
         break;
@@ -1101,6 +1182,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'session.output_transcript.delta':
       case 'response.text.delta':
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
+        startResponseSegment(event.response_id || event.response?.id || null);
         {
           const transcriptSource = event.type === 'response.text.delta' ? 'text' : 'audio';
           // Live may expose both a text stream and an audio transcript for one
@@ -1108,12 +1190,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           // duplicate Arc's words when both are present.
           if (currentResponseTranscriptSource && currentResponseTranscriptSource !== transcriptSource) return;
           currentResponseTranscriptSource = transcriptSource;
-        }
-        if (liveInputTranscript.trim()) {
-          pendingUserTurns.push({ transcript: liveInputTranscript.trim(), queuedAt: Date.now() });
-          liveInputTranscript = '';
-          userSpeechInProgress = false;
-          scheduleTurnFlush();
         }
         startIosSpeakingGate();
         setStatus('speaking');
@@ -1130,6 +1206,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'session.output_transcript.done':
       case 'response.text.done':
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
+        startResponseSegment(event.response_id || event.response?.id || null);
         {
           const transcriptSource = event.type === 'response.text.done' ? 'text' : 'audio';
           if (currentResponseTranscriptSource && currentResponseTranscriptSource !== transcriptSource) return;
@@ -1643,6 +1720,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         currentResponseTranscript = '';
         currentResponseTranscriptQueued = false;
         currentResponseTranscriptSource = null;
+        currentResponseId = event.response?.id || null;
         startIosSpeakingGate();
         responseInProgress = true;
         activeResponseId = event.response?.id || null;
@@ -1677,6 +1755,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         const completedTranscript = queueCurrentAssistantTranscript(
           extractAssistantTranscript(event.response),
         );
+        if (completedTranscript || currentResponseTranscriptQueued) {
+          // Keep the ordinary chat bubble as the durable copy, but clear only
+          // the internal response accumulator. The visible live bubble stays
+          // until the controller has persisted this turn.
+          resetResponseAccumulator(false);
+        }
         // Keep the live chat bubble visible until VoiceModeController persists
         // the finalized assistant turn. MobileChatApp hides it automatically
         // once the ordinary saved message is present.
@@ -2102,6 +2186,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     clearConnectionTimers();
     clearBargeInProbe();
 
+    // Flush before closing WebRTC. Once the data channel is closed, Live may
+    // never deliver response.done for the words that were already on screen.
+    forceFlushTurnOrderingBuffer();
+
     if (globalWs) {
       if (globalWs instanceof RealtimeBrowserTransport) {
         // Give GPT-Live its explicit close signal before tearing down the
@@ -2114,9 +2202,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     globalConnecting = false;
     globalSessionId = null;
     sessionReady = false;
-    // Do not discard transcripts that arrived just before the user ended the
-    // call. The controller saves conversationTurns after disconnect returns.
-    forceFlushTurnOrderingBuffer();
     toolCallsInFlight.clear();
     resetToolCallQueue();
     resetPendingFunctionResults();
