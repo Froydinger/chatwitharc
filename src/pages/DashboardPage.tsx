@@ -2183,11 +2183,12 @@ useEffect(() => {
           {/* ====== LIVING MEMORY ====== */}
           {activeTab === "memories" && (
             <motion.div key="memories" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0 flex-1 basis-64">
                   <h2 className="text-lg font-semibold">Arc's living memory</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">One detailed summary that grows with your conversations. Tell Arc things naturally, or ask Arc to remember them.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Tell Arc anything, and it remembers; ask to forget.</p>
                 </div>
+                <div className="flex shrink-0 items-center gap-2">
                 <Button
                   variant="outline"
                   size="icon"
@@ -2201,8 +2202,9 @@ useEffect(() => {
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
-                  className="rounded-full glass-shimmer"
+                  className="h-11 w-11 shrink-0 rounded-full p-0 glass-shimmer"
                   title="Export living memory"
+                  aria-label="Export living memory"
                   disabled={contextBlocks.length === 0}
                 >
                   <Download className="h-4 w-4 text-primary" />
@@ -2239,20 +2241,13 @@ useEffect(() => {
                     };
                     input.click();
                   }}
-                  className="rounded-full glass-shimmer"
+                  className="h-11 w-11 shrink-0 rounded-full p-0 glass-shimmer"
                   title="Import living memory"
+                  aria-label="Import living memory"
                 >
                   <Upload className="h-4 w-4 text-primary" />
                 </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => { setIsAddingMemory(true); setEditingMemoryId(null); setNewMemoryContent(""); }}
-                  className="rounded-full glass-shimmer"
-                  title="Tell Arc something"
-                >
-                  <Plus className="h-4.5 w-4.5 text-primary" />
-                </Button>
+                </div>
               </div>
 
               {isAddingMemory && (
@@ -2268,7 +2263,7 @@ useEffect(() => {
               {blocksLoading ? (
                 <SkeletonList count={5} />
               ) : contextBlocks.length === 0 ? (
-                <EmptyState icon={Brain} text="Your living memory is empty" sub='Tell Arc "remember that..." or add something here.' />
+                <EmptyState icon={Brain} text="Your living memory is empty" sub='Tell Arc what you want remembered.' />
               ) : (
                 <div className="rounded-[2rem] border border-primary/20 bg-primary/[0.04] p-5 sm:p-7">
                   <div className="flex items-start justify-between gap-4">
