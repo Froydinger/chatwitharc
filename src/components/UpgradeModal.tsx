@@ -134,14 +134,14 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
                 >
                   Yearly
                   <span className="absolute -top-1.5 -right-2 bg-emerald-500 text-[8px] text-white px-1.5 py-0.5 rounded-full font-bold">
-                    Save 22%
+                    Save 21%
                   </span>
                 </button>
               </div>
             </div>
 
             <p className="text-sm text-muted-foreground mb-1">
-              {isAnnual ? "$95/year paid upgrade" : "$10/month paid upgrade"}
+              {priceDisplay} paid upgrade
             </p>
             <div className="flex items-baseline justify-center gap-1 my-4">
               <span className="text-4xl font-bold">{priceDisplay.split('/')[0]}</span>

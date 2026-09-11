@@ -48,6 +48,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
   const limit = isImage ? imageLimit : FREE_DAILY_VOICE_LIMIT;
   const remaining = isImage ? Math.max(0, limit - used) : remainingVoiceConversations;
   const pct = Math.min(100, (used / limit) * 100);
+  const voicePctLabel = `${Math.round(pct)}% used today`;
   const isExhausted = remaining === 0;
   const isLow = remaining > 0 && remaining <= Math.max(1, Math.floor(limit * 0.3));
 
@@ -96,7 +97,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border",
         className,
       )}
-      aria-label={`${remaining} ${isImage ? "images" : "voice sessions"} remaining ${periodLabel}.`}
+      aria-label={isImage ? `${remaining} images remaining ${periodLabel}.` : `${voicePctLabel}.`}
     >
       {isExhausted && !hasBoost && !isAdmin ? (
         <Crown className="h-3.5 w-3.5 shrink-0 text-destructive animate-pulse" />
@@ -107,16 +108,12 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
         {isExhausted ? (
           "Daily limit reached · Upgrade to Boost"
         ) : (
-          <>
-            <AnimatedCounter value={remaining} height={15} /> / {limit} {isImage ? "images" : "voice sessions"} left {periodLabel}
-          </>
+          <>{isImage ? <><AnimatedCounter value={remaining} height={15} /> / {limit} images left {periodLabel}</> : voicePctLabel}</>
         )}
       </span>
       <span className="tabular-nums sm:hidden inline-flex items-center gap-0.5">
         {isExhausted ? "Upgrade" : (
-          <>
-            <AnimatedCounter value={used} height={14} />/{limit}
-          </>
+          <>{isImage ? <><AnimatedCounter value={used} height={14} />/{limit}</> : `${Math.round(pct)}%`}</>
         )}
       </span>
       {/* mini progress bar */}

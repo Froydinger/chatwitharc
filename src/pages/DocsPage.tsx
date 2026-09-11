@@ -87,7 +87,7 @@ export function DocsPage() {
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li><strong className="text-foreground">Free Tier</strong>: Luna chat plus limited daily image generations and plan-based usage limits.</li>
-            <li><strong className="text-foreground">Boost Plan ($10/mo or $96/yr)</strong>: Higher usage limits, offline local model support, premium image tools, and publishing.</li>
+            <li><strong className="text-foreground">Boost Plan ($10/mo or $95/yr)</strong>: Higher usage limits, offline local model support, premium image tools, unlimited voice, and publishing.</li>
           </ul>
           <p>You can check your current daily usage and remaining limit at <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>
         </div>

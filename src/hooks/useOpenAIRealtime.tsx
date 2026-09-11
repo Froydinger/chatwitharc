@@ -1828,6 +1828,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           });
           if (error) {
             const details = await readEdgeErrorBody(error);
+            if (details?.code === 'voice_daily_limit') {
+              // The local usage card is optimistic between devices/tabs. If
+              // the server is the first place to see exhaustion, open the
+              // same Boost checkout modal used by the input bar.
+              window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
+            }
             throw new Error(
               typeof details?.error === 'string'
                 ? details.error

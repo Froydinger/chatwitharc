@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, ArrowRight, Check } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { getStripeEnvironment } from "@/lib/stripe";
 import { supabase } from "@/integrations/supabase/client";
 import { GlassButton } from "@/components/ui/glass-button";
+import { BOOST_PLAN_FEATURES } from "@/lib/planCopy";
+import { useArcStore } from "@/store/useArcStore";
 
 export default function CheckoutReturnPage() {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const navigate = useNavigate();
   const { checkSubscription } = useSubscription();
+  const createNewSession = useArcStore((state) => state.createNewSession);
   
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState("");
@@ -47,10 +50,6 @@ export default function CheckoutReturnPage() {
           
           if (isMounted) {
             setStatus("success");
-            // Redirect after showing success screen
-            setTimeout(() => {
-              navigate("/");
-            }, 3000);
           }
         } else {
           throw new Error(data?.error || "Payment session is incomplete or unpaid.");
@@ -92,12 +91,26 @@ export default function CheckoutReturnPage() {
               <CheckCircle2 className="h-8 w-8 text-emerald-500" />
             </div>
             <h2 className="text-2xl font-bold tracking-tight mb-2 text-emerald-500">Welcome to Boost!</h2>
-            <p className="text-muted-foreground text-sm max-w-xs mb-4">
-              Your subscription is active and Smart & Smartest modes are now unlocked.
+            <p className="text-muted-foreground text-sm max-w-sm mb-5">
+              Your subscription is active. Here&apos;s what you just unlocked:
             </p>
-            <p className="text-xs text-primary/60 animate-bounce">
-              Redirecting you to the dashboard...
-            </p>
+            <ul className="w-full max-w-sm text-left space-y-2.5 mb-7">
+              {BOOST_PLAN_FEATURES.map((feature) => (
+                <li key={feature} className="flex items-start gap-2.5 text-sm text-foreground/90">
+                  <Check className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+            <GlassButton
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/95 font-semibold py-6 rounded-xl"
+              onClick={() => {
+                const newSessionId = createNewSession();
+                navigate(`/chat/${newSessionId}`, { replace: true });
+              }}
+            >
+              Chat with Arc <ArrowRight className="h-4 w-4 ml-2" />
+            </GlassButton>
           </>
         )}
 

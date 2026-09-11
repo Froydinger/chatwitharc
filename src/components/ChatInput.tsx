@@ -3493,7 +3493,7 @@ ${safeCode}
                   if (!hasBoost && !isAdmin && !canStartVoiceConversation) {
                     toast({
                       title: "Daily voice limit reached",
-                      description: "Free accounts get 3 voice sessions per day. Boost includes unlimited voice sessions.",
+                      description: "Free accounts get tons of voice usage. Boost includes unlimited voice sessions.",
                       variant: "destructive",
                     });
                     openCheckout();

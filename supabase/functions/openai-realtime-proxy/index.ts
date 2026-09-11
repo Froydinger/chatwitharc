@@ -122,11 +122,11 @@ serve(async (req) => {
   }
   if (!voiceQuota?.allowed) {
     return new Response(JSON.stringify({
-      error: 'Free accounts can start up to 3 voice sessions per day. Boost includes unlimited voice sessions.',
+      error: 'Free accounts have reached their daily voice allowance. Boost includes unlimited voice sessions.',
       code: 'voice_daily_limit',
-      used: voiceQuota?.used ?? 3,
+      used: voiceQuota?.used ?? 0,
       remaining: 0,
-      limit: 3,
+      limit: 10,
     }), {
       status: 429,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

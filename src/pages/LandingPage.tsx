@@ -24,11 +24,11 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning (unlimited Quick, 10 Balanced, and 3 Deep daily), canvases, long-term memory, image generation, weekly research, and 3 voice sessions per day. Upgrade to Boost for unlimited research, unlimited reasoning, App Builder, higher image quotas, and unlimited voice sessions.",
+    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning (unlimited Quick, 10 Balanced, and 3 Deep daily), canvases, long-term memory, image generation, weekly research, and tons of free voice usage. Upgrade to Boost for unlimited research, unlimited reasoning, App Builder, higher image quotas, and unlimited voice sessions.",
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds unlimited Luna reasoning, unlimited Deep Search and Ultra Deep Search, GPT-Image-2 (20/day), full image editing, and the full App Builder with live web-app publishing.",
+    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds unlimited Luna reasoning, unlimited Deep Search and Ultra Deep Search, GPT-Image-2.5 Pro and Quick (20/day), full image editing, unlimited real-time voice, and the full App Builder with live web-app publishing.",
   },
   {
     q: "What is the App Builder in ArcAI?",
@@ -60,11 +60,11 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI generate images?",
-    a: "Yes. Free accounts receive GPT-Image-1 Mini (40/day), GPT-Image-1 (10/day), and GPT-Image-2 (3/day). Boost accounts receive GPT-Image-2 (20/day) and full editing features.",
+    a: "Yes. Free accounts receive GPT-Image-2.5 Quick (10/day). Boost accounts receive GPT-Image-2.5 Quick and Pro (20/day) plus full editing features.",
   },
   {
     q: "Does ArcAI have voice mode?",
-    a: "Yes. Voice mode is available, providing low-latency spoken conversations with multiple natural voices. Free accounts get 3 sessions per day, while Boost includes unlimited voice sessions.",
+    a: "Yes. Voice mode is available, providing low-latency spoken conversations with multiple natural voices. Free accounts get tons of voice usage, while Boost includes unlimited voice sessions.",
   },
   {
     q: "Can ArcAI write code and build apps?",
@@ -257,8 +257,8 @@ export function LandingPage() {
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
-                { icon: ImageIcon, title: "10 free images a day", body: "Generate and edit up to 10 images daily for free, or 30 with Boost." },
-                { icon: Mic, title: "Real-time voice & audio", body: "Speak naturally with instant spoken audio. Free accounts get 3 voice sessions each day, and Boost removes the session cap." },
+                { icon: ImageIcon, title: "10 free images a day", body: "Generate and edit up to 10 images daily for free, or 20 with Boost." },
+                { icon: Mic, title: "Real-time voice & audio", body: "Speak naturally with instant spoken audio. Free accounts get tons of voice usage, and Boost removes the session cap." },
                 { icon: Search, title: "Deep research, powered by Perplexity", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. 4 Deep and 1 Ultra a week free, unlimited on Boost." },
                 { icon: Code2, title: "Publish code online", body: "Share your canvases and running web creations with custom Arc links on Boost." },
               ].map((b) => (
@@ -371,7 +371,7 @@ export function LandingPage() {
           Find your creative center.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-              Start with 20 daily reasoning chats, 10 images a day, and 3 voice sessions per day. Upgrade to Boost for higher limits and unlimited voice sessions.
+              Start with 20 daily reasoning chats, 10 images a day, and tons of free voice usage. Upgrade to Boost for higher limits and unlimited voice sessions.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button
