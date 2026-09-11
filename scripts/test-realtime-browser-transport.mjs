@@ -120,13 +120,15 @@ const { RealtimeBrowserTransport } = await import(moduleUrl);
   peers.at(-1).channel.readyState = 'open';
   peers.at(-1).channel.emit('open');
   assert.equal(opened, 1);
+  transport.setMuted(true);
+  assert.equal(track.enabled, false);
+  assert.equal(peers.at(-1).channel.sent.length, 0, 'Live mute is a local RTP track change');
   transport.setMuted(false);
   assert.equal(track.enabled, true);
   transport.send('{"type":"session.update"}');
   transport.clearOutput();
-  assert.equal(peers.at(-1).channel.sent.length, 3);
-  assert.match(peers.at(-1).channel.sent[0], /^\{"type":"session\.input_audio\.unmute","event_id":"mute_/);
-  assert.deepEqual(peers.at(-1).channel.sent.slice(1), [
+  assert.equal(peers.at(-1).channel.sent.length, 2);
+  assert.deepEqual(peers.at(-1).channel.sent, [
     '{"type":"session.update"}',
     '{"type":"output_audio_buffer.clear"}',
   ]);
@@ -150,14 +152,17 @@ const { RealtimeBrowserTransport } = await import(moduleUrl);
 // active for full-duplex conversation.
 {
   const track = makeTrack();
+  let trackEnabledAtNegotiation = false;
   getUserMedia = async () => makeStream(track);
   const transport = new RealtimeBrowserTransport({
     negotiateSdp: async (offer) => {
       assert.equal(offer, 'offer-sdp');
+      trackEnabledAtNegotiation = track.enabled;
       return { answerSdp: 'v=0\r\n', sessionId: 'live_test' };
     },
   });
   await transport.connect();
+  assert.equal(trackEnabledAtNegotiation, true, 'Live RTP input must stay enabled before session.started');
   assert.equal(track.enabled, true);
   assert.equal(peers.at(-1).remoteDescription.sdp, 'v=0\r\n');
   transport.close();

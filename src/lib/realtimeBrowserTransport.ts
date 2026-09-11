@@ -73,7 +73,6 @@ export class RealtimeBrowserTransport {
   private statsTimer: ReturnType<typeof setInterval> | null = null;
   private audioRetryHandler: (() => void) | null = null;
   private closeEmitted = false;
-  private sessionInputReady = false;
 
   constructor(options: RealtimeBrowserTransportOptions = {}) {
     this.options = options;
@@ -155,12 +154,12 @@ export class RealtimeBrowserTransport {
         }
         this.localStream = stream;
         // GPT-Live is full duplex. WebRTC echo cancellation and Live's
-        // interruption handling own the speaking turn. Keep the track quiet
-        // until the data channel confirms the Live session is ready; otherwise
-        // speech during SDP/session startup can queue and return as delayed,
-        // duplicated responses.
+        // interruption handling own the speaking turn. Keep the negotiated
+        // media track live, as required by the browser WebRTC flow. The
+        // data-channel session.started event still gates UI commands, while
+        // user activation remains the only way this transport is created.
         for (const track of stream.getAudioTracks()) {
-          track.enabled = false;
+          track.enabled = true;
           pc.addTrack(track, stream);
         }
       }
@@ -252,21 +251,10 @@ export class RealtimeBrowserTransport {
   setMuted(muted: boolean): void {
     this.userMuted = muted;
     this.updateTrackState();
-    if (this.dataChannel?.readyState === 'open') {
-      this.dataChannel.send(JSON.stringify({
-        type: muted ? 'session.input_audio.mute' : 'session.input_audio.unmute',
-        event_id: `mute_${Date.now()}`,
-      }));
-    }
-  }
-
-  setInputEnabled(enabled: boolean): void {
-    this.sessionInputReady = enabled;
-    this.updateTrackState();
   }
 
   private updateTrackState(): void {
-    const shouldDisable = this.userMuted || !this.sessionInputReady;
+    const shouldDisable = this.userMuted;
     for (const track of this.localStream?.getAudioTracks() ?? []) {
       track.enabled = !shouldDisable;
     }

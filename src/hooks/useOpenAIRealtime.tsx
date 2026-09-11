@@ -996,24 +996,23 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         suppressInterruptedResponseAudio = false;
         sessionReady = true;
         if (liveSessionReadyTimer) clearTimeout(liveSessionReadyTimer);
-        const enableLiveInput = () => {
+        const markLiveInputReady = () => {
           liveSessionReadyTimer = null;
           if (
             globalSessionId !== incomingSessionId ||
             !(globalWs instanceof RealtimeBrowserTransport) ||
             !useVoiceModeStore.getState().isActive
           ) return;
-          globalWs.setInputEnabled(true);
           setStatus('listening');
         };
         if (isIOSDevice()) {
           // iOS can report session.created before its WebRTC audio route and
-          // Live transcription pipeline have settled. Keep the mic closed and
-          // the UI in Connecting during that short handoff so the first words
-          // cannot land in a half-ready turn.
-          liveSessionReadyTimer = setTimeout(enableLiveInput, 320);
+          // Live transcription pipeline have settled. Keep only the UI in
+          // Connecting during that short handoff; the negotiated RTP track is
+          // already live so WebKit cannot strand the microphone in silence.
+          liveSessionReadyTimer = setTimeout(markLiveInputReady, 320);
         } else {
-          enableLiveInput();
+          markLiveInputReady();
         }
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('arc-voice-quota-changed'));
