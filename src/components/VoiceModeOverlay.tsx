@@ -80,6 +80,8 @@ export function VoiceModeOverlay() {
     setWeatherData,
     isSchedulingTask,
     selectedVoice,
+    conversationTurns,
+    currentTranscript,
     // Camera state
     isCameraActive,
     activateCamera,
@@ -356,6 +358,9 @@ export function VoiceModeOverlay() {
     ? REALTIME_VOICES.find(v => v.id === pendingVoiceSwitch) 
     : null;
 
+  const visibleTurns = conversationTurns.slice(-8);
+  const liveAssistantTranscript = currentTranscript.trim();
+
   return (
     <AnimatePresence>
       {isActive && (
@@ -486,6 +491,41 @@ export function VoiceModeOverlay() {
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Live captions and the recent voice transcript. GPT-Live sends
+                assistant text separately from audio, so keep it visible even
+                while the native audio track is speaking. */}
+            {(visibleTurns.length > 0 || liveAssistantTranscript) && (
+              <div
+                className="mb-2 max-h-56 w-full max-w-[620px] overflow-y-auto rounded-2xl border border-primary/15 bg-background/85 p-3 shadow-xl backdrop-blur-xl"
+                aria-live="polite"
+                aria-label="Voice conversation transcript"
+              >
+                <div className="flex flex-col gap-2">
+                  {visibleTurns.map((turn, index) => (
+                    <div
+                      key={`${turn.role}-${turn.timestamp instanceof Date ? turn.timestamp.getTime() : index}-${index}`}
+                      className={`rounded-xl px-3 py-2 text-sm leading-relaxed ${
+                        turn.role === 'assistant'
+                          ? 'bg-primary/10 text-foreground'
+                          : 'bg-muted/60 text-muted-foreground'
+                      }`}
+                    >
+                      <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                        {turn.role === 'assistant' ? 'Arc' : 'You'}
+                      </div>
+                      {turn.transcript}
+                    </div>
+                  ))}
+                  {liveAssistantTranscript && (
+                    <div className="rounded-xl bg-primary/10 px-3 py-2 text-sm leading-relaxed text-foreground">
+                      <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">Arc</div>
+                      {liveAssistantTranscript}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Subtle floating hint when speaking */}
             <AnimatePresence>

@@ -963,7 +963,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'session.input_transcript.delta': {
         const delta = typeof event.delta === 'string' ? event.delta : '';
         if (!delta) break;
-        if (!userSpeechInProgress && liveInputTranscript) liveInputTranscript = '';
+        // `speech_stopped` can arrive before the last transcript fragments.
+        // Do not clear the accumulator here or Safari/iOS can split one spoken
+        // sentence into several partial words. The next speech_started event
+        // is the boundary that resets it.
         userSpeechInProgress = true;
         userSpokeAfterLastResponse = true;
         hasRealTranscription = true;
