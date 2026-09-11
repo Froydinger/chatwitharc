@@ -3,6 +3,7 @@ import { RealtimeBrowserTransport } from '@/lib/realtimeBrowserTransport';
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { useVoiceModeStore, VoiceName, REALTIME_SUPPORTED_VOICES, consumePendingMicStream } from '@/store/useVoiceModeStore';
 import { supabase } from '@/integrations/supabase/client';
+import { readEdgeErrorBody } from '@/lib/invokeEdgeFunction';
 import { getVoiceAudioConstraints } from '@/utils/platform';
 
 interface UseOpenAIRealtimeOptions {
@@ -1792,7 +1793,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               tools: LIVE_TOOL_DEFINITIONS,
             },
           });
-          if (error) throw new Error(error.message || 'Failed to create GPT-Live session.');
+          if (error) {
+            const details = await readEdgeErrorBody(error);
+            throw new Error(
+              typeof details?.error === 'string'
+                ? details.error
+                : error.message || 'Failed to create GPT-Live session.',
+            );
+          }
           // Accept the official Live response and the top-level `sdp` alias
           // used by the immediately previous Edge Function deployment. This
           // keeps a frontend/function rollout overlap from breaking WebRTC.
