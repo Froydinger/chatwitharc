@@ -1359,11 +1359,14 @@ When the user shares their camera or attaches an image, describe what you see na
   // each turn lands so voice mode feels like the regular chat, not a separate UI.
   useEffect(() => {
     if (!isActive || conversationTurns.length === 0) return;
+    // The ordering buffer already waits for late user/assistant transcript
+    // events. Persist immediately once a finalized turn lands so the live
+    // assistant bubble can hand off to the saved chat bubble without a gap.
     const timer = setTimeout(() => {
       saveNewTurns(false).catch((error) => {
         console.error('Failed to save live voice turns:', error);
       });
-    }, 500);
+    }, 0);
     return () => clearTimeout(timer);
   }, [conversationTurns, isActive, saveNewTurns]);
 
