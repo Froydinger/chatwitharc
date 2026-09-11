@@ -157,6 +157,7 @@ const clearSessionTimers = () => {
 let iosSpeakingPlaybackTimer: ReturnType<typeof setTimeout> | null = null;
 let currentResponseTranscript = '';
 let currentResponseTranscriptQueued = false;
+let currentResponseTranscriptSource: 'audio' | 'text' | null = null;
 let responseStartTime = 0;
 let liveInputTranscript = '';
 
@@ -207,6 +208,25 @@ const queueCurrentAssistantTranscript = (transcriptOverride?: string): string =>
   }
   scheduleTurnFlush();
   return transcript;
+};
+
+const extractAssistantTranscript = (responseOrEvent: any): string => {
+  const items = Array.isArray(responseOrEvent?.output)
+    ? responseOrEvent.output
+    : responseOrEvent?.item
+      ? [responseOrEvent.item]
+      : [];
+
+  for (const item of items) {
+    if (item?.role && item.role !== 'assistant') continue;
+    for (const content of Array.isArray(item?.content) ? item.content : []) {
+      const transcript = typeof content?.transcript === 'string' ? content.transcript : '';
+      if (transcript.trim()) return transcript;
+      const text = typeof content?.text === 'string' ? content.text : '';
+      if (text.trim()) return text;
+    }
+  }
+  return '';
 };
 
 const clearIosSpeakingGate = () => {
@@ -872,7 +892,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         innerType === 'response.audio_transcript.delta' ||
         innerType === 'response.audio_transcript.done' ||
         innerType === 'response.output_audio_transcript.delta' ||
-        innerType === 'response.output_audio_transcript.done';
+        innerType === 'response.output_audio_transcript.done' ||
+        innerType === 'response.text.delta' ||
+        innerType === 'response.text.done';
       if (innerType !== 'response.output_item.done' && !isLiveEvent) return;
       event = { ...event.event, delegation_id: event.delegation_id ?? null };
     }
@@ -896,6 +918,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         activeAudioMs = 0;
         currentResponseTranscript = '';
         currentResponseTranscriptQueued = false;
+        currentResponseTranscriptSource = null;
         interruptedResponseIds.clear();
         suppressInterruptedResponseAudio = false;
         sessionReady = true;
@@ -1076,7 +1099,16 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'response.audio_transcript.delta':
       case 'response.output_audio_transcript.delta':
       case 'session.output_transcript.delta':
+      case 'response.text.delta':
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
+        {
+          const transcriptSource = event.type === 'response.text.delta' ? 'text' : 'audio';
+          // Live may expose both a text stream and an audio transcript for one
+          // response. Use the first complete stream only so the chat cannot
+          // duplicate Arc's words when both are present.
+          if (currentResponseTranscriptSource && currentResponseTranscriptSource !== transcriptSource) return;
+          currentResponseTranscriptSource = transcriptSource;
+        }
         if (liveInputTranscript.trim()) {
           pendingUserTurns.push({ transcript: liveInputTranscript.trim(), queuedAt: Date.now() });
           liveInputTranscript = '';
@@ -1096,8 +1128,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'response.audio_transcript.done':
       case 'response.output_audio_transcript.done':
       case 'session.output_transcript.done':
+      case 'response.text.done':
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
-        const aiTranscript = event.transcript || currentResponseTranscript || '';
+        {
+          const transcriptSource = event.type === 'response.text.done' ? 'text' : 'audio';
+          if (currentResponseTranscriptSource && currentResponseTranscriptSource !== transcriptSource) return;
+          currentResponseTranscriptSource = transcriptSource;
+        }
+        const aiTranscript = event.transcript || event.text || currentResponseTranscript || '';
         scheduleIosSpeakingGateRelease(aiTranscript);
         const queuedTranscript = queueCurrentAssistantTranscript(aiTranscript);
         if (queuedTranscript) console.log('AI said:', queuedTranscript);
@@ -1604,6 +1642,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         responseStartTime = Date.now();
         currentResponseTranscript = '';
         currentResponseTranscriptQueued = false;
+        currentResponseTranscriptSource = null;
         startIosSpeakingGate();
         responseInProgress = true;
         activeResponseId = event.response?.id || null;
@@ -1635,7 +1674,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         if (!completedActiveResponse) break;
         flushPendingFunctionResults();
-        const completedTranscript = queueCurrentAssistantTranscript();
+        const completedTranscript = queueCurrentAssistantTranscript(
+          extractAssistantTranscript(event.response),
+        );
         setCurrentTranscript('');
         
         // Clear phantom timer
