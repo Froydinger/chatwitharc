@@ -391,7 +391,7 @@ useEffect(() => {
     setViewingImageIndex(null);
     setSelectedAppId(null);
     setSelectedCanvas(null);
-    setChatPage(1); setImagePage(1); setAppPage(1); setMemoryPage(1); setCanvasPage(1);
+    setChatPage(1); setImagePage(1); setAppPage(1); setCanvasPage(1);
     window.scrollTo({ top: 0 });
   };
 
@@ -1054,7 +1054,7 @@ useEffect(() => {
     setViewingImageIndex(null);
     setSelectedAppId(null);
     setSelectedCanvas(null);
-    setChatPage(1); setImagePage(1); setAppPage(1); setMemoryPage(1); setCanvasPage(1);
+    setChatPage(1); setImagePage(1); setAppPage(1); setCanvasPage(1);
     window.scrollTo({ top: 0 });
   };
 
