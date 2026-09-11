@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
-import { useArcStore } from "@/store/useArcStore";
+import { useArcStore, type Message } from "@/store/useArcStore";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useCanvasStore } from "@/store/useCanvasStore";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
@@ -293,6 +293,25 @@ export function MobileChatApp() {
   } = useArcStore();
   const isArcWorking = isLoading || isGeneratingImage || isSearchingChats || isAccessingMemory || isSearchingWeb;
   const isVoiceActive = useVoiceModeStore((s) => s.isActive);
+  const liveCaptionEntries = useVoiceModeStore((s) => s.liveCaptionEntries);
+  // Snapshot pre-call history. Finalized voice text continues saving behind
+  // these live bubbles; do not render both copies during the call.
+  const voiceHistoryRef = useRef<Set<string> | null>(null);
+  const voiceStartedAtRef = useRef(new Date());
+  if (!isVoiceActive) voiceHistoryRef.current = null;
+  else if (!voiceHistoryRef.current) {
+    voiceHistoryRef.current = new Set(messages.map((message) => message.id));
+    voiceStartedAtRef.current = new Date();
+  }
+  const displayedMessages: Message[] = isVoiceActive ? [
+    ...messages.filter((message) => voiceHistoryRef.current?.has(message.id) || message.type !== 'text'),
+    ...liveCaptionEntries.map((entry): Message => ({
+      id: `voice-caption-${entry.id}`, role: entry.role, content: entry.text,
+      timestamp: voiceStartedAtRef.current, type: 'text',
+      sourceModel: entry.role === 'assistant' ? 'cloud-voice' : undefined,
+      modelUsed: entry.role === 'assistant' ? 'gpt-live-1' : undefined,
+    })),
+  ] : messages;
   const voiceVolume = useVoiceModeStore((s) => s.volume);
   const setVoiceVolume = useVoiceModeStore((s) => s.setVolume);
   const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false);
@@ -656,6 +675,14 @@ export function MobileChatApp() {
   // When true, we pause auto-scroll so they can read freely until they scroll
   // back near the bottom (or until the AI finishes and a new message starts).
   const userScrolledUpRef = useRef(false);
+  useEffect(() => {
+    if (!isVoiceActive || userScrolledUpRef.current) return;
+    const frame = requestAnimationFrame(() => {
+      const node = messagesContainerRef.current;
+      if (node) node.scrollTo({ top: node.scrollHeight, behavior: 'auto' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isVoiceActive, liveCaptionEntries]);
   useEffect(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
@@ -1200,9 +1227,8 @@ export function MobileChatApp() {
 
             {/* Voice calls get a dedicated live transcript. The saved chat
                 returns here automatically once the call ends. */}
-            {isVoiceActive ? (
-              <LiveVoiceTranscript />
-            ) : messages.length === 0 ? (
+            {isVoiceActive && <LiveVoiceTranscript />}
+            {!isVoiceActive && messages.length === 0 ? (
               currentSessionId && isHydratingSession === currentSessionId && !hydrationTimedOut ? (
                 // Show loading spinner while hydrating session messages (with 5s timeout)
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -1227,11 +1253,11 @@ export function MobileChatApp() {
 
 
                   <AnimatePresence mode="popLayout" initial={false}>
-                    {messages.map((message, index) => {
-                      const isLastAssistantMessage = message.role === "assistant" && index === messages.length - 1;
+                    {displayedMessages.map((message, index) => {
+                      const isLastAssistantMessage = message.role === "assistant" && index === displayedMessages.length - 1;
                       // Only animate typewriter if this is a new message (not loaded from history)
                       const shouldAnimateTypewriter =
-                        isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current && !isSessionLoading;
+                        !isVoiceActive && isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current && !isSessionLoading;
 
                       return (
                         <motion.div
@@ -1353,7 +1379,7 @@ export function MobileChatApp() {
               )}
 
               {/* Greeting - above input on empty state */}
-              {messages.length === 0 && (
+              {!isVoiceActive && messages.length === 0 && (
                 <motion.div
                   className="flex justify-center mb-6"
                   initial={{ opacity: 0 }}
@@ -1403,7 +1429,7 @@ export function MobileChatApp() {
               </motion.div>
               )}
               {/* Quick Prompts - below input bar on empty state */}
-              {messages.length === 0 && (
+              {!isVoiceActive && messages.length === 0 && (
                 <div className="pointer-events-auto mt-4 flex justify-center">
                   <SmartSuggestions
                     suggestions={staticSuggestions}
