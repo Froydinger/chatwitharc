@@ -161,6 +161,7 @@ let currentResponseTranscript = '';
 let currentResponseTranscriptQueued = false;
 let currentResponseTranscriptSource: 'audio' | 'text' | null = null;
 let currentResponseId: string | null = null;
+let responseTranscriptFinalized = false;
 let responseStartTime = 0;
 let liveInputTranscript = '';
 
@@ -253,6 +254,7 @@ const resetResponseAccumulator = (clearLiveBubble = false) => {
   currentResponseTranscriptQueued = false;
   currentResponseTranscriptSource = null;
   currentResponseId = null;
+  responseTranscriptFinalized = false;
   if (clearLiveBubble) useVoiceModeStore.getState().setCurrentTranscript('');
 };
 
@@ -953,6 +955,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         innerType === 'input_audio_buffer.speech_started' ||
         innerType === 'input_audio_buffer.speech_stopped' ||
         innerType === 'session.input_transcript.delta' ||
+        innerType === 'conversation.item.input_audio_transcription.completed' ||
         innerType === 'session.output_transcript.delta' ||
         innerType === 'session.output_transcript.done' ||
         innerType === 'response.audio_transcript.delta' ||
@@ -1182,6 +1185,11 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'session.output_transcript.delta':
       case 'response.text.delta':
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
+        // A transcript.done event is the boundary even if a Live session does
+        // not send response.created for the next automatic VAD response.
+        if (responseTranscriptFinalized || currentResponseTranscriptQueued) {
+          resetResponseAccumulator(true);
+        }
         startResponseSegment(event.response_id || event.response?.id || null);
         {
           const transcriptSource = event.type === 'response.text.delta' ? 'text' : 'audio';
@@ -1215,6 +1223,13 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         const aiTranscript = event.transcript || event.text || currentResponseTranscript || '';
         scheduleIosSpeakingGateRelease(aiTranscript);
         const queuedTranscript = queueCurrentAssistantTranscript(aiTranscript);
+        if (queuedTranscript) {
+          // Keep the queued flag through response.done so that the terminal
+          // event cannot enqueue the same assistant turn a second time.
+          responseTranscriptFinalized = true;
+          currentResponseTranscript = '';
+          currentResponseTranscriptSource = null;
+        }
         if (queuedTranscript) console.log('AI said:', queuedTranscript);
         break;
 
@@ -1752,9 +1767,10 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
         if (!completedActiveResponse) break;
         flushPendingFunctionResults();
-        const completedTranscript = queueCurrentAssistantTranscript(
-          extractAssistantTranscript(event.response),
-        );
+        const responseAlreadyQueued = responseTranscriptFinalized || currentResponseTranscriptQueued;
+        const completedTranscript = responseAlreadyQueued
+          ? extractAssistantTranscript(event.response)
+          : queueCurrentAssistantTranscript(extractAssistantTranscript(event.response));
         if (completedTranscript || currentResponseTranscriptQueued) {
           // Keep the ordinary chat bubble as the durable copy, but clear only
           // the internal response accumulator. The visible live bubble stays
