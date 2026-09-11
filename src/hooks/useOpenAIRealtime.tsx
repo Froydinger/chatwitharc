@@ -1138,6 +1138,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         userSpokeAfterLastResponse = true;
         hasRealTranscription = true;
         liveInputTranscript += delta;
+        useVoiceModeStore.getState().appendLiveCaption('user', delta);
         useVoiceModeStore.getState().setHasPendingSpeech(true);
         optionsRef.current.onTranscriptUpdate?.(delta, false);
         break;
@@ -1207,6 +1208,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         startIosSpeakingGate();
         setStatus('speaking');
         const partialTranscript = event.delta || '';
+        useVoiceModeStore.getState().appendLiveCaption('assistant', partialTranscript);
         currentResponseTranscript += partialTranscript;
         // Accumulate AI transcript separately — reset on each new response
         const { currentTranscript: existingTranscript } = useVoiceModeStore.getState();

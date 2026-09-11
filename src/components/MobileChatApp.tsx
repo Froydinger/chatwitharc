@@ -39,6 +39,7 @@ import { useAdminBanner } from "@/components/AdminBanner";
 import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
+import { LiveVoiceTranscript } from "@/components/LiveVoiceTranscript";
 import { VoiceModeController } from "@/components/VoiceModeController";
 import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
 import { MessageQueue } from "@/components/MessageQueue";
@@ -292,10 +293,6 @@ export function MobileChatApp() {
   } = useArcStore();
   const isArcWorking = isLoading || isGeneratingImage || isSearchingChats || isAccessingMemory || isSearchingWeb;
   const isVoiceActive = useVoiceModeStore((s) => s.isActive);
-  const liveVoiceReply = useVoiceModeStore((s) => s.currentTranscript);
-  const hasCommittedLiveReply = messages[messages.length - 1]?.role === 'assistant'
-    && messages[messages.length - 1]?.sourceModel === 'cloud-voice'
-    && messages[messages.length - 1]?.content.trim() === liveVoiceReply.trim();
   const voiceVolume = useVoiceModeStore((s) => s.volume);
   const setVoiceVolume = useVoiceModeStore((s) => s.setVolume);
   const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false);
@@ -1201,8 +1198,11 @@ export function MobileChatApp() {
             {/* Spacer for header */}
             <div style={{ paddingTop: "5rem" }} />
 
-            {/* Empty state or hydrating state */}
-            {messages.length === 0 && !(isVoiceActive && liveVoiceReply.trim()) ? (
+            {/* Voice calls get a dedicated live transcript. The saved chat
+                returns here automatically once the call ends. */}
+            {isVoiceActive ? (
+              <LiveVoiceTranscript />
+            ) : messages.length === 0 ? (
               currentSessionId && isHydratingSession === currentSessionId && !hydrationTimedOut ? (
                 // Show loading spinner while hydrating session messages (with 5s timeout)
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -1260,30 +1260,6 @@ export function MobileChatApp() {
                         </motion.div>
                       );
                     })}
-                    {isVoiceActive && liveVoiceReply.trim() && !hasCommittedLiveReply && (
-                      <motion.div
-                        key="voice-live-reply"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.15, ease: "easeOut" }}
-                      >
-                        <MessageBubble
-                          message={{
-                            id: 'voice-live-reply',
-                            content: liveVoiceReply,
-                            role: 'assistant',
-                            timestamp: new Date(),
-                            type: 'text',
-                            sourceModel: 'cloud-voice',
-                            modelUsed: 'gpt-live-1',
-                          }}
-                          isLatestAssistant
-                          shouldAnimateTypewriter={false}
-                          isThinking={false}
-                        />
-                      </motion.div>
-                    )}
                   </AnimatePresence>
                   {/* Show thinking indicator when loading */}
                   <AnimatePresence>

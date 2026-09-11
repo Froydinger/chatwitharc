@@ -12,7 +12,7 @@ globalThis.clearTimeout = id => timers.delete(id);
 globalThis.setInterval = () => nextTimer++;
 globalThis.clearInterval = () => {};
 globalThis.WebSocket = { OPEN: 1, CONNECTING: 0, CLOSING: 2, CLOSED: 3 };
-globalThis.window = globalThis;
+globalThis.window = { dispatchEvent() { return true; } };
 globalThis.fetch = () => { throw new Error('Network forbidden in voice tests'); };
 Date.now = () => now;
 function advance(ms) {
@@ -30,6 +30,8 @@ const state = {
   isActive: true, isMuted: false, isAudioPlaying: false, status: 'listening', selectedVoice: 'marin',
   currentTranscript: '', inputAmplitude: 0, outputAmplitude: 0, hasPendingSpeech: false, conversationHistory: [], conversationTurns: [],
   addConversationTurn(turn) { state.conversationHistory.push(turn); },
+  liveCaptions: [],
+  appendLiveCaption(role, text) { state.liveCaptions.push({ role, text }); },
   deactivateVoiceMode() { state.isActive = false; }, setError() {},
 };
 for (const field of ['status', 'currentTranscript', 'hasPendingSpeech', 'isAudioPlaying', 'inputAmplitude', 'outputAmplitude']) {
@@ -170,6 +172,13 @@ try {
   fresh.emit({ type: 'session.created', session: { id: 'fresh' } });
   searchResolve('Late result'); await settle(); advance(1000);
   assert.equal(fresh.sent.filter(event => event.type === 'response.create' || event.item?.type === 'function_call_output').length, 0, 'old tool result must not enter a new session');
+  state.liveCaptions = [];
+  fresh.emit({ type: 'session.input_transcript.delta', delta: 'Can you hear me?' });
+  fresh.emit({ type: 'session.output_transcript.delta', delta: 'Yes, I can.' });
+  assert.deepEqual(state.liveCaptions, [
+    { role: 'user', text: 'Can you hear me?' },
+    { role: 'assistant', text: 'Yes, I can.' },
+  ], 'both speakers appear immediately without waiting for finalized chat turns');
   hook.disconnect();
   let releaseToken;
   tokenGate = new Promise(resolve => { releaseToken = resolve; });

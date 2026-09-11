@@ -38,6 +38,8 @@ interface VoiceModeState {
   
   // Transcripts
   currentTranscript: string;
+  liveCaptionEntries: { id: string; role: 'user' | 'assistant'; text: string }[];
+  appendLiveCaption: (role: 'user' | 'assistant', text: string) => void;
   conversationTurns: VoiceTurn[];
   
   // Voice preference
@@ -219,6 +221,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   outputAmplitude: 0,
   isAudioPlaying: false,
   currentTranscript: '',
+  liveCaptionEntries: [],
   conversationTurns: [],
   selectedVoice: 'marin',
   voiceSpeed: getStoredVoiceSpeed(),
@@ -250,6 +253,7 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
     prewarmMicrophone();
     set({ 
       isActive: true, 
+      liveCaptionEntries: [],
       // The microphone may be prewarmed before GPT-Live is ready. Keep the
       // UI in Connecting until the live session confirms it can listen.
       status: 'connecting',
@@ -313,6 +317,14 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   setIsAudioPlaying: (playing) => set({ isAudioPlaying: playing }),
   
   setCurrentTranscript: (transcript) => set({ currentTranscript: transcript }),
+  appendLiveCaption: (role, text) => set((state) => {
+    if (!text) return state;
+    const entries = [...state.liveCaptionEntries];
+    const last = entries[entries.length - 1];
+    if (last?.role === role) entries[entries.length - 1] = { ...last, text: last.text + text };
+    else entries.push({ id: crypto.randomUUID(), role, text });
+    return { liveCaptionEntries: entries };
+  }),
   
   addConversationTurn: (turn) => set((state) => {
     // Keep enough transcript history to survive a legitimate long-session
