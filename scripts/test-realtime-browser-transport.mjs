@@ -107,7 +107,7 @@ const { RealtimeBrowserTransport } = await import(moduleUrl);
   transport.onclose = () => closed++;
   await transport.connect('ephemeral-test-key');
   assert.equal(peers.at(-1).tracks.length, 1);
-  assert.equal(track.enabled, false);
+  assert.equal(track.enabled, true);
   assert.equal(requests.length, 1);
   assert.equal(requests[0].init.body, 'offer-sdp');
   assert.equal(requests[0].init.headers.Authorization, 'Bearer ephemeral-test-key');

@@ -3,15 +3,62 @@ import { getVoiceAudioConstraints } from '@/utils/platform';
 
 export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking';
 
-// All 13 OpenAI voices
-export type VoiceName = 'alloy' | 'ash' | 'ballad' | 'cedar' | 'coral' | 'echo' | 'fable' | 'marin' | 'nova' | 'onyx' | 'sage' | 'shimmer' | 'verse';
+// All OpenAI voices supported by GPT-Live and Realtime
+export type VoiceName =
+  | 'marin'
+  | 'cedar'
+  | 'quartz'
+  | 'ripple'
+  | 'vesper'
+  | 'willow'
+  | 'stone'
+  | 'gleam'
+  | 'meridian'
+  | 'bossa'
+  | 'tempo'
+  | 'beacon'
+  | 'delta'
+  | 'cinder'
+  | 'alloy'
+  | 'ash'
+  | 'ballad'
+  | 'coral'
+  | 'echo'
+  | 'fable'
+  | 'nova'
+  | 'onyx'
+  | 'sage'
+  | 'shimmer'
+  | 'verse';
 
-// The only two voices Arc offers. This is the real gate: it validates the
-// saved `profile.preferred_voice`, so a stale value from when the picker
-// listed more voices normalizes back to the Marina default instead of being
-// sent to OpenAI. The wider `VoiceName` union and ALL_VOICES in
-// constants/voices.ts are dead config kept for avatars — NOT a live feature.
-export const REALTIME_SUPPORTED_VOICES: VoiceName[] = ['marin', 'cedar'];
+// Voices validated and available for GPT-Live and Realtime sessions
+export const REALTIME_SUPPORTED_VOICES: VoiceName[] = [
+  'marin',
+  'cedar',
+  'quartz',
+  'ripple',
+  'vesper',
+  'willow',
+  'stone',
+  'gleam',
+  'meridian',
+  'bossa',
+  'tempo',
+  'beacon',
+  'delta',
+  'cinder',
+  'alloy',
+  'ash',
+  'ballad',
+  'coral',
+  'echo',
+  'fable',
+  'nova',
+  'onyx',
+  'sage',
+  'shimmer',
+  'verse',
+];
 
 interface VoiceTurn {
   role: 'user' | 'assistant';

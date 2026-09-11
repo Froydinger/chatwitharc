@@ -766,7 +766,7 @@ export function VoiceModeController() {
           longitude: locationUsed.longitude,
         } : undefined,
         sourceModel: 'cloud-voice',
-        modelUsed: 'gpt-realtime-2.1-mini',
+        modelUsed: 'gpt-live-1',
       });
       return `Weather in ${data.location}: ${data.temperature}°F (feels like ${data.feelsLike}°F), ${data.condition}. High ${data.high}°, low ${data.low}°. Humidity ${data.humidity}%, wind ${data.wind} mph. Briefly tell the user what it's like — keep it casual and short.`;
     } catch (e: any) {
@@ -994,7 +994,7 @@ export function VoiceModeController() {
                 searchProvider: webSearch.provider,
               } : undefined,
               sourceModel: turn.role === 'assistant' ? 'cloud-voice' : undefined,
-              modelUsed: turn.role === 'assistant' ? 'gpt-realtime-2.1-mini' : undefined,
+              modelUsed: turn.role === 'assistant' ? 'gpt-live-1' : undefined,
               locationUsed: webSearch?.locationUsed,
             });
           }

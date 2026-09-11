@@ -60,6 +60,7 @@ const result = await build({
         constructor(options) { this.options = options; globalThis.__arcWebRTCTest.transports.push(this); }
         async connect(secret) { this.secret = secret; this.readyState = 1; this.onopen?.(); }
         setMuted(value) { this.muted.push(value); }
+        setSpeakingGate(value) {}
         send(value) { this.sent.push(JSON.parse(value)); }
         close() { this.readyState = 3; this.onclose?.({code:1000,reason:'test close'}); }
         emit(event) { this.onmessage?.({data:JSON.stringify(event)}); }

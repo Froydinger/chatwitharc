@@ -7,12 +7,18 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Arc offers exactly two voices: Marina (marin, default) and Cedric (cedar).
-const ALLOWED_VOICES = new Set(['marin', 'cedar']);
-// Arc voice mode runs only on the lowest-cost Realtime Mini tier. Prefer the
-// current 2.1 Mini model, with no legacy or full-price fallback.
-// Never auto-select a full-size Realtime model: that would silently raise the
-// audio rate and recreate the billing risk this proxy is meant to prevent.
+// Voices supported by GPT-Live and Realtime models.
+const ALLOWED_VOICES = new Set([
+  'marin', 'cedar', 'quartz', 'ripple', 'vesper', 'willow', 'stone',
+  'gleam', 'meridian', 'bossa', 'tempo', 'beacon', 'delta', 'cinder',
+  'alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'nova', 'onyx',
+  'sage', 'shimmer', 'verse',
+]);
+
+const GPT_LIVE_MODEL = 'gpt-live-1';
+const DELEGATED_RESPONSES_MODEL = 'gpt-5.6-luna';
+
+// Fallback candidates if legacy client_secrets are requested without an SDP offer.
 const REALTIME_MODEL_CANDIDATES = [
   'gpt-realtime-2.1-mini',
 ] as const;
@@ -102,10 +108,27 @@ serve(async (req) => {
   }
 
   let requestedVoice = 'marin';
+  let sdpOffer: string | null = null;
+  let liveInstructions: string | null = null;
+  let backendInstructions: string | null = null;
+  let tools: any[] | null = null;
+
   try {
     const body = await req.json();
     if (typeof body?.voice === 'string' && ALLOWED_VOICES.has(body.voice)) {
       requestedVoice = body.voice;
+    }
+    if (typeof body?.sdp === 'string' && body.sdp.trim()) {
+      sdpOffer = body.sdp.trim();
+    }
+    if (typeof body?.instructions === 'string' && body.instructions.trim()) {
+      liveInstructions = body.instructions.trim();
+    }
+    if (typeof body?.backendInstructions === 'string' && body.backendInstructions.trim()) {
+      backendInstructions = body.backendInstructions.trim();
+    }
+    if (Array.isArray(body?.tools)) {
+      tools = body.tools;
     }
   } catch {
     // Allow empty body and fall back to default voice.
@@ -118,6 +141,72 @@ serve(async (req) => {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+  }
+
+  // If client supplied an SDP offer, create a direct GPT-Live 1 WebRTC session
+  if (sdpOffer) {
+    try {
+      console.log(`[openai-realtime-proxy] Creating GPT-Live-1 session with voice: ${requestedVoice}`);
+      const liveSessionPayload: Record<string, any> = {
+        session: {
+          model: GPT_LIVE_MODEL,
+          instructions: liveInstructions || 'You are Arc, a warm, direct, conversational AI assistant. Keep responses natural, punchy, and concise. Delegate research, tool execution, and complex questions to the backend.',
+          audio: {
+            output: { voice: requestedVoice },
+          },
+          delegation: {
+            type: 'responses',
+            responses: {
+              model: DELEGATED_RESPONSES_MODEL,
+              instructions: backendInstructions || "You are Arc's reasoning engine. Execute tools and reason carefully to produce accurate, concise, grounded answers for spoken delivery.",
+              tools: tools || [],
+              tool_choice: 'auto',
+            },
+          },
+        },
+        transport: {
+          type: 'webrtc',
+          sdp: sdpOffer,
+        },
+      };
+
+      const liveRes = await fetch('https://api.openai.com/v1/live/sessions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(liveSessionPayload),
+      });
+
+      const liveText = await liveRes.text();
+      if (liveRes.ok) {
+        const liveData = JSON.parse(liveText);
+        console.log(`[openai-realtime-proxy] Created GPT-Live session: ${liveData?.session?.id}`);
+        return new Response(JSON.stringify({
+          sdp: liveData?.transport?.sdp,
+          session_id: liveData?.session?.id,
+          model: GPT_LIVE_MODEL,
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      console.warn(`[openai-realtime-proxy] GPT-Live-1 creation returned ${liveRes.status}: ${liveText}`);
+      return new Response(JSON.stringify({
+        error: `GPT-Live session creation failed: ${liveText.slice(0, 300)}`,
+      }), {
+        status: liveRes.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (err: any) {
+      console.error('[openai-realtime-proxy] Error creating GPT-Live session:', err);
+      return new Response(JSON.stringify({ error: err?.message || 'Failed to initialize live session' }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   let sessionData: any = null;

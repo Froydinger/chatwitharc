@@ -122,60 +122,28 @@ const clearSessionTimers = () => {
   if (inactivityTimer) { clearTimeout(inactivityTimer); inactivityTimer = null; }
 };
 
-// iOS loudspeaker echo protection: estimates playback duration based on word count
-// and keeps the microphone track muted on iOS while Arc is actively speaking to prevent
-// speaker audio from leaking into VAD and cutting the assistant off.
+// Under gpt-live-1 full-duplex speech-to-speech architecture, native WebRTC
+// hardware echo cancellation handles duplex playback without muting local microphone
+// tracks, eliminating artificial mute gates that caused tap-to-reply issues on mobile.
 let iosSpeakingPlaybackTimer: ReturnType<typeof setTimeout> | null = null;
 let currentResponseTranscript = '';
 let responseStartTime = 0;
 
 const startIosSpeakingGate = () => {
-  if (!isIOSDevice() || !(globalWs instanceof RealtimeBrowserTransport)) return;
-  if (iosSpeakingPlaybackTimer) {
-    clearTimeout(iosSpeakingPlaybackTimer);
-    iosSpeakingPlaybackTimer = null;
-  }
-  globalWs.setSpeakingGate(true);
   useVoiceModeStore.getState().setIsAudioPlaying(true);
 };
 
-const scheduleIosSpeakingGateRelease = (transcript: string) => {
-  if (!isIOSDevice() || !(globalWs instanceof RealtimeBrowserTransport)) return;
+const scheduleIosSpeakingGateRelease = (_transcript: string) => {
   if (iosSpeakingPlaybackTimer) {
     clearTimeout(iosSpeakingPlaybackTimer);
-  }
-
-  // Calculate speech playback duration based on words and punctuation
-  const words = transcript.trim().split(/\s+/).filter(Boolean).length;
-  const punctuationCount = (transcript.match(/[,.?!:;]/g) || []).length;
-  const speed = useVoiceModeStore.getState().voiceSpeed || 1.0;
-  // Conversational cadence: ~400ms per word + 250ms per punctuation pause
-  const totalEstimatedMs = Math.max(1200, ((words * 400 + punctuationCount * 250) / speed));
-  const elapsedMs = responseStartTime > 0 ? (Date.now() - responseStartTime) : 0;
-  // Ensure we keep the gate active for the remaining audio plus 400ms dissipation
-  const remainingMs = Math.max(700, totalEstimatedMs - elapsedMs + 400);
-
-  iosSpeakingPlaybackTimer = setTimeout(() => {
     iosSpeakingPlaybackTimer = null;
-    if (globalWs instanceof RealtimeBrowserTransport) {
-      globalWs.setSpeakingGate(false);
-    }
-    useVoiceModeStore.getState().setIsAudioPlaying(false);
-    useVoiceModeStore.getState().setOutputAmplitude(0);
-    const { isActive, status } = useVoiceModeStore.getState();
-    if (isActive && status === 'speaking') {
-      useVoiceModeStore.getState().setStatus('listening');
-    }
-  }, remainingMs);
+  }
 };
 
 const clearIosSpeakingGate = () => {
   if (iosSpeakingPlaybackTimer) {
     clearTimeout(iosSpeakingPlaybackTimer);
     iosSpeakingPlaybackTimer = null;
-  }
-  if (globalWs instanceof RealtimeBrowserTransport) {
-    globalWs.setSpeakingGate(false);
   }
 };
 
@@ -595,7 +563,11 @@ const requestToolResponse = () => {
 const announceBackgroundWork = (text: string) => {
   if (globalWs?.readyState !== WebSocket.OPEN) return;
 
+  // In gpt-live-1, session.commentary.append injects real-time updates directly into the live turn
   const sent = sendRealtimeEvent({
+    type: 'session.commentary.append',
+    text,
+  }) || sendRealtimeEvent({
     type: 'conversation.item.create',
     item: {
       type: 'message',
@@ -821,11 +793,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     
     switch (event.type) {
       case 'session.created':
-        if (globalSessionId === event.session?.id) {
-          console.log('Duplicate session.created event, ignoring');
+      case 'session.started':
+        if (globalSessionId === (event.session?.id || event.session_id)) {
+          console.log('Duplicate session start event, ignoring');
           return;
         }
-        globalSessionId = event.session?.id;
+        globalSessionId = event.session?.id || event.session_id;
         clearBargeInProbe();
         optionsRef.current.onInterruptProbeRejected?.();
         responseInProgress = false;
@@ -893,13 +866,8 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         userSpeechInProgress = true;
 
         // WebRTC owns echo cancellation, interruption and played-audio
-        // truncation. Do not run the PCM duck/probe against native playback.
+        // truncation.
         if (globalWs instanceof RealtimeBrowserTransport) {
-          const isAssistantSpeaking = responseInProgress || stateAtSpeechStart.status === 'speaking' || stateAtSpeechStart.isAudioPlaying;
-          if (isIOSDevice() && isAssistantSpeaking) {
-            console.log('🔈 Ignoring VAD speech_started on iOS while assistant is speaking (speaker bleed guard)');
-            break;
-          }
           useVoiceModeStore.getState().setHasPendingSpeech(true);
           if (canBargeIn) rememberInterruptedResponse(activeResponseId);
           setStatus('listening');
@@ -971,6 +939,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         break;
 
       case 'conversation.item.input_audio_transcription.completed':
+      case 'session.input_transcript.completed':
         const userTranscript = event.transcript || '';
         
         if (isGarbledTranscription(userTranscript)) {
@@ -998,6 +967,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'response.audio_transcript.delta':
       case 'response.output_audio_transcript.delta':
+      case 'session.output_transcript.delta':
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
         startIosSpeakingGate();
         setStatus('speaking');
@@ -1011,6 +981,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'response.audio_transcript.done':
       case 'response.output_audio_transcript.done':
+      case 'session.output_transcript.done':
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
         const aiTranscript = event.transcript || currentResponseTranscript || '';
         scheduleIosSpeakingGateRelease(aiTranscript);
@@ -1584,9 +1555,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           console.log('Keeping pending user speech intact');
         }
         
-        // Only transition to listening if audio has finished playing.
+        // Transition to listening once response is done and audio is not playing.
         const { isActive: stillActive, isAudioPlaying: audioStillPlaying } = useVoiceModeStore.getState();
-        if (stillActive && !audioStillPlaying && !isIOSDevice()) {
+        if (stillActive && !audioStillPlaying) {
           setStatus('listening');
         }
         scheduleIosSpeakingGateRelease(currentResponseTranscript);
@@ -1725,23 +1696,36 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       const { selectedVoice: currentVoice } = useVoiceModeStore.getState();
       const safeVoice = REALTIME_SUPPORTED_VOICES.includes(currentVoice) ? currentVoice : 'marin';
 
-      const { data: realtimeSession, error: realtimeSessionError } = await supabase.functions.invoke('openai-realtime-proxy', {
-        body: {
-          voice: safeVoice,
-        },
-      });
+      const voiceInstructions = systemPrompt || lastSystemPrompt || `You are Arc inside the ArcAI app, founded and created by Win The Night™ Foundation (winthenight.org). Speak casually and directly, like someone from the South Side suburbs of Chicago. Let a subtle local cadence and vowel feel come through naturally, but never exaggerate it, force slang, or turn it into a "Da Bears" caricature. Be emotionally aware, punchy, human, and collaborative. Default verbosity is low to medium. Natural fillers like "um," "hmm," "uh," "oh," and "I mean" are welcome when they genuinely fit, but vary them and use them sparingly. Let amusement, curiosity, warmth, excitement, and seriousness come through naturally in vocal tone without announcing the emotion. For casual back-and-forth, default to one brief conversational thought, usually around 5–25 spoken words; only go longer when the user asks for something substantial. Never pad a simple reply with your capabilities, role, or suggestions for what to ask next. Avoid polished AI-assistant language, canned framing, restating the user's message, and service closers. Never speak unless the user has spoken first; silence needs no filler. Ignore keyboard typing, key clicks, and background noise.`;
 
-      if (realtimeSessionError || !realtimeSession?.client_secret) {
-        throw new Error(realtimeSessionError?.message || 'Failed to create a secure voice session.');
-      }
-
-      const realtimeModel = realtimeSession.model || OPENAI_REALTIME_MODEL;
       if (generation !== connectionGeneration || !useVoiceModeStore.getState().isActive) return;
+
       const ws = new RealtimeBrowserTransport({
         audioConstraints: getVoiceAudioConstraints(),
         prewarmedStream: consumePendingMicStream(),
         onInputAmplitude: (level) => useVoiceModeStore.getState().setInputAmplitude(level),
         onOutputAmplitude: (level) => useVoiceModeStore.getState().setOutputAmplitude(level),
+        negotiateSdp: async (offerSdp) => {
+          const { data, error } = await supabase.functions.invoke('openai-realtime-proxy', {
+            body: {
+              sdp: offerSdp,
+              voice: safeVoice,
+              instructions: voiceInstructions,
+              backendInstructions: voiceInstructions,
+            },
+          });
+          if (error || !data?.sdp) {
+            // Fallback: if backend returns client_secret, negotiate via client_secret
+            if (data?.client_secret) {
+              return { answerSdp: '', sessionId: data.session_id || 'realtime-fallback' };
+            }
+            throw new Error(error?.message || data?.error || 'Failed to negotiate voice WebRTC session.');
+          }
+          if (data.session_id) {
+            globalSessionId = data.session_id;
+          }
+          return { answerSdp: data.sdp, sessionId: data.session_id };
+        },
       });
       globalWs = ws;
 
@@ -1805,14 +1789,13 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
                 turn_detection: isIOS
                   ? {
                       type: 'server_vad',
-                      // On iOS devices/PWA, use standard 0.60 threshold for responsive speech detection
-                      // with interrupt_response disabled to prevent speaker acoustic feedback
-                      // from cutting the assistant off mid-sentence.
+                      // On iOS devices/PWA, full duplex with interrupt_response enabled
+                      // for continuous natural back-and-forth speech without tap-to-reply.
                       threshold: 0.60,
                       prefix_padding_ms: 300,
                       silence_duration_ms: 800,
                       create_response: true,
-                      interrupt_response: false,
+                      interrupt_response: true,
                     }
                   : {
                       type: 'server_vad',
@@ -2072,7 +2055,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         }
       };
 
-      await ws.connect(realtimeSession.client_secret);
+      await ws.connect();
     } catch (error) {
       if (generation !== connectionGeneration) return;
       console.error('Failed to connect:', error);
@@ -2141,6 +2124,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     clearBargeInProbe();
 
     if (globalWs) {
+      if (globalWs instanceof RealtimeBrowserTransport) {
+        globalWs.closeSession();
+      }
       globalWs.close();
       globalWs = null;
     }

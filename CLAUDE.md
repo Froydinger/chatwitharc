@@ -168,6 +168,10 @@ review markup risks a manual action against the rich results the site earns.
 
 ## Notes
 
+- **Voice Mode: GPT-Live 1 full-duplex.** Real-time voice uses OpenAI's `gpt-live-1`
+  speech-to-speech architecture over WebRTC with hardware echo cancellation. Responses
+  delegation uses `gpt-5.6-luna` for tools and deep reasoning. No push-to-talk or
+  artificial mute speaking gates on mobile — voice is open full-duplex everywhere.
 - **Luna is the only text/reasoning model for now.** The picker exposes Auto,
   Quick, Balanced, and Deep. Quick, Balanced, and Deep map to `low`, `medium`,
   and `high` `reasoning_effort`; Auto starts at Quick and steps up for clearly

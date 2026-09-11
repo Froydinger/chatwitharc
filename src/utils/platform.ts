@@ -8,7 +8,7 @@ export function isStandaloneRuntime(): boolean {
 }
 
 export function isMobileLikeDevice(): boolean {
-  if (typeof navigator === "undefined") return false;
+  if (typeof navigator === "undefined" || !navigator.userAgent) return false;
   return (
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
     (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1)
@@ -16,7 +16,7 @@ export function isMobileLikeDevice(): boolean {
 }
 
 export function isIOSDevice(): boolean {
-  if (typeof navigator === "undefined") return false;
+  if (typeof navigator === "undefined" || !navigator.userAgent) return false;
   return (
     /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
     (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1)

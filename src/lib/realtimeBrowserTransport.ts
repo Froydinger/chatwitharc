@@ -14,6 +14,7 @@ export type RealtimeBrowserOutputEvent =
 
 export interface RealtimeBrowserTransportOptions {
   endpoint?: string;
+  negotiateSdp?: (offerSdp: string, signal?: AbortSignal) => Promise<{ answerSdp: string; sessionId?: string }>;
   audioConstraints?: MediaTrackConstraints;
   prewarmedStream?: Promise<MediaStream> | MediaStream | null;
   disableMicrophone?: boolean;
@@ -117,8 +118,10 @@ export class RealtimeBrowserTransport {
     document.addEventListener('pointerup', this.audioRetryHandler, { passive: true });
   }
 
-  async connect(ephemeralKey: string, signal?: AbortSignal): Promise<this> {
-    if (!ephemeralKey.trim()) throw new Error('Missing Realtime ephemeral key');
+  async connect(ephemeralKey?: string, signal?: AbortSignal): Promise<this> {
+    if (!this.options.negotiateSdp && (!ephemeralKey || !ephemeralKey.trim())) {
+      throw new Error('Missing Realtime ephemeral key');
+    }
     if (this.readyState !== RealtimeBrowserTransport.CONNECTING || this.peerConnection) {
       throw new DOMException('Realtime transport has already connected or closed', 'InvalidStateError');
     }
@@ -150,10 +153,9 @@ export class RealtimeBrowserTransport {
           throw new DOMException('Connection cancelled', 'AbortError');
         }
         this.localStream = stream;
-        // The caller explicitly enables the mic after session.updated so no
-        // pre-configuration audio can accidentally start a turn.
+        // In full-duplex Live mode, microphone tracks are active immediately upon connection
         for (const track of stream.getAudioTracks()) {
-          track.enabled = false;
+          track.enabled = true;
           pc.addTrack(track, stream);
         }
       }
@@ -168,23 +170,48 @@ export class RealtimeBrowserTransport {
         );
       }
 
-
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      const response = await fetch(this.options.endpoint ?? DEFAULT_ENDPOINT, {
-        method: 'POST',
-        body: pc.localDescription?.sdp ?? offer.sdp ?? '',
-        headers: {
-          Authorization: `Bearer ${ephemeralKey}`,
-          'Content-Type': 'application/sdp',
-        },
-        signal: this.abortController.signal,
-      });
 
-      const answerSdp = await response.text();
-      if (!response.ok) {
-        throw new Error(`Realtime WebRTC negotiation failed (${response.status}): ${answerSdp.slice(0, 240)}`);
+      let answerSdp = '';
+      if (this.options.negotiateSdp) {
+        if (pc.iceGatheringState !== 'complete') {
+          await new Promise<void>((resolve) => {
+            const timeout = setTimeout(() => {
+              pc.removeEventListener('icegatheringstatechange', onState);
+              resolve();
+            }, 1500);
+            function onState() {
+              if (pc.iceGatheringState === 'complete') {
+                clearTimeout(timeout);
+                pc.removeEventListener('icegatheringstatechange', onState);
+                resolve();
+              }
+            }
+            pc.addEventListener('icegatheringstatechange', onState);
+            if (pc.iceGatheringState === 'complete') onState();
+          });
+        }
+        const offerSdp = pc.localDescription?.sdp ?? offer.sdp ?? '';
+        const negotiation = await this.options.negotiateSdp(offerSdp, this.abortController.signal);
+        answerSdp = negotiation.answerSdp;
+      } else {
+        const response = await fetch(this.options.endpoint ?? DEFAULT_ENDPOINT, {
+          method: 'POST',
+          body: pc.localDescription?.sdp ?? offer.sdp ?? '',
+          headers: {
+            Authorization: `Bearer ${ephemeralKey}`,
+            'Content-Type': 'application/sdp',
+          },
+          signal: this.abortController.signal,
+        });
+
+        answerSdp = await response.text();
+        if (!response.ok) {
+          throw new Error(`Realtime WebRTC negotiation failed (${response.status}): ${answerSdp.slice(0, 240)}`);
+        }
       }
+
       await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
       this.startStats();
       return this;
@@ -222,18 +249,16 @@ export class RealtimeBrowserTransport {
   }
 
   /**
-   * Gates local microphone transmission during assistant playback on iOS
-   * to eliminate loudspeaker acoustic echo and self-interruption loops.
-   * Completely disabled on desktop (no-op).
+   * Under gpt-live-1 full-duplex speech-to-speech architecture, native WebRTC
+   * echo cancellation handles duplex acoustic echo without muting local microphone
+   * tracks, eliminating the need for an artificial speaking gate or tap-to-reply.
    */
-  setSpeakingGate(speaking: boolean): void {
-    if (!isIOSDevice()) return;
-    this.speakingGate = speaking;
-    this.updateTrackState();
+  setSpeakingGate(_speaking: boolean): void {
+    // No-op in gpt-live-1 full-duplex mode
   }
 
   private updateTrackState(): void {
-    const shouldDisable = this.userMuted || this.speakingGate;
+    const shouldDisable = this.userMuted;
     for (const track of this.localStream?.getAudioTracks() ?? []) {
       track.enabled = !shouldDisable;
     }
@@ -249,6 +274,15 @@ export class RealtimeBrowserTransport {
     } catch (_) {
       // Audio volume setter unavailable
     }
+  }
+
+  /** Send graceful session.close event over the data channel if connected */
+  closeSession(): void {
+    try {
+      if (this.dataChannel && this.dataChannel.readyState === 'open') {
+        this.dataChannel.send(JSON.stringify({ type: 'session.close' }));
+      }
+    } catch (_) {}
   }
 
   close(code = 1000, reason = ''): void {

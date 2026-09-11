@@ -584,21 +584,21 @@ export function VoiceModeOverlay() {
 
                 {/* Center Hero ThinkingOrb & Status */}
                 <div className="flex flex-1 sm:flex-initial items-center justify-center gap-3 sm:gap-4 px-1 py-0.5 min-w-0">
-                  {/* Hero ThinkingOrb Container — Push to Talk Hold */}
+                  {/* Hero ThinkingOrb Container — Tap to Interrupt */}
                   <div
-                    onMouseDown={() => globalStartPushToTalk?.()}
-                    onMouseUp={() => globalEndPushToTalk?.()}
-                    onMouseLeave={() => globalEndPushToTalk?.()}
-                    onTouchStart={() => globalStartPushToTalk?.()}
-                    onTouchEnd={() => globalEndPushToTalk?.()}
-                    onTouchCancel={() => globalEndPushToTalk?.()}
+                    onClick={() => {
+                      if (status === 'speaking' && globalInterruptHandler) {
+                        if (navigator.vibrate) navigator.vibrate(25);
+                        globalInterruptHandler();
+                      }
+                    }}
                     className="relative flex h-14 w-14 shrink-0 items-center justify-center cursor-pointer select-none active:scale-95 transition-transform"
                     style={{
                       transform: status === 'speaking' ? `scale(${1 + Math.min(0.18, amplitude * 0.16)})` : undefined,
                       transition: 'transform 80ms cubic-bezier(0.2, 0, 0, 1)',
                     }}
                     role="button"
-                    aria-label="Hold orb or spacebar to speak"
+                    aria-label={status === 'speaking' ? "Tap to interrupt while Arc speaks" : "Arc Voice Orb"}
                   >
                     {/* Glow halo only in dark mode to prevent black smudging in light mode */}
                     {orbTheme === 'dark' && (
