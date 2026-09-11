@@ -150,12 +150,14 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
 
   // Default to chat tab on mobile, preview on desktop
   useEffect(() => {
+    // Apply the responsive default only when the breakpoint changes. Including
+    // activeTab here reset every mobile tap straight back to Chat.
     if (isMobile) {
       setActiveTab('chat');
-    } else if (activeTab === 'chat') {
-      setActiveTab('preview');
+    } else {
+      setActiveTab((currentTab) => currentTab === 'chat' ? 'preview' : currentTab);
     }
-  }, [isMobile, activeTab]);
+  }, [isMobile]);
   
   const [messages, setMessagesRaw] = useState<ChatMessage[]>(() => {
     const storeMsgs = useIDEStore.getState().ideMessages;
