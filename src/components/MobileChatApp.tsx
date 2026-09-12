@@ -1039,15 +1039,22 @@ export function MobileChatApp() {
                 </Button>
               </motion.div>
               <ChatModelPicker placement="down" compact={isDesktopCanvasMode} />
-              {arcCloudAvailable && !isVoiceActive && <label className="text-xs text-muted-foreground">
-                <span className="sr-only">Arc Cloud execution mode</span>
-                <select aria-label="Agent execution mode" value={cloudExecutionMode}
-                  onChange={event => { if (user) setCloudModeChoice({ ownerId: user.id, mode: event.target.value === 'auto' ? 'auto' : 'ask' }); }}
-                  className="rounded-full border border-border bg-background px-2 py-1 text-foreground">
-                  <option value="ask">Arc Cloud: Ask</option>
-                  <option value="auto">Arc Cloud: Auto</option>
-                </select>
-              </label>}
+              {cloudTextEnabled && !isVoiceActive && (
+                arcCloudAvailable ? (
+                  <label className="text-xs text-muted-foreground">
+                    <span className="sr-only">Arc Chat or Arc Work mode</span>
+                    <select aria-label="Arc Chat or Arc Work mode" value={cloudExecutionMode}
+                      title="Arc Work is the Boost cloud agent"
+                      onChange={event => { if (user) setCloudModeChoice({ ownerId: user.id, mode: event.target.value === 'auto' ? 'auto' : 'ask' }); }}
+                      className="rounded-full border border-border bg-background px-2 py-1 text-foreground">
+                      <option value="ask">Arc Chat</option>
+                      <option value="auto">Arc Work</option>
+                    </select>
+                  </label>
+                ) : (
+                  <span className="text-xs text-muted-foreground" aria-label="Arc Chat mode">Arc Chat</span>
+                )
+              )}
             </div>
 
             {/* Right Header Buttons */}
