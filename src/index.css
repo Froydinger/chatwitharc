@@ -2,8 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Segmented Arc Chat / Arc Work control. The pill is measured in React so it
-   glides between labels without changing the picker width or reflowing rows. */
+/* Segmented Arc Chat / Arc Work control. The two equal slots let the active
+   pill render in its final position on first paint, then glide between modes. */
 .t-tabs.arc-mode-tabs {
   position: relative;
   display: flex;
@@ -59,9 +59,9 @@
 .t-tabs.arc-mode-tabs .t-tabs-pill {
   position: absolute;
   top: 3px;
-  left: 0;
+  left: 3px;
   height: 30px;
-  width: 0;
+  width: calc((100% - 9px) / 2);
   background: hsl(var(--card) / 0.96);
   border: 1px solid hsl(var(--foreground) / 0.22);
   border-radius: 48px;
@@ -76,6 +76,9 @@
   will-change: transform, width;
   z-index: 0;
   pointer-events: none;
+}
+.t-tabs.arc-mode-tabs[data-active="auto"] .t-tabs-pill {
+  transform: translateX(calc(100% + 3px));
 }
 @media (prefers-reduced-motion: reduce) {
   .t-tabs.arc-mode-tabs .t-tabs-pill,

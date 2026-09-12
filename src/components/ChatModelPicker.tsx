@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, RefreshCcwDot, Scale, Brain, Check, ChevronDown, Crown } from 'lucide-react';
@@ -45,9 +45,6 @@ export function ChatModelPicker({
   const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
-  const tabsRef = useRef<HTMLDivElement>(null);
-  const pillRef = useRef<HTMLSpanElement>(null);
-  const tabsPositionedRef = useRef(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const activePreset = PRESETS.find((preset) => preset.effort === reasoningEffort) ?? PRESETS[0];
   const CurrentIcon = activePreset.icon;
@@ -72,46 +69,6 @@ export function ChatModelPicker({
       window.removeEventListener('scroll', compute, true);
     };
   }, [open]);
-
-  const moveModePill = useCallback((animate: boolean) => {
-    const bar = tabsRef.current;
-    const pill = pillRef.current;
-    if (!bar || !pill) return;
-    const active = bar.querySelector<HTMLElement>(`[data-mode="${arcMode}"]`);
-    if (!active) return;
-    if (!animate) {
-      const previous = pill.style.transition;
-      pill.style.transition = 'none';
-      pill.style.transform = `translateX(${active.offsetLeft}px)`;
-      pill.style.width = `${active.offsetWidth}px`;
-      void pill.offsetWidth;
-      pill.style.transition = previous;
-    } else {
-      pill.style.transform = `translateX(${active.offsetLeft}px)`;
-      pill.style.width = `${active.offsetWidth}px`;
-    }
-  }, [arcMode]);
-
-  useEffect(() => {
-    if (!open || !showArcWork) {
-      tabsPositionedRef.current = false;
-      return;
-    }
-    const frame = requestAnimationFrame(() => {
-      moveModePill(false);
-      tabsPositionedRef.current = true;
-    });
-    const onResize = () => moveModePill(false);
-    window.addEventListener('resize', onResize);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('resize', onResize);
-    };
-  }, [open, showArcWork, moveModePill]);
-
-  useEffect(() => {
-    if (tabsPositionedRef.current) moveModePill(true);
-  }, [arcMode, moveModePill]);
 
   const pick = (effort: LunaReasoningSelection) => {
     setReasoningEffort(effort);
@@ -153,8 +110,13 @@ export function ChatModelPicker({
                 {showArcWork && (
                   <div className="px-2.5 pt-2 pb-2 border-b border-border/30">
                     <div className="text-xs font-semibold mb-2">Arc mode</div>
-                    <div ref={tabsRef} className="t-tabs arc-mode-tabs" role="group" aria-label="Arc Chat or Arc Work mode">
-                      <span ref={pillRef} className="t-tabs-pill" aria-hidden="true" />
+                    <div
+                      className="t-tabs arc-mode-tabs"
+                      data-active={arcMode}
+                      role="group"
+                      aria-label="Arc Chat or Arc Work mode"
+                    >
+                      <span className="t-tabs-pill" aria-hidden="true" />
                       <button
                         type="button"
                         className="t-tab"
