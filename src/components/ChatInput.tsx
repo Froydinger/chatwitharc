@@ -52,7 +52,8 @@ import { useSearchStore } from "@/store/useSearchStore";
 import { useVoiceModeStore, prewarmMicrophone } from "@/store/useVoiceModeStore";
 import type { VoiceName } from "@/store/useVoiceModeStore";
 import { REALTIME_VOICES, VOICE_AVATARS } from "@/constants/voices";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from "@/components/ui/popover";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { routeRequest } from "@/utils/routeRequest";
@@ -653,6 +654,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const [menuOrigin, setMenuOrigin] = useState<{ x: number; y: number } | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const inputBarRef = useRef<HTMLDivElement>(null);
+  const isMobileViewport = useIsMobile();
   const modelLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Tick to force re-render when the input bar's screen position can change
@@ -3236,7 +3238,7 @@ ${safeCode}
                           translate: "-50% -50%",
                           transformOrigin: "center",
                         }}
-                        className="liquid-metal-surface pointer-events-auto fixed overflow-y-auto rounded-[28px] border border-white/[0.1] bg-black/[0.94] p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl"
+                        className="liquid-metal-surface pointer-events-auto fixed overflow-y-auto rounded-[28px] border border-black/[0.1] bg-white/[0.94] p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-2xl dark:border-white/[0.1] dark:bg-black/[0.94] dark:shadow-[0_24px_70px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.08)]"
                       >
                         <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.24]">
                           <LiquidMetalOverlay preset="chromatic" strength={0.28} />
@@ -3253,7 +3255,7 @@ ${safeCode}
                                 exit={{ opacity: 0, x: -6 }}
                                 transition={{ delay: 0.07 + index * 0.038, duration: 0.24, ease: "easeOut" }}
                                 onClick={action.run}
-                                className="ci-create-row group flex min-h-10 w-full items-center gap-3 rounded-full px-3 py-1.5 text-left text-[15px] text-foreground transition-colors hover:bg-white/[0.09] focus-visible:bg-white/[0.1] focus-visible:outline-none"
+                                className="ci-create-row group flex min-h-10 w-full items-center gap-3 rounded-full px-3 py-1.5 text-left text-[15px] text-foreground transition-colors hover:bg-black/[0.06] focus-visible:bg-black/[0.08] dark:hover:bg-white/[0.09] dark:focus-visible:bg-white/[0.1] focus-visible:outline-none"
                               >
                                 <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105", action.iconClass)}>
                                   <Icon className="h-4 w-4" />
@@ -3261,7 +3263,7 @@ ${safeCode}
                                 <span className="min-w-0 flex-1 truncate font-medium">
                                   {action.label}
                                 </span>
-                                {action.badge && <span className="rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-purple-300">{action.badge}</span>}
+                                {action.badge && <span className="rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">{action.badge}</span>}
                               </motion.button>
                             );
                           })}
@@ -3373,6 +3375,7 @@ ${safeCode}
               <div className="flex items-center gap-1 shrink-0">
                 {/* Keep voice selection beside the waveform control. */}
                 <Popover>
+                  {isMobileViewport && <PopoverAnchor virtualRef={inputBarRef} />}
                   <PopoverTrigger asChild>
                     <button
                       type="button"
@@ -3385,11 +3388,13 @@ ${safeCode}
                     </button>
                   </PopoverTrigger>
                   <PopoverContent
-                    align="end"
+                    align={isMobileViewport ? "center" : "end"}
                     side="top"
+                    sideOffset={isMobileViewport ? 16 : 4}
+                    collisionPadding={16}
                     metalPreset="chromatic"
                     metalStrength={0.48}
-                    className="voice-picker-popover w-[min(88vw,340px)] overflow-hidden rounded-[28px] border-white/[0.14] !bg-black !p-0 shadow-2xl backdrop-blur-xl"
+                    className="voice-picker-popover w-[min(calc(100vw-32px),340px)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto rounded-[28px] border-white/[0.14] !bg-black !p-0 shadow-2xl backdrop-blur-xl"
                   >
                     <VoiceMagneticPicker
                       selectedVoice={selectedVoice}

@@ -1792,8 +1792,8 @@ export function MobileChatApp() {
 
         /* Remove textarea background to prevent layered rectangle appearance */
         .glass-dock textarea{ background: transparent !important; border-radius: 0 !important; }
-        .glass-dock textarea::placeholder{ color: rgba(255,255,255,0.48) !important; opacity: 1 !important; }
-        .glass-dock textarea{ color: rgba(255,255,255,0.92) !important; }
+        .glass-dock textarea::placeholder{ color: hsl(var(--muted-foreground) / 0.75) !important; opacity: 1 !important; }
+        .glass-dock textarea{ color: hsl(var(--foreground) / 0.92) !important; caret-color: hsl(var(--foreground)); }
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
         .glass-dock .chat-input-halo{
