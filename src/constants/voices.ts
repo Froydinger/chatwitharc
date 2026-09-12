@@ -11,6 +11,8 @@ import fableAvatar from '@/assets/voices/fable.png';
 import marinAvatar from '@/assets/voices/marin-line.svg';
 import novaAvatar from '@/assets/voices/nova.png';
 import onyxAvatar from '@/assets/voices/onyx.png';
+import qiraAvatar from '@/assets/voices/qira-line.svg';
+import rileyAvatar from '@/assets/voices/riley-line.svg';
 import sageAvatar from '@/assets/voices/sage.png';
 import shimmerAvatar from '@/assets/voices/shimmer.png';
 import verseAvatar from '@/assets/voices/verse.png';
@@ -29,8 +31,8 @@ export const VOICE_AVATARS: Record<VoiceName, string> = {
   sage: sageAvatar,
   shimmer: shimmerAvatar,
   verse: verseAvatar,
-  quartz: marinAvatar,
-  ripple: cedarAvatar,
+  quartz: qiraAvatar,
+  ripple: rileyAvatar,
   vesper: onyxAvatar,
   willow: coralAvatar,
   stone: echoAvatar,

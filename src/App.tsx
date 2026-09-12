@@ -10,6 +10,7 @@ import { UpgradeModal } from "@/components/UpgradeModal";
 import { BoostSync } from "@/components/BoostSync";
 import { ImageQuotaProvider } from "@/hooks/useImageQuota";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { MacInstallPrompt } from "@/components/MacInstallPrompt";
 import { AdminBanner } from "@/components/AdminBanner";
 import { SourceSurveyBanner } from "@/components/SourceSurveyBanner";
 import { PageTransition } from "@/components/PageTransition";
@@ -283,6 +284,7 @@ const App = () => {
               <Sonner />
               <FingerPopupContainer />
               <PWAInstallPrompt />
+              <MacInstallPrompt />
               <AdminBanner />
               <SourceSurveyBanner />
               <BugReportModal

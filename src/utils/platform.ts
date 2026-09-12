@@ -70,6 +70,21 @@ export function isMacDesktopRuntime(): boolean {
   return /electron/i.test(navigator.userAgent) && bridge?.platform === "darwin";
 }
 
+/**
+ * True for a regular macOS desktop browser, but false for the Electron app
+ * and installed standalone/PWA windows.
+ */
+export function isMacDesktopBrowser(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+  if (isMobileLikeDevice() || isStandaloneRuntime()) return false;
+
+  const userAgentData = (navigator as Navigator & {
+    userAgentData?: { platform?: string };
+  }).userAgentData;
+
+  return /Macintosh|Mac OS X/i.test(navigator.userAgent) || userAgentData?.platform === "macOS";
+}
+
 function getReliableMacOSMajorVersion(): number | null {
   if (typeof navigator === "undefined") return null;
 

@@ -12,6 +12,7 @@ import {
   Crown,
   Search,
 } from "lucide-react";
+import { AppleLogo } from "@/components/icons/AppleLogo";
 import { BLOG_POSTS } from "@/content/blog/posts";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -153,6 +154,10 @@ export function LandingPage() {
           <Link to="/support" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
             Help
           </Link>
+          <Link to="/downloads" className="hidden items-center gap-1.5 text-sm font-medium text-white/70 transition-colors hover:text-white sm:flex">
+            <AppleLogo className="h-3.5 w-3.5" />
+            Download for Mac
+          </Link>
           <button
             onClick={handleTry}
             className="rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-black transition-transform hover:scale-[1.03] active:scale-[0.98]"
@@ -193,6 +198,12 @@ export function LandingPage() {
           >
             <Crown className="h-4 w-4 text-primary" /> Get Boost
           </button>
+          <Link
+            to="/downloads"
+            className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.03] px-6 py-3 text-base font-medium text-white/90 transition-colors hover:bg-white/[0.07]"
+          >
+            <AppleLogo className="h-4 w-4" /> Download for Mac
+          </Link>
         </div>
       </section>
 
@@ -401,6 +412,8 @@ export function LandingPage() {
           <Link to="/privacy" className="hover:text-white">Privacy</Link>
           <span>·</span>
           <Link to="/terms" className="hover:text-white">Terms</Link>
+          <span>·</span>
+          <Link to="/downloads" className="hover:text-white">Download for Mac</Link>
         </div>
         <div className="mt-3 opacity-60">© {new Date().getFullYear()} ArcAI by Win The Night™ Foundation</div>
       </footer>
