@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -78,15 +79,15 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
     }
   };
 
-  return (
-    <AnimatePresence>
+  const modal = (
+      <AnimatePresence>
       {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[150] flex items-center justify-center p-4"
           style={{ 
             backgroundColor: "rgba(0, 0, 0, 0.85)",
             backdropFilter: "blur(8px)",
@@ -152,4 +153,9 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
       )}
     </AnimatePresence>
   );
+
+  // The preview is rendered above the app shell so fixed chat controls cannot
+  // paint over it. This also escapes transformed message bubbles, which create
+  // their own stacking context during the bubble entrance animation.
+  return typeof document === "undefined" ? null : createPortal(modal, document.body);
 }

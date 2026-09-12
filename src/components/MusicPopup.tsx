@@ -22,7 +22,7 @@ interface MusicPopupProps { isOpen: boolean; onClose: () => void }
 
 export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
   const {
-    isPlaying, volume, currentTrack, isMuted, currentTime, duration,
+    isPlaying, volume, isMuted, currentTime, duration,
     playbackMode, musicSource, setMusicSource, cyclePlaybackMode,
     toggleMute, seek, handleVolumeChange, handleTrackChange,
   } = useMusicStore();
@@ -30,7 +30,6 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const reducedMotion = useReducedMotion();
   const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
-  const track = musicTracks.find((item) => item.id === currentTrack) || musicTracks[0];
   const ModeIcon = PLAYBACK_MODE_ICONS[playbackMode];
 
   useEffect(() => {
@@ -68,17 +67,6 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
         <div className="flex items-center justify-between px-5 pt-4 pb-1">
           <h2 id="arc-music-title" className="flex items-center gap-2 text-sm font-medium"><Music className="h-4 w-4" />Music</h2>
           <Button ref={closeRef} variant="ghost" size="icon" onClick={onClose} aria-label="Close music" className="h-8 w-8 rounded-full"><X className="h-4 w-4" /></Button>
-        </div>
-
-        {/* Arc's vinyl stays above the entire player, separate from Bencho's sleeve. */}
-        <div className="relative mx-auto my-3 h-36 w-36" aria-hidden="true">
-          <div className="arc-music-vinyl absolute inset-0 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-950 shadow-xl"
-            style={{ animationPlayState: isPlaying && musicSource === "built-in" ? "running" : "paused" }}>
-            <div className="absolute inset-2 rounded-full border border-zinc-700/40" />
-            <div className="absolute inset-4 rounded-full border border-zinc-700/30" />
-            <div className="absolute inset-4 overflow-hidden rounded-full shadow-inner"><img src={track.albumArt} alt="" className="h-full w-full object-cover" /></div>
-          </div>
-          <div className="absolute inset-0 m-auto h-4 w-4 rounded-full bg-zinc-300 shadow-inner" />
         </div>
 
         <Tabs value={musicSource} onValueChange={(value) => setMusicSource(value as MusicSource)} className="px-4 pb-4">

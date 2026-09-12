@@ -89,9 +89,9 @@ export function BenchoNowPlaying() {
   }, [open]);
 
   return (
-    <div className="arc-bencho snd" style={{ width: 260, height: 189 }}>
+    <div className="arc-bencho snd" style={{ width: 300, height: 218 }}>
       <div className="snd-box" ref={boxRef} data-open={open || undefined}
-        style={{ width: 260, height: mix(78, 189, p), borderRadius: mix(20, 26, p), scale: open ? 1 : 1 - 0.035 * swell }}>
+        style={{ width: 260, height: mix(78, 189, p), borderRadius: mix(20, 26, p), scale: open ? 1 : 1 - 0.035 * swell, transform: "scale(1.15)", transformOrigin: "center center" }}>
         <span className="snd-art" aria-hidden="true" style={{ backgroundImage: `url(${track.albumArt})`, left: 10, top: 10, width: artSize, height: artSize, borderRadius: mix(10, 16, p) }} />
         <span className="snd-say" style={{ left: mix(60, 84, p), top: 10, height: artSize, width: mix(94, 126, p) }}>
           <span className="snd-title" title={track.name} style={{ fontSize: mix(13, 15.5, p) }}>{track.name}</span>
