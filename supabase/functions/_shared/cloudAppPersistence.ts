@@ -4,12 +4,16 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.89.0
 import type { ClaimedCloudRun } from "./cloudRunWorker.ts";
 import {
   appFiles,
+  appPublishArgs,
   type AppStepResult,
   type AppWorkspace,
   type CloudAppPorts,
 } from "./cloudAppCore.ts";
 
 export type AppDatabase = Pick<SupabaseClient, "rpc" | "from">;
+export type CloudAppPersistenceOptions = {
+  publisher?: import("./cloudAppPublisher.ts").CloudPublisherConfig;
+};
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function appProjectId(run: ClaimedCloudRun): string {
   const request = run.request as Record<string, unknown>;
@@ -36,7 +40,10 @@ export function appProjectId(run: ClaimedCloudRun): string {
 }
 
 /** Current server checks, never cached client subscriptions or persisted bearer tokens. */
-export function cloudAppPersistence(db: AppDatabase): CloudAppPorts & {
+export function cloudAppPersistence(
+  db: AppDatabase,
+  options: CloudAppPersistenceOptions = {},
+): CloudAppPorts & {
   complete(
     run: ClaimedCloudRun,
     result: unknown,
@@ -49,16 +56,20 @@ export function cloudAppPersistence(db: AppDatabase): CloudAppPorts & {
     extra: Record<string, unknown> = {},
   ) {
     appProjectId(run);
-    const { data, error } = await db.rpc("cloud_app_step", {
+    const { data, error } = await db.rpc(
+      action.startsWith("publish_") ? "cloud_app_publish_step" : "cloud_app_step",
+      {
       p_run_id: run.id,
       p_lease_token: run.lease_token,
       p_action: action,
       ...extra,
-    });
+      },
+    );
     if (error) {
       // Known rejected arguments/conflicts are not ambiguous paid calls.
       if (
-        action === "apply" && ["22023", "23505", "40001"].includes(error.code)
+        ["apply", "publish_start", "publish_commit"].includes(action) &&
+        ["22023", "23505", "40001"].includes(error.code)
       ) return { status: error.code === "22023" ? "invalid" : "conflict" };
       throw new Error(
         "App persistence unavailable; same receipt required for recovery.",
@@ -126,6 +137,43 @@ export function cloudAppPersistence(db: AppDatabase): CloudAppPorts & {
           typeof value.replayed !== "boolean")
       ) throw new Error("Invalid app version receipt.");
       return value as AppStepResult;
+    },
+    async publish(run, call, key) {
+      const args = appPublishArgs(JSON.parse(call.arguments));
+      const plan = await step(run, "publish_start", {
+        p_receipt_key: key,
+        p_call: call,
+        p_result: args,
+      });
+      if (!["ready", "published"].includes(String(plan.status))) {
+        return plan as AppStepResult;
+      }
+      if (plan.status === "published") return plan as AppStepResult;
+      if (!options.publisher) {
+        return {
+          status: "unavailable",
+          result: { error: "Live publishing is temporarily unavailable." },
+        };
+      }
+      // Keep the legacy Node-based app integration tests and non-publishing
+      // callers free of remote compiler imports. The worker loads this only
+      // after an approved publish action reaches the side-effect boundary.
+      const { publishCloudApp } = await import("./cloudAppPublisher.ts");
+      const workspace = await this.open(run);
+      const deployed = await publishCloudApp(workspace.files, {
+        projectId: String(plan.projectId),
+        runId: run.id,
+        siteId: typeof plan.siteId === "string" ? plan.siteId : null,
+        subdomain: String(plan.subdomain),
+        title: String(plan.title),
+        description: String(plan.description ?? ""),
+      }, options.publisher);
+      const committed = await step(run, "publish_commit", {
+        p_receipt_key: key,
+        p_call: call,
+        p_result: deployed,
+      });
+      return committed as AppStepResult;
     },
     async complete(run, result, message) {
       return await step(run, "complete", {

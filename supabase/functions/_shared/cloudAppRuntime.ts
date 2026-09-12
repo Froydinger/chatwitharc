@@ -12,6 +12,7 @@ import { CLOUD_APP_INSTRUCTIONS } from "./cloudAppPrompts.ts";
 import { loadCloudRunContext } from "./cloudRunContext.ts";
 import { cloudResponseProvider } from "./cloudRunProvider.ts";
 import { cloudWorkerStore } from "./cloudRunStore.ts";
+import type { CloudPublisherConfig } from "./cloudAppPublisher.ts";
 import {
   type ClaimedCloudRun,
   type CloudWorkerStore,
@@ -132,7 +133,11 @@ export async function advanceCloudAppRun(
 export function cloudAppAdvance(
   db: AppDatabase,
   apiKey: string,
-  options: { enabled?: boolean; fetcher?: typeof fetch } = {},
+  options: {
+    enabled?: boolean;
+    fetcher?: typeof fetch;
+    publisher?: CloudPublisherConfig;
+  } = {},
 ) {
   return async (id: string) => {
     if (options.enabled !== true) {
@@ -140,7 +145,7 @@ export function cloudAppAdvance(
     }
     return await advanceCloudAppRun(id, {
       store: cloudWorkerStore(db),
-      app: cloudAppPersistence(db),
+      app: cloudAppPersistence(db, { publisher: options.publisher }),
       context: (run) => loadCloudRunContext(db, run),
       provider: (instructions) =>
         cloudResponseProvider({

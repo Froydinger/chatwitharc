@@ -1,4 +1,4 @@
-# Durable App Builder handoff (not activated)
+# Durable App Builder contract
 
 ## Implemented server boundary
 
@@ -9,9 +9,10 @@
 - `advanceCloudAppRun` exposes injected ports for tests. Do not invoke either
   function from inside an already-claimed worker's `prepare`: that would claim
   twice. Dispatch app/chat before calling their respective advance functions.
-- `inspect_app`, chunked `read_app_file`, and `apply_app_files` are the app-only
-  tools. Writes in ask mode require an exact approved call/hash. There are no
-  shell, deploy, network, or generated-code execution tools.
+- `inspect_app`, chunked `read_app_file`, `apply_app_files`, and `publish_app` are
+  the app-only tools. Writes in ask mode require an exact approved call/hash.
+  Publishing is always approval-gated, writes a durable publication intent before
+  calling Netlify, and reconciles the same address if the acknowledgement is lost.
 - Owner/session/project and current `user_has_boost` checks precede model work
   and run again on continuation/tool attempts/publication. Existing SQL includes
   admins. No browser auth token, `versions.app_users`, or `versions.app_db` is
@@ -24,11 +25,10 @@
   completes the cloud run and chat-session IDE artifact. Conflicts retain drafts
   and pause for explicit reconciliation. They never silently overwrite/rebase.
 
-## Remaining ingress/runtime wiring (Noether/main)
+## Ingress/runtime wiring
 
-1. Keep App Builder activation separate and disabled until migration + IDE tests
-   pass. The existing `cloudRunRuntime.ts` intentionally still rejects app runs.
-   A dispatcher must choose `cloudAppAdvance` for `kind=app` **before claim**;
+1. App Builder activation is separate from ordinary chat. The dispatcher chooses
+   `cloudAppAdvance` for `kind=app` **before claim**;
    ordinary text keeps its existing worker. Never change legacy `agent`, `chat`,
    `aiService.sendMessage`, or voice-controller paths as part of this cutover.
 2. Require an existing, saved, owned `ide_projects.id` as `request.projectId`.
@@ -40,8 +40,9 @@
 4. Current ingress/adapter messages are `{role:'user'|'assistant',content:string}`.
    Client system messages are rejected. Image/multimodal app submissions require
    a separately validated ingress/provider contract; don't silently strip images.
-5. Completed `result.app_artifact` contains `{projectId,runId,version,published:true,
-   executed:false,tested:false,deployed:false}`. The chat message is `type:'ide'`
+5. Completed `result.app_artifact` contains `{projectId,runId,version,published,
+   executed:false,tested:false,deployed}` where `published` reflects an explicit
+   successful `publish_app` call. The chat message is `type:'ide'`
    with `ideProjectId`, `ideFileCount`, `sourceModel:'cloud-ide'`.
    Artifact version is run-local; `ide_projects.cloud_revision` is the project
    CAS revision. They are different counters.

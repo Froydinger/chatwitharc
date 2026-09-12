@@ -4,6 +4,7 @@
     "https://esm.sh/iceberg-js@^0.8.1?target=denonext": "https://esm.sh/iceberg-js@0.8.1?target=denonext"
   },
   "remote": {
+    "https://cdn.jsdelivr.net/npm/esbuild-wasm@0.27.1/esm/browser.min.js": "c9e7585b8e0e4fc8166b7369efe9cfdc7c7dbbe023133e3c25b7ebb2a4febc24",
     "https://deno.land/x/imagescript@1.2.17/ImageScript.js": "9ce10c37a0e4fe43699689088c24f386fd401874057932bd57079ac729205038",
     "https://deno.land/x/imagescript@1.2.17/mod.ts": "18a6cb83c55e690c873505f6fe867364c678afb64934fe7aef593a6b92f79995",
     "https://deno.land/x/imagescript@1.2.17/png/src/crc.mjs": "5cf50de181d61dd00e66a240d811018ba5070afa8bba302f393604404604de84",

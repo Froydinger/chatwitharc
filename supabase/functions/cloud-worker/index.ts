@@ -65,7 +65,14 @@ if (import.meta.main) Deno.serve((req) => handleCloudWorker(req, {
           return data ? data.kind : null;
         },
         appEnabled,
-        app: cloudAppAdvance(db, apiKey, { enabled: appEnabled }),
+        app: cloudAppAdvance(db, apiKey, {
+          enabled: appEnabled,
+          publisher: {
+            netlifyAccessToken: Deno.env.get('NETLIFY_ACCESS_TOKEN') ?? '',
+            supabaseUrl: url,
+            domain: 'askarc.chat',
+          },
+        }),
         chat: cloudRunAdvance(db, apiKey, { tavilyApiKey: Deno.env.get('TAVILY_API_KEY'), weatherLookup: cloudWeatherLookup(url, serviceKey),
           mediaConfig: { supabaseUrl: url, serviceRoleKey: serviceKey },
           fileStore: cloudFileStore({ supabaseUrl: url, serviceRoleKey: serviceKey }),

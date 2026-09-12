@@ -17,11 +17,22 @@ export type AppStepResult = {
   status: string;
   version?: number;
   replayed?: boolean;
+  result?: Record<string, unknown>;
+};
+export type AppPublishArgs = {
+  subdomain: string;
+  title: string;
+  description: string;
 };
 export interface CloudAppPorts {
   authorize(run: ClaimedCloudRun): Promise<boolean>;
   open(run: ClaimedCloudRun): Promise<AppWorkspace>;
   apply(
+    run: ClaimedCloudRun,
+    call: { id: string; name: string; arguments: string },
+    key: string,
+  ): Promise<AppStepResult>;
+  publish?(
     run: ClaimedCloudRun,
     call: { id: string; name: string; arguments: string },
     key: string,
@@ -112,6 +123,24 @@ export function appChanges(raw: unknown): AppChanges {
     deletes: args.deletes.map(path),
   };
 }
+export function appPublishArgs(raw: unknown): AppPublishArgs {
+  const args = object(raw);
+  keys(args, ["subdomain", "title", "description"]);
+  if (
+    typeof args.subdomain !== "string" || args.subdomain.length > 50 ||
+    (!/^[A-Za-z0-9][A-Za-z0-9-]*$/.test(args.subdomain) && args.subdomain !== "")
+  ) throw new Error("Invalid publish address.");
+  if (
+    typeof args.title !== "string" || !args.title.trim() ||
+    args.title.length > 160 || typeof args.description !== "string" ||
+    args.description.length > 320
+  ) throw new Error("Invalid publish metadata.");
+  return {
+    subdomain: args.subdomain.toLowerCase(),
+    title: args.title.trim(),
+    description: args.description.trim(),
+  };
+}
 const parameters = (properties: Record<string, unknown>) => ({
   type: "object",
   properties,
@@ -163,13 +192,35 @@ export const CLOUD_APP_DEFINITIONS: CloudToolDefinition[] = [
       },
     }),
   },
+  {
+    type: "function",
+    name: "publish_app",
+    description:
+      "Publish the current saved app draft to a live askarc.chat address. This is an external action and always requires user approval. Call only after the requested app is complete and the user asked for it to be live.",
+    strict: true,
+    parameters: parameters({
+      subdomain: {
+        type: "string",
+        maxLength: 50,
+        description: "Lowercase address slug, or empty to let Arc choose one.",
+      },
+      title: { type: "string", maxLength: 160 },
+      description: { type: "string", maxLength: 320 },
+    }),
+  },
 ];
 
 export function cloudAppTools(
   ports: CloudAppPorts,
 ): Record<string, RegisteredCloudTool> {
   const tool = (name: string): RegisteredCloudTool => ({
-    approval: name === "apply_app_files" ? "ask-mode" : "never",
+    approval: name === "apply_app_files"
+      ? "ask-mode"
+      : name === "publish_app"
+      ? "always"
+      : "never",
+    // Publication has a durable plan + reconciliation path, so retrying the
+    // same receipt can safely recover a deploy whose acknowledgement was lost.
     replaySafe: true,
     authorize: (run) => ports.authorize(run),
     execute: async (run, call, key) => {
@@ -177,6 +228,7 @@ export function cloudAppTools(
       try {
         args = object(JSON.parse(call.arguments));
         if (name === "apply_app_files") appChanges(args);
+        else if (name === "publish_app") appPublishArgs(args);
         else if (name === "read_app_file") {
           keys(args, ["path", "offset", "limit"]);
           appPath(args.path);
@@ -207,6 +259,20 @@ export function cloudAppTools(
           executed: false,
           tested: false,
           deployed: false,
+        });
+      }
+      if (name === "publish_app") {
+        if (!ports.publish) {
+          return JSON.stringify({
+            error: "Publishing is temporarily unavailable.",
+            performed: false,
+          });
+        }
+        const result = await ports.publish(run, call, key);
+        return JSON.stringify({
+          ...result,
+          published: result.status === "published",
+          performed: result.status === "published",
         });
       }
       const workspace = await ports.open(run);

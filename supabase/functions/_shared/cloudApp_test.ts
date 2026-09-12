@@ -10,6 +10,7 @@ import {
 import {
   appChanges,
   appFiles,
+  appPublishArgs,
   type AppWorkspace,
   cloudAppTools,
 } from "./cloudAppCore.ts";
@@ -112,6 +113,25 @@ Deno.test("invalid tool arguments produce repairable errors with no persistence 
   equal(touched, 0);
   equal(tools.apply_app_files.approval, "ask-mode");
   equal(tools.apply_app_files.replaySafe, true);
+});
+
+Deno.test("publish tool is always approval-gated and returns the durable site receipt", async () => {
+  equal(appPublishArgs({ subdomain: "bakery", title: "Bakery", description: "" }).subdomain, "bakery");
+  const tools = cloudAppTools({
+    authorize: async () => true,
+    open: async () => { throw Error("unexpected"); },
+    apply: async () => { throw Error("unexpected"); },
+    publish: async () => ({ status: "published", result: { url: "https://bakery.askarc.chat" } }),
+  });
+  equal(tools.publish_app.approval, "always");
+  equal(tools.publish_app.replaySafe, true);
+  const output = await tools.publish_app.execute(baseRun(), {
+    id: "publish-1", name: "publish_app",
+    arguments: JSON.stringify({ subdomain: "bakery", title: "Bakery", description: "" }),
+  }, "receipt");
+  const result = JSON.parse(output as string);
+  equal(result.published, true);
+  equal(result.result.url, "https://bakery.askarc.chat");
 });
 
 function runtimeFixture(
