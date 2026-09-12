@@ -51,6 +51,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useAccentStore } from "@/store/useAccentStore";
+import { isLocalChatPreview } from "@/lib/localPreview";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -252,8 +253,8 @@ export function ArcInputEffects({
           aria-hidden="true"
         >
           <MetalFx
-            preset="silver"
-            strength={isWorking ? 0.35 : isNewChat ? 0.2 : 0}
+       preset="chromatic"
+       strength={isWorking ? 0.5 : isNewChat ? 0.34 : 0.2}
             paused={!visible}
             disableGlow
             theme={theme}
@@ -609,7 +610,8 @@ export function MobileChatApp() {
   // (new chat, load session from history).
   useEffect(() => {
     if (currentSessionId && messages.length > 0 && window.location.pathname === "/") {
-      navigate(`/chat/${currentSessionId}`, { replace: true });
+      const previewSuffix = isLocalChatPreview() ? "?preview=chat" : "";
+      navigate(`/chat/${currentSessionId}${previewSuffix}`, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSessionId, messages.length]);
@@ -1790,6 +1792,8 @@ export function MobileChatApp() {
 
         /* Remove textarea background to prevent layered rectangle appearance */
         .glass-dock textarea{ background: transparent !important; border-radius: 0 !important; }
+        .glass-dock textarea::placeholder{ color: rgba(255,255,255,0.48) !important; opacity: 1 !important; }
+        .glass-dock textarea{ color: rgba(255,255,255,0.92) !important; }
         .glass-dock > *{ position: relative; z-index: 1; }
         .glass-dock :is(.input-wrapper,.input-container,.chat-input,form){ background: transparent !important; border: 0 !important; box-shadow: none !important; }
         .glass-dock .chat-input-halo{

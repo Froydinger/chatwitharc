@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, forwardRef, useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Copy, Edit2, Check, MapPin, Volume2, Square, Loader2 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -41,6 +41,55 @@ import { ScheduledTaskCard } from "@/components/ScheduledTaskCard";
 import { NotificationDispatchCard } from "@/components/NotificationDispatchCard";
 import { SvgArtifact } from "@/components/SvgArtifact";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
+import { InlineHumidityWheel, InlineProgressChart, type ProgressPoint } from "@/components/InlineDataVisual";
+
+function parseInlineVisual(code: string) {
+  try {
+    return JSON.parse(code) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function isProgressPointArray(value: unknown): value is ProgressPoint[] {
+  return Array.isArray(value) && value.every((point) => {
+    if (!point || typeof point !== "object") return false;
+    const candidate = point as Record<string, unknown>;
+    return typeof candidate.label === "string" && typeof candidate.value === "number" && Number.isFinite(candidate.value);
+  });
+}
+
+function renderInlineVisual(language: string | undefined, code: string) {
+  const normalizedLanguage = language?.toLowerCase();
+  const visual = parseInlineVisual(code);
+  if (!visual) return null;
+
+  if ((normalizedLanguage === "progress" || normalizedLanguage === "arc-progress") && isProgressPointArray(visual.data)) {
+    return (
+      <InlineProgressChart
+        data={visual.data}
+        max={typeof visual.max === "number" && Number.isFinite(visual.max) ? visual.max : undefined}
+        unit={typeof visual.unit === "string" ? visual.unit : ""}
+        title={typeof visual.title === "string" ? visual.title : "Progress"}
+        compact
+      />
+    );
+  }
+
+  if ((normalizedLanguage === "humidity" || normalizedLanguage === "arc-humidity") && typeof visual.value === "number" && Number.isFinite(visual.value)) {
+    return (
+      <InlineHumidityWheel
+        value={visual.value}
+        label={typeof visual.label === "string" ? visual.label : "Humidity"}
+        unit={typeof visual.unit === "string" ? visual.unit : "%"}
+        title={typeof visual.title === "string" ? visual.title : "Humidity"}
+        compact
+      />
+    );
+  }
+
+  return null;
+}
 
 // Stable module-level constant — never recreated on re-render, so iframes never remount
 const markdownComponents = {
@@ -99,7 +148,7 @@ const markdownComponents = {
   th: ({node, ...props}: any) => <th className="px-4 py-2 text-left font-semibold text-foreground" {...props} />,
   td: ({node, ...props}: any) => <td className="px-4 py-2 text-foreground/90" {...props} />,
   code: ({node, className, children, ...props}: any) => {
-    const match = /language-(\w+)/.exec(className || '');
+    const match = /language-([\w-]+)/.exec(className || '');
     const codeContent = String(children).replace(/\n$/, '');
     const isInline = !className && !match;
     if (!isInline && match) {
@@ -109,6 +158,8 @@ const markdownComponents = {
       if (match[1].toLowerCase() === 'mermaid') {
         return <MermaidDiagram chart={codeContent} />;
       }
+      const inlineVisual = renderInlineVisual(match[1], codeContent);
+      if (inlineVisual) return inlineVisual;
       return <CodeBlock code={codeContent} language={match[1]} />;
     }
     return (
@@ -255,7 +306,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
     // Parse code blocks from message content
     const parseCodeBlocks = (text: string) => {
-      const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+      const codeBlockRegex = /```([\w-]+)?\n([\s\S]*?)```/g;
       const parts: Array<{ type: "text" | "code"; content: string; language?: string }> = [];
       let lastIndex = 0;
       let match;
@@ -639,6 +690,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
                         {contentParts.map((part, idx) => {
                           if (part.type === "code") {
+                            const inlineVisual = renderInlineVisual(part.language, part.content);
+                            if (inlineVisual) {
+                              return <Fragment key={idx}>{inlineVisual}</Fragment>;
+                            }
                             return (
                               <CodeBlock
                                 key={idx}

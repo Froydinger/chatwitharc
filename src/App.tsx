@@ -99,7 +99,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { GUEST_CHAT_ENABLED } from "@/lib/features";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { motion } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
+import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
+import { isLocalChatPreview } from "@/lib/localPreview";
 
 const FullscreenLoader = () => {
   const [stage, setStage] = useState<'spin' | 'bloop'>('spin');
@@ -175,6 +176,8 @@ const FastLoader = () => {
  */
 const RootGate = () => {
   const { user, loading: authLoading, isAnonymous } = useAuth();
+  const localChatPreview = isLocalChatPreview();
+
   const [showSessionLoader, setShowSessionLoader] = useState(() => {
     if (typeof window === 'undefined') return false;
     const shown = sessionStorage.getItem('arc:sessionLoaderShown') === 'true';
@@ -197,6 +200,8 @@ const RootGate = () => {
       setShowSessionLoader(false);
     }
   }, [showSessionLoader, timerFinished, authLoading]);
+
+  if (localChatPreview) return <Index />;
 
   if (showSessionLoader) {
     return <FullscreenLoader />;
@@ -235,6 +240,7 @@ const AnonymousTrafficCounter = () => {
   const { pathname } = useLocation();
 
   useEffect(() => {
+    if (!isSupabaseConfigured) return;
     // Aggregate route totals only. The endpoint stores date + canonical route +
     // count, never identity, IP, UA, cookie, device ID, or fingerprint data.
     void supabase.functions.invoke("system-health", { body: { action: "pageview", path: pathname } });

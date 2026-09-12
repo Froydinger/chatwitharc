@@ -5,9 +5,15 @@ import { canPreview } from '@/utils/codeUtils';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-if (!SUPABASE_URL || !SUPABASE_KEY) {
+const IS_DEV_PREVIEW = import.meta.env.DEV && (!SUPABASE_URL || !SUPABASE_KEY);
+if ((!SUPABASE_URL || !SUPABASE_KEY) && !IS_DEV_PREVIEW) {
   throw new Error('Supabase environment variables are not configured');
 }
+
+// Publishing stays unavailable in a credential-free UI preview, but importing
+// the chat shell must not fail just because this optional module is present.
+const DEPLOY_SUPABASE_URL = SUPABASE_URL || 'http://127.0.0.1:54321';
+const DEPLOY_SUPABASE_KEY = SUPABASE_KEY || 'dev-preview-anon-key';
 
 /** Domain that published sites live under — must match CUSTOM_DOMAIN in the
     deploy-netlify edge function. Sites published before the askarc.chat
@@ -91,7 +97,7 @@ function generateDeployHtml(
   const safeDesc = (seoDescription || `${appName} — Modern web application built with ArcAi`).replace(/"/g, '&quot;');
 
   const envScript = `  <script>
-    window.__ARC_SUPABASE_URL__ = ${JSON.stringify(SUPABASE_URL)};
+    window.__ARC_SUPABASE_URL__ = ${JSON.stringify(DEPLOY_SUPABASE_URL)};
     window.__ARC_SUBDOMAIN__ = ${JSON.stringify(subdomain || '')};
     window.__ARC_PROJECT_ID__ = ${JSON.stringify(projectId || '')};
     window.__ARC_APP_ID__ = ${JSON.stringify(subdomain || projectId || 'default')};
@@ -164,10 +170,10 @@ export async function checkSubdomainAvailability(subdomain: string): Promise<boo
     const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'apikey': SUPABASE_KEY,
+      'apikey': DEPLOY_SUPABASE_KEY,
     };
     if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
+    const res = await fetch(`${DEPLOY_SUPABASE_URL}/functions/v1/deploy-netlify`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ action: 'check', subdomain: subdomain.trim() }),
@@ -187,12 +193,12 @@ export async function unpublishFromNetlify(siteId: string): Promise<void> {
     const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'apikey': SUPABASE_KEY,
+      'apikey': DEPLOY_SUPABASE_KEY,
     };
     if (session?.access_token) {
       headers['Authorization'] = `Bearer ${session.access_token}`;
     }
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
+    const res = await fetch(`${DEPLOY_SUPABASE_URL}/functions/v1/deploy-netlify`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ action: 'delete', siteId }),
@@ -298,12 +304,12 @@ pre{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:1.5rem
   // Authenticate as the logged-in user — the edge function requires the
   // user's JWT to authorize a publish, not just the anon apikey.
   const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'apikey': DEPLOY_SUPABASE_KEY };
   if (session?.access_token) {
     headers['Authorization'] = `Bearer ${session.access_token}`;
   }
 
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
+  const res = await fetch(`${DEPLOY_SUPABASE_URL}/functions/v1/deploy-netlify`, {
     method: 'POST',
     headers,
     body: JSON.stringify({ zipBase64, subdomain, ...(siteId ? { siteId } : {}) }),
@@ -348,13 +354,13 @@ export async function deployToNetlify(
   const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'apikey': SUPABASE_KEY,
+    'apikey': DEPLOY_SUPABASE_KEY,
   };
   if (session?.access_token) {
     headers['Authorization'] = `Bearer ${session.access_token}`;
   }
 
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/deploy-netlify`, {
+  const res = await fetch(`${DEPLOY_SUPABASE_URL}/functions/v1/deploy-netlify`, {
     method: 'POST',
     headers,
     body: JSON.stringify({

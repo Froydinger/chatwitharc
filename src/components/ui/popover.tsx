@@ -8,10 +8,15 @@ const Popover = PopoverPrimitive.Root
 
 const PopoverTrigger = PopoverPrimitive.Trigger
 
+type PopoverContentProps = React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content> & {
+  metalPreset?: "silver" | "chromatic";
+  metalStrength?: number;
+};
+
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>
->(({ className, align = "center", sideOffset = 4, children, ...props }, ref) => (
+  PopoverContentProps
+>(({ className, align = "center", sideOffset = 4, children, metalPreset = "silver", metalStrength = 0.25, ...props }, ref) => (
   <PopoverPrimitive.Portal>
     <PopoverPrimitive.Content
       ref={ref}
@@ -23,7 +28,7 @@ const PopoverContent = React.forwardRef<
       )}
       {...props}
     >
-      <LiquidMetalOverlay />
+      <LiquidMetalOverlay preset={metalPreset} strength={metalStrength} />
       {children}
     </PopoverPrimitive.Content>
   </PopoverPrimitive.Portal>

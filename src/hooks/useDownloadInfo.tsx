@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-if (!SUPABASE_URL) {
-  throw new Error('VITE_SUPABASE_URL is not configured');
-}
-const STORAGE_BASE = `${SUPABASE_URL}/storage/v1/object/public/download-files`;
+const STORAGE_BASE = SUPABASE_URL
+  ? `${SUPABASE_URL}/storage/v1/object/public/download-files`
+  : '';
 const CURRENT_MAC_VERSION = '5.2.0';
 const CURRENT_MAC_DOWNLOAD = 'https://github.com/Froydinger/chatwitharc/releases/download/v5.2.0/ArcAI-5.2.0-arm64.dmg';
 const CURRENT_WINDOWS_VERSION = '5.2.0';
@@ -13,6 +12,7 @@ const CURRENT_WINDOWS_DOWNLOAD = 'https://github.com/Froydinger/chatwitharc/rele
 
 const resolveDownloadUrl = (value: string) => {
   if (/^https?:\/\//i.test(value)) return value;
+  if (!STORAGE_BASE) return value;
   return `${STORAGE_BASE}/${encodeURIComponent(value)}`;
 };
 

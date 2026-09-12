@@ -7,6 +7,7 @@ import { useArcStore } from "@/store/useArcStore";
 import { NamePrompt } from "@/components/NamePrompt";
 import { MobileChatApp } from "@/components/MobileChatApp";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
+import { isLocalChatPreview } from "@/lib/localPreview";
 
 export function Index() {
   const { sessionId } = useParams();
@@ -80,7 +81,7 @@ export function Index() {
   }
 
   // No guest chat screens. Signed-out or anonymous visitors always see the lander.
-  if (!user || isAnonymous) {
+  if ((!user || isAnonymous) && !isLocalChatPreview()) {
     return <Navigate to="/" replace />;
   }
 

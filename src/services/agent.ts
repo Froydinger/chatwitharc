@@ -9,10 +9,8 @@ const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL ||
   (PROJECT_ID ? `https://${PROJECT_ID}.supabase.co` : undefined);
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  throw new Error('Supabase environment variables are not configured');
-}
-const AGENT_URL = `${SUPABASE_URL}/functions/v1/agent`;
+const IS_AGENT_CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_KEY);
+const AGENT_URL = SUPABASE_URL ? `${SUPABASE_URL}/functions/v1/agent` : '';
 
 type AgentChatRole = 'user' | 'assistant' | 'system';
 type AgentChatMessage = { role: AgentChatRole; content: string };
@@ -52,6 +50,10 @@ export async function sendAgentMessage(
   onFileUpdate?: (path: string, content: string) => void,
   images?: string[],
 ): Promise<AgentResult> {
+  if (!IS_AGENT_CONFIGURED) {
+    throw new Error('The App Builder needs Supabase configuration in this local preview.');
+  }
+
   const messages = normalizeMessages(chatHistory, userMessage, images);
 
   const requestController = new AbortController();

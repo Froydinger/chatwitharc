@@ -23,7 +23,6 @@ import {
   ListPlus,
   Smartphone,
   Clapperboard,
-  Crown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,6 +41,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useModelStore, getModelForTask, LUNA_MODEL } from "@/store/useModelStore";
 import { AIService, getQueryComplexity } from "@/services/ai";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { isLocalChatPreview } from "@/lib/localPreview";
 import { useStreamingWithContinuation } from "@/hooks/useStreamingWithContinuation";
 import { detectMemoryCommand, addToMemoryBank } from "@/utils/memoryDetection";
 import { addContextBlockDirect, useContextBlocks } from "@/hooks/useContextBlocks";
@@ -61,6 +61,8 @@ import { buildLocalSystemPrompt } from "@/utils/localSystemPrompt";
 import { findFirstToolCall, executeLocalToolCall, stripToolTags, hasPartialOpenTag } from "@/utils/localToolProtocol";
 import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptionsDock";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
+import { VoiceMagneticPicker } from "@/components/VoiceMagneticPicker";
+import { LiquidMetalOverlay } from "@/components/ui/liquid-metal-overlay";
 // ChatModelPicker now lives in the chat header (MobileChatApp), not the input bar.
 import { UsageMeter } from "@/components/UsageMeter";
 import { useImageGenStore, useResolvedImageModel, useEditImageModel } from "@/store/useImageGenStore";
@@ -582,8 +584,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const openBugReport = useBugReport((state) => state.openBugReport);
   const showPopup = useFingerPopup((state) => state.showPopup);
   const { user, isAnonymous } = useAuth();
-  // Guest mode = no user OR anonymous (auto-issued) Supabase session.
-  const isGuestMode = !user || isAnonymous;
+  // The local preview can exercise shell interactions without authenticating,
+  // but all real service calls still fail closed when credentials are absent.
+  const isGuestMode = (!user || isAnonymous) && !isLocalChatPreview();
   const requireAuth = useRequireAuth();
   const { hasBoost, isAdmin, canStartVoiceConversation, openCheckout } = useSubscription();
 
@@ -633,7 +636,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const [isActive, setIsActive] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const dragCounterRef = useRef(0);
-
   useEffect(() => {
     const handleOpen = () => setShowLimitsModal(true);
     window.addEventListener("open-image-limits-modal", handleOpen);
@@ -648,6 +650,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
   // Tiles menu
   const [showMenu, setShowMenu] = useState(false);
+  const [menuOrigin, setMenuOrigin] = useState<{ x: number; y: number } | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const inputBarRef = useRef<HTMLDivElement>(null);
   const modelLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1468,6 +1471,43 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const handleSend = async (messageOverride?: string) => {
     const messageToSend = messageOverride ?? inputValue;
     if (!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) return;
+
+    // Local preview mode deliberately stays offline: send a normal-looking
+    // turn, then attach representative search data so the chat layout and
+    // image carousel can be inspected without provider credentials.
+    if (isLocalChatPreview() && messageToSend.trim()) {
+      const previewImages = [
+        "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=900&q=80",
+        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=900&q=80",
+      ];
+      await addMessage({ content: messageToSend.trim(), role: "user", type: "text" });
+      setInputValue("");
+      setSelectedImages([]);
+      setSelectedDocuments([]);
+      setForceImageMode(false);
+      setForceCodingMode(false);
+      setForceCanvasMode(false);
+      setForceSearchMode(false);
+      setForceBuildMode(false);
+      setShowMenu(false);
+      setLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 650));
+      await addMessage({
+        content: "Hey! This is the local preview response. I added a dummy image search underneath so you can test the carousel interaction.",
+        role: "assistant",
+        type: "text",
+        sourceModel: "local",
+        webSources: [
+          { title: "Unsplash landscapes", url: "https://unsplash.com/s/photos/landscape", snippet: "A dummy image-search source for local UI testing." },
+          { title: "Nature photography", url: "https://unsplash.com/s/photos/nature", snippet: "Representative image results for the carousel preview." },
+        ],
+        searchImages: previewImages,
+      });
+      setLoading(false);
+      return;
+    }
 
     if (!user || isAnonymous) {
       if (messageToSend.trim()) {
@@ -2837,6 +2877,35 @@ ${safeCode}
     }
   };
 
+  const createActions = [
+    { id: "attach", label: "Attach", description: "Add files or images", keywords: "upload file image document", icon: Paperclip, tileClass: "border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/10", iconClass: "bg-blue-500/15 text-blue-500 dark:text-blue-400", run: () => { fileInputRef.current?.click(); setShowMenu(false); } },
+    { id: "generate", label: "Generate", description: "Create or edit an image", keywords: "image draw picture art", icon: ImagePlus, tileClass: "border-rose-500/20 hover:border-rose-500/40 hover:bg-rose-500/10", iconClass: "bg-rose-500/15 text-rose-500 dark:text-rose-400", badge: isProActive ? "Pro" : undefined, run: () => { setForceImageMode(true); setInputValue("image/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "write", label: "Write", description: "Open a live writing canvas", keywords: "canvas prose draft document", icon: PenLine, tileClass: "border-sky-500/20 hover:border-sky-500/40 hover:bg-sky-500/10", iconClass: "bg-sky-500/15 text-sky-600 dark:text-sky-400", run: () => { setForceCanvasMode(true); setInputValue("write/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "code", label: "Code", description: "Work in a code canvas", keywords: "programming developer code editor", icon: Code2, tileClass: "border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/10", iconClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400", run: () => { setForceCodingMode(true); setInputValue("code/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "search", label: "Search", description: "Search the web inline", keywords: "web browse lookup sources", icon: Globe, tileClass: "border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10", iconClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", run: () => { setForceSearchMode(true); setInputValue("search/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "deep-search", label: "Deep Search", description: "Run a deeper research pass", keywords: "research investigate browse sources", icon: Search, tileClass: "border-indigo-500/20 hover:border-indigo-500/40 hover:bg-indigo-500/10", iconClass: "bg-indigo-500/20 text-indigo-400", run: () => { setShowMenu(false); openSearchMode(); } },
+    { id: "app", label: "App", description: "Build an interactive app", keywords: "builder project react application", icon: Smartphone, tileClass: "border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/10", iconClass: "bg-purple-500/15 text-purple-500 dark:text-purple-400", badge: "Boost", run: () => { if (!hasBoost && !isAdmin) { setShowMenu(false); openCheckout(); toast({ title: "ArcAI Boost Required", description: "App Builder is exclusively available to Boost subscribers and admins." }); return; } setForceBuildMode(true); setInputValue("app/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "prompts", label: "Prompts", description: "Browse saved prompt starters", keywords: "prompt library templates starters", icon: ListPlus, tileClass: "border-fuchsia-500/20 hover:border-fuchsia-500/40 hover:bg-fuchsia-500/10", iconClass: "bg-fuchsia-500/15 text-fuchsia-500 dark:text-fuchsia-400", run: () => { setShowPromptLibrary(true); setShowMenu(false); } },
+  ];
+  // Keep the Bencho Create treatment, but retain the complete Arc action set.
+  // The panel caps its height and scrolls on short mobile viewports.
+  const createMenuActions = createActions;
+
+  const menuPanelWidth = typeof window !== "undefined" ? Math.min(248, window.innerWidth - 24) : 248;
+  const menuPanelHeight = Math.min(520, 16 + createMenuActions.length * 44);
+  const menuPosition = menuOrigin && typeof window !== "undefined"
+    ? {
+        left: `${Math.min(
+          Math.max(menuPanelWidth / 2 + 12, menuOrigin.x),
+          window.innerWidth - menuPanelWidth / 2 - 12,
+        )}px`,
+        top: `${Math.min(
+          Math.max(menuPanelHeight / 2 + 12, menuOrigin.y),
+          window.innerHeight - menuPanelHeight / 2 - 12,
+        )}px`,
+      }
+    : { left: "50%", top: "50%" };
+
   /* ---------------- Render ---------------- */
   return (
     <div className="space-y-2 relative">
@@ -3085,6 +3154,13 @@ ${safeCode}
                       requireAuth("tools");
                       return;
                     }
+                    const anchor = menuButtonRef.current?.getBoundingClientRect();
+                    if (anchor) {
+                      setMenuOrigin({
+                        x: anchor.left + anchor.width / 2,
+                        y: anchor.top + anchor.height / 2,
+                      });
+                    }
                     setShowMenu(!showMenu);
                   }}
                   className={cn(
@@ -3143,212 +3219,53 @@ ${safeCode}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="ci-tiles fixed inset-0 z-[400] bg-black/50 backdrop-blur-sm"
+                        className="ci-tiles fixed inset-0 z-[400] bg-transparent"
                         onClick={() => setShowMenu(false)}
                       />
-                      <div className="ci-tiles fixed inset-0 z-[401] flex items-center justify-center p-4 pointer-events-none">
+                      <div className="ci-tiles fixed inset-0 z-[401] pointer-events-none">
                       <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
+                        initial={{ opacity: 0, scale: 0.94 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        exit={{ opacity: 0, scale: 0.94 }}
+                        transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
                         style={{
-                          background: "hsl(var(--background))",
+                          ...menuPosition,
+                          width: "min(248px, calc(100vw - 24px))",
+                          maxWidth: "calc(100vw - 24px)",
+                          maxHeight: "min(520px, calc(100vh - 32px))",
+                          translate: "-50% -50%",
+                          transformOrigin: "center",
                         }}
-                        className="pointer-events-auto w-[min(92vw,440px)] max-h-[85vh] overflow-y-auto p-5 rounded-[28px] shadow-2xl bg-neutral-950/80 backdrop-blur-xl border border-black/10 dark:border-white/10"
+                        className="liquid-metal-surface pointer-events-auto fixed overflow-y-auto rounded-[28px] border border-white/[0.1] bg-black/[0.94] p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl"
                       >
-                        <div className="flex items-center justify-between mb-4 px-1">
-                          <span className="text-sm font-semibold tracking-wide text-foreground">Tools & Actions</span>
-                          <button
-                            onClick={() => setShowMenu(false)}
-                            className="p-1 rounded-full hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
-                            aria-label="Close"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
+                        <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.24]">
+                          <LiquidMetalOverlay preset="chromatic" strength={0.28} />
                         </div>
-
-                        {/* 2x4 Icon Grid: Top row (Attach, Generate, Write, Code), Bottom row (Search, Deep Search, App, Prompts) */}
-                        <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
-                          {/* Row 1: Attach */}
-                          <button
-                            onClick={() => {
-                              fileInputRef.current?.click();
-                              setShowMenu(false);
-                            }}
-                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-blue-500/20 hover:border-blue-500/35 bg-blue-500/5 hover:bg-blue-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                          >
-                            <div className="w-11 h-11 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0 group-hover:bg-blue-500/25 transition-colors mb-1.5">
-                              <Paperclip className="h-5 w-5 text-blue-500 dark:text-blue-400 group-hover:scale-110 transition-transform duration-200" />
-                            </div>
-                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
-                              Attach
-                            </span>
-                          </button>
-
-                          {/* Row 1: Generate */}
-                          <button
-                            onClick={() => {
-                              setForceImageMode(true);
-                              setInputValue("image/ ");
-                              setShowMenu(false);
-                              textareaRef.current?.focus();
-                            }}
-                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-rose-500/20 hover:border-rose-500/35 bg-rose-500/5 hover:bg-rose-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                          >
-                            {isProActive && (
-                              <span className="absolute top-1.5 right-1.5 text-[7px] font-semibold px-1 py-0.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-400 leading-none">
-                                Pro
-                              </span>
-                            )}
-                            <div className="w-11 h-11 rounded-xl bg-rose-500/15 flex items-center justify-center shrink-0 group-hover:bg-rose-500/25 transition-colors mb-1.5">
-                              <ImagePlus className="h-5 w-5 text-rose-500 dark:text-rose-400 group-hover:scale-110 transition-transform duration-200" />
-                            </div>
-                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
-                              Generate
-                            </span>
-                          </button>
-
-                          {/* Row 1: Write */}
-                          <button
-                            onClick={() => {
-                              setForceCanvasMode(true);
-                              setInputValue("write/ ");
-                              setShowMenu(false);
-                              textareaRef.current?.focus();
-                            }}
-                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-sky-500/20 hover:border-sky-500/35 bg-sky-500/5 hover:bg-sky-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                          >
-                            <div className="w-11 h-11 rounded-xl bg-sky-500/15 flex items-center justify-center shrink-0 group-hover:bg-sky-500/25 transition-colors mb-1.5">
-                              <PenLine className="h-5 w-5 text-sky-600 dark:text-sky-400 group-hover:scale-110 transition-transform duration-200" />
-                            </div>
-                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
-                              Write
-                            </span>
-                          </button>
-
-                          {/* Row 1: Code */}
-                          <button
-                            onClick={() => {
-                              setForceCodingMode(true);
-                              setInputValue("code/ ");
-                              setShowMenu(false);
-                              textareaRef.current?.focus();
-                            }}
-                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-amber-500/20 hover:border-amber-500/35 bg-amber-500/5 hover:bg-amber-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                          >
-                            <div className="w-11 h-11 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 group-hover:bg-amber-500/25 transition-colors mb-1.5">
-                              <Code2 className="h-5 w-5 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform duration-200" />
-                            </div>
-                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
-                              Code
-                            </span>
-                          </button>
-
-                          {/* Row 2: Search */}
-                          <button
-                            onClick={() => {
-                              setForceSearchMode(true);
-                              setInputValue("search/ ");
-                              setShowMenu(false);
-                              textareaRef.current?.focus();
-                            }}
-                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-emerald-500/20 hover:border-emerald-500/35 bg-emerald-500/5 hover:bg-emerald-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                          >
-                            <div className="w-11 h-11 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/25 transition-colors mb-1.5">
-                              <Globe className="h-5 w-5 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform duration-200" />
-                            </div>
-                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
-                              Search
-                            </span>
-                          </button>
-
-                          {/* Row 2: Deep Search */}
-                          <button
-                            onClick={() => {
-                              setShowMenu(false);
-                              openSearchMode();
-                            }}
-                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-indigo-500/20 hover:border-indigo-500/35 bg-indigo-500/5 hover:bg-indigo-500/10 shadow-[0_0_15px_-5px_rgba(99,102,241,0.15)] hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                          >
-                            <div className="w-11 h-11 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0 group-hover:bg-indigo-500/30 transition-colors mb-1.5">
-                              <Search className="h-5 w-5 text-indigo-400 group-hover:scale-110 transition-transform duration-200" />
-                            </div>
-                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
-                              Deep Search
-                            </span>
-                          </button>
-
-                          {/* Row 2: App */}
-                          <button
-                            onClick={() => {
-                              if (!hasBoost && !isAdmin) {
-                                setShowMenu(false);
-                                openCheckout();
-                                toast({
-                                  title: "ArcAI Boost Required",
-                                  description: "App Builder is exclusively available to Boost subscribers and admins.",
-                                });
-                                return;
-                              }
-                              setForceBuildMode(true);
-                              setInputValue("app/ ");
-                              setShowMenu(false);
-                              textareaRef.current?.focus();
-                            }}
-                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-purple-500/20 hover:border-purple-500/35 bg-purple-500/5 hover:bg-purple-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                          >
-                            <span className="absolute top-1.5 right-1.5 text-[7px] font-bold px-1 py-0.5 rounded bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/30 uppercase tracking-wider leading-none">
-                              Boost
-                            </span>
-                            <div className="w-11 h-11 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0 group-hover:bg-purple-500/25 transition-colors mb-1.5">
-                              <Smartphone className="h-5 w-5 text-purple-500 dark:text-purple-400 group-hover:scale-110 transition-transform duration-200" />
-                            </div>
-                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
-                              App
-                            </span>
-                          </button>
-
-                          {/* Row 2: Prompts */}
-                          <button
-                            onClick={() => {
-                              setShowPromptLibrary(true);
-                              setShowMenu(false);
-                            }}
-                            className="relative flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all duration-200 group border border-fuchsia-500/20 hover:border-fuchsia-500/35 bg-fuchsia-500/5 hover:bg-fuchsia-500/10 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-                          >
-                            <div className="w-11 h-11 rounded-xl bg-fuchsia-500/15 flex items-center justify-center shrink-0 group-hover:bg-fuchsia-500/25 transition-colors mb-1.5">
-                              <ListPlus className="h-5 w-5 text-fuchsia-500 dark:text-fuchsia-400 group-hover:scale-110 transition-transform duration-200" />
-                            </div>
-                            <span className="text-[11px] sm:text-xs font-medium text-foreground tracking-tight text-center leading-tight truncate w-full">
-                              Prompts
-                            </span>
-                          </button>
+                        <div className="relative z-10 flex flex-col gap-0.5">
+                          {createMenuActions.map((action, index) => {
+                            const Icon = action.icon;
+                            return (
+                              <motion.button
+                                key={action.id}
+                                type="button"
+                                initial={{ opacity: 0, x: -6 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -6 }}
+                                transition={{ delay: 0.07 + index * 0.038, duration: 0.24, ease: "easeOut" }}
+                                onClick={action.run}
+                                className="ci-create-row group flex min-h-10 w-full items-center gap-3 rounded-full px-3 py-1.5 text-left text-[15px] text-foreground transition-colors hover:bg-white/[0.09] focus-visible:bg-white/[0.1] focus-visible:outline-none"
+                              >
+                                <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105", action.iconClass)}>
+                                  <Icon className="h-4 w-4" />
+                                </span>
+                                <span className="min-w-0 flex-1 truncate font-medium">
+                                  {action.label}
+                                </span>
+                                {action.badge && <span className="rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-purple-300">{action.badge}</span>}
+                              </motion.button>
+                            );
+                          })}
                         </div>
-
-                        {!hasBoost && !isAdmin && (
-                          <div className="mt-3 pt-2.5 border-t border-border/40">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowMenu(false);
-                                openCheckout();
-                              }}
-                              className="w-full flex items-center justify-between p-2.5 rounded-2xl bg-gradient-to-r from-purple-500/15 via-primary/10 to-purple-500/5 hover:from-purple-500/25 hover:via-purple-500/15 hover:to-primary/10 border border-purple-500/30 transition-all text-left group cursor-pointer"
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-7 h-7 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
-                                  <Crown className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
-                                </div>
-                                <div className="flex flex-col min-w-0">
-                                  <span className="text-xs font-semibold text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">Upgrade to ArcAI Boost</span>
-                                  <span className="text-[10px] text-muted-foreground truncate">Unlimited Deep Search, App Builder & 30 images/day</span>
-                                </div>
-                              </div>
-                              <ArrowRight className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
-                            </button>
-                          </div>
-                        )}
 
                       </motion.div>
                       </div>
@@ -3467,31 +3384,18 @@ ${safeCode}
                       <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" side="top" className="w-60 border-border/60 bg-background p-2 shadow-2xl backdrop-blur-xl">
-                    <div className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Voice
-                    </div>
-                    <div className="space-y-0.5">
-                      {REALTIME_VOICES.map((voice) => {
-                        const isSelected = selectedVoice === voice.id;
-                        return (
-                          <button
-                            key={voice.id}
-                            type="button"
-                            onClick={() => handleVoiceSelection(voice.id)}
-                            className={cn(
-                              "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors",
-                              isSelected ? "bg-primary/10 text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-                            )}
-                          >
-                            <img src={VOICE_AVATARS[voice.id]} alt="" className="h-6 w-6 rounded-full object-cover" />
-                            <span className="min-w-0 flex-1 truncate text-xs">{voice.name}</span>
-                            {voice.recommended && <span className="text-[9px] font-medium text-green-600 dark:text-green-400">Best</span>}
-                            {isSelected && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
-                          </button>
-                        );
-                      })}
-                    </div>
+                  <PopoverContent
+                    align="end"
+                    side="top"
+                    metalPreset="chromatic"
+                    metalStrength={0.48}
+                    className="voice-picker-popover w-[min(88vw,340px)] overflow-hidden rounded-[28px] border-white/[0.14] !bg-black !p-0 shadow-2xl backdrop-blur-xl"
+                  >
+                    <VoiceMagneticPicker
+                      selectedVoice={selectedVoice}
+                      onSelect={(voice) => void handleVoiceSelection(voice)}
+                      compact
+                    />
                   </PopoverContent>
                 </Popover>
                 <motion.button
@@ -3528,10 +3432,10 @@ ${safeCode}
                   // morphing into a chat route can drop the first connection.
                   setTimeout(() => activateVoiceMode(), 180);
                 }}
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-muted/40 hover:bg-primary/15 text-foreground hover:text-primary transition-all"
+                className="ci-voice-button flex items-center justify-center w-9 h-9 rounded-full bg-muted/40 hover:bg-primary/15 text-foreground hover:text-primary transition-all"
                 title="Voice mode"
               >
-                <AudioWaveform className="h-4 w-4" />
+                <AudioWaveform className="ci-voice-icon h-4 w-4" strokeWidth={1.8} />
                 </motion.button>
               </div>
             )}

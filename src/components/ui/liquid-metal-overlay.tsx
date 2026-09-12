@@ -10,7 +10,13 @@ function getAppTheme(): "dark" | "light" {
  * A layout-neutral Liquid Metal layer for large glass surfaces.
  * It uses metal-fx's shared WebGL renderer without wrapping or resizing content.
  */
-export function LiquidMetalOverlay() {
+export function LiquidMetalOverlay({
+  preset = "silver",
+  strength = 0.25,
+}: {
+  preset?: "silver" | "chromatic";
+  strength?: number;
+}) {
   const [theme, setTheme] = useState<"dark" | "light">(getAppTheme);
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -34,8 +40,8 @@ export function LiquidMetalOverlay() {
   return (
     <div className="liquid-metal-overlay-frame" aria-hidden="true">
       <MetalFx
-        preset="silver"
-        strength={0.25}
+        preset={preset}
+        strength={strength}
         theme={theme}
         paused={reduceMotion}
         normalizeHostStyles={false}

@@ -1,8 +1,17 @@
 import { Bell, BellOff, Loader2, Smartphone, Monitor, Send } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
+function notificationErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error !== null && "message" in error && typeof error.message === "string") {
+    return error.message;
+  }
+  return fallback;
+}
 
 export function PushNotificationsCard() {
   const {
@@ -17,6 +26,40 @@ export function PushNotificationsCard() {
     unsubscribe,
     sendTest,
   } = usePushNotifications();
+  const notifyGlyphRef = useRef<HTMLSpanElement>(null);
+  const notifyLabelRef = useRef<HTMLSpanElement>(null);
+  const wasSubscribedRef = useRef(subscribed);
+  const [notifyLabelWidth, setNotifyLabelWidth] = useState<number>();
+
+  useLayoutEffect(() => {
+    const activeLabel = notifyLabelRef.current?.querySelector<HTMLElement>('[data-show="true"]');
+    if (activeLabel) setNotifyLabelWidth(activeLabel.offsetWidth);
+  }, [subscribed]);
+
+  useEffect(() => {
+    if (!wasSubscribedRef.current && subscribed) {
+      const glyph = notifyGlyphRef.current;
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (glyph && !reducedMotion) {
+        glyph.getAnimations().forEach((animation) => animation.cancel());
+        glyph.animate(
+          [
+            { transform: "rotate(0deg)" },
+            { transform: "rotate(-17deg)", offset: 0.11 },
+            { transform: "rotate(14deg)", offset: 0.27 },
+            { transform: "rotate(-9deg)", offset: 0.44 },
+            { transform: "rotate(6deg)", offset: 0.61 },
+            { transform: "rotate(-3deg)", offset: 0.78 },
+            { transform: "rotate(0deg)" },
+          ],
+          { duration: 820, easing: "ease-out" },
+        );
+      }
+    }
+
+    wasSubscribedRef.current = subscribed;
+  }, [subscribed]);
 
   const handleToggle = async (next: boolean) => {
     try {
@@ -27,8 +70,8 @@ export function PushNotificationsCard() {
         await unsubscribe();
         toast.success("Push notifications disabled");
       }
-    } catch (e: any) {
-      toast.error(e?.message || "Couldn't update push notifications");
+    } catch (error: unknown) {
+      toast.error(notificationErrorMessage(error, "Couldn't update push notifications"));
     }
   };
 
@@ -36,8 +79,8 @@ export function PushNotificationsCard() {
     try {
       await sendTest();
       toast.success("Test notification sent");
-    } catch (e: any) {
-      toast.error(e?.message || "Couldn't send test notification");
+    } catch (error: unknown) {
+      toast.error(notificationErrorMessage(error, "Couldn't send test notification"));
     }
   };
 
@@ -46,7 +89,7 @@ export function PushNotificationsCard() {
 
   return (
     <div className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-md p-4 sm:p-5 space-y-4">
-      <div className="flex items-start gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
         <div className="h-9 w-9 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
           {subscribed ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
         </div>
@@ -57,7 +100,58 @@ export function PushNotificationsCard() {
           </p>
         </div>
         {canToggle && (
-          <Switch checked={subscribed} disabled={loading} onCheckedChange={handleToggle} />
+          <button
+            type="button"
+            onClick={() => void handleToggle(!subscribed)}
+            onPointerDown={(event) => event.stopPropagation()}
+            disabled={loading}
+            aria-pressed={subscribed}
+            aria-label={subscribed ? "Disable push notifications" : "Enable push notifications"}
+            aria-busy={loading}
+            data-on={subscribed}
+            className={
+              "group inline-flex h-10 shrink-0 items-center gap-2 self-start rounded-full border px-4 text-xs font-semibold transition-[background-color,border-color,box-shadow,color,transform] duration-200 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none sm:self-auto " +
+              (subscribed
+                ? "border-primary/45 bg-primary/12 text-foreground shadow-[0_8px_24px_-16px_hsl(var(--primary)/0.85)] hover:bg-primary/18"
+                : "border-border/55 bg-muted/25 text-muted-foreground hover:border-primary/40 hover:bg-primary/8 hover:text-foreground")
+            }
+          >
+            <span
+              ref={notifyGlyphRef}
+              className={cn(
+                "grid h-5 w-5 shrink-0 origin-[50%_16%] place-items-center transition-colors",
+                subscribed ? "text-primary" : "text-muted-foreground group-hover:text-primary",
+              )}
+              aria-hidden="true"
+            >
+              <Bell className="h-4 w-4" strokeWidth={2} />
+            </span>
+            <span
+              ref={notifyLabelRef}
+              className="relative block h-[18px] overflow-hidden text-left"
+              style={notifyLabelWidth ? { width: notifyLabelWidth } : undefined}
+              aria-hidden="true"
+            >
+              <span
+                data-show={!subscribed}
+                className={cn(
+                  "absolute inset-0 whitespace-nowrap leading-[18px] transition-opacity duration-200 motion-reduce:transition-none",
+                  subscribed ? "opacity-0" : "opacity-100",
+                )}
+              >
+                Notify me
+              </span>
+              <span
+                data-show={subscribed}
+                className={cn(
+                  "absolute inset-0 whitespace-nowrap leading-[18px] transition-opacity duration-200 motion-reduce:transition-none",
+                  subscribed ? "opacity-100" : "opacity-0",
+                )}
+              >
+                You’ll be notified
+              </span>
+            </span>
+          </button>
         )}
         {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
       </div>
