@@ -20,6 +20,13 @@ interface SearchResultsCardProps {
   images?: string[];
 }
 
+const carouselDotColors = [
+  "bg-primary",
+  "bg-sky-400",
+  "bg-amber-400",
+  "bg-emerald-400",
+] as const;
+
 function sourceHost(url: string) {
   try {
     return new URL(url).hostname.replace(/^www\./, "");
@@ -293,9 +300,25 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
         <div className="border-t border-border/45 bg-muted/10 px-4 py-4 sm:px-5">
           <div className="mb-2.5 flex items-center justify-between gap-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Images</p>
-            <span className="text-[11px] tabular-nums text-muted-foreground" aria-live="polite">
-              {activeImageIndex + 1} / {visibleImages.length}
-            </span>
+            <div className="hidden items-center gap-2 sm:flex" role="group" aria-label="Choose search result image">
+              {visibleImages.map((url, index) => {
+                const isActive = index === activeImageIndex;
+                return <button
+                  key={`dot-${url}`}
+                  type="button"
+                  aria-label={`Show search result image ${index + 1}`}
+                  aria-pressed={isActive}
+                  onClick={() => settleTo(index)}
+                  className={cn(
+                    "h-2.5 w-2.5 rounded-full transition-[transform,opacity,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none",
+                    carouselDotColors[index % carouselDotColors.length],
+                    isActive
+                      ? "scale-125 opacity-100 shadow-[0_0_12px_hsl(var(--primary)/0.75)]"
+                      : "opacity-45 hover:scale-110 hover:opacity-85",
+                  )}
+                />;
+              })}
+            </div>
           </div>
 
           <div
@@ -395,6 +418,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
                             src={url}
                             alt={`Search result ${index + 1}`}
                             thumbnail
+                            draggable={false}
                             className="h-full w-full"
                             imageClassName="h-full w-full object-cover transition-transform duration-500 ease-out motion-reduce:transition-none group-hover:scale-[1.025]"
                             onError={() => handleImageError(url)}
@@ -411,7 +435,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
               })}
             </div>
 
-            <p className="mt-2 text-center text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/75">
+            <p className="mt-2 text-center text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/75 sm:hidden">
               Swipe
             </p>
           </div>
