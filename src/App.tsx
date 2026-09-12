@@ -284,7 +284,6 @@ const App = () => {
               <Sonner />
               <FingerPopupContainer />
               <PWAInstallPrompt />
-              <MacInstallPrompt />
               <AdminBanner />
               <SourceSurveyBanner />
               <BugReportModal
@@ -300,6 +299,7 @@ const App = () => {
               />
               <BoostSync />
               <BrowserRouter>
+                <MacInstallPrompt />
                 <ThemeManager />
                 <AnonymousTrafficCounter />
                 <ScrollToTop />
