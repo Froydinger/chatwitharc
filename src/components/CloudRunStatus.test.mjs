@@ -59,6 +59,22 @@ test('completed runs show a compact activity list and AI summary without replayi
   assert.doesNotMatch(html, /private duplicate reply/);
 });
 
+test('active runs keep the audit trail collapsed until the user opens it', () => {
+  const html = render({ run: { ...base.run, status: 'running', checkpoint: {
+    progress: { phase: 'tools', turns: 2, tokens: 40 }, pendingApproval: null,
+    audit: [{ kind: 'model', label: 'Choosing the next step', status: 'working' },
+      { kind: 'tool', label: 'web_search', status: 'working' }],
+    reasoningSummary: 'I am checking the relevant sources.',
+  } } });
+  assert.match(html, /Working…/);
+  assert.match(html, /What Arc is doing/);
+  assert.match(html, /Web search/);
+  assert.match(html, /High-level model summary/);
+  assert.match(html, /I am checking the relevant sources/);
+  assert.match(html, /<details/);
+  assert.doesNotMatch(html, /PRIVATE/);
+});
+
 test('detached observer requires reconnect before approval but can explicitly cancel', () => {
   const html = render({ connection: 'detached' });
   assert.match(html, /Updates are disconnected/); assert.match(html, /Reconnect/);

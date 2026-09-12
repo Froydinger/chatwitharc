@@ -220,11 +220,12 @@ Deno.test('cloud engine: native provider reasoning and call items survive the ne
     { type: 'function_call', id: 'synthetic-item', call_id: call.id, name: call.name, arguments: call.arguments },
   ];
   const fake = new FakePorts([
-    [{ ...turn([call]), outputItems }],
+    [{ ...turn([call]), outputItems, reasoningSummary: 'Need a lookup.' }],
     [turn([], 'Answer with preserved context')],
   ]);
   await fake.finish();
   equal(fake.status, 'completed');
+  equal(fake.durable.reasoningSummary, 'Need a lookup.');
   deepStrictEqual(fake.starts[1].transcript, [
     { role: 'user', content: 'Synthetic request' },
     ...outputItems,

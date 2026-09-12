@@ -60,6 +60,9 @@ function readableArguments(args?: string) {
 function activityOutcome(outcome: 'completed' | 'blocked' | 'denied') {
   return outcome === 'completed' ? 'Completed' : outcome === 'blocked' ? 'Blocked' : 'Declined';
 }
+function auditOutcome(outcome: 'working' | 'completed' | 'blocked' | 'denied') {
+  return outcome === 'working' ? 'Working' : activityOutcome(outcome);
+}
 
 /** Standalone inline text-chat card. No timers, transport, modal, or voice integration. */
 export function CloudRunStatus(props: CloudRunStatusProps) {
@@ -97,6 +100,12 @@ function CloudRunStatusCard({ run, connection = 'idle', observationError, onAppr
         : 'You can leave this chat. The submitted run continues in the cloud.';
   const error = state.error || observationError || (run.status === 'failed' || (run.status === 'awaiting_input' && !canDecide)
     ? typeof run.error === 'string' ? run.error : run.status === 'failed' ? 'The run could not finish.' : 'Recovery is required before this run can continue.' : null);
+  const audit = run.checkpoint?.audit ?? [];
+  const displayAudit = audit.length ? audit : (run.checkpoint?.activity ?? []).map(item => ({
+    kind: 'tool' as const, label: item.tool, status: item.outcome,
+  }));
+  const hasAudit = displayAudit.length > 0 || !!run.checkpoint?.reasoningSummary ||
+    (!!run.checkpoint?.activity?.length && run.status === 'completed');
   const button = 'min-h-11 rounded-full border border-border bg-background/70 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50';
   const decide = (decision: 'approve' | 'deny') => {
     if (!canDecide || mutationDisabled || !approval) return;
@@ -125,24 +134,36 @@ function CloudRunStatusCard({ run, connection = 'idle', observationError, onAppr
         </div>
       )}
       {error && <p role="alert" className="mt-3 break-words text-sm text-foreground">{error}</p>}
-      {run.status === 'completed' && (run.checkpoint?.activity?.length || run.checkpoint?.aiSummary) && (
-        <div className="mt-4 space-y-3 rounded-xl border border-border/50 bg-muted/20 p-3">
-          {!!run.checkpoint.activity?.length && <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">What Arc did</p>
-            <ul className="mt-2 space-y-1.5 text-sm">
-              {run.checkpoint.activity.map((item, index) => (
-                <li key={`${item.tool}-${index}`} className="flex items-center justify-between gap-3">
-                  <span className="min-w-0 truncate">{readableName(item.tool)}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">{activityOutcome(item.outcome)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>}
-          {run.checkpoint.aiSummary && <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">AI summary</p>
-            <p className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">{run.checkpoint.aiSummary}</p>
-          </div>}
-        </div>
+      {hasAudit && (
+        <details className="mt-4 rounded-xl border border-border/50 bg-muted/20 p-3">
+          <summary className="cursor-pointer list-inside text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            {run.status === 'completed' ? 'Audit trail' : 'Working…'}
+            {displayAudit.length > 0 && <span className="ml-2 text-xs font-normal text-muted-foreground">
+              {displayAudit.filter(item => item.kind === 'tool').length} step{displayAudit.filter(item => item.kind === 'tool').length === 1 ? '' : 's'}
+            </span>}
+          </summary>
+          <div className="mt-3 space-y-3">
+            {!!displayAudit.length && <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{run.status === 'completed' ? 'What Arc did' : 'What Arc is doing'}</p>
+              <ol className="mt-2 space-y-1.5 text-sm">
+                {displayAudit.map((item, index) => (
+                  <li key={`${item.kind}-${item.label}-${index}`} className="flex items-center justify-between gap-3">
+                    <span className="min-w-0 truncate">{item.kind === 'tool' ? readableName(item.label) : item.label}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{auditOutcome(item.status)}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>}
+            {run.checkpoint?.reasoningSummary && <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">High-level model summary</p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">{run.checkpoint.reasoningSummary}</p>
+            </div>}
+            {run.checkpoint?.aiSummary && <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">AI summary</p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">{run.checkpoint.aiSummary}</p>
+            </div>}
+          </div>
+        </details>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
         {canDecide && <>

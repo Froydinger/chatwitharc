@@ -3,11 +3,12 @@ import { cloudResponseProvider, parseCloudResponse, responseInput } from './clou
 function assert(value: unknown, message = 'Assertion failed'): asserts value { if (!value) throw new Error(message); }
 
 Deno.test('provider retains reasoning and function calls across tool rounds', () => {
-  const reasoning = { type: 'reasoning', id: 'rs_1', summary: [] };
+  const reasoning = { type: 'reasoning', id: 'rs_1', summary: [{ type: 'summary_text', text: 'I will check the weather.' }] };
   const result = parseCloudResponse({ status: 'completed', usage: { total_tokens: 42 }, output: [
     reasoning, { type: 'function_call', call_id: 'call_1', name: 'web_search', arguments: '{"query":"weather"}' },
   ] });
   assert(result?.tokens === 42);
+  assert(result?.reasoningSummary === 'I will check the weather.');
   assert(result.calls[0].id === 'call_1');
   assert(result.outputItems?.[0] === reasoning);
   const input = responseInput([...result.outputItems!, { role: 'tool', tool_call_id: 'call_1', content: 'untrusted result' }]);
@@ -34,6 +35,7 @@ Deno.test('background adapter preserves Luna, bounds output, never retries a fai
       assert(body.model === 'gpt-5.6-luna');
       assert(body.background === true && body.store === true);
       assert(body.max_output_tokens === 123);
+      assert(body.reasoning?.summary === 'auto');
       assert(!('temperature' in body));
       return Promise.resolve(new Response('{}', { status: 503 }));
     }) as typeof fetch,

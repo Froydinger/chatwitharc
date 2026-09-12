@@ -405,6 +405,41 @@ export function publicRun(row: Obj) {
     }];
   })
     .slice(0, 64);
+  const audit: Array<{
+    kind: 'model' | 'tool';
+    label: string;
+    status: 'working' | 'completed' | 'blocked' | 'denied';
+  }> = [];
+  const auditStatus = (value: unknown) =>
+    value === 'blocked' || value === 'denied' || value === 'completed' ? value : 'working';
+  if (engine.phase === 'model' && !engine.finalText) {
+    audit.push({
+      kind: 'model',
+      label: typeof engine.responseId === 'string' ? 'Waiting for Luna' : 'Choosing the next step',
+      status: 'working',
+    });
+  }
+  for (const value of Object.values(asRecord(engine.receipts))) {
+    const receipt = asRecord(value);
+    if (typeof receipt.toolName !== 'string' || !receipt.toolName) continue;
+    audit.push({
+      kind: 'tool',
+      label: receipt.toolName,
+      status: receipt.state === 'done' ? auditStatus(receipt.outcome) : 'working',
+    });
+    if (audit.length >= 64) break;
+  }
+  if (audit.length < 64 && Array.isArray(engine.calls)) {
+    for (const rawCall of engine.calls) {
+      const call = asRecord(rawCall);
+      if (typeof call.id !== 'string' || typeof call.name !== 'string') continue;
+      const key = `${row.id}:turn:${typeof engine.turns === 'number' ? engine.turns : 0}:tool:${call.id}`;
+      const receipt = asRecord(asRecord(engine.receipts)[key]);
+      if (receipt.state === 'done') continue;
+      audit.push({ kind: 'tool', label: call.name, status: 'working' });
+      if (audit.length >= 64) break;
+    }
+  }
   const aiSummary = row.status === 'completed' && typeof engine.finalText === 'string' && engine.finalText.trim()
     ? engine.finalText.slice(0, 8_000)
     : null;
@@ -423,6 +458,9 @@ export function publicRun(row: Obj) {
       },
       pendingApproval,
       ...(activity.length ? { activity } : {}),
+      ...(audit.length ? { audit } : {}),
+      ...(typeof engine.reasoningSummary === 'string' && engine.reasoningSummary.trim()
+        ? { reasoningSummary: engine.reasoningSummary.slice(0, 4_000) } : {}),
       ...(aiSummary ? { aiSummary } : {}),
     },
     error: row.error,

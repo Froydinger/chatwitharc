@@ -3,7 +3,14 @@
  * The store must fence every write with the worker's current lease token. */
 import type { CloudPresentation, CloudToolOutput } from './cloudRunArtifacts.ts';
 export type ToolCall = { id: string; name: string; arguments: string };
-export type ModelTurn = { calls: ToolCall[]; text: string; tokens: number; outputItems?: unknown[] };
+export type ModelTurn = {
+  calls: ToolCall[];
+  text: string;
+  tokens: number;
+  outputItems?: unknown[];
+  /** Safe high-level reasoning summary, never private chain-of-thought. */
+  reasoningSummary?: string;
+};
 /** A confirmed terminal provider result is not a transport failure. Preserve
  * the response ID for diagnosis but stop polling rather than burning leases. */
 export class CloudModelTerminalError extends Error {
@@ -39,6 +46,7 @@ export type EngineState = {
   modelIntent?: string;
   responseId?: string;
   finalText?: string;
+  reasoningSummary?: string;
 };
 export interface EnginePorts {
   now(): number;
@@ -111,6 +119,7 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
     state.turns += 1;
     state.modelIntent = undefined;
     state.responseId = undefined;
+    if (turn.reasoningSummary) state.reasoningSummary = turn.reasoningSummary;
     state.calls = turn.calls;
     // Responses reasoning items must survive tool rounds alongside function calls.
     state.transcript.push(...(turn.outputItems ?? [{ role: 'assistant', content: turn.text, tool_calls: turn.calls }]));

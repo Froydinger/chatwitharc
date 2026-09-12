@@ -11,6 +11,15 @@ function record(value: unknown): Json {
   return value as Json;
 }
 
+function reasoningSummary(value: unknown): string {
+  if (typeof value === 'string') return value.slice(0, 4_000);
+  if (!Array.isArray(value)) return '';
+  return value.map(part => {
+    const item = record(part);
+    return item.type === 'summary_text' && typeof item.text === 'string' ? item.text : '';
+  }).filter(Boolean).join('\n').slice(0, 4_000);
+}
+
 /** Preserve raw output (including reasoning) rather than flattening a tool turn
  * into prose. Tool results are untrusted data, never elevated to system messages. */
 export function parseCloudResponse(value: unknown): ModelTurn | null {
@@ -23,8 +32,13 @@ export function parseCloudResponse(value: unknown): ModelTurn | null {
   if (!Array.isArray(response.output)) throw new Error('Missing model output');
   const calls: ModelTurn['calls'] = [];
   const text: string[] = [];
+  const summaries: string[] = [];
   for (const raw of response.output) {
     const item = record(raw);
+    if (item.type === 'reasoning') {
+      const summary = reasoningSummary(item.summary);
+      if (summary) summaries.push(summary);
+    }
     if (item.type === 'function_call') {
       if (typeof item.call_id !== 'string' || typeof item.name !== 'string' || typeof item.arguments !== 'string') {
         throw new Error('Invalid function call');
@@ -43,7 +57,13 @@ export function parseCloudResponse(value: unknown): ModelTurn | null {
   if (typeof usage.total_tokens !== 'number' || !Number.isFinite(usage.total_tokens) || usage.total_tokens < 0) {
     throw new Error('Missing model usage');
   }
-  return { calls, text: text.join('\n'), tokens: usage.total_tokens, outputItems: response.output };
+  return {
+    calls,
+    text: text.join('\n'),
+    tokens: usage.total_tokens,
+    outputItems: response.output,
+    ...(summaries.length ? { reasoningSummary: summaries.join('\n').slice(0, 4_000) } : {}),
+  };
 }
 
 export function responseInput(transcript: unknown[]): unknown[] {
@@ -89,7 +109,9 @@ export function cloudResponseProvider(options: {
         model: 'gpt-5.6-luna', input,
         instructions: options.instructions,
         // Responses API spells Chat Completions reasoning_effort as reasoning.effort.
-        reasoning: { effort: options.reasoningEffort },
+        // Ask only for the provider's safe high-level summary. Private chain of
+        // thought is never requested or sent to the browser.
+        reasoning: { effort: options.reasoningEffort, summary: 'auto' },
         tools: options.tools, parallel_tool_calls: false,
         ...(options.firstTool && requestKey.endsWith(':model:0')
           ? { tool_choice: { type: 'function', name: options.firstTool } } : {}),

@@ -53,6 +53,26 @@ Deno.test('app discovery exposes only validated project association, not source 
   assert(!('projectId' in publicRun({...row(),kind:'app',project_id:'invalid'})));
 });
 
+Deno.test('live audit projection exposes safe progress without transcripts or tool arguments', () => {
+  const projected = publicRun({ ...row('running'), checkpoint: {
+    engine: {
+      phase: 'tools', turns: 2, tokens: 120,
+      transcript: ['PRIVATE TRANSCRIPT'],
+      calls: [{ id: 'call-current', name: 'web_search', arguments: 'PRIVATE ARGUMENTS' }],
+      receipts: {
+        completed: { state: 'done', toolName: 'update_code', outcome: 'completed' },
+        active: { state: 'started', toolName: 'web_search' },
+      },
+      reasoningSummary: 'I am comparing the relevant sources.',
+    },
+  }});
+  const audit = (projected.checkpoint as { audit?: Array<{ label: string; status: string }> }).audit ?? [];
+  assert(audit.some(item => item.label === 'update_code' && item.status === 'completed'));
+  assert(audit.some(item => item.label === 'web_search' && item.status === 'working'));
+  assert((projected.checkpoint as { reasoningSummary?: string }).reasoningSummary === 'I am comparing the relevant sources.');
+  assert(!JSON.stringify(projected).includes('PRIVATE'));
+});
+
 Deno.test('app submit enforces activation, owned project and current Boost before atomic acceptance', async () => {
   const projectId = '00000000-0000-4000-8000-000000000004';
   const app = {...submit, kind:'app', request:{...submit.request,projectId}};
@@ -375,6 +395,7 @@ Deno.test("status endpoint uses public checkpoint projection", async () => {
       canonical({
         progress: { phase: "model", turns: 1, tokens: 20 },
         pendingApproval: null,
+        audit: [{ kind: "model", label: "Choosing the next step", status: "working" }],
       }),
   );
 });

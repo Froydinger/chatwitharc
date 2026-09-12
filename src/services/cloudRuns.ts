@@ -60,10 +60,17 @@ export type CloudRunActivityItem = {
   tool: string;
   outcome: 'completed' | 'blocked' | 'denied';
 };
+export type CloudRunAuditItem = {
+  kind: 'model' | 'tool';
+  label: string;
+  status: 'working' | 'completed' | 'blocked' | 'denied';
+};
 export type CloudRunCheckpoint = {
   progress: { phase: 'model' | 'tools' | 'done' | null; turns: number | null; tokens: number | null };
   pendingApproval: { callId: string; argumentsHash: string; name?: string; arguments?: string } | null;
   activity?: CloudRunActivityItem[];
+  audit?: CloudRunAuditItem[];
+  reasoningSummary?: string;
   aiSummary?: string;
 };
 export type CloudRunListOptions = { sessionId?: string; cursor?: string; limit?: number; includeTerminal?: boolean };
