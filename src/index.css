@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 3px;
+  padding: 2px;
   border-radius: 48px;
   background: hsl(var(--muted) / 0.82);
   border: 1px solid hsl(var(--foreground) / 0.18);
@@ -27,7 +27,7 @@
   appearance: none;
   border: 0;
   background: transparent;
-  height: 30px;
+  height: 34px;
   padding: 4px 8px;
   color: hsl(var(--foreground) / 0.68);
   font-size: 12px;
@@ -58,10 +58,10 @@
 }
 .t-tabs.arc-mode-tabs .t-tabs-pill {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  height: 30px;
-  width: calc((100% - 9px) / 2);
+  top: 2px;
+  left: 2px;
+  height: 34px;
+  width: calc((100% - 7px) / 2);
   background: hsl(var(--card) / 0.96);
   border: 1px solid hsl(var(--foreground) / 0.22);
   border-radius: 48px;
@@ -80,6 +80,17 @@
 .t-tabs.arc-mode-tabs[data-active="auto"] .t-tabs-pill {
   transform: translateX(calc(100% + 3px));
 }
+
+/* iOS/WebKit already supplies the translucent Dynamic Island safe-area
+   treatment. Keep the header's glass tint and rim, but do not add another
+   backdrop blur across the content immediately below it. */
+@supports (-webkit-touch-callout: none) {
+  .arc-top-controls .glass-shimmer {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .t-tabs.arc-mode-tabs .t-tabs-pill,
   .t-tabs.arc-mode-tabs .t-tab {

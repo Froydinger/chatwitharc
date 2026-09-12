@@ -12,10 +12,10 @@ type ArcModeTabsProps = {
 export function ArcModeTabs({ mode, available, onChange, onUnavailable, className }: ArcModeTabsProps) {
   return (
     <div
-      className={cn('t-tabs arc-mode-tabs w-[min(13rem,calc(100vw-2rem))]', className)}
+      className={cn('t-tabs arc-mode-tabs w-[min(11rem,calc(100vw-2rem))]', className)}
       data-active={mode}
       role="group"
-      aria-label="Arc Chat or Arc Work mode"
+      aria-label="Chat or Work mode"
     >
       <span className="t-tabs-pill" aria-hidden="true" />
       <button
@@ -24,7 +24,7 @@ export function ArcModeTabs({ mode, available, onChange, onUnavailable, classNam
         aria-pressed={mode === 'ask'}
         onClick={() => onChange('ask')}
       >
-        Arc Chat
+        Chat
       </button>
       <button
         type="button"
@@ -33,7 +33,7 @@ export function ArcModeTabs({ mode, available, onChange, onUnavailable, classNam
         title={available ? 'Arc Work keeps running after you leave' : 'Arc Work requires Boost'}
         onClick={() => available ? onChange('auto') : onUnavailable()}
       >
-        Arc Work
+        Work
         {!available && <Crown className="h-3 w-3 text-primary" aria-hidden="true" />}
       </button>
     </div>

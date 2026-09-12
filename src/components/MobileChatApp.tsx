@@ -1114,7 +1114,7 @@ export function MobileChatApp() {
             {/* Left Header Buttons */}
             <div
               className={cn(
-                "fixed left-4 z-40 transition-transform duration-300 ease-out flex h-16 items-center gap-2 pointer-events-auto",
+                "arc-top-controls fixed left-4 z-40 transition-transform duration-300 ease-out flex h-16 items-center gap-2 pointer-events-auto",
                 isMobile && !headerVisible && "-translate-y-24",
               )}
               style={{
@@ -1162,9 +1162,9 @@ export function MobileChatApp() {
                 voice choices live together in the centered input picker. */}
             {!isVoiceActive && (
               <div
-                className="fixed left-1/2 z-40 -translate-x-1/2 pointer-events-auto"
+                className="fixed left-1/2 z-40 flex h-16 -translate-x-1/2 items-center pointer-events-auto"
                 style={{
-                  top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 18px)`,
+                  top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
                 }}
               >
                 <ArcModeTabs
@@ -1182,7 +1182,7 @@ export function MobileChatApp() {
             {!isDesktopCanvasMode && (
               <div
                 className={cn(
-                  "fixed right-4 z-40 transition-transform duration-300 ease-out flex h-16 items-center gap-2 pointer-events-auto",
+                  "arc-top-controls fixed right-4 z-40 transition-transform duration-300 ease-out flex h-16 items-center gap-2 pointer-events-auto",
                   isMobile && !headerVisible && "-translate-y-24",
                 )}
                 style={{
