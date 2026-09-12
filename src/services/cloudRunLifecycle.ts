@@ -215,9 +215,16 @@ export class CloudRunLifecycle {
       if (!observation || observation.ownerVerified) this.emit(entry);
     }
   }
-  detachAll() {
+  detachAll(preserveAcceptedSubmission = false) {
     for (const controller of this.discovery) controller.abort();
-    for (const id of this.observations.keys()) this.detach(id);
+    for (const id of [...this.observations.keys()]) {
+      const entry = this.entries.get(id);
+      // Once the one-shot submit has passed owner verification, let that small
+      // request finish even if the UI is closing. The server transaction is the
+      // durable hand-off; polling can be recreated on the next app open.
+      if (preserveAcceptedSubmission && entry?.attempted && !entry.run && entry.connection === 'observing') continue;
+      this.detach(id);
+    }
   }
   /** Explicit server cancellation only. Detach never calls this port. */
   cancel(id: string) { return this.operation(id, options => this.ports.cancel(id, options)); }

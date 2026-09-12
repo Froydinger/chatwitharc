@@ -14,7 +14,7 @@ import { useSearchStore } from "@/store/useSearchStore";
 import { MessageBubble } from "@/components/MessageBubble";
 import { ChatInput, cancelCurrentRequest, inferPromptMode, type ChatInputRef, type CloudTextSubmitIntent } from "@/components/ChatInput";
 import { CloudRunList } from "@/components/CloudRunList";
-import { useCloudRuns } from "@/hooks/useCloudRuns";
+import { useCloudRuns, type CloudRunsApi } from "@/hooks/useCloudRuns";
 import { reconcileCloudAppRun } from '@/services/cloudAppProjectClient';
 import { captureCloudWorkspaceContext, type CloudRunMode, type CloudRunSubmission, type CloudTextRequest } from "@/services/cloudRuns";
 import { prepareCloudMediaCapture, cloudMediaDigest, type CloudMediaReference } from "@/services/cloudMediaCapture";
@@ -333,11 +333,21 @@ export function MobileChatApp() {
     && import.meta.env.VITE_CLOUD_SESSION_OPERATIONS_ENABLED === 'true' && !!user && !isAnonymous;
   const [cloudModeChoice, setCloudModeChoice] = useState<{ ownerId: string; mode: CloudRunMode } | null>(null);
   const arcCloudAvailable = cloudTextEnabled && (hasBoost || isAdmin);
-  // Auto is an explicit Arc Cloud choice by this owner, never inherited after
-  // an account switch. Free users always stay on durable Ask mode.
+  // Arc Chat is the explicit starting mode. Auto is an explicit Arc Work
+  // choice by this owner, never inherited after an account switch.
+  useEffect(() => {
+    setCloudModeChoice((current) => {
+      if (!user) return null;
+      if (current?.ownerId === user.id) return current;
+      return { ownerId: user.id, mode: 'ask' };
+    });
+  }, [user]);
+
+  // Free users always stay on durable Ask mode. If Boost is removed while Work
+  // is selected, return the control to the safe Chat default.
   const cloudExecutionMode = cloudModeChoice && cloudModeChoice.ownerId === user?.id ? cloudModeChoice.mode : 'ask';
   useEffect(() => {
-    if (!arcCloudAvailable && cloudModeChoice) setCloudModeChoice(null);
+    if (!arcCloudAvailable && cloudModeChoice?.mode === 'auto') setCloudModeChoice(null);
   }, [arcCloudAvailable, cloudModeChoice]);
   const cloudRuns = useCloudRuns({
     enabled: cloudTextEnabled, ownerId: user?.id ?? null, sessionId: currentSessionId,
@@ -362,6 +372,12 @@ export function MobileChatApp() {
       }
     },
   });
+  // The coordinator object is refreshed as its async startup completes. Keep
+  // a live pointer so a send that began during startup can wait for readiness
+  // instead of failing against the first not-ready snapshot.
+  const cloudRunsRef = useRef<CloudRunsApi | null>(null);
+  cloudRunsRef.current = cloudRuns;
+
   const submitCloudText = async (intent: CloudTextSubmitIntent) => {
     // Capture before prepareCloudSession awaits: editor/session switches must
     // not change the workspace or history of this accepted text intent.
@@ -371,16 +387,75 @@ export function MobileChatApp() {
     };
     const workspaceContext = captured.workspaceContext === undefined ? undefined
       : captureCloudWorkspaceContext(captured.workspaceContext);
-    if (!cloudRuns.ready) throw new Error('Cloud connection is starting. Your message is retained; check the connection before retrying.');
+    const currentCloudRuns = () =>
+      typeof cloudRunsRef !== 'undefined' && cloudRunsRef.current ? cloudRunsRef.current : cloudRuns;
+    let activeCloudRuns = currentCloudRuns();
+    const readyDeadline = Date.now() + 10_000;
+    while (!activeCloudRuns.ready && Date.now() < readyDeadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      activeCloudRuns = currentCloudRuns();
+    }
+    if (!activeCloudRuns.ready) {
+      throw new Error('Cloud connection is still starting. Your message is retained; please try again in a moment.');
+    }
     const mode = cloudExecutionMode;
     const store = useArcStore.getState();
-    const prepared = await store.prepareCloudSession(captured.sessionId);
-    const message = useArcStore.getState().chatSessions.find(s => s.id === captured.sessionId)
+    const localSession = store.chatSessions.find(s => s.id === captured.sessionId);
+    let message = localSession
       ?.messages.find(m => m.id === captured.userMessageId);
     if (!message || message.role !== 'user' || message.type !== 'text' || message.content !== captured.userContent) {
       throw new Error('The submitted message changed. Review it before sending.');
     }
     const userMessage = JSON.parse(JSON.stringify(message)) as CloudRunSubmission['userMessage'];
+
+    const buildRequest = (uploadedAttachments?: CloudMediaReference[]): CloudTextRequest => ({
+      messages: captured.messages, forceWebSearch: captured.forceWebSearch,
+      forceCanvas: captured.forceCanvas, forceCode: captured.forceCode,
+      ...(uploadedAttachments ? { attachments: uploadedAttachments } : {}),
+      ...(workspaceContext ? { workspace_context: workspaceContext } : {}),
+      reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, getQueryComplexity(message.content)),
+      clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
+
+    // For a text-only turn whose local session already has a trustworthy
+    // revision (or is a brand-new one-message session), submit immediately.
+    // submit_cloud_run appends the user turn and creates the queued run in one
+    // server transaction, so session reconciliation no longer sits in front of
+    // the durable hand-off. Attachments still use the slower upload path below.
+    const sessionRevision = localSession?.revision;
+    const isNewLocalSession = !!localSession && localSession.messages.length === 1
+      && localSession.messages[0]?.id === captured.userMessageId;
+    const canSubmitBeforeReconciliation = !captured.attachments?.length && !!localSession
+      && (Number.isSafeInteger(sessionRevision)
+        || (isNewLocalSession && localSession.legacySavePending === true));
+    if (canSubmitBeforeReconciliation) {
+      const entry = activeCloudRuns.prepare({
+        sessionId: captured.sessionId, mode,
+        expectedRevision: Number.isSafeInteger(sessionRevision) ? sessionRevision : 0,
+        userMessage, request: buildRequest(),
+      });
+      const accepted = await activeCloudRuns.submit(entry.id);
+      const acknowledgedRevision = accepted?.run?.sessionRevision;
+      const acknowledgedOwner = localSession?.persistenceOwnerId
+        ?? (await supabase.auth.getUser()).data.user?.id;
+      if (Number.isSafeInteger(acknowledgedRevision) && acknowledgedOwner) {
+        useArcStore.setState(state => ({
+          chatSessions: state.chatSessions.map(session => session.id === captured.sessionId
+            ? { ...session, persistenceVersion: 1, persistenceOwnerId: acknowledgedOwner, revision: Math.max(session.revision ?? 0, acknowledgedRevision) }
+            : session),
+        }));
+      }
+      return;
+    }
+
+    // Legacy sessions and file-backed turns still need their existing
+    // reconciliation/upload path before the atomic submission can be formed.
+    const prepared = await store.prepareCloudSession(captured.sessionId);
+    message = useArcStore.getState().chatSessions.find(s => s.id === captured.sessionId)
+      ?.messages.find(m => m.id === captured.userMessageId);
+    if (!message || message.role !== 'user' || message.type !== 'text' || message.content !== captured.userContent) {
+      throw new Error('The submitted message changed. Review it before sending.');
+    }
     let attachments: CloudMediaReference[] | undefined;
     if (captured.attachments?.length) {
       const capture = await prepareCloudMediaCapture(captured.attachments, {
@@ -417,16 +492,11 @@ export function MobileChatApp() {
         }
       }
     }
-    const entry = cloudRuns.prepare({
+    const entry = activeCloudRuns.prepare({
       sessionId: captured.sessionId, mode, expectedRevision: prepared.revision, userMessage,
-      request: { messages: captured.messages, forceWebSearch: captured.forceWebSearch,
-        forceCanvas: captured.forceCanvas, forceCode: captured.forceCode,
-        ...(attachments ? {attachments} : {}),
-        ...(workspaceContext ? {workspace_context: workspaceContext} : {}),
-        reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, getQueryComplexity(message.content)),
-        clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone } satisfies CloudTextRequest,
+      request: buildRequest(attachments),
     });
-    await cloudRuns.submit(entry.id);
+    await activeCloudRuns.submit(entry.id);
   };
   const requireAuth = useRequireAuth();
   const isMobile = useIsMobile();

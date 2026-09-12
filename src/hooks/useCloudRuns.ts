@@ -201,7 +201,7 @@ export class CloudRunsBinding {
     this.scope.abort();
     this.eventTarget?.removeEventListener('focus', this.eventRefresh);
     this.eventTarget?.removeEventListener('online', this.eventRefresh);
-    this.lifecycle?.detachAll();
+    this.lifecycle?.detachAll(true);
     this.entries.clear();
   }
 }

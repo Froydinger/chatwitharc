@@ -133,5 +133,5 @@ export class CloudAppRuns {
     const lifecycle = await this.init();
     if (this.view.entry) await lifecycle.cancel(this.view.entry.id);
   }
-  close() { this.scope.abort(); this.lifecycle?.detachAll(); }
+  close() { this.scope.abort(); this.lifecycle?.detachAll(true); }
 }

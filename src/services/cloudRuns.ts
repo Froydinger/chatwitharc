@@ -179,6 +179,11 @@ async function requestCloudRun<TResult, TCheckpoint>(
   }, timeoutMs);
 
   try {
+    // Submission is the durable hand-off boundary. Keep that one small HTTP
+    // request alive through a tab/app teardown so a user can leave immediately
+    // after sending without cancelling the server-side run. Do not opt large
+    // transcripts into keepalive: browsers cap unload-safe request bodies.
+    const serializedBody = JSON.stringify(body);
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cloud-run`, {
       method: 'POST',
       headers: {
@@ -186,8 +191,9 @@ async function requestCloudRun<TResult, TCheckpoint>(
         Authorization: `Bearer ${session.access_token}`,
         apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
       },
-      body: JSON.stringify(body),
+      body: serializedBody,
       signal: controller.signal,
+      keepalive: body.action === 'submit' && serializedBody.length <= 60_000,
     });
     if (!response.ok) {
       throw new CloudRunError(`Cloud run request failed (${response.status}).`, id, 'http', response.status);

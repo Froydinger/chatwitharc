@@ -139,6 +139,8 @@ export interface ChatSession {
   persistenceVersion?: number;
   revision?: number;
   persistenceOwnerId?: string;
+  /** New local chats use this while their legacy shell write is in flight. */
+  legacySavePending?: boolean;
   id: string;
   title: string;
   createdAt: Date;
@@ -1295,7 +1297,11 @@ export const useArcStore = create<ArcState>()(
               throw error;
             } else {
               console.log('✅ Successfully saved session:', session.id);
-              set({ lastSyncAt: new Date(), isOnline: true });
+              set(state => ({
+                lastSyncAt: new Date(), isOnline: true,
+                chatSessions: state.chatSessions.map(current => current.id === session.id
+                  ? { ...current, legacySavePending: false } : current),
+              }));
             }
           } catch (error) {
             console.error('❌ Failed to save to Supabase:', error);
@@ -1315,7 +1321,13 @@ export const useArcStore = create<ArcState>()(
           saves.add(record); legacySaves.set(session.id, saves);
           void done.then(() => {
             saves.delete(record);
-            if (!saves.size && legacySaves.get(session.id) === saves) legacySaves.delete(session.id);
+            if (!saves.size && legacySaves.get(session.id) === saves) {
+              legacySaves.delete(session.id);
+              set(state => ({
+                chatSessions: state.chatSessions.map(current => current.id === session.id
+                  ? { ...current, legacySavePending: false } : current),
+              }));
+            }
           }, () => { record.failed = true; });
         }
         return done;
@@ -1637,6 +1649,7 @@ export const useArcStore = create<ArcState>()(
               lastMessageAt: new Date(),
               messages: updatedMessages,
               isLocalOnly,
+              legacySavePending: cloudSessionOperationsEnabled && !isLocalOnly,
               // Local is the source of truth — block hydrate races (see createNewSession).
               isHydrated: true,
               messageCount: updatedMessages.length,
@@ -1657,6 +1670,7 @@ export const useArcStore = create<ArcState>()(
               folderId: existingSession?.folderId,
               persistenceVersion: existingSession?.persistenceVersion,
               persistenceOwnerId: existingSession?.persistenceOwnerId,
+              legacySavePending: existingSession?.legacySavePending,
               revision: existingSession?.revision,
               isLocalOnly: existingSession?.isLocalOnly,
               // Preserve hydration so local-only sessions don't get wiped by a
