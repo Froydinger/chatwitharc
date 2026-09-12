@@ -16,12 +16,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
-    const message = error ? String(error.message || error) : '';
-    const isChunkError = /dynamically imported module|module script|loading chunk|chunkloaderror|not a valid javascript mime type/i.test(message);
-    if (isChunkError) {
-      // Chunk errors are recovered automatically without flashing the error boundary
-      return { hasError: false, error: null };
-    }
+    // Always render a fallback. A rejected React.lazy import stays rejected,
+    // so rendering the same child again cannot retry its module factory.
     return { hasError: true, error };
   }
 
@@ -32,8 +28,12 @@ export class ErrorBoundary extends React.Component<Props, State> {
     // just needs the new build. index.html already knows how to recover from
     // that; hand it over so the user sees a reload rather than an error screen.
     const recover = (window as unknown as { __recoverArcChunk?: (e: unknown) => boolean }).__recoverArcChunk;
-    if (typeof recover === 'function' && recover(error)) {
-      this.setState({ hasError: false, error: null });
+    // Recovery may navigate, but it must never reset this failed subtree.
+    // The fallback remains available if navigation is blocked or fails.
+    if (typeof recover === 'function') {
+      try { recover(error); } catch (recoveryError) {
+        console.error('App recovery failed:', recoveryError);
+      }
     }
   }
 
@@ -58,29 +58,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </p>
             <button
               onClick={() => {
-                // Clear non-auth storage and reload
-                try {
-                  // Preserve Supabase auth session
-                  const authKeys = Object.keys(localStorage).filter(key =>
-                    key.startsWith('sb-') || key.includes('supabase')
-                  );
-                  const preservedAuth: Record<string, string> = {};
-                  authKeys.forEach(key => {
-                    const value = localStorage.getItem(key);
-                    if (value) preservedAuth[key] = value;
-                  });
-
-                  // Clear everything
-                  localStorage.clear();
-                  sessionStorage.clear();
-
-                  // Restore auth
-                  Object.entries(preservedAuth).forEach(([key, value]) => {
-                    localStorage.setItem(key, value);
-                  });
-                } catch (e) {
-                  console.error('Failed to clear storage:', e);
-                }
+                // Refresh is not a reset: preserve chats, drafts, settings and auth.
                 window.location.reload();
               }}
               style={{
