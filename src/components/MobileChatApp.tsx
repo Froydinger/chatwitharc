@@ -249,12 +249,12 @@ export function ArcInputEffects({
       {renderBeam && (
         <div
           className="arc-input-fx arc-input-fx--metal transition-opacity duration-700 ease-out"
-          style={{ opacity: visible ? 1 : 0 }}
+          style={{ opacity: visible ? 0.28 : 0 }}
           aria-hidden="true"
         >
           <MetalFx
        preset="chromatic"
-       strength={isWorking ? 0.5 : isNewChat ? 0.34 : 0.2}
+       strength={0.28}
             paused={!visible}
             disableGlow
             theme={theme}

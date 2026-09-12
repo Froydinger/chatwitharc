@@ -38,10 +38,10 @@ export function LiquidMetalOverlay({
   }, []);
 
   return (
-    <div className="liquid-metal-overlay-frame" aria-hidden="true">
+    <div className="liquid-metal-overlay-frame" style={{ opacity: 0.28 }} aria-hidden="true">
       <MetalFx
         preset={preset}
-        strength={strength}
+        strength={Math.min(strength, 0.28)}
         theme={theme}
         paused={reduceMotion}
         normalizeHostStyles={false}

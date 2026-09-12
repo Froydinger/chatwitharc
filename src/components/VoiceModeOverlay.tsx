@@ -482,12 +482,12 @@ export function VoiceModeOverlay() {
               {/* Liquid Metal sheen ring / glow */}
               <div
                 className="absolute inset-0 rounded-full pointer-events-none overflow-hidden transition-opacity duration-500"
-                style={{ zIndex: 0, opacity: orbTheme === 'dark' ? metalOpacity : metalOpacity * 0.75 }}
+                style={{ zIndex: 0, opacity: Math.min(0.28, orbTheme === 'dark' ? metalOpacity : metalOpacity * 0.75) }}
                 aria-hidden="true"
               >
                 <MetalFx
                   preset="silver"
-                  strength={metalStrength}
+                  strength={Math.min(0.28, metalStrength)}
                   theme={effectTheme}
                   borderRadius={9999}
                   disableGlow={false}

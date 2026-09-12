@@ -2367,12 +2367,12 @@ useEffect(() => {
             {/* Liquid Metal sheen layer inside the bubble */}
             <div
               className="absolute inset-0 rounded-full pointer-events-none overflow-hidden"
-              style={{ zIndex: 32, opacity: 0.55 }}
+              style={{ zIndex: 32, opacity: 0.28 }}
               aria-hidden="true"
             >
               <MetalFx
                 preset="silver"
-                strength={0.3}
+                strength={0.28}
                 disableGlow
                 theme={effectTheme}
                 borderRadius={9999}

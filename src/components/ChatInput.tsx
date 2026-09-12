@@ -11,7 +11,6 @@ import {
   ImagePlus,
   AudioWaveform,
   Check,
-  ChevronDown,
   Code2,
   PenLine,
   Search,
@@ -52,8 +51,6 @@ import { useSearchStore } from "@/store/useSearchStore";
 import { useVoiceModeStore, prewarmMicrophone } from "@/store/useVoiceModeStore";
 import type { VoiceName } from "@/store/useVoiceModeStore";
 import { REALTIME_VOICES, VOICE_AVATARS } from "@/constants/voices";
-import { Popover, PopoverContent, PopoverTrigger, PopoverAnchor } from "@/components/ui/popover";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { routeRequest } from "@/utils/routeRequest";
@@ -62,7 +59,7 @@ import { buildLocalSystemPrompt } from "@/utils/localSystemPrompt";
 import { findFirstToolCall, executeLocalToolCall, stripToolTags, hasPartialOpenTag } from "@/utils/localToolProtocol";
 import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptionsDock";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
-import { VoiceMagneticPicker } from "@/components/VoiceMagneticPicker";
+import { ChatVoicePicker } from "@/components/ChatVoicePicker";
 import { LiquidMetalOverlay } from "@/components/ui/liquid-metal-overlay";
 // ChatModelPicker now lives in the chat header (MobileChatApp), not the input bar.
 import { UsageMeter } from "@/components/UsageMeter";
@@ -654,7 +651,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const [menuOrigin, setMenuOrigin] = useState<{ x: number; y: number } | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const inputBarRef = useRef<HTMLDivElement>(null);
-  const isMobileViewport = useIsMobile();
   const modelLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Tick to force re-render when the input bar's screen position can change
@@ -3240,7 +3236,7 @@ ${safeCode}
                         }}
                         className="liquid-metal-surface pointer-events-auto fixed overflow-y-auto rounded-[28px] border border-black/[0.1] bg-white/[0.94] p-2.5 shadow-[0_24px_70px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-2xl dark:border-white/[0.1] dark:bg-black/[0.94] dark:shadow-[0_24px_70px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.08)]"
                       >
-                        <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.24]">
+                        <div className="pointer-events-none absolute inset-0 z-0">
                           <LiquidMetalOverlay preset="chromatic" strength={0.28} />
                         </div>
                         <div className="relative z-10 flex flex-col gap-0.5">
@@ -3374,35 +3370,8 @@ ${safeCode}
             ) : (
               <div className="flex items-center gap-1 shrink-0">
                 {/* Keep voice selection beside the waveform control. */}
-                <Popover>
-                  {isMobileViewport && <PopoverAnchor virtualRef={inputBarRef} />}
-                  <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex h-8 max-w-[104px] shrink-0 items-center gap-1 rounded-full border border-border/40 bg-muted/25 px-2 text-[11px] text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-                      aria-label={`Choose voice: ${currentVoice?.name ?? "Cedric"}`}
-                      title="Choose voice"
-                    >
-                      <span className="truncate">{currentVoice?.name ?? "Cedric"}</span>
-                      <ChevronDown className="h-3 w-3 shrink-0 opacity-60" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    align={isMobileViewport ? "center" : "end"}
-                    side="top"
-                    sideOffset={isMobileViewport ? 16 : 4}
-                    collisionPadding={16}
-                    metalPreset="chromatic"
-                    metalStrength={0.48}
-                    className="voice-picker-popover w-[min(calc(100vw-32px),340px)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto rounded-[28px] border-white/[0.14] !bg-black !p-0 shadow-2xl backdrop-blur-xl"
-                  >
-                    <VoiceMagneticPicker
-                      selectedVoice={selectedVoice}
-                      onSelect={(voice) => void handleVoiceSelection(voice)}
-                      compact
-                    />
-                  </PopoverContent>
-                </Popover>
+                <ChatVoicePicker name={currentVoice?.name ?? "Marina"} selectedVoice={selectedVoice}
+                  onSelect={(voice) => void handleVoiceSelection(voice)} />
                 <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
