@@ -22,7 +22,7 @@ interface MusicPopupProps { isOpen: boolean; onClose: () => void }
 
 export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
   const {
-    isPlaying, volume, isMuted, currentTime, duration,
+    isPlaying, volume, isMuted, currentTime, duration, currentTrack,
     playbackMode, musicSource, setMusicSource, cyclePlaybackMode,
     toggleMute, seek, handleVolumeChange, handleTrackChange,
   } = useMusicStore();

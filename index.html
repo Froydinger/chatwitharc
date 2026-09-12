@@ -100,12 +100,25 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/arcai-pwa-icon-180.png?v=8">
     <link rel="apple-touch-icon" sizes="1024x1024" href="/icons/arcai-pwa-icon-1024.png?v=8">
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
-    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="ArcAI">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Avoid iOS PWA's full-width translucent/blurred status-bar layer. The
+         theme hook switches this between opaque light and dark styles. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="ArcAI">
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem('themeMode');
+          var isLight = mode === 'light' ||
+            (mode !== 'dark' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+          var meta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+          if (meta) meta.setAttribute('content', isLight ? 'default' : 'black');
+        } catch (_) {}
+      })();
+    </script>
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />

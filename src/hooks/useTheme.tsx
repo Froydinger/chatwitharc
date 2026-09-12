@@ -9,6 +9,11 @@ function isThemeMode(value: unknown): value is ThemeMode {
   return value === "light" || value === "dark" || value === "system";
 }
 
+function syncIOSStatusBar(isLight: boolean) {
+  const meta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+  meta?.setAttribute("content", isLight ? "default" : "black");
+}
+
 export function useTheme() {
   const themeMode = useAccentStore((s) => s.themeMode);
   const setThemeMode = useAccentStore((s) => s.setThemeMode);
@@ -67,6 +72,7 @@ export function useTheme() {
       if (path.startsWith("/share/") || path === "/pricing" || path === "/upgrade" || isIDEOpen) {
         root.classList.remove("light");
         root.classList.add("dark");
+        syncIOSStatusBar(false);
         return;
       }
       // Disable transitions during theme swap for instant switching
@@ -78,6 +84,7 @@ export function useTheme() {
         root.classList.remove("light");
         root.classList.add("dark");
       }
+      syncIOSStatusBar(isLight);
       // Force a reflow then re-enable transitions on next frame
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       root.offsetHeight;
