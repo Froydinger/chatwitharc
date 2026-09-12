@@ -160,7 +160,6 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
       moved: false,
     };
     setIsDragging(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -171,6 +170,10 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
     if (!drag.moved && Math.abs(distance) > 3) {
       drag.moved = true;
       suppressClickRef.current = true;
+      if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+      event.preventDefault();
     }
 
     const elapsed = Math.max(1, event.timeStamp - drag.lastTime);
@@ -192,6 +195,12 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
 
     const fling = Math.max(-2, Math.min(2, (-drag.velocity * 140) / 136));
     settleTo(Math.round(turnRef.current + (drag.moved ? fling : 0)));
+    if (drag.moved) {
+      // Suppress the synthetic click produced by a drag, but do not leave the
+      // next intentional tap blocked if the browser targets the carousel after
+      // pointer capture.
+      window.setTimeout(() => { suppressClickRef.current = false; }, 0);
+    }
   };
 
   const getCardState = (index: number) => {
@@ -403,7 +412,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
                             event.currentTarget.style.setProperty("--card-lift", "0px");
                           }}
                           className={cn(
-                            "group pointer-events-auto block h-full w-full overflow-hidden rounded-2xl border border-border/55 bg-muted/20 text-left shadow-[0_18px_42px_-22px_hsl(var(--foreground)/0.75)] outline-none transition-[filter,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-primary/80 motion-reduce:transition-none",
+                            "group pointer-events-auto block h-full w-full select-none overflow-hidden rounded-2xl border border-border/55 bg-muted/20 text-left shadow-[0_18px_42px_-22px_hsl(var(--foreground)/0.75)] outline-none transition-[filter,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-primary/80 motion-reduce:transition-none",
                             isActive ? "cursor-grab active:cursor-grabbing hover:shadow-[0_22px_48px_-20px_hsl(var(--primary)/0.38)]" : "cursor-default",
                           )}
                           style={{
