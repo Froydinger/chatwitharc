@@ -276,7 +276,7 @@ export interface ArcState {
 
   // Current Chat State
   messages: Message[];
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<string>;
+  addMessage: (message: Omit<Message, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }) => Promise<string>;
   replaceMessage: (messageId: string, message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   replaceLastMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => void;
@@ -1607,11 +1607,11 @@ export const useArcStore = create<ArcState>()(
       messages: [],
       
       addMessage: async (message) => {
-        const messageId = crypto.randomUUID();
+        const messageId = message.id || crypto.randomUUID();
         const newMessage = {
           ...message,
           id: messageId,
-          timestamp: new Date(),
+          timestamp: message.timestamp || new Date(),
           sourceModel: message.role === 'assistant' ? (message.sourceModel || 'cloud-chat') : undefined
         };
         

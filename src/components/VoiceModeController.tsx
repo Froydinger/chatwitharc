@@ -915,6 +915,7 @@ export function VoiceModeController() {
               content: turn.transcript || 'Generated image',
               role: turn.role,
               type: 'image',
+              id: turn.liveCaptionId ? `voice-caption-${turn.liveCaptionId}` : undefined,
               imageUrl: turn.imageUrl,
             });
           } else if (turn.transcript.trim()) {
@@ -923,6 +924,7 @@ export function VoiceModeController() {
               content: turn.transcript,
               role: turn.role,
               type: 'text',
+              id: turn.liveCaptionId ? `voice-caption-${turn.liveCaptionId}` : undefined,
               webSources: webSearch?.sources,
               searchImages: webSearch?.images,
               memoryAction: webSearch ? {
@@ -1257,7 +1259,10 @@ export function VoiceModeController() {
               content: turn.imageUrl ? (turn.transcript || 'Generated image') : turn.transcript,
               role: turn.role,
               type: turn.imageUrl ? 'image' : 'text',
+              id: turn.liveCaptionId ? `voice-caption-${turn.liveCaptionId}` : undefined,
               imageUrl: turn.imageUrl,
+              sourceModel: turn.role === 'assistant' ? 'cloud-voice' : undefined,
+              modelUsed: turn.role === 'assistant' ? 'gpt-live-1' : undefined,
               webSources: turn.webSearch?.sources,
               searchImages: turn.webSearch?.images,
               memoryAction: turn.webSearch ? {

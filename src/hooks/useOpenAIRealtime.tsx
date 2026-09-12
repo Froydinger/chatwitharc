@@ -170,6 +170,8 @@ let currentResponseId: string | null = null;
 let responseTranscriptFinalized = false;
 let responseStartTime = 0;
 let liveInputTranscript = '';
+let liveInputCaptionId: string | null = null;
+let currentResponseCaptionId: string | null = null;
 
 const startIosSpeakingGate = () => {
   if (iosSpeakingPlaybackTimer) {
@@ -209,6 +211,7 @@ const queueCurrentAssistantTranscript = (transcriptOverride?: string): string =>
     queuedAt: Date.now(),
     imageUrl: lastGeneratedImageUrl || undefined,
     waitForUser: userSpokeAfterLastResponse || hasRealTranscription,
+    liveCaptionId: currentResponseCaptionId || undefined,
   });
   currentResponseTranscriptQueued = true;
 
@@ -222,7 +225,7 @@ const queueCurrentAssistantTranscript = (transcriptOverride?: string): string =>
 const normalizeTranscriptForMatch = (transcript: string) =>
   transcript.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
-const queueUserTranscript = (transcript: string) => {
+const queueUserTranscript = (transcript: string, liveCaptionId?: string | null) => {
   const trimmed = transcript.trim();
   if (!trimmed) return;
 
@@ -239,19 +242,21 @@ const queueUserTranscript = (transcript: string) => {
       previousNormalized.includes(normalized)
     ) {
       if (trimmed.length > previous.transcript.length) previous.transcript = trimmed;
+      if (!previous.liveCaptionId && liveCaptionId) previous.liveCaptionId = liveCaptionId;
       return;
     }
   }
 
-  pendingUserTurns.push({ transcript: trimmed, queuedAt: Date.now() });
+  pendingUserTurns.push({ transcript: trimmed, queuedAt: Date.now(), liveCaptionId: liveCaptionId || undefined });
   scheduleTurnFlush();
 };
 
 const queuePendingLiveInputTranscript = () => {
   const transcript = liveInputTranscript.trim();
   if (!transcript) return;
-  queueUserTranscript(transcript);
+  queueUserTranscript(transcript, liveInputCaptionId);
   liveInputTranscript = '';
+  liveInputCaptionId = null;
   userSpeechInProgress = false;
 };
 
@@ -261,6 +266,7 @@ const resetResponseAccumulator = (clearLiveBubble = false) => {
   currentResponseTranscriptSource = null;
   currentResponseId = null;
   responseTranscriptFinalized = false;
+  currentResponseCaptionId = null;
   if (clearLiveBubble) useVoiceModeStore.getState().setCurrentTranscript('');
 };
 
@@ -326,6 +332,7 @@ type QueuedTurn = {
     locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
   };
   waitForUser?: boolean;
+  liveCaptionId?: string;
 };
 
 const TURN_ORDER_GRACE_MS = 220;
@@ -338,6 +345,8 @@ let turnFlushTimer: ReturnType<typeof setTimeout> | null = null;
 const resetTurnOrderingBuffer = () => {
   pendingUserTurns = [];
   pendingAssistantTurns = [];
+  liveInputTranscript = '';
+  liveInputCaptionId = null;
   resetResponseAccumulator(true);
   if (turnFlushTimer) {
     clearTimeout(turnFlushTimer);
@@ -360,7 +369,7 @@ const flushTurnOrderingBuffer = () => {
     const assistantTurn = pendingAssistantTurns.shift();
 
     if (userTurn) {
-      addConversationTurn({ role: 'user', transcript: userTurn.transcript, timestamp: new Date() });
+      addConversationTurn({ role: 'user', transcript: userTurn.transcript, timestamp: new Date(), liveCaptionId: userTurn.liveCaptionId });
     }
 
     if (assistantTurn) {
@@ -368,6 +377,7 @@ const flushTurnOrderingBuffer = () => {
         role: 'assistant',
         transcript: assistantTurn.transcript,
         timestamp: new Date(),
+        liveCaptionId: assistantTurn.liveCaptionId,
         imageUrl: assistantTurn.imageUrl,
         webSearch: assistantTurn.webSearch,
       });
@@ -378,7 +388,7 @@ const flushTurnOrderingBuffer = () => {
   while (pendingUserTurns.length > 0 && now - pendingUserTurns[0].queuedAt >= TURN_FORCE_FLUSH_MS) {
     const staleUserTurn = pendingUserTurns.shift();
     if (staleUserTurn) {
-      addConversationTurn({ role: 'user', transcript: staleUserTurn.transcript, timestamp: new Date() });
+      addConversationTurn({ role: 'user', transcript: staleUserTurn.transcript, timestamp: new Date(), liveCaptionId: staleUserTurn.liveCaptionId });
     }
   }
 
@@ -395,6 +405,7 @@ const flushTurnOrderingBuffer = () => {
         role: 'assistant',
         transcript: staleAssistantTurn.transcript,
         timestamp: new Date(),
+        liveCaptionId: staleAssistantTurn.liveCaptionId,
         imageUrl: staleAssistantTurn.imageUrl,
         webSearch: staleAssistantTurn.webSearch,
       });
@@ -429,7 +440,7 @@ const forceFlushTurnOrderingBuffer = () => {
   const { addConversationTurn } = useVoiceModeStore.getState();
   while (pendingUserTurns.length > 0) {
     const turn = pendingUserTurns.shift();
-    if (turn) addConversationTurn({ role: 'user', transcript: turn.transcript, timestamp: new Date() });
+    if (turn) addConversationTurn({ role: 'user', transcript: turn.transcript, timestamp: new Date(), liveCaptionId: turn.liveCaptionId });
   }
   while (pendingAssistantTurns.length > 0) {
     const turn = pendingAssistantTurns.shift();
@@ -438,6 +449,7 @@ const forceFlushTurnOrderingBuffer = () => {
         role: 'assistant',
         transcript: turn.transcript,
         timestamp: new Date(),
+        liveCaptionId: turn.liveCaptionId,
         imageUrl: turn.imageUrl,
         webSearch: turn.webSearch,
       });
@@ -1138,7 +1150,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         userSpokeAfterLastResponse = true;
         hasRealTranscription = true;
         liveInputTranscript += delta;
-        useVoiceModeStore.getState().appendLiveCaption('user', delta);
+        liveInputCaptionId = useVoiceModeStore.getState().appendLiveCaption('user', delta);
         useVoiceModeStore.getState().setHasPendingSpeech(true);
         optionsRef.current.onTranscriptUpdate?.(delta, false);
         break;
@@ -1179,8 +1191,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           // This is the canonical user turn. It may arrive after the partial
           // display transcript, so coalesce it with a queued fallback instead
           // of creating a second bubble.
-          queueUserTranscript(userTranscript);
+          queueUserTranscript(userTranscript, liveInputCaptionId);
           liveInputTranscript = '';
+          liveInputCaptionId = null;
           userSpeechInProgress = false;
         }
         optionsRef.current.onTranscriptUpdate?.(userTranscript, true);
@@ -1208,7 +1221,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         startIosSpeakingGate();
         setStatus('speaking');
         const partialTranscript = event.delta || '';
-        useVoiceModeStore.getState().appendLiveCaption('assistant', partialTranscript);
+        if (partialTranscript) {
+          currentResponseCaptionId = useVoiceModeStore.getState().appendLiveCaption('assistant', partialTranscript);
+        }
         currentResponseTranscript += partialTranscript;
         // Accumulate AI transcript separately — reset on each new response
         const { currentTranscript: existingTranscript } = useVoiceModeStore.getState();

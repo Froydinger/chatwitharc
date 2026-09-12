@@ -14,6 +14,8 @@ interface VoiceTurn {
   role: 'user' | 'assistant';
   transcript: string;
   timestamp: Date;
+  /** Stable bridge to the live caption bubble rendered during the call. */
+  liveCaptionId?: string;
   imageUrl?: string; // If this turn included an image generation
   webSearch?: {
     query: string;
@@ -39,7 +41,7 @@ interface VoiceModeState {
   // Transcripts
   currentTranscript: string;
   liveCaptionEntries: { id: string; role: 'user' | 'assistant'; text: string }[];
-  appendLiveCaption: (role: 'user' | 'assistant', text: string) => void;
+  appendLiveCaption: (role: 'user' | 'assistant', text: string) => string | null;
   conversationTurns: VoiceTurn[];
   
   // Voice preference
@@ -317,14 +319,19 @@ export const useVoiceModeStore = create<VoiceModeState>((set, get) => ({
   setIsAudioPlaying: (playing) => set({ isAudioPlaying: playing }),
   
   setCurrentTranscript: (transcript) => set({ currentTranscript: transcript }),
-  appendLiveCaption: (role, text) => set((state) => {
-    if (!text) return state;
-    const entries = [...state.liveCaptionEntries];
-    const last = entries[entries.length - 1];
-    if (last?.role === role) entries[entries.length - 1] = { ...last, text: last.text + text };
-    else entries.push({ id: crypto.randomUUID(), role, text });
-    return { liveCaptionEntries: entries };
-  }),
+  appendLiveCaption: (role, text) => {
+    if (!text) return null;
+    let captionId: string | null = null;
+    set((state) => {
+      const entries = [...state.liveCaptionEntries];
+      const last = entries[entries.length - 1];
+      captionId = last?.role === role ? last.id : crypto.randomUUID();
+      if (last?.role === role) entries[entries.length - 1] = { ...last, text: last.text + text };
+      else entries.push({ id: captionId, role, text });
+      return { liveCaptionEntries: entries };
+    });
+    return captionId;
+  },
   
   addConversationTurn: (turn) => set((state) => {
     // Keep enough transcript history to survive a legitimate long-session

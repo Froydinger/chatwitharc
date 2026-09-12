@@ -105,8 +105,8 @@ function MagneticVoiceBubble({
               ? 'h-[54px] w-[54px]'
               : 'h-[68px] w-[68px]',
           selected
-            ? 'border-white/[0.72] shadow-[0_0_26px_rgba(255,255,255,0.18),0_10px_28px_rgba(0,0,0,0.62)]'
-            : 'border-white/[0.12] hover:border-white/35 hover:bg-white/[0.035]',
+            ? 'border-foreground/75 shadow-[0_0_26px_hsl(var(--primary)/0.22),0_10px_28px_rgba(0,0,0,0.62)] dark:border-white/[0.72]'
+            : 'border-foreground/20 hover:border-foreground/55 hover:bg-white/[0.035] dark:border-white/[0.12] dark:hover:border-white/35',
         )}
       >
         <span className={cn('flex h-full w-full items-center justify-center overflow-hidden rounded-full p-1.5', selected && 'p-2')}>

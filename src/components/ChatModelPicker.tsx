@@ -17,7 +17,7 @@ interface Props {
   onArcModeChange?: (mode: 'ask' | 'auto') => void;
 }
 
-const PRESETS = [
+export const PRESETS = [
   { effort: 'auto', title: 'Auto', subtitle: 'Quick first, more reasoning when needed', icon: RefreshCcwDot },
   { effort: 'low', title: 'Quick', subtitle: 'Faster everyday answers', icon: Zap },
   { effort: 'medium', title: 'Balanced', subtitle: 'A balance of speed and reasoning', icon: Scale },

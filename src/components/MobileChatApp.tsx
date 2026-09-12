@@ -25,7 +25,7 @@ import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
 
 import { MusicPopup } from "@/components/MusicPopup";
-import { ChatModelPicker } from "@/components/ChatModelPicker";
+import { ArcModeTabs } from "@/components/ArcModeTabs";
 import { CanvasPanel } from "@/components/CanvasPanel";
 
 import { SearchCanvas } from "@/components/SearchCanvas";
@@ -1156,17 +1156,27 @@ export function MobileChatApp() {
                   <Plus className="h-4 w-4" />
                 </Button>
               </motion.div>
-              <ChatModelPicker
-                placement="down"
-                compact={isDesktopCanvasMode}
-                showArcWork={cloudTextEnabled && !isVoiceActive}
-                arcWorkAvailable={arcCloudAvailable}
-                arcMode={cloudExecutionMode}
-                onArcModeChange={(mode) => {
-                  if (user) setCloudModeChoice({ ownerId: user.id, mode });
-                }}
-              />
             </div>
+
+            {/* The mode switch is the one persistent header control. Model and
+                voice choices live together in the centered input picker. */}
+            {!isVoiceActive && (
+              <div
+                className="fixed left-1/2 z-40 -translate-x-1/2 pointer-events-auto"
+                style={{
+                  top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 18px)`,
+                }}
+              >
+                <ArcModeTabs
+                  mode={cloudExecutionMode}
+                  available={arcCloudAvailable}
+                  onChange={(mode) => {
+                    if (user) setCloudModeChoice({ ownerId: user.id, mode });
+                  }}
+                  onUnavailable={openCheckout}
+                />
+              </div>
+            )}
 
             {/* Right Header Buttons */}
             {!isDesktopCanvasMode && (
@@ -1454,7 +1464,8 @@ export function MobileChatApp() {
                       const isLastAssistantMessage = message.role === "assistant" && index === displayedMessages.length - 1;
                       // Only animate typewriter if this is a new message (not loaded from history)
                       const shouldAnimateTypewriter =
-                        !isVoiceActive && isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current && !isSessionLoading;
+                        !isVoiceActive && isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current
+                        && !isSessionLoading && message.sourceModel !== 'cloud-voice';
 
                       return (
                         <motion.div
