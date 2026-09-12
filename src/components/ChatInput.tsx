@@ -314,19 +314,6 @@ function checkForSearchRequest(message: string): boolean {
   return /^search\//.test(m) || /^\/search\b/.test(m);
 }
 
-// Arc Work is a capability mode, not an agent-run toggle. Keep ordinary
-// conversation inline, and only promote requests that clearly need durable
-// tools, files, artifacts, or multiple steps to the background worker.
-function isLikelyDurableWorkRequest(message: string, hasAttachments = false): boolean {
-  if (!message.trim()) return hasAttachments;
-  if (hasAttachments) return true;
-  const m = message.trim().toLowerCase();
-  if (/^\/(search|code|write|canvas|build|app|apps)\b/.test(m)
-    || /^(search|code|write|build|app|apps)\//.test(m)) return true;
-  if (/\b(research|search online|go online|browse the web|look(?:\s+it)?\s+up|latest|current|sources?|citations?|publish|deploy|website|dashboard|web\s+app|code block|generate (?:an? )?(?:image|file)|create (?:an? )?(?:image|file)|schedule|remind|remember|save this|step[- ]by[- ]step|and then|after that|when you(?:'|’)re done)\b/i.test(m)) return true;
-  return checkForCodingRequest(m) || checkForCanvasRequest(m) || checkForBuildRequest(m);
-}
-
 // Detect conversational messages that should NOT trigger code/canvas updates
 // These are casual comments, questions, reactions - not actionable requests
 function isConversationalMessage(message: string): boolean {
@@ -1511,7 +1498,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     // Arc Work owns tool selection. Keep the whole request, including files,
     // together for the durable worker even while an earlier turn is running.
     const workMode = typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto';
-    if (workMode) return isLikelyDurableWorkRequest(text, selectedImages.length > 0 || selectedDocuments.length > 0);
+    if (workMode) return true;
     if (selectedImages.length || selectedDocuments.length) return false;
     if (shouldShowBanana || shouldShowBuildMode || checkForImageRequest(text)
       || checkForBuildRequest(text) || (canGenerateVideo && checkForVideoRequest(text))) return false;
@@ -2345,10 +2332,11 @@ ${safeCode}
           shouldSearchForVideo,
         });
 
-        const workNeedsDurability = typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto'
-          && isLikelyDurableWorkRequest(finalMessage, images.length > 0 || documents.length > 0);
+        // Every authenticated text turn is durable. Arc Work still decides
+        // inside the worker whether this needs tools or is simply one normal
+        // conversational model turn; the composer never guesses that split.
         const durableCloudSubmit = onCloudTextSubmit && !isGuestMode && !corporateMode && !isLocalChatPreview()
-          && (cloudExecutionMode !== 'auto' || workNeedsDurability);
+          && (cloudExecutionMode === 'ask' || cloudExecutionMode === 'auto');
         const durableRoute = durableCloudSubmit || shouldUseCodeContext ? 'cloud-chat' : (cloudExecutionMode === 'auto' ? 'cloud-chat' : routeRequest({
           forceWebSearch: wasSearchMode || shouldSearchForVideo,
           forceCanvas: shouldForceCanvas,

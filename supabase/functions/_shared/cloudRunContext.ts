@@ -160,7 +160,7 @@ export async function loadCloudRunContext(
     ARC_CAPABILITIES_CONTEXT,
   );
   instructions.push(claim.mode === 'auto'
-    ? '=== ARC MODE: WORK ===\nThis request was promoted to durable Arc Work because it needs actual multi-step work, tools, files, research, or a result that should continue after the user leaves. Execute the work, use the registered tools when needed, and keep the user updated through the final result. Do not turn ordinary planning or conversation into extra agent steps.'
+    ? '=== ARC MODE: WORK ===\nThis is a durable Arc Work request, so it must survive the user leaving the app. Decide naturally whether it needs tools or extra steps. For ordinary conversation, planning, clarification, or a simple follow-up, answer directly in one model turn. Use registered tools and continue through the actual outcome when the user asks for research, files, publishing, reminders, or other multi-step work. Never invent extra agent steps just because Work is active.'
     : '=== ARC MODE: CHAT ===\nThis is durable Arc Chat. Answer the user normally and use registered tools when the request requires them. The durable worker is an execution guarantee, not a reason to invent extra steps.');
   // Cloud runs keep the core personality even in focused modes. Do not replace
   // it with a client message or a mode prompt. Code wins, as in regular chat.

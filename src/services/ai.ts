@@ -90,7 +90,7 @@ const ARC_MODE_CONTEXT: Record<ArcMode, AIMessage> = {
   },
   work: {
     role: 'system',
-    content: '=== ARC MODE: WORK ===\nArc Work is active as a capability mode, not an instruction to launch a background run for every message. Stay conversational for planning, clarification, and ordinary follow-ups. Use available tools when the user asks for real work, files, research, publishing, reminders, or a multi-step outcome. If no tool is needed, answer inline in this same chat. Never claim a background run started unless the UI actually submitted one.',
+    content: '=== ARC MODE: WORK ===\nArc Work requests are durable and survive the user leaving the app. Work is still a capability mode, not an instruction to launch extra steps for every message: stay conversational for planning, clarification, and ordinary follow-ups. Use available tools when the user asks for real work, files, research, publishing, reminders, or a multi-step outcome. If no tool is needed, answer in one normal model turn. Never claim a background run started unless the UI actually submitted one.',
   },
 };
 

@@ -11,8 +11,6 @@ function extract(predicate) {
   visit(ast); assert.equal(found.length, 1); return found[0];
 }
 const helper = extract(n => ts.isVariableDeclaration(n) && n.name.getText(ast) === 'canSubmitCloudTextWhileBusy');
-const durableWork = extract(n => ts.isFunctionDeclaration(n) && n.name?.getText(ast) === 'isLikelyDurableWorkRequest');
-const durableWorkJs = ts.transpileModule(durableWork, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 const busy = extract(n => ts.isIfStatement(n) && n.expression.getText(ast).startsWith('(isLoading || storeIsLoading || storeIsGenerating)'));
 const keyboard = extract(n => ts.isVariableDeclaration(n) && n.name.getText(ast) === 'handleKeyPress');
 function fixture(overrides = {}) {
@@ -28,10 +26,6 @@ function fixture(overrides = {}) {
       'checkForCanvasRequest', 'checkForCodingRequest'].map(name => [name, () => false])),
     isLoading: true, storeIsLoading: false, storeIsGenerating: false, messageToSend: 'next',
     cloudExecutionMode: undefined,
-    isLikelyDurableWorkRequest: new Function(
-      'checkForCodingRequest', 'checkForCanvasRequest', 'checkForBuildRequest',
-      `${durableWorkJs}; return isLikelyDurableWorkRequest;`,
-    )(() => false, () => false, () => false),
     messageOverride: undefined, inputValue: 'next',
     useMessageQueueStore: { getState: () => ({ addToQueue: text => calls.push(['queue', text]) }) },
     setInputValue: text => calls.push(['input', text]), handleSend: () => calls.push(['send']),
@@ -68,11 +62,11 @@ test('ready Local AI does not make ordinary signed-in Arc Chat ephemeral', () =>
   f.busy();
   assert.deepEqual(f.calls, []);
 });
-test('Arc Work keeps ordinary conversation inline but promotes actual work', () => {
+test('Arc Work keeps ordinary conversation durable without forcing extra agent steps', () => {
   const conversational = fixture({ cloudExecutionMode: 'auto' });
-  assert.equal(conversational.eligible('what do you think?'), false);
-  const work = fixture({ cloudExecutionMode: 'auto' });
-  assert.equal(work.eligible('research the latest retail trends and make a dashboard'), true);
+  assert.equal(conversational.eligible('what do you think?'), true);
+  conversational.busy();
+  assert.deepEqual(conversational.calls, []);
 });
 test('Ctrl/Cmd Enter submits eligible cloud text immediately; legacy remains queued', () => {
   for (const key of ['ctrlKey', 'metaKey']) {
