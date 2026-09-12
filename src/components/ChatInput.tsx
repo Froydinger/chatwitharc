@@ -1493,24 +1493,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Only bypass the browser queue for ordinary cloud text. Specialized image,
   // app and on-device paths still own their existing busy-state behavior.
   const canSubmitCloudTextWhileBusy = (text: string) => {
-    if (!onCloudTextSubmit || !user || isAnonymous || isGuestMode
+    // Only Arc Work owns the durable worker queue. Arc Chat goes through the
+    // ordinary Luna/tool path and keeps its existing busy-state behavior.
+    if (cloudExecutionMode !== 'auto' || !onCloudTextSubmit || !user || isAnonymous || isGuestMode
       || isLocalChatPreview() || useCorporateModeStore.getState().enabled || !text.trim()) return false;
     // Arc Work owns tool selection. Keep the whole request, including files,
     // together for the durable worker even while an earlier turn is running.
-    const workMode = typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto';
-    if (workMode) return true;
-    if (selectedImages.length || selectedDocuments.length) return false;
-    if (shouldShowBanana || shouldShowBuildMode || checkForImageRequest(text)
-      || checkForBuildRequest(text) || (canGenerateVideo && checkForVideoRequest(text))) return false;
-    const explicitMode = text.trim().startsWith('/') || shouldShowCanvasMode
-      || shouldShowCodeMode || shouldShowSearchMode;
-    if (!explicitMode && ['generate', 'ask'].includes(analyzeImageRequestIntent(text))) return false;
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.role === 'assistant' && lastMessage.type === 'image'
-      && (isImageEditRequest(text) || (canGenerateVideo && isAnimateImageRequest(text)))) return false;
-    // A signed-in Arc Chat request is durable too. Local AI being ready must
-    // not make an in-flight message disappear when the app closes; only the
-    // explicit Corporate/local path is allowed to stay browser-bound here.
     return true;
   };
 
@@ -2332,11 +2320,11 @@ ${safeCode}
           shouldSearchForVideo,
         });
 
-        // Every authenticated text turn is durable. Arc Work still decides
-        // inside the worker whether this needs tools or is simply one normal
-        // conversational model turn; the composer never guesses that split.
+        // Arc Work is durable and close-safe. Arc Chat intentionally stays on
+        // the direct Luna/tool path so simple questions and searches do not
+        // acquire Work's queued/step-by-step UI.
         const durableCloudSubmit = onCloudTextSubmit && !isGuestMode && !corporateMode && !isLocalChatPreview()
-          && (cloudExecutionMode === 'ask' || cloudExecutionMode === 'auto');
+          && cloudExecutionMode === 'auto';
         const durableRoute = durableCloudSubmit || shouldUseCodeContext ? 'cloud-chat' : (cloudExecutionMode === 'auto' ? 'cloud-chat' : routeRequest({
           forceWebSearch: wasSearchMode || shouldSearchForVideo,
           forceCanvas: shouldForceCanvas,

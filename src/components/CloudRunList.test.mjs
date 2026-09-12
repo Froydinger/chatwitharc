@@ -23,6 +23,10 @@ test('inactive list is inert and completed replies are not duplicated', () => {
   const html = render({ entries: [{ id: 'done', sessionId: 'selected', run: { id: 'done', status: 'completed', result: 'secret duplicate reply' } }] });
   assert.doesNotMatch(html, /secret duplicate reply|Cancel run/);
 });
+test('completed Arc Chat history is hidden because the normal reply owns its presentation', () => {
+  const html = render({ entries: [{ id: 'done', sessionId: 'selected', mode: 'ask', run: { id: 'done', status: 'completed', result: { content: 'direct reply' } } }] });
+  assert.equal(html, '');
+});
 test('enabled cloud restore shows a loader before runs are painted', () => {
   const html = render({ enabled: true, ready: false });
   assert.match(html, /Loading cloud tasks/);

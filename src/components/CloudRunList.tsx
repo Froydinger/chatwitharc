@@ -16,6 +16,7 @@ export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId:
     finally { restorePending.current = false; setRestoring(false); }
   };
   const entries = cloud.entries.filter(entry => entry.sessionId === sessionId);
+  const visibleEntries = entries.filter(entry => !(entry.mode === 'ask' && entry.run?.status === 'completed'));
   const loading = enabled && !cloud.error && (!cloud.ready || cloud.restoring);
   if (loading) return <section aria-label="Loading cloud tasks" aria-busy="true" role="status"
     className="glass-card w-full max-w-xl rounded-2xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
@@ -25,7 +26,7 @@ export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId:
     </div>
     <div aria-hidden="true" className="mt-3 h-2 w-2/3 animate-pulse rounded-full bg-muted/60" />
   </section>;
-  if (!entries.length && !cloud.error && !cloud.activeCursor && !cloud.historyCursor) return null;
+  if (!visibleEntries.length && !cloud.error && !cloud.activeCursor && !cloud.historyCursor) return null;
   return <section aria-label="Cloud chat requests" className="space-y-3">
     {cloud.error && <div className="glass-card rounded-2xl p-4 text-sm">
       <p role="alert" className="text-muted-foreground">{cloud.error}</p>
@@ -33,8 +34,9 @@ export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId:
         className="mt-2 rounded-full border border-border px-3 py-1.5 disabled:opacity-50"
         onClick={() => { void restore(); }}>{restoring || cloud.restoring ? 'Checking…' : 'Reconnect and reload replies'}</button>
     </div>}
-    {entries.map(entry => entry.run
+    {visibleEntries.map(entry => entry.run
       ? <CloudRunStatus key={entry.id} run={entry.run} connection={entry.connection}
+        mode={entry.mode}
         observationError={entry.error}
         onApprove={response => cloud.respond(entry.id, response)}
         onDeny={response => cloud.respond(entry.id, response)}

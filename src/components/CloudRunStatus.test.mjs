@@ -15,7 +15,7 @@ const api = {};
 new Function('require', 'exports', compiled)(require, api);
 const { CloudRunStatus, createCloudRunActionGuard } = api;
 const pendingApproval = { callId: 'call-1', argumentsHash: 'hash-1', name: 'send_notification', arguments: '{"message":"<script>alert(1)</script>"}' };
-const base = { run: { id: 'run', status: 'awaiting_input', checkpoint: {
+const base = { mode: 'auto', run: { id: 'run', status: 'awaiting_input', checkpoint: {
   progress: { phase: 'tools', turns: 1, tokens: 25 }, pendingApproval,
 } }, onApprove() {}, onDeny() {}, onCancel() {}, onReconnect() {} };
 const render = props => renderToStaticMarkup(React.createElement(CloudRunStatus, { ...base, ...props }));
@@ -45,18 +45,26 @@ test('plain awaiting-input text never becomes approval; terminal states offer no
   }
 });
 
-test('completed runs show a compact activity list and AI summary without replaying the result', () => {
+test('completed Work runs show one summary modal without replaying the result', () => {
   const html = render({ run: { ...base.run, status: 'completed', checkpoint: {
     progress: { phase: 'done', turns: 3, tokens: 90 }, pendingApproval: null,
     activity: [{ tool: 'update_code', outcome: 'completed' }, { tool: 'generate_image', outcome: 'blocked' }],
     aiSummary: 'Built the code block and prepared the image step.',
   }, result: 'private duplicate reply' } });
-  assert.match(html, /What Arc did/);
+  assert.match(html, /Work complete/);
+  assert.match(html, /Chat response/);
   assert.match(html, /Update code/);
   assert.match(html, /Generate image/);
-  assert.match(html, /AI summary/);
   assert.match(html, /Built the code block and prepared the image step/);
+  assert.match(html, /Audit trail/);
   assert.doesNotMatch(html, /private duplicate reply/);
+});
+
+test('completed Arc Chat runs do not add a Work completion card', () => {
+  const html = render({ mode: 'ask', run: { ...base.run, status: 'completed', result: {
+    choices: [{ message: { role: 'assistant', content: 'The direct reply is already in chat.' } }],
+  } } });
+  assert.equal(html, '');
 });
 
 test('active runs keep the audit trail collapsed until the user opens it', () => {

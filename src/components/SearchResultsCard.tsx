@@ -205,7 +205,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
     <>
     <div
       className={cn(
-        "w-[min(46rem,calc(100vw-2.5rem))] max-w-full overflow-hidden rounded-3xl",
+        "min-w-0 w-[min(46rem,calc(100vw-2.5rem))] max-w-full overflow-hidden rounded-3xl",
         "border border-primary/20 bg-background/80 shadow-[0_18px_60px_-28px_hsl(var(--primary)/0.45)] ring-1 ring-foreground/[0.04] backdrop-blur-2xl",
       )}
     >
@@ -301,7 +301,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
           <div
             ref={carouselRef}
             className={cn(
-              "relative mx-auto w-full max-w-2xl outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "relative mx-auto min-w-0 w-full max-w-full overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               isDragging ? "cursor-grabbing" : "cursor-grab",
             )}
             role="group"
@@ -315,7 +315,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
             onPointerCancel={handlePointerEnd}
           >
             <div
-              className="relative aspect-[16/10] min-h-[13rem] overflow-hidden rounded-3xl py-2 sm:min-h-[18rem]"
+              className="relative h-[clamp(15rem,32vw,18rem)] max-h-[18rem] overflow-hidden rounded-3xl py-2"
               style={{ touchAction: "pan-y" }}
               data-held={isDragging}
             >
@@ -329,32 +329,33 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
                     className="pointer-events-none absolute inset-0"
                     style={{ zIndex: cardState.zIndex }}
                   >
-                    <motion.div
-                      className="absolute left-1/2 top-1/2 h-[84%] w-[66%] -translate-x-1/2 -translate-y-1/2 sm:h-[88%] sm:w-[58%]"
-                      animate={{
-                        x: cardState.x,
-                        y: cardState.y,
-                        scale: cardState.scale,
-                        rotate: cardState.rotate,
-                      }}
-                      transition={isDragging
-                        ? { duration: 0 }
-                        : { type: "spring", stiffness: 320, damping: 28, mass: 0.7 }}
-                    >
+                    <div className="absolute inset-0 flex items-center justify-center">
                       <motion.div
-                        className="h-full w-full"
-                        animate={prefersReducedMotion
-                          ? undefined
-                          : {
-                              y: [-cardState.float, cardState.float, -cardState.float],
-                              rotate: [-cardState.sway, cardState.sway, -cardState.sway],
-                            }}
-                        transition={{
-                          duration: 5.3 + index * 0.4,
-                          ease: "easeInOut",
-                          repeat: Infinity,
+                        className="h-[84%] w-[66%] sm:h-[88%] sm:w-[58%]"
+                        animate={{
+                          x: cardState.x,
+                          y: cardState.y,
+                          scale: cardState.scale,
+                          rotate: cardState.rotate,
                         }}
+                        transition={isDragging
+                          ? { duration: 0 }
+                          : { type: "spring", stiffness: 320, damping: 28, mass: 0.7 }}
                       >
+                        <motion.div
+                          className="h-full w-full"
+                          animate={prefersReducedMotion
+                            ? undefined
+                            : {
+                                y: [-cardState.float, cardState.float, -cardState.float],
+                                rotate: [-cardState.sway, cardState.sway, -cardState.sway],
+                              }}
+                          transition={{
+                            duration: 5.3 + index * 0.4,
+                            ease: "easeInOut",
+                            repeat: Infinity,
+                          }}
+                        >
                         <button
                           type="button"
                           onClick={(event) => {
@@ -401,9 +402,10 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
                           <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent px-3 pb-3 pt-10 text-xs font-medium text-white opacity-0 transition-opacity duration-200 motion-reduce:transition-none group-hover:opacity-100 group-focus-visible:opacity-100">
                             Open full size
                           </span>
-                        </button>
+                          </button>
+                        </motion.div>
                       </motion.div>
-                    </motion.div>
+                    </div>
                   </div>
                 );
               })}

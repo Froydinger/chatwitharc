@@ -37,9 +37,9 @@ function fixture(overrides = {}) {
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   return { ...new Function(...Object.keys(deps), code)(...Object.values(deps)), calls };
 }
-test('active cloud text continues existing session/message/intent flow instead of local queue', () => {
+test('Arc Work text continues existing session/message/intent flow instead of local queue', () => {
   for (const state of [{}, { isLoading: false, storeIsLoading: true }, { isLoading: false, storeIsGenerating: true }]) {
-    const f = fixture(state);
+    const f = fixture({ cloudExecutionMode: 'auto', ...state });
     assert.equal(f.busy(), 'continue-existing-send'); assert.deepEqual(f.calls, []);
   }
 });
@@ -56,11 +56,11 @@ test('legacy, attachments and specialized image/app routes retain busy queue beh
     f.busy(); assert.deepEqual(f.calls[0], ['queue', 'next']);
   }
 });
-test('ready Local AI does not make ordinary signed-in Arc Chat ephemeral', () => {
+test('ordinary signed-in Arc Chat stays on its direct path instead of the Work queue', () => {
   const f = fixture({ routeRequest: () => 'local' });
-  assert.equal(f.eligible('next'), true);
+  assert.equal(f.eligible('next'), false);
   f.busy();
-  assert.deepEqual(f.calls, []);
+  assert.deepEqual(f.calls, [['queue', 'next'], ['input', '']]);
 });
 test('Arc Work keeps ordinary conversation durable without forcing extra agent steps', () => {
   const conversational = fixture({ cloudExecutionMode: 'auto' });
@@ -71,7 +71,7 @@ test('Arc Work keeps ordinary conversation durable without forcing extra agent s
 test('Ctrl/Cmd Enter submits eligible cloud text immediately; legacy remains queued', () => {
   for (const key of ['ctrlKey', 'metaKey']) {
     const event = { key: 'Enter', [key]: true, preventDefault() {} };
-    const cloud = fixture(); cloud.keyboard(event); assert.deepEqual(cloud.calls, [['send']]);
+    const cloud = fixture({ cloudExecutionMode: 'auto' }); cloud.keyboard(event); assert.deepEqual(cloud.calls, [['send']]);
     const legacy = fixture({ selectedDocuments: [{}] }); legacy.keyboard(event);
     assert.deepEqual(legacy.calls, [['queue', 'next'], ['input', '']]);
   }

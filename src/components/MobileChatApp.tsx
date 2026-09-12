@@ -1401,7 +1401,7 @@ export function MobileChatApp() {
                     <div className="glass-dock" data-arc-working={isArcWorking}>
                       <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
                         cloudExecutionMode={cloudExecutionMode}
-                        onCloudTextSubmit={cloudTextEnabled ? submitCloudText : undefined} />
+                        onCloudTextSubmit={cloudTextEnabled && cloudExecutionMode === 'auto' ? submitCloudText : undefined} />
                     </div>
                   </ArcInputEffects>
                 </motion.div>
@@ -1623,7 +1623,7 @@ export function MobileChatApp() {
                   >
                     <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
                       cloudExecutionMode={cloudExecutionMode}
-                      onCloudTextSubmit={cloudTextEnabled ? submitCloudText : undefined} />
+                      onCloudTextSubmit={cloudTextEnabled && cloudExecutionMode === 'auto' ? submitCloudText : undefined} />
                   </div>
                 </ArcInputEffects>
               </motion.div>
