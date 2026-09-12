@@ -72,6 +72,7 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
       if (response.decision === 'deny') {
         engine.receipts[`${id}:turn:${engine.turns}:tool:${call.id}`] = {
           state: 'done', output: JSON.stringify({ error: 'User declined this action. Do not repeat it.' }),
+          toolName: call.name, outcome: 'denied',
         };
       }
     }

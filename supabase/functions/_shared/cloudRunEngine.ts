@@ -29,7 +29,13 @@ export type EngineState = {
   deadline: number;
   transcript: unknown[];
   calls: ToolCall[];
-  receipts: Record<string, { state: 'started' | 'done'; output?: string; presentation?: CloudPresentation }>;
+  receipts: Record<string, {
+    state: 'started' | 'done';
+    output?: string;
+    presentation?: CloudPresentation;
+    toolName?: string;
+    outcome?: 'completed' | 'blocked' | 'denied';
+  }>;
   modelIntent?: string;
   responseId?: string;
   finalText?: string;
@@ -125,7 +131,12 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
     if (receipt?.state === 'done') continue;
     const policy = ports.toolPolicy(call);
     if (!policy.allowed) {
-      state.receipts[key] = { state: 'done', output: JSON.stringify({ error: 'Tool not authorized' }) };
+      state.receipts[key] = {
+        state: 'done',
+        output: JSON.stringify({ error: 'Tool not authorized' }),
+        toolName: call.name,
+        outcome: 'blocked',
+      };
       await ports.save(state, 'queued');
       return;
     }
@@ -150,8 +161,14 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
       return;
     }
     state.receipts[key] = typeof result === 'string'
-      ? { state: 'done', output: result }
-      : { state: 'done', output: result.output, presentation: result.presentation };
+      ? { state: 'done', output: result, toolName: call.name, outcome: 'completed' }
+      : {
+        state: 'done',
+        output: result.output,
+        presentation: result.presentation,
+        toolName: call.name,
+        outcome: 'completed',
+      };
     await ports.save(state, 'queued');
     return;
   }

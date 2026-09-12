@@ -24,7 +24,7 @@ export function CloudRunList({ sessionId, cloud }: { sessionId: string | null; c
         className="mt-2 rounded-full border border-border px-3 py-1.5 disabled:opacity-50"
         onClick={() => { void restore(); }}>{restoring || cloud.restoring ? 'Checking…' : 'Reconnect and reload replies'}</button>
     </div>}
-    {entries.filter(entry => entry.run?.status !== 'completed').map(entry => entry.run
+    {entries.map(entry => entry.run
       ? <CloudRunStatus key={entry.id} run={entry.run} connection={entry.connection}
         observationError={entry.error}
         onApprove={response => cloud.respond(entry.id, response)}

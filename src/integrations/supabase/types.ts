@@ -596,6 +596,7 @@ export type Database = {
           accent_color: string | null
           avatar_url: string | null
           context_info: string | null
+          cloud_run_email_notifications: boolean
           created_at: string | null
           display_name: string | null
           id: string
@@ -612,6 +613,7 @@ export type Database = {
           accent_color?: string | null
           avatar_url?: string | null
           context_info?: string | null
+          cloud_run_email_notifications?: boolean
           created_at?: string | null
           display_name?: string | null
           id?: string
@@ -628,6 +630,7 @@ export type Database = {
           accent_color?: string | null
           avatar_url?: string | null
           context_info?: string | null
+          cloud_run_email_notifications?: boolean
           created_at?: string | null
           display_name?: string | null
           id?: string

@@ -54,9 +54,15 @@ export type CloudRunStatus =
   | 'queued' | 'running' | 'awaiting_input' | 'completed' | 'failed' | 'cancelled';
 
 export type CloudRunApproval = { decision: 'approve' | 'deny'; callId: string; argumentsHash: string };
+export type CloudRunActivityItem = {
+  tool: string;
+  outcome: 'completed' | 'blocked' | 'denied';
+};
 export type CloudRunCheckpoint = {
   progress: { phase: 'model' | 'tools' | 'done' | null; turns: number | null; tokens: number | null };
   pendingApproval: { callId: string; argumentsHash: string; name?: string; arguments?: string } | null;
+  activity?: CloudRunActivityItem[];
+  aiSummary?: string;
 };
 export type CloudRunListOptions = { sessionId?: string; cursor?: string; limit?: number; includeTerminal?: boolean };
 export type DiscoveredCloudRun = CloudRun<unknown, CloudRunCheckpoint> & { sessionId: string; kind: CloudRunKind; mode: CloudRunMode };

@@ -92,6 +92,7 @@ import { LocalAIPanel } from "@/components/LocalAIPanel";
 import { CorporateModePanel } from "@/components/CorporateModePanel";
 import { SharedLinksCard } from "@/components/SharedLinksCard";
 import { PushNotificationsCard } from "@/components/PushNotificationsCard";
+import { CloudRunNotificationsCard } from "@/components/CloudRunNotificationsCard";
 import { cn } from "@/lib/utils";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
 import { useStarfieldStore } from "@/store/useStarfieldStore";
@@ -879,6 +880,7 @@ export function SettingsPanel() {
             {ProfileCard}
             {EmailCard}
             <PushNotificationsCard />
+            <CloudRunNotificationsCard />
             {ConnectedAccountsCard}
             {DangerZoneCard}
             {AdminCard}

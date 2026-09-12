@@ -375,6 +375,20 @@ export function publicRun(row: Obj) {
         : {}),
     }
     : null;
+  const activity = Object.values(asRecord(engine.receipts)).flatMap((value) => {
+    const receipt = asRecord(value);
+    const outcome = receipt.outcome;
+    if (receipt.state !== 'done' || typeof receipt.toolName !== 'string' ||
+        !['completed', 'blocked', 'denied'].includes(String(outcome))) return [];
+    return [{
+      tool: receipt.toolName,
+      outcome: outcome as 'completed' | 'blocked' | 'denied',
+    }];
+  })
+    .slice(0, 64);
+  const aiSummary = row.status === 'completed' && typeof engine.finalText === 'string' && engine.finalText.trim()
+    ? engine.finalText.slice(0, 8_000)
+    : null;
   return {
     id: row.id,
     ...(row.kind === 'app' && typeof projectId === 'string' && UUID.test(projectId) ? { projectId } : {}),
@@ -389,6 +403,8 @@ export function publicRun(row: Obj) {
         tokens: count(engine.tokens),
       },
       pendingApproval,
+      ...(activity.length ? { activity } : {}),
+      ...(aiSummary ? { aiSummary } : {}),
     },
     error: row.error,
   };

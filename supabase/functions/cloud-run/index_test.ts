@@ -324,6 +324,34 @@ Deno.test("public checkpoint exposes only progress and exact pending approval fi
   );
 });
 
+Deno.test("completed cloud runs expose tool activity and the final AI summary without private receipts", () => {
+  const projected = publicRun({
+    id,
+    status: "completed",
+    checkpoint: {
+      engine: {
+        phase: "done",
+        turns: 3,
+        tokens: 240,
+        finalText: "I built the requested code block and generated the image.",
+        receipts: {
+          first: { state: "done", toolName: "update_code", outcome: "completed", output: "PRIVATE_CODE" },
+          second: { state: "done", toolName: "generate_image", outcome: "blocked", output: "PRIVATE_ERROR" },
+          third: { state: "done", toolName: "private_tool", outcome: "completed", output: "PRIVATE_OUTPUT" },
+        },
+        transcript: ["PRIVATE_TRANSCRIPT"],
+      },
+    },
+  });
+  assert(canonical(projected.checkpoint.activity) === canonical([
+    { tool: "update_code", outcome: "completed" },
+    { tool: "generate_image", outcome: "blocked" },
+    { tool: "private_tool", outcome: "completed" },
+  ]));
+  assert(projected.checkpoint.aiSummary === "I built the requested code block and generated the image.");
+  assert(!JSON.stringify(projected).includes("PRIVATE_"));
+});
+
 Deno.test("status endpoint uses public checkpoint projection", async () => {
   const result = await exercise({ action: "status", id }, [
     auth(),

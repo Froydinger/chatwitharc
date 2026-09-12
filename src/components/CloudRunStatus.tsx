@@ -57,6 +57,9 @@ function readableArguments(args?: string) {
   if (!args) return 'No arguments provided.';
   try { return JSON.stringify(JSON.parse(args), null, 2); } catch { return args; }
 }
+function activityOutcome(outcome: 'completed' | 'blocked' | 'denied') {
+  return outcome === 'completed' ? 'Completed' : outcome === 'blocked' ? 'Blocked' : 'Declined';
+}
 
 /** Standalone inline text-chat card. No timers, transport, modal, or voice integration. */
 export function CloudRunStatus(props: CloudRunStatusProps) {
@@ -118,6 +121,25 @@ function CloudRunStatusCard({ run, connection = 'idle', observationError, onAppr
         </div>
       )}
       {error && <p role="alert" className="mt-3 break-words text-sm text-foreground">{error}</p>}
+      {run.status === 'completed' && (run.checkpoint?.activity?.length || run.checkpoint?.aiSummary) && (
+        <div className="mt-4 space-y-3 rounded-xl border border-border/50 bg-muted/20 p-3">
+          {!!run.checkpoint.activity?.length && <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">What Arc did</p>
+            <ul className="mt-2 space-y-1.5 text-sm">
+              {run.checkpoint.activity.map((item, index) => (
+                <li key={`${item.tool}-${index}`} className="flex items-center justify-between gap-3">
+                  <span className="min-w-0 truncate">{readableName(item.tool)}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{activityOutcome(item.outcome)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>}
+          {run.checkpoint.aiSummary && <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">AI summary</p>
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">{run.checkpoint.aiSummary}</p>
+          </div>}
+        </div>
+      )}
       <div className="mt-3 flex flex-wrap gap-2">
         {canDecide && <>
           <button type="button" className={`${button} border-primary bg-primary text-primary-foreground hover:bg-primary/90`}

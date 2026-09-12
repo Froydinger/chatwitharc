@@ -45,6 +45,20 @@ test('plain awaiting-input text never becomes approval; terminal states offer no
   }
 });
 
+test('completed runs show a compact activity list and AI summary without replaying the result', () => {
+  const html = render({ run: { ...base.run, status: 'completed', checkpoint: {
+    progress: { phase: 'done', turns: 3, tokens: 90 }, pendingApproval: null,
+    activity: [{ tool: 'update_code', outcome: 'completed' }, { tool: 'generate_image', outcome: 'blocked' }],
+    aiSummary: 'Built the code block and prepared the image step.',
+  }, result: 'private duplicate reply' } });
+  assert.match(html, /What Arc did/);
+  assert.match(html, /Update code/);
+  assert.match(html, /Generate image/);
+  assert.match(html, /AI summary/);
+  assert.match(html, /Built the code block and prepared the image step/);
+  assert.doesNotMatch(html, /private duplicate reply/);
+});
+
 test('detached observer requires reconnect before approval but can explicitly cancel', () => {
   const html = render({ connection: 'detached' });
   assert.match(html, /Updates are disconnected/); assert.match(html, /Reconnect/);

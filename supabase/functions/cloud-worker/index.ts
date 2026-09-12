@@ -8,6 +8,7 @@ import { cloudRunDispatch } from '../_shared/cloudRunDispatch.ts';
 import { cloudFileStore } from '../_shared/cloudFileStore.ts';
 import { cloudImageConfig } from '../_shared/cloudImageRuntime.ts';
 import { cloudScheduledConfig, cloudScheduledSweep } from '../_shared/cloudScheduledRuntime.ts';
+import { cloudRunCompletionEmailSweep } from '../_shared/cloudRunEmail.ts';
 
 type WorkerOptions = {
   enabled: boolean;
@@ -71,9 +72,17 @@ if (import.meta.main) Deno.serve((req) => handleCloudWorker(req, {
           notificationDispatch: cloudNotificationDispatch(url, serviceKey) }),
       }),
     });
+    // Completion email delivery shares this trusted worker boundary but is
+    // independent of scheduled-task cutover. A mail-provider failure must not
+    // stop the cloud-run sweep from advancing the next run.
+    const email = await cloudRunCompletionEmailSweep(db, {
+      url,
+      serviceKey,
+      siteUrl: Deno.env.get('SITE_URL') ?? 'https://askarc.chat',
+    })().catch(() => ({ examined: 0, sent: 0, skipped: 0, failed: 1 }));
     // Default-off; the same claim contract also backs cloud-scheduled-worker.
     // Neither code path changes or disables the legacy scheduled-task cron.
-    if (!cloudScheduledConfig(name => Deno.env.get(name)).enabled) return runs;
-    return { ...runs, scheduled: await cloudScheduledSweep(db, { url, serviceKey, apiKey })() };
+    if (!cloudScheduledConfig(name => Deno.env.get(name)).enabled) return { ...runs, email };
+    return { ...runs, email, scheduled: await cloudScheduledSweep(db, { url, serviceKey, apiKey })() };
   },
 }));
