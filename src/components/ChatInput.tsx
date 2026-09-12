@@ -314,6 +314,19 @@ function checkForSearchRequest(message: string): boolean {
   return /^search\//.test(m) || /^\/search\b/.test(m);
 }
 
+// Arc Work is a capability mode, not an agent-run toggle. Keep ordinary
+// conversation inline, and only promote requests that clearly need durable
+// tools, files, artifacts, or multiple steps to the background worker.
+function isLikelyDurableWorkRequest(message: string, hasAttachments = false): boolean {
+  if (!message.trim()) return hasAttachments;
+  if (hasAttachments) return true;
+  const m = message.trim().toLowerCase();
+  if (/^\/(search|code|write|canvas|build|app|apps)\b/.test(m)
+    || /^(search|code|write|build|app|apps)\//.test(m)) return true;
+  if (/\b(research|search online|go online|browse the web|look(?:\s+it)?\s+up|latest|current|sources?|citations?|publish|deploy|website|dashboard|web\s+app|code block|generate (?:an? )?(?:image|file)|create (?:an? )?(?:image|file)|schedule|remind|remember|save this|step[- ]by[- ]step|and then|after that|when you(?:'|’)re done)\b/i.test(m)) return true;
+  return checkForCodingRequest(m) || checkForCanvasRequest(m) || checkForBuildRequest(m);
+}
+
 // Detect conversational messages that should NOT trigger code/canvas updates
 // These are casual comments, questions, reactions - not actionable requests
 function isConversationalMessage(message: string): boolean {
@@ -1498,7 +1511,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     // Arc Work owns tool selection. Keep the whole request, including files,
     // together for the durable worker even while an earlier turn is running.
     const workMode = typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto';
-    if (workMode) return true;
+    if (workMode) return isLikelyDurableWorkRequest(text, selectedImages.length > 0 || selectedDocuments.length > 0);
     if (selectedImages.length || selectedDocuments.length) return false;
     if (shouldShowBanana || shouldShowBuildMode || checkForImageRequest(text)
       || checkForBuildRequest(text) || (canGenerateVideo && checkForVideoRequest(text))) return false;
@@ -1508,11 +1521,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const lastMessage = messages[messages.length - 1];
     if (lastMessage?.role === 'assistant' && lastMessage.type === 'image'
       && (isImageEditRequest(text) || (canGenerateVideo && isAnimateImageRequest(text)))) return false;
-    return routeRequest({
-      forceWebSearch: shouldShowSearchMode || checkForSearchRequest(text) || shouldForceVideoSearch(text),
-      forceCanvas: shouldShowCanvasMode || checkForCanvasRequest(text),
-      forceCode: shouldShowCodeMode || checkForCodingRequest(text),
-    }) !== 'local';
+    // A signed-in Arc Chat request is durable too. Local AI being ready must
+    // not make an in-flight message disappear when the app closes; only the
+    // explicit Corporate/local path is allowed to stay browser-bound here.
+    return true;
   };
 
   const handleSend = async (messageOverride?: string) => {
@@ -2333,14 +2345,18 @@ ${safeCode}
           shouldSearchForVideo,
         });
 
-        const durableRoute = (typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto') || shouldUseCodeContext ? 'cloud-chat' : routeRequest({
+        const workNeedsDurability = typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto'
+          && isLikelyDurableWorkRequest(finalMessage, images.length > 0 || documents.length > 0);
+        const durableCloudSubmit = onCloudTextSubmit && !isGuestMode && !corporateMode && !isLocalChatPreview()
+          && (cloudExecutionMode !== 'auto' || workNeedsDurability);
+        const durableRoute = durableCloudSubmit || shouldUseCodeContext ? 'cloud-chat' : (cloudExecutionMode === 'auto' ? 'cloud-chat' : routeRequest({
           forceWebSearch: wasSearchMode || shouldSearchForVideo,
           forceCanvas: shouldForceCanvas,
           forceCode: shouldForceCode,
           hasImageAttachment: false,
           isImageGenerationRequest: false,
-        });
-        if (onCloudTextSubmit && !isGuestMode && !corporateMode && durableRoute !== 'local') {
+        }));
+        if (durableCloudSubmit && durableRoute !== 'local') {
           // Capture the answered session and user identity, not whatever session
           // is selected when the worker finishes. Never append a second assistant
           // here: the server saves the stable reply and the parent reloads it.
@@ -2365,9 +2381,9 @@ ${safeCode}
                 m.role === 'user' || m.role === 'assistant'), {role: 'user', content: finalMessage}],
               ...((images.length || documents.length) ? {attachments: [...images, ...documents]} : {}),
               ...(workspaceContext ? {workspaceContext} : {}),
-              forceWebSearch: (typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto') ? false : wasSearchMode || shouldSearchForVideo,
-              forceCanvas: (typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto') ? false : shouldForceCanvas,
-              forceCode: (typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto') ? false : shouldForceCode,
+              forceWebSearch: cloudExecutionMode === 'auto' ? false : wasSearchMode || shouldSearchForVideo,
+              forceCanvas: cloudExecutionMode === 'auto' ? false : shouldForceCanvas,
+              forceCode: cloudExecutionMode === 'auto' ? false : shouldForceCode,
               modelOverride: codeContextModelOverride,
             });
           } catch (error) {
@@ -2530,7 +2546,7 @@ ${safeCode}
 
           try {
             // SMART ROUTING: decide if this can run on local Gemma
-            const route = shouldUseCodeContext ? "cloud-chat" : routeRequest({
+            const route = shouldUseCodeContext || cloudExecutionMode === 'auto' ? "cloud-chat" : routeRequest({
               forceWebSearch: wasSearchMode,
               forceCanvas: false,
               forceCode: false,
@@ -2813,6 +2829,7 @@ ${safeCode}
                   }
                 },
                 currentAbortController.signal,
+                cloudExecutionMode === 'auto' ? 'work' : 'chat',
               );
 
               // CRITICAL: If cancelled while waiting for response, discard everything

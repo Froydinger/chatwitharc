@@ -81,6 +81,19 @@ interface AIMessage {
   content: string;
 }
 
+type ArcMode = 'chat' | 'work';
+
+const ARC_MODE_CONTEXT: Record<ArcMode, AIMessage> = {
+  chat: {
+    role: 'system',
+    content: '=== ARC MODE: CHAT ===\nStay conversational and answer normally. Do not start background work unless the user explicitly asks for a durable multi-step task.',
+  },
+  work: {
+    role: 'system',
+    content: '=== ARC MODE: WORK ===\nArc Work is active as a capability mode, not an instruction to launch a background run for every message. Stay conversational for planning, clarification, and ordinary follow-ups. Use available tools when the user asks for real work, files, research, publishing, reminders, or a multi-step outcome. If no tool is needed, answer inline in this same chat. Never claim a background run started unless the UI actually submitted one.',
+  },
+};
+
 const UI_CONTEXT_PROMPT: AIMessage = {
   role: 'system',
   content: `=== ARC PRODUCT AND SUPPORT CONTEXT ===
@@ -207,7 +220,8 @@ export class AIService {
     guestMode?: boolean,
     _modelOverride?: string,
     onStatus?: (status: { type: string; activity?: string; tool?: string; phase?: string }) => void,
-    abortSignal?: AbortSignal
+    abortSignal?: AbortSignal,
+    arcMode: ArcMode = 'chat',
   ): Promise<SendMessageResult> {
     const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content || '';
     const requestsBugReport = /\b(open|create|start|show|file|submit|send|make)\b[\s\S]{0,80}\b(bug\s*report|feedback|suggestion|support\s*(message|report)|message\s+(to|for)\s+(the\s+)?(team|support))\b/i.test(latestUserMessage);
@@ -352,7 +366,7 @@ export class AIService {
                   'apikey': supabaseKey,
                 },
                 body: JSON.stringify({
-                  messages: [UI_CONTEXT_PROMPT, ...messages],
+                  messages: [UI_CONTEXT_PROMPT, ARC_MODE_CONTEXT[arcMode], ...messages],
                   profile: effectiveProfile,
                   model: selectedModel,
                   reasoningEffort,

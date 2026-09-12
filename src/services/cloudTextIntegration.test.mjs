@@ -41,7 +41,7 @@ const parentTerminal = nodeSource('src/components/MobileChatApp.tsx', node => ts
 const composerSession = nodeSource('src/components/ChatInput.tsx', declaration('requestSessionId'));
 const composerUser = nodeSource('src/components/ChatInput.tsx', declaration('userMessageId'));
 const composerRoute = nodeSource('src/components/ChatInput.tsx', node => ts.isIfStatement(node)
-  && node.expression.getText().startsWith('onCloudTextSubmit &&'));
+  && node.expression.getText().startsWith('durableCloudSubmit &&'));
 const quiet = { log() {}, warn() {}, error() {} };
 const owner = '00000000-0000-4000-8000-00000000d001';
 const quote = value => `'${String(value).replaceAll("'", "''")}'`;
@@ -232,7 +232,7 @@ test('real text submission and durable completion across detached frontend lifet
             if (switchAfterUser) state().createNewSession();
           },
           onCloudTextSubmit: async intent=>{const pending=submit(intent);if(mutateSnapshot)mutateSnapshot(intent);await pending;},
-          isGuestMode: false, corporateMode: false, durableRoute: 'cloud',
+          isGuestMode: false, corporateMode: false, cloudExecutionMode: mode, durableRoute: 'cloud', durableCloudSubmit: true,
           shouldUseCodeContext:workspace?.kind==='code',isCodingRequest:false,shouldRouteToCanvas:workspace?.kind==='canvas',
           images: [], documents: [],
           freshCanvasState:{isOpen:!!workspace,content:'stale store draft',codeLanguage:workspace?.language},

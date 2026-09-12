@@ -21,6 +21,8 @@ export type CloudRunInstructions = {
   reasoningEffort: 'low' | 'medium' | 'high';
 };
 
+type ArcExecutionMode = 'ask' | 'auto';
+
 const SETTING_KEYS = [
   'system_prompt', 'global_context', 'enable_step_by_step',
   'chat_behavior_prompt', 'response_style_prompt', 'grounding_prompt',
@@ -109,7 +111,7 @@ function clockContext(request: Row, now: Date): string {
  */
 export async function loadCloudRunContext(
   db: CloudContextDatabase,
-  claim: { user_id: string; request: unknown },
+  claim: { user_id: string; request: unknown; mode?: ArcExecutionMode },
   now: Date = new Date(),
 ): Promise<CloudRunInstructions> {
   if (!UUID.test(claim.user_id)) throw new Error('Cloud context requires a claimed owner');
@@ -157,6 +159,9 @@ export async function loadCloudRunContext(
     setting('grounding_prompt', DEFAULT_GROUNDING_PROMPT),
     ARC_CAPABILITIES_CONTEXT,
   );
+  instructions.push(claim.mode === 'auto'
+    ? '=== ARC MODE: WORK ===\nThis request was promoted to durable Arc Work because it needs actual multi-step work, tools, files, research, or a result that should continue after the user leaves. Execute the work, use the registered tools when needed, and keep the user updated through the final result. Do not turn ordinary planning or conversation into extra agent steps.'
+    : '=== ARC MODE: CHAT ===\nThis is durable Arc Chat. Answer the user normally and use registered tools when the request requires them. The durable worker is an execution guarantee, not a reason to invent extra steps.');
   // Cloud runs keep the core personality even in focused modes. Do not replace
   // it with a client message or a mode prompt. Code wins, as in regular chat.
   if (request.forceCode === true) instructions.push(setting('code_mode_prompt', DEFAULT_CODE_MODE_PROMPT));

@@ -81,7 +81,7 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
       body: response.body,
     };
   };
-  return (id: string) => processCloudRun(id, {
+  const advanceOne = (id: string) => processCloudRun(id, {
     store,
     prepare: async run => {
       if (!await authorizeOwner(run)) throw new Error('Cloud session is unavailable');
@@ -136,4 +136,34 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
       };
     },
   });
+
+  // A scheduler wake should be able to cross cheap, already-durable
+  // boundaries (tool receipts and transcript assembly) without waiting for a
+  // full minute between each one. A short bounded provider wait catches fast
+  // responses without busy-polling or creating extra model requests.
+  return async (id: string) => {
+    let advanced = false;
+    let providerWaits = 0;
+    for (let step = 0; step < 3; step += 1) {
+      if (!await advanceOne(id)) break;
+      advanced = true;
+      if (step === 2) break;
+      const { data, error } = await db.from('cloud_runs')
+        .select('status,checkpoint').eq('id', id).maybeSingle();
+      if (error || !data || data.status !== 'queued') break;
+      const checkpoint = data.checkpoint && typeof data.checkpoint === 'object'
+        ? data.checkpoint as Record<string, unknown> : {};
+      const engine = checkpoint.engine && typeof checkpoint.engine === 'object'
+        ? checkpoint.engine as Record<string, unknown> : {};
+      if (typeof engine.responseId === 'string' && engine.responseId.length > 0) {
+        if (providerWaits >= 2) break;
+        providerWaits += 1;
+        // Responses polling is not a model submission and does not create a
+        // second paid turn. A short bounded wait catches ordinary fast replies
+        // without holding an edge worker open for a long-running run.
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+    }
+    return advanced;
+  };
 }

@@ -96,7 +96,7 @@ export function PushNotificationsCard() {
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-foreground">Push Notifications</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Get pinged when scheduled tasks finish, someone @mentions you in a shared chat, or important updates land.
+            Get pinged when Arc Chat or Arc Work finishes, scheduled tasks finish, someone @mentions you in a shared chat, or important updates land.
           </p>
         </div>
         {canToggle && (

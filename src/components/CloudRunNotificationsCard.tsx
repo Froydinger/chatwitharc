@@ -60,7 +60,7 @@ export function CloudRunNotificationsCard() {
         </div>
         <div className="min-w-0">
           <h3 className="font-semibold text-foreground">Cloud run notifications</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Know when Arc Chat or Arc Work finishes while you’re away</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Push alerts use your device setting; email is controlled separately below.</p>
         </div>
       </div>
       <div className="w-full text-left p-3 rounded-xl border bg-muted/20 border-border/40 flex items-start gap-3">

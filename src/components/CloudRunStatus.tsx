@@ -82,15 +82,19 @@ function CloudRunStatusCard({ run, connection = 'idle', observationError, onAppr
   const approval = run.status === 'awaiting_input' ? run.checkpoint?.pendingApproval : null;
   const canDecide = !!approval?.callId && !!approval?.argumentsHash;
   const mutationDisabled = !!state.pending || state.submitted || state.reconnectRequired || detached;
+  const progress = run.checkpoint?.progress;
+  const hasWorkerProgress = run.status === 'queued' && progress?.phase !== null && progress?.phase !== undefined;
   const title = {
-    queued: 'Queued', running: 'Working on your reply', awaiting_input: canDecide ? 'Your approval is needed' : 'Run needs attention',
+    queued: hasWorkerProgress ? 'Working on the next step' : 'Queued', running: 'Working on your reply', awaiting_input: canDecide ? 'Your approval is needed' : 'Run needs attention',
     completed: 'Reply ready', failed: 'Run failed', cancelled: 'Run cancelled',
   }[run.status];
   const description = terminal ? null : detached
     ? 'Updates are disconnected. Server work may still be running. Reconnect to check its status.'
     : run.status === 'awaiting_input'
       ? canDecide ? 'Review this exact action before approving or denying it.' : 'This run is paused. Check its status before trying again; an earlier action may already have happened.'
-      : 'You can leave this chat. The submitted run continues in the cloud.';
+      : hasWorkerProgress
+        ? 'The cloud worker is processing this step. You can leave this chat and come back later.'
+        : 'You can leave this chat. The submitted run continues in the cloud.';
   const error = state.error || observationError || (run.status === 'failed' || (run.status === 'awaiting_input' && !canDecide)
     ? typeof run.error === 'string' ? run.error : run.status === 'failed' ? 'The run could not finish.' : 'Recovery is required before this run can continue.' : null);
   const button = 'min-h-11 rounded-full border border-border bg-background/70 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50';
