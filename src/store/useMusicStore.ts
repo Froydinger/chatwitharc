@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { resumeMusicOutput, setMusicOutputVolume } from '@/lib/musicAudio';
 
 export interface MusicTrack {
   id: string;
@@ -114,6 +115,7 @@ export const useMusicStore = create<MusicState>()(
           audioRef.pause();
           setIsPlaying(false);
         } else {
+          resumeMusicOutput(audioRef);
           setIsLoading(true);
           if (audioRef.readyState >= 2) {
             audioRef.play()
@@ -135,7 +137,7 @@ export const useMusicStore = create<MusicState>()(
         if (!audioRef) return;
         const newMuted = !isMuted;
         setIsMuted(newMuted);
-        audioRef.volume = newMuted ? 0 : volume;
+        setMusicOutputVolume(audioRef, newMuted ? 0 : volume);
       },
 
       nextTrack: () => {
@@ -165,14 +167,16 @@ export const useMusicStore = create<MusicState>()(
         try {
           audioRef.currentTime = target;
           set({ currentTime: target });
-        } catch {}
+      } catch {
+        // Some browsers reject seeks until media metadata is fully ready.
+      }
       },
 
       handleVolumeChange: (newVolume: number) => {
         const { audioRef, setVolume, setIsMuted } = get();
         setVolume(newVolume);
         setIsMuted(newVolume === 0);
-        if (audioRef) audioRef.volume = newVolume;
+        if (audioRef) setMusicOutputVolume(audioRef, newVolume);
       },
 
       handleTrackChange: (trackId: string) => {

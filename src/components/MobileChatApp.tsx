@@ -1340,17 +1340,17 @@ export function MobileChatApp() {
                   {isMusicPlaying ? (
                     <div className="flex items-end justify-center gap-[3px] h-4 w-4">
                       <motion.div 
-                        className="w-[3px] bg-primary rounded-full"
+                        className="w-[3px] rounded-full bg-foreground dark:bg-white"
                         animate={{ height: ["40%", "100%", "60%", "90%", "40%"] }}
                         transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
                       />
                       <motion.div 
-                        className="w-[3px] bg-primary rounded-full"
+                        className="w-[3px] rounded-full bg-foreground dark:bg-white"
                         animate={{ height: ["100%", "50%", "80%", "40%", "100%"] }}
                         transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
                       />
                       <motion.div 
-                        className="w-[3px] bg-primary rounded-full"
+                        className="w-[3px] rounded-full bg-foreground dark:bg-white"
                         animate={{ height: ["60%", "90%", "40%", "100%", "60%"] }}
                         transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
                       />

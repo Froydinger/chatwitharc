@@ -60,11 +60,15 @@ function PlayMark({ playing, size, still }: { playing: boolean; size: number; st
 
 const formatTime = (time: number) => `${Math.floor(time / 60)}:${String(Math.floor(time % 60)).padStart(2, "0")}`;
 
-export function BenchoNowPlaying() {
+interface BenchoNowPlayingProps {
+  liked: boolean;
+  onToggleLike: () => void;
+}
+
+export function BenchoNowPlaying({ liked, onToggleLike }: BenchoNowPlayingProps) {
   const { currentTrack, isPlaying, isLoading, currentTime, duration, togglePlay, prevTrack, nextTrack, seek } = useMusicStore();
   const track = musicTracks.find((item) => item.id === currentTrack) || musicTracks[0];
-  const [open, setOpen] = useState(false);
-  const [liked, setLiked] = useState(false);
+  const [open, setOpen] = useState(true);
   const boxRef = useRef<HTMLDivElement>(null);
   const still = !!useReducedMotion();
   // Published Morph=50 maps to 460 * (1.6 - 50 / 100 * 1.2) ms.
@@ -103,7 +107,7 @@ export function BenchoNowPlaying() {
         </span>
         <button type="button" className="snd-tap" onClick={() => setOpen((value) => !value)} aria-expanded={open} aria-label={open ? "Collapse the player" : "Open the player"}
           style={{ left: mix(0, 10, p), top: mix(0, 10, p), width: mix(260, 240, p), height: mix(78, 64, p), borderRadius: mix(20, 16, p) }} />
-        <button type="button" className="snd-like" data-on={liked || undefined} onClick={() => setLiked((value) => !value)} aria-label={liked ? "Remove from liked songs" : "Add to liked songs"} aria-pressed={liked} tabIndex={open ? 0 : -1}
+        <button type="button" className="snd-like" data-on={liked || undefined} onClick={onToggleLike} aria-label={liked ? "Remove from liked songs" : "Add to liked songs"} aria-pressed={liked} tabIndex={open ? 0 : -1}
           style={{ left: 220, top: 10, width: 30, height: 30, opacity: late, pointerEvents: late > 0.9 ? "auto" : "none" }}>
           <Heart size={16} strokeWidth={2} fill={liked ? "currentColor" : "none"} />
         </button>

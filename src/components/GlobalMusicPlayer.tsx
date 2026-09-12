@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
+import { syncMusicOutputVolume } from "@/lib/musicAudio";
 
 /**
  * Renders a hidden <audio> element at the app root so music persists across
@@ -57,7 +58,7 @@ export function GlobalMusicPlayer() {
     audio.addEventListener("loadedmetadata", onMeta);
     audio.addEventListener("loadstart", onLoadStart);
     audio.addEventListener("canplay", onCanPlay);
-    audio.volume = isMuted ? 0 : volume;
+    syncMusicOutputVolume(audio, isMuted ? 0 : volume);
 
     return () => {
       audio.removeEventListener("ended", onEnded);
