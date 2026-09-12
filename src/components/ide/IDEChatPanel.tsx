@@ -23,7 +23,7 @@ interface IDEChatPanelProps {
   liveActions: AgentAction[];
   isLoading: boolean;
   generatingId: string | null;
-  onSend: (message: string, images?: string[]) => void;
+  onSend: (message: string, images?: string[]) => void | boolean | Promise<void | boolean>;
   onSelectFile?: (path: string) => void;
   syncStatus?: 'saved' | 'saving' | 'unsaved' | 'error';
   onViewPreview?: () => void;
@@ -52,6 +52,7 @@ export function IDEChatPanel({
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -162,12 +163,19 @@ export function IDEChatPanel({
     setAttachedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if ((!input.trim() && attachedImages.length === 0) || isLoading || uploadingImage) return;
-    onSend(input.trim(), attachedImages.length > 0 ? attachedImages : undefined);
-    setInput('');
-    setAttachedImages([]);
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    const capturedInput = input;
+    const capturedImages = attachedImages;
+    try {
+      const accepted = await onSend(input.trim(), attachedImages.length > 0 ? attachedImages : undefined);
+      if (accepted === false) return;
+      setInput(current => current === capturedInput ? '' : current);
+      setAttachedImages(current => current === capturedImages ? [] : current);
+    } finally { submittingRef.current = false; }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

@@ -3,6 +3,69 @@ import { persist } from 'zustand/middleware';
 import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
 import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from '@/utils/memoryDetection';
 import { useCanvasStore } from '@/store/useCanvasStore';
+import { createCloudSessionPersistence, type SessionOutbox, type SessionPersistenceResult } from '@/services/cloudSessionPersistence';
+import { transcriptChanges, type TranscriptSnapshot } from '@/services/cloudSessionChanges';
+
+// Release gate: enable only AFTER the session-operation migration is available.
+const cloudSessionOperationsEnabled = import.meta.env.VITE_CLOUD_SESSION_OPERATIONS_ENABLED === 'true';
+const sessionAdapters = new Map<string, ReturnType<typeof createCloudSessionPersistence>>();
+const sessionMutationEpoch = new Map<string, number>();
+// Observation only: preserve legacy/voice write timing and payloads. Text cloud
+// preparation waits for existing saves; it never starts or retries a legacy write.
+const LEGACY_SAVE_WAIT_MS = 5_000;
+type LegacySave = { done: Promise<void>; failed: boolean };
+const legacySaves = new Map<string, Set<LegacySave>>();
+async function waitForLegacySaves(sessionId: string) {
+  const saves = [...(legacySaves.get(sessionId) ?? [])];
+  if (!saves.length) return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      Promise.all(saves.map(save => save.done)),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Session save is still pending. No cloud request was submitted; check the saved session before trying again.')), LEGACY_SAVE_WAIT_MS);
+      }),
+    ]);
+  } catch (error) {
+    if (saves.some(save => save.failed)) {
+      throw new Error('Previous session save was not confirmed. Reload the saved session before cloud submission; no write was retried.');
+    }
+    throw error;
+  } finally { if (timer !== undefined) clearTimeout(timer); }
+}
+function isCloudWriteRejection(error: unknown): boolean {
+  if (!cloudSessionOperationsEnabled || !error || typeof error !== 'object') return false;
+  const value = error as { code?: string; message?: string };
+  return value.code === '42501' && typeof value.message === 'string'
+    && value.message.includes('Cloud session requires a versioned server write');
+}
+const outboxKey = (owner: string, session: string) => `arc-session-outbox-v1:${owner}:${session}`;
+const transcript = (session?: ChatSession): TranscriptSnapshot => ({
+  messages: (session?.messages ?? []) as unknown as TranscriptSnapshot['messages'],
+  canvasContent: session?.canvasContent ?? null,
+});
+async function sessionOwner(): Promise<string> {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) throw new Error('Sign in to save this session.');
+  return user.id;
+}
+function sessionAdapter(owner: string, sessionId: string) {
+  const key = outboxKey(owner, sessionId);
+  let adapter = sessionAdapters.get(key);
+  if (!adapter) {
+    const raw = localStorage.getItem(key);
+    const restored: SessionOutbox | undefined = raw ? JSON.parse(raw) : undefined;
+    adapter = createCloudSessionPersistence({
+      ownerId: owner, sessionId, restored,
+      currentOwnerId: () => sessionOwner(),
+      client: { rpc: (name, args) => supabase.rpc(name as never, args as never) },
+      // Never clear an outbox on refresh/signout. It contains intent, not tokens.
+      persistOutbox: async value => { localStorage.setItem(key, JSON.stringify(value)); },
+    });
+    sessionAdapters.set(key, adapter);
+  }
+  return adapter;
+}
 
 // Helper to extract a title from canvas content (first heading or first line)
 function extractCanvasTitle(content: string): string | null {
@@ -73,6 +136,9 @@ export interface ChatFolder {
 }
 
 export interface ChatSession {
+  persistenceVersion?: number;
+  revision?: number;
+  persistenceOwnerId?: string;
   id: string;
   title: string;
   createdAt: Date;
@@ -126,6 +192,7 @@ export interface Message {
   fileName?: string;
   fileType?: string;
   fileSize?: number;
+  generatedFiles?: Array<{id: string; fileUrl: string; fileName: string; fileType: string; fileSize: number}>;
   canvasContent?: string; // For canvas artifacts
   canvasLabel?: string; // AI-generated label for canvas
   codeContent?: string; // For code artifacts
@@ -169,6 +236,10 @@ export interface Message {
 }
 
 export interface ArcState {
+  sessionSaveErrors: Record<string, string>;
+  prepareCloudSession: (sessionId: string) => Promise<{ revision: number }>;
+  flushCloudSession: (sessionId: string) => Promise<SessionPersistenceResult>;
+  reloadCloudSession: (sessionId: string, minRevision?: number, signal?: AbortSignal) => Promise<{ status: 'reloaded' | 'pending' | 'stale'; revision?: number }>;
   // State Management
 
   // Chat Sessions Management
@@ -243,7 +314,7 @@ export interface ArcState {
 
   // Supabase Sync
   syncFromSupabase: (limit?: number) => Promise<void>;
-  saveChatToSupabase: (session: ChatSession, revision?: number) => Promise<void>;
+  saveChatToSupabase: (session: ChatSession, revision?: number, before?: ChatSession) => Promise<void>;
   isOnline: boolean;
   lastSyncAt: Date | null;
   isSyncing: boolean;
@@ -341,6 +412,115 @@ export const useArcStore = create<ArcState>()(
       },
 
       chatSessions: [],
+      sessionSaveErrors: {},
+      prepareCloudSession: async (sessionId) => {
+        if (!cloudSessionOperationsEnabled) throw new Error('Cloud session operations are not enabled.');
+        const local = get().chatSessions.find(s => s.id === sessionId);
+        if (!local || local.isLocalOnly) throw new Error('Cloud persistence requires a non-local session.');
+        const epoch = sessionMutationEpoch.get(sessionId);
+        const owner = await sessionOwner();
+        await waitForLegacySaves(sessionId);
+        if (await sessionOwner() !== owner) throw new Error('Session owner changed.');
+        if (sessionMutationEpoch.get(sessionId) !== epoch) throw new Error('Session changed while preparing; retry.');
+        const { data: remote, error } = await supabase.from('chat_sessions')
+          .select('*').eq('id', sessionId).eq('user_id', owner).maybeSingle();
+        if (error) throw error;
+        if (sessionMutationEpoch.get(sessionId) !== epoch) throw new Error('Session changed while preparing; retry.');
+        if (!remote) {
+          // Insert, never upsert: another creator wins explicitly, not by overwrite.
+          const { error: insertError } = await supabase.from('chat_sessions').insert({
+            id: sessionId, user_id: owner, title: local.title, messages: [], canvas_content: null,
+          });
+          if (insertError) throw insertError;
+        }
+        if (sessionMutationEpoch.get(sessionId) !== epoch) throw new Error('Session changed while preparing; retry.');
+        const adapter = sessionAdapter(owner, sessionId);
+        if (remote && (local.isHydrated || local.messages.length > 0) && !adapter.snapshot().pending.length && transcriptChanges({
+          messages: remote.messages as unknown as TranscriptSnapshot['messages'], canvasContent: remote.canvas_content,
+        }, transcript(local)).length) throw new Error('Local and server transcript differ; finish saving or explicitly reload before cloud submission.');
+        if (!remote) adapter.enqueue({ messages: [], canvasContent: null }, transcript(local));
+        localStorage.setItem(outboxKey(owner, sessionId), JSON.stringify(adapter.snapshot()));
+        if (await sessionOwner() !== owner) throw new Error('Session owner changed.');
+        set(s => ({ chatSessions: s.chatSessions.map(cs => cs.id === sessionId
+          ? { ...cs, persistenceVersion: 1, persistenceOwnerId: owner } : cs) }));
+        const saved = await get().flushCloudSession(sessionId);
+        if (saved.status !== 'complete') throw new Error(`Session save ${saved.status}.`);
+        const loaded = await get().reloadCloudSession(sessionId);
+        if (loaded.status !== 'reloaded' || loaded.revision === undefined) throw new Error(`Session reload ${loaded.status}.`);
+        return { revision: loaded.revision };
+      },
+      flushCloudSession: async (sessionId) => {
+        if (!cloudSessionOperationsEnabled) throw new Error('Cloud session operations are not enabled.');
+        const owner = await sessionOwner();
+        const local = get().chatSessions.find(s => s.id === sessionId);
+        // Discovery may precede sidebar hydration. The authenticated owner scopes
+        // the durable journal; each RPC independently verifies session ownership.
+        if (local?.isLocalOnly || (local?.persistenceOwnerId && local.persistenceOwnerId !== owner)) throw new Error('Session owner mismatch.');
+        try {
+          const result = await sessionAdapter(owner, sessionId).flush();
+          if (await sessionOwner() !== owner) throw new Error('Session owner changed.');
+          set(s => ({
+            sessionSaveErrors: { ...s.sessionSaveErrors, [sessionId]: result.status === 'complete' ? '' : `Session save ${result.status}; pending edits retained.` },
+            chatSessions: s.chatSessions.map(cs => cs.id === sessionId && result.revision !== undefined
+              ? { ...cs, revision: Math.max(cs.revision ?? 0, result.revision) } : cs),
+          }));
+          return result;
+        } catch (error) {
+          set(s => ({ sessionSaveErrors: { ...s.sessionSaveErrors, [sessionId]: 'Session save failed; pending edits retained.' } }));
+          throw error;
+        }
+      },
+      reloadCloudSession: async (sessionId, minRevision = 0, signal) => {
+        signal?.throwIfAborted();
+        if (!Number.isSafeInteger(minRevision) || minRevision < 0) throw new Error('Invalid minimum revision.');
+        if (!cloudSessionOperationsEnabled) throw new Error('Cloud session operations are not enabled.');
+        const owner = await sessionOwner();
+        signal?.throwIfAborted();
+        const local = get().chatSessions.find(s => s.id === sessionId);
+        if (local?.isLocalOnly) throw new Error('Session unavailable.');
+        if (local?.persistenceOwnerId && local.persistenceOwnerId !== owner) throw new Error('Session owner mismatch.');
+        const adapter = sessionAdapter(owner, sessionId);
+        if (adapter.snapshot().pending.length) return { status: 'pending' };
+        const epoch = sessionMutationEpoch.get(sessionId);
+        const failedLegacySaves = [...(legacySaves.get(sessionId) ?? [])].filter(save => save.failed);
+        const { data, error } = await supabase.from('chat_sessions').select('*')
+          .eq('id', sessionId).eq('user_id', owner).single();
+        signal?.throwIfAborted();
+        if (error) throw error;
+        if (await sessionOwner() !== owner) throw new Error('Session owner changed.');
+        signal?.throwIfAborted();
+        if (adapter.snapshot().pending.length || epoch !== sessionMutationEpoch.get(sessionId)) return { status: 'pending' };
+        const row = data as typeof data & { revision: number; persistence_version: number };
+        const latest = get().chatSessions.find(s => s.id === sessionId);
+        // Do not resurrect a session removed locally while this fetch was running.
+        if ((local && !latest) || !Number.isSafeInteger(row.revision) || row.revision < Math.max(minRevision, latest?.revision ?? 0)) return { status: 'stale' };
+        if (latest?.isLocalOnly || (latest?.persistenceOwnerId && latest.persistenceOwnerId !== owner)) throw new Error('Session owner mismatch.');
+        if (row.id !== sessionId || row.user_id !== owner) throw new Error('Server session identity mismatch.');
+        if (!Array.isArray(row.messages)) throw new Error('Invalid server transcript.');
+        const messages = (row.messages as unknown as Message[]).map(message => ({
+          ...message, timestamp: new Date(message.timestamp),
+        }));
+        if (messages.some(message => !Number.isFinite(message.timestamp.getTime()))) throw new Error('Invalid server message timestamp.');
+        const hydrated: ChatSession = {
+          ...(latest ?? { id: sessionId, title: row.title,
+            createdAt: new Date(row.created_at), lastMessageAt: new Date(row.updated_at),
+            personaId: row.persona_id ?? undefined, folderId: row.folder_id ?? undefined }),
+          messages, canvasContent: row.canvas_content ?? undefined, messageCount: messages.length,
+          isHydrated: true, revision: row.revision, persistenceVersion: 1, persistenceOwnerId: owner,
+        };
+        signal?.throwIfAborted();
+        set(s => ({
+          chatSessions: latest ? s.chatSessions.map(cs => cs.id === sessionId ? hydrated : cs)
+            : [...s.chatSessions, hydrated],
+          messages: s.currentSessionId === sessionId ? messages : s.messages,
+        }));
+        // Only an explicit successful authoritative read resolves a failed
+        // legacy acknowledgement. Never replay that write during preparation.
+        const saves = legacySaves.get(sessionId);
+        for (const save of failedLegacySaves) saves?.delete(save);
+        if (saves && !saves.size) legacySaves.delete(sessionId);
+        return { status: 'reloaded', revision: row.revision };
+      },
       isOnline: navigator.onLine,
       lastSyncAt: null,
       isSyncing: false,
@@ -369,7 +549,7 @@ export const useArcStore = create<ArcState>()(
 
         // Persist without touching message arrays
         try {
-          await get().saveChatToSupabase(updated, revision);
+          await get().saveChatToSupabase(updated, revision, existing);
         } catch (e) {
           console.error('❌ Failed to save canvas to Supabase:', e);
         }
@@ -634,6 +814,8 @@ export const useArcStore = create<ArcState>()(
 
             // Create lightweight sessions with empty messages arrays
             const loadedSessions: ChatSession[] = sessionsMeta.map((meta: any) => ({
+              ...(cloudSessionOperationsEnabled && localStorage.getItem(outboxKey(user.id, meta.id))
+                ? { persistenceVersion: 1, persistenceOwnerId: user.id } : {}),
               id: meta.id,
               title: meta.title,
               createdAt: new Date(meta.created_at),
@@ -655,6 +837,9 @@ export const useArcStore = create<ArcState>()(
               if (local && (local.isHydrated || (local.messages && local.messages.length > 0))) {
                 return {
                   ...loaded,
+                  persistenceVersion: local.persistenceVersion ?? loaded.persistenceVersion,
+                  persistenceOwnerId: local.persistenceOwnerId ?? loaded.persistenceOwnerId,
+                  revision: local.revision,
                   messages: local.messages,
                   isHydrated: local.isHydrated,
                   messageCount: Math.max(loaded.messageCount, local.messages.length),
@@ -729,6 +914,10 @@ export const useArcStore = create<ArcState>()(
       },
 
       hydrateSession: async (sessionId: string) => {
+        if (cloudSessionOperationsEnabled && get().chatSessions.find(s => s.id === sessionId)?.persistenceVersion === 1) {
+          await get().reloadCloudSession(sessionId);
+          return;
+        }
         if (!supabase || !isSupabaseConfigured) return;
 
         const state = get();
@@ -749,13 +938,17 @@ export const useArcStore = create<ArcState>()(
 
           const { data, error } = await supabase
             .from('chat_sessions')
-            .select('messages, canvas_content, persona_id')
+            .select('*')
             .eq('id', sessionId)
             .eq('user_id', user.id)
             .single();
 
           if (error) {
             console.error('❌ Failed to hydrate session:', error);
+            return;
+          }
+          if (cloudSessionOperationsEnabled && (data as typeof data & { persistence_version?: number }).persistence_version === 1) {
+            await get().reloadCloudSession(sessionId);
             return;
           }
 
@@ -813,6 +1006,10 @@ export const useArcStore = create<ArcState>()(
       },
 
       refreshSessionFromSupabase: async (sessionId: string) => {
+        if (cloudSessionOperationsEnabled && get().chatSessions.find(s => s.id === sessionId)?.persistenceVersion === 1) {
+          await get().reloadCloudSession(sessionId);
+          return;
+        }
         if (!supabase || !isSupabaseConfigured) return;
         try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -820,13 +1017,17 @@ export const useArcStore = create<ArcState>()(
 
           const { data, error } = await supabase
             .from('chat_sessions')
-              .select('messages, canvas_content, updated_at, persona_id')
+              .select('*')
             .eq('id', sessionId)
             .eq('user_id', user.id)
             .single();
 
           if (error) {
             console.error('❌ Failed to refresh session:', error);
+            return;
+          }
+          if (cloudSessionOperationsEnabled && (data as typeof data & { persistence_version?: number }).persistence_version === 1) {
+            await get().reloadCloudSession(sessionId);
             return;
           }
 
@@ -864,6 +1065,12 @@ export const useArcStore = create<ArcState>()(
       },
 
       hydrateAllSessions: async () => {
+        if (cloudSessionOperationsEnabled) {
+          for (const session of get().chatSessions) {
+            if (!session.isLocalOnly && !session.isHydrated) await get().hydrateSession(session.id);
+          }
+          return;
+        }
         if (!supabase || !isSupabaseConfigured) return;
 
         const state = get();
@@ -973,90 +1180,145 @@ export const useArcStore = create<ArcState>()(
         }
       },
 
-      saveChatToSupabase: async (session: ChatSession, revision?: number) => {
-        if (revision !== undefined && sessionSaveRevisions.get(session.id) !== revision) {
-          console.log('⏭️ Skipped stale session save:', session.id);
-          return;
-        }
-        if (session.isLocalOnly) {
-          // Corporate Mode session — stays on this device only.
-          return;
-        }
-        if (!supabase || !isSupabaseConfigured) {
-          console.log('⚠️ Supabase not configured, skipping save');
-          return;
-        }
-
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) {
-            console.warn('⚠️ No user found, cannot save to Supabase');
+      saveChatToSupabase: (session: ChatSession, revision?: number, before?: ChatSession) => {
+        const previous = before ?? get().chatSessions.find(s => s.id === session.id);
+        const trackLegacy = cloudSessionOperationsEnabled && !session.isLocalOnly
+          && session.persistenceVersion !== 1 && previous?.persistenceVersion !== 1;
+        const save = async () => {
+          sessionMutationEpoch.set(session.id, (sessionMutationEpoch.get(session.id) ?? 0) + 1);
+          if (!session.isLocalOnly && (session.persistenceVersion === 1 || previous?.persistenceVersion === 1)) {
+            try {
+              if (!cloudSessionOperationsEnabled) throw new Error('Protected session saving is not enabled.');
+              const owner = session.persistenceOwnerId ?? previous?.persistenceOwnerId;
+              if (!owner) throw new Error('Reload this protected session before editing.');
+              const adapter = sessionAdapter(owner, session.id);
+              adapter.enqueue(transcript(previous), transcript(session));
+              // Synchronous capture before yielding: refresh must not lose operation IDs.
+              localStorage.setItem(outboxKey(owner, session.id), JSON.stringify(adapter.snapshot()));
+              const result = await get().flushCloudSession(session.id);
+              if (result.status !== 'complete') throw new Error(`Session save ${result.status}; pending edits retained.`);
+              return;
+            } catch (error) {
+              // Defer notification when invoked inside a Zustand updater.
+              queueMicrotask(() => set(s => ({ sessionSaveErrors: { ...s.sessionSaveErrors,
+                [session.id]: error instanceof Error ? error.message : 'Session save failed; pending edits retained.' } })));
+              throw error;
+            }
+          }
+          if (revision !== undefined && sessionSaveRevisions.get(session.id) !== revision) {
+            console.log('⏭️ Skipped stale session save:', session.id);
+            return;
+          }
+          if (session.isLocalOnly) {
+            // Corporate Mode session — stays on this device only.
+            return;
+          }
+          if (!supabase || !isSupabaseConfigured) {
+            console.log('⚠️ Supabase not configured, skipping save');
             return;
           }
 
-          // CRITICAL: Check if we're about to overwrite non-empty data with empty data
-          const { data: existingSession } = await supabase
-            .from('chat_sessions')
-            .select('messages, canvas_content, updated_at')
-            .eq('id', session.id)
-            .maybeSingle();
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+              console.warn('⚠️ No user found, cannot save to Supabase');
+              return;
+            }
 
-          const existingMessageCount = Array.isArray(existingSession?.messages) 
-            ? existingSession.messages.length 
-            : 0;
-          const newMessageCount = Array.isArray(session.messages) 
-            ? session.messages.length 
-            : 0;
+            // CRITICAL: Check if we're about to overwrite non-empty data with empty data
+            const { data: existingSession } = await supabase
+              .from('chat_sessions')
+              .select('*')
+              .eq('id', session.id)
+              .eq('user_id', user.id)
+              .maybeSingle();
 
-          if (existingMessageCount > 0 && newMessageCount === 0) {
-            console.warn('⚠️ Skipped save: would overwrite', existingMessageCount, 'messages with empty array for session:', session.id);
-            return; // Silently skip — this is a guard, not an error
+            if ((existingSession as typeof existingSession & { persistence_version?: number })?.persistence_version === 1) {
+              if (!cloudSessionOperationsEnabled) throw new Error('Protected session saving is not enabled.');
+              if (!previous?.isHydrated) throw new Error('Reload the protected session before editing.');
+              const adapter = sessionAdapter(user.id, session.id);
+              adapter.enqueue(transcript(previous), transcript(session));
+              localStorage.setItem(outboxKey(user.id, session.id), JSON.stringify(adapter.snapshot()));
+              set(s => ({ chatSessions: s.chatSessions.map(cs => cs.id === session.id
+                ? { ...cs, persistenceVersion: 1, persistenceOwnerId: user.id } : cs) }));
+              const result = await get().flushCloudSession(session.id);
+              if (result.status !== 'complete') throw new Error(`Session save ${result.status}; pending edits retained.`);
+              return;
+            }
+
+            const existingMessageCount = Array.isArray(existingSession?.messages)
+              ? existingSession.messages.length
+              : 0;
+            const newMessageCount = Array.isArray(session.messages)
+              ? session.messages.length
+              : 0;
+
+            if (existingMessageCount > 0 && newMessageCount === 0) {
+              console.warn('⚠️ Skipped save: would overwrite', existingMessageCount, 'messages with empty array for session:', session.id);
+              return; // Silently skip — this is a guard, not an error
+            }
+
+            const existingUpdatedAt = existingSession?.updated_at ? Date.parse(existingSession.updated_at as string) : 0;
+            const incomingUpdatedAt = session.lastMessageAt instanceof Date
+              ? session.lastMessageAt.getTime()
+              : Date.parse(String(session.lastMessageAt));
+            const remoteCanvas = typeof existingSession?.canvas_content === 'string' ? existingSession.canvas_content : '';
+            const incomingCanvas = typeof session.canvasContent === 'string' ? session.canvasContent : '';
+            if (remoteCanvas.trim() && !incomingCanvas.trim() && existingUpdatedAt > incomingUpdatedAt) {
+              console.warn('⚠️ Skipped save: would overwrite newer canvas content with empty content for session:', session.id);
+              return;
+            }
+
+            console.log('💾 Saving session:', session.id, '- Messages:', newMessageCount);
+
+            // Re-read the title at write time. Saves are fired async and un-awaited,
+            // so a save started before naming finished still carries "New Chat" in
+            // its captured snapshot and would clobber the title the model just set.
+            const freshTitle = get().chatSessions.find(s => s.id === session.id)?.title ?? session.title;
+
+            const { error } = await supabase
+              .from('chat_sessions')
+              .upsert({
+                user_id: user.id,
+                title: freshTitle,
+                messages: session.messages as any,
+                canvas_content: session.canvasContent ?? null,
+                folder_id: session.folderId ?? null,
+                persona_id: session.personaId && !session.personaId.startsWith('builtin-') ? session.personaId : null,
+                updated_at: new Date().toISOString(),
+                id: session.id
+              });
+
+            if (error) {
+              console.error('❌ Error saving session to Supabase:', error);
+              if (!isCloudWriteRejection(error)) set({ isOnline: false });
+              throw error;
+            } else {
+              console.log('✅ Successfully saved session:', session.id);
+              set({ lastSyncAt: new Date(), isOnline: true });
+            }
+          } catch (error) {
+            console.error('❌ Failed to save to Supabase:', error);
+            const rejected = isCloudWriteRejection(error);
+            set(s => ({ ...(rejected ? {} : { isOnline: false }), sessionSaveErrors: { ...s.sessionSaveErrors,
+              [session.id]: rejected ? 'A stale save was rejected to protect the cloud reply. Reload the saved session before editing.'
+                : error instanceof Error ? error.message : 'Session save failed.' } }));
+            throw error; // Re-throw to let caller handle
           }
-
-          const existingUpdatedAt = existingSession?.updated_at ? Date.parse(existingSession.updated_at as string) : 0;
-          const incomingUpdatedAt = session.lastMessageAt instanceof Date
-            ? session.lastMessageAt.getTime()
-            : Date.parse(String(session.lastMessageAt));
-          const remoteCanvas = typeof existingSession?.canvas_content === 'string' ? existingSession.canvas_content : '';
-          const incomingCanvas = typeof session.canvasContent === 'string' ? session.canvasContent : '';
-          if (remoteCanvas.trim() && !incomingCanvas.trim() && existingUpdatedAt > incomingUpdatedAt) {
-            console.warn('⚠️ Skipped save: would overwrite newer canvas content with empty content for session:', session.id);
-            return;
-          }
-
-          console.log('💾 Saving session:', session.id, '- Messages:', newMessageCount);
-
-          // Re-read the title at write time. Saves are fired async and un-awaited,
-          // so a save started before naming finished still carries "New Chat" in
-          // its captured snapshot and would clobber the title the model just set.
-          const freshTitle = get().chatSessions.find(s => s.id === session.id)?.title ?? session.title;
-
-          const { error } = await supabase
-            .from('chat_sessions')
-            .upsert({
-              user_id: user.id,
-              title: freshTitle,
-              messages: session.messages as any,
-              canvas_content: session.canvasContent ?? null,
-              folder_id: session.folderId ?? null,
-              persona_id: session.personaId && !session.personaId.startsWith('builtin-') ? session.personaId : null,
-              updated_at: new Date().toISOString(),
-              id: session.id
-            });
-
-          if (error) {
-            console.error('❌ Error saving session to Supabase:', error);
-            set({ isOnline: false });
-            throw error;
-          } else {
-            console.log('✅ Successfully saved session:', session.id);
-            set({ lastSyncAt: new Date(), isOnline: true });
-          }
-        } catch (error) {
-          console.error('❌ Failed to save to Supabase:', error);
-          set({ isOnline: false });
-          throw error; // Re-throw to let caller handle
+        };
+        // Invoke immediately so semantic journaling inside Zustand updaters
+        // remains synchronous. Merely observe the original promise, no replay.
+        const done = save();
+        if (trackLegacy) {
+          const saves = legacySaves.get(session.id) ?? new Set<LegacySave>();
+          const record = { done, failed: false };
+          saves.add(record); legacySaves.set(session.id, saves);
+          void done.then(() => {
+            saves.delete(record);
+            if (!saves.size && legacySaves.get(session.id) === saves) legacySaves.delete(session.id);
+          }, () => { record.failed = true; });
         }
+        return done;
       },
       
       recoverPendingMessages: async () => {
@@ -1393,6 +1655,9 @@ export const useArcStore = create<ArcState>()(
               resources: existingSession?.resources,
               personaId: existingSession?.personaId,
               folderId: existingSession?.folderId,
+              persistenceVersion: existingSession?.persistenceVersion,
+              persistenceOwnerId: existingSession?.persistenceOwnerId,
+              revision: existingSession?.revision,
               isLocalOnly: existingSession?.isLocalOnly,
               // Preserve hydration so local-only sessions don't get wiped by a
               // cloud fetch on next load (the cloud row never exists for them).
@@ -1514,7 +1779,7 @@ export const useArcStore = create<ArcState>()(
               );
               
               // Save to Supabase async
-              get().saveChatToSupabase(sessionToSave);
+              void get().saveChatToSupabase(sessionToSave).catch(() => { /* Exposed in sessionSaveErrors. */ });
             }
           }
           
@@ -1596,7 +1861,7 @@ export const useArcStore = create<ArcState>()(
 
         // Fire-and-forget save to Supabase (don't block UI)
         if (sessionToSave) {
-          get().saveChatToSupabase(sessionToSave).catch(error => {
+          get().saveChatToSupabase(sessionToSave, undefined, state.chatSessions.find(cs => cs.id === sessionId)).catch(error => {
             console.error('❌ Failed to save canvas message to Supabase:', error);
           });
         }
@@ -1669,7 +1934,7 @@ export const useArcStore = create<ArcState>()(
 
         // Fire-and-forget save to Supabase (don't block UI)
         if (sessionToSave) {
-          get().saveChatToSupabase(sessionToSave).catch(error => {
+          get().saveChatToSupabase(sessionToSave, undefined, state.chatSessions.find(cs => cs.id === sessionId)).catch(error => {
             console.error('❌ Failed to save code message to Supabase:', error);
           });
         }
@@ -1711,7 +1976,7 @@ export const useArcStore = create<ArcState>()(
           
           // Save to Supabase if we have a session
           if (sessionToSave) {
-            get().saveChatToSupabase(sessionToSave);
+            void get().saveChatToSupabase(sessionToSave).catch(() => { /* Exposed in sessionSaveErrors. */ });
           }
           
           return {
@@ -1753,7 +2018,7 @@ export const useArcStore = create<ArcState>()(
           
           // Save to Supabase if we have a session
           if (sessionToSave) {
-            get().saveChatToSupabase(sessionToSave);
+            void get().saveChatToSupabase(sessionToSave).catch(() => { /* Exposed in sessionSaveErrors. */ });
           }
           
           return {

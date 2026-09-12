@@ -12,7 +12,13 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { MessageBubble } from "@/components/MessageBubble";
-import { ChatInput, cancelCurrentRequest, inferPromptMode, type ChatInputRef } from "@/components/ChatInput";
+import { ChatInput, cancelCurrentRequest, inferPromptMode, type ChatInputRef, type CloudTextSubmitIntent } from "@/components/ChatInput";
+import { CloudRunList } from "@/components/CloudRunList";
+import { useCloudRuns } from "@/hooks/useCloudRuns";
+import { reconcileCloudAppRun } from '@/services/cloudAppProjectClient';
+import { captureCloudWorkspaceContext, type CloudRunMode, type CloudRunSubmission, type CloudTextRequest } from "@/services/cloudRuns";
+import { resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
+import { getQueryComplexity } from "@/services/ai";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
@@ -318,6 +324,69 @@ export function MobileChatApp() {
   const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false);
   const { profile } = useProfile();
   const { user, isAnonymous } = useAuth();
+  // Ordinary authenticated chat is durable. Arc Cloud is the Boost-only
+  // control plane for automatic tool execution; free users still get the
+  // server-side Ask path so closing the app never cancels a response.
+  const { hasBoost, isAdmin, openCheckout } = useSubscription();
+  const cloudTextEnabled = import.meta.env.VITE_CLOUD_RUNS_ENABLED === 'true'
+    && import.meta.env.VITE_CLOUD_SESSION_OPERATIONS_ENABLED === 'true' && !!user && !isAnonymous;
+  const [cloudModeChoice, setCloudModeChoice] = useState<{ ownerId: string; mode: CloudRunMode } | null>(null);
+  const arcCloudAvailable = cloudTextEnabled && (hasBoost || isAdmin);
+  // Auto is an explicit Arc Cloud choice by this owner, never inherited after
+  // an account switch. Free users always stay on durable Ask mode.
+  const cloudExecutionMode = cloudModeChoice && cloudModeChoice.ownerId === user?.id ? cloudModeChoice.mode : 'ask';
+  useEffect(() => {
+    if (!arcCloudAvailable && cloudModeChoice) setCloudModeChoice(null);
+  }, [arcCloudAvailable, cloudModeChoice]);
+  const cloudRuns = useCloudRuns({
+    enabled: cloudTextEnabled, ownerId: user?.id ?? null, sessionId: currentSessionId,
+    onTerminal: async (entry, context) => {
+      try {
+        context.signal.throwIfAborted();
+        if (entry.run?.status === 'completed' && entry.run.projectId) {
+          const project = await reconcileCloudAppRun(context.ownerId, entry.run, context.signal);
+          context.signal.throwIfAborted();
+          if (project?.status !== 'reloaded') throw new Error('App changed during reload. Reconnect to load the finished project.');
+        }
+        const store = useArcStore.getState();
+        const saved = await store.flushCloudSession(context.sessionId);
+        context.signal.throwIfAborted();
+        if (saved.status !== 'complete') throw new Error('Pending edits need syncing before the cloud reply can be loaded.');
+        const result = await store.reloadCloudSession(context.sessionId, 0, context.signal);
+        if (result.status !== 'reloaded') throw new Error('Chat changed during reload. Reconnect to load the finished reply.');
+      } finally {
+        // A terminal run must release the shared composer lock even if reload
+        // needs user attention, so later sends are not trapped in the browser queue.
+        useArcStore.getState().setLoading(false);
+      }
+    },
+  });
+  const submitCloudText = async (intent: CloudTextSubmitIntent) => {
+    // Capture before prepareCloudSession awaits: editor/session switches must
+    // not change the workspace or history of this accepted text intent.
+    const captured = structuredClone(intent);
+    const workspaceContext = captured.workspaceContext === undefined ? undefined
+      : captureCloudWorkspaceContext(captured.workspaceContext);
+    if (!cloudRuns.ready) throw new Error('Cloud connection is starting. Your message is retained; check the connection before retrying.');
+    const mode = cloudExecutionMode;
+    const store = useArcStore.getState();
+    const prepared = await store.prepareCloudSession(captured.sessionId);
+    const message = useArcStore.getState().chatSessions.find(s => s.id === captured.sessionId)
+      ?.messages.find(m => m.id === captured.userMessageId);
+    if (!message || message.role !== 'user' || message.type !== 'text' || message.content !== captured.userContent) {
+      throw new Error('The submitted message changed. Review it before sending.');
+    }
+    const userMessage = JSON.parse(JSON.stringify(message)) as CloudRunSubmission['userMessage'];
+    const entry = cloudRuns.prepare({
+      sessionId: captured.sessionId, mode, expectedRevision: prepared.revision, userMessage,
+      request: { messages: captured.messages, forceWebSearch: captured.forceWebSearch,
+        forceCanvas: captured.forceCanvas, forceCode: captured.forceCode,
+        ...(workspaceContext ? {workspace_context: workspaceContext} : {}),
+        reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, getQueryComplexity(message.content)),
+        clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone } satisfies CloudTextRequest,
+    });
+    await cloudRuns.submit(entry.id);
+  };
   const requireAuth = useRequireAuth();
   const isMobile = useIsMobile();
   const isAdminBannerActive = useAdminBanner();
@@ -342,9 +411,6 @@ export function MobileChatApp() {
   // App Builder (IDE) workspace state
   const isIDEOpen = useIDEStore((s) => s.isOpen);
   const closeIDE = useIDEStore((s) => s.closeIDE);
-
-  // Subscription state for Boost gating & CTAs
-  const { hasBoost, isAdmin, openCheckout } = useSubscription();
 
   // Pre-generate prompts in background for instant access
   usePromptPreload();
@@ -973,6 +1039,15 @@ export function MobileChatApp() {
                 </Button>
               </motion.div>
               <ChatModelPicker placement="down" compact={isDesktopCanvasMode} />
+              {arcCloudAvailable && !isVoiceActive && <label className="text-xs text-muted-foreground">
+                <span className="sr-only">Arc Cloud execution mode</span>
+                <select aria-label="Agent execution mode" value={cloudExecutionMode}
+                  onChange={event => { if (user) setCloudModeChoice({ ownerId: user.id, mode: event.target.value === 'auto' ? 'auto' : 'ask' }); }}
+                  className="rounded-full border border-border bg-background px-2 py-1 text-foreground">
+                  <option value="ask">Arc Cloud: Ask</option>
+                  <option value="auto">Arc Cloud: Auto</option>
+                </select>
+              </label>}
             </div>
 
             {/* Right Header Buttons */}
@@ -1206,7 +1281,8 @@ export function MobileChatApp() {
                   </div>
                   <ArcInputEffects active={isArcWorking} theme={effectTheme}>
                     <div className="glass-dock" data-arc-working={isArcWorking}>
-                      <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false} />
+                      <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
+                        onCloudTextSubmit={cloudTextEnabled ? submitCloudText : undefined} />
                     </div>
                   </ArcInputEffects>
                 </motion.div>
@@ -1289,6 +1365,7 @@ export function MobileChatApp() {
                       );
                     })}
                   </AnimatePresence>
+                  {!isVoiceActive && <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} />}
                   {/* Show thinking indicator when loading */}
                   <AnimatePresence>
                     {isLoading &&
@@ -1425,7 +1502,8 @@ export function MobileChatApp() {
                     data-has-images={hasSelectedImages}
                     data-arc-working={isArcWorking}
                   >
-                    <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false} />
+                    <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
+                      onCloudTextSubmit={cloudTextEnabled ? submitCloudText : undefined} />
                   </div>
                 </ArcInputEffects>
               </motion.div>

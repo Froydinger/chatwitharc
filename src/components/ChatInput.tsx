@@ -25,8 +25,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Textarea } from "@/components/ui/textarea";
-import { useArcStore } from "@/store/useArcStore";
+import { useArcStore, type Message } from "@/store/useArcStore";
 import { useIDEStore } from "@/store/useIDEStore";
+import { captureCloudWorkspaceContext, type CloudWorkspaceContext } from "@/services/cloudRuns";
 import { predictActivity } from "@/lib/activityPrediction";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useToast } from "@/hooks/use-toast";
@@ -563,7 +564,22 @@ type Props = {
   onImagesChange?: (hasImages: boolean) => void;
   rightPanelOpen?: boolean;
   inline?: boolean;
+  /** Text-only durable submission. Parent owns observation across composer mounts.
+   * Omitted until the cloud rollout is enabled; never used by voice delegation. */
+  onCloudTextSubmit?: (submission: CloudTextSubmitIntent) => Promise<void>;
 };
+
+export interface CloudTextSubmitIntent {
+  sessionId: string;
+  userMessageId: string;
+  userContent: string;
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  workspaceContext?: CloudWorkspaceContext;
+  forceWebSearch: boolean;
+  forceCanvas: boolean;
+  forceCode: boolean;
+  modelOverride?: string;
+}
 
 export interface ChatInputRef {
   handleImageUploadFiles: (files: File[]) => void;
@@ -574,7 +590,7 @@ export interface ChatInputRef {
 }
 
 export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
-  { onImagesChange, rightPanelOpen = false, inline = false },
+  { onImagesChange, rightPanelOpen = false, inline = false, onCloudTextSubmit },
   ref,
 ) {
   const portalRoot = useSafePortalRoot();
@@ -1466,6 +1482,27 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     await runVideoGeneration(prompt, prompt, sourceUrl);
   };
 
+  // Only bypass the browser queue for ordinary cloud text. Specialized image,
+  // app and on-device paths still own their existing busy-state behavior.
+  const canSubmitCloudTextWhileBusy = (text: string) => {
+    if (!onCloudTextSubmit || !user || isAnonymous || isGuestMode
+      || isLocalChatPreview() || useCorporateModeStore.getState().enabled
+      || selectedImages.length || selectedDocuments.length || !text.trim()) return false;
+    if (shouldShowBanana || shouldShowBuildMode || checkForImageRequest(text)
+      || checkForBuildRequest(text) || (canGenerateVideo && checkForVideoRequest(text))) return false;
+    const explicitMode = text.trim().startsWith('/') || shouldShowCanvasMode
+      || shouldShowCodeMode || shouldShowSearchMode;
+    if (!explicitMode && ['generate', 'ask'].includes(analyzeImageRequestIntent(text))) return false;
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.role === 'assistant' && lastMessage.type === 'image'
+      && (isImageEditRequest(text) || (canGenerateVideo && isAnimateImageRequest(text)))) return false;
+    return routeRequest({
+      forceWebSearch: shouldShowSearchMode || checkForSearchRequest(text) || shouldForceVideoSearch(text),
+      forceCanvas: shouldShowCanvasMode || checkForCanvasRequest(text),
+      forceCode: shouldShowCodeMode || checkForCodingRequest(text),
+    }) !== 'local';
+  };
+
   const handleSend = async (messageOverride?: string) => {
     const messageToSend = messageOverride ?? inputValue;
     if (!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) return;
@@ -1519,7 +1556,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     // Check both React state AND direct store state to avoid stale closure races
     const storeIsLoading = useArcStore.getState().isLoading;
     const storeIsGenerating = useArcStore.getState().isGeneratingImage;
-    if (isLoading || storeIsLoading || storeIsGenerating) {
+    if ((isLoading || storeIsLoading || storeIsGenerating) && !canSubmitCloudTextWhileBusy(messageToSend)) {
       if (messageToSend.trim()) {
         useMessageQueueStore.getState().addToQueue(messageToSend.trim());
         if (!messageOverride) setInputValue("");
@@ -2272,6 +2309,52 @@ ${safeCode}
           shouldSearchForVideo,
         });
 
+        const durableRoute = shouldUseCodeContext ? 'cloud-chat' : routeRequest({
+          forceWebSearch: wasSearchMode || shouldSearchForVideo,
+          forceCanvas: shouldForceCanvas,
+          forceCode: shouldForceCode,
+          hasImageAttachment: false,
+          isImageGenerationRequest: false,
+        });
+        if (onCloudTextSubmit && !isGuestMode && !corporateMode && durableRoute !== 'local') {
+          // Capture the answered session and user identity, not whatever session
+          // is selected when the worker finishes. Never append a second assistant
+          // here: the server saves the stable reply and the parent reloads it.
+          try {
+            // Durable text only: capture the actual current editor, including a
+            // deliberately cleared live draft. The legacy augmented prose above
+            // remains unchanged and is not used as cloud execution context.
+            const workspaceKind = shouldUseCodeContext || (isCodingRequest && freshestCanvasContent)
+              ? 'code' : shouldRouteToCanvas && freshCanvasState.isOpen ? 'canvas' : undefined;
+            const currentWorkspaceContent = typeof window !== 'undefined'
+              && typeof (window as any).__arcaiLiveCanvasContent === 'string'
+              ? (window as any).__arcaiLiveCanvasContent : freshCanvasState.content;
+            const workspaceContext = workspaceKind ? captureCloudWorkspaceContext({
+              kind: workspaceKind, content: currentWorkspaceContent,
+              ...(workspaceKind === 'code' ? {language: freshCanvasState.codeLanguage || 'html'} : {}),
+            }) : undefined;
+            await onCloudTextSubmit({
+              sessionId: requestSessionId,
+              userMessageId,
+              userContent: finalMessage,
+              messages: [...aiMessages.slice(0, -1).filter((m): m is { role: 'user' | 'assistant'; content: string } =>
+                m.role === 'user' || m.role === 'assistant'), {role: 'user', content: finalMessage}],
+              ...(workspaceContext ? {workspaceContext} : {}),
+              forceWebSearch: wasSearchMode || shouldSearchForVideo,
+              forceCanvas: shouldForceCanvas,
+              forceCode: shouldForceCode,
+              modelOverride: codeContextModelOverride,
+            });
+          } catch (error) {
+            // An acknowledgement may be lost after acceptance. Do not fall back
+            // to /chat or manufacture an assistant failure message in that case.
+            setLoading(false);
+            toast({ title: 'Cloud request needs a check', description: error instanceof Error
+              ? error.message : 'Reconnect to check this request before sending it again.', variant: 'destructive' });
+          }
+          return;
+        }
+
         // For canvas/code: use streaming with auto-continuation
         // For regular text chat: use non-streaming (handles web search properly)
         if (shouldForceCode || shouldForceCanvas) {
@@ -2862,7 +2945,7 @@ ${safeCode}
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (e.ctrlKey || e.metaKey) {
+      if ((e.ctrlKey || e.metaKey) && !canSubmitCloudTextWhileBusy(inputValue)) {
         // Ctrl/Cmd+Enter = always explicitly add to queue
         if (inputValue.trim()) {
           useMessageQueueStore.getState().addToQueue(inputValue.trim());

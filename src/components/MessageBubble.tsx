@@ -572,7 +572,13 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 )}
 
               {/* File Attachment */}
-              {message.type === "file" && message.fileUrl && (
+              {message.generatedFiles?.map(file => (
+                <div key={file.id} className="mb-2 relative z-10">
+                  <FileAttachment fileName={file.fileName} fileUrl={file.fileUrl}
+                    fileType={file.fileType} fileSize={file.fileSize} className="max-w-md" />
+                </div>
+              ))}
+              {!message.generatedFiles?.length && message.type === "file" && message.fileUrl && (
                 <motion.div
                   key="card-file"
                   initial={{ opacity: 0 }}

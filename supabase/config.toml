@@ -1,6 +1,18 @@
 project_id = "jpqtoixhjnfdubvqshwk"
 
 [functions]
+  [functions.cloud-run]
+    # Handler verifies the current user with auth.getUser on every request.
+    # Deployment alone does not enable it: CLOUD_RUNS_ENABLED must be true.
+    verify_jwt = false
+  [functions.cloud-worker]
+    # Scheduler uses a dedicated secret, not a browser JWT. The handler checks
+    # CLOUD_WORKER_SECRET and stays disabled unless CLOUD_WORKER_ENABLED=true.
+    verify_jwt = false
+  [functions.cloud-scheduled-worker]
+    # Dedicated scheduler bearer secret checked inside the handler. Default-off
+    # cutover gates in cloudScheduledRuntime.ts; no cron is installed here.
+    verify_jwt = false
   [functions.auth-email-hook]
     verify_jwt = false
   [functions.process-email-queue]

@@ -31,6 +31,12 @@ import { deployToNetlify, unpublishFromNetlify } from '@/lib/deploy';
 import { supabase } from '@/integrations/supabase/client';
 import type { VirtualFileSystem, AgentAction } from '@/types/ide';
 import { DEFAULT_FILES } from '@/types/ide';
+import { cloudAppProjectClient, CLOUD_APP_PROJECT_RELOADED } from '@/services/cloudAppProjectClient';
+import { normalizeAppProjectSnapshot, type CloudAppProjectPersistence } from '@/services/cloudAppProjects';
+import { createCloudAppRuns } from '@/services/cloudAppRunClient';
+import type { CloudAppRuns, CloudAppRunView } from '@/services/cloudAppRuns';
+
+const durableAppsEnabled = import.meta.env.VITE_CLOUD_APP_RUNS_ENABLED === 'true';
 
 interface ChatMessage {
   id: string;
@@ -164,6 +170,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
     return storeMsgs?.length ? (storeMsgs as ChatMessage[]) : [];
   });
   const setMessages: typeof setMessagesRaw = useCallback((update) => {
+    localEditEpochRef.current++;
     setMessagesRaw(prev => {
       const next = typeof update === 'function' ? update(prev) : update;
       useIDEStore.getState().setIdeMessages(next);
@@ -204,6 +211,62 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
   const lastHydratedProjectIdRef = useRef<string | symbol | null>(Symbol());
   const lastSavedSnapshotRef = useRef(buildPersistenceSnapshot(files, messages));
   const didAutoRunInitialPromptRef = useRef(false);
+  const projectScopeRef = useRef(new AbortController());
+  const protectedProjectRef = useRef<{ id: string; owner: string; client: CloudAppProjectPersistence } | null>(null);
+  const [projectSaveError, setProjectSaveError] = useState<string | null>(null);
+  const [projectReloadVersion, setProjectReloadVersion] = useState(0);
+  const localEditEpochRef = useRef(0);
+  const appRunsRef = useRef<CloudAppRuns | null>(null);
+  const [cloudRunView, setCloudRunView] = useState<CloudAppRunView>({ busy: false });
+  const [cloudRunMode, setCloudRunMode] = useState<'ask' | 'auto'>('ask');
+  const [cloudReady, setCloudReady] = useState(false);
+  const [projectLoaded, setProjectLoaded] = useState(false);
+  const cloudActive = cloudRunView.busy || !!(cloudRunView.entry && !['completed', 'failed', 'cancelled'].includes(cloudRunView.entry.run?.status ?? 'unknown'));
+
+  useEffect(() => {
+    setCloudReady(false);
+    setCloudRunView({ busy: false });
+    if (!durableAppsEnabled || !ideProjectId) return;
+    let alive = true;
+    let coordinator: CloudAppRuns | undefined;
+    let owner: string | undefined;
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (owner && session?.user.id !== owner) {
+        coordinator?.close(); appRunsRef.current = null;
+        if (alive) { setCloudReady(false); setCloudRunView({ busy: false, error: 'Sign in again to reconnect this app.' }); }
+      }
+    });
+    void (async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!alive) return;
+      if (error || !user) throw new Error('Sign in to use cloud builds.');
+      owner = user.id;
+      coordinator = createCloudAppRuns(owner, ideProjectId, durableAppsEnabled, view => { if (alive) setCloudRunView(view); });
+      appRunsRef.current = coordinator;
+      await coordinator.restore();
+      if (alive) setCloudReady(true);
+    })().catch(error => { if (alive) setCloudRunView({ busy: false, error: error instanceof Error ? error.message : 'App discovery failed.' }); });
+    return () => { alive = false; authListener.subscription.unsubscribe(); coordinator?.close(); appRunsRef.current = null; };
+  }, [ideProjectId]);
+
+  useEffect(() => {
+    const onReload = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      const active = protectedProjectRef.current;
+      if (detail?.projectId !== projectIdRef.current || (active && detail?.ownerId !== active.owner)) return;
+      // Preserve edits made since the last render before initiating authoritative hydration.
+      try {
+        if (active && lastSavedSnapshotRef.current !== buildPersistenceSnapshot(filesRef.current, messagesRef.current, active.id)) {
+          active.client.capture({ files: filesRef.current, messages: messagesRef.current });
+        }
+        setProjectReloadVersion(value => value + 1);
+      } catch (error) {
+        setProjectSaveError(error instanceof Error ? error.message : 'Local edits could not be journaled.');
+      }
+    };
+    window.addEventListener(CLOUD_APP_PROJECT_RELOADED, onReload);
+    return () => window.removeEventListener(CLOUD_APP_PROJECT_RELOADED, onReload);
+  }, []);
 
   // Keep refs in sync and update store
   useEffect(() => {
@@ -344,19 +407,46 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
 
   // Load Netlify configuration on project load
   useEffect(() => {
-    if (!ideProjectId) return;
-
-    supabase
+    projectScopeRef.current.abort();
+    const scope = new AbortController();
+    projectScopeRef.current = scope;
+    protectedProjectRef.current = null;
+    setProjectLoaded(false);
+    if (!ideProjectId) return () => scope.abort();
+    isProjectHydratedRef.current = false;
+    const epoch = localEditEpochRef.current;
+    void (async () => {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      scope.signal.throwIfAborted();
+      if (authError || !user) throw new Error('Sign in to load this app.');
+      const { data: row, error } = await supabase
       .from('ide_projects')
-      .select('title, files, favicon_label, netlify_url, netlify_site_id, netlify_subdomain, messages, versions')
+      .select('*')
       .eq('id', ideProjectId)
-      .single()
-      .then(({ data }) => {
-        if (!data) return;
+      .eq('user_id', user.id)
+      .maybeSingle();
+      scope.signal.throwIfAborted();
+      if (error) throw error;
+      if (!row) { isProjectHydratedRef.current = true; setProjectLoaded(true); return; } // New unsaved UUID project.
+      let data: any = row;
+      let pending = false;
+      if ((data.cloud_managed || durableAppsEnabled) && Number.isSafeInteger(data.cloud_revision)) {
+        const client = cloudAppProjectClient(user.id, ideProjectId, data.cloud_revision);
+        const result = await client.reload(scope.signal);
+        if (result.status === 'stale') throw new Error('App reload is older than saved edits.');
+        pending = result.status === 'pending';
+        data = result.status === 'reloaded' ? result.project : { ...data, ...result.snapshot };
+        protectedProjectRef.current = { id: ideProjectId, owner: user.id, client };
+      }
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      scope.signal.throwIfAborted();
+      if (currentUser?.id !== user.id || projectIdRef.current !== ideProjectId) return;
+      if (localEditEpochRef.current !== epoch && !pending) throw new Error('Local edits changed during app reload; save them before reloading.');
 
+        setProjectLoaded(true);
         // Always hydrate files from database when loading a saved project
-        if ((data as any).files && Object.keys((data as any).files).length > 0) {
-          const loadedFiles = ensureSystemFiles((data as any).files);
+        if (data.files && typeof data.files === 'object') {
+          const loadedFiles = data.cloud_managed ? data.files : ensureSystemFiles(data.files);
           setFiles(loadedFiles);
           filesRef.current = loadedFiles;
           useIDEStore.getState().setIdeFiles(loadedFiles);
@@ -399,8 +489,8 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
           window.dispatchEvent(new CustomEvent('netlify-db-change', { detail: { appId: ideProjectId } }));
         }
 
-        const dbMessages = (data as any).messages;
-        if (Array.isArray(dbMessages) && dbMessages.length > 0) {
+        const dbMessages = normalizeAppProjectSnapshot({ files: data.files, messages: data.messages ?? [] }).messages;
+        if (Array.isArray(dbMessages)) {
           setMessagesRaw(dbMessages as ChatMessage[]);
           useIDEStore.getState().setIdeMessages(dbMessages as ChatMessage[]);
           messagesRef.current = dbMessages as ChatMessage[];
@@ -408,12 +498,21 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
 
         isProjectHydratedRef.current = true;
         lastSavedSnapshotRef.current = buildPersistenceSnapshot(
-          (data as any).files ? ensureSystemFiles((data as any).files) : filesRef.current,
-          Array.isArray(dbMessages) && dbMessages.length > 0 ? (dbMessages as ChatMessage[]) : messagesRef.current,
+          data.cloud_managed ? data.files : ensureSystemFiles(data.files),
+          dbMessages as ChatMessage[],
           ideProjectId
         );
-      });
-  }, [ideProjectId]);
+        if (pending) {
+          setSyncStatus('error');
+          setProjectSaveError('Pending app edits restored. Save to retry; conflicts require reconciliation.');
+        } else { setSyncStatus('saved'); setProjectSaveError(null); }
+    })().catch(error => {
+      if (scope.signal.aborted) return;
+      setSyncStatus('error');
+      setProjectSaveError(error instanceof Error ? error.message : 'App reload failed.');
+    });
+    return () => scope.abort();
+  }, [ideProjectId, projectReloadVersion]);
 
   // Keep browser URL in sync with active project ID (/build/:projectId)
   useEffect(() => {
@@ -434,6 +533,16 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
 
     if (currentSnapshot !== lastSavedSnapshotRef.current) {
       setSyncStatus('unsaved');
+      const protectedProject = protectedProjectRef.current;
+      if (protectedProject?.id === ideProjectId) {
+        try {
+          protectedProject.client.capture({ files, messages });
+        } catch (error) {
+          setSyncStatus('error');
+          setProjectSaveError(error instanceof Error ? error.message : 'App edits could not be stored locally.');
+          return;
+        }
+      }
 
       if (autoSaveTimerRef.current) {
         clearTimeout(autoSaveTimerRef.current);
@@ -451,12 +560,19 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
 
   // Save changes to Supabase
   const saveProject = useCallback(async () => {
+    const scope = projectScopeRef.current;
+    const capturedProjectId = projectIdRef.current;
+    const filesToPersist = structuredClone(filesRef.current);
+    const messagesToPersist = structuredClone(messagesRef.current);
     try {
+      // Capture before any await: a later edit must never be followed by this older snapshot.
+      if (protectedProjectRef.current?.id === capturedProjectId) {
+        protectedProjectRef.current.client.capture({ files: filesToPersist, messages: messagesToPersist });
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
-
-      const filesToPersist = filesRef.current;
-      const messagesToPersist = messagesRef.current;
+      scope.signal.throwIfAborted();
+      if (projectIdRef.current !== capturedProjectId) return;
 
       setSyncStatus('saving');
 
@@ -464,7 +580,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
       const projectTitle = firstPrompt ? firstPrompt.slice(0, 100) : 'Untitled Project';
 
       // Ensure valid UUID for ide_projects
-      let pid = projectIdRef.current;
+      let pid = capturedProjectId;
       const isValidUUID = pid && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid);
       if (!isValidUUID) {
         pid = crypto.randomUUID();
@@ -539,13 +655,16 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
         }
       } catch {}
 
-      const { data: existingData } = await supabase
+      const { data: existingData, error: existingError } = await supabase
         .from('ide_projects')
-        .select('versions')
+        .select('*')
         .eq('id', pid)
+        .eq('user_id', session.user.id)
         .maybeSingle();
 
-      const existingVersions = (existingData?.versions && typeof existingData.versions === 'object' && !Array.isArray(existingData.versions))
+      if (existingError) throw existingError;
+
+      const existingVersions: Record<string, any> = (existingData?.versions && typeof existingData.versions === 'object' && !Array.isArray(existingData.versions))
         ? existingData.versions
         : {};
 
@@ -570,9 +689,23 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
         }
       }
 
-      const { data, error } = await supabase
-        .from('ide_projects')
-        .upsert({
+      scope.signal.throwIfAborted();
+      const activeProject = protectedProjectRef.current;
+      const isProtected = (existingData as any)?.cloud_managed ||
+        (durableAppsEnabled && activeProject?.id === pid);
+      let savedResult: { data: { id: string } | null; error: unknown };
+      if (isProtected) {
+        if (!activeProject || activeProject.id !== pid || activeProject.owner !== session.user.id) {
+          throw new Error('This app is protected. Reload it before saving local changes.');
+        }
+        const saved = await activeProject.client.flush();
+        if (saved.status !== 'saved') throw new Error(`App save ${saved.status}; pending edits retained. Do not overwrite newer server files.`);
+        scope.signal.throwIfAborted();
+        savedResult = await supabase.from('ide_projects').update({
+          title: projectTitle, prompt: firstPrompt, versions: nextVersions as any,
+        }).eq('id', pid).eq('user_id', session.user.id).select('id').single();
+      } else {
+        const payload = {
           id: pid,
           user_id: session.user.id,
           title: projectTitle,
@@ -581,11 +714,21 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
           messages: messagesToPersist as any,
           versions: nextVersions as any,
           updated_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
+        };
+        // Creation never replaces an independently created row on a UUID collision.
+        const query = existingData
+          ? supabase.from('ide_projects').update(payload).eq('id', pid).eq('user_id', session.user.id)
+          : supabase.from('ide_projects').insert(payload);
+        savedResult = await query.select('id').single();
+      }
+      const { data, error } = savedResult;
 
       if (error) throw error;
+      scope.signal.throwIfAborted();
+      if (projectIdRef.current !== pid) return;
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      scope.signal.throwIfAborted();
+      if (currentUser?.id !== session.user.id) throw new Error('App owner changed while saving.');
 
       if (data?.id) {
         projectIdRef.current = data.id;
@@ -593,11 +736,15 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
         useIDEStore.getState().setIdeProjectId(data.id);
       }
 
-      lastSavedSnapshotRef.current = buildPersistenceSnapshot(filesToPersist, messagesToPersist, pid);
-      setSyncStatus('saved');
+      const acknowledged = isProtected ? activeProject?.client.snapshot().saved : null;
+      lastSavedSnapshotRef.current = buildPersistenceSnapshot(acknowledged?.files ?? filesToPersist, acknowledged?.messages ?? messagesToPersist, pid);
+      setSyncStatus(lastSavedSnapshotRef.current === buildPersistenceSnapshot(filesRef.current, messagesRef.current, pid) ? 'saved' : 'unsaved');
+      setProjectSaveError(null);
     } catch (err) {
+      if (scope.signal.aborted) return;
       console.error('Failed to save project:', err);
       setSyncStatus('error');
+      setProjectSaveError(err instanceof Error ? err.message : 'App save failed; local edits retained.');
     }
   }, [setIdeProjectId]);
 
@@ -728,8 +875,8 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
     const healed = ensureSystemFiles(p.files || DEFAULT_FILES);
     setFiles(healed);
     setMessagesRaw(p.messages || []);
-    setIdeFiles(healed);
-    setIdeMessages(p.messages || []);
+    useIDEStore.getState().setIdeFiles(healed);
+    useIDEStore.getState().setIdeMessages(p.messages || []);
     setIdeProjectId(p.id);
     projectIdRef.current = p.id;
     setDeployedUrl(p.netlify_url || null);
@@ -775,8 +922,8 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
     const freshAppId = crypto.randomUUID();
     setFiles(DEFAULT_FILES);
     setMessagesRaw([]);
-    setIdeFiles(DEFAULT_FILES);
-    setIdeMessages([]);
+    useIDEStore.getState().setIdeFiles(DEFAULT_FILES);
+    useIDEStore.getState().setIdeMessages([]);
     setIdeProjectId(freshAppId);
     projectIdRef.current = freshAppId;
     setDeployedUrl(null);
@@ -786,6 +933,11 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
 
     const initialPrompt = newProjectPrompt.trim();
     setNewProjectPrompt('');
+    if (durableAppsEnabled) {
+      didAutoRunInitialPromptRef.current = false;
+      useIDEStore.getState().reopenIDECanvas(freshAppId, DEFAULT_FILES, [], initialPrompt);
+      return;
+    }
     
     setTimeout(() => {
       handleChatSend(initialPrompt);
@@ -917,6 +1069,24 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
   }, [hasBoost, isAdmin, subscriptionLoading, openCheckout, saveProject, setIdeActions, setIdeIsRunning, setMessages, toast]);
 
   const handleChatSend = useCallback((message: string, images?: string[]) => {
+    if (durableAppsEnabled) {
+      if (!cloudReady || !isProjectHydratedRef.current || !appRunsRef.current) {
+        setProjectSaveError('Wait for this saved app to finish loading before building.'); return false;
+      }
+      if (images?.length) { setProjectSaveError('Cloud app builds currently accept text only. Your images were not sent.'); return false; }
+      // No local user/assistant transcript append: submit atomically saves the user turn.
+      const scope = projectScopeRef.current;
+      return appRunsRef.current.start(message, cloudRunMode, { files: filesRef.current, messages: messagesRef.current })
+        .then(() => true)
+        .catch(error => {
+          if (!scope.signal.aborted) setProjectSaveError(error instanceof Error ? error.message : 'Cloud app submission failed.');
+          return false;
+        });
+    }
+    if (protectedProjectRef.current) {
+      setProjectSaveError('Cloud builds are disabled. The legacy builder cannot modify a protected app.');
+      return false;
+    }
     autoFixedRef.current = false;
     const userMsg: ChatMessage = { id: crypto.randomUUID(), role: 'user', content: message, images, timestamp: Date.now() };
     const assistantId = crypto.randomUUID();
@@ -924,18 +1094,19 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
     setMessages(prev => [...prev, userMsg, { id: assistantId, role: 'assistant', content: '', timestamp: Date.now() }]);
     setGeneratingId(assistantId);
     runAgent(message, messagesRef.current, assistantId, images);
-  }, [runAgent, setMessages]);
+  }, [runAgent, setMessages, cloudReady, cloudRunMode]);
 
   // Auto-run initial prompt on mount once subscription verification completes
   useEffect(() => {
     if (subscriptionLoading) return;
+    if (durableAppsEnabled && (!cloudReady || !projectLoaded)) return;
     if (idePrompt && ideAutoRunPrompt && !didAutoRunInitialPromptRef.current) {
       didAutoRunInitialPromptRef.current = true;
       const promptToRun = idePrompt;
       clearIdePrompt();
       handleChatSend(promptToRun);
     }
-  }, [idePrompt, ideAutoRunPrompt, subscriptionLoading, handleChatSend, clearIdePrompt]);
+  }, [idePrompt, ideAutoRunPrompt, subscriptionLoading, handleChatSend, clearIdePrompt, cloudReady, projectLoaded]);
 
   // Track compilation/runtime errors in preview without triggering recursive loops
   const handlePreviewError = useCallback((error: string) => {
@@ -943,14 +1114,17 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
   }, []);
 
   const handleFileChange = (path: string, content: string) => {
+    localEditEpochRef.current++;
     setFiles(prev => ({ ...prev, [path]: { ...prev[path], content } }));
   };
 
   const handleAddFile = (path: string) => {
+    localEditEpochRef.current++;
     setFiles(prev => ({ ...prev, [path]: { content: '', language: 'typescript' } }));
   };
 
   const handleDeleteFile = (path: string) => {
+    localEditEpochRef.current++;
     setFiles(prev => {
       const next = { ...prev };
       delete next[path];
@@ -1125,6 +1299,42 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
       className={cn("dark arc-ide-workspace h-[100dvh] max-h-[100dvh] w-screen max-w-full flex flex-col bg-[#08090c] text-foreground select-none overflow-hidden", className)}
       style={{ colorScheme: 'dark' }}
     >
+      {projectSaveError && (
+        <div role="alert" className="shrink-0 flex items-center gap-3 px-4 py-2 text-sm bg-amber-950 text-amber-100">
+          <span className="flex-1">{projectSaveError}</span>
+          <button onClick={() => void saveProject()} className="underline">Retry save</button>
+          <button onClick={() => setProjectReloadVersion(value => value + 1)} className="underline">Reload safely</button>
+        </div>
+      )}
+      {durableAppsEnabled && (
+        <section aria-label="Cloud app build" className="shrink-0 border-b border-white/10 px-4 py-2 text-xs space-y-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <label>Build mode <select aria-label="App build mode" value={cloudRunMode} disabled={cloudActive}
+              onChange={event => setCloudRunMode(event.target.value as 'ask' | 'auto')} className="bg-background border rounded px-2 py-1 ml-1">
+              <option value="ask">Ask before file changes</option><option value="auto">Auto apply file changes</option>
+            </select></label>
+            <span role="status">{cloudRunView.entry?.run?.status ?? (cloudReady ? 'Ready' : 'Connecting…')}{cloudRunView.entry?.connection === 'uncertain' ? ' — submission uncertain; reconnect, do not resend' : ''}</span>
+            <button className="underline" onClick={() => {
+              const coordinator = appRunsRef.current;
+              void coordinator?.reconnect().then(() => { if (appRunsRef.current === coordinator) setCloudReady(true); })
+                .catch(error => { if (appRunsRef.current === coordinator) setProjectSaveError(String(error)); });
+            }}>Reconnect</button>
+            {cloudActive && <button className="underline" onClick={() => void appRunsRef.current?.cancel().catch(error => setProjectSaveError(String(error)))}>Cancel run</button>}
+            {cloudRunView.nextCursor && <button className="underline" onClick={() => void appRunsRef.current?.restore(cloudRunView.nextCursor!).catch(error => setProjectSaveError(String(error)))}>Find older builds</button>}
+            <span className="text-muted-foreground">Closing the IDE does not cancel a cloud build.</span>
+          </div>
+          {cloudRunView.error && <p role="alert">{cloudRunView.error}</p>}
+          {cloudRunView.entry?.run?.error != null && <p role="alert">{typeof cloudRunView.entry.run.error === 'string' ? cloudRunView.entry.run.error : JSON.stringify(cloudRunView.entry.run.error)}</p>}
+          {cloudRunView.entry?.run?.checkpoint?.pendingApproval && (
+            <div className="space-y-2">
+              <p>Review this exact change before approving:</p>
+              <pre className="max-h-36 overflow-auto whitespace-pre-wrap select-text">{cloudRunView.entry.run.checkpoint.pendingApproval.name}{'\n'}{cloudRunView.entry.run.checkpoint.pendingApproval.arguments}</pre>
+              <button disabled={cloudRunView.busy} className="underline mr-4" onClick={() => void appRunsRef.current?.decide('approve').catch(error => setProjectSaveError(String(error)))}>Approve change</button>
+              <button disabled={cloudRunView.busy} className="underline" onClick={() => void appRunsRef.current?.decide('deny').catch(error => setProjectSaveError(String(error)))}>Deny change</button>
+            </div>
+          )}
+        </section>
+      )}
       {/* Mac Traffic Light Spacer (Mac App & Web App) */}
       {reserveTrafficLightSpace && (
         <div
@@ -1434,7 +1644,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
               <IDEChatPanel
                 messages={messages}
                 liveActions={liveActions}
-                isLoading={isAgentRunning}
+                isLoading={isAgentRunning || cloudActive}
                 generatingId={generatingId}
                 onSend={handleChatSend}
                 onSelectFile={(path) => {
@@ -1547,7 +1757,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
               <IDEChatPanel
                 messages={messages}
                 liveActions={liveActions}
-                isLoading={isAgentRunning}
+                isLoading={isAgentRunning || cloudActive}
                 generatingId={generatingId}
                 onSend={handleChatSend}
                 onSelectFile={(path) => {
