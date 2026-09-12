@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, RefreshCcwDot, Scale, Brain, Check, ChevronDown, Crown } from 'lucide-react';
@@ -11,6 +11,10 @@ interface Props {
   compact?: boolean;
   /** Kept for backwards compatibility; the dropdown auto-anchors below the button. */
   placement?: 'up' | 'down';
+  showArcWork?: boolean;
+  arcWorkAvailable?: boolean;
+  arcMode?: 'ask' | 'auto';
+  onArcModeChange?: (mode: 'ask' | 'auto') => void;
 }
 
 const PRESETS = [
@@ -20,7 +24,14 @@ const PRESETS = [
   { effort: 'high', title: 'Deep', subtitle: 'More reasoning for harder work', icon: Brain },
 ] as const;
 
-export function ChatModelPicker({ className, compact = false }: Props) {
+export function ChatModelPicker({
+  className,
+  compact = false,
+  showArcWork = false,
+  arcWorkAvailable = false,
+  arcMode = 'ask',
+  onArcModeChange,
+}: Props) {
   const {
     hasBoost,
     isAdmin,
@@ -34,6 +45,9 @@ export function ChatModelPicker({ className, compact = false }: Props) {
   const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLSpanElement>(null);
+  const tabsPositionedRef = useRef(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const activePreset = PRESETS.find((preset) => preset.effort === reasoningEffort) ?? PRESETS[0];
   const CurrentIcon = activePreset.icon;
@@ -58,6 +72,46 @@ export function ChatModelPicker({ className, compact = false }: Props) {
       window.removeEventListener('scroll', compute, true);
     };
   }, [open]);
+
+  const moveModePill = useCallback((animate: boolean) => {
+    const bar = tabsRef.current;
+    const pill = pillRef.current;
+    if (!bar || !pill) return;
+    const active = bar.querySelector<HTMLElement>(`[data-mode="${arcMode}"]`);
+    if (!active) return;
+    if (!animate) {
+      const previous = pill.style.transition;
+      pill.style.transition = 'none';
+      pill.style.transform = `translateX(${active.offsetLeft}px)`;
+      pill.style.width = `${active.offsetWidth}px`;
+      void pill.offsetWidth;
+      pill.style.transition = previous;
+    } else {
+      pill.style.transform = `translateX(${active.offsetLeft}px)`;
+      pill.style.width = `${active.offsetWidth}px`;
+    }
+  }, [arcMode]);
+
+  useEffect(() => {
+    if (!open || !showArcWork) {
+      tabsPositionedRef.current = false;
+      return;
+    }
+    const frame = requestAnimationFrame(() => {
+      moveModePill(false);
+      tabsPositionedRef.current = true;
+    });
+    const onResize = () => moveModePill(false);
+    window.addEventListener('resize', onResize);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [open, showArcWork, moveModePill]);
+
+  useEffect(() => {
+    if (tabsPositionedRef.current) moveModePill(true);
+  }, [arcMode, moveModePill]);
 
   const pick = (effort: LunaReasoningSelection) => {
     setReasoningEffort(effort);
@@ -96,9 +150,47 @@ export function ChatModelPicker({ className, compact = false }: Props) {
                 style={{ top: coords.top, left: coords.left }}
                 className="fixed z-[9999] w-[17rem] rounded-2xl border border-border/40 glass shadow-2xl p-1.5"
               >
+                {showArcWork && (
+                  <div className="px-2.5 pt-2 pb-2 border-b border-border/30">
+                    <div className="text-xs font-semibold mb-2">Arc mode</div>
+                    <div ref={tabsRef} className="t-tabs arc-mode-tabs" role="group" aria-label="Arc Chat or Arc Work mode">
+                      <span ref={pillRef} className="t-tabs-pill" aria-hidden="true" />
+                      <button
+                        type="button"
+                        className="t-tab"
+                        data-mode="ask"
+                        aria-pressed={arcMode === 'ask'}
+                        onClick={() => onArcModeChange?.('ask')}
+                      >
+                        Arc Chat
+                      </button>
+                      <button
+                        type="button"
+                        className="t-tab"
+                        data-mode="auto"
+                        aria-pressed={arcMode === 'auto'}
+                        title={arcWorkAvailable ? 'Arc Work keeps running after you leave' : 'Arc Work requires Boost'}
+                        onClick={() => {
+                          if (!arcWorkAvailable) {
+                            setOpen(false);
+                            openCheckout();
+                            return;
+                          }
+                          onArcModeChange?.('auto');
+                        }}
+                      >
+                        Arc Work
+                        {!arcWorkAvailable && <Crown className="h-3 w-3 ml-1 text-primary" aria-hidden="true" />}
+                      </button>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-2">
+                      {arcWorkAvailable ? 'Chat here, or let Work continue after you leave.' : 'Arc Work is the Boost cloud agent.'}
+                    </div>
+                  </div>
+                )}
                 <div className="px-2.5 pt-2 pb-1.5">
-                  <div className="text-xs font-semibold">Luna is the only model for now</div>
-                  <div className="text-[10px] text-muted-foreground">Choose how much reasoning Luna uses.</div>
+                  <div className="text-xs font-semibold">Reasoning</div>
+                  <div className="text-[10px] text-muted-foreground">Choose how much reasoning Arc uses.</div>
                 </div>
                 {PRESETS.map((preset) => {
                   let badge: string | undefined;
