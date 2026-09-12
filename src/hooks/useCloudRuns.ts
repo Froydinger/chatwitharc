@@ -94,6 +94,10 @@ export class CloudRunsBinding {
     this.eventTarget = target;
     target?.addEventListener('focus', this.eventRefresh);
     target?.addEventListener('online', this.eventRefresh);
+    // Publish the coordinator as restoring before the first ready snapshot.
+    // Otherwise the chat can render one blank frame between lifecycle startup
+    // and discovery, which makes an existing Work card appear to flash in.
+    this.state.restoring = true;
     this.state.ready = true;
     this.publish();
     await this.restore();

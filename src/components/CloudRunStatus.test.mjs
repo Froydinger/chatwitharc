@@ -126,7 +126,7 @@ test('uncertain action surfaces error and requires refresh without automatic cal
 test('approval buttons send only exact decision, callId and hash; render performs no callbacks', async () => {
   // Minimal hook harness for the real button handlers; SSR above tests React markup.
   const handlers = {};
-  const hooks = { useId: () => 'test-label', useState: initial => [initial, () => {}], useRef: initial => ({ current: initial }) };
+  const hooks = { useId: () => 'test-label', useState: initial => [initial, () => {}], useRef: initial => ({ current: initial }), useEffect: () => {} };
   new Function('require', 'exports', compiled)(name => name === 'react' ? hooks : require(name), handlers);
   const buttons = node => {
     if (!node || typeof node !== 'object') return [];

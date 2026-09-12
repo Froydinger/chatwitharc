@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { CloudRun, CloudRunApproval, CloudRunCheckpoint } from '@/services/cloudRuns';
 
 type Action = 'approve' | 'deny' | 'cancel' | 'reconnect';
@@ -64,6 +64,14 @@ function auditOutcome(outcome: 'working' | 'completed' | 'blocked' | 'denied') {
   return outcome === 'working' ? 'Working' : activityOutcome(outcome);
 }
 
+function formatElapsed(milliseconds: number) {
+  const seconds = Math.max(0, Math.floor(milliseconds / 1000));
+  if (seconds < 60) return `${seconds}s elapsed`;
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes}m ${String(remainder).padStart(2, '0')}s elapsed`;
+}
+
 /** Standalone inline text-chat card. No timers, transport, modal, or voice integration. */
 export function CloudRunStatus(props: CloudRunStatusProps) {
   const approval = props.run.checkpoint?.pendingApproval;
@@ -77,10 +85,23 @@ function CloudRunStatusCard({ run, connection = 'idle', observationError, onAppr
   const titleId = useId();
   const argsId = useId();
   const [state, setState] = useState<ActionState>({ pending: null, error: null, reconnectRequired: false, submitted: false });
+  const [clock, setClock] = useState(() => Date.now());
   const guardRef = useRef<ReturnType<typeof createCloudRunActionGuard> | null>(null);
   if (!guardRef.current) guardRef.current = createCloudRunActionGuard(setState);
   const invoke = (action: Action, callback: Callback) => void guardRef.current!.invoke(action, callback);
   const terminal = ['completed', 'failed', 'cancelled'].includes(run.status);
+  const elapsedStart = run.startedAt ?? run.createdAt;
+  const elapsedEnd = terminal ? (run.updatedAt ?? run.startedAt ?? run.createdAt) : undefined;
+  const elapsedStartMs = elapsedStart ? Date.parse(elapsedStart) : NaN;
+  const elapsedEndMs = elapsedEnd ? Date.parse(elapsedEnd) : NaN;
+  useEffect(() => {
+    if (terminal || !Number.isFinite(elapsedStartMs)) return;
+    const timer = window.setInterval(() => setClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [terminal, elapsedStartMs]);
+  const elapsedMs = Number.isFinite(elapsedStartMs)
+    ? Math.max(0, (Number.isFinite(elapsedEndMs) ? elapsedEndMs : clock) - elapsedStartMs)
+    : null;
   const detached = connection === 'detached' || connection === 'uncertain';
   const approval = run.status === 'awaiting_input' ? run.checkpoint?.pendingApproval : null;
   const canDecide = !!approval?.callId && !!approval?.argumentsHash;
@@ -117,7 +138,9 @@ function CloudRunStatusCard({ run, connection = 'idle', observationError, onAppr
     <section aria-labelledby={titleId} aria-busy={!!state.pending}
       className="glass-card w-full max-w-xl rounded-2xl border border-border/60 bg-background/80 p-4 text-foreground shadow-sm">
       <div role="status" aria-live="polite" aria-atomic="true">
-        <h3 id={titleId} className="text-sm font-semibold">{title}</h3>
+        <h3 id={titleId} className="text-sm font-semibold">{title}
+          {elapsedMs !== null && <span className="ml-2 text-xs font-normal text-muted-foreground">{formatElapsed(elapsedMs)}</span>}
+        </h3>
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
         {state.pending && <p className="mt-2 text-sm text-muted-foreground">{state.pending === 'reconnect' ? 'Reconnecting…' : 'Sending your choice…'}</p>}
         {state.submitted && <p className="mt-2 text-sm text-muted-foreground">Choice sent. Waiting for updated status.</p>}

@@ -80,6 +80,10 @@ export type CloudRunList = { runs: DiscoveredCloudRun[]; nextCursor: string | nu
 /** Result and checkpoint shapes belong to the chat/app integration. */
 export type CloudRun<TResult = unknown, TCheckpoint = unknown> = {
   id: string;
+  /** Server timestamps used for honest live elapsed-time display. */
+  createdAt?: string;
+  startedAt?: string;
+  updatedAt?: string;
   /** Explicit owner-scoped App Builder association, never the full request. */
   projectId?: string;
   /** Revision acknowledged by atomic submit; retries may acknowledge a newer revision. */

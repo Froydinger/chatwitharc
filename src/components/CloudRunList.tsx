@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 
 /** The parent provider owns transport. This list never starts another observer,
  * writes an assistant message, or connects to voice mode. */
-export function CloudRunList({ sessionId, cloud }: { sessionId: string | null; cloud: CloudRunsApi }) {
+export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId: string | null; cloud: CloudRunsApi; enabled?: boolean }) {
   const restorePending = useRef(false);
   const [restoring, setRestoring] = useState(false);
   const restore = async () => {
@@ -16,6 +16,15 @@ export function CloudRunList({ sessionId, cloud }: { sessionId: string | null; c
     finally { restorePending.current = false; setRestoring(false); }
   };
   const entries = cloud.entries.filter(entry => entry.sessionId === sessionId);
+  const loading = enabled && !cloud.error && (!cloud.ready || cloud.restoring);
+  if (loading) return <section aria-label="Loading cloud tasks" aria-busy="true" role="status"
+    className="glass-card w-full max-w-xl rounded-2xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
+    <div className="flex items-center gap-3">
+      <span aria-hidden="true" className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary/70" />
+      <span>Loading cloud tasks…</span>
+    </div>
+    <div aria-hidden="true" className="mt-3 h-2 w-2/3 animate-pulse rounded-full bg-muted/60" />
+  </section>;
   if (!entries.length && !cloud.error && !cloud.activeCursor && !cloud.historyCursor) return null;
   return <section aria-label="Cloud chat requests" className="space-y-3">
     {cloud.error && <div className="glass-card rounded-2xl p-4 text-sm">

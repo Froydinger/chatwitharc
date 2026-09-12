@@ -155,12 +155,29 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
         ? data.checkpoint as Record<string, unknown> : {};
       const engine = checkpoint.engine && typeof checkpoint.engine === 'object'
         ? checkpoint.engine as Record<string, unknown> : {};
-      if (typeof engine.responseId === 'string' && engine.responseId.length > 0) {
+      const calls = Array.isArray(engine.calls) ? engine.calls : [];
+      const receipts = engine.receipts && typeof engine.receipts === 'object'
+        ? engine.receipts as Record<string, unknown> : {};
+      // Image generation is a durable background provider job. While its
+      // receipt is pending, the engine deliberately has no model responseId,
+      // so the old loop stopped here and waited for the one-minute cron sweep.
+      // Poll it a few times inside this worker invocation instead. This is
+      // bounded provider polling, not a new paid model/image submission.
+      const pendingImage = engine.phase === 'tools' && calls.some(rawCall => {
+        if (!rawCall || typeof rawCall !== 'object') return false;
+        const call = rawCall as Record<string, unknown>;
+        if (call.name !== 'generate_image' && call.name !== 'edit_image') return false;
+        const key = `${id}:turn:${typeof engine.turns === 'number' ? engine.turns : 0}:tool:${call.id}`;
+        const receipt = receipts[key];
+        return !!receipt && typeof receipt === 'object' && (receipt as Record<string, unknown>).state === 'started';
+      });
+      if ((typeof engine.responseId === 'string' && engine.responseId.length > 0) || pendingImage) {
         if (providerWaits >= 2) break;
         providerWaits += 1;
-        // Responses polling is not a model submission and does not create a
-        // second paid turn. A short bounded wait catches ordinary fast replies
-        // without holding an edge worker open for a long-running run.
+        // Neither Responses polling nor image-provider polling is a model
+        // submission and neither creates a second paid turn. A short bounded
+        // wait catches ordinary fast replies without holding an edge worker
+        // open for a long-running run.
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
     }

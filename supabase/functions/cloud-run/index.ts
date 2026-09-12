@@ -366,7 +366,7 @@ function json(value: unknown, status = 200): Response {
   });
 }
 const columns =
-  "id,session_id,kind,mode,status,request,result,checkpoint,error,updated_at";
+  "id,session_id,kind,mode,status,request,result,checkpoint,error,created_at,started_at,updated_at";
 /** Browser-safe projection. Never spread worker-owned checkpoint objects. */
 export function publicRun(row: Obj) {
   const asRecord = (value: unknown): Obj =>
@@ -381,6 +381,8 @@ export function publicRun(row: Obj) {
     typeof value === "number" && Number.isFinite(value) && value >= 0
       ? value
       : null;
+  const timestamp = (value: unknown) =>
+    typeof value === "string" && Number.isFinite(Date.parse(value)) ? value : null;
   const pendingApproval = row.status === "awaiting_input" &&
       typeof pending.callId === "string" && pending.callId.length > 0 &&
       typeof pending.argumentsHash === "string" &&
@@ -445,6 +447,9 @@ export function publicRun(row: Obj) {
     : null;
   return {
     id: row.id,
+    ...(timestamp(row.created_at) ? { createdAt: timestamp(row.created_at) } : {}),
+    ...(timestamp(row.started_at) ? { startedAt: timestamp(row.started_at) } : {}),
+    ...(timestamp(row.updated_at) ? { updatedAt: timestamp(row.updated_at) } : {}),
     ...(row.kind === 'app' && typeof projectId === 'string' && UUID.test(projectId) ? { projectId } : {}),
     status: row.status,
     result: row.result,
@@ -568,7 +573,7 @@ export async function handleCloudRun(req: Request): Promise<Response> {
       // UUID keyset pagination is stable; it is deliberately not recency order.
       // Never select request/transcripts for discovery. publicRun projects engine fields.
       let query = db.from("cloud_runs").select(
-        "id,session_id,kind,mode,status,result,checkpoint,error,project_id:request->>projectId",
+        "id,session_id,kind,mode,status,result,checkpoint,error,created_at,started_at,updated_at,project_id:request->>projectId",
       )
         .eq("user_id", user.id).order("id", { ascending: true }).limit(
           action.limit + 1,

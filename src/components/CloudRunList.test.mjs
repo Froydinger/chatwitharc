@@ -14,14 +14,19 @@ new Function('require', 'exports', await compile('./CloudRunStatus.tsx'))(requir
 new Function('require', 'exports', await compile('./CloudRunList.tsx'))(
   name => name === './CloudRunStatus' ? status : require(name), list);
 const noCalls = () => { throw Error('Rendering must not trigger network actions'); };
-const render = overrides => renderToStaticMarkup(React.createElement(list.CloudRunList, {
-  sessionId: 'selected', cloud: { entries: [], error: null, restoring: false, activeCursor: null,
+const render = ({ enabled = false, ...overrides } = {}) => renderToStaticMarkup(React.createElement(list.CloudRunList, {
+  sessionId: 'selected', enabled, cloud: { entries: [], error: null, ready: true, restoring: false, activeCursor: null,
     restore: noCalls, respond: noCalls, cancel: noCalls, reconnect: noCalls, loadMore: noCalls, ...overrides },
 }));
 test('inactive list is inert and completed replies are not duplicated', () => {
   assert.equal(render({}), '');
   const html = render({ entries: [{ id: 'done', sessionId: 'selected', run: { id: 'done', status: 'completed', result: 'secret duplicate reply' } }] });
   assert.doesNotMatch(html, /secret duplicate reply|Cancel run/);
+});
+test('enabled cloud restore shows a loader before runs are painted', () => {
+  const html = render({ enabled: true, ready: false });
+  assert.match(html, /Loading cloud tasks/);
+  assert.match(html, /aria-busy="true"/);
 });
 test('completed-reply reload errors retain a visible recovery action', () => {
   const html = render({ error: '<script>reload failed</script>', entries: [

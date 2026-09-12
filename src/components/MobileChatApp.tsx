@@ -1484,7 +1484,7 @@ export function MobileChatApp() {
                       );
                     })}
                   </AnimatePresence>
-                  {!isVoiceActive && <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} />}
+                {!isVoiceActive && <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} enabled={cloudTextEnabled} />}
                   {/* Show thinking indicator when loading */}
                   <AnimatePresence>
                     {isLoading &&
