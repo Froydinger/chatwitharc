@@ -564,6 +564,10 @@ type Props = {
   onImagesChange?: (hasImages: boolean) => void;
   rightPanelOpen?: boolean;
   inline?: boolean;
+  /** Arc Work sends the complete request to the durable worker so Luna can
+   * choose the tools and order of operations instead of the composer routing
+   * natural-language requests through legacy image/search UI. */
+  cloudExecutionMode?: 'ask' | 'auto';
   /** Text-only durable submission. Parent owns observation across composer mounts.
    * Omitted until the cloud rollout is enabled; never used by voice delegation. */
   onCloudTextSubmit?: (submission: CloudTextSubmitIntent) => Promise<void>;
@@ -593,7 +597,7 @@ export interface ChatInputRef {
 }
 
 export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
-  { onImagesChange, rightPanelOpen = false, inline = false, onCloudTextSubmit },
+  { onImagesChange, rightPanelOpen = false, inline = false, cloudExecutionMode = 'ask', onCloudTextSubmit },
   ref,
 ) {
   const portalRoot = useSafePortalRoot();
@@ -606,6 +610,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const isGuestMode = (!user || isAnonymous) && !isLocalChatPreview();
   const requireAuth = useRequireAuth();
   const { hasBoost, isAdmin, canStartVoiceConversation, openCheckout } = useSubscription();
+  const isArcWorkMode = cloudExecutionMode === 'auto' && !!onCloudTextSubmit && !isGuestMode && !isLocalChatPreview();
 
   const {
     messages,
@@ -1489,8 +1494,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // app and on-device paths still own their existing busy-state behavior.
   const canSubmitCloudTextWhileBusy = (text: string) => {
     if (!onCloudTextSubmit || !user || isAnonymous || isGuestMode
-      || isLocalChatPreview() || useCorporateModeStore.getState().enabled
-      || selectedImages.length || selectedDocuments.length || !text.trim()) return false;
+      || isLocalChatPreview() || useCorporateModeStore.getState().enabled || !text.trim()) return false;
+    // Arc Work owns tool selection. Keep the whole request, including files,
+    // together for the durable worker even while an earlier turn is running.
+    const workMode = typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto';
+    if (workMode) return true;
+    if (selectedImages.length || selectedDocuments.length) return false;
     if (shouldShowBanana || shouldShowBuildMode || checkForImageRequest(text)
       || checkForBuildRequest(text) || (canGenerateVideo && checkForVideoRequest(text))) return false;
     const explicitMode = text.trim().startsWith('/') || shouldShowCanvasMode
@@ -1637,7 +1646,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const isSlashOrOverride = finalMessage.trim().startsWith("/") ||
                               shouldShowCanvasMode || shouldShowCodeMode || shouldShowBanana || shouldShowSearchMode || shouldShowBuildMode;
 
-    if (!isSlashOrOverride && !documents.length && !images.length) {
+    if (!isArcWorkMode && !isSlashOrOverride && !documents.length && !images.length) {
       const intent = analyzeImageRequestIntent(finalMessage);
       if (intent === 'generate') {
         wasImageMode = true;
@@ -1669,6 +1678,18 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         setLoading(false);
         return;
       }
+    }
+
+    // Arc Work is intentionally a planner, not another set of composer
+    // shortcuts. The worker receives the raw request and decides whether to
+    // search, generate, write, code, build, or combine those tools.
+    if (isArcWorkMode) {
+      wasCanvasMode = false;
+      wasCodingMode = false;
+      wasVideoMode = false;
+      wasImageMode = false;
+      wasSearchMode = false;
+      wasBuildMode = false;
     }
 
     // Clear UI promptly
@@ -1758,7 +1779,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       }
 
       // App Builder Mode: launch IDE workspace
-      if (wasBuildMode) {
+      if (!isArcWorkMode && wasBuildMode) {
         if (!hasBoost && !isAdmin) {
           openCheckout();
           toast({
@@ -1776,7 +1797,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       }
 
       // With Documents -> analyze
-      if (documents.length > 0) {
+      if (!isArcWorkMode && documents.length > 0) {
         await addMessage({
           content:
             finalMessage ||
@@ -1823,7 +1844,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       }
 
       // With Images -> edit or analyze
-      if (images.length > 0) {
+      if (!isArcWorkMode && images.length > 0) {
         // upload images or fallback
         let imageUrls: string[] = [];
         try {
@@ -1970,14 +1991,14 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
       // Text-to-video. Checked before the image branch so a video request
       // isn't swallowed by the broader image matcher.
-      if (wasVideoMode) {
+      if (!isArcWorkMode && wasVideoMode) {
         const videoPrompt = extractVideoPrompt(finalMessage || "") || "a short cinematic clip";
         await runVideoGeneration(finalMessage || videoPrompt, videoPrompt);
         return;
       }
 
       // No images: Banana => generate; else text
-      if (wasImageMode) {
+      if (!isArcWorkMode && wasImageMode) {
         // Resolve conversational follow-ups against the concept Arc just
         // described (e.g. user just said "generate that" or "do it" without an explicit prefix).
         // If the user explicitly used image/, /image, draw/, etc., or typed a prompt, generate it directly!
@@ -2312,7 +2333,7 @@ ${safeCode}
           shouldSearchForVideo,
         });
 
-        const durableRoute = shouldUseCodeContext ? 'cloud-chat' : routeRequest({
+        const durableRoute = (typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto') || shouldUseCodeContext ? 'cloud-chat' : routeRequest({
           forceWebSearch: wasSearchMode || shouldSearchForVideo,
           forceCanvas: shouldForceCanvas,
           forceCode: shouldForceCode,
@@ -2344,9 +2365,9 @@ ${safeCode}
                 m.role === 'user' || m.role === 'assistant'), {role: 'user', content: finalMessage}],
               ...((images.length || documents.length) ? {attachments: [...images, ...documents]} : {}),
               ...(workspaceContext ? {workspaceContext} : {}),
-              forceWebSearch: wasSearchMode || shouldSearchForVideo,
-              forceCanvas: shouldForceCanvas,
-              forceCode: shouldForceCode,
+              forceWebSearch: (typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto') ? false : wasSearchMode || shouldSearchForVideo,
+              forceCanvas: (typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto') ? false : shouldForceCanvas,
+              forceCode: (typeof cloudExecutionMode !== 'undefined' && cloudExecutionMode === 'auto') ? false : shouldForceCode,
               modelOverride: codeContextModelOverride,
             });
           } catch (error) {

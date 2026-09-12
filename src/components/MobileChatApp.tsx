@@ -909,13 +909,20 @@ export function MobileChatApp() {
       requireAuth("menu");
       return;
     }
-    void persistCanvasBeforeLeaving();
+    void persistCanvasBeforeLeaving().catch((error) => {
+      // Navigation should never be blocked by an opportunistic canvas save.
+      // Consume the rejection so the global error reporter cannot flash a bug
+      // dialog over the dashboard during the transition.
+      console.warn('Canvas save before dashboard navigation failed; continuing.', error);
+    });
     sessionStorage.setItem('arc_dashboard_entry', 'menu');
     navigate('/dashboard');
   };
 
   const handleNewChat = () => {
-    void persistCanvasBeforeLeaving();
+    void persistCanvasBeforeLeaving().catch((error) => {
+      console.warn('Canvas save before starting a new chat failed; continuing.', error);
+    });
 
     // Anonymous users get no chat history — wipe local sessions before
     // creating the new one so they always start from a blank slate.
@@ -1323,6 +1330,7 @@ export function MobileChatApp() {
                   <ArcInputEffects active={isArcWorking} theme={effectTheme}>
                     <div className="glass-dock" data-arc-working={isArcWorking}>
                       <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
+                        cloudExecutionMode={cloudExecutionMode}
                         onCloudTextSubmit={cloudTextEnabled ? submitCloudText : undefined} />
                     </div>
                   </ArcInputEffects>
@@ -1544,6 +1552,7 @@ export function MobileChatApp() {
                     data-arc-working={isArcWorking}
                   >
                     <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
+                      cloudExecutionMode={cloudExecutionMode}
                       onCloudTextSubmit={cloudTextEnabled ? submitCloudText : undefined} />
                   </div>
                 </ArcInputEffects>
