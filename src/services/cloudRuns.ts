@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from '@/integrations/supabase/client';
+import type { CloudMediaReference } from './cloudMediaCapture';
 
 export type CloudRunKind = 'chat' | 'app';
 export type CloudRunMode = 'ask' | 'auto';
@@ -10,6 +11,7 @@ export type CloudWorkspaceContext = {
 };
 export type CloudTextRequest = {
   messages: Array<{role: 'user' | 'assistant'; content: string}>;
+  attachments?: CloudMediaReference[];
   workspace_context?: CloudWorkspaceContext;
   forceWebSearch?: boolean;
   forceCanvas?: boolean;

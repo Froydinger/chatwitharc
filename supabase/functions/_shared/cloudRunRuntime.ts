@@ -13,12 +13,17 @@ import { cloudScheduledTools, cloudScheduledStore, CLOUD_SCHEDULED_DEFINITIONS }
 import { cloudWorkerStore } from './cloudRunStore.ts';
 import { processCloudRun, type ClaimedCloudRun } from './cloudRunWorker.ts';
 import { cloudImageRuntime } from './cloudImageRuntime.ts';
+import { withCloudMediaInput } from './cloudMediaInput.ts';
+import { CloudMediaError } from './cloudMedia.ts';
+import { responseInput } from './cloudRunProvider.ts';
+import type { CloudMediaReference } from './cloudMedia.ts';
 
 /** Server composition root. Remains deployment-gated until the complete tool
  * registry, atomic submit and browser reconnect paths pass end-to-end tests. */
 export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
   tavilyApiKey?: string;
   fileStore?: CloudFileStore;
+  mediaConfig?: { supabaseUrl: string; serviceRoleKey: string };
   imageConfig?: { supabaseUrl: string; serviceRoleKey: string; r2WorkerUrl: string; r2WorkerSecret: string };
   weatherLookup?: Parameters<typeof cloudWeatherTool>[0]['lookup'];
   notificationDispatch?: Parameters<typeof cloudNotificationTool>[0]['dispatch'];
@@ -39,6 +44,43 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
       && data.status === 'running' && data.lease_token === run.lease_token
       && Date.parse(data.lease_expires_at) > Date.now();
   };
+  const readCloudMedia = async (reference: CloudMediaReference, signal?: AbortSignal) => {
+    if (!options.mediaConfig) throw new CloudMediaError('owner', 'Cloud media storage is unavailable.');
+    const storage = db.schema('storage');
+    const [bucketResult, objectResult] = await Promise.all([
+      storage.from('buckets').select('id,public').eq('id', reference.bucket).maybeSingle(),
+      storage.from('objects').select('bucket_id,name,owner_id').eq('bucket_id', reference.bucket)
+        .eq('name', reference.path).maybeSingle(),
+    ]);
+    if (bucketResult.error || objectResult.error || !bucketResult.data || bucketResult.data.public !== false
+      || !objectResult.data || objectResult.data.owner_id !== reference.ownerId) {
+      throw new CloudMediaError('owner', 'Stored media ownership could not be verified.');
+    }
+    const path = reference.path.split('/').map(encodeURIComponent).join('/');
+    const response = await fetch(`${options.mediaConfig.supabaseUrl}/storage/v1/object/${encodeURIComponent(reference.bucket)}/${path}`, {
+      headers: {
+        Authorization: `Bearer ${options.mediaConfig.serviceRoleKey}`,
+        apikey: options.mediaConfig.serviceRoleKey,
+      },
+      signal,
+    });
+    if (!response.ok || !response.body) throw new CloudMediaError('integrity', 'Stored media could not be read.');
+    const mimeType = response.headers.get('content-type')?.split(';', 1)[0]?.trim() ?? '';
+    const size = Number(response.headers.get('content-length'));
+    if (!mimeType || !Number.isSafeInteger(size) || size < 1) {
+      await response.body.cancel().catch(() => {});
+      throw new CloudMediaError('integrity', 'Stored media metadata is incomplete.');
+    }
+    return {
+      bucket: reference.bucket,
+      path: reference.path,
+      ownerId: String(objectResult.data.owner_id),
+      mimeType,
+      size,
+      privateBucket: true,
+      body: response.body,
+    };
+  };
   return (id: string) => processCloudRun(id, {
     store,
     prepare: async run => {
@@ -47,11 +89,33 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
       // execute an app job as plain chat while that adapter is being integrated.
       if ('kind' in run && run.kind === 'app') throw new Error('Cloud app adapter is not enabled');
       const context = await loadCloudRunContext(db, run);
+      const request = run.request && typeof run.request === 'object' && !Array.isArray(run.request)
+        ? run.request as Record<string, unknown> : {};
+      const initialMessages = run.execution_messages ?? request.messages;
+      const mediaReferences = Array.isArray(request.attachments) ? request.attachments : undefined;
+      const mediaScope = { ownerId: run.user_id, sessionId: run.session_id };
       const images = options.imageConfig ? cloudImageRuntime({ ...options.imageConfig,
         openaiApiKey: apiKey, authorizeOwner: authorizeFile }) : null;
       return {
         provider: cloudResponseProvider({ apiKey, ...context,
           firstTool: cloudInitialTool(run.request),
+          ...(mediaReferences && options.mediaConfig && Array.isArray(initialMessages) ? {
+            expandInput: transcript => withCloudMediaInput({
+              scope: mediaScope,
+              references: mediaReferences,
+              messageIndex: initialMessages.length - 1,
+              transcript,
+              ports: {
+                ownsSession: async scope => {
+                  const { data, error } = await db.from('chat_sessions').select('id,user_id')
+                    .eq('id', scope.sessionId).eq('user_id', scope.ownerId).maybeSingle();
+                  if (error) throw new CloudMediaError('owner', 'Cloud media session could not be verified.');
+                  return !!data && data.id === scope.sessionId && data.user_id === scope.ownerId;
+                },
+                read: readCloudMedia,
+              },
+            }, expanded => Promise.resolve(responseInput(expanded))),
+          } : {}),
           tools: [...CLOUD_CANVAS_DEFINITIONS, ...CLOUD_READ_DEFINITIONS, CLOUD_MEMORY_DEFINITION,
           ...CLOUD_SCHEDULED_DEFINITIONS,
           ...(options.fileStore ? [CLOUD_FILE_DEFINITION] : []),

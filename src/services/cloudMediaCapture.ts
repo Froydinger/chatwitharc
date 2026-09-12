@@ -2,6 +2,7 @@ import { assertCloudMediaScope, cloudMediaDigest, cloudMediaMime, CLOUD_MEDIA_BU
   CloudMediaError, validateCloudMediaBytes, validateCloudMediaReferences } from '../../supabase/functions/_shared/cloudMedia.ts';
 import type { CloudMediaReference, CloudMediaScope } from '../../supabase/functions/_shared/cloudMedia.ts';
 export type { CloudMediaReference, CloudMediaScope };
+export { CLOUD_MEDIA_BUCKET, cloudMediaDigest } from '../../supabase/functions/_shared/cloudMedia.ts';
 export interface CloudMediaCapturePorts {
   currentOwnerId(): Promise<string | null>;
   /** PRIVATE immutable object upload, upsert:false. Never public avatars. */

@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 import { authorizeCloudAppSubmission, CloudAppIngressError } from '../_shared/cloudAppIngress.ts';
+import { validateCloudMediaReferences } from '../_shared/cloudMedia.ts';
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -218,6 +219,7 @@ export function validateAction(value: unknown, bearer = ""): Action {
     "currentFiles",
     "projectId",
     "workspace_context",
+    "attachments",
   ]);
   if (
     !Array.isArray(input.messages) || !input.messages.length ||
@@ -233,6 +235,23 @@ export function validateAction(value: unknown, bearer = ""): Action {
       return { role: msg.role, content: string(msg.content) };
     }),
   };
+  if (input.attachments !== undefined) {
+    if (body.kind !== 'chat') invalid('Attachments are only supported for chat runs.');
+    const candidate = Array.isArray(input.attachments) ? input.attachments : [];
+    const first = candidate[0] && typeof candidate[0] === 'object' && !Array.isArray(candidate[0])
+      ? candidate[0] as Obj : {};
+    try {
+      // The gateway cannot trust the owner id yet, but it can enforce the
+      // closed reference shape and session/path binding. The authenticated
+      // owner is checked again immediately after auth below.
+      request.attachments = validateCloudMediaReferences(input.attachments, {
+        ownerId: typeof first.ownerId === 'string' ? first.ownerId : '',
+        sessionId: uuid(body.sessionId),
+      });
+    } catch {
+      invalid('Invalid cloud attachment references.');
+    }
+  }
   if (input.workspace_context !== undefined) {
     const workspace = object(input.workspace_context);
     keys(workspace, ["kind", "content", "language", "label"]);
@@ -493,7 +512,17 @@ export async function handleCloudRun(req: Request): Promise<Response> {
     } catch {
       invalid("Invalid JSON.");
     }
-    const action = validateAction(raw, match[1]);
+  const action = validateAction(raw, match[1]);
+    if (action.action === 'submit' && action.request.attachments !== undefined) {
+      try {
+        action.request.attachments = validateCloudMediaReferences(action.request.attachments, {
+          ownerId: user.id,
+          sessionId: action.sessionId,
+        });
+      } catch {
+        invalid('Cloud attachments do not belong to this account or session.');
+      }
+    }
     if (action.action === "submit" && action.kind === "chat" && action.mode === "auto") {
       await requireArcCloudAccess(db, user.id);
     }

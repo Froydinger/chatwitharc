@@ -17,6 +17,7 @@ import { CloudRunList } from "@/components/CloudRunList";
 import { useCloudRuns } from "@/hooks/useCloudRuns";
 import { reconcileCloudAppRun } from '@/services/cloudAppProjectClient';
 import { captureCloudWorkspaceContext, type CloudRunMode, type CloudRunSubmission, type CloudTextRequest } from "@/services/cloudRuns";
+import { prepareCloudMediaCapture, cloudMediaDigest, type CloudMediaReference } from "@/services/cloudMediaCapture";
 import { resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
 import { getQueryComplexity } from "@/services/ai";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
@@ -364,7 +365,10 @@ export function MobileChatApp() {
   const submitCloudText = async (intent: CloudTextSubmitIntent) => {
     // Capture before prepareCloudSession awaits: editor/session switches must
     // not change the workspace or history of this accepted text intent.
-    const captured = structuredClone(intent);
+    const captured = {
+      ...structuredClone(intent),
+      attachments: intent.attachments ? [...intent.attachments] : undefined,
+    };
     const workspaceContext = captured.workspaceContext === undefined ? undefined
       : captureCloudWorkspaceContext(captured.workspaceContext);
     if (!cloudRuns.ready) throw new Error('Cloud connection is starting. Your message is retained; check the connection before retrying.');
@@ -377,10 +381,47 @@ export function MobileChatApp() {
       throw new Error('The submitted message changed. Review it before sending.');
     }
     const userMessage = JSON.parse(JSON.stringify(message)) as CloudRunSubmission['userMessage'];
+    let attachments: CloudMediaReference[] | undefined;
+    if (captured.attachments?.length) {
+      const capture = await prepareCloudMediaCapture(captured.attachments, {
+        ownerId: user.id,
+        sessionId: captured.sessionId,
+      });
+      const ports = {
+        currentOwnerId: async () => (await supabase.auth.getUser()).data.user?.id ?? null,
+        upload: async (reference: CloudMediaReference, body: Blob, options: { upsert: false; signal?: AbortSignal }) => {
+          options.signal?.throwIfAborted();
+          const { error } = await supabase.storage.from(reference.bucket).upload(reference.path, body, {
+            contentType: reference.mimeType,
+            upsert: false,
+          });
+          if (error) throw error;
+        },
+        verify: async (reference: CloudMediaReference, options: { signal?: AbortSignal }) => {
+          options.signal?.throwIfAborted();
+          const { data, error } = await supabase.storage.from(reference.bucket).download(reference.path);
+          if (error || !data) return false;
+          const bytes = new Uint8Array(await data.arrayBuffer());
+          return bytes.byteLength === reference.size && await cloudMediaDigest(bytes) === reference.sha256;
+        },
+      };
+      try {
+        attachments = await capture.upload(ports);
+      } catch (error) {
+        // A lost storage acknowledgement is reconciled against the same
+        // immutable reference. Never retry an uncertain upload with a new id.
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'uncertain') {
+          attachments = await capture.verify(ports);
+        } else {
+          throw error;
+        }
+      }
+    }
     const entry = cloudRuns.prepare({
       sessionId: captured.sessionId, mode, expectedRevision: prepared.revision, userMessage,
       request: { messages: captured.messages, forceWebSearch: captured.forceWebSearch,
         forceCanvas: captured.forceCanvas, forceCode: captured.forceCode,
+        ...(attachments ? {attachments} : {}),
         ...(workspaceContext ? {workspace_context: workspaceContext} : {}),
         reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, getQueryComplexity(message.content)),
         clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone } satisfies CloudTextRequest,

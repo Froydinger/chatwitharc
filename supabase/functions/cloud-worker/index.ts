@@ -67,6 +67,7 @@ if (import.meta.main) Deno.serve((req) => handleCloudWorker(req, {
         appEnabled,
         app: cloudAppAdvance(db, apiKey, { enabled: appEnabled }),
         chat: cloudRunAdvance(db, apiKey, { tavilyApiKey: Deno.env.get('TAVILY_API_KEY'), weatherLookup: cloudWeatherLookup(url, serviceKey),
+          mediaConfig: { supabaseUrl: url, serviceRoleKey: serviceKey },
           fileStore: cloudFileStore({ supabaseUrl: url, serviceRoleKey: serviceKey }),
           imageConfig: cloudImageConfig(name => Deno.env.get(name)),
           notificationDispatch: cloudNotificationDispatch(url, serviceKey) }),

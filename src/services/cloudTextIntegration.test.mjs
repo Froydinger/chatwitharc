@@ -137,7 +137,8 @@ test('real text submission and durable completion across detached frontend lifet
     const endpoint = evaluate(read('supabase/functions/cloud-run/index.ts').replace('if (import.meta.main)', 'if (false)'), {
       Deno: { env: { get: key => ({ CLOUD_RUNS_ENABLED: 'true', SUPABASE_URL: 'http://127.0.0.1', SUPABASE_SERVICE_ROLE_KEY: 'fixture-service' })[key] } },
     }, { 'https://esm.sh/@supabase/supabase-js@2.89.0': { createClient: () => service },
-      '../_shared/cloudAppIngress.ts': evaluate(read('supabase/functions/_shared/cloudAppIngress.ts')) });
+      '../_shared/cloudAppIngress.ts': evaluate(read('supabase/functions/_shared/cloudAppIngress.ts')),
+      '../_shared/cloudMedia.ts': { validateCloudMediaReferences: () => [] } });
     server = createServer(async (req, res) => {
       try {
         const chunks = []; for await (const chunk of req) chunks.push(chunk);
@@ -216,6 +217,8 @@ test('real text submission and durable completion across detached frontend lifet
       const state = () => store.getState();
       async function send(mode, { switchAfterUser = false, waitForLegacySave = true, content = 'Fixture plain chat', workspace, mutateSnapshot } = {}) {
         const submit = evaluate(`const ${parentSubmit}; exports.submit = submitCloudText;`, { ...dependencies, cloudRuns: api,
+          supabase: browser, prepareCloudMediaCapture: async () => { throw Error('Attachment fixture not expected'); },
+          cloudMediaDigest: async () => '',
           cloudExecutionMode: executionMode({ ownerId: owner, mode }, { id: owner }) }).submit;
         const notices = [];
         // Execute the actual ID capture, actual addMessage call and actual durable
@@ -231,6 +234,7 @@ test('real text submission and durable completion across detached frontend lifet
           onCloudTextSubmit: async intent=>{const pending=submit(intent);if(mutateSnapshot)mutateSnapshot(intent);await pending;},
           isGuestMode: false, corporateMode: false, durableRoute: 'cloud',
           shouldUseCodeContext:workspace?.kind==='code',isCodingRequest:false,shouldRouteToCanvas:workspace?.kind==='canvas',
+          images: [], documents: [],
           freshCanvasState:{isOpen:!!workspace,content:'stale store draft',codeLanguage:workspace?.language},
           freshestCanvasContent:workspace?.content ?? '',window:workspace ? {__arcaiLiveCanvasContent:workspace.content} : {},
           aiMessages: [{ role: 'user', content: workspace ? 'Legacy augmented prose must not reach model' : content }], wasSearchMode: false, shouldSearchForVideo: false,

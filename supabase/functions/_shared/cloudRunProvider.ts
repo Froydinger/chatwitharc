@@ -62,6 +62,9 @@ export function cloudResponseProvider(options: {
   reasoningEffort: 'low' | 'medium' | 'high';
   tools: CloudToolDefinition[];
   firstTool?: string;
+  /** Optional durable-input expansion. It runs only after the engine has
+   * fenced the model intent and never changes the saved transcript. */
+  expandInput?: (transcript: unknown[]) => Promise<unknown[]>;
   fetcher?: typeof fetch;
 }) {
   if (options.firstTool && !options.tools.some(tool => tool.name === options.firstTool)) {
@@ -81,8 +84,9 @@ export function cloudResponseProvider(options: {
   }
   return {
     async startModel(transcript: unknown[], requestKey: string, maxTokens: number): Promise<string> {
+      const input = options.expandInput ? await options.expandInput(transcript) : responseInput(transcript);
       const response = await request('', {
-        model: 'gpt-5.6-luna', input: responseInput(transcript),
+        model: 'gpt-5.6-luna', input,
         instructions: options.instructions,
         // Responses API spells Chat Completions reasoning_effort as reasoning.effort.
         reasoning: { effort: options.reasoningEffort },

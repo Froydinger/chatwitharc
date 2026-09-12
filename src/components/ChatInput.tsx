@@ -574,6 +574,9 @@ export interface CloudTextSubmitIntent {
   userMessageId: string;
   userContent: string;
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  /** Files are captured before the composer clears. They are uploaded to the
+   * private cloud-input bucket by the parent, never serialized into the run. */
+  attachments?: File[];
   workspaceContext?: CloudWorkspaceContext;
   forceWebSearch: boolean;
   forceCanvas: boolean;
@@ -2339,6 +2342,7 @@ ${safeCode}
               userContent: finalMessage,
               messages: [...aiMessages.slice(0, -1).filter((m): m is { role: 'user' | 'assistant'; content: string } =>
                 m.role === 'user' || m.role === 'assistant'), {role: 'user', content: finalMessage}],
+              ...((images.length || documents.length) ? {attachments: [...images, ...documents]} : {}),
               ...(workspaceContext ? {workspaceContext} : {}),
               forceWebSearch: wasSearchMode || shouldSearchForVideo,
               forceCanvas: shouldForceCanvas,
