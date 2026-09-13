@@ -16,6 +16,7 @@ import {
 } from "./cloudImageProvider.ts";
 import { cloudImageMedia } from "./cloudImageMedia.ts";
 import { cloudImageRequest } from "./cloudImageHttp.ts";
+import { cloudImageStore } from "./cloudImageStore.ts";
 import { recoverCloudImage } from "./cloudImageRecovery.ts";
 import type { ClaimedCloudRun } from "./cloudRunWorker.ts";
 const assert = (v: unknown, m = "assertion failed") => {
@@ -293,6 +294,71 @@ Deno.test("background provider preserves Quick/Pro model, edits and binds recove
   await rejects(() => provider.poll("resp_test", "other", 0));
   assert(posts === 1);
 });
+
+Deno.test("cloud image generation defaults to Pro Sunburst", () => {
+  const args = cloudImageArguments({
+    id: "default-model",
+    name: "generate_image",
+    arguments: JSON.stringify({
+      prompt: "A tree",
+      aspectRatio: "1:1",
+      count: 1,
+      sourceUrls: [],
+      transparent: false,
+    }),
+  });
+  assert(args.model === "gpt-image-2.5-sunburst");
+});
+
+Deno.test("transient image polling stays pending without burning run attempts", async () => {
+  for (const status of [408, 409, 425, 429, 500, 502, 503, 504]) {
+    const provider = cloudImageProvider({
+      apiKey: "server",
+      r2WorkerUrl: "https://r2.invalid",
+      supabaseUrl: "https://sb.invalid",
+      fetch: async () => new Response("temporary", { status }),
+    });
+    const result = await provider.poll("resp_test", key, 0);
+    assert(
+      result.state === "pending",
+      `expected status ${status} to remain pending`,
+    );
+  }
+  const timedOut = cloudImageProvider({
+    apiKey: "server",
+    r2WorkerUrl: "https://r2.invalid",
+    supabaseUrl: "https://sb.invalid",
+    fetch: async () => {
+      throw new Error("Image network timeout");
+    },
+  });
+  assert((await timedOut.poll("resp_test", key, 0)).state === "pending");
+});
+
+Deno.test("durable image receipt and storage outages requeue safely", async () => {
+  const args = cloudImageArguments(call);
+  const store = cloudImageStore({
+    supabaseUrl: "https://sb.invalid",
+    serviceRoleKey: "server",
+    fetch: async () => {
+      throw new Error("network unavailable");
+    },
+  });
+  await rejects(
+    () => store.step(run, call, key, "begin", args),
+    CloudImagePending,
+  );
+  const media = cloudImageMedia({
+    workerUrl: "https://r2.invalid",
+    workerSecret: "server",
+    fetch: async () => new Response("temporary", { status: 503 }),
+  });
+  await rejects(
+    () => media.save(owner, job, 0, png, args),
+    CloudImagePending,
+  );
+});
+
 Deno.test("provider 5xx is ambiguous, explicit 400 is rejected, no retries", async () => {
   for (const status of [400, 500]) {
     let calls = 0;

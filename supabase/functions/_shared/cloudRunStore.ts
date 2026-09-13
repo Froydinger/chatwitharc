@@ -10,7 +10,7 @@ export function cloudWorkerStore(
     async claim(id) {
       const { data, error } = await client.rpc("claim_cloud_run", {
         p_run_id: id,
-        p_lease_seconds: 90,
+        p_lease_seconds: 300,
       });
       if (error) throw new Error("Unable to claim cloud run");
       if (!Array.isArray(data) || data.length === 0) return null;
@@ -53,7 +53,7 @@ export function cloudWorkerStore(
         p_lease_token: run.lease_token,
         p_checkpoint: checkpoint,
         p_status: status,
-        p_lease_seconds: 90,
+        p_lease_seconds: 300,
         p_error: reason ?? null,
       });
       if (error) throw new Error("Unable to checkpoint cloud run");

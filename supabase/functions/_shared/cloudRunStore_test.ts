@@ -105,7 +105,7 @@ Deno.test("cloud store: claim sends stable request UUID and bounded lease durati
   deepStrictEqual(await store.claim(row.id), row);
   deepStrictEqual(mock.calls, [{
     name: "claim_cloud_run",
-    args: { p_run_id: row.id, p_lease_seconds: 90 },
+    args: { p_run_id: row.id, p_lease_seconds: 300 },
   }]);
 });
 
@@ -200,7 +200,7 @@ for (
         p_lease_token: run.lease_token,
         p_checkpoint: checkpoint,
         p_status: status,
-        p_lease_seconds: 90,
+        p_lease_seconds: 300,
         p_error: "Synthetic reason",
       },
     }]);

@@ -96,8 +96,12 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
       const mediaScope = { ownerId: run.user_id, sessionId: run.session_id };
       const images = options.imageConfig ? cloudImageRuntime({ ...options.imageConfig,
         openaiApiKey: apiKey, authorizeOwner: authorizeFile }) : null;
+      const imageInstructions = images
+        ? '\n\n=== IMAGE GENERATION ===\nWhen an image is requested, use the "pro" model unless the user explicitly asks for the fastest draft. "pro" maps to GPT Image 2.5 Sunburst. Image generation is a durable background job and may take longer than text; keep the request moving while the registered image tool reports pending, and do not claim it failed until the tool returns a confirmed terminal result.'
+        : '';
       return {
         provider: cloudResponseProvider({ apiKey, ...context,
+          instructions: `${context.instructions}${imageInstructions}`,
           firstTool: cloudInitialTool(run.request),
           ...(mediaReferences && options.mediaConfig && Array.isArray(initialMessages) ? {
             expandInput: transcript => withCloudMediaInput({

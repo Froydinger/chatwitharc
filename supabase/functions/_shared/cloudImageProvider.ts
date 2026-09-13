@@ -1,4 +1,7 @@
-import { cloudImageRequest } from "./cloudImageHttp.ts";
+import {
+  cloudImageRequest,
+  isCloudImageTransientStatus,
+} from "./cloudImageHttp.ts";
 import {
   type CloudImageProvider,
   CloudImageRecoveryRequired,
@@ -179,13 +182,32 @@ export function cloudImageProvider(
       if (!/^resp_[A-Za-z0-9_-]+$/.test(id)) {
         throw new Error("Invalid response ID");
       }
-      const r = await cloudImageRequest(
-        fetcher,
-        `https://api.openai.com/v1/responses/${id}`,
-        { headers },
-        24000000,
-      );
+      let r;
+      try {
+        r = await cloudImageRequest(
+          fetcher,
+          `https://api.openai.com/v1/responses/${id}`,
+          { headers },
+          24000000,
+        );
+      } catch (error) {
+        // GET polling is safe to repeat: the paid POST and response ID are
+        // already persisted. Treat a transport deadline as still pending so
+        // the durable worker can try again on its next lease.
+        if (
+          error instanceof Error && error.message === "Image network timeout"
+        ) {
+          return { state: "pending" };
+        }
+        throw error;
+      }
       if (r.status === 404) throw new CloudImageRecoveryRequired(id);
+      // OpenAI may briefly return a rate limit or upstream gateway error while
+      // a background response is still running. These are not image failures
+      // and must not consume the cloud run's terminal attempt budget.
+      if (isCloudImageTransientStatus(r.status)) {
+        return { state: "pending" };
+      }
       if (!r.ok) throw new Error("Image polling unavailable");
       const data = r.json();
       if (

@@ -1,10 +1,19 @@
 /** Bounded headers + body, no redirect credential forwarding, no POST retry. */
+// Image generation is asynchronous, but the provider can still take longer
+// than an ordinary chat request to acknowledge or return a status response.
+// Keep the transport patient; callers decide whether the operation is safe to
+// retry, and this module never retries a paid POST.
+export const CLOUD_IMAGE_REQUEST_TIMEOUT_MS = 60000;
+export function isCloudImageTransientStatus(status: number) {
+  return [408, 409, 425, 429].includes(status) ||
+    (status >= 500 && status <= 599);
+}
 export async function cloudImageRequest(
   fetcher: typeof fetch,
   url: string,
   init: RequestInit = {},
   limit = 24000000,
-  timeoutMs = 15000,
+  timeoutMs = CLOUD_IMAGE_REQUEST_TIMEOUT_MS,
 ) {
   const controller = new AbortController();
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;

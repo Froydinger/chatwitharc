@@ -105,7 +105,7 @@ export const CLOUD_IMAGE_DEFINITIONS: CloudToolDefinition[] = [
   name,
   strict: true,
   description:
-    "Generate or edit 1–3 images. Quick is default for generation; Pro is default for edits and requires Boost/admin. Edits require owner-owned persisted source URLs; never pass base64 or browser credentials. Preserve the user prompt. Do not retry a recovery-required image with a new tool call.",
+    "Generate or edit 1–3 images. Pro is the default for generation and edits and uses GPT Image 2.5 Sunburst; Quick is available only when explicitly requested. Pro requires Boost/admin. Edits require owner-owned persisted source URLs; never pass base64 or browser credentials. Preserve the user prompt. Do not retry a recovery-required image with a new tool call.",
   parameters: {
     type: "object",
     properties: {
@@ -164,7 +164,7 @@ export function cloudImageArguments(call: ToolCall): CloudImageArgs {
     pro: "gpt-image-2.5-sunburst",
     legacy: "gpt-image-2",
   } as Record<string, string>)[
-    a.model ?? (kind === "edit" ? "pro" : "quick")
+    a.model ?? "pro"
   ];
   if (
     !model ||

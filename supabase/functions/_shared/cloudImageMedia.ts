@@ -1,6 +1,9 @@
-import { cloudImageRequest } from "./cloudImageHttp.ts";
+import {
+  cloudImageRequest,
+  isCloudImageTransientStatus,
+} from "./cloudImageHttp.ts";
 import { cloudImageDigest, cloudImageMime } from "./cloudImageProvider.ts";
-import type { CloudImageMedia } from "./cloudImageTool.ts";
+import { type CloudImageMedia, CloudImagePending } from "./cloudImageTool.ts";
 /** Same R2 worker/auth as legacy, stable owner/job/slot path. Raw provider bytes
  * remain recoverable by response ID if crop/upload fails. No random object keys. */
 export function cloudImageMedia(
@@ -55,7 +58,12 @@ export function cloudImageMedia(
       const url = `${
         options.workerUrl.replace(/\/$/, "")
       }/objects/${owner}/cloud-${job}-${index}.png`;
-      const existing = await cloudImageRequest(fetcher, url, {}, 16000000);
+      let existing;
+      try {
+        existing = await cloudImageRequest(fetcher, url, {}, 16000000);
+      } catch {
+        throw new CloudImagePending(job);
+      }
       if (existing.ok) {
         if (
           await cloudImageDigest(existing.bytes) !==
@@ -63,7 +71,11 @@ export function cloudImageMedia(
         ) throw new Error("Image object conflict");
         return url;
       }
+      if (isCloudImageTransientStatus(existing.status)) {
+        throw new CloudImagePending(job);
+      }
       if (existing.status !== 404) throw new Error("Image storage unavailable");
+      let uploadUncertain = false;
       try {
         const uploaded = await cloudImageRequest(fetcher, url, {
           method: "PUT",
@@ -74,14 +86,29 @@ export function cloudImageMedia(
           body: new Uint8Array(bytes),
         }, 1000000);
         if (uploaded.ok) return url;
+        uploadUncertain = isCloudImageTransientStatus(uploaded.status);
       } catch {
-        /* Reconcile unknown storage acceptance without provider retry. */
+        // Reconcile unknown storage acceptance without a duplicate upload.
+        uploadUncertain = true;
       }
-      const saved = await cloudImageRequest(fetcher, url, {}, 16000000);
+      let saved;
+      try {
+        saved = await cloudImageRequest(fetcher, url, {}, 16000000);
+      } catch {
+        throw new CloudImagePending(job);
+      }
+      if (isCloudImageTransientStatus(saved.status)) {
+        throw new CloudImagePending(job);
+      }
       if (
         !saved.ok ||
         await cloudImageDigest(saved.bytes) !== await cloudImageDigest(bytes)
       ) {
+        if (!saved.ok && saved.status === 404 && uploadUncertain) {
+          // The upload may have been accepted after its response was lost.
+          // Leave the stable object address recoverable on the next tick.
+          throw new CloudImagePending(job);
+        }
         throw new Error("Image upload incomplete");
       }
       return url;
