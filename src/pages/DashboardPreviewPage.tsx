@@ -36,7 +36,7 @@ type LayoutMode = "dock" | "sidebar";
 type DashboardTab = "overview" | "chats" | "apps" | "images" | "canvases" | "memory";
 
 const navItems: Array<{ id: DashboardTab; label: string; icon: typeof LayoutDashboard }> = [
-  { id: "overview", label: "Dashboard", icon: LayoutDashboard },
+  { id: "overview", label: "Dash", icon: LayoutDashboard },
   { id: "chats", label: "Chats", icon: MessageSquare },
   { id: "apps", label: "Apps", icon: FolderKanban },
   { id: "images", label: "Images", icon: ImageIcon },
@@ -164,14 +164,15 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
   const springLensScale = useSpring(lensScale, { stiffness: 320, damping: 20, mass: 0.4 });
   const rawSX = useMotionValue(1);
   const rawSY = useMotionValue(1);
-  const springSX = useSpring(rawSX, { stiffness: 260, damping: 18, mass: 0.45 });
-  const springSY = useSpring(rawSY, { stiffness: 260, damping: 18, mass: 0.45 });
+  const springSX = useSpring(rawSX, { stiffness: 260, damping: 22, mass: 0.45 });
+  const springSY = useSpring(rawSY, { stiffness: 260, damping: 22, mass: 0.45 });
   const rawBase = useMotionValue(1);
-  const springBase = useSpring(rawBase, { stiffness: 320, damping: 20, mass: 0.5 });
+  const springBase = useSpring(rawBase, { stiffness: 320, damping: 24, mass: 0.5 });
   const bubbleScaleX = useTransform([springBase, springSX] as const, ([base, sx]) => (base as number) * (sx as number));
   const bubbleScaleY = useTransform([springBase, springSY] as const, ([base, sy]) => (base as number) * (sy as number));
-  const itemWidth = trackSize.width / navItems.length;
-  const bubbleWidth = Math.min(trackSize.width, itemWidth * (isCompact ? 1.08 : 1.18));
+  const navGap = 4;
+  const itemWidth = Math.max(0, (trackSize.width - navGap * (navItems.length - 1)) / navItems.length);
+  const bubbleWidth = Math.min(trackSize.width, itemWidth * (isCompact ? 1.04 : 1.12));
   const ActiveIcon = navItems.find((item) => item.id === activeTab)?.icon ?? LayoutDashboard;
   const bubbleLeft = useTransform(bubbleCX, (cx) => cx - bubbleWidth / 2);
   const lensLeft = useTransform([lensFocusX, springLensScale] as const, ([focus, scale]) => bubbleWidth / 2 - (focus as number) * (scale as number));
@@ -179,9 +180,9 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
   const dragRef = useRef({ pointerX: 0, startCX: 0, lastX: 0, lastTime: 0 });
   const slideLockRef = useRef(false);
 
-  const centerForIndex = (index: number) => itemWidth * index + itemWidth / 2;
+  const centerForIndex = (index: number) => (itemWidth + navGap) * index + itemWidth / 2;
   const clampCenter = (center: number) => Math.min(trackSize.width - bubbleWidth / 2, Math.max(bubbleWidth / 2, center));
-  const indexForCenter = (center: number) => Math.min(navItems.length - 1, Math.max(0, Math.round(center / itemWidth - 0.5)));
+  const indexForCenter = (center: number) => Math.min(navItems.length - 1, Math.max(0, Math.round((center - itemWidth / 2) / (itemWidth + navGap))));
 
   useEffect(() => {
     const updateBreakpoint = () => setIsCompact(window.innerWidth < 640);
@@ -203,7 +204,7 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
   useEffect(() => {
     if (!itemWidth || isDragging) return;
     const index = Math.max(0, navItems.findIndex((item) => item.id === activeTab));
-    const center = itemWidth * index + itemWidth / 2;
+    const center = (itemWidth + navGap) * index + itemWidth / 2;
     setHoverIndex(index);
     bubbleCX.set(center);
     lensFocusX.set(center);
@@ -212,23 +213,46 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
   const selectTab = (id: DashboardTab) => {
     if (slideLockRef.current || isDragging || !itemWidth) return;
     const targetIndex = Math.max(0, navItems.findIndex((item) => item.id === id));
+    const startIndex = Math.max(0, navItems.findIndex((item) => item.id === activeTab));
+    if (targetIndex === startIndex) return;
+    const startCenter = centerForIndex(startIndex);
     const targetCenter = centerForIndex(targetIndex);
     slideLockRef.current = true;
-    setHoverIndex(targetIndex);
-    rawBase.set(1.13);
-    animate(rawSX, [1, 0.88, 1.12, 0.95, 1.04, 1], { duration: 0.38 });
-    animate(rawSY, [1, 1.13, 0.89, 1.07, 0.96, 1], { duration: 0.38 });
+    setIsDragging(true);
+    setHoverIndex(startIndex);
+    lensFocusX.set(startCenter);
+    animate(lensScale, 1.42, { type: "spring", stiffness: 320, damping: 20, mass: 0.4 });
+    rawBase.set(1.1);
+    animate(rawSX, [1, 0.92, 1.07, 0.97, 1.02, 1], { duration: 0.38 });
+    animate(rawSY, [1, 1.07, 0.94, 1.04, 0.98, 1], { duration: 0.38 });
+    animate(lensFocusX, targetCenter, {
+      type: "spring",
+      stiffness: 360,
+      damping: 24,
+      mass: 0.58,
+      onUpdate: (focus) => setHoverIndex(indexForCenter(focus)),
+    });
     animate(bubbleCX, targetCenter, {
       type: "spring",
       stiffness: 360,
       damping: 24,
       mass: 0.58,
       onComplete: () => {
+        animate(lensScale, 1, {
+          type: "spring",
+          stiffness: 320,
+          damping: 20,
+          mass: 0.4,
+          delay: 0.08,
+          onComplete: () => {
+            setIsDragging(false);
+            setHoverIndex(-1);
+          },
+        });
         rawBase.set(1);
-        animate(rawSX, 1, { type: "spring", stiffness: 260, damping: 18, mass: 0.45 });
-        animate(rawSY, 1, { type: "spring", stiffness: 260, damping: 18, mass: 0.45 });
+        animate(rawSX, 1, { type: "spring", stiffness: 260, damping: 22, mass: 0.45 });
+        animate(rawSY, 1, { type: "spring", stiffness: 260, damping: 22, mass: 0.45 });
         slideLockRef.current = false;
-        setHoverIndex(-1);
         onChange(id);
       },
     });
@@ -243,9 +267,9 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
     setHoverIndex(indexForCenter(startCenter));
     lensFocusX.set(startCenter);
     animate(lensScale, 1.42, { type: "spring", stiffness: 320, damping: 20, mass: 0.4 });
-    rawBase.set(1.16);
-    animate(rawSX, [1, 0.86, 1.15, 0.94, 1.05, 1], { duration: 0.42 });
-    animate(rawSY, [1, 1.16, 0.87, 1.08, 0.95, 1], { duration: 0.42 });
+    rawBase.set(1.12);
+    animate(rawSX, [1, 0.92, 1.08, 0.97, 1.02, 1], { duration: 0.42 });
+    animate(rawSY, [1, 1.08, 0.93, 1.04, 0.98, 1], { duration: 0.42 });
   };
 
   const moveDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
@@ -262,33 +286,41 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
     const velocity = (event.clientX - dragRef.current.lastX) / elapsed;
     dragRef.current.lastX = event.clientX;
     dragRef.current.lastTime = now;
-    const stretch = Math.min(0.42, Math.abs(velocity) * 0.06);
+    const stretch = Math.min(0.28, Math.abs(velocity) * 0.045);
     rawSX.set(1 + stretch);
     rawSY.set(1 / (1 + stretch));
   };
 
   const endDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!isDragging || !itemWidth) return;
-    const targetIndex = indexForCenter(bubbleCX.get());
+    const releaseCenter = clampCenter(dragRef.current.startCX + event.clientX - dragRef.current.pointerX);
+    bubbleCX.set(releaseCenter);
+    const targetIndex = indexForCenter(releaseCenter);
     const target = navItems[targetIndex];
     const targetCenter = centerForIndex(targetIndex);
     setHoverIndex(targetIndex);
     // Move the magnified strip to the landing slot first, then let the lens
     // collapse. This keeps the label/icon from leaving a second ghost behind.
     lensFocusX.set(targetCenter);
-    animate(lensScale, 1, { type: "spring", stiffness: 320, damping: 20, mass: 0.4, delay: 0.08 });
+    animate(lensScale, 1, {
+      type: "spring",
+      stiffness: 320,
+      damping: 20,
+      mass: 0.4,
+      delay: 0.08,
+      onComplete: () => {
+        setIsDragging(false);
+        setHoverIndex(-1);
+      },
+    });
     rawBase.set(1);
-    animate(rawSX, 1, { type: "spring", stiffness: 260, damping: 18, mass: 0.45 });
-    animate(rawSY, 1, { type: "spring", stiffness: 260, damping: 18, mass: 0.45 });
+    animate(rawSX, 1, { type: "spring", stiffness: 260, damping: 22, mass: 0.45 });
+    animate(rawSY, 1, { type: "spring", stiffness: 260, damping: 22, mass: 0.45 });
     animate(bubbleCX, targetCenter, {
       type: "spring",
       stiffness: 380,
       damping: 26,
       mass: 0.6,
-      onComplete: () => {
-        setIsDragging(false);
-        setHoverIndex(-1);
-      },
     });
     onChange(target.id);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
@@ -310,12 +342,12 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
                   type="button"
                   onClick={() => selectTab(id)}
                   className={cn(
-                    "relative flex min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] px-2 py-3 text-[11px] font-medium transition-colors sm:px-3.5",
+                    "relative flex min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] px-2 py-3 text-[12px] font-medium transition-colors sm:px-3.5",
                     active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                   )}
                   style={{ opacity: hiddenUnderLens ? 0 : 1 }}
                 >
-                  <Icon className={cn("relative z-10 h-4 w-4 shrink-0", active ? "text-primary drop-shadow-[0_0_10px_rgba(168,85,247,0.55)]" : "")} />
+                  <Icon className={cn("relative z-10 h-[17px] w-[17px] shrink-0", active ? "text-primary drop-shadow-[0_0_10px_rgba(168,85,247,0.55)]" : "")} />
                   <span className="relative z-10 hidden sm:inline">{label}</span>
                 </button>
               );
@@ -326,7 +358,7 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
               type="button"
               aria-label={`Drag dashboard navigation, currently ${navItems.find((item) => item.id === activeTab)?.label ?? "Dashboard"}`}
               className="absolute top-1/2 touch-none select-none overflow-hidden rounded-[18px] border border-primary/75 bg-white/[0.11] shadow-[0_0_0_1px_rgba(168,85,247,0.3),0_0_22px_rgba(168,85,247,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
-              style={{ left: bubbleLeft, width: bubbleWidth, height: trackSize.height, translateY: "-50%", scaleX: bubbleScaleX, scaleY: bubbleScaleY, transformOrigin: "center", borderRadius: isCompact ? 22 : 18, background: "hsl(var(--background) / 0.78)", backdropFilter: "blur(10px) saturate(140%)", WebkitBackdropFilter: "blur(10px) saturate(140%)", zIndex: 20, cursor: isDragging ? "grabbing" : "grab" }}
+              style={{ left: bubbleLeft, width: bubbleWidth, height: trackSize.height, translateY: "-50%", scaleX: bubbleScaleX, scaleY: bubbleScaleY, transformOrigin: "center", borderRadius: trackSize.height / 2, background: "hsl(var(--background) / 0.78)", backdropFilter: "blur(10px) saturate(140%)", WebkitBackdropFilter: "blur(10px) saturate(140%)", zIndex: 20, cursor: isDragging ? "grabbing" : "grab" }}
               onPointerDown={startDrag}
               onPointerMove={moveDrag}
               onPointerUp={endDrag}
@@ -338,14 +370,14 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
                 animate={{ opacity: isDragging ? 0 : 1 }}
                 transition={{ duration: 0.1 }}
               >
-                <ActiveIcon className="h-4 w-4" />
-                <span className="hidden sm:inline">{navItems.find((item) => item.id === activeTab)?.label}</span>
+                <ActiveIcon className="h-[17px] w-[17px]" />
+                <span className="hidden text-[12px] font-medium sm:inline">{navItems.find((item) => item.id === activeTab)?.label}</span>
               </motion.div>
-              <motion.div animate={{ opacity: isDragging ? 1 : 0 }} transition={{ duration: 0.12 }} className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[18px] bg-background/[0.88]">
-                <motion.div style={{ position: "absolute", left: lensLeft, top: lensTop, width: trackSize.width, height: trackSize.height, scale: springLensScale, transformOrigin: "0 0", display: "flex" }}>
+              <motion.div animate={{ opacity: isDragging ? 1 : 0 }} transition={{ duration: 0.12 }} className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-full bg-background/[0.88]">
+                <motion.div style={{ position: "absolute", left: lensLeft, top: lensTop, width: trackSize.width, height: trackSize.height, gap: navGap, scale: springLensScale, transformOrigin: "0 0", display: "flex" }}>
                   {navItems.map(({ label, icon: Icon }) => (
-                    <div key={label} className="flex shrink-0 items-center justify-center gap-2 px-2 text-[11px] font-semibold text-primary" style={{ width: itemWidth, height: trackSize.height }}>
-                      <Icon className="h-4 w-4 shrink-0 drop-shadow-[0_0_10px_rgba(168,85,247,0.7)]" />
+                    <div key={label} className="flex shrink-0 items-center justify-center gap-2 px-2 text-[12px] font-medium text-primary" style={{ width: itemWidth, height: trackSize.height }}>
+                      <Icon className="h-[17px] w-[17px] shrink-0 drop-shadow-[0_0_10px_rgba(168,85,247,0.7)]" />
                       <span className="hidden sm:inline">{label}</span>
                     </div>
                   ))}
@@ -353,7 +385,7 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
               </motion.div>
               <motion.div
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 rounded-[18px]"
+                className="pointer-events-none absolute inset-0 rounded-full"
                 animate={{ opacity: isDragging ? 1 : 0.72 }}
                 transition={{ duration: 0.16 }}
                 style={{
