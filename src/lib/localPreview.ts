@@ -9,3 +9,9 @@ export function isLocalChatPreview() {
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('preview') === 'chat';
 }
+
+export function isLocalDashboardPreview() {
+  return import.meta.env.DEV &&
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('preview') === 'dashboard';
+}

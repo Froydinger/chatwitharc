@@ -124,7 +124,7 @@ function SectionCard({
   className?: string;
 }) {
   return (
-    <GlassCard className={cn("p-5 space-y-4", className)}>
+    <GlassCard className={cn("rounded-[28px] border border-white/[0.08] bg-white/[0.025] p-5 shadow-[0_22px_80px_rgba(0,0,0,0.12)] space-y-4", className)}>
       <div className="flex items-start gap-3">
         <div className="p-2 rounded-xl bg-primary/15 border border-primary/30">
           <Icon className="h-5 w-5 text-primary" />
@@ -1050,14 +1050,14 @@ export function SettingsPanel() {
         })()}
       </div>
 
-      <div className="lg:grid lg:grid-cols-[240px_1fr] lg:gap-8 px-4">
+      <div className="lg:grid lg:grid-cols-[240px_1fr] lg:gap-8 px-1 sm:px-4">
         {/* Desktop sidebar */}
-        <aside className="hidden lg:flex flex-col sticky top-2 self-start h-[calc(100vh-6rem)]">
-          <div className="px-2 mb-4">
+        <aside className="hidden lg:flex flex-col sticky top-2 self-start h-[calc(100vh-6rem)] rounded-[28px] border border-white/[0.08] bg-white/[0.025] p-3 shadow-[0_22px_80px_rgba(0,0,0,0.12)]">
+          <div className="px-3 pb-4 pt-2">
             <h1 className="text-xl font-semibold text-foreground">Settings</h1>
             <p className="text-xs text-muted-foreground">Customize your ArcAI experience</p>
           </div>
-          <nav className="flex-1 flex flex-col gap-1">
+          <nav className="flex flex-1 flex-col gap-1" aria-label="Settings sections">
             {SECTIONS.map((s) => {
               const Icon = s.icon;
               const active = section === s.id;
@@ -1068,8 +1068,8 @@ export function SettingsPanel() {
                   className={cn(
                     "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all border",
                     active
-                      ? "bg-primary/10 border-primary/40 text-foreground shadow-[0_0_20px_hsl(var(--primary)/0.18)]"
-                      : "bg-transparent border-transparent text-muted-foreground hover:bg-muted/20 hover:text-foreground"
+                      ? "bg-primary/10 border-primary/70 text-foreground shadow-[0_0_0_1px_hsl(var(--primary)/0.22),0_0_22px_hsl(var(--primary)/0.18)]"
+                      : "bg-transparent border-transparent text-muted-foreground hover:bg-muted/30 hover:text-foreground"
                   )}
                 >
                   <span

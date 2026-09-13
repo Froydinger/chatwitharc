@@ -280,6 +280,7 @@ export function ArcInputEffects({
 
 export function MobileChatApp() {
   const navigate = useNavigate();
+  const isLocalPreview = isLocalChatPreview();
   const themeMode = useAccentStore((s) => s.themeMode);
   const effectTheme = themeMode === "system" ? "auto" : themeMode;
   const {
@@ -657,13 +658,13 @@ export function MobileChatApp() {
 
       if (finalMode === 'dashboard') {
         if (dashboardSwipeOpeningRef.current) return;
-        if (!user || isAnonymous) {
+        if ((!user || isAnonymous) && !isLocalPreview) {
           requireAuth("menu");
           return;
         }
         dashboardSwipeOpeningRef.current = true;
         sessionStorage.setItem('arc_dashboard_entry', 'swipe');
-        navigate('/dashboard');
+        navigate(isLocalPreview ? '/?preview=dashboard&clean=1' : '/dashboard');
         return;
       }
     };
@@ -681,7 +682,7 @@ export function MobileChatApp() {
       body.style.overscrollBehaviorX = prevBodyOverscroll;
       body.style.touchAction = prevBodyTouchAction;
     };
-  }, [isMobile, navigate, isCanvasOverlayActive, isSearchOpen, user, isAnonymous, requireAuth]);
+  }, [isMobile, navigate, isCanvasOverlayActive, isSearchOpen, user, isAnonymous, isLocalPreview, requireAuth]);
 
 
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
@@ -992,7 +993,7 @@ export function MobileChatApp() {
   }, [canvasContent, currentSessionId, isCanvasOpen, updateSessionCanvasContent]);
 
   const handleOpenDashboard = () => {
-    if (!user || isAnonymous) {
+    if ((!user || isAnonymous) && !isLocalPreview) {
       requireAuth("menu");
       return;
     }
@@ -1003,7 +1004,7 @@ export function MobileChatApp() {
       console.warn('Canvas save before dashboard navigation failed; continuing.', error);
     });
     sessionStorage.setItem('arc_dashboard_entry', 'menu');
-    navigate('/dashboard');
+    navigate(isLocalPreview ? '/?preview=dashboard&clean=1' : '/dashboard');
   };
 
   const handleNewChat = () => {

@@ -71,6 +71,8 @@ import { ThemedLogo } from "@/components/ThemedLogo";
 import { motion } from "framer-motion";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { isLocalChatPreview } from "@/lib/localPreview";
+import { isLocalDashboardPreview } from "@/lib/localPreview";
+import { DashboardPreviewPage } from "./pages/DashboardPreviewPage";
 
 const FullscreenLoader = () => {
   const [stage, setStage] = useState<'spin' | 'bloop'>('spin');
@@ -147,6 +149,7 @@ const FastLoader = () => {
 const RootGate = () => {
   const { user, loading: authLoading, isAnonymous } = useAuth();
   const localChatPreview = isLocalChatPreview();
+  const localDashboardPreview = isLocalDashboardPreview();
 
   const [showSessionLoader, setShowSessionLoader] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -171,6 +174,7 @@ const RootGate = () => {
     }
   }, [showSessionLoader, timerFinished, authLoading]);
 
+  if (localDashboardPreview) return <DashboardPreviewPage />;
   if (localChatPreview) return <Index />;
 
   if (showSessionLoader) {
