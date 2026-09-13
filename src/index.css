@@ -466,6 +466,73 @@ All colors MUST be HSL for perfect glass effects.
   border-color: rgba(255, 255, 255, 0.16);
 }
 
+.dashboard-preview-notification-tray {
+  background: rgba(17, 17, 19, 0.96);
+  border-color: rgba(255, 255, 255, 0.13);
+  color: hsl(var(--foreground));
+}
+
+.dashboard-preview-notification-row {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-preview-notification-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.dashboard-preview-notification-count {
+  background: rgba(168, 85, 247, 0.16);
+  color: rgb(216, 180, 254);
+}
+
+.dashboard-preview-notification-unread-icon {
+  background: rgba(168, 85, 247, 0.18);
+  color: rgb(216, 180, 254);
+}
+
+.dashboard-preview-notification-unread-dot {
+  background: rgb(168, 85, 247);
+  box-shadow: 0 0 9px rgba(168, 85, 247, 0.95);
+}
+
+.dashboard-preview-notification-empty {
+  background: rgba(255, 255, 255, 0.025);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root.light .dashboard-preview-notification-tray {
+  background: rgba(255, 255, 255, 0.97);
+  border-color: rgba(98, 104, 113, 0.22);
+  box-shadow: 0 24px 70px rgba(30, 35, 42, 0.18), 0 0 32px rgba(168, 85, 247, 0.12);
+}
+
+:root.light .dashboard-preview-notification-row {
+  background: rgba(248, 249, 251, 0.94);
+  border-color: rgba(98, 104, 113, 0.14);
+}
+
+:root.light .dashboard-preview-notification-row:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(98, 104, 113, 0.28);
+}
+
+:root.light .dashboard-preview-notification-count {
+  background: rgba(168, 85, 247, 0.12);
+  color: rgb(126, 34, 206);
+}
+
+:root.light .dashboard-preview-notification-unread-icon {
+  background: rgba(168, 85, 247, 0.12);
+  color: rgb(126, 34, 206);
+}
+
+:root.light .dashboard-preview-notification-empty {
+  background: rgba(248, 249, 251, 0.9);
+  border-color: rgba(98, 104, 113, 0.14);
+}
+
 .dashboard-preview-sync-badge {
   border-color: rgba(52, 211, 153, 0.2);
   background: rgba(52, 211, 153, 0.08);

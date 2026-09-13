@@ -232,6 +232,7 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
       mass: 0.58,
       onUpdate: (focus) => setHoverIndex(indexForCenter(focus)),
     });
+    onChange(id);
     animate(bubbleCX, targetCenter, {
       type: "spring",
       stiffness: 360,
@@ -253,7 +254,6 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
         animate(rawSX, 1, { type: "spring", stiffness: 260, damping: 22, mass: 0.45 });
         animate(rawSY, 1, { type: "spring", stiffness: 260, damping: 22, mass: 0.45 });
         slideLockRef.current = false;
-        onChange(id);
       },
     });
   };
@@ -405,7 +405,56 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
   );
 }
 
-function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, onBoostRequired, isNotificationsOpen, notifications }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; onTaskComplete: (title: string) => void; canRunWork: boolean; onBoostRequired: () => void; isNotificationsOpen: boolean; notifications: PreviewNotification[] }) {
+function NotificationTray({ notifications, onClear }: { notifications: PreviewNotification[]; onClear: () => void }) {
+  const unreadCount = notifications.filter((notification) => notification.unread).length;
+
+  return (
+    <motion.div
+      id="dashboard-preview-notification-tray"
+      role="dialog"
+      aria-label="Recent notifications"
+      initial={{ opacity: 0, y: -8, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -5, scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 360, damping: 28, mass: 0.55 }}
+      className="dashboard-preview-notification-tray absolute right-0 top-[calc(100%+0.75rem)] z-[60] w-[min(88vw,360px)] overflow-hidden rounded-[24px] border p-3 shadow-[0_24px_70px_rgba(0,0,0,0.35),0_0_32px_rgba(168,85,247,0.12)] backdrop-blur-2xl"
+    >
+      <div className="flex items-start justify-between gap-3 px-2 pb-2">
+        <div>
+          <p className="text-sm font-semibold">Recent notifications</p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">Pushes Arc sent you.</p>
+        </div>
+        {unreadCount > 0 && <span className="dashboard-preview-notification-count rounded-full px-2 py-1 text-[10px] font-medium">{unreadCount} new</span>}
+      </div>
+      {notifications.length > 0 ? (
+        <div className="space-y-1">
+          {notifications.map((notification) => (
+            <button key={`${notification.title}-${notification.time}`} type="button" className="dashboard-preview-notification-row flex w-full items-start gap-2.5 rounded-xl border px-2 py-2 text-left transition-colors">
+              <span className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg", notification.unread ? "dashboard-preview-notification-unread-icon" : "bg-muted text-muted-foreground")}>
+                <Bell className="h-3 w-3" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5">
+                  <span className="truncate text-[10px] font-medium">{notification.title}</span>
+                  {notification.unread && <span className="dashboard-preview-notification-unread-dot h-1.5 w-1.5 shrink-0 rounded-full" />}
+                </span>
+                <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{notification.detail}</span>
+              </span>
+              <span className="shrink-0 text-[9px] text-muted-foreground">{notification.time}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="dashboard-preview-notification-empty rounded-xl border px-3 py-4 text-center text-[11px] text-muted-foreground">You’re all caught up.</p>
+      )}
+      <button type="button" onClick={onClear} disabled={notifications.length === 0} className="mt-2 w-full rounded-xl border px-3 py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default disabled:opacity-50">
+        Clear notifications
+      </button>
+    </motion.div>
+  );
+}
+
+function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, onBoostRequired }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; onTaskComplete: (title: string) => void; canRunWork: boolean; onBoostRequired: () => void }) {
   const [query, setQuery] = useState("");
   const [taskStates, setTaskStates] = useState<Record<string, "idle" | "running" | "complete">>({});
   const taskTimersRef = useRef<number[]>([]);
@@ -467,14 +516,6 @@ function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, 
                 </button>
               ))}
             </div>
-            <AnimatePresence initial={false}>
-              {isNotificationsOpen && (
-                <motion.div initial={{ opacity: 0, height: 0, y: -4 }} animate={{ opacity: 1, height: "auto", y: 0 }} exit={{ opacity: 0, height: 0, y: -4 }} transition={{ duration: 0.2 }} className="mt-3 overflow-hidden border-t border-border/40 pt-3">
-                  <div className="flex items-center justify-between px-2"><div><p className="text-xs font-semibold">Recent notifications</p><p className="mt-0.5 text-[10px] text-muted-foreground">Pushes Arc sent you.</p></div><span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-medium text-primary">{notifications.filter((notification) => notification.unread).length} new</span></div>
-                  <div className="mt-2 space-y-1">{notifications.map((notification) => <button key={`${notification.title}-${notification.time}`} type="button" className="flex w-full items-start gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-white/[0.06]"><span className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg", notification.unread ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground")}><Bell className="h-3 w-3" /></span><span className="min-w-0 flex-1"><span className="flex items-center gap-1.5"><span className="truncate text-[10px] font-medium">{notification.title}</span>{notification.unread && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}</span><span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{notification.detail}</span></span><span className="shrink-0 text-[9px] text-muted-foreground">{notification.time}</span></button>)}</div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         </div>
       </section>
@@ -506,6 +547,7 @@ export function DashboardPreviewPage() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isBoostGateOpen, setIsBoostGateOpen] = useState(false);
   const [notifications, setNotifications] = useState<PreviewNotification[]>(previewNotifications);
+  const unreadNotificationCount = notifications.filter((notification) => notification.unread).length;
   const themeMode = useAccentStore((state) => state.themeMode);
   const cycleThemeMode = useAccentStore((state) => state.cycleThemeMode);
   const cleanPreview = typeof window !== "undefined"
@@ -526,15 +568,20 @@ export function DashboardPreviewPage() {
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.035] to-transparent" />
       </div>
 
-      <header className="relative z-10 mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 pb-5 pt-5 sm:px-7 lg:flex-row lg:items-center lg:justify-between lg:px-10 lg:pt-8">
+      <header className="relative z-10 mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 pb-5 pt-5 sm:px-7 md:flex-row md:items-center md:justify-between md:px-10 md:pt-8">
         <div className="flex items-center justify-between gap-4"><div className="flex items-center gap-1.5"><button type="button" onClick={returnToChat} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" aria-label="Back to Arc chat" title="Back to Arc chat"><ArrowLeft className="h-4 w-4" /></button><ArcMark onClick={returnToChat} /></div>{!cleanPreview && <span className="rounded-full border border-primary/20 bg-primary/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary">Dashboard preview</span>}</div>
         {!cleanPreview && <LayoutSwitcher mode={layout} onChange={setLayout} />}
-        <div className="flex items-center gap-2 self-end lg:self-auto"><button type="button" onClick={cycleThemeMode} className="dashboard-preview-control flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground" aria-label={`Theme: ${themeLabel}`} title={`Theme: ${themeLabel}`}><motion.span key={themeMode} initial={{ rotate: -90, opacity: 0, scale: 0.7 }} animate={{ rotate: 0, opacity: 1, scale: 1 }} transition={{ type: "spring", damping: 14, stiffness: 320 }} className="inline-flex"><ThemeIcon className="h-4 w-4" /></motion.span></button><div className="relative"><button type="button" onClick={() => setIsNotificationsOpen((open) => !open)} className="dashboard-preview-control relative flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground" aria-label="Recent push notifications" aria-expanded={isNotificationsOpen}><Bell className="h-4 w-4" /><span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary))]" /></button></div><button type="button" className="dashboard-preview-control flex items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.04] py-1.5 pl-1.5 pr-3 text-xs transition-colors hover:bg-white/[0.08]"><div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-300 to-fuchsia-500 text-[10px] font-bold text-black">JF</div><span className="hidden sm:inline">Jake Freudinger</span><ChevronRight className="h-3.5 w-3.5 rotate-90 text-muted-foreground" /></button></div>
+        <div className="relative flex items-center gap-2 self-end md:self-auto">
+          <button type="button" onClick={cycleThemeMode} className="dashboard-preview-control flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground" aria-label={`Theme: ${themeLabel}`} title={`Theme: ${themeLabel}`}><motion.span key={themeMode} initial={{ rotate: -90, opacity: 0, scale: 0.7 }} animate={{ rotate: 0, opacity: 1, scale: 1 }} transition={{ type: "spring", damping: 14, stiffness: 320 }} className="inline-flex"><ThemeIcon className="h-4 w-4" /></motion.span></button>
+          <button type="button" onClick={() => setIsNotificationsOpen((open) => !open)} className="dashboard-preview-control relative flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground" aria-label="Recent push notifications" aria-expanded={isNotificationsOpen} aria-controls="dashboard-preview-notification-tray"><Bell className="h-4 w-4" />{unreadNotificationCount > 0 && <span className="dashboard-preview-notification-unread-dot absolute right-1 top-1 h-1.5 w-1.5 rounded-full" />}</button>
+          <button type="button" className="dashboard-preview-control flex items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.04] py-1.5 pl-1.5 pr-3 text-xs transition-colors hover:bg-white/[0.08]"><div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-300 to-fuchsia-500 text-[10px] font-bold text-black">JF</div><span className="hidden sm:inline">Jake Freudinger</span><ChevronRight className="h-3.5 w-3.5 rotate-90 text-muted-foreground" /></button>
+          <AnimatePresence>{isNotificationsOpen && <NotificationTray notifications={notifications} onClear={() => setNotifications([])} />}</AnimatePresence>
+        </div>
       </header>
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1440px] gap-5 px-4 pb-8 sm:px-7 lg:px-10">
         {layout === "sidebar" && <PreviewSidebar activeTab={activeTab} onChange={setActiveTab} onHome={returnToChat} />}
-        <main className="min-w-0 flex-1"><div className="mb-5 flex items-center justify-between gap-4"><div><p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Overview</p>{!cleanPreview && <p className="mt-1 text-xs text-muted-foreground/70">A signed-in look at your Arc workspace</p>}</div><div className="hidden items-center gap-2 text-[11px] text-muted-foreground sm:flex"><CircleUserRound className="h-3.5 w-3.5" /> Personal space</div></div><DashboardOverview activeTab={activeTab} onNavigate={setActiveTab} onTaskComplete={handleTaskComplete} canRunWork={previewHasBoost} onBoostRequired={() => setIsBoostGateOpen(true)} isNotificationsOpen={isNotificationsOpen} notifications={notifications} /></main>
+        <main className="min-w-0 flex-1"><div className="mb-5 flex items-center justify-between gap-4"><div><p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Overview</p>{!cleanPreview && <p className="mt-1 text-xs text-muted-foreground/70">A signed-in look at your Arc workspace</p>}</div><div className="hidden items-center gap-2 text-[11px] text-muted-foreground sm:flex"><CircleUserRound className="h-3.5 w-3.5" /> Personal space</div></div><DashboardOverview activeTab={activeTab} onNavigate={setActiveTab} onTaskComplete={handleTaskComplete} canRunWork={previewHasBoost} onBoostRequired={() => setIsBoostGateOpen(true)} /></main>
       </div>
 
       <AnimatePresence mode="wait">
