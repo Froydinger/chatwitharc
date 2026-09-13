@@ -303,8 +303,8 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
   };
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] sm:px-6">
-      <div className="dashboard-preview-dock pointer-events-auto flex w-full max-w-[850px] items-center gap-2 rounded-[26px] border border-white/[0.12] bg-[#111113]/92 p-2 shadow-[0_20px_70px_rgba(0,0,0,0.55),0_0_38px_rgba(168,85,247,0.08)] backdrop-blur-2xl">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-0 sm:px-6">
+      <div className="dashboard-preview-dock pointer-events-auto flex w-full max-w-[850px] items-center gap-2 rounded-[26px] border border-white/[0.12] bg-[#111113]/92 p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] shadow-[0_20px_70px_rgba(0,0,0,0.55),0_0_38px_rgba(168,85,247,0.08)] backdrop-blur-2xl">
         <div className="hidden shrink-0 items-center pl-2 pr-3 sm:flex"><ArcMark compact /></div>
         <div className="hidden h-8 w-px bg-white/[0.09] sm:block" />
         <div ref={navRef} className="relative flex min-w-0 flex-1 items-center" style={{ touchAction: "none" }}>
