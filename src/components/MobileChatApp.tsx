@@ -35,6 +35,14 @@ import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useProfile } from "@/hooks/useProfile";
 import { useTheme } from "@/hooks/useTheme";
@@ -326,31 +334,30 @@ export function MobileChatApp() {
   const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false);
   const { profile } = useProfile();
   const { user, isAnonymous, loading: authLoading } = useAuth();
-  // Every authenticated text turn crosses the durable cloud boundary before
-  // provider work begins. Chat stays conversational in the UI; Work adds the
-  // agentic tool loop when it is actually needed.
+  // Arc Chat is the safe default and stays on the normal conversational
+  // request path. Durable cloud execution belongs only to explicit Arc Work.
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
   const cloudTextEnabled = !authLoading
     && import.meta.env.VITE_CLOUD_RUNS_ENABLED === 'true'
     && import.meta.env.VITE_CLOUD_SESSION_OPERATIONS_ENABLED === 'true' && !!user && !isAnonymous;
   const [cloudModeChoice, setCloudModeChoice] = useState<{ ownerId: string; mode: CloudRunMode } | null>(null);
-  const modeHydratedForSessionRef = useRef<string | null>(null);
   const arcCloudAvailable = cloudTextEnabled && (hasBoost || isAdmin);
-  // Arc Chat is the explicit starting mode. Auto is an explicit Arc Work
-  // choice by this owner, never inherited after an account switch.
+  // Work is an explicit per-session choice. Reopening an ordinary chat must
+  // never infer Work merely because that session has an old cloud run.
   useEffect(() => {
-    setCloudModeChoice(user ? { ownerId: user.id, mode: 'ask' } : null);
-    modeHydratedForSessionRef.current = null;
+    const isWorkSession = !!currentSessionId && workSessionIdsRef.current.has(currentSessionId);
+    setCloudModeChoice(user ? { ownerId: user.id, mode: isWorkSession ? 'auto' : 'ask' } : null);
   }, [user, currentSessionId]);
 
-  // Free users always stay on durable Ask mode. If Boost is removed while Work
-  // is selected, return the control to the safe Chat default.
+  // If Boost is removed while Work is selected, return the control to the safe
+  // Chat default before another message can be queued.
   const cloudExecutionMode = cloudModeChoice && cloudModeChoice.ownerId === user?.id ? cloudModeChoice.mode : 'ask';
+  const cloudWorkEnabled = cloudTextEnabled && cloudExecutionMode === 'auto';
   useEffect(() => {
     if (!arcCloudAvailable && cloudModeChoice?.mode === 'auto') setCloudModeChoice(null);
   }, [arcCloudAvailable, cloudModeChoice]);
   const cloudRuns = useCloudRuns({
-    enabled: cloudTextEnabled, ownerId: user?.id ?? null, sessionId: currentSessionId,
+    enabled: cloudWorkEnabled, ownerId: user?.id ?? null, sessionId: currentSessionId,
     onTerminal: async (entry, context) => {
       try {
         context.signal.throwIfAborted();
@@ -377,25 +384,6 @@ export function MobileChatApp() {
   // instead of failing against the first not-ready snapshot.
   const cloudRunsRef = useRef<CloudRunsApi | null>(null);
   cloudRunsRef.current = cloudRuns;
-
-  // A reopened session inherits the mode of its latest cloud request. This
-  // runs once per session after discovery so opening an old Work chat does not
-  // briefly reset the header to Chat, while a deliberate new click still wins.
-  useEffect(() => {
-    if (!user || !currentSessionId || !cloudRuns.ready || cloudRuns.restoring
-      || modeHydratedForSessionRef.current === currentSessionId) return;
-    const latest = cloudRuns.allEntries
-      .filter(entry => entry.sessionId === currentSessionId)
-      .sort((a, b) => {
-        const aTime = Date.parse(a.run?.updatedAt ?? a.run?.createdAt ?? '') || 0;
-        const bTime = Date.parse(b.run?.updatedAt ?? b.run?.createdAt ?? '') || 0;
-        return bTime - aTime || b.id.localeCompare(a.id);
-      })[0];
-    modeHydratedForSessionRef.current = currentSessionId;
-    setCloudModeChoice(current => current?.ownerId === user.id
-      ? { ...current, mode: latest?.mode ?? 'ask' }
-      : current);
-  }, [cloudRuns.allEntries, cloudRuns.ready, cloudRuns.restoring, currentSessionId, user]);
 
   const submitCloudText = async (intent: CloudTextSubmitIntent) => {
     // Capture before prepareCloudSession awaits: editor/session switches must
@@ -517,6 +505,50 @@ export function MobileChatApp() {
     });
     await activeCloudRuns.submit(entry.id);
   };
+
+  const requestWorkMode = useCallback((mode: CloudRunMode) => {
+    if (!user) return;
+    if (mode === 'ask') {
+      setCloudModeChoice({ ownerId: user.id, mode: 'ask' });
+      return;
+    }
+
+    // An empty chat can safely become Work in place. Any existing Chat
+    // transcript gets a deliberate handoff so Chat can never silently turn
+    // into a background Work request.
+    if (!currentSessionId || messages.length === 0 || workSessionIdsRef.current.has(currentSessionId)) {
+      if (currentSessionId) workSessionIdsRef.current.add(currentSessionId);
+      setCloudModeChoice({ ownerId: user.id, mode: 'auto' });
+      return;
+    }
+    setIsWorkHandoffOpen(true);
+  }, [currentSessionId, messages.length, user]);
+
+  const confirmWorkHandoff = useCallback(() => {
+    if (!user) return;
+    const context = messages
+      .filter((message) => (message.role === 'user' || message.role === 'assistant') && message.type === 'text')
+      .slice(-8)
+      .map((message) => `${message.role === 'user' ? 'User' : 'Arc'}: ${message.content.trim().slice(0, 2_000)}`)
+      .join('\n\n');
+    const handoffPrompt = [
+      'Continue this request in Arc Work using the compact Arc Chat context below.',
+      'This is a new Work conversation. Preserve the user intent, verify the current state, and continue from where Arc Chat stopped.',
+      '',
+      '--- Arc Chat context ---',
+      context || 'No prior text context was available.',
+      '--- End context ---',
+    ].join('\n');
+
+    const newSessionId = createNewSession();
+    workSessionIdsRef.current.add(newSessionId);
+    setCloudModeChoice({ ownerId: user.id, mode: 'auto' });
+    setIsWorkHandoffOpen(false);
+    sessionStorage.setItem('arc_session_model', 'gpt-5.6-luna');
+    navigate(`/chat/${newSessionId}`);
+    window.setTimeout(() => chatInputRef.current?.sendMessage(handoffPrompt), 0);
+  }, [createNewSession, messages, navigate, user]);
+
   const requireAuth = useRequireAuth();
   const isMobile = useIsMobile();
   const isAdminBannerActive = useAdminBanner();
@@ -699,11 +731,13 @@ export function MobileChatApp() {
   const [canvasWidthPercent, setCanvasWidthPercent] = useState(50);
   const [showLibrary, setShowLibrary] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isWorkHandoffOpen, setIsWorkHandoffOpen] = useState(false);
   const [isHeaderTight, setIsHeaderTight] = useState(false);
   const [isCanvasResizing, setIsCanvasResizing] = useState(false);
   const canvasResizingRef = useRef(false);
   const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
+  const workSessionIdsRef = useRef<Set<string>>(new Set());
 
   // Static random prompts - picked once on mount, no AI call
   const staticSuggestions = useMemo(() => pickRandomPrompts(3), []);
@@ -1189,12 +1223,7 @@ export function MobileChatApp() {
                 <ArcModeTabs
                   mode={cloudExecutionMode}
                   available={arcCloudAvailable}
-                  onChange={(mode) => {
-                    if (user) {
-                      modeHydratedForSessionRef.current = currentSessionId;
-                      setCloudModeChoice({ ownerId: user.id, mode });
-                    }
-                  }}
+                  onChange={requestWorkMode}
                   onUnavailable={openCheckout}
                 />
               </div>
@@ -1433,7 +1462,7 @@ export function MobileChatApp() {
                     <div className="glass-dock" data-arc-working={isArcWorking}>
                       <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
                         cloudExecutionMode={cloudExecutionMode}
-                        onCloudTextSubmit={cloudTextEnabled ? submitCloudText : undefined} />
+                        onCloudTextSubmit={cloudWorkEnabled ? submitCloudText : undefined} />
                     </div>
                   </ArcInputEffects>
                 </motion.div>
@@ -1517,7 +1546,7 @@ export function MobileChatApp() {
                       );
                     })}
                   </AnimatePresence>
-                {!isVoiceActive && <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} enabled={cloudTextEnabled} />}
+                {cloudWorkEnabled && !isVoiceActive && <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} enabled={cloudWorkEnabled} />}
                   {/* Show thinking indicator when loading */}
                   <AnimatePresence>
                     {isLoading &&
@@ -1656,7 +1685,7 @@ export function MobileChatApp() {
                   >
                     <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
                       cloudExecutionMode={cloudExecutionMode}
-                      onCloudTextSubmit={cloudTextEnabled ? submitCloudText : undefined} />
+                      onCloudTextSubmit={cloudWorkEnabled ? submitCloudText : undefined} />
                   </div>
                 </ArcInputEffects>
               </motion.div>
@@ -2046,9 +2075,28 @@ export function MobileChatApp() {
 
       {/* Voice Mode Overlay */}
       <VoiceModeOverlay />
-      
+
       {/* Voice Mode Controller (orchestrates the conversation) */}
       <VoiceModeController />
+
+      <Dialog open={isWorkHandoffOpen} onOpenChange={setIsWorkHandoffOpen}>
+        <DialogContent className="glass-card max-w-md">
+          <DialogHeader>
+            <DialogTitle>Move this conversation to Arc Work?</DialogTitle>
+            <DialogDescription>
+              Arc will open a new Work conversation with a compact summary of this chat. Your current Chat conversation stays unchanged.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsWorkHandoffOpen(false)}>
+              Stay in Chat
+            </Button>
+            <Button type="button" onClick={confirmWorkHandoff}>
+              Yes, move to Work
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Share Chat Dialog */}
       <ShareChatDialog

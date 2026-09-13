@@ -24,9 +24,9 @@ export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId:
     return hasWorkCompletionSummary(entry.run);
   });
 
-  // A chat visit may surface one newly relevant Work summary, never a stack of
-  // historical modals. Every eligible run keeps its tile; the seen marker
-  // only controls automatic opening and is scoped to this browser.
+  // A Work visit may surface one newly relevant Work summary, never a stack of
+  // historical modals. Chat owns its normal reply presentation and never
+  // mounts this durable-run surface.
   useEffect(() => {
     autoOpenConsumed.current = false;
     setAutoOpenRunId(null);

@@ -645,6 +645,9 @@ export async function handleCloudRun(req: Request): Promise<Response> {
         p_expected_revision: action.expectedRevision,
       });
       if (error) {
+        if (error.code === "P0001" && error.message === "Cloud request limit reached") {
+          throw new HttpError(429, "Too many active Work requests. Let one finish before starting another.");
+        }
         if (error.code === "23503") {
           throw new HttpError(404, "Session not found.");
         }
@@ -684,7 +687,10 @@ export async function handleCloudRun(req: Request): Promise<Response> {
           "Submission accepted but status unavailable; check run status.",
         );
       }
-      wakeCloudWorker();
+      // Only explicit Arc Work submissions need an immediate detached worker
+      // wake. Regular Chat stays on the conversational endpoint and legacy
+      // queued Chat runs can still be recovered by the bounded minute sweep.
+      if (action.mode === "auto" || action.kind === "app") wakeCloudWorker();
       return json({
         ...publicRun(submitted),
         sessionRevision: receipt.session_revision,
