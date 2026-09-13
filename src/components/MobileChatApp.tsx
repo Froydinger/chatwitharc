@@ -325,23 +325,21 @@ export function MobileChatApp() {
   const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false);
   const { profile } = useProfile();
   const { user, isAnonymous } = useAuth();
-  // Ordinary authenticated chat is durable. Arc Cloud is the Boost-only
-  // control plane for automatic tool execution; free users still get the
-  // server-side Ask path so closing the app never cancels a response.
+  // Every authenticated text turn crosses the durable cloud boundary before
+  // provider work begins. Chat stays conversational in the UI; Work adds the
+  // agentic tool loop when it is actually needed.
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
   const cloudTextEnabled = import.meta.env.VITE_CLOUD_RUNS_ENABLED === 'true'
     && import.meta.env.VITE_CLOUD_SESSION_OPERATIONS_ENABLED === 'true' && !!user && !isAnonymous;
   const [cloudModeChoice, setCloudModeChoice] = useState<{ ownerId: string; mode: CloudRunMode } | null>(null);
+  const modeHydratedForSessionRef = useRef<string | null>(null);
   const arcCloudAvailable = cloudTextEnabled && (hasBoost || isAdmin);
   // Arc Chat is the explicit starting mode. Auto is an explicit Arc Work
   // choice by this owner, never inherited after an account switch.
   useEffect(() => {
-    setCloudModeChoice((current) => {
-      if (!user) return null;
-      if (current?.ownerId === user.id) return current;
-      return { ownerId: user.id, mode: 'ask' };
-    });
-  }, [user]);
+    setCloudModeChoice(user ? { ownerId: user.id, mode: 'ask' } : null);
+    modeHydratedForSessionRef.current = null;
+  }, [user, currentSessionId]);
 
   // Free users always stay on durable Ask mode. If Boost is removed while Work
   // is selected, return the control to the safe Chat default.
@@ -377,6 +375,25 @@ export function MobileChatApp() {
   // instead of failing against the first not-ready snapshot.
   const cloudRunsRef = useRef<CloudRunsApi | null>(null);
   cloudRunsRef.current = cloudRuns;
+
+  // A reopened session inherits the mode of its latest cloud request. This
+  // runs once per session after discovery so opening an old Work chat does not
+  // briefly reset the header to Chat, while a deliberate new click still wins.
+  useEffect(() => {
+    if (!user || !currentSessionId || !cloudRuns.ready || cloudRuns.restoring
+      || modeHydratedForSessionRef.current === currentSessionId) return;
+    const latest = cloudRuns.allEntries
+      .filter(entry => entry.sessionId === currentSessionId)
+      .sort((a, b) => {
+        const aTime = Date.parse(a.run?.updatedAt ?? a.run?.createdAt ?? '') || 0;
+        const bTime = Date.parse(b.run?.updatedAt ?? b.run?.createdAt ?? '') || 0;
+        return bTime - aTime || b.id.localeCompare(a.id);
+      })[0];
+    modeHydratedForSessionRef.current = currentSessionId;
+    setCloudModeChoice(current => current?.ownerId === user.id
+      ? { ...current, mode: latest?.mode ?? 'ask' }
+      : current);
+  }, [cloudRuns.allEntries, cloudRuns.ready, cloudRuns.restoring, currentSessionId, user]);
 
   const submitCloudText = async (intent: CloudTextSubmitIntent) => {
     // Capture before prepareCloudSession awaits: editor/session switches must
@@ -1171,7 +1188,10 @@ export function MobileChatApp() {
                   mode={cloudExecutionMode}
                   available={arcCloudAvailable}
                   onChange={(mode) => {
-                    if (user) setCloudModeChoice({ ownerId: user.id, mode });
+                    if (user) {
+                      modeHydratedForSessionRef.current = currentSessionId;
+                      setCloudModeChoice({ ownerId: user.id, mode });
+                    }
                   }}
                   onUnavailable={openCheckout}
                 />
@@ -1411,7 +1431,7 @@ export function MobileChatApp() {
                     <div className="glass-dock" data-arc-working={isArcWorking}>
                       <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
                         cloudExecutionMode={cloudExecutionMode}
-                        onCloudTextSubmit={cloudTextEnabled && cloudExecutionMode === 'auto' ? submitCloudText : undefined} />
+                        onCloudTextSubmit={cloudTextEnabled ? submitCloudText : undefined} />
                     </div>
                   </ArcInputEffects>
                 </motion.div>
@@ -1634,7 +1654,7 @@ export function MobileChatApp() {
                   >
                     <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
                       cloudExecutionMode={cloudExecutionMode}
-                      onCloudTextSubmit={cloudTextEnabled && cloudExecutionMode === 'auto' ? submitCloudText : undefined} />
+                      onCloudTextSubmit={cloudTextEnabled ? submitCloudText : undefined} />
                   </div>
                 </ArcInputEffects>
               </motion.div>

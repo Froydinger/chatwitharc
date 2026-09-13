@@ -1,12 +1,14 @@
-import { CloudRunStatus } from './CloudRunStatus';
+import { CloudRunStatus, hasWorkCompletionSummary } from './CloudRunStatus';
 import type { CloudRunsApi } from '@/hooks/useCloudRuns';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /** The parent provider owns transport. This list never starts another observer,
  * writes an assistant message, or connects to voice mode. */
 export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId: string | null; cloud: CloudRunsApi; enabled?: boolean }) {
   const restorePending = useRef(false);
   const [restoring, setRestoring] = useState(false);
+  const [autoOpenRunId, setAutoOpenRunId] = useState<string | null>(null);
+  const autoOpenConsumed = useRef(false);
   const restore = async () => {
     if (restorePending.current) return;
     restorePending.current = true;
@@ -16,7 +18,43 @@ export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId:
     finally { restorePending.current = false; setRestoring(false); }
   };
   const entries = cloud.entries.filter(entry => entry.sessionId === sessionId);
-  const visibleEntries = entries.filter(entry => !(entry.mode === 'ask' && entry.run?.status === 'completed'));
+  const visibleEntries = entries.filter(entry => {
+    if (entry.run?.status !== 'completed') return true;
+    if (entry.mode === 'ask') return false;
+    return hasWorkCompletionSummary(entry.run);
+  });
+
+  // A chat visit may surface one newly relevant Work summary, never a stack of
+  // historical modals. Every eligible run keeps its tile; the seen marker
+  // only controls automatic opening and is scoped to this browser.
+  useEffect(() => {
+    autoOpenConsumed.current = false;
+    setAutoOpenRunId(null);
+  }, [sessionId]);
+  useEffect(() => {
+    if (!sessionId || !cloud.ready || cloud.restoring || autoOpenConsumed.current) return;
+    const eligible = entries
+      .filter(entry => entry.mode === 'auto' && entry.run && hasWorkCompletionSummary(entry.run))
+      .sort((a, b) => {
+        const aTime = Date.parse(a.run?.updatedAt ?? a.run?.createdAt ?? '') || 0;
+        const bTime = Date.parse(b.run?.updatedAt ?? b.run?.createdAt ?? '') || 0;
+        return aTime - bTime || a.id.localeCompare(b.id);
+      });
+    const unseen = eligible.filter(entry => {
+      try { return localStorage.getItem(`arc-work-summary-seen:${entry.id}`) !== '1'; }
+      catch { return true; }
+    });
+    if (!unseen.length) return;
+    const newest = unseen[unseen.length - 1];
+    // Mark every currently-known eligible run as seen before opening the one
+    // newest result. That prevents an older completion from taking over on a
+    // later history visit while keeping its View summary tile available.
+    for (const entry of eligible) {
+      try { localStorage.setItem(`arc-work-summary-seen:${entry.id}`, '1'); } catch { /* private mode */ }
+    }
+    autoOpenConsumed.current = true;
+    setAutoOpenRunId(newest.id);
+  }, [cloud.ready, cloud.restoring, entries, sessionId]);
   const loading = enabled && !cloud.error && (!cloud.ready || cloud.restoring);
   if (loading) return <section aria-label="Loading cloud tasks" aria-busy="true" role="status"
     className="glass-card w-full max-w-xl rounded-2xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
@@ -37,6 +75,7 @@ export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId:
     {visibleEntries.map(entry => entry.run
       ? <CloudRunStatus key={entry.id} run={entry.run} connection={entry.connection}
         mode={entry.mode}
+        autoOpenSummary={entry.id === autoOpenRunId}
         observationError={entry.error}
         onApprove={response => cloud.respond(entry.id, response)}
         onDeny={response => cloud.respond(entry.id, response)}

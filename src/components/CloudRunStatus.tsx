@@ -15,6 +15,8 @@ export interface CloudRunStatusProps {
   onCancel: Callback;
   /** Resolve only after refreshing this run; reject if refresh fails. */
   onReconnect: Callback;
+  /** The parent decides when a newly completed Work result may open once. */
+  autoOpenSummary?: boolean;
 }
 
 type ActionState = { pending: Action | null; error: string | null; reconnectRequired: boolean; submitted: boolean };
@@ -122,6 +124,21 @@ function workSummary(run: CloudRun<unknown, CloudRunCheckpoint>) {
   return { response, links, assets };
 }
 
+/**
+ * Plain Work replies already render through the normal chat transcript. Keep
+ * the extra completion tile/modal for actual multi-step work or created
+ * material, where the audit and asset list add information the chat bubble
+ * does not contain.
+ */
+export function hasWorkCompletionSummary(run: CloudRun<unknown, CloudRunCheckpoint>) {
+  if (run.status !== 'completed') return false;
+  const summary = workSummary(run);
+  const audit = run.checkpoint?.audit ?? (run.checkpoint?.activity ?? []).map(item => ({
+    kind: 'tool' as const, label: item.tool, status: item.outcome,
+  }));
+  return summary.links.length > 0 || summary.assets.length > 0 || audit.length > 1;
+}
+
 function assetIcon(kind: SummaryAsset['kind']) {
   return kind === 'image' ? 'Image' : kind === 'file' ? 'File' : kind === 'canvas' ? 'Canvas' : 'Code';
 }
@@ -192,11 +209,11 @@ export function CloudRunStatus(props: CloudRunStatusProps) {
   return <CloudRunStatusCard key={key} {...props} />;
 }
 
-function CloudRunStatusCard({ run, mode = 'auto', connection = 'idle', observationError, onApprove, onDeny, onCancel, onReconnect }: CloudRunStatusProps) {
+function CloudRunStatusCard({ run, mode = 'auto', connection = 'idle', observationError, onApprove, onDeny, onCancel, onReconnect, autoOpenSummary = true }: CloudRunStatusProps) {
   const titleId = useId();
   const argsId = useId();
   const [state, setState] = useState<ActionState>({ pending: null, error: null, reconnectRequired: false, submitted: false });
-  const [summaryOpen, setSummaryOpen] = useState(run.status === 'completed' && mode === 'auto');
+  const [summaryOpen, setSummaryOpen] = useState(autoOpenSummary && run.status === 'completed' && mode === 'auto');
   const [clock, setClock] = useState(() => Date.now());
   const guardRef = useRef<ReturnType<typeof createCloudRunActionGuard> | null>(null);
   if (!guardRef.current) guardRef.current = createCloudRunActionGuard(setState);
@@ -211,6 +228,9 @@ function CloudRunStatusCard({ run, mode = 'auto', connection = 'idle', observati
     const timer = window.setInterval(() => setClock(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [terminal, elapsedStartMs]);
+  useEffect(() => {
+    if (autoOpenSummary && run.status === 'completed' && mode === 'auto') setSummaryOpen(true);
+  }, [autoOpenSummary, mode, run.status]);
   const elapsedMs = Number.isFinite(elapsedStartMs)
     ? Math.max(0, (Number.isFinite(elapsedEndMs) ? elapsedEndMs : clock) - elapsedStartMs)
     : null;
@@ -237,8 +257,8 @@ function CloudRunStatusCard({ run, mode = 'auto', connection = 'idle', observati
   const displayAudit = audit.length ? audit : (run.checkpoint?.activity ?? []).map(item => ({
     kind: 'tool' as const, label: item.tool, status: item.outcome,
   }));
-  const hasAudit = displayAudit.length > 0 || !!run.checkpoint?.reasoningSummary ||
-    (!!run.checkpoint?.activity?.length && run.status === 'completed');
+  const hasAudit = displayAudit.length > 1 || !!run.checkpoint?.reasoningSummary ||
+    (!!run.checkpoint?.activity?.length && run.status === 'completed' && displayAudit.length > 1);
   const button = 'min-h-11 rounded-full border border-border bg-background/70 px-4 py-2 text-sm font-medium text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50';
   const decide = (decision: 'approve' | 'deny') => {
     if (!canDecide || mutationDisabled || !approval) return;
@@ -250,12 +270,24 @@ function CloudRunStatusCard({ run, mode = 'auto', connection = 'idle', observati
   // still be observed, but their completed result is already rendered by the
   // normal message/search UI and must not create a second Work card.
   if (mode === 'ask' && run.status === 'completed') return null;
+  if (mode === 'ask' && (run.status === 'queued' || run.status === 'running')) return (
+    <section aria-live="polite" aria-busy="true"
+      className="flex w-full max-w-xl items-center gap-3 rounded-2xl border border-border/50 bg-background/60 px-4 py-3 text-foreground shadow-sm">
+      <span aria-hidden="true" className="h-2.5 w-2.5 animate-pulse rounded-full bg-primary/70" />
+      <div className="min-w-0">
+        <p className="text-sm font-medium">Thinking…</p>
+        {elapsedMs !== null && <p className="text-xs text-muted-foreground">{formatElapsed(elapsedMs)}</p>}
+      </div>
+    </section>
+  );
   if (mode === 'auto' && run.status === 'completed') return <>
+    {!hasWorkCompletionSummary(run) ? null : <>
     <section className="flex w-full max-w-xl items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/70 p-3 text-foreground shadow-sm">
       <div><p className="text-sm font-semibold">Work complete</p><p className="text-xs text-muted-foreground">Your response, links, created assets, and audit trail are ready.</p></div>
       <button type="button" className={button} onClick={() => setSummaryOpen(true)}>View summary</button>
     </section>
     {summaryOpen && <WorkCompletionSummary run={run} onClose={() => setSummaryOpen(false)} />}
+    </>}
   </>;
 
   return (

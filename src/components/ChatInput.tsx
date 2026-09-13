@@ -1493,12 +1493,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   // Only bypass the browser queue for ordinary cloud text. Specialized image,
   // app and on-device paths still own their existing busy-state behavior.
   const canSubmitCloudTextWhileBusy = (text: string) => {
-    // Only Arc Work owns the durable worker queue. Arc Chat goes through the
-    // ordinary Luna/tool path and keeps its existing busy-state behavior.
-    if (cloudExecutionMode !== 'auto' || !onCloudTextSubmit || !user || isAnonymous || isGuestMode
+    // Both Chat and Work cross the durable hand-off before provider work. Chat
+    // still presents the eventual answer normally; it just cannot disappear
+    // when the app closes during the request.
+    if (!onCloudTextSubmit || !user || isAnonymous || isGuestMode
       || isLocalChatPreview() || useCorporateModeStore.getState().enabled || !text.trim()) return false;
-    // Arc Work owns tool selection. Keep the whole request, including files,
-    // together for the durable worker even while an earlier turn is running.
+    // Keep the whole request, including files, together for the durable worker
+    // even while an earlier turn is running.
     return true;
   };
 
@@ -2320,11 +2321,10 @@ ${safeCode}
           shouldSearchForVideo,
         });
 
-        // Arc Work is durable and close-safe. Arc Chat intentionally stays on
-        // the direct Luna/tool path so simple questions and searches do not
-        // acquire Work's queued/step-by-step UI.
+        // Chat and Work share the durable cloud hand-off. The mode only changes
+        // the worker's tool policy and the presentation after the reply lands.
         const durableCloudSubmit = onCloudTextSubmit && !isGuestMode && !corporateMode && !isLocalChatPreview()
-          && cloudExecutionMode === 'auto';
+          && (cloudExecutionMode === 'ask' || cloudExecutionMode === 'auto');
         const durableRoute = durableCloudSubmit || shouldUseCodeContext ? 'cloud-chat' : (cloudExecutionMode === 'auto' ? 'cloud-chat' : routeRequest({
           forceWebSearch: wasSearchMode || shouldSearchForVideo,
           forceCanvas: shouldForceCanvas,
