@@ -1093,7 +1093,7 @@ useEffect(() => {
       transition={isExiting
         ? { duration: 0.28, ease: [0.4, 0, 0.2, 1] as const }
         : { duration: isSwipeEntry ? 0.22 : 0.32, ease: [0.22, 1, 0.36, 1] as const }}
-      className={cn("min-h-screen overflow-y-auto overflow-x-hidden scrollbar-hide relative z-10 w-full max-w-full", embedded && "min-h-0")}
+      className={cn("min-h-screen overflow-y-auto overflow-x-hidden scrollbar-hide relative z-10 w-full max-w-full", embedded && "min-h-0 dashboard-preview-embedded")}
       style={{
         paddingTop: embedded ? 0 : `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
         paddingBottom: embedded ? 0 : 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
@@ -1103,7 +1103,7 @@ useEffect(() => {
       <Helmet>
         <title>ArcAI • Dashboard</title>
       </Helmet>
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 pt-3 sm:pt-5 pb-8 sm:pb-12 space-y-6 sm:space-y-8">
+      <div className={cn("mx-auto w-full max-w-7xl px-4 sm:px-6 pt-3 sm:pt-5 pb-8 sm:pb-12 space-y-6 sm:space-y-8", embedded && "dashboard-preview-embedded-content")}>
 
         {/* ═══ HEADER with ambient glow ═══ */}
         {!embedded && <div className="relative">
@@ -1445,7 +1445,7 @@ useEffect(() => {
 
           {/* ====== FULL CHATS ====== */}
           {activeTab === "chats" && (
-            <motion.div key="chats" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
+            <motion.div key="chats" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-chats")}>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1604,7 +1604,7 @@ useEffect(() => {
 
           {/* ====== IMAGES ====== */}
           {activeTab === "images" && (
-            <motion.div key="images" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
+            <motion.div key="images" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-images")}>
               <AnimatePresence mode="wait">
                 {viewingImageIndex !== null && currentImage ? (
                   <motion.div key="viewer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
@@ -1728,7 +1728,7 @@ useEffect(() => {
 
           {/* ====== FULL APPS ====== */}
           {activeTab === "apps" && (
-            <motion.div key="apps" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
+            <motion.div key="apps" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-apps")}>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -2029,7 +2029,7 @@ useEffect(() => {
 
           {/* ====== FULL CANVASES ====== */}
           {activeTab === "canvases" && (
-            <motion.div key="canvases" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
+            <motion.div key="canvases" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-canvases")}>
               <AnimatePresence mode="wait">
                 {selectedCanvas ? (
                   <motion.div key="canvas-detail" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
@@ -2183,7 +2183,7 @@ useEffect(() => {
 
           {/* ====== LIVING MEMORY ====== */}
           {activeTab === "memories" && (
-            <motion.div key="memories" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className="space-y-4">
+            <motion.div key="memories" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-memories")}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0 flex-1 basis-64">
                   <h2 className="text-lg font-semibold">Arc's living memory</h2>

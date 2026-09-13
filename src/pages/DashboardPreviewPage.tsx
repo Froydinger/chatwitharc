@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, animate, motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import {
@@ -11,7 +11,6 @@ import {
   CalendarClock,
   Crown,
   ChevronRight,
-  CircleUserRound,
   Code2,
   FileText,
   FolderKanban,
@@ -19,7 +18,6 @@ import {
   LayoutDashboard,
   Loader2,
   MessageSquare,
-  MoreHorizontal,
   Plus,
   Search,
   Settings2,
@@ -30,7 +28,6 @@ import {
   Moon,
   Monitor,
   Users,
-  WandSparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemedLogo } from "@/components/ThemedLogo";
@@ -46,7 +43,6 @@ import { useIDEStore } from "@/store/useIDEStore";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardPageInner } from "@/pages/DashboardPage";
 
-type LayoutMode = "dock" | "sidebar";
 type DashboardTab = "overview" | "chats" | "apps" | "images" | "canvases" | "memory";
 
 const navItems: Array<{ id: DashboardTab; label: string; icon: typeof LayoutDashboard }> = [
@@ -107,70 +103,7 @@ function ArcMark({ compact = false, onClick }: { compact?: boolean; onClick?: ()
   return onClick ? <button type="button" onClick={onClick} className={cn(className, "rounded-2xl transition-opacity hover:opacity-80")} aria-label="Return to chat">{content}</button> : <div className={className}>{content}</div>;
 }
 
-function LayoutSwitcher({ mode, onChange }: { mode: LayoutMode; onChange: (mode: LayoutMode) => void }) {
-  return (
-    <div className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.045] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]" role="tablist" aria-label="Dashboard layout preview">
-      {(["dock", "sidebar"] as const).map((option) => (
-        <button
-          key={option}
-          type="button"
-          role="tab"
-          aria-selected={mode === option}
-          onClick={() => onChange(option)}
-          className="relative rounded-full px-3.5 py-2 text-[11px] font-medium transition-colors sm:px-4"
-        >
-          {mode === option && (
-            <motion.span
-              layoutId="dashboard-preview-layout"
-              className="absolute inset-0 rounded-full bg-white/[0.12] shadow-[0_0_18px_rgba(168,85,247,0.24)]"
-              transition={{ type: "spring", stiffness: 420, damping: 30 }}
-            />
-          )}
-          <span className={cn("relative z-10", mode === option ? "text-foreground" : "text-muted-foreground")}>
-            {option === "dock" ? "Bottom dock" : "Sidebar desktop"}
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function PreviewSidebar({ activeTab, onChange, onHome }: { activeTab: DashboardTab; onChange: (tab: DashboardTab) => void; onHome: () => void }) {
-  return (
-    <aside className="hidden w-[236px] shrink-0 flex-col rounded-[28px] border border-white/[0.09] bg-white/[0.035] p-3 shadow-[0_22px_80px_rgba(0,0,0,0.18)] lg:flex">
-      <div className="flex items-center gap-1.5 px-2 py-2"><button type="button" onClick={onHome} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" aria-label="Back to Arc chat" title="Back to Arc chat"><ArrowLeft className="h-4 w-4" /></button><ArcMark onClick={onHome} /></div>
-      <div className="my-5 h-px bg-white/[0.07]" />
-      <nav className="space-y-1" aria-label="Dashboard preview navigation">
-        {navItems.map(({ id, label, icon: Icon }) => {
-          const active = activeTab === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onChange(id)}
-              className={cn(
-                "group relative flex w-full items-center gap-3 rounded-2xl px-3.5 py-3 text-left text-sm transition-colors",
-                active ? "bg-white/[0.10] text-foreground shadow-[0_0_24px_rgba(168,85,247,0.12)]" : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground",
-              )}
-            >
-              {active && <motion.span layoutId="dashboard-preview-side-active" className="absolute left-0 top-2 bottom-2 w-0.5 rounded-full bg-primary shadow-[0_0_12px_hsl(var(--primary))]" />}
-              <Icon className={cn("h-4 w-4", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-              <span>{label}</span>
-              {id === "chats" && <span className="ml-auto rounded-full bg-white/[0.08] px-2 py-0.5 text-[10px] text-muted-foreground">24</span>}
-            </button>
-          );
-        })}
-      </nav>
-      <div className="mt-auto rounded-2xl border border-primary/15 bg-primary/[0.06] p-3">
-        <div className="flex items-center gap-2 text-xs font-medium"><Sparkles className="h-3.5 w-3.5 text-primary" /> Boost active</div>
-        <p className="mt-1.5 text-[11px] leading-4 text-muted-foreground">Unlimited reasoning for the work that needs more room.</p>
-        <button type="button" className="mt-3 text-[11px] font-medium text-primary hover:underline">Manage plan</button>
-      </div>
-    </aside>
-  );
-}
-
-function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: DashboardTab; onChange: (tab: DashboardTab) => void; mobileOnly?: boolean }) {
+function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: DashboardTab; onChange: (tab: DashboardTab) => void; onSettings: () => void }) {
   const navRef = useRef<HTMLDivElement>(null);
   const [trackSize, setTrackSize] = useState({ width: 0, height: 46 });
   const [isCompact, setIsCompact] = useState(false);
@@ -197,6 +130,18 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
   const lensTop = useTransform(springLensScale, (scale) => trackSize.height / 2 - (trackSize.height / 2) * (scale as number));
   const dragRef = useRef({ pointerX: 0, startCX: 0, lastX: 0, lastTime: 0 });
   const slideLockRef = useRef(false);
+  const animationRunRef = useRef(0);
+
+  const stopNavAnimations = useCallback(() => {
+    bubbleCX.stop();
+    lensFocusX.stop();
+    lensScale.stop();
+    rawSX.stop();
+    rawSY.stop();
+    rawBase.stop();
+  }, [bubbleCX, lensFocusX, lensScale, rawSX, rawSY, rawBase]);
+
+  useEffect(() => () => stopNavAnimations(), [stopNavAnimations]);
 
   const centerForIndex = (index: number) => (itemWidth + navGap) * index + itemWidth / 2;
   const clampCenter = (center: number) => Math.min(trackSize.width - bubbleWidth / 2, Math.max(bubbleWidth / 2, center));
@@ -235,49 +180,53 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
     if (targetIndex === startIndex) return;
     const startCenter = centerForIndex(startIndex);
     const targetCenter = centerForIndex(targetIndex);
+    stopNavAnimations();
+    const animationRun = ++animationRunRef.current;
     slideLockRef.current = true;
     setIsDragging(true);
     setHoverIndex(startIndex);
+    bubbleCX.set(startCenter);
     lensFocusX.set(startCenter);
-    animate(lensScale, 1.42, { type: "spring", stiffness: 320, damping: 20, mass: 0.4 });
+    animate(lensScale, 1.42, { type: "spring", stiffness: 360, damping: 28, mass: 0.38 });
     rawBase.set(1.1);
     animate(rawSX, [1, 0.92, 1.07, 0.97, 1.02, 1], { duration: 0.38 });
     animate(rawSY, [1, 1.07, 0.94, 1.04, 0.98, 1], { duration: 0.38 });
-    animate(lensFocusX, targetCenter, {
-      type: "spring",
-      stiffness: 360,
-      damping: 32,
-      mass: 0.58,
-      onUpdate: (focus) => setHoverIndex(indexForCenter(focus)),
-    });
     onChange(id);
     animate(bubbleCX, targetCenter, {
       type: "spring",
-      stiffness: 360,
-      damping: 32,
-      mass: 0.58,
+      stiffness: 440,
+      damping: 42,
+      mass: 0.52,
+      onUpdate: (center) => {
+        lensFocusX.set(center);
+        setHoverIndex(indexForCenter(center));
+      },
       onComplete: () => {
+        if (animationRun !== animationRunRef.current) return;
+        lensFocusX.set(targetCenter);
         animate(lensScale, 1, {
           type: "spring",
-          stiffness: 320,
-          damping: 20,
-          mass: 0.4,
-          delay: 0.08,
+          stiffness: 360,
+          damping: 34,
+          mass: 0.38,
           onComplete: () => {
+            if (animationRun !== animationRunRef.current) return;
             setIsDragging(false);
             setHoverIndex(-1);
+            slideLockRef.current = false;
           },
         });
         rawBase.set(1);
         animate(rawSX, 1, { type: "spring", stiffness: 260, damping: 22, mass: 0.45 });
         animate(rawSY, 1, { type: "spring", stiffness: 260, damping: 22, mass: 0.45 });
-        slideLockRef.current = false;
       },
     });
   };
 
   const startDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!itemWidth || event.button !== 0 || slideLockRef.current) return;
+    stopNavAnimations();
+    animationRunRef.current += 1;
     event.currentTarget.setPointerCapture(event.pointerId);
     setIsDragging(true);
     const startCenter = bubbleCX.get() < 0 ? centerForIndex(Math.max(0, navItems.findIndex((item) => item.id === activeTab))) : bubbleCX.get();
@@ -311,6 +260,8 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
 
   const endDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (!isDragging || !itemWidth) return;
+    stopNavAnimations();
+    const animationRun = ++animationRunRef.current;
     const releaseCenter = clampCenter(dragRef.current.startCX + event.clientX - dragRef.current.pointerX);
     bubbleCX.set(releaseCenter);
     const targetIndex = indexForCenter(releaseCenter);
@@ -318,39 +269,33 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
     const targetCenter = centerForIndex(targetIndex);
     slideLockRef.current = true;
     setHoverIndex(targetIndex);
-    // Move the magnified strip to the landing slot first, then let the lens
-    // collapse. This keeps the label/icon from leaving a second ghost behind.
-    lensFocusX.set(targetCenter);
-    let lensSettled = false;
-    let bubbleSettled = false;
-    const finishDragSettle = () => {
-      if (!lensSettled || !bubbleSettled) return;
-      setIsDragging(false);
-      setHoverIndex(-1);
-      slideLockRef.current = false;
-    };
-    animate(lensScale, 1, {
-      type: "spring",
-      stiffness: 320,
-      damping: 26,
-      mass: 0.4,
-      delay: 0.08,
-      onComplete: () => {
-        lensSettled = true;
-        finishDragSettle();
-      },
-    });
+    // Keep the magnified strip on the same travel value as the bubble. It
+    // collapses only after the bubble reaches its slot, so there is no second
+    // landing position to flash through.
     rawBase.set(1);
     animate(rawSX, 1, { type: "spring", stiffness: 260, damping: 22, mass: 0.45 });
     animate(rawSY, 1, { type: "spring", stiffness: 260, damping: 22, mass: 0.45 });
     animate(bubbleCX, targetCenter, {
       type: "spring",
-      stiffness: 380,
-      damping: 32,
-      mass: 0.6,
+      stiffness: 440,
+      damping: 42,
+      mass: 0.52,
+      onUpdate: (center) => lensFocusX.set(center),
       onComplete: () => {
-        bubbleSettled = true;
-        finishDragSettle();
+        if (animationRun !== animationRunRef.current) return;
+        lensFocusX.set(targetCenter);
+        animate(lensScale, 1, {
+          type: "spring",
+          stiffness: 360,
+          damping: 34,
+          mass: 0.38,
+          onComplete: () => {
+            if (animationRun !== animationRunRef.current) return;
+            setIsDragging(false);
+            setHoverIndex(-1);
+            slideLockRef.current = false;
+          },
+        });
       },
     });
     onChange(target.id);
@@ -358,7 +303,7 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
   };
 
   return (
-    <div className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] sm:px-6", mobileOnly && "lg:hidden")}>
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[calc(12px+env(safe-area-inset-bottom,0px))] sm:px-6">
       <div className="dashboard-preview-dock pointer-events-auto flex w-full max-w-[850px] items-center gap-2 rounded-[26px] border border-white/[0.12] bg-[#111113]/92 p-2 shadow-[0_20px_70px_rgba(0,0,0,0.55),0_0_38px_rgba(168,85,247,0.08)] backdrop-blur-2xl">
         <div className="hidden shrink-0 items-center pl-2 pr-3 sm:flex"><ArcMark compact /></div>
         <div className="hidden h-8 w-px bg-white/[0.09] sm:block" />
@@ -428,7 +373,7 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
             </motion.button>
           )}
         </div>
-        <button type="button" className="dashboard-preview-control hidden h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/[0.09] text-muted-foreground transition-colors hover:bg-white/[0.07] hover:text-foreground sm:ml-3 sm:flex" aria-label="Settings">
+        <button type="button" onClick={onSettings} className="dashboard-preview-control hidden h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/[0.09] text-muted-foreground transition-colors hover:bg-white/[0.07] hover:text-foreground sm:ml-3 sm:flex" aria-label="Settings" title="Settings">
           <Settings2 className="h-4 w-4" />
         </button>
       </div>
@@ -485,7 +430,7 @@ function NotificationTray({ notifications, onClear, onOpen }: { notifications: P
   );
 }
 
-function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, onBoostRequired, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat, onOpenReminders }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; onTaskComplete: (title: string) => void; canRunWork: boolean; onBoostRequired: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void; onOpenReminders?: () => void }) {
+function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, onBoostRequired, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat, onOpenReminders, unreadChatIds }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; onTaskComplete: (title: string) => void; canRunWork: boolean; onBoostRequired: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void; onOpenReminders?: () => void; unreadChatIds?: Set<string> }) {
   const [query, setQuery] = useState("");
   const [taskStates, setTaskStates] = useState<Record<string, "idle" | "running" | "complete">>({});
   const taskTimersRef = useRef<number[]>([]);
@@ -541,7 +486,7 @@ function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, 
               {visibleChats.slice(0, 3).map((chat, index) => (
                 <div key={chat.id || chat.title} role="button" tabIndex={0} onClick={() => { if (onOpenChat) onOpenChat(chat.id); else onNavigate("chats"); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); if (onOpenChat) onOpenChat(chat.id); else onNavigate("chats"); } }} className="dashboard-preview-chat-tile group flex w-full items-center gap-2.5 rounded-2xl border p-2.5 text-left transition-all hover:-translate-y-0.5">
                   <div className={cn("dashboard-preview-chat-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br", chat.tone)}><MessageSquare className="h-3.5 w-3.5 text-white/90" /></div>
-                  <div className="min-w-0 flex-1"><p className="truncate text-xs font-medium">{chat.title}</p><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{chat.detail}</p></div>
+                  <div className="min-w-0 flex-1"><p className="flex items-center gap-1.5 truncate text-xs font-medium">{chat.title}{unreadChatIds?.has(chat.id) && <span className="dashboard-preview-notification-unread-dot inline-block h-1.5 w-1.5 shrink-0 rounded-full" aria-label="Unread cloud response" />}</p><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{chat.detail}</p></div>
                   {index === 0 && <span className="hidden rounded-full border border-primary/20 bg-primary/[0.08] px-2 py-1 text-[9px] text-primary sm:inline">Resume</span>}
                   {onDeleteChat && <button type="button" aria-label={`Delete ${chat.title}`} title="Delete chat" onClick={(event) => { event.stopPropagation(); onDeleteChat(chat.id, chat.title); }} className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-70 transition-colors hover:bg-red-500/10 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></button>}
                   <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
@@ -565,9 +510,8 @@ function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, 
       </div>
 
       <div className="grid gap-5">
-        <section className="dashboard-preview-tile rounded-[30px] border border-white/[0.08] bg-white/[0.03] p-5 sm:p-6 lg:p-5">
-          <div className="flex items-center justify-between"><div><p className="text-sm font-semibold">Your workspace</p><p className="mt-1 text-xs text-muted-foreground">A quiet snapshot of Arc at work.</p></div><button type="button" className="rounded-full p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground" aria-label="More workspace actions"><MoreHorizontal className="h-4 w-4" /></button></div>
-          <div className="mt-4 rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.13] via-white/[0.03] to-transparent p-3 sm:p-4 lg:mt-3 lg:p-3"><div className="flex items-center justify-between"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 lg:h-8 lg:w-8"><WandSparkles className="h-4 w-4 text-primary lg:h-3.5 lg:w-3.5" /></div><span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{canRunWork ? "Boost" : "Arc Work"}</span></div><p className="mt-5 text-sm font-medium lg:mt-3">3 things Arc can keep moving</p><div className="mt-3 grid gap-2 lg:mt-2 sm:grid-cols-3">{workspaceTasks.map((task) => { const status = taskStates[task.id] ?? "idle"; return <button key={task.id} type="button" onClick={() => runWorkspaceTask(task)} disabled={status === "running"} className="group rounded-xl border border-white/[0.08] bg-white/[0.035] p-2.5 text-left transition-colors hover:border-primary/30 hover:bg-white/[0.08] disabled:cursor-wait lg:p-2"><span className="flex items-center gap-2"><span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full", status === "complete" ? "bg-emerald-400/15 text-emerald-300" : "bg-white/[0.07] text-muted-foreground")} >{status === "running" ? <Loader2 className="h-3 w-3 animate-spin" /> : status === "complete" ? <Check className="h-3 w-3" /> : <span className={cn("h-1.5 w-1.5 rounded-full", task.tone)} />}</span><span className="min-w-0"><span className="block truncate text-[10px] font-medium">{task.title}</span><span className="mt-0.5 block text-[9px] text-muted-foreground">{status === "running" ? "Running in cloud!" : status === "complete" ? "Complete!" : "Run in Arc Work"}</span></span></span></button>; })}</div></div>
+        <section className="relative overflow-hidden">
+          <div className="dashboard-preview-workspace-card rounded-[28px] border border-primary/20 bg-gradient-to-br from-primary/[0.14] via-white/[0.04] to-transparent p-4 shadow-[0_20px_60px_rgba(0,0,0,0.14)] sm:p-5 lg:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-lg font-semibold tracking-[-0.02em] sm:text-xl">3 things Arc can keep moving</p><p className="mt-1 text-xs text-muted-foreground">Quick actions ready when you are.</p></div><span className="shrink-0 pt-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{canRunWork ? "Boost" : "Arc Work"}</span></div><div className="mt-4 grid gap-2.5 sm:grid-cols-3">{workspaceTasks.map((task) => { const status = taskStates[task.id] ?? "idle"; return <button key={task.id} type="button" onClick={() => runWorkspaceTask(task)} disabled={status === "running"} className="group rounded-2xl border border-white/[0.1] bg-white/[0.045] p-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-white/[0.08] disabled:cursor-wait sm:p-3.5"><span className="flex items-start gap-2.5"><span className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full", status === "complete" ? "bg-emerald-400/15 text-emerald-300" : "bg-white/[0.08] text-muted-foreground")} >{status === "running" ? <Loader2 className="h-3 w-3 animate-spin" /> : status === "complete" ? <Check className="h-3 w-3" /> : <span className={cn("h-1.5 w-1.5 rounded-full", task.tone)} />}</span><span className="min-w-0"><span className="block truncate text-xs font-medium sm:text-sm">{task.title}</span><span className="mt-1 block truncate text-[10px] text-muted-foreground">{status === "running" ? "Running in cloud!" : status === "complete" ? "Complete!" : "Run in Arc Work"}</span></span></span></button>; })}</div></div>
         </section>
       </div>
     </motion.div>
@@ -587,7 +531,6 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
   const openIDECanvas = useIDEStore((state) => state.openIDECanvas);
   const queryTab = searchParams.get("tab");
   const initialTab: DashboardTab = queryTab === "memories" ? "memory" : (navItems.some((item) => item.id === queryTab) ? queryTab as DashboardTab : "overview");
-  const [layout, setLayout] = useState<LayoutMode>("dock");
   const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
@@ -658,6 +601,23 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
     { label: "Reminders", value: liveCounts.reminders, detail: "Active scheduled tasks", icon: CalendarClock, tint: "text-amber-200", glow: "from-amber-500/16" },
   ], [chatSessions, liveCounts]);
 
+  const resolveNotificationChat = useCallback((notification: PreviewNotification) => {
+    const availableChats = live ? liveChatItems : previewChatItems;
+    const notificationText = `${notification.title} ${notification.detail}`.toLowerCase();
+    return availableChats.find((item) => item.id === notification.chatId)
+      || availableChats.find((item) => notificationText.includes(item.title.toLowerCase()));
+  }, [live, liveChatItems, previewChatItems]);
+
+  const unreadChatIds = useMemo(() => {
+    const ids = new Set<string>();
+    notifications.forEach((notification) => {
+      if (!notification.unread) return;
+      const chat = resolveNotificationChat(notification);
+      if (chat) ids.add(chat.id);
+    });
+    return ids;
+  }, [notifications, resolveNotificationChat]);
+
   const handleTaskComplete = (title: string) => {
     setNotifications((current) => [{ title: "Cloud run complete", detail: `${title} is ready. Push + email sent.`, time: "Just now", unread: true }, ...current].slice(0, 4));
   };
@@ -677,6 +637,12 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
     handleTabChange("chats");
   };
   const handleOpenChat = (id: string) => {
+    const chat = (live ? liveChatItems : previewChatItems).find((item) => item.id === id);
+    setNotifications((items) => items.map((item) => {
+      const notificationText = `${item.title} ${item.detail}`.toLowerCase();
+      const matchesChat = item.chatId === id || (chat && notificationText.includes(chat.title.toLowerCase()));
+      return matchesChat ? { ...item, unread: false } : item;
+    }));
     if (live) {
       loadSession(id);
       navigate(`/chat/${id}`);
@@ -687,10 +653,7 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
   const handleOpenNotification = (notification: PreviewNotification) => {
     setNotifications((items) => items.map((item) => item.title === notification.title && item.time === notification.time ? { ...item, unread: false } : item));
     setIsNotificationsOpen(false);
-    const availableChats = live ? liveChatItems : previewChatItems;
-    const notificationText = `${notification.title} ${notification.detail}`.toLowerCase();
-    const chat = availableChats.find((item) => item.id === notification.chatId)
-      || availableChats.find((item) => notificationText.includes(item.title.toLowerCase()));
+    const chat = resolveNotificationChat(notification);
     if (chat) handleOpenChat(chat.id);
     else handleTabChange("chats");
   };
@@ -734,7 +697,6 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
 
       <header className="relative z-50 mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 pb-5 pt-5 sm:px-7 md:flex-row md:items-center md:justify-between md:px-10 md:pt-8">
         <div className="flex items-center justify-between gap-4"><div className="flex items-center gap-1.5"><button type="button" onClick={returnToChat} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" aria-label="Back to Arc chat" title="Back to Arc chat"><ArrowLeft className="h-4 w-4" /></button><ArcMark onClick={returnToChat} /></div>{!cleanPreview && <span className="rounded-full border border-primary/20 bg-primary/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary">Dashboard preview</span>}</div>
-        {!live && !cleanPreview && <LayoutSwitcher mode={layout} onChange={setLayout} />}
         <div className="relative flex items-center gap-2 self-end md:self-auto">
           <button type="button" onClick={handleAppBuilder} className="dashboard-preview-control hidden h-10 items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.08] px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/[0.14] sm:flex" aria-label={canRunWork ? "Open App Builder" : "Unlock App Builder with Boost"} title={canRunWork ? "Open App Builder" : "Unlock App Builder with Boost"}>
             {canRunWork ? <Smartphone className="h-4 w-4" /> : <Crown className="h-4 w-4" />}
@@ -763,14 +725,12 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
         </div>
       </header>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-[1440px] gap-5 px-4 pb-8 sm:px-7 lg:px-10">
-        {layout === "sidebar" && <PreviewSidebar activeTab={activeTab} onChange={handleTabChange} onHome={returnToChat} />}
-        <main className="min-w-0 flex-1"><div className="mb-5 flex items-center justify-between gap-4"><div><p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Overview</p>{!cleanPreview && <p className="mt-1 text-xs text-muted-foreground/70">A signed-in look at your Arc workspace</p>}</div><div className="hidden items-center gap-2 text-[11px] text-muted-foreground sm:flex"><CircleUserRound className="h-3.5 w-3.5" /> Personal space</div></div>{activeTab !== "overview" ? <DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} /> : <DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} onTaskComplete={handleTaskComplete} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? liveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} onOpenReminders={() => navigate("/tasks")} />}</main>
+      <div className="dashboard-preview-page-content relative z-10 mx-auto flex w-full max-w-[1440px] px-4 sm:px-7 lg:px-10">
+        <main className="min-w-0 flex-1">{activeTab !== "overview" ? <DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} /> : <DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} onTaskComplete={handleTaskComplete} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? liveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} onOpenReminders={() => navigate("/tasks")} unreadChatIds={unreadChatIds} />}</main>
       </div>
 
       <AnimatePresence mode="wait">
-        {layout === "dock" && <motion.div key="bottom-dock" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 18 }}><BottomShelf activeTab={activeTab} onChange={handleTabChange} /></motion.div>}
-        {layout === "sidebar" && <motion.div key="mobile-dock-fallback" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 18 }}><BottomShelf activeTab={activeTab} onChange={handleTabChange} mobileOnly /></motion.div>}
+        <motion.div key="bottom-dock" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 18 }}><BottomShelf activeTab={activeTab} onChange={handleTabChange} onSettings={() => navigate("/dashboard/settings")} /></motion.div>
       </AnimatePresence>
       <AnimatePresence>
         {pendingDeleteChat && (

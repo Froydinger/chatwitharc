@@ -620,6 +620,113 @@ All colors MUST be HSL for perfect glass effects.
   box-shadow: 0 18px 50px rgba(30, 35, 42, 0.13), 0 0 28px rgba(168, 85, 247, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
+/* Embedded dashboard tabs share the overview's language without changing
+   their existing data, actions, or responsive grids. Mobile is the base
+   layout so these surfaces remain comfortable in iOS/Android PWAs first. */
+.dashboard-preview-embedded {
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+/* Keep the last rows clear of the fixed bottom dock on every dashboard page. */
+.dashboard-preview-page-content {
+  padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+}
+
+.dashboard-preview-embedded-content {
+  max-width: none !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+
+.dashboard-preview-tab {
+  min-width: 0;
+  overflow: hidden;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025) 58%, rgba(168, 85, 247, 0.07));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.dashboard-preview-tab input,
+.dashboard-preview-tab textarea {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  border-radius: 16px !important;
+}
+
+.dashboard-preview-tab input:focus,
+.dashboard-preview-tab textarea:focus {
+  border-color: rgba(168, 85, 247, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12) !important;
+}
+
+.dashboard-preview-tab [class*="rounded-xl"][class*="border"],
+.dashboard-preview-tab [class*="rounded-2xl"][class*="border"],
+.dashboard-preview-tab [class*="rounded-3xl"][class*="border"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.045) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.dashboard-preview-tab [class*="rounded-xl"][class*="border"]:hover,
+.dashboard-preview-tab [class*="rounded-2xl"][class*="border"]:hover,
+.dashboard-preview-tab [class*="rounded-3xl"][class*="border"]:hover {
+  border-color: rgba(168, 85, 247, 0.32) !important;
+  background: rgba(255, 255, 255, 0.075) !important;
+}
+
+.dashboard-preview-tab-chats,
+.dashboard-preview-tab-images,
+.dashboard-preview-tab-apps,
+.dashboard-preview-tab-canvases,
+.dashboard-preview-tab-memories {
+  --dashboard-tab-accent: 168, 85, 247;
+}
+
+:root.light .dashboard-preview-tab {
+  border-color: rgba(98, 104, 113, 0.2);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 249, 251, 0.88) 58%, rgba(237, 233, 254, 0.7));
+  box-shadow: 0 18px 50px rgba(30, 35, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+:root.light .dashboard-preview-tab input,
+:root.light .dashboard-preview-tab textarea {
+  border-color: rgba(98, 104, 113, 0.22) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  box-shadow: inset 0 1px 2px rgba(30, 35, 42, 0.035) !important;
+}
+
+:root.light .dashboard-preview-tab [class*="rounded-xl"][class*="border"],
+:root.light .dashboard-preview-tab [class*="rounded-2xl"][class*="border"],
+:root.light .dashboard-preview-tab [class*="rounded-3xl"][class*="border"] {
+  border-color: rgba(98, 104, 113, 0.16) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  box-shadow: 0 8px 22px rgba(30, 35, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+:root.light .dashboard-preview-tab [class*="rounded-xl"][class*="border"]:hover,
+:root.light .dashboard-preview-tab [class*="rounded-2xl"][class*="border"]:hover,
+:root.light .dashboard-preview-tab [class*="rounded-3xl"][class*="border"]:hover {
+  border-color: rgba(126, 34, 206, 0.28) !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+}
+
+@media (min-width: 640px) {
+  .dashboard-preview-tab {
+    padding: 20px;
+    border-radius: 28px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-preview-tab {
+    padding: 24px;
+    border-radius: 32px;
+  }
+}
+
 /* Noir dark-mode button overrides — black button with white text */
 :root.dark[data-accent="noir"] button[class*="bg-primary"],
 :root.dark[data-accent="noir"] [role="button"][class*="bg-primary"],

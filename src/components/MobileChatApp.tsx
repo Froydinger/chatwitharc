@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Plus, Menu, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal, Volume2, Volume1, VolumeX, Crown } from "lucide-react";
+import { Plus, LayoutDashboard, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal, Volume2, Volume1, VolumeX, Crown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
@@ -1153,7 +1153,7 @@ export function MobileChatApp() {
                   title="Open menu"
                   aria-label="Open menu"
                 >
-                  <Menu className="h-4 w-4" />
+                  <LayoutDashboard className="h-4 w-4" />
                 </Button>
               </motion.div>
 
