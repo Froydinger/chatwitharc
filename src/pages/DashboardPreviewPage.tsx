@@ -695,7 +695,7 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.035] to-transparent" />
       </div>
 
-      <header className="relative z-50 mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 pb-5 pt-5 sm:px-7 md:flex-row md:items-center md:justify-between md:px-10 md:pt-8">
+      <header className="dashboard-preview-header relative z-50 mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 pb-5 sm:px-7 md:flex-row md:items-center md:justify-between md:px-10 md:pt-8">
         <div className="flex items-center justify-between gap-4"><div className="flex items-center gap-1.5"><button type="button" onClick={returnToChat} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" aria-label="Back to Arc chat" title="Back to Arc chat"><ArrowLeft className="h-4 w-4" /></button><ArcMark onClick={returnToChat} /></div>{!cleanPreview && <span className="rounded-full border border-primary/20 bg-primary/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary">Dashboard preview</span>}</div>
         <div className="relative flex items-center gap-2 self-end md:self-auto">
           <button type="button" onClick={handleAppBuilder} className="dashboard-preview-control hidden h-10 items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.08] px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/[0.14] sm:flex" aria-label={canRunWork ? "Open App Builder" : "Unlock App Builder with Boost"} title={canRunWork ? "Open App Builder" : "Unlock App Builder with Boost"}>
@@ -729,9 +729,11 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
         <main className="min-w-0 flex-1">{activeTab !== "overview" ? <DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} /> : <DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} onTaskComplete={handleTaskComplete} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? liveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} onOpenReminders={() => navigate("/tasks")} unreadChatIds={unreadChatIds} />}</main>
       </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div key="bottom-dock" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 18 }}><BottomShelf activeTab={activeTab} onChange={handleTabChange} onSettings={() => navigate("/dashboard/settings")} /></motion.div>
-      </AnimatePresence>
+      {/* Keep the fixed dock outside a transformed motion parent. On iOS PWAs,
+          a transformed ancestor makes fixed positioning relative to the page
+          content instead of the viewport, leaving the dock floating above the
+          home-indicator edge. */}
+      <div key="bottom-dock"><BottomShelf activeTab={activeTab} onChange={handleTabChange} onSettings={() => navigate("/dashboard/settings")} /></div>
       <AnimatePresence>
         {pendingDeleteChat && (
           <motion.div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if (!isDeletingChat) setPendingDeleteChat(null); }}>

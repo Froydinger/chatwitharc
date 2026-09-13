@@ -633,6 +633,16 @@ All colors MUST be HSL for perfect glass effects.
   padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
 }
 
+.dashboard-preview-header {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem);
+}
+
+@media (min-width: 768px) {
+  .dashboard-preview-header {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 2rem);
+  }
+}
+
 .dashboard-preview-embedded-content {
   max-width: none !important;
   padding: 0 !important;

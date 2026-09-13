@@ -325,12 +325,13 @@ export function MobileChatApp() {
   const setVoiceVolume = useVoiceModeStore((s) => s.setVolume);
   const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false);
   const { profile } = useProfile();
-  const { user, isAnonymous } = useAuth();
+  const { user, isAnonymous, loading: authLoading } = useAuth();
   // Every authenticated text turn crosses the durable cloud boundary before
   // provider work begins. Chat stays conversational in the UI; Work adds the
   // agentic tool loop when it is actually needed.
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
-  const cloudTextEnabled = import.meta.env.VITE_CLOUD_RUNS_ENABLED === 'true'
+  const cloudTextEnabled = !authLoading
+    && import.meta.env.VITE_CLOUD_RUNS_ENABLED === 'true'
     && import.meta.env.VITE_CLOUD_SESSION_OPERATIONS_ENABLED === 'true' && !!user && !isAnonymous;
   const [cloudModeChoice, setCloudModeChoice] = useState<{ ownerId: string; mode: CloudRunMode } | null>(null);
   const modeHydratedForSessionRef = useRef<string | null>(null);
