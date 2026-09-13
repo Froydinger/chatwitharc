@@ -53,6 +53,7 @@ import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
 import { KineticDeleteButton } from "@/components/ui/rare-ui/kinetic-delete-button";
+import { DashboardPreviewPage } from "@/pages/DashboardPreviewPage";
 
 type DashboardTab = "overview" | "apps" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -2832,5 +2833,5 @@ export function DashboardPage() {
 
   if (signedOut) return null;
 
-  return <DashboardPageInner />;
+  return <DashboardPreviewPage live />;
 }

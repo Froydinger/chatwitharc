@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, animate, motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import {
   ArrowLeft,
@@ -8,6 +9,7 @@ import {
   Brain,
   Check,
   CalendarClock,
+  Crown,
   ChevronRight,
   CircleUserRound,
   Code2,
@@ -22,7 +24,9 @@ import {
   Search,
   Settings2,
   Sparkles,
+  Smartphone,
   Sun,
+  Trash2,
   Moon,
   Monitor,
   Users,
@@ -31,6 +35,15 @@ import {
 import { cn } from "@/lib/utils";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { useAccentStore } from "@/store/useAccentStore";
+import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
+import { useChatSync } from "@/hooks/useChatSync";
+import { useArcStore } from "@/store/useArcStore";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useImageQuota } from "@/hooks/useImageQuota";
+import { useContextBlocks } from "@/hooks/useContextBlocks";
+import { useIDEStore } from "@/store/useIDEStore";
+import { supabase } from "@/integrations/supabase/client";
 
 type LayoutMode = "dock" | "sidebar";
 type DashboardTab = "overview" | "chats" | "apps" | "images" | "canvases" | "memory";
@@ -44,17 +57,21 @@ const navItems: Array<{ id: DashboardTab; label: string; icon: typeof LayoutDash
   { id: "memory", label: "Memory", icon: Brain },
 ];
 
-const statCards = [
+type DashboardStat = { label: string; value: string | number | null; detail: string; icon: typeof MessageSquare; tint: string; glow: string };
+
+const statCards: DashboardStat[] = [
   { label: "Chats", value: "24", detail: "+6 this month", icon: MessageSquare, tint: "text-blue-300", glow: "from-blue-500/18" },
   { label: "Apps", value: "08", detail: "2 published", icon: FolderKanban, tint: "text-violet-300", glow: "from-violet-500/20" },
   { label: "Images", value: "136", detail: "+18 this week", icon: ImageIcon, tint: "text-fuchsia-300", glow: "from-fuchsia-500/18" },
   { label: "Reminders", value: "03", detail: "Next in 2 hours", icon: CalendarClock, tint: "text-amber-200", glow: "from-amber-500/16" },
 ];
 
-const recentChats = [
-  { title: "Restore Mac dashboard", detail: "Arc Work · 8 minutes ago", tone: "from-violet-500/35 via-indigo-500/15 to-transparent" },
-  { title: "The good news digest", detail: "Arc Chat · Yesterday", tone: "from-emerald-500/30 via-cyan-500/12 to-transparent" },
-  { title: "Landing page directions", detail: "Arc Work · Tuesday", tone: "from-amber-500/28 via-orange-500/12 to-transparent" },
+type DashboardChatPreview = { id: string; title: string; detail: string; tone: string };
+
+const recentChats: DashboardChatPreview[] = [
+  { id: "preview-restore", title: "Restore Mac dashboard", detail: "Arc Work · 8 minutes ago", tone: "from-violet-500/35 via-indigo-500/15 to-transparent" },
+  { id: "preview-news", title: "The good news digest", detail: "Arc Chat · Yesterday", tone: "from-emerald-500/30 via-cyan-500/12 to-transparent" },
+  { id: "preview-landing", title: "Landing page directions", detail: "Arc Work · Tuesday", tone: "from-amber-500/28 via-orange-500/12 to-transparent" },
 ];
 
 const previewNotifications = [
@@ -202,7 +219,7 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
   }, []);
 
   useEffect(() => {
-    if (!itemWidth || isDragging) return;
+    if (!itemWidth || isDragging || slideLockRef.current) return;
     const index = Math.max(0, navItems.findIndex((item) => item.id === activeTab));
     const center = (itemWidth + navGap) * index + itemWidth / 2;
     setHoverIndex(index);
@@ -228,7 +245,7 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
     animate(lensFocusX, targetCenter, {
       type: "spring",
       stiffness: 360,
-      damping: 24,
+      damping: 32,
       mass: 0.58,
       onUpdate: (focus) => setHoverIndex(indexForCenter(focus)),
     });
@@ -236,7 +253,7 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
     animate(bubbleCX, targetCenter, {
       type: "spring",
       stiffness: 360,
-      damping: 24,
+      damping: 32,
       mass: 0.58,
       onComplete: () => {
         animate(lensScale, 1, {
@@ -259,7 +276,7 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
   };
 
   const startDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (!itemWidth || event.button !== 0) return;
+    if (!itemWidth || event.button !== 0 || slideLockRef.current) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     setIsDragging(true);
     const startCenter = bubbleCX.get() < 0 ? centerForIndex(Math.max(0, navItems.findIndex((item) => item.id === activeTab))) : bubbleCX.get();
@@ -298,19 +315,28 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
     const targetIndex = indexForCenter(releaseCenter);
     const target = navItems[targetIndex];
     const targetCenter = centerForIndex(targetIndex);
+    slideLockRef.current = true;
     setHoverIndex(targetIndex);
     // Move the magnified strip to the landing slot first, then let the lens
     // collapse. This keeps the label/icon from leaving a second ghost behind.
     lensFocusX.set(targetCenter);
+    let lensSettled = false;
+    let bubbleSettled = false;
+    const finishDragSettle = () => {
+      if (!lensSettled || !bubbleSettled) return;
+      setIsDragging(false);
+      setHoverIndex(-1);
+      slideLockRef.current = false;
+    };
     animate(lensScale, 1, {
       type: "spring",
       stiffness: 320,
-      damping: 20,
+      damping: 26,
       mass: 0.4,
       delay: 0.08,
       onComplete: () => {
-        setIsDragging(false);
-        setHoverIndex(-1);
+        lensSettled = true;
+        finishDragSettle();
       },
     });
     rawBase.set(1);
@@ -319,8 +345,12 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
     animate(bubbleCX, targetCenter, {
       type: "spring",
       stiffness: 380,
-      damping: 26,
+      damping: 32,
       mass: 0.6,
+      onComplete: () => {
+        bubbleSettled = true;
+        finishDragSettle();
+      },
     });
     onChange(target.id);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
@@ -454,11 +484,11 @@ function NotificationTray({ notifications, onClear }: { notifications: PreviewNo
   );
 }
 
-function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, onBoostRequired }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; onTaskComplete: (title: string) => void; canRunWork: boolean; onBoostRequired: () => void }) {
+function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, onBoostRequired, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; onTaskComplete: (title: string) => void; canRunWork: boolean; onBoostRequired: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void }) {
   const [query, setQuery] = useState("");
   const [taskStates, setTaskStates] = useState<Record<string, "idle" | "running" | "complete">>({});
   const taskTimersRef = useRef<number[]>([]);
-  const visibleChats = useMemo(() => recentChats.filter((chat) => chat.title.toLowerCase().includes(query.toLowerCase())), [query]);
+  const visibleChats = useMemo(() => chatItems.filter((chat) => chat.title.toLowerCase().includes(query.toLowerCase())), [chatItems, query]);
 
   useEffect(() => () => taskTimersRef.current.forEach((timer) => window.clearTimeout(timer)), []);
 
@@ -500,28 +530,30 @@ function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, 
               <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">Everything you’ve been making, thinking about, and asking Arc to keep moving.</p>
             </div>
             <div className="mt-7 flex flex-wrap items-center gap-3">
-              <button type="button" onClick={() => onNavigate("chats")} className="group flex w-fit items-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold text-background transition-transform hover:-translate-y-0.5"><Plus className="h-4 w-4" /> New chat <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></button>
+              <button type="button" onClick={() => onNewChat ? onNewChat() : onNavigate("chats")} className="group flex w-fit items-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold text-background transition-transform hover:-translate-y-0.5"><Plus className="h-4 w-4" /> New chat <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></button>
               <div className="flex items-center gap-2 text-[11px] text-muted-foreground"><span className="dashboard-preview-sync-badge rounded-full border px-2.5 py-1">Cloud synced</span><span>Just now</span></div>
             </div>
           </div>
           <div className="dashboard-preview-recent-panel rounded-[24px] border p-4 lg:border-l-white/[0.12]">
-            <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">Recent chats</p><p className="mt-1 text-[11px] text-muted-foreground">Pick up where you left off.</p></div><div className="relative hidden sm:block"><Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search" className="dashboard-preview-search h-8 w-28 rounded-full border pl-8 pr-3 text-[11px] outline-none placeholder:text-muted-foreground focus:border-primary/50" /></div></div>
+            <div className="flex items-center justify-between gap-3"><div><p className="text-sm font-semibold">Recent chats</p><p className="mt-1 text-[11px] text-muted-foreground">Pick up where you left off.</p></div><div className="flex items-center gap-2"><button type="button" onClick={() => onViewAll ? onViewAll() : onNavigate("chats")} className="inline-flex items-center rounded-full border border-primary/20 bg-primary/[0.08] px-2.5 py-1.5 text-[10px] font-medium text-primary transition-colors hover:bg-primary/[0.14]">View all <ChevronRight className="ml-0.5 h-3 w-3" /></button><div className="relative hidden sm:block"><Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search" className="dashboard-preview-search h-8 w-28 rounded-full border pl-8 pr-3 text-[11px] outline-none placeholder:text-muted-foreground focus:border-primary/50" /></div></div></div>
             <div className="mt-3 space-y-1">
               {visibleChats.slice(0, 3).map((chat, index) => (
-                <button key={chat.title} type="button" onClick={() => onNavigate("chats")} className="dashboard-preview-chat-tile group flex w-full items-center gap-2.5 rounded-2xl border p-2.5 text-left transition-all hover:-translate-y-0.5">
-                  <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br", chat.tone)}><MessageSquare className="h-3.5 w-3.5 text-white/75" /></div>
+                <div key={chat.id || chat.title} role="button" tabIndex={0} onClick={() => { if (onOpenChat) onOpenChat(chat.id); else onNavigate("chats"); }} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); if (onOpenChat) onOpenChat(chat.id); else onNavigate("chats"); } }} className="dashboard-preview-chat-tile group flex w-full items-center gap-2.5 rounded-2xl border p-2.5 text-left transition-all hover:-translate-y-0.5">
+                  <div className={cn("dashboard-preview-chat-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br", chat.tone)}><MessageSquare className="h-3.5 w-3.5 text-white/90" /></div>
                   <div className="min-w-0 flex-1"><p className="truncate text-xs font-medium">{chat.title}</p><p className="mt-0.5 truncate text-[10px] text-muted-foreground">{chat.detail}</p></div>
                   {index === 0 && <span className="hidden rounded-full border border-primary/20 bg-primary/[0.08] px-2 py-1 text-[9px] text-primary sm:inline">Resume</span>}
+                  {onDeleteChat && <button type="button" aria-label={`Delete ${chat.title}`} title="Delete chat" onClick={(event) => { event.stopPropagation(); onDeleteChat(chat.id, chat.title); }} className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-70 transition-colors hover:bg-red-500/10 hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"><Trash2 className="h-3.5 w-3.5" /></button>}
                   <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                </button>
+                </div>
               ))}
+              {visibleChats.length === 0 && <p className="rounded-2xl border border-dashed border-border/60 px-3 py-5 text-center text-[11px] text-muted-foreground">No recent chats yet. Start a new one and it’ll appear here.</p>}
             </div>
           </div>
         </div>
       </section>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {statCards.map(({ label, value, detail, icon: Icon, tint, glow }) => (
+        {stats.map(({ label, value, detail, icon: Icon, tint, glow }) => (
           <button key={label} type="button" onClick={() => onNavigate(label === "Chats" ? "chats" : label === "Apps" ? "apps" : label === "Images" ? "images" : "overview")} className="dashboard-preview-tile group relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-white/[0.035] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-white/[0.15] hover:bg-white/[0.055]">
             <div className={cn("pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-gradient-to-br to-transparent blur-2xl opacity-80", glow)} />
             <div className="relative flex items-start justify-between"><span className="text-xs text-muted-foreground">{label}</span><Icon className={cn("h-4 w-4", tint)} /></div>
@@ -532,33 +564,151 @@ function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, 
       </div>
 
       <div className="grid gap-5">
-        <section className="dashboard-preview-tile rounded-[30px] border border-white/[0.08] bg-white/[0.03] p-5 sm:p-6">
+        <section className="dashboard-preview-tile rounded-[30px] border border-white/[0.08] bg-white/[0.03] p-5 sm:p-6 lg:p-5">
           <div className="flex items-center justify-between"><div><p className="text-sm font-semibold">Your workspace</p><p className="mt-1 text-xs text-muted-foreground">A quiet snapshot of Arc at work.</p></div><button type="button" className="rounded-full p-1.5 text-muted-foreground hover:bg-white/[0.06] hover:text-foreground" aria-label="More workspace actions"><MoreHorizontal className="h-4 w-4" /></button></div>
-          <div className="mt-5 rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.13] via-white/[0.03] to-transparent p-4"><div className="flex items-center justify-between"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15"><WandSparkles className="h-4 w-4 text-primary" /></div><span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{canRunWork ? "Boost" : "Arc Work"}</span></div><p className="mt-7 text-sm font-medium">3 things Arc can keep moving</p><div className="mt-3 grid gap-2 sm:grid-cols-3">{workspaceTasks.map((task) => { const status = taskStates[task.id] ?? "idle"; return <button key={task.id} type="button" onClick={() => runWorkspaceTask(task)} disabled={status === "running"} className="group rounded-xl border border-white/[0.08] bg-white/[0.035] p-2.5 text-left transition-colors hover:border-primary/30 hover:bg-white/[0.08] disabled:cursor-wait"><span className="flex items-center gap-2"><span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full", status === "complete" ? "bg-emerald-400/15 text-emerald-300" : "bg-white/[0.07] text-muted-foreground")} >{status === "running" ? <Loader2 className="h-3 w-3 animate-spin" /> : status === "complete" ? <Check className="h-3 w-3" /> : <span className={cn("h-1.5 w-1.5 rounded-full", task.tone)} />}</span><span className="min-w-0"><span className="block truncate text-[10px] font-medium">{task.title}</span><span className="mt-0.5 block text-[9px] text-muted-foreground">{status === "running" ? "Running in cloud!" : status === "complete" ? "Complete!" : "Run in Arc Work"}</span></span></span></button>; })}</div></div>
+          <div className="mt-4 rounded-2xl border border-primary/15 bg-gradient-to-br from-primary/[0.13] via-white/[0.03] to-transparent p-3 sm:p-4 lg:mt-3 lg:p-3"><div className="flex items-center justify-between"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 lg:h-8 lg:w-8"><WandSparkles className="h-4 w-4 text-primary lg:h-3.5 lg:w-3.5" /></div><span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{canRunWork ? "Boost" : "Arc Work"}</span></div><p className="mt-5 text-sm font-medium lg:mt-3">3 things Arc can keep moving</p><div className="mt-3 grid gap-2 lg:mt-2 sm:grid-cols-3">{workspaceTasks.map((task) => { const status = taskStates[task.id] ?? "idle"; return <button key={task.id} type="button" onClick={() => runWorkspaceTask(task)} disabled={status === "running"} className="group rounded-xl border border-white/[0.08] bg-white/[0.035] p-2.5 text-left transition-colors hover:border-primary/30 hover:bg-white/[0.08] disabled:cursor-wait lg:p-2"><span className="flex items-center gap-2"><span className={cn("flex h-5 w-5 shrink-0 items-center justify-center rounded-full", status === "complete" ? "bg-emerald-400/15 text-emerald-300" : "bg-white/[0.07] text-muted-foreground")} >{status === "running" ? <Loader2 className="h-3 w-3 animate-spin" /> : status === "complete" ? <Check className="h-3 w-3" /> : <span className={cn("h-1.5 w-1.5 rounded-full", task.tone)} />}</span><span className="min-w-0"><span className="block truncate text-[10px] font-medium">{task.title}</span><span className="mt-0.5 block text-[9px] text-muted-foreground">{status === "running" ? "Running in cloud!" : status === "complete" ? "Complete!" : "Run in Arc Work"}</span></span></span></button>; })}</div></div>
         </section>
       </div>
     </motion.div>
   );
 }
 
-export function DashboardPreviewPage() {
+export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, profile: authProfile } = useAuth();
+  const { profile: fetchedProfile } = useProfile();
+  const { isLoaded } = useChatSync();
+  const { chatSessions, createNewSession, loadSession, deleteSession } = useArcStore();
+  const { hasBoost, isAdmin, openCheckout } = useSubscription();
+  const { dailyImagesUsed } = useImageQuota();
+  const { blocks: contextBlocks } = useContextBlocks();
+  const openIDECanvas = useIDEStore((state) => state.openIDECanvas);
+  const queryTab = searchParams.get("tab");
+  const initialTab: DashboardTab = queryTab === "memories" ? "memory" : (navItems.some((item) => item.id === queryTab) ? queryTab as DashboardTab : "overview");
   const [layout, setLayout] = useState<LayoutMode>("dock");
-  const [activeTab, setActiveTab] = useState<DashboardTab>("overview");
+  const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const [isBoostGateOpen, setIsBoostGateOpen] = useState(false);
   const [notifications, setNotifications] = useState<PreviewNotification[]>(previewNotifications);
+  const [previewChatItems, setPreviewChatItems] = useState<DashboardChatPreview[]>(recentChats);
+  const [pendingDeleteChat, setPendingDeleteChat] = useState<{ id: string; title: string } | null>(null);
+  const [isDeletingChat, setIsDeletingChat] = useState(false);
+  const [liveCounts, setLiveCounts] = useState({ apps: 0, images: 0, reminders: 0 });
   const unreadNotificationCount = notifications.filter((notification) => notification.unread).length;
   const themeMode = useAccentStore((state) => state.themeMode);
   const cycleThemeMode = useAccentStore((state) => state.cycleThemeMode);
-  const cleanPreview = typeof window !== "undefined"
-    && new URLSearchParams(window.location.search).get("clean") === "1";
+  const cleanPreview = live || (typeof window !== "undefined"
+    && new URLSearchParams(window.location.search).get("clean") === "1");
+  const liveDisplayName = fetchedProfile?.display_name || authProfile?.display_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "there";
+  const accountName = live ? liveDisplayName : "Jake Freudinger";
+  const avatarUrl = live ? fetchedProfile?.avatar_url || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null : null;
+  const accountInitials = accountName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "JF";
+  const canRunWork = live ? hasBoost || isAdmin : typeof window !== "undefined" && new URLSearchParams(window.location.search).get("boost") !== "0";
   const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
   const themeLabel = themeMode === "light" ? "Light" : themeMode === "system" ? "System" : "Dark";
-  const previewHasBoost = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("boost") !== "0";
+  const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening";
+
+  useEffect(() => {
+    if (!live || !user) return;
+    let cancelled = false;
+    (async () => {
+      const [appsResult, imagesResult, remindersResult] = await Promise.all([
+        supabase.from("ide_projects").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.rpc("count_user_images", { target_user_id: user.id } as unknown as never),
+        supabase.from("scheduled_tasks").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active"),
+      ]);
+      if (cancelled) return;
+      setLiveCounts({
+        apps: appsResult.count ?? 0,
+        images: typeof imagesResult.data === "number" ? imagesResult.data : dailyImagesUsed,
+        reminders: remindersResult.count ?? 0,
+      });
+    })().catch(() => {
+      if (!cancelled) setLiveCounts((current) => ({ ...current, images: dailyImagesUsed }));
+    });
+    return () => { cancelled = true; };
+  }, [dailyImagesUsed, live, user]);
+
+  const formatTimeAgo = (value: unknown) => {
+    const date = value instanceof Date ? value : new Date(String(value || ""));
+    if (Number.isNaN(date.getTime())) return "recently";
+    const diff = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+    if (diff < 60) return "just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const liveChatItems = useMemo<DashboardChatPreview[]>(() => (chatSessions || []).slice(0, 6).map((session, index) => ({
+    id: session.id,
+    title: session.title || "Untitled chat",
+    detail: `Arc Chat · ${formatTimeAgo(session.lastMessageAt || session.createdAt)}`,
+    tone: ["from-violet-500/35 via-indigo-500/15 to-transparent", "from-emerald-500/30 via-cyan-500/12 to-transparent", "from-amber-500/28 via-orange-500/12 to-transparent"][index % 3],
+  })), [chatSessions]);
+
+  const liveStats: DashboardStat[] = useMemo(() => [
+    { label: "Chats", value: chatSessions?.length ?? 0, detail: "Saved to your account", icon: MessageSquare, tint: "text-blue-300", glow: "from-blue-500/18" },
+    { label: "Apps", value: liveCounts.apps, detail: "Published projects", icon: FolderKanban, tint: "text-violet-300", glow: "from-violet-500/20" },
+    { label: "Images", value: liveCounts.images, detail: "Generated with Arc", icon: ImageIcon, tint: "text-fuchsia-300", glow: "from-fuchsia-500/18" },
+    { label: "Reminders", value: liveCounts.reminders, detail: "Active scheduled tasks", icon: CalendarClock, tint: "text-amber-200", glow: "from-amber-500/16" },
+  ], [chatSessions, liveCounts]);
+
   const handleTaskComplete = (title: string) => {
     setNotifications((current) => [{ title: "Cloud run complete", detail: `${title} is ready. Push + email sent.`, time: "Just now", unread: true }, ...current].slice(0, 4));
   };
-  const returnToChat = () => { window.location.assign("/?preview=chat"); };
+  const handleTabChange = (tab: DashboardTab) => {
+    setActiveTab(tab);
+    if (live) setSearchParams(tab === "overview" ? {} : { tab: tab === "memory" ? "memories" : tab });
+  };
+  const handleNewChat = () => {
+    if (live) {
+      const id = createNewSession();
+      navigate(`/chat/${id}`);
+      return;
+    }
+    handleTabChange("chats");
+  };
+  const handleOpenChat = (id: string) => {
+    if (live) {
+      loadSession(id);
+      navigate(`/chat/${id}`);
+      return;
+    }
+    handleTabChange("chats");
+  };
+  const requestDeleteChat = (id: string, title: string) => setPendingDeleteChat({ id, title });
+  const confirmDeleteChat = async () => {
+    if (!pendingDeleteChat) return;
+    setIsDeletingChat(true);
+    try {
+      if (live) {
+        await (deleteSession(pendingDeleteChat.id) as unknown as Promise<void>);
+      } else {
+        setPreviewChatItems((items) => items.filter((item) => item.id !== pendingDeleteChat.id));
+      }
+      setPendingDeleteChat(null);
+    } finally {
+      setIsDeletingChat(false);
+    }
+  };
+  const handleAppBuilder = () => {
+    if (!canRunWork) {
+      setIsBoostGateOpen(true);
+      return;
+    }
+    openIDECanvas("New App", undefined, false);
+    navigate("/build");
+  };
+  const handleSignOut = async () => {
+    setIsAccountOpen(false);
+    await supabase.auth.signOut();
+    navigate("/", { replace: true });
+  };
+  const returnToChat = () => { if (live) navigate("/"); else window.location.assign("/?preview=chat"); };
 
   return (
     <div className="dashboard-preview-shell min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -568,34 +718,64 @@ export function DashboardPreviewPage() {
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.035] to-transparent" />
       </div>
 
-      <header className="relative z-10 mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 pb-5 pt-5 sm:px-7 md:flex-row md:items-center md:justify-between md:px-10 md:pt-8">
+      <header className="relative z-50 mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 pb-5 pt-5 sm:px-7 md:flex-row md:items-center md:justify-between md:px-10 md:pt-8">
         <div className="flex items-center justify-between gap-4"><div className="flex items-center gap-1.5"><button type="button" onClick={returnToChat} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" aria-label="Back to Arc chat" title="Back to Arc chat"><ArrowLeft className="h-4 w-4" /></button><ArcMark onClick={returnToChat} /></div>{!cleanPreview && <span className="rounded-full border border-primary/20 bg-primary/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary">Dashboard preview</span>}</div>
-        {!cleanPreview && <LayoutSwitcher mode={layout} onChange={setLayout} />}
+        {!live && !cleanPreview && <LayoutSwitcher mode={layout} onChange={setLayout} />}
         <div className="relative flex items-center gap-2 self-end md:self-auto">
+          <button type="button" onClick={handleAppBuilder} className="dashboard-preview-control hidden h-10 items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.08] px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/[0.14] sm:flex" aria-label={canRunWork ? "Open App Builder" : "Unlock App Builder with Boost"} title={canRunWork ? "Open App Builder" : "Unlock App Builder with Boost"}>
+            {canRunWork ? <Smartphone className="h-4 w-4" /> : <Crown className="h-4 w-4" />}
+            <span>App Builder</span>
+            {!canRunWork && <span className="rounded-full border border-primary/20 bg-primary/[0.1] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.08em]">Boost</span>}
+          </button>
+          <button type="button" onClick={handleAppBuilder} className="dashboard-preview-control flex h-10 w-10 items-center justify-center rounded-full border border-primary/25 bg-primary/[0.08] text-primary transition-colors hover:bg-primary/[0.14] sm:hidden" aria-label={canRunWork ? "Open App Builder" : "Unlock App Builder with Boost"} title={canRunWork ? "Open App Builder" : "Unlock App Builder with Boost"}>
+            {canRunWork ? <Smartphone className="h-4 w-4" /> : <Crown className="h-4 w-4" />}
+          </button>
           <button type="button" onClick={cycleThemeMode} className="dashboard-preview-control flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground" aria-label={`Theme: ${themeLabel}`} title={`Theme: ${themeLabel}`}><motion.span key={themeMode} initial={{ rotate: -90, opacity: 0, scale: 0.7 }} animate={{ rotate: 0, opacity: 1, scale: 1 }} transition={{ type: "spring", damping: 14, stiffness: 320 }} className="inline-flex"><ThemeIcon className="h-4 w-4" /></motion.span></button>
-          <button type="button" onClick={() => setIsNotificationsOpen((open) => !open)} className="dashboard-preview-control relative flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground" aria-label="Recent push notifications" aria-expanded={isNotificationsOpen} aria-controls="dashboard-preview-notification-tray"><Bell className="h-4 w-4" />{unreadNotificationCount > 0 && <span className="dashboard-preview-notification-unread-dot absolute right-1 top-1 h-1.5 w-1.5 rounded-full" />}</button>
-          <button type="button" className="dashboard-preview-control flex items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.04] py-1.5 pl-1.5 pr-3 text-xs transition-colors hover:bg-white/[0.08]"><div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-300 to-fuchsia-500 text-[10px] font-bold text-black">JF</div><span className="hidden sm:inline">Jake Freudinger</span><ChevronRight className="h-3.5 w-3.5 rotate-90 text-muted-foreground" /></button>
+          <button type="button" onClick={() => { setIsNotificationsOpen((open) => !open); setIsAccountOpen(false); }} className="dashboard-preview-control relative flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground" aria-label="Recent push notifications" aria-expanded={isNotificationsOpen} aria-controls="dashboard-preview-notification-tray"><Bell className="h-4 w-4" />{unreadNotificationCount > 0 && <span className="dashboard-preview-notification-unread-dot absolute right-1 top-1 h-1.5 w-1.5 rounded-full" />}</button>
+          <div className="relative" data-account-menu>
+            <button type="button" onClick={() => { setIsAccountOpen((open) => !open); setIsNotificationsOpen(false); }} className="dashboard-preview-control flex items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.04] py-1.5 pl-1.5 pr-3 text-xs transition-colors hover:bg-white/[0.08]" aria-label="Account menu" aria-expanded={isAccountOpen} aria-haspopup="menu"><div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-300 to-fuchsia-500 text-[10px] font-bold text-black">{avatarUrl && !avatarFailed ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} /> : accountInitials}</div><span className="hidden sm:inline">{accountName}</span><ChevronRight className="h-3.5 w-3.5 rotate-90 text-muted-foreground" /></button>
+            <AnimatePresence>
+              {isAccountOpen && (
+                <motion.div initial={{ opacity: 0, y: -5, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, scale: 0.98 }} className="dashboard-preview-account-menu absolute right-0 top-[calc(100%+0.75rem)] z-[65] w-52 overflow-hidden rounded-[20px] border p-2 shadow-[0_24px_70px_rgba(0,0,0,0.35)]" role="menu">
+                  <div className="border-b px-3 pb-2 pt-1"><p className="truncate text-xs font-semibold">{accountName}</p>{live && user?.email && <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{user.email}</p>}</div>
+                  <button type="button" role="menuitem" onClick={() => { setIsAccountOpen(false); navigate("/dashboard/settings"); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs transition-colors hover:bg-white/[0.08]"><Settings2 className="h-3.5 w-3.5" /> Account settings</button>
+                  <button type="button" role="menuitem" onClick={() => { setIsAccountOpen(false); navigate("/dashboard/settings?section=appearance"); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs transition-colors hover:bg-white/[0.08]"><Sun className="h-3.5 w-3.5" /> Appearance</button>
+                  {live && <button type="button" role="menuitem" onClick={handleSignOut} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs text-red-300 transition-colors hover:bg-red-500/10"><ArrowLeft className="h-3.5 w-3.5 rotate-180" /> Sign out</button>}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           <AnimatePresence>{isNotificationsOpen && <NotificationTray notifications={notifications} onClear={() => setNotifications([])} />}</AnimatePresence>
         </div>
       </header>
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1440px] gap-5 px-4 pb-8 sm:px-7 lg:px-10">
-        {layout === "sidebar" && <PreviewSidebar activeTab={activeTab} onChange={setActiveTab} onHome={returnToChat} />}
-        <main className="min-w-0 flex-1"><div className="mb-5 flex items-center justify-between gap-4"><div><p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Overview</p>{!cleanPreview && <p className="mt-1 text-xs text-muted-foreground/70">A signed-in look at your Arc workspace</p>}</div><div className="hidden items-center gap-2 text-[11px] text-muted-foreground sm:flex"><CircleUserRound className="h-3.5 w-3.5" /> Personal space</div></div><DashboardOverview activeTab={activeTab} onNavigate={setActiveTab} onTaskComplete={handleTaskComplete} canRunWork={previewHasBoost} onBoostRequired={() => setIsBoostGateOpen(true)} /></main>
+        {layout === "sidebar" && <PreviewSidebar activeTab={activeTab} onChange={handleTabChange} onHome={returnToChat} />}
+        <main className="min-w-0 flex-1"><div className="mb-5 flex items-center justify-between gap-4"><div><p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Overview</p>{!cleanPreview && <p className="mt-1 text-xs text-muted-foreground/70">A signed-in look at your Arc workspace</p>}</div><div className="hidden items-center gap-2 text-[11px] text-muted-foreground sm:flex"><CircleUserRound className="h-3.5 w-3.5" /> Personal space</div></div><DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} onTaskComplete={handleTaskComplete} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? liveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} /></main>
       </div>
 
       <AnimatePresence mode="wait">
-        {layout === "dock" && <motion.div key="bottom-dock" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 18 }}><BottomShelf activeTab={activeTab} onChange={setActiveTab} /></motion.div>}
-        {layout === "sidebar" && <motion.div key="mobile-dock-fallback" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 18 }}><BottomShelf activeTab={activeTab} onChange={setActiveTab} mobileOnly /></motion.div>}
+        {layout === "dock" && <motion.div key="bottom-dock" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 18 }}><BottomShelf activeTab={activeTab} onChange={handleTabChange} /></motion.div>}
+        {layout === "sidebar" && <motion.div key="mobile-dock-fallback" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 18 }}><BottomShelf activeTab={activeTab} onChange={handleTabChange} mobileOnly /></motion.div>}
       </AnimatePresence>
       <AnimatePresence>
+        {pendingDeleteChat && (
+          <motion.div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if (!isDeletingChat) setPendingDeleteChat(null); }}>
+            <motion.div role="dialog" aria-modal="true" aria-labelledby="dashboard-preview-delete-title" className="w-full max-w-sm rounded-[28px] border border-border bg-background p-6 text-foreground shadow-[0_24px_90px_rgba(0,0,0,0.35)]" initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }} onClick={(event) => event.stopPropagation()}>
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-red-500/10 text-red-400"><Trash2 className="h-5 w-5" /></div>
+              <h2 id="dashboard-preview-delete-title" className="mt-5 text-xl font-semibold tracking-tight">Delete this chat?</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground"><span className="font-medium text-foreground">“{pendingDeleteChat.title}”</span> will be removed from your recent chats and account.</p>
+              <div className="mt-5 flex justify-end gap-2"><button type="button" disabled={isDeletingChat} onClick={() => setPendingDeleteChat(null)} className="rounded-full border border-border px-4 py-2 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-50">Keep chat</button><button type="button" disabled={isDeletingChat} onClick={confirmDeleteChat} className="rounded-full bg-red-500 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-600 disabled:cursor-wait disabled:opacity-60">{isDeletingChat ? "Deleting…" : "Delete chat"}</button></div>
+            </motion.div>
+          </motion.div>
+        )}
         {isBoostGateOpen && (
           <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsBoostGateOpen(false)}>
             <motion.div role="dialog" aria-modal="true" aria-labelledby="dashboard-preview-boost-title" className="w-full max-w-sm rounded-[28px] border border-primary/25 bg-card p-6 text-card-foreground shadow-[0_24px_90px_rgba(0,0,0,0.3)]" initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 12 }} onClick={(event) => event.stopPropagation()}>
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary"><Sparkles className="h-5 w-5" /></div>
               <h2 id="dashboard-preview-boost-title" className="mt-5 text-xl font-semibold tracking-tight">Keep it moving with Boost</h2>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">Arc Work can run these tasks in the cloud, save the completed chat to your account, and notify you by push and email when it’s done.</p>
-              <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setIsBoostGateOpen(false)} className="rounded-full border border-border px-4 py-2 text-xs font-medium transition-colors hover:bg-muted">Maybe later</button><button type="button" onClick={() => setIsBoostGateOpen(false)} className="rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background transition-transform hover:-translate-y-0.5">See Boost</button></div>
+              <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setIsBoostGateOpen(false)} className="rounded-full border border-border px-4 py-2 text-xs font-medium transition-colors hover:bg-muted">Maybe later</button><button type="button" onClick={() => { setIsBoostGateOpen(false); if (live) openCheckout(); }} className="rounded-full bg-foreground px-4 py-2 text-xs font-semibold text-background transition-transform hover:-translate-y-0.5">See Boost</button></div>
             </motion.div>
           </motion.div>
         )}
