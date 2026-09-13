@@ -114,10 +114,10 @@ function extractCodeBlocks(content: string): Array<{ code: string; language: str
   return blocks;
 }
 
-function DashboardPageInner() {
+export function DashboardPageInner({ embedded = false, activeTabOverride }: { embedded?: boolean; activeTabOverride?: DashboardTab } = {}) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = (searchParams.get("tab") as DashboardTab) || "overview";
+  const initialTab = activeTabOverride || (searchParams.get("tab") as DashboardTab) || "overview";
   const { user, loading: authLoading, isAnonymous } = useAuth();
   const { isAdmin, dailyImagesUsed, limit: imageLimit } = useImageQuota();
   const {
@@ -1093,10 +1093,10 @@ useEffect(() => {
       transition={isExiting
         ? { duration: 0.28, ease: [0.4, 0, 0.2, 1] as const }
         : { duration: isSwipeEntry ? 0.22 : 0.32, ease: [0.22, 1, 0.36, 1] as const }}
-      className="min-h-screen overflow-y-auto overflow-x-hidden scrollbar-hide relative z-10 w-full max-w-full"
+      className={cn("min-h-screen overflow-y-auto overflow-x-hidden scrollbar-hide relative z-10 w-full max-w-full", embedded && "min-h-0")}
       style={{
-        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
-        paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
+        paddingTop: embedded ? 0 : `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
+        paddingBottom: embedded ? 0 : 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
         willChange: 'transform, opacity, filter',
       }}
     >
@@ -1106,7 +1106,7 @@ useEffect(() => {
       <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 pt-3 sm:pt-5 pb-8 sm:pb-12 space-y-6 sm:space-y-8">
 
         {/* ═══ HEADER with ambient glow ═══ */}
-        <div className="relative">
+        {!embedded && <div className="relative">
           {/* Ambient glow behind greeting */}
           <div className="absolute -top-12 left-1/4 w-48 h-48 rounded-full bg-primary/8 blur-[80px] pointer-events-none" />
           <div className="absolute -top-8 right-1/3 w-32 h-32 rounded-full bg-purple-500/10 blur-[70px] pointer-events-none" />
@@ -1206,7 +1206,7 @@ useEffect(() => {
               </DropdownMenu>
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* ═══ TAB CONTENT ═══ */}
         <AnimatePresence mode="wait" initial={false} custom={tabDirection}>
@@ -2296,7 +2296,7 @@ useEffect(() => {
       </div>
 
       {/* ═══ BOTTOM NAVIGATION (portaled so transform parent doesn't break fixed positioning) ═══ */}
-      {!isIDEOpen && createPortal(
+      {!embedded && !isIDEOpen && createPortal(
       <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center" style={{ paddingBottom: '20px' }}>
         <motion.div
           ref={setPillRef}

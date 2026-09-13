@@ -44,6 +44,7 @@ import { useImageQuota } from "@/hooks/useImageQuota";
 import { useContextBlocks } from "@/hooks/useContextBlocks";
 import { useIDEStore } from "@/store/useIDEStore";
 import { supabase } from "@/integrations/supabase/client";
+import { DashboardPageInner } from "@/pages/DashboardPage";
 
 type LayoutMode = "dock" | "sidebar";
 type DashboardTab = "overview" | "chats" | "apps" | "images" | "canvases" | "memory";
@@ -74,12 +75,12 @@ const recentChats: DashboardChatPreview[] = [
   { id: "preview-landing", title: "Landing page directions", detail: "Arc Work · Tuesday", tone: "from-amber-500/28 via-orange-500/12 to-transparent" },
 ];
 
-const previewNotifications = [
-  { title: "Cloud run complete", detail: "Restore Mac dashboard is ready.", time: "8 min ago", unread: true },
+type PreviewNotification = { title: string; detail: string; time: string; unread: boolean; chatId?: string };
+const previewNotifications: PreviewNotification[] = [
+  { title: "Cloud run complete", detail: "Restore Mac dashboard is ready.", time: "8 min ago", unread: true, chatId: "preview-restore" },
   { title: "Reminder due soon", detail: "Review your latest image set.", time: "1 hr ago", unread: false },
-  { title: "Arc saved your chat", detail: "The good news digest is synced.", time: "Yesterday", unread: false },
+  { title: "Arc saved your chat", detail: "The good news digest is synced.", time: "Yesterday", unread: false, chatId: "preview-news" },
 ];
-type PreviewNotification = (typeof previewNotifications)[number];
 
 const workspaceTasks = [
   { id: "retail-trends", title: "Finish the retail trends canvas", detail: "Research the latest signals and update the canvas.", tone: "bg-emerald-300" },
@@ -435,7 +436,7 @@ function BottomShelf({ activeTab, onChange, mobileOnly = false }: { activeTab: D
   );
 }
 
-function NotificationTray({ notifications, onClear }: { notifications: PreviewNotification[]; onClear: () => void }) {
+function NotificationTray({ notifications, onClear, onOpen }: { notifications: PreviewNotification[]; onClear: () => void; onOpen: (notification: PreviewNotification) => void }) {
   const unreadCount = notifications.filter((notification) => notification.unread).length;
 
   return (
@@ -459,7 +460,7 @@ function NotificationTray({ notifications, onClear }: { notifications: PreviewNo
       {notifications.length > 0 ? (
         <div className="space-y-1">
           {notifications.map((notification) => (
-            <button key={`${notification.title}-${notification.time}`} type="button" className="dashboard-preview-notification-row flex w-full items-start gap-2.5 rounded-xl border px-2 py-2 text-left transition-colors">
+            <button key={`${notification.title}-${notification.time}`} type="button" onClick={() => onOpen(notification)} className="dashboard-preview-notification-row flex w-full items-start gap-2.5 rounded-xl border px-2 py-2 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.06]">
               <span className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg", notification.unread ? "dashboard-preview-notification-unread-icon" : "bg-muted text-muted-foreground")}>
                 <Bell className="h-3 w-3" />
               </span>
@@ -484,7 +485,7 @@ function NotificationTray({ notifications, onClear }: { notifications: PreviewNo
   );
 }
 
-function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, onBoostRequired, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; onTaskComplete: (title: string) => void; canRunWork: boolean; onBoostRequired: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void }) {
+function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, onBoostRequired, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat, onOpenReminders }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; onTaskComplete: (title: string) => void; canRunWork: boolean; onBoostRequired: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void; onOpenReminders?: () => void }) {
   const [query, setQuery] = useState("");
   const [taskStates, setTaskStates] = useState<Record<string, "idle" | "running" | "complete">>({});
   const taskTimersRef = useRef<number[]>([]);
@@ -554,7 +555,7 @@ function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, 
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stats.map(({ label, value, detail, icon: Icon, tint, glow }) => (
-          <button key={label} type="button" onClick={() => onNavigate(label === "Chats" ? "chats" : label === "Apps" ? "apps" : label === "Images" ? "images" : "overview")} className="dashboard-preview-tile group relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-white/[0.035] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-white/[0.15] hover:bg-white/[0.055]">
+          <button key={label} type="button" onClick={() => { if (label === "Reminders" && onOpenReminders) onOpenReminders(); else onNavigate(label === "Chats" ? "chats" : label === "Apps" ? "apps" : label === "Images" ? "images" : "overview"); }} className="dashboard-preview-tile group relative overflow-hidden rounded-[24px] border border-white/[0.08] bg-white/[0.035] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-white/[0.15] hover:bg-white/[0.055]">
             <div className={cn("pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-gradient-to-br to-transparent blur-2xl opacity-80", glow)} />
             <div className="relative flex items-start justify-between"><span className="text-xs text-muted-foreground">{label}</span><Icon className={cn("h-4 w-4", tint)} /></div>
             <div className="relative mt-5 flex items-end justify-between"><span className="text-2xl font-semibold tracking-tight">{value}</span><ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" /></div>
@@ -662,7 +663,10 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
   };
   const handleTabChange = (tab: DashboardTab) => {
     setActiveTab(tab);
-    if (live) setSearchParams(tab === "overview" ? {} : { tab: tab === "memory" ? "memories" : tab });
+    const nextParams = new URLSearchParams(searchParams);
+    if (tab === "overview") nextParams.delete("tab");
+    else nextParams.set("tab", tab === "memory" ? "memories" : tab);
+    setSearchParams(nextParams);
   };
   const handleNewChat = () => {
     if (live) {
@@ -679,6 +683,16 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
       return;
     }
     handleTabChange("chats");
+  };
+  const handleOpenNotification = (notification: PreviewNotification) => {
+    setNotifications((items) => items.map((item) => item.title === notification.title && item.time === notification.time ? { ...item, unread: false } : item));
+    setIsNotificationsOpen(false);
+    const availableChats = live ? liveChatItems : previewChatItems;
+    const notificationText = `${notification.title} ${notification.detail}`.toLowerCase();
+    const chat = availableChats.find((item) => item.id === notification.chatId)
+      || availableChats.find((item) => notificationText.includes(item.title.toLowerCase()));
+    if (chat) handleOpenChat(chat.id);
+    else handleTabChange("chats");
   };
   const requestDeleteChat = (id: string, title: string) => setPendingDeleteChat({ id, title });
   const confirmDeleteChat = async () => {
@@ -745,13 +759,13 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
               )}
             </AnimatePresence>
           </div>
-          <AnimatePresence>{isNotificationsOpen && <NotificationTray notifications={notifications} onClear={() => setNotifications([])} />}</AnimatePresence>
+          <AnimatePresence>{isNotificationsOpen && <NotificationTray notifications={notifications} onClear={() => setNotifications([])} onOpen={handleOpenNotification} />}</AnimatePresence>
         </div>
       </header>
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1440px] gap-5 px-4 pb-8 sm:px-7 lg:px-10">
         {layout === "sidebar" && <PreviewSidebar activeTab={activeTab} onChange={handleTabChange} onHome={returnToChat} />}
-        <main className="min-w-0 flex-1"><div className="mb-5 flex items-center justify-between gap-4"><div><p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Overview</p>{!cleanPreview && <p className="mt-1 text-xs text-muted-foreground/70">A signed-in look at your Arc workspace</p>}</div><div className="hidden items-center gap-2 text-[11px] text-muted-foreground sm:flex"><CircleUserRound className="h-3.5 w-3.5" /> Personal space</div></div><DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} onTaskComplete={handleTaskComplete} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? liveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} /></main>
+        <main className="min-w-0 flex-1"><div className="mb-5 flex items-center justify-between gap-4"><div><p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">Overview</p>{!cleanPreview && <p className="mt-1 text-xs text-muted-foreground/70">A signed-in look at your Arc workspace</p>}</div><div className="hidden items-center gap-2 text-[11px] text-muted-foreground sm:flex"><CircleUserRound className="h-3.5 w-3.5" /> Personal space</div></div>{activeTab !== "overview" ? <DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} /> : <DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} onTaskComplete={handleTaskComplete} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? liveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} onOpenReminders={() => navigate("/tasks")} />}</main>
       </div>
 
       <AnimatePresence mode="wait">
