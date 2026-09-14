@@ -2162,7 +2162,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
 
         // Strip the code/ prefix if present
-        const isCodingRequest = wasCodingMode;
+        const isCodingRequest = !wasGitMode && wasCodingMode;
 
         const canvasState = useCanvasStore.getState();
 
@@ -2172,7 +2172,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         // When writing canvas is open, default to routing there unless the message
         // is clearly conversational (e.g. "nice!", "thanks", "how does this work?")
         const hasCanvasReferenceIntent =
-          looksLikeCanvasEditRequest(finalMessage) || referencesCanvasSurface(finalMessage);
+          !wasGitMode && (looksLikeCanvasEditRequest(finalMessage) || referencesCanvasSurface(finalMessage));
         const shouldRouteToCanvas =
           !wasGitMode && (wasCanvasMode ||
           (canvasState.isOpen &&
@@ -2182,10 +2182,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         // Check if code canvas is open and keep it as active context.
         // Also auto-open the canvas from the last code message in chat if it isn't open yet,
         // so follow-up messages work without requiring the user to click the code card first.
-        let isCodeCanvasOpen = canvasState.isOpen && canvasState.canvasType === "code";
-        const hasCodeReferenceIntent = looksLikeCodeEditRequest(finalMessage) || referencesCodeSurface(finalMessage);
+        let isCodeCanvasOpen = !wasGitMode && canvasState.isOpen && canvasState.canvasType === "code";
+        const hasCodeReferenceIntent = !wasGitMode && (looksLikeCodeEditRequest(finalMessage) || referencesCodeSurface(finalMessage));
 
-        if (!isCodeCanvasOpen && (isCodingRequest || hasCodeReferenceIntent)) {
+        if (!wasGitMode && !isCodeCanvasOpen && (isCodingRequest || hasCodeReferenceIntent)) {
           const recentMsgs = useArcStore.getState().messages;
           // First: look for a dedicated code tile message (type === 'code')
           const lastCodeMsg = [...recentMsgs].reverse().find((m) => (m as any).type === "code");
@@ -2245,7 +2245,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
         let messageToSend: string;
 
-        if (isCodingRequest && freshestCanvasContent) {
+        if (!wasGitMode && isCodingRequest && freshestCanvasContent) {
           // Explicit /code request with existing code: force a code update.
           const existingCode = freshestCanvasContent;
           const language = freshCanvasState.codeLanguage || "html";
@@ -2263,7 +2263,7 @@ ${safeCode}
 USER'S REQUEST: ${userReq}
 
 MANDATORY: Output the COMPLETE updated code for the SAME existing project. Never stop mid-sentence or mid-function. Include ALL code from start to finish.`;
-        } else if (shouldRouteToCanvas && freshCanvasState.isOpen && freshestCanvasContent) {
+        } else if (!wasGitMode && shouldRouteToCanvas && freshCanvasState.isOpen && freshestCanvasContent) {
           // Writing canvas is open with existing content - include it for modification
           const existingContent = freshestCanvasContent;
           const userReq = cleanedMessage || finalMessage;
@@ -2279,12 +2279,12 @@ ${safeContent}
 USER'S REQUEST: ${userReq}
 
 MANDATORY: Output the COMPLETE updated content. Never stop mid-sentence or mid-paragraph. Include ALL content from start to finish.`;
-        } else if (shouldRouteToCanvas) {
+        } else if (!wasGitMode && shouldRouteToCanvas) {
           // New canvas request (no existing content)
           messageToSend = `CRITICAL INSTRUCTION - OUTPUT COMPLETE CONTENT: Use the update_canvas tool to write COMPLETE, FULL markdown content for this request. Do NOT truncate, summarize, or cut short. Write the ENTIRE piece from beginning to end - every paragraph, every section, complete thoughts. Never stop mid-sentence:\n\n${cleanedMessage || finalMessage}`;
         } else if (wasSearchMode) {
           messageToSend = `Search the web for: ${cleanedMessage || finalMessage}`;
-        } else if (shouldUseCodeContext && freshestCanvasContent) {
+        } else if (!wasGitMode && shouldUseCodeContext && freshestCanvasContent) {
           // Any request while code is open is grounded in that code. The model
           // can answer, explain, search, or choose the code tool if an edit is needed.
           const existingCode = freshestCanvasContent;
@@ -2360,8 +2360,8 @@ ${safeCode}
             // Durable text only: capture the actual current editor, including a
             // deliberately cleared live draft. The legacy augmented prose above
             // remains unchanged and is not used as cloud execution context.
-            const workspaceKind = shouldUseCodeContext || (isCodingRequest && freshestCanvasContent)
-              ? 'code' : shouldRouteToCanvas && freshCanvasState.isOpen ? 'canvas' : undefined;
+            const workspaceKind = !wasGitMode && (shouldUseCodeContext || (isCodingRequest && freshestCanvasContent))
+              ? 'code' : !wasGitMode && shouldRouteToCanvas && freshCanvasState.isOpen ? 'canvas' : undefined;
             const currentWorkspaceContent = typeof window !== 'undefined'
               && typeof (window as any).__arcaiLiveCanvasContent === 'string'
               ? (window as any).__arcaiLiveCanvasContent : freshCanvasState.content;

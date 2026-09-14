@@ -12,6 +12,7 @@ export function GitModeDock() {
   const { toast } = useToast();
   const {
     connected, providerLogin, selectedRepo, selectedBranch, repositories, loading, error,
+    repoAccessMode, allowedRepos,
     loadStatus, connect, loadRepositories, selectRepository, disconnect,
   } = useGitStore();
 
@@ -31,17 +32,25 @@ export function GitModeDock() {
   }, [error, toast]);
 
   const handleRepoChange = async (repo: string) => {
+    if (repo === '__manage_settings__') {
+      window.location.assign('/dashboard/settings');
+      return;
+    }
     const item = repositories.find(value => value.full_name === repo);
     if (!item) return;
     await selectRepository(item.full_name, item.default_branch);
   };
+
+  const availableRepos = repositories.filter(
+    (repo) => repoAccessMode === 'all' || (Array.isArray(allowedRepos) && allowedRepos.includes(repo.full_name))
+  );
 
   return (
     <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-background/85 backdrop-blur-xl shadow-lg px-3.5 py-2 text-xs text-foreground transition-all">
       <GitHubMark className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-300" />
       {!connected ? (
         <>
-          <span className="min-w-0 flex-1 text-muted-foreground truncate">GitHub mode is account-gated beta.</span>
+          <span className="min-w-0 flex-1 text-muted-foreground truncate">GitHub mode is enabled.</span>
           <button
             type="button"
             onClick={() => void connect()}
@@ -62,14 +71,17 @@ export function GitModeDock() {
             onChange={event => void handleRepoChange(event.target.value)}
             className="min-w-0 flex-1 rounded-full border border-border/50 bg-background/60 px-2 py-1 text-xs outline-none cursor-pointer"
           >
-            <option value="">Choose a repository…</option>
-            {repositories.map(repo => <option key={repo.full_name} value={repo.full_name}>{repo.full_name}</option>)}
+            <option value="">{availableRepos.length ? 'Choose a repository…' : 'No allowed repositories…'}</option>
+            {availableRepos.map(repo => <option key={repo.full_name} value={repo.full_name}>{repo.full_name}</option>)}
+            {repoAccessMode === 'selected' && (
+              <option value="__manage_settings__">⚙️ Add more in Settings…</option>
+            )}
           </select>
           <span className="hidden text-muted-foreground sm:inline font-mono text-[11px]">{selectedBranch || 'default'}</span>
-          <button type="button" onClick={() => void loadRepositories()} disabled={loading} className={cn('rounded-full p-1.5 hover:bg-muted/30 transition-colors', loading && 'animate-spin')} aria-label="Refresh repositories">
+          <button type="button" onClick={() => void loadRepositories()} disabled={loading} className={cn('rounded-full p-1.5 hover:bg-muted/30 transition-colors', loading && 'animate-spin')} aria-label="Refresh repositories" title="Refresh repositories">
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
-          <button type="button" onClick={() => void disconnect()} disabled={loading} className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors" aria-label="Disconnect GitHub">
+          <button type="button" onClick={() => void disconnect()} disabled={loading} className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors" aria-label="Disconnect GitHub" title="Disconnect GitHub">
             <Unplug className="h-3.5 w-3.5" />
           </button>
         </>

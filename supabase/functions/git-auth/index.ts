@@ -84,20 +84,36 @@ serve(async (req) => {
     }
 
     if (action === 'status') {
-      const result = await db.from('git_connections').select('provider_login,selected_repo,selected_branch,updated_at')
+      const result = await db.from('git_connections').select('provider_login,selected_repo,selected_branch,repo_access_mode,allowed_repos,updated_at')
         .eq('user_id', user.id).eq('provider', 'github').maybeSingle();
       if (result.error) throw new Error('Unable to read Git connection.');
       const staticReady = !!await gitStaticTokenForUser(db, user.id);
-      return json({ enabled: true, connected: !!result.data || staticReady, providerLogin: result.data?.provider_login || (staticReady ? 'beta token' : null), selectedRepo: result.data?.selected_repo || null, selectedBranch: result.data?.selected_branch || null });
+      return json({
+        enabled: true,
+        connected: !!result.data || staticReady,
+        providerLogin: result.data?.provider_login || (staticReady ? 'beta token' : null),
+        selectedRepo: result.data?.selected_repo || null,
+        selectedBranch: result.data?.selected_branch || null,
+        repoAccessMode: (result.data?.repo_access_mode as 'all' | 'selected') || 'all',
+        allowedRepos: Array.isArray(result.data?.allowed_repos) ? result.data.allowed_repos : [],
+      });
     }
     if (action === 'start') {
       const clientId = Deno.env.get('GITHUB_CLIENT_ID');
       const redirectUri = Deno.env.get('GITHUB_OAUTH_REDIRECT_URI');
       if (!clientId || !redirectUri) {
         if (await gitStaticTokenForUser(db, user.id)) {
-          const result = await db.from('git_connections').select('provider_login,selected_repo,selected_branch')
+          const result = await db.from('git_connections').select('provider_login,selected_repo,selected_branch,repo_access_mode,allowed_repos')
             .eq('user_id', user.id).eq('provider', 'github').maybeSingle();
-          return json({ enabled: true, connected: true, providerLogin: result.data?.provider_login || 'beta token', selectedRepo: result.data?.selected_repo || null, selectedBranch: result.data?.selected_branch || null });
+          return json({
+            enabled: true,
+            connected: true,
+            providerLogin: result.data?.provider_login || 'beta token',
+            selectedRepo: result.data?.selected_repo || null,
+            selectedBranch: result.data?.selected_branch || null,
+            repoAccessMode: (result.data?.repo_access_mode as 'all' | 'selected') || 'all',
+            allowedRepos: Array.isArray(result.data?.allowed_repos) ? result.data.allowed_repos : [],
+          });
         }
         return json({ error: 'GitHub authorization is not configured yet.' }, 503);
       }
@@ -119,18 +135,48 @@ serve(async (req) => {
     if (action === 'list_repositories') {
       return json({ enabled: true, repositories: await githubRepositories(await tokenFor(db, user.id)) });
     }
+    if (action === 'update_repo_settings') {
+      const repoAccessMode = body?.repoAccessMode === 'selected' ? 'selected' : 'all';
+      const allowedRepos = Array.isArray(body?.allowedRepos)
+        ? body.allowedRepos.filter((r: unknown): r is string => typeof r === 'string' && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(r))
+        : [];
+      const updated = await db.from('git_connections').update({
+        repo_access_mode: repoAccessMode,
+        allowed_repos: allowedRepos,
+      }).eq('user_id', user.id).eq('provider', 'github');
+      if (updated.error) throw new Error('Unable to save repository settings.');
+      return json({ enabled: true, repoAccessMode, allowedRepos });
+    }
     if (action === 'select_repository') {
       const repo = typeof body.repo === 'string' ? body.repo : '';
       const branch = typeof body.branch === 'string' ? body.branch : '';
       if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo) || !branch || branch.length > 200) return json({ error: 'Invalid repository selection.' }, 400);
+      const conn = await db.from('git_connections').select('repo_access_mode,allowed_repos').eq('user_id', user.id).eq('provider', 'github').maybeSingle();
+      if (conn.data?.repo_access_mode === 'selected') {
+        const allowed = Array.isArray(conn.data?.allowed_repos) ? conn.data.allowed_repos : [];
+        if (!allowed.includes(repo)) {
+          return json({
+            error: `Repository "${repo}" is not selected in your GitHub settings. You can add it in Settings > GitHub Integration or enable all repositories.`,
+            notAllowed: true,
+          }, 403);
+        }
+      }
       const token = await tokenFor(db, user.id);
       const repos = await githubRepositories(token);
       const selected = repos.find(item => item.full_name === repo);
       if (!selected) return json({ error: 'That repository is not available to this GitHub connection.' }, 403);
       const updated = await db.from('git_connections').update({ selected_repo: repo, selected_branch: branch }).eq('user_id', user.id).eq('provider', 'github');
       if (updated.error) throw new Error('Unable to save repository selection.');
-      const current = await db.from('git_connections').select('provider_login').eq('user_id', user.id).eq('provider', 'github').maybeSingle();
-      return json({ enabled: true, connected: true, providerLogin: current.data?.provider_login || null, selectedRepo: repo, selectedBranch: branch });
+      const current = await db.from('git_connections').select('provider_login,repo_access_mode,allowed_repos').eq('user_id', user.id).eq('provider', 'github').maybeSingle();
+      return json({
+        enabled: true,
+        connected: true,
+        providerLogin: current.data?.provider_login || null,
+        selectedRepo: repo,
+        selectedBranch: branch,
+        repoAccessMode: (current.data?.repo_access_mode as 'all' | 'selected') || 'all',
+        allowedRepos: Array.isArray(current.data?.allowed_repos) ? current.data.allowed_repos : [],
+      });
     }
     if (action === 'disconnect') {
       const deleted = await db.from('git_connections').delete().eq('user_id', user.id).eq('provider', 'github');

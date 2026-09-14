@@ -9,6 +9,7 @@ type GitState = GitStatus & {
   connect: () => Promise<void>;
   loadRepositories: () => Promise<void>;
   selectRepository: (repo: string, branch: string) => Promise<void>;
+  updateRepoSettings: (mode: 'all' | 'selected', repos: string[]) => Promise<void>;
   disconnect: () => Promise<void>;
 };
 
@@ -18,6 +19,8 @@ export const useGitStore = create<GitState>((set, get) => ({
   providerLogin: null,
   selectedRepo: null,
   selectedBranch: null,
+  repoAccessMode: 'all',
+  allowedRepos: [],
   loading: false,
   repositories: [],
   error: null,
@@ -65,6 +68,16 @@ export const useGitStore = create<GitState>((set, get) => ({
       set({ ...(await gitApi.selectRepository(repo, branch)), loading: false });
     } catch (error) {
       set({ loading: false, error: error instanceof Error ? error.message : 'Could not select repository.' });
+      throw error;
+    }
+  },
+  updateRepoSettings: async (mode, repos) => {
+    set({ loading: true, error: null });
+    try {
+      const result = await gitApi.updateRepoSettings(mode, repos);
+      set({ repoAccessMode: result.repoAccessMode, allowedRepos: result.allowedRepos, loading: false });
+    } catch (error) {
+      set({ loading: false, error: error instanceof Error ? error.message : 'Could not save repository settings.' });
       throw error;
     }
   },

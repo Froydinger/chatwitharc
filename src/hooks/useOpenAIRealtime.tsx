@@ -27,6 +27,7 @@ interface UseOpenAIRealtimeOptions {
   onDeleteMemory?: (keywords: string[]) => Promise<string>;
   onGetUserLocation?: () => Promise<string>;
   onOpenBugReport?: (summary?: string) => Promise<string>;
+  onLookAtCamera?: (question?: string) => Promise<string>;
   // Called when a session expires so the controller can inject conversation
   // context into the fresh session's system prompt.
   onSessionExpired?: () => Promise<string | undefined>;
@@ -41,6 +42,7 @@ export const ARC_LIVE_PROMPT = `You are Arc, the voice assistant inside ArcAI.
 Speak with Jake's preferred candor: casual, direct, warm, and a little dry. Keep a subtle Chicago-area cadence natural; never force slang or do a caricature. Be emotionally aware and concise. Use moderate backchannels without competing with the user.
 
 Interruption policy: stop speaking when the user interrupts and listen. Keep listening sounds natural and do not take over the user's turn.
+Vision policy: When the user asks you to look at something, asks what they are holding, what is in front of them, what you see on camera, or asks to read text on camera, call look_at_camera immediately to inspect their live camera view, then answer naturally based on what is observed.
 Delegation policy:
 Backend tools: search, app actions, memory, images, reminders, location, and careful reasoning.
 Delegate to the backend when the request needs one of those capabilities or an answer that depends on backend work.
@@ -53,6 +55,7 @@ const ARC_BACKEND_PROMPT = `You are Arc's backend reasoning agent. Execute only 
 Use memory tools to maintain Arc's living account memory. Preserve unrelated memory when editing or deleting, and never invent personal facts. Use search_past_chats for conversation history and web_search or get_weather only for current information. Return the actual tool result to the live model. Never claim an action succeeded until the application confirms it. For long-running image work, return a started status and let the application announce completion separately.`;
 
 const LIVE_TOOL_DEFINITIONS = [
+  { type: 'function', name: 'look_at_camera', description: 'Inspect what the user is showing, holding, or pointing their live camera at right now. Call this immediately whenever the user asks what they are holding, what is in front of them, what you see on camera, or asks you to read or identify an object in live view.', parameters: { type: 'object', properties: { question: { type: 'string', description: 'The question about what to observe or look for in the live camera frame.' } } } },
   { type: 'function', name: 'open_bug_report', description: 'Open the in-app bug report form when the user wants to report a bug, send feedback, contact support, or message the team.', parameters: { type: 'object', properties: { summary: { type: 'string' } } } },
   { type: 'function', name: 'generate_image', description: 'Generate a new image from a prompt.', parameters: { type: 'object', properties: { prompt: { type: 'string' }, aspect_ratio: { type: 'string', enum: ['3:2', '1:1', '16:9', '9:16', '4:3', '3:4'] } }, required: ['prompt', 'aspect_ratio'] } },
   { type: 'function', name: 'revise_image', description: 'Revise the current image based on the user instruction.', parameters: { type: 'object', properties: { prompt: { type: 'string' }, aspect_ratio: { type: 'string', enum: ['source', '3:2', '1:1', '16:9', '9:16', '4:3', '3:4'] } }, required: ['prompt', 'aspect_ratio'] } },
@@ -1328,7 +1331,31 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
             }
           };
           
-          if (name === 'open_bug_report') {
+          if (name === 'look_at_camera') {
+            try {
+              const args = JSON.parse(argsStr || '{}');
+              const question = args.question || 'What is in front of the camera?';
+              console.log('📷 Inspecting live camera feed for question:', question);
+              if (optionsRef.current.onLookAtCamera) {
+                withToolTimeout('look_at_camera', call_id, optionsRef.current.onLookAtCamera(question), 30000)
+                  .then((description) => {
+                    console.log('📷 Camera vision result received');
+                    sendFunctionResult(call_id, JSON.stringify({ success: true, observation: description }));
+                  })
+                  .catch((error) => {
+                    console.error('Camera vision check failed:', error);
+                    sendFunctionResult(call_id, JSON.stringify({ success: false, error: error?.message || 'Could not inspect camera feed' }));
+                  })
+                  .finally(cleanupToolCall);
+              } else {
+                sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'Camera inspection is unavailable' }));
+                cleanupToolCall();
+              }
+            } catch (e) {
+              sendFunctionResult(call_id, JSON.stringify({ success: false, error: 'Invalid arguments' }));
+              cleanupToolCall();
+            }
+          } else if (name === 'open_bug_report') {
             const args = JSON.parse(argsStr || '{}');
             if (optionsRef.current.onOpenBugReport) {
               optionsRef.current.onOpenBugReport(args.summary)
@@ -2406,7 +2433,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
 
     sendRealtimeEvent({
-      type: globalWs instanceof RealtimeBrowserTransport ? 'response.item.create' : 'conversation.item.create',
+      type: 'conversation.item.create',
       event_id: `image_${Date.now()}`,
       item: { type: 'message', role: 'user', content },
     });

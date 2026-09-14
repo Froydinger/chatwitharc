@@ -14,6 +14,8 @@ export type GitStatus = {
   providerLogin: string | null;
   selectedRepo: string | null;
   selectedBranch: string | null;
+  repoAccessMode: 'all' | 'selected';
+  allowedRepos: string[];
 };
 
 async function invoke<T>(action: string, extra: Record<string, unknown> = {}): Promise<T> {
@@ -32,5 +34,7 @@ export const gitApi = {
   start: (returnPath: string) => invoke<{ authorizationUrl?: string; connected?: boolean; enabled?: boolean; providerLogin?: string | null; selectedRepo?: string | null; selectedBranch?: string | null }>('start', { returnPath }),
   repositories: () => invoke<{ repositories: GitRepository[] }>('list_repositories'),
   selectRepository: (repo: string, branch: string) => invoke<GitStatus>('select_repository', { repo, branch }),
+  updateRepoSettings: (repoAccessMode: 'all' | 'selected', allowedRepos: string[]) =>
+    invoke<{ enabled: boolean; repoAccessMode: 'all' | 'selected'; allowedRepos: string[] }>('update_repo_settings', { repoAccessMode, allowedRepos }),
   disconnect: () => invoke<{ disconnected: boolean }>('disconnect'),
 };

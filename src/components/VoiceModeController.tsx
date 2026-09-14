@@ -977,6 +977,45 @@ export function VoiceModeController() {
     return buildVoiceSystemPrompt(profileRef.current, '', voiceSummary);
   }, [saveNewTurns]);
 
+  // Track latest camera frame for live vision inspection
+  const latestCameraFrameRef = useRef<string | null>(null);
+
+  const handleLookAtCamera = useCallback(async (question?: string): Promise<string> => {
+    const store = useVoiceModeStore.getState();
+    const targetImage = latestCameraFrameRef.current || (store.attachedImage ? store.attachedImage : null);
+
+    if (!targetImage) {
+      if (!store.isCameraActive) {
+        return "The camera is currently turned off. Ask the user to turn on their camera using the camera icon so you can see what they are showing you.";
+      }
+      return "The camera is on, but no video frame has arrived yet. Ask the user to hold steady for a moment.";
+    }
+
+    try {
+      const promptText = question && question.trim()
+        ? `The user is speaking to you in live voice mode and asks: "${question}". Describe what you see in the camera frame clearly, concisely, and naturally for a spoken voice response. Keep it to 1 to 2 sentences unless specific details are requested.`
+        : 'The user is speaking to you in live voice mode and wants to know what you see. Describe what you see in this camera frame clearly, concisely, and naturally for a spoken voice response. Keep it to 1 to 2 sentences.';
+
+      const { data, error } = await supabase.functions.invoke('analyze-image', {
+        body: {
+          messages: [{ role: 'user', content: promptText }],
+          image: targetImage.startsWith('data:') ? targetImage : `data:image/jpeg;base64,${targetImage}`,
+          reasoningEffort: 'low',
+        },
+      });
+
+      if (error || !data?.analysis) {
+        console.error('Failed to analyze camera frame:', error || data?.error);
+        return "I had trouble reading the camera view clearly. Could you hold it a bit steadier or closer?";
+      }
+
+      return data.analysis;
+    } catch (err) {
+      console.error('Error analyzing camera frame:', err);
+      return "I could not inspect the camera view right now. Please try again in a moment.";
+    }
+  }, []);
+
   // OpenAI Realtime connection
   const { isConnected, connect, disconnect, sendImage, cancelResponse, commitAudioAndRespond, reconnectNow } = useOpenAIRealtime({
     onError: (error) => {
@@ -986,10 +1025,6 @@ export function VoiceModeController() {
         description: error,
         variant: 'destructive',
       });
-      // Don't auto-deactivate on transient errors — the realtime hook handles
-      // reconnects and will only stay disconnected if the user closes the call.
-      // Tearing down the overlay here was the source of the "screen flashes
-      // back to chat" issue during long sessions.
     },
     onImageGenerate: handleImageGenerate,
     onImageRevise: handleImageRevise,
@@ -1002,6 +1037,7 @@ export function VoiceModeController() {
     onRecallMemory: handleRecallMemory,
     onDeleteMemory: handleDeleteMemory,
     onGetUserLocation: handleGetUserLocation,
+    onLookAtCamera: handleLookAtCamera,
     onOpenBugReport: async (summary) => {
       useBugReport.getState().openBugReport(summary || '');
       return 'The bug report form is open for the user to review and send.';
@@ -1015,6 +1051,7 @@ export function VoiceModeController() {
 
   // Camera frame handler
   const handleCameraFrame = useCallback((base64Image: string) => {
+    latestCameraFrameRef.current = base64Image;
     const now = Date.now();
     if (now - lastFrameSentRef.current < MIN_FRAME_INTERVAL_MS) return;
     lastFrameSentRef.current = now;

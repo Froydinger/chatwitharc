@@ -171,9 +171,8 @@ review markup risks a manual action against the rich results the site earns.
 ## Remote Git integration
 
 - GitHub support is a live-site beta, not an IDE or local-repository feature.
-- The `/git` and `git/` composer mode is server-gated by `admin_settings`: keep
-  the default rollout at the email allowlist until the owner explicitly asks
-  to switch it to `all`.
+- The `/git` and `git/` composer mode is enabled across all accounts (`git_rollout_mode = 'all'`).
+  Users configure repository access (All repositories vs Selected repositories) in Settings.
 - Git operations must use the connected remote repository and create an Arc
   branch plus pull request. Never add a local checkout path, local Git token,
   direct base-branch push, or IDE exposure unless the owner explicitly expands
