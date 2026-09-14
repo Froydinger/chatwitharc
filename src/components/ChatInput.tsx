@@ -70,6 +70,7 @@ import { useVideoAccess } from "@/hooks/useVideoAccess";
 import { AnimateAttachmentModal } from "@/components/AnimateAttachmentModal";
 import { useImageQuota } from "@/hooks/useImageQuota";
 import { detectsLocationIntent, getCachedLocation, getUserLocation, requestsCurrentLocation } from "@/lib/userLocation";
+import { GitHubMark, GitModeDock } from "@/components/GitModeDock";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -314,6 +315,12 @@ function checkForSearchRequest(message: string): boolean {
   return /^search\//.test(m) || /^\/search\b/.test(m);
 }
 
+function checkForGitRequest(message: string): boolean {
+  if (!message) return false;
+  const m = message.trim().toLowerCase();
+  return /^git\//.test(m) || /^\/git\b/.test(m);
+}
+
 // Detect conversational messages that should NOT trigger code/canvas updates
 // These are casual comments, questions, reactions - not actionable requests
 function isConversationalMessage(message: string): boolean {
@@ -498,8 +505,8 @@ function referencesCodeSurface(message: string): boolean {
 // Extract the prompt after the prefix (strips prefix/ or /prefix)
 function extractPrefixPrompt(message: string): string {
   return message
-    .replace(/^(image|draw|create|code|write|search|build|app|apps)[\/:]\s*/i, "")
-    .replace(/^\/(image|draw|create|code|write|canvas|search|build|app|apps)[\/:\s-]\s*/i, "")
+    .replace(/^(image|draw|create|code|write|search|git|build|app|apps)[\/:]\s*/i, "")
+    .replace(/^\/(image|draw|create|code|write|canvas|search|git|build|app|apps)[\/:\s-]\s*/i, "")
     .trim();
 }
 
@@ -585,6 +592,7 @@ export interface CloudTextSubmitIntent {
   forceWebSearch: boolean;
   forceCanvas: boolean;
   forceCode: boolean;
+  forceGit: boolean;
   modelOverride?: string;
 }
 
@@ -722,11 +730,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const [forceCanvasMode, setForceCanvasMode] = useState(false);
   const [forceSearchMode, setForceSearchMode] = useState(false);
   const [forceBuildMode, setForceBuildMode] = useState(false);
+  const [forceGitMode, setForceGitMode] = useState(false);
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
   const shouldShowCodeMode = forceCodingMode || (!!inputValue && checkForCodingRequest(inputValue));
   const shouldShowCanvasMode = forceCanvasMode || (!!inputValue && checkForCanvasRequest(inputValue));
   const shouldShowSearchMode = forceSearchMode || (!!inputValue && checkForSearchRequest(inputValue));
   const shouldShowBuildMode = forceBuildMode || (!!inputValue && checkForBuildRequest(inputValue));
+  const shouldShowGitMode = forceGitMode || (!!inputValue && checkForGitRequest(inputValue));
 
   // Persisted user-chosen image model + aspect ratio (for /image, "draw…", etc.)
   const {
@@ -778,6 +788,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     } else if (val === "/build" || val === "/app" || val === "/apps") {
       setForceBuildMode(true);
       setInputValue("app/ ");
+    } else if (val === "/git") {
+      setForceGitMode(true);
+      setInputValue("git/ ");
     }
   }, [inputValue, openSearchMode]);
 
@@ -1628,10 +1641,11 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     let wasImageMode = !wasVideoMode && (shouldShowBanana || checkForImageRequest(finalMessage));
     let wasSearchMode = shouldShowSearchMode || checkForSearchRequest(finalMessage);
     let wasBuildMode = shouldShowBuildMode || checkForBuildRequest(finalMessage);
+    let wasGitMode = shouldShowGitMode || checkForGitRequest(finalMessage);
 
     // Natural language image generation/search routing when no slash command and no UI toggles are active
     const isSlashOrOverride = finalMessage.trim().startsWith("/") ||
-                              shouldShowCanvasMode || shouldShowCodeMode || shouldShowBanana || shouldShowSearchMode || shouldShowBuildMode;
+                              shouldShowCanvasMode || shouldShowCodeMode || shouldShowBanana || shouldShowSearchMode || shouldShowBuildMode || shouldShowGitMode;
 
     if (!isArcWorkMode && !isSlashOrOverride && !documents.length && !images.length) {
       const intent = analyzeImageRequestIntent(finalMessage);
@@ -1661,6 +1675,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         setForceCodingMode(false);
         setForceCanvasMode(false);
         setForceSearchMode(false);
+        setForceGitMode(false);
         setShowMenu(false);
         setLoading(false);
         return;
@@ -1688,6 +1703,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     setForceCanvasMode(false);
     setForceSearchMode(false);
     setForceBuildMode(false);
+    setForceGitMode(false);
     setShowMenu(false);
 
     // === CORPORATE MODE: hard-strip every cloud tool from this turn ===
@@ -1701,7 +1717,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         wasImageMode ||
         wasVideoMode ||
         wasSearchMode ||
-        wasBuildMode
+        wasBuildMode ||
+        wasGitMode
       ) {
         toast({
           title: "Corporate Mode is on",
@@ -1716,6 +1733,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       wasVideoMode = false;
       wasSearchMode = false;
       wasBuildMode = false;
+      wasGitMode = false;
     }
 
     // Search mode (/search) - now does a regular web search in chat (NOT Deep Search Mode)
@@ -1751,7 +1769,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       // Guest mode restrictions: only basic text chat
       if (
         isGuestMode &&
-        (images.length > 0 || documents.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode || wasBuildMode)
+        (images.length > 0 || documents.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode || wasBuildMode || wasGitMode)
       ) {
         await addMessage({ content: finalMessage || "Sent message", role: "user", type: "text" });
         await addMessage({
@@ -2156,10 +2174,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         const hasCanvasReferenceIntent =
           looksLikeCanvasEditRequest(finalMessage) || referencesCanvasSurface(finalMessage);
         const shouldRouteToCanvas =
-          wasCanvasMode ||
+          !wasGitMode && (wasCanvasMode ||
           (canvasState.isOpen &&
             canvasState.canvasType === "writing" &&
-            (hasCanvasReferenceIntent || !isConversationalMessage(finalMessage)));
+            (hasCanvasReferenceIntent || !isConversationalMessage(finalMessage))));
 
         // Check if code canvas is open and keep it as active context.
         // Also auto-open the canvas from the last code message in chat if it isn't open yet,
@@ -2196,7 +2214,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             }
           }
         }
-        const shouldUseCodeContext = isCodeCanvasOpen;
+        const shouldUseCodeContext = !wasGitMode && isCodeCanvasOpen;
 
         // Re-read canvas state after potential openWithContent call above
         const freshCanvasState = useCanvasStore.getState();
@@ -2330,6 +2348,7 @@ ${safeCode}
           forceWebSearch: wasSearchMode || shouldSearchForVideo,
           forceCanvas: shouldForceCanvas,
           forceCode: shouldForceCode,
+          forceGit: wasGitMode,
           hasImageAttachment: false,
           isImageGenerationRequest: false,
         }));
@@ -2361,6 +2380,7 @@ ${safeCode}
               forceWebSearch: cloudExecutionMode === 'auto' ? false : wasSearchMode || shouldSearchForVideo,
               forceCanvas: cloudExecutionMode === 'auto' ? false : shouldForceCanvas,
               forceCode: cloudExecutionMode === 'auto' ? false : shouldForceCode,
+              forceGit: wasGitMode,
               modelOverride: codeContextModelOverride,
             });
           } catch (error) {
@@ -2527,6 +2547,7 @@ ${safeCode}
               forceWebSearch: wasSearchMode,
               forceCanvas: false,
               forceCode: false,
+              forceGit: wasGitMode,
               hasImageAttachment: aiMessages.some((m: any) => Array.isArray(m.content)),
               isImageGenerationRequest: false,
             });
@@ -2807,6 +2828,7 @@ ${safeCode}
                 },
                 currentAbortController.signal,
                 cloudExecutionMode === 'auto' ? 'work' : 'chat',
+                wasGitMode,
               );
 
               // CRITICAL: If cancelled while waiting for response, discard everything
@@ -2983,6 +3005,7 @@ ${safeCode}
     { id: "write", label: "Write", description: "Open a live writing canvas", keywords: "canvas prose draft document", icon: PenLine, tileClass: "border-sky-500/20 hover:border-sky-500/40 hover:bg-sky-500/10", iconClass: "bg-sky-500/15 text-sky-600 dark:text-sky-400", run: () => { setForceCanvasMode(true); setInputValue("write/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "app", label: "App", description: "Build an interactive app", keywords: "builder project react application", icon: Smartphone, tileClass: "border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/10", iconClass: "bg-purple-500/15 text-purple-500 dark:text-purple-400", badge: "Boost", run: () => { if (!hasBoost && !isAdmin) { setShowMenu(false); openCheckout(); toast({ title: "ArcAI Boost Required", description: "App Builder is exclusively available to Boost subscribers and admins." }); return; } setForceBuildMode(true); setInputValue("app/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "code", label: "Code", description: "Work in a code canvas", keywords: "programming developer code editor", icon: Code2, tileClass: "border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/10", iconClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400", run: () => { setForceCodingMode(true); setInputValue("code/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "git", label: "GitHub", description: "Update a remote repo via a pull request", keywords: "github git repository pull request branch", icon: GitHubMark, tileClass: "border-zinc-500/20 hover:border-zinc-500/40 hover:bg-zinc-500/10", iconClass: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-300", run: () => { setForceGitMode(true); setInputValue("git/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "search", label: "Search", description: "Search the web inline", keywords: "web browse lookup sources", icon: Globe, tileClass: "border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10", iconClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", run: () => { setForceSearchMode(true); setInputValue("search/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "deep-search", label: "Deep Search", description: "Run a deeper research pass", keywords: "research investigate browse sources", icon: Search, tileClass: "border-indigo-500/20 hover:border-indigo-500/40 hover:bg-indigo-500/10", iconClass: "bg-indigo-500/20 text-indigo-400", run: () => { setShowMenu(false); openSearchMode(); } },
     { id: "prompts", label: "Prompts", description: "Browse saved prompt starters", keywords: "prompt library templates starters", icon: ListPlus, tileClass: "border-fuchsia-500/20 hover:border-fuchsia-500/40 hover:bg-fuchsia-500/10", iconClass: "bg-fuchsia-500/15 text-fuchsia-500 dark:text-fuchsia-400", run: () => { setShowPromptLibrary(true); setShowMenu(false); } },
@@ -3238,6 +3261,7 @@ ${safeCode}
         <div className="flex items-end gap-2 relative">
           {/* Main Input Wrapper */}
           <div className="flex-1 flex flex-col min-w-0">
+            {shouldShowGitMode && <GitModeDock />}
             {/* Mode indicators removed — single-tool indication is handled inline elsewhere */}
             {/* Model picker moved to header (see MobileChatApp header buttons) */}
 
@@ -3265,7 +3289,7 @@ ${safeCode}
                   }}
                   className={cn(
                     "ci-menu-btn flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
-                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowBuildMode || showCanvasIndicator) && !showMenu && "text-primary"
+                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowBuildMode || shouldShowGitMode || showCanvasIndicator) && !showMenu && "text-primary"
                   )}
                   aria-label="Add content"
                 >
@@ -3273,6 +3297,8 @@ ${safeCode}
                     <X className="h-4 w-4 transition-transform duration-300" />
                   ) : shouldShowSearchMode ? (
                     <Globe className="h-4 w-4 text-indigo-400" />
+                  ) : shouldShowGitMode ? (
+                    <GitHubMark className="h-4 w-4 text-zinc-500 dark:text-zinc-300" />
                   ) : shouldShowBanana ? (
                     <ImagePlus className="h-4 w-4 text-amber-500" />
                   ) : shouldShowCodeMode ? (
@@ -3287,7 +3313,7 @@ ${safeCode}
                 </button>
 
                 {/* Clear active tool badge */}
-                {!showMenu && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode || shouldShowBuildMode) && (
+                {!showMenu && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode || shouldShowBuildMode || shouldShowGitMode) && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -3297,8 +3323,9 @@ ${safeCode}
                       setForceCodingMode(false);
                       setForceCanvasMode(false);
                       setForceBuildMode(false);
+                      setForceGitMode(false);
                       setInputValue((v) =>
-                        v.replace(/^\s*(image|search|code|write|build|app|apps)\/\s*/i, "")
+                        v.replace(/^\s*(image|search|code|write|git|build|app|apps)\/\s*/i, "")
                       );
                       textareaRef.current?.focus();
                     }}

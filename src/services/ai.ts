@@ -222,6 +222,7 @@ export class AIService {
     onStatus?: (status: { type: string; activity?: string; tool?: string; phase?: string }) => void,
     abortSignal?: AbortSignal,
     arcMode: ArcMode = 'chat',
+    forceGit: boolean = false,
   ): Promise<SendMessageResult> {
     const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content || '';
     const requestsBugReport = /\b(open|create|start|show|file|submit|send|make)\b[\s\S]{0,80}\b(bug\s*report|feedback|suggestion|support\s*(message|report)|message\s+(to|for)\s+(the\s+)?(team|support))\b/i.test(latestUserMessage);
@@ -374,6 +375,7 @@ export class AIService {
                   forceWebSearch: forceWebSearch || false,
                   forceCanvas: forceCanvas || false,
                   forceCode: forceCode || false,
+                  forceGit,
                   useProModel: isComplex || false,
                   streamEvents: true,
                   clientDateTime: new Date().toString(),

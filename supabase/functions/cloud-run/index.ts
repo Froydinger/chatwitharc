@@ -211,6 +211,7 @@ export function validateAction(value: unknown, bearer = ""): Action {
     "forceWebSearch",
     "forceCanvas",
     "forceCode",
+    "forceGit",
     "forceResearch",
     "useProModel",
     "clientDateTime",
@@ -280,6 +281,7 @@ export function validateAction(value: unknown, bearer = ""): Action {
       "forceWebSearch",
       "forceCanvas",
       "forceCode",
+      "forceGit",
       "forceResearch",
       "useProModel",
     ]

@@ -36,6 +36,7 @@ export interface RouteContext {
   forceWebSearch?: boolean;
   forceCanvas?: boolean;
   forceCode?: boolean;
+  forceGit?: boolean;
   hasImageAttachment?: boolean;
   isImageGenerationRequest?: boolean;
   isVoiceMode?: boolean;
@@ -58,6 +59,7 @@ export function routeRequest(ctx: RouteContext): RouteDestination {
   if (ctx.isVoiceMode) return 'cloud-voice';
   if (ctx.isImageGenerationRequest) return 'cloud-image';
   if (ctx.hasImageAttachment) return 'cloud-vision';
+  if (ctx.forceGit) return 'cloud-chat';
   if (ctx.forceWebSearch) return 'cloud-search';
   if (ctx.forceCode) return 'cloud-code';
   if (ctx.forceCanvas) return 'cloud-canvas';

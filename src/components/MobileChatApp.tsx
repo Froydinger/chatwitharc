@@ -418,6 +418,7 @@ export function MobileChatApp() {
     const buildRequest = (uploadedAttachments?: CloudMediaReference[]): CloudTextRequest => ({
       messages: captured.messages, forceWebSearch: captured.forceWebSearch,
       forceCanvas: captured.forceCanvas, forceCode: captured.forceCode,
+      forceGit: captured.forceGit,
       ...(uploadedAttachments ? { attachments: uploadedAttachments } : {}),
       ...(workspaceContext ? { workspace_context: workspaceContext } : {}),
       reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, getQueryComplexity(message.content)),

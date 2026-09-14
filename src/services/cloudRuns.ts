@@ -16,6 +16,7 @@ export type CloudTextRequest = {
   forceWebSearch?: boolean;
   forceCanvas?: boolean;
   forceCode?: boolean;
+  forceGit?: boolean;
   reasoningEffort?: 'low' | 'medium' | 'high';
   clientTimezone?: string;
 };

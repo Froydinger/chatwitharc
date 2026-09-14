@@ -41,3 +41,7 @@ project_id = "jpqtoixhjnfdubvqshwk"
     # The function never trusts a caller identity and uses service_role only
     # for its narrow aggregate reads/write.
     verify_jwt = false
+  [functions.git-auth-callback]
+    # GitHub redirects here without a Supabase JWT; the callback validates a
+    # one-time state row before storing the encrypted provider token.
+    verify_jwt = false

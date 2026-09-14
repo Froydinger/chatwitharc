@@ -17,6 +17,8 @@ import { withCloudMediaInput } from './cloudMediaInput.ts';
 import { CloudMediaError } from './cloudMedia.ts';
 import { responseInput } from './cloudRunProvider.ts';
 import type { CloudMediaReference } from './cloudMedia.ts';
+import { cloudGitTools, CLOUD_GIT_DEFINITIONS } from './cloudGitTools.ts';
+import { gitEnabledForUser } from './gitFeature.ts';
 
 /** Server composition root. Remains deployment-gated until the complete tool
  * registry, atomic submit and browser reconnect paths pass end-to-end tests. */
@@ -89,6 +91,7 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
       // execute an app job as plain chat while that adapter is being integrated.
       if ('kind' in run && run.kind === 'app') throw new Error('Cloud app adapter is not enabled');
       const context = await loadCloudRunContext(db, run);
+      const gitAccess = await gitEnabledForUser(db, run.user_id);
       const request = run.request && typeof run.request === 'object' && !Array.isArray(run.request)
         ? run.request as Record<string, unknown> : {};
       const initialMessages = run.execution_messages ?? request.messages;
@@ -125,7 +128,8 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
           ...(options.fileStore ? [CLOUD_FILE_DEFINITION] : []),
           ...(images?.definitions ?? []),
           ...(options.notificationDispatch ? [CLOUD_NOTIFICATION_DEFINITION] : []),
-          ...(options.weatherLookup ? [CLOUD_WEATHER_DEFINITION] : [])] }),
+          ...(options.weatherLookup ? [CLOUD_WEATHER_DEFINITION] : []),
+          ...(gitAccess.enabled && request.forceGit === true ? CLOUD_GIT_DEFINITIONS : [])] }),
         tools: {
           ...(images?.tools ?? {}),
           ...cloudCanvasTools(authorizeOwner),
@@ -136,6 +140,7 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
             authorizeOwner, authorizeMemory: authorizeOwner }),
           ...(options.notificationDispatch ? { send_notification: cloudNotificationTool({ authorizeOwner, dispatch: options.notificationDispatch }) } : {}),
           ...(options.weatherLookup ? { get_weather: cloudWeatherTool({ authorizeOwner, lookup: options.weatherLookup }) } : {}),
+          ...(gitAccess.enabled && request.forceGit === true ? cloudGitTools({ db, authorizeOwner }) : {}),
         },
       };
     },

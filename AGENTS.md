@@ -168,6 +168,23 @@ review markup risks a manual action against the rich results the site earns.
 
 ## Notes
 
+## Remote Git integration
+
+- GitHub support is a live-site beta, not an IDE or local-repository feature.
+- The `/git` and `git/` composer mode is server-gated by `admin_settings`: keep
+  the default rollout at the email allowlist until the owner explicitly asks
+  to switch it to `all`.
+- Git operations must use the connected remote repository and create an Arc
+  branch plus pull request. Never add a local checkout path, local Git token,
+  direct base-branch push, or IDE exposure unless the owner explicitly expands
+  the scope.
+- GitHub OAuth tokens stay encrypted in the database and are only readable by
+  service-role Edge Functions. Never print, log, return, or put them in the
+  frontend bundle.
+- Before changing Git-related code, preserve this feature gate and run the
+  normal build plus a live beta verification. Local agent changes must respect
+  the remote Git boundary so they cannot accidentally make the feature public.
+
 - **Voice Mode: GPT-Live-1 full-duplex.** Browser voice uses OpenAI's speech-to-speech
   model over WebRTC, with Responses delegation to `gpt-5.6-luna` for Arc's tools and
   deeper work. The microphone stays active for natural interruptions; the orb remains
