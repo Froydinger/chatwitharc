@@ -33,6 +33,11 @@ export const useGitStore = create<GitState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       const result = await gitApi.start(`${window.location.pathname}${window.location.search}`);
+      if (result.connected) {
+        set({ enabled: result.enabled !== false, connected: true, providerLogin: result.providerLogin || 'beta token', selectedRepo: result.selectedRepo || null, selectedBranch: result.selectedBranch || null, loading: false });
+        return;
+      }
+      if (!result.authorizationUrl) throw new Error('GitHub authorization did not return a URL.');
       window.location.assign(result.authorizationUrl);
     } catch (error) {
       set({ loading: false, error: error instanceof Error ? error.message : 'GitHub connection failed.' });

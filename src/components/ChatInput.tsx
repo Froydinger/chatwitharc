@@ -3245,6 +3245,7 @@ ${safeCode}
           );
         })()}
 
+      {shouldShowGitMode && <GitModeDock />}
       <div
         ref={inputBarRef}
         className={cn(
@@ -3261,7 +3262,6 @@ ${safeCode}
         <div className="flex items-end gap-2 relative">
           {/* Main Input Wrapper */}
           <div className="flex-1 flex flex-col min-w-0">
-            {shouldShowGitMode && <GitModeDock />}
             {/* Mode indicators removed — single-tool indication is handled inline elsewhere */}
             {/* Model picker moved to header (see MobileChatApp header buttons) */}
 

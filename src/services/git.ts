@@ -24,7 +24,7 @@ async function invoke<T>(action: string, extra: Record<string, unknown> = {}): P
 
 export const gitApi = {
   status: () => invoke<GitStatus>('status'),
-  start: (returnPath: string) => invoke<{ authorizationUrl: string }>('start', { returnPath }),
+  start: (returnPath: string) => invoke<{ authorizationUrl?: string; connected?: boolean; enabled?: boolean; providerLogin?: string | null; selectedRepo?: string | null; selectedBranch?: string | null }>('start', { returnPath }),
   repositories: () => invoke<{ repositories: GitRepository[] }>('list_repositories'),
   selectRepository: (repo: string, branch: string) => invoke<GitStatus>('select_repository', { repo, branch }),
   disconnect: () => invoke<{ disconnected: boolean }>('disconnect'),

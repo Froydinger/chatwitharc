@@ -73,12 +73,18 @@ serve(async (req) => {
       const result = await db.from('git_connections').select('provider_login,selected_repo,selected_branch,updated_at')
         .eq('user_id', user.id).eq('provider', 'github').maybeSingle();
       if (result.error) throw new Error('Unable to read Git connection.');
-      return json({ enabled: true, connected: !!result.data, providerLogin: result.data?.provider_login || null, selectedRepo: result.data?.selected_repo || null, selectedBranch: result.data?.selected_branch || null });
+      const staticReady = !!await gitStaticTokenForUser(db, user.id);
+      return json({ enabled: true, connected: !!result.data || staticReady, providerLogin: result.data?.provider_login || (staticReady ? 'beta token' : null), selectedRepo: result.data?.selected_repo || null, selectedBranch: result.data?.selected_branch || null });
     }
     if (action === 'start') {
       const clientId = Deno.env.get('GITHUB_CLIENT_ID');
       const redirectUri = Deno.env.get('GITHUB_OAUTH_REDIRECT_URI');
-      if (!clientId || !redirectUri) return json({ error: 'GitHub authorization is not configured yet.' }, 503);
+      if (!clientId || !redirectUri) {
+        if (await gitStaticTokenForUser(db, user.id)) {
+          return json({ enabled: true, connected: true, providerLogin: 'beta token', selectedRepo: null, selectedBranch: null });
+        }
+        return json({ error: 'GitHub authorization is not configured yet.' }, 503);
+      }
       const state = randomState();
       const stateHash = await sha256Base64(state);
       const returnPath = typeof body.returnPath === 'string' && body.returnPath.startsWith('/') ? body.returnPath.slice(0, 200) : '/dashboard';
