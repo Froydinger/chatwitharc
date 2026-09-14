@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.89.0';
-import { encryptToken, githubRepositories, randomState, sha256Base64 } from '../_shared/github.ts';
+import { encryptToken, decryptToken, githubRepositories, githubUser, randomState, sha256Base64 } from '../_shared/github.ts';
 import { gitEnabledForEmail, gitStaticTokenForUser } from '../_shared/gitFeature.ts';
 
 const corsHeaders = {
@@ -38,7 +38,6 @@ async function tokenFor(db: ReturnType<typeof serviceClient>, userId: string): P
   }
   const key = Deno.env.get('GIT_TOKEN_ENCRYPTION_KEY');
   if (!key) throw new Error('Git integration is not configured.');
-  const { decryptToken } = await import('../_shared/github.ts');
   return decryptToken(result.data.access_token_ciphertext, key);
 }
 
@@ -47,28 +46,43 @@ serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'Use POST.' }, 405);
   try {
     const user = await currentUser(req);
-    if (!user?.id || !user.email) return json({ error: 'Sign in before connecting GitHub.' }, 401);
+    const body = await req.json().catch(() => ({}));
+    const action = body?.action;
+
+    if (!user?.id || !user.email) {
+      if (action === 'status') {
+        return json({ enabled: false, connected: false, providerLogin: null, selectedRepo: null, selectedBranch: null });
+      }
+      return json({ error: 'Sign in before connecting GitHub.' }, 401);
+    }
     const db = serviceClient();
     const enabled = await gitEnabledForEmail(db, user.email);
-    if (!enabled) return json({ enabled: false, error: 'Git integration is not enabled for this account.' }, 403);
+    if (!enabled) {
+      if (action === 'status') {
+        return json({ enabled: false, connected: false, providerLogin: null, selectedRepo: null, selectedBranch: null });
+      }
+      return json({ enabled: false, error: 'Git integration is not enabled for this account.' }, 403);
+    }
 
     const staticToken = await gitStaticTokenForUser(db, user.id);
     const existing = await db.from('git_connections').select('id').eq('user_id', user.id).eq('provider', 'github').maybeSingle();
     if (!existing.data && staticToken) {
-      const github = await (await import('../_shared/github.ts')).githubUser(staticToken);
-      const key = Deno.env.get('GIT_TOKEN_ENCRYPTION_KEY');
-      if (!key) throw new Error('Git integration is not configured.');
-      const saved = await db.from('git_connections').upsert({
-        user_id: user.id, provider: 'github',
-        provider_user_id: typeof github.id === 'number' ? github.id : null,
-        provider_login: typeof github.login === 'string' ? github.login : null,
-        access_token_ciphertext: await encryptToken(staticToken, key), scopes: 'repo (beta static token)',
-      }, { onConflict: 'user_id,provider' });
-      if (saved.error) throw new Error('Unable to initialize the beta GitHub connection.');
+      try {
+        const github = await githubUser(staticToken);
+        const key = Deno.env.get('GIT_TOKEN_ENCRYPTION_KEY');
+        if (key) {
+          await db.from('git_connections').upsert({
+            user_id: user.id, provider: 'github',
+            provider_user_id: typeof github.id === 'number' ? github.id : null,
+            provider_login: typeof github.login === 'string' ? github.login : null,
+            access_token_ciphertext: await encryptToken(staticToken, key), scopes: 'repo (beta static token)',
+          }, { onConflict: 'user_id,provider' });
+        }
+      } catch (err) {
+        console.error('[git-auth] Static token init failed:', err);
+      }
     }
 
-    const body = await req.json().catch(() => ({}));
-    const action = body?.action;
     if (action === 'status') {
       const result = await db.from('git_connections').select('provider_login,selected_repo,selected_branch,updated_at')
         .eq('user_id', user.id).eq('provider', 'github').maybeSingle();
@@ -81,7 +95,9 @@ serve(async (req) => {
       const redirectUri = Deno.env.get('GITHUB_OAUTH_REDIRECT_URI');
       if (!clientId || !redirectUri) {
         if (await gitStaticTokenForUser(db, user.id)) {
-          return json({ enabled: true, connected: true, providerLogin: 'beta token', selectedRepo: null, selectedBranch: null });
+          const result = await db.from('git_connections').select('provider_login,selected_repo,selected_branch')
+            .eq('user_id', user.id).eq('provider', 'github').maybeSingle();
+          return json({ enabled: true, connected: true, providerLogin: result.data?.provider_login || 'beta token', selectedRepo: result.data?.selected_repo || null, selectedBranch: result.data?.selected_branch || null });
         }
         return json({ error: 'GitHub authorization is not configured yet.' }, 503);
       }

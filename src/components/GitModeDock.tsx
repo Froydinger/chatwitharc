@@ -16,8 +16,18 @@ export function GitModeDock() {
   } = useGitStore();
 
   useEffect(() => { void loadStatus(); }, [loadStatus]);
+
   useEffect(() => {
-    if (error) toast({ title: 'GitHub', description: error, variant: 'destructive' });
+    if (connected && !repositories.length && !loading) {
+      void loadRepositories();
+    }
+  }, [connected, repositories.length, loading, loadRepositories]);
+
+  useEffect(() => {
+    if (error) {
+      toast({ title: 'GitHub', description: error, variant: 'destructive' });
+      useGitStore.setState({ error: null });
+    }
   }, [error, toast]);
 
   const handleRepoChange = async (repo: string) => {
@@ -27,34 +37,39 @@ export function GitModeDock() {
   };
 
   return (
-    <div className="mb-2 flex items-center gap-2 rounded-2xl border border-zinc-500/20 bg-background/45 px-3 py-2 text-xs backdrop-blur-md">
+    <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-background/85 backdrop-blur-xl shadow-lg px-3.5 py-2 text-xs text-foreground transition-all">
       <GitHubMark className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-300" />
       {!connected ? (
         <>
-          <span className="min-w-0 flex-1 text-muted-foreground">GitHub mode is account-gated beta.</span>
-          <button type="button" onClick={() => void connect()} disabled={loading} className="rounded-full bg-foreground px-3 py-1.5 font-medium text-background disabled:opacity-50">
-            {loading ? 'Opening…' : 'Connect GitHub'}
+          <span className="min-w-0 flex-1 text-muted-foreground truncate">GitHub mode is account-gated beta.</span>
+          <button
+            type="button"
+            onClick={() => void connect()}
+            disabled={loading}
+            className="rounded-full bg-foreground px-3 py-1.5 font-medium text-background disabled:opacity-50 shrink-0 hover:opacity-90 active:scale-95 transition-all"
+          >
+            {loading ? 'Connecting…' : 'Connect GitHub'}
           </button>
         </>
       ) : (
         <>
-          <span className="max-w-28 truncate text-muted-foreground">@{providerLogin || 'github'}</span>
+          <span className="max-w-28 truncate text-muted-foreground font-mono text-[11px]">@{providerLogin || 'github'}</span>
           <select
             aria-label="GitHub repository"
             value={selectedRepo || ''}
             disabled={loading}
             onFocus={() => { if (!repositories.length) void loadRepositories(); }}
             onChange={event => void handleRepoChange(event.target.value)}
-            className="min-w-0 flex-1 rounded-full border border-border/50 bg-background/60 px-2 py-1 text-xs outline-none"
+            className="min-w-0 flex-1 rounded-full border border-border/50 bg-background/60 px-2 py-1 text-xs outline-none cursor-pointer"
           >
             <option value="">Choose a repository…</option>
             {repositories.map(repo => <option key={repo.full_name} value={repo.full_name}>{repo.full_name}</option>)}
           </select>
-          <span className="hidden text-muted-foreground sm:inline">{selectedBranch || 'default'}</span>
-          <button type="button" onClick={() => void loadRepositories()} disabled={loading} className={cn('rounded-full p-1.5 hover:bg-muted/30', loading && 'animate-spin')} aria-label="Refresh repositories">
+          <span className="hidden text-muted-foreground sm:inline font-mono text-[11px]">{selectedBranch || 'default'}</span>
+          <button type="button" onClick={() => void loadRepositories()} disabled={loading} className={cn('rounded-full p-1.5 hover:bg-muted/30 transition-colors', loading && 'animate-spin')} aria-label="Refresh repositories">
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
-          <button type="button" onClick={() => void disconnect()} disabled={loading} className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/30 hover:text-foreground" aria-label="Disconnect GitHub">
+          <button type="button" onClick={() => void disconnect()} disabled={loading} className="rounded-full p-1.5 text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors" aria-label="Disconnect GitHub">
             <Unplug className="h-3.5 w-3.5" />
           </button>
         </>

@@ -45,3 +45,7 @@ project_id = "jpqtoixhjnfdubvqshwk"
     # GitHub redirects here without a Supabase JWT; the callback validates a
     # one-time state row before storing the encrypted provider token.
     verify_jwt = false
+  [functions.git-auth]
+    # Handler verifies caller identity with auth.getUser directly.
+    verify_jwt = false
+

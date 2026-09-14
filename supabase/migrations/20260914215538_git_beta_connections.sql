@@ -3,7 +3,7 @@
 INSERT INTO public.admin_settings (key, value, description)
 VALUES
   ('git_rollout_mode', 'allowlist', 'Git integration rollout: off, allowlist, or all.'),
-  ('git_rollout_emails', 'jakefreudinger@gmail.com', 'Comma-separated normalized emails allowed during the Git beta.')
+  ('git_rollout_emails', 'jakefroydinger@gmail.com,jakefreudinger@gmail.com', 'Comma-separated normalized emails allowed during the Git beta.')
 ON CONFLICT (key) DO NOTHING;
 
 CREATE TABLE public.git_connections (

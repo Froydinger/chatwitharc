@@ -3245,7 +3245,37 @@ ${safeCode}
           );
         })()}
 
-      {shouldShowGitMode && <GitModeDock />}
+      {/* Git mode dock — floats outside and directly above the input bar */}
+      {!inline &&
+        shouldShowGitMode &&
+        portalRoot &&
+        (() => {
+          const hasDocs = selectedDocuments.length > 0;
+          const hasImages = selectedImages.length > 0;
+          const previewStack = (hasDocs ? 80 : 0) + (hasImages ? 90 : 0);
+          const rect = inputBarRef.current?.getBoundingClientRect();
+          const dockBottom = rect
+            ? `${Math.max(12, window.innerHeight - rect.top + 10 + previewStack)}px`
+            : `calc(${100 + previewStack}px + env(safe-area-inset-bottom, 0px))`;
+          const anchored = rect
+            ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom: dockBottom }
+            : { bottom: dockBottom };
+          return createPortal(
+            <div
+              className={
+                rect
+                  ? "fixed z-[60] pointer-events-auto"
+                  : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[60] pointer-events-auto"
+              }
+              style={anchored}
+            >
+              <GitModeDock />
+            </div>,
+            portalRoot,
+          );
+        })()}
+
+      {inline && shouldShowGitMode && <GitModeDock />}
       <div
         ref={inputBarRef}
         className={cn(

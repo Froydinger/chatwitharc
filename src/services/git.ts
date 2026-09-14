@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { readEdgeErrorBody } from '@/lib/invokeEdgeFunction';
 
 export type GitRepository = {
   full_name: string;
@@ -17,7 +18,11 @@ export type GitStatus = {
 
 async function invoke<T>(action: string, extra: Record<string, unknown> = {}): Promise<T> {
   const { data, error } = await supabase.functions.invoke('git-auth', { body: { action, ...extra } });
-  if (error) throw new Error(error.message || 'GitHub connection failed.');
+  if (error) {
+    const parsed = await readEdgeErrorBody(error);
+    const msg = (parsed && typeof parsed.error === 'string') ? parsed.error : (error.message || 'GitHub connection failed.');
+    throw new Error(msg);
+  }
   if (!data || data.error) throw new Error(data?.error || 'GitHub connection failed.');
   return data as T;
 }
