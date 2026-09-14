@@ -788,14 +788,15 @@ serve(async (req) => {
       }
       const { data: connection } = await supabase.from('git_connections')
         .select('selected_repo,selected_branch,repo_access_mode,allowed_repos').eq('user_id', user!.id).eq('provider', 'github').maybeSingle();
-      if (connection?.selected_repo && connection?.selected_branch) {
+      if (connection?.selected_repo) {
+        const branch = connection.selected_branch || 'main';
         if (connection.repo_access_mode === 'selected') {
           const allowed = Array.isArray(connection.allowed_repos) ? connection.allowed_repos : [];
           if (allowed.includes(connection.selected_repo)) {
-            gitTarget = { repo: connection.selected_repo, branch: connection.selected_branch };
+            gitTarget = { repo: connection.selected_repo, branch };
           }
         } else {
-          gitTarget = { repo: connection.selected_repo, branch: connection.selected_branch };
+          gitTarget = { repo: connection.selected_repo, branch };
         }
       }
     }
@@ -1017,9 +1018,11 @@ serve(async (req) => {
         role: 'system',
         content: `Git mode is active.
 ${gitTarget ? `The selected remote target is ${gitTarget.repo} on branch ${gitTarget.branch}.` : 'No target repository is currently selected.'}
-- You must interact with the remote repository exclusively using git_search_repository, git_read_repository, and git_apply_repository_changes.
-- DO NOT use update_code or update_canvas or write out freestanding code replacements. Git mode is strictly for remote repository changes.
-- Inspect files first before editing.
+- You have full access to inspect and modify this repository using git_search_repository, git_read_repository, and git_apply_repository_changes.
+- NEVER claim that you do not have file-editing connections, tools, or permissions to inspect or modify files in this repository. You DO have the tools to search, read, and apply remote changes.
+- If repo or branch are omitted by the user, default to repo="${gitTarget?.repo || ''}" and branch="${gitTarget?.branch || 'main'}".
+- Always inspect/read existing files first (using git_read_repository) before applying modifications so you preserve existing code structure.
+- DO NOT use update_code or update_canvas or write out freestanding code replacements in chat. Git mode is strictly for remote repository changes via git_apply_repository_changes.
 - When committing changes via git_apply_repository_changes, create a descriptive branch and pull request. Never push directly to the base branch.
 - After applying changes, always provide the user with the complete trail: the created branch, commit SHA, and exact pull request URL.
 - If the user asks to work on a repository that is not allowed or selected in their settings, clearly remind them: "That repository is not enabled in your GitHub settings. In Settings > GitHub Integration, you can add it to your allowed list or switch to 'All repositories'."
@@ -1391,7 +1394,11 @@ ${gitTarget ? `The selected remote target is ${gitTarget.repo} on branch ${gitTa
       // Git mode is explicit and remote-only: expose only Git tools so a local
       // preview, IDE path, or unrelated tool cannot accidentally handle it.
       toolsToUse = tools.filter(t => ['git_search_repository', 'git_read_repository', 'git_apply_repository_changes'].includes(t.function.name));
-      console.log('🔧 Git mode active - limiting tools to remote GitHub operations');
+      const isPureGreeting = /^(hi|hello|hey|greetings|help)\b[!.?]?$/i.test(lastUserMessage.trim());
+      if (!isPureGreeting) {
+        toolChoice = "required";
+      }
+      console.log('🔧 Git mode active - limiting tools to remote GitHub operations, toolChoice:', toolChoice);
     } else if (wantsCode) {
       // Code editing takes highest priority - ONLY provide update_code tool
       toolChoice = { type: "function", function: { name: "update_code" } };
@@ -1818,6 +1825,9 @@ ${gitTarget ? `The selected remote target is ${gitTarget.repo} on branch ${gitTa
           return 'chats';
         case 'save_memory':
           return 'memory';
+        case 'git_search_repository':
+        case 'git_read_repository':
+        case 'git_apply_repository_changes':
         case 'update_code':
           return 'code';
         case 'update_canvas':
@@ -2010,10 +2020,470 @@ ${gitTarget ? `The selected remote target is ${gitTarget.repo} on branch ${gitTa
     let weatherData: any = null;
     let scheduledTask: any = null;
     let notificationDispatch: any = null;
-    
-    // Check if the AI wants to use tools (web search or chat search)
     let memorySaved: { content: string } | null = null;
-    
+    let gitChangesApplied = false;
+    let gitPullRequestResult: any = null;
+
+    const executeTool = async (toolCall: any) => {
+      const toolName = toolCall.function?.name;
+      if (toolName) {
+        sendEvent?.({
+          type: 'status',
+          activity: mapToolToActivity(toolName),
+          tool: toolName,
+        });
+      }
+      if (toolCall.function.name === 'open_bug_report') {
+        conversationMessages.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          content: 'The in-app bug report form is now open. Tell the user briefly that they can review and send it.'
+        });
+      } else if (toolCall.function.name === 'web_search') {
+        const args = JSON.parse(toolCall.function.arguments);
+        const searchResponse = await webSearch(args.query);
+        
+        // Store sources and provider for frontend
+        webSources = searchResponse.sources;
+        searchProvider = searchResponse.searchProvider;
+        searchImages = searchResponse.images;
+        
+        // Add tool response to conversation
+        conversationMessages.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          content: searchResponse.summary
+        });
+      } else if (toolCall.function.name === 'search_past_chats') {
+        const args = JSON.parse(toolCall.function.arguments);
+        // Get auth token from request
+        const authHeader = req.headers.get('Authorization');
+        const chatResults = await searchPastChats(args.query, authHeader);
+        
+        // Add tool response to conversation
+        conversationMessages.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          content: chatResults
+        });
+      } else if (toolCall.function.name === 'git_search_repository') {
+        const args = JSON.parse(toolCall.function.arguments);
+        let repo = String(args.repo || '').trim();
+        if (!repo.includes('/') && gitTarget?.repo) {
+          if (!repo || repo === gitTarget.repo.split('/')[1]) repo = gitTarget.repo;
+        }
+        if (!repo && gitTarget?.repo) repo = gitTarget.repo;
+
+        let branch = String(args.branch || '').trim();
+        if (!branch && gitTarget?.branch) branch = gitTarget.branch;
+        if (!branch) branch = 'main';
+
+        const query = String(args.query || '').trim().replace(/^\/+/, '');
+
+        const { data: conn } = await supabase.from('git_connections').select('repo_access_mode,allowed_repos').eq('user_id', user!.id).eq('provider', 'github').maybeSingle();
+        if (conn?.repo_access_mode === 'selected' && !((Array.isArray(conn.allowed_repos) ? conn.allowed_repos : []).includes(repo))) {
+          conversationMessages.push({
+            role: 'tool', tool_call_id: toolCall.id,
+            content: `Access denied: Repository "${repo}" is not enabled in your GitHub settings. Remind the user they can add it in Settings > GitHub Integration or switch to 'All repositories'.`,
+          });
+        } else {
+          try {
+            const token = await gitTokenForUser(user!.id);
+            const result = await githubSearchFiles(token, repo, branch, query);
+            const content = result.paths.length > 0
+              ? JSON.stringify(result, null, 2)
+              : `No files matched query "${query}" in branch "${branch}". Try a broader query or inspect the repository root.`;
+            conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content });
+          } catch (error) {
+            conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: `GitHub search failed: ${error instanceof Error ? error.message : 'unknown error'}.` });
+          }
+        }
+      } else if (toolCall.function.name === 'git_read_repository') {
+        const args = JSON.parse(toolCall.function.arguments);
+        let repo = String(args.repo || '').trim();
+        if (!repo.includes('/') && gitTarget?.repo) {
+          if (!repo || repo === gitTarget.repo.split('/')[1]) repo = gitTarget.repo;
+        }
+        if (!repo && gitTarget?.repo) repo = gitTarget.repo;
+
+        let branch = String(args.branch || '').trim();
+        if (!branch && gitTarget?.branch) branch = gitTarget.branch;
+        if (!branch) branch = 'main';
+
+        const rawPaths = Array.isArray(args.paths) ? args.paths : (typeof args.path === 'string' ? [args.path] : []);
+        const paths = rawPaths.map((p: unknown) => String(p || '').trim().replace(/^\/+/, '')).filter(Boolean);
+
+        const { data: conn } = await supabase.from('git_connections').select('repo_access_mode,allowed_repos').eq('user_id', user!.id).eq('provider', 'github').maybeSingle();
+        if (conn?.repo_access_mode === 'selected' && !((Array.isArray(conn.allowed_repos) ? conn.allowed_repos : []).includes(repo))) {
+          conversationMessages.push({
+            role: 'tool', tool_call_id: toolCall.id,
+            content: `Access denied: Repository "${repo}" is not enabled in your GitHub settings. Remind the user they can add it in Settings > GitHub Integration or switch to 'All repositories'.`,
+          });
+        } else {
+          try {
+            const token = await gitTokenForUser(user!.id);
+            const result = await githubReadFiles(token, repo, branch, paths);
+            conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(result, null, 2).slice(0, 1_500_000) });
+          } catch (error) {
+            conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: `GitHub read failed: ${error instanceof Error ? error.message : 'unknown error'}.` });
+          }
+        }
+      } else if (toolCall.function.name === 'git_apply_repository_changes') {
+        const args = JSON.parse(toolCall.function.arguments);
+        let repo = String(args.repo || '').trim();
+        if (!repo.includes('/') && gitTarget?.repo) {
+          if (!repo || repo === gitTarget.repo.split('/')[1]) repo = gitTarget.repo;
+        }
+        if (!repo && gitTarget?.repo) repo = gitTarget.repo;
+
+        let baseBranch = String(args.baseBranch || args.branch || '').trim();
+        if (!baseBranch && gitTarget?.branch) baseBranch = gitTarget.branch;
+        if (!baseBranch) baseBranch = 'main';
+
+        const { data: conn } = await supabase.from('git_connections').select('repo_access_mode,allowed_repos').eq('user_id', user!.id).eq('provider', 'github').maybeSingle();
+        if (conn?.repo_access_mode === 'selected' && !((Array.isArray(conn.allowed_repos) ? conn.allowed_repos : []).includes(repo))) {
+          conversationMessages.push({
+            role: 'tool', tool_call_id: toolCall.id,
+            content: `Access denied: Repository "${repo}" is not enabled in your GitHub settings. Remind the user they can add it in Settings > GitHub Integration or switch to 'All repositories'.`,
+          });
+        } else {
+          try {
+            const token = await gitTokenForUser(user!.id);
+            const files = (Array.isArray(args.files) ? args.files : []).map((item: any) => ({
+              path: String(item?.path || '').trim().replace(/^\/+/, ''),
+              content: typeof item?.content === 'string' ? item.content : undefined,
+              delete: item?.delete === true,
+            })).filter((f: any) => !!f.path);
+
+            const result = await githubCommitPullRequest(token, {
+              repo,
+              baseBranch,
+              files,
+              commitMessage: String(args.commitMessage || 'Update files via ArcAI'),
+              pullRequestTitle: String(args.pullRequestTitle || 'Update via ArcAI'),
+              pullRequestBody: String(args.pullRequestBody || 'Automated changes applied via ArcAI Git Integration.'),
+            });
+            gitChangesApplied = true;
+            gitPullRequestResult = result;
+            conversationMessages.push({
+              role: 'tool', tool_call_id: toolCall.id,
+              content: `Remote changes applied successfully on branch ${result.branch}.\nCommit SHA: ${result.commitSha}\nPull request URL: ${result.pullRequestUrl}\n\nPresent this complete trail to the user with a direct markdown link to the pull request.`,
+            });
+          } catch (error) {
+            conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: `GitHub update failed: ${error instanceof Error ? error.message : 'unknown error'}. No pull request was created.` });
+          }
+        }
+      } else if (toolCall.function.name === 'update_canvas') {
+        const args = JSON.parse(toolCall.function.arguments);
+        console.log('Canvas update requested:', args.label || 'Untitled');
+        
+        canvasUpdate = {
+          content: args.content,
+          label: args.label
+        };
+        
+        conversationMessages.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          content: `Canvas updated successfully with "${args.label || 'New Draft'}". The content is now in the user's Canvas editor.`
+        });
+      } else if (toolCall.function.name === 'update_code') {
+        const args = JSON.parse(toolCall.function.arguments);
+        console.log('Code update requested:', args.label || args.language);
+        
+        codeUpdate = {
+          code: args.code,
+          language: args.language,
+          label: args.label
+        };
+        
+        conversationMessages.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          content: `Code Canvas updated successfully with "${args.label || args.language + ' code'}". The code is now in the user's Code Canvas editor with syntax highlighting.`
+        });
+      } else if (toolCall.function.name === 'generate_file') {
+        const args = JSON.parse(toolCall.function.arguments);
+        const authHeader = req.headers.get('Authorization');
+        
+        const fileResponse = await supabase.functions.invoke('generate-file', {
+          body: { fileType: args.fileType, prompt: args.prompt },
+          headers: authHeader ? {
+            Authorization: authHeader
+          } : undefined
+        });
+        
+        let fileResult = '';
+        if (fileResponse.error || !fileResponse.data?.success) {
+          fileResult = `Error generating file: ${fileResponse.error?.message || fileResponse.data?.error || 'Unknown error'}`;
+          console.error('File generation failed:', fileResponse.error || fileResponse.data);
+        } else {
+          fileResult = `File generated successfully!\n\nIMPORTANT: You MUST include this exact markdown link in your response so the user can download the file:\n[${fileResponse.data.fileName}](${fileResponse.data.fileUrl})\n\nDo NOT paraphrase or say "link provided" - include the actual markdown link above.`;
+          console.log('File generated:', fileResponse.data.fileName);
+        }
+        
+        conversationMessages.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          content: fileResult
+        });
+      } else if (toolCall.function.name === 'save_memory') {
+        const args = JSON.parse(toolCall.function.arguments);
+        const memoryContent = args.memory?.trim();
+        const replaces = Array.isArray(args.replaces)
+          ? args.replaces.filter((item: unknown): item is string => typeof item === 'string').slice(0, 20)
+          : [];
+        
+        if (memoryContent) {
+          try {
+            await applyLivingMemoryFromChat(memoryContent, authHeader, 'save', replaces);
+            console.log('💾 Living memory updated:', memoryContent);
+            memorySaved = { content: memoryContent };
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `Living memory updated with: "${memoryContent}". Briefly acknowledge the update, then continue naturally.`
+            });
+          } catch (err) {
+            console.error('Error in save_memory:', err);
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: 'Error saving memory. Continue normally.'
+            });
+          }
+        }
+      } else if (toolCall.function.name === 'get_weather') {
+        const args = JSON.parse(toolCall.function.arguments);
+        try {
+          const wxBody = JSON.stringify({
+            location: args.location,
+            latitude: typeof args.latitude === 'number' ? args.latitude : undefined,
+            longitude: typeof args.longitude === 'number' ? args.longitude : undefined,
+          });
+          const wxRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/get-weather`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader ?? '', 'apikey': Deno.env.get('SUPABASE_ANON_KEY') ?? '' },
+            body: wxBody,
+          });
+          const wxResp = wxRes.ok ? { data: await wxRes.json(), error: null } : { data: null, error: { message: `HTTP ${wxRes.status}` } };
+          if (wxResp.error || wxResp.data?.error) {
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `Weather lookup failed for "${args.location}": ${wxResp.data?.error || wxResp.error?.message || 'unknown error'}. Apologize briefly.`,
+            });
+          } else {
+            weatherData = wxResp.data;
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `Weather card displayed for ${weatherData.location}: ${weatherData.temperature}°F, ${weatherData.condition}, H ${weatherData.high}°/L ${weatherData.low}°. Acknowledge briefly in one short sentence — do NOT repeat all the numbers since the card shows them.`,
+            });
+          }
+        } catch (e: any) {
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: `Weather lookup error: ${e?.message || 'unknown'}.`,
+          });
+        }
+      } else if (toolCall.function.name === 'send_notification') {
+        const args = JSON.parse(toolCall.function.arguments);
+        const channel: 'push' | 'email' | 'both' = ['push', 'email', 'both'].includes(args.channel) ? args.channel : 'push';
+        const title = String(args.title ?? 'A note from Arc').slice(0, 200);
+        const body = String(args.body ?? '').slice(0, 2000);
+        const url = typeof args.url === 'string' && args.url.length > 0 ? args.url : '/dashboard';
+        const results: string[] = [];
+
+        if (channel === 'push' || channel === 'both') {
+          try {
+            const pushResp = await supabase.functions.invoke('send-push-notification', {
+              body: {
+                user_ids: [user!.id],
+                payload: { title, body: body.slice(0, 200), url, tag: `arc-note-${Date.now()}` },
+              },
+            });
+            results.push(pushResp.error ? `push failed: ${pushResp.error.message}` : 'push sent');
+          } catch (e: any) {
+            results.push(`push failed: ${e?.message ?? e}`);
+          }
+        }
+        if (channel === 'email' || channel === 'both') {
+          results.push('email coming soon');
+        }
+
+        notificationDispatch = {
+          channel,
+          title,
+          body,
+          url,
+          results,
+          sent_at: new Date().toISOString(),
+        };
+
+        conversationMessages.push({
+          role: 'tool',
+          tool_call_id: toolCall.id,
+          content: `Notification dispatch (${channel}): ${results.join(', ')}. A confirmation card is already shown to the user — reply with ONE short friendly sentence (max 12 words) acknowledging it. Do NOT repeat the title/body.`,
+        });
+      } else if (toolCall.function.name === 'schedule_task') {
+        const args = JSON.parse(toolCall.function.arguments);
+        const title = String(args.title ?? 'Scheduled task').slice(0, 200);
+        const prompt = String(args.prompt ?? '').slice(0, 4000);
+        const deliverInChat = true;
+        const { count: pushSubCount } = await supabase
+          .from('push_subscriptions')
+          .select('endpoint', { count: 'exact', head: true })
+          .eq('user_id', user!.id);
+        const deliverPush = args.deliver_push === true || (args.deliver_push !== false && (pushSubCount ?? 0) > 0);
+        const requestedText = `${messages[messages.length - 1]?.content ?? ''}\n${title}\n${prompt}`;
+        const deliverEmail = args.deliver_email === true || requestedText.toLowerCase().includes('email') || requestedText.toLowerCase().includes('mail');
+        const deterministic = deterministicScheduleFromText(requestedText, parsedClientOffset);
+        const whenIso = deterministic?.whenIso ?? (typeof args.when_iso === 'string' ? args.when_iso : null);
+        const cronExpr = deterministic?.cronExpr ?? (typeof args.cron_expr === 'string' ? args.cron_expr : null);
+
+        try {
+          if (!prompt) throw new Error('prompt required');
+          if (!whenIso && !cronExpr) throw new Error('Provide when_iso or cron_expr');
+
+          const scheduleType = cronExpr ? 'cron' : 'once';
+          const nextRunAt = cronExpr
+            ? nextCronRun(cronExpr, new Date()).toISOString()
+            : new Date(whenIso!).toISOString();
+
+          const { data: inserted, error: insErr } = await supabase
+            .from('scheduled_tasks')
+            .insert({
+              user_id: user!.id,
+              title,
+              prompt,
+              schedule_type: scheduleType,
+              run_at: scheduleType === 'once' ? nextRunAt : null,
+              cron_expr: cronExpr,
+              next_run_at: nextRunAt,
+              timezone: clientTimezone || 'UTC',
+              result_chat_id: sessionId || null,
+              push_on_complete: deliverPush,
+              notify_email: deliverEmail,
+              model: selectedModel,
+              status: 'active',
+            })
+            .select('id')
+            .single();
+
+          if (insErr) throw insErr;
+
+          scheduledTask = {
+            id: inserted?.id,
+            title,
+            prompt,
+            schedule_type: scheduleType,
+            cron_expr: cronExpr,
+            next_run_at: nextRunAt,
+            deliver_in_chat: deliverInChat,
+            deliver_push: deliverPush,
+            deliver_email: deliverEmail,
+          };
+
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: `Scheduled task created (id=${inserted?.id}). A confirmation card with edit/delete is shown to the user. Reply with ONE short friendly sentence (max 12 words). Do NOT repeat the schedule details.`,
+          });
+        } catch (e: any) {
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: `Schedule task failed: ${e?.message ?? e}. Apologize briefly and ask the user to retry.`,
+          });
+        }
+      } else if (toolCall.function.name === 'update_scheduled_task') {
+        const args = JSON.parse(toolCall.function.arguments);
+        try {
+          let query = supabase.from('scheduled_tasks').select('*').eq('user_id', user!.id);
+          query = args.task_id ? query.eq('id', args.task_id) : query.eq('status', 'active');
+          const { data: found, error: findErr } = await query.order('created_at', { ascending: false }).limit(1);
+          if (findErr) throw findErr;
+          const task = found?.[0];
+          if (!task) throw new Error('No matching scheduled task found');
+
+          if (args.cancel === true) {
+            const { error: delErr } = await supabase.from('scheduled_tasks').delete().eq('id', task.id);
+            if (delErr) throw delErr;
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `Scheduled task "${task.title}" cancelled. Reply with ONE short friendly confirmation (max 12 words).`,
+            });
+          } else {
+            const updates: Record<string, unknown> = {};
+            if (typeof args.title === 'string' && args.title) updates.title = args.title.slice(0, 200);
+            if (typeof args.prompt === 'string' && args.prompt) updates.prompt = args.prompt.slice(0, 4000);
+            if (typeof args.deliver_push === 'boolean') updates.push_on_complete = args.deliver_push;
+            if (typeof args.deliver_email === 'boolean') updates.notify_email = args.deliver_email;
+
+            const updateText = String(messages[messages.length - 1]?.content ?? '');
+            const negatedEmail = /\b(no|without|stop|remove|disable|turn off)\b[^.!?]*\be-?mail/i.test(updateText);
+            const negatedPush = /\b(no|without|stop|remove|disable|turn off)\b[^.!?]*\bpush\b/i.test(updateText);
+            if (updates.notify_email === undefined && /\be-?mail\b/i.test(updateText)) updates.notify_email = !negatedEmail;
+            if (updates.push_on_complete === undefined && /\bpush\b/i.test(updateText)) updates.push_on_complete = !negatedPush;
+
+            const det = deterministicScheduleFromText(updateText, parsedClientOffset);
+            const newWhenIso = det?.whenIso ?? (typeof args.when_iso === 'string' ? args.when_iso : null);
+            const newCronExpr = det?.cronExpr ?? (typeof args.cron_expr === 'string' ? args.cron_expr : null);
+            if (newWhenIso) {
+              updates.schedule_type = 'once';
+              updates.run_at = new Date(newWhenIso).toISOString();
+              updates.next_run_at = updates.run_at;
+              updates.cron_expr = null;
+              updates.status = 'active';
+            } else if (newCronExpr) {
+              updates.schedule_type = 'cron';
+              updates.cron_expr = newCronExpr;
+              updates.run_at = null;
+              updates.next_run_at = nextCronRun(newCronExpr, new Date()).toISOString();
+              updates.status = 'active';
+            }
+
+            if (Object.keys(updates).length === 0) throw new Error('No changes requested');
+
+            const { data: updated, error: updErr } = await supabase
+              .from('scheduled_tasks')
+              .update(updates)
+              .eq('id', task.id)
+              .select('*')
+              .single();
+            if (updErr) throw updErr;
+
+            scheduledTask = {
+              id: updated.id,
+              title: updated.title,
+              prompt: updated.prompt,
+              schedule_type: updated.schedule_type,
+              cron_expr: updated.cron_expr,
+              next_run_at: updated.next_run_at,
+              deliver_in_chat: true,
+              deliver_push: updated.push_on_complete === true,
+              deliver_email: updated.notify_email === true,
+            };
+
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `Scheduled task updated (id=${task.id}). An updated confirmation card is shown to the user. Reply with ONE short friendly sentence (max 12 words). Do NOT repeat the schedule details.`,
+            });
+          }
+        } catch (e: any) {
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: `Update scheduled task failed: ${e?.message ?? e}. Apologize briefly and ask the user to retry.`,
+          });
+        }
+      }
+    };
+
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
       assistantMessage.tool_calls.forEach((tc: any) => {
         if (tc.function?.name) {
@@ -2036,445 +2506,65 @@ ${gitTarget ? `The selected remote target is ${gitTarget.repo} on branch ${gitTa
 
       // Execute all tool calls
       for (const toolCall of assistantMessage.tool_calls) {
-        const toolName = toolCall.function?.name;
-        if (toolName) {
-          sendEvent?.({
-            type: 'status',
-            activity: mapToolToActivity(toolName),
-            tool: toolName,
+        await executeTool(toolCall);
+      }
+
+      // If Git mode is active and changes haven't been applied yet,
+      // run up to 5 loop turns so Luna can search -> read -> apply remote changes.
+      if (wantsGit) {
+        let gitLoopTurns = 0;
+        const MAX_GIT_TURNS = 5;
+
+        while (gitLoopTurns < MAX_GIT_TURNS && !gitChangesApplied) {
+          gitLoopTurns++;
+          console.log(`🤖 Git mode turn ${gitLoopTurns + 1}: requesting next step from Luna`);
+          const isReasoning = lunaModel.includes('gpt-5.6') || lunaModel.startsWith('o1') || lunaModel.startsWith('o3');
+          const nextResponse = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openaiApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: lunaModel,
+              messages: conversationMessages,
+              tools: toolsToUse,
+              tool_choice: "auto",
+              temperature: isReasoning ? undefined : 0.6,
+              reasoning_effort: 'none',
+              max_completion_tokens: 65536,
+            }),
           });
-        }
-        if (toolCall.function.name === 'open_bug_report') {
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: 'The in-app bug report form is now open. Tell the user briefly that they can review and send it.'
-          });
-        } else if (toolCall.function.name === 'web_search') {
-          const args = JSON.parse(toolCall.function.arguments);
-          const searchResponse = await webSearch(args.query);
-          
-          // Store sources and provider for frontend
-          webSources = searchResponse.sources;
-          searchProvider = searchResponse.searchProvider;
-          searchImages = searchResponse.images;
-          
-          // Add tool response to conversation
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: searchResponse.summary
-          });
-        } else if (toolCall.function.name === 'search_past_chats') {
-          const args = JSON.parse(toolCall.function.arguments);
-          // Get auth token from request
-          const authHeader = req.headers.get('Authorization');
-          const chatResults = await searchPastChats(args.query, authHeader);
-          
-          // Add tool response to conversation
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: chatResults
-          });
-        } else if (toolCall.function.name === 'git_search_repository') {
-          const args = JSON.parse(toolCall.function.arguments);
-          const repo = String(args.repo || '');
-          const { data: conn } = await supabase.from('git_connections').select('repo_access_mode,allowed_repos').eq('user_id', user!.id).eq('provider', 'github').maybeSingle();
-          if (conn?.repo_access_mode === 'selected' && !((Array.isArray(conn.allowed_repos) ? conn.allowed_repos : []).includes(repo))) {
-            conversationMessages.push({
-              role: 'tool', tool_call_id: toolCall.id,
-              content: `Access denied: Repository "${repo}" is not enabled in your GitHub settings. Remind the user they can add it in Settings > GitHub Integration or switch to 'All repositories'.`,
+
+          if (!nextResponse.ok) {
+            const errText = await nextResponse.text();
+            console.error(`Git turn ${gitLoopTurns + 1} failed:`, nextResponse.status, errText);
+            break;
+          }
+
+          const nextData = await nextResponse.json();
+          const nextMsg = nextData.choices?.[0]?.message;
+          if (!nextMsg) break;
+
+          if (nextMsg.tool_calls && nextMsg.tool_calls.length > 0) {
+            nextMsg.tool_calls.forEach((tc: any) => {
+              if (tc.function?.name) toolsUsed.push(tc.function.name);
             });
+            conversationMessages.push(nextMsg);
+            for (const toolCall of nextMsg.tool_calls) {
+              await executeTool(toolCall);
+            }
           } else {
-            try {
-              const result = await githubSearchFiles(await gitTokenForUser(user!.id), repo, String(args.branch || ''), String(args.query || ''));
-              conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(result, null, 2) });
-            } catch (error) {
-              conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: `GitHub search failed: ${error instanceof Error ? error.message : 'unknown error'}.` });
-            }
-          }
-        } else if (toolCall.function.name === 'git_read_repository') {
-          const args = JSON.parse(toolCall.function.arguments);
-          const repo = String(args.repo || '');
-          const { data: conn } = await supabase.from('git_connections').select('repo_access_mode,allowed_repos').eq('user_id', user!.id).eq('provider', 'github').maybeSingle();
-          if (conn?.repo_access_mode === 'selected' && !((Array.isArray(conn.allowed_repos) ? conn.allowed_repos : []).includes(repo))) {
-            conversationMessages.push({
-              role: 'tool', tool_call_id: toolCall.id,
-              content: `Access denied: Repository "${repo}" is not enabled in your GitHub settings. Remind the user they can add it in Settings > GitHub Integration or switch to 'All repositories'.`,
-            });
-          } else {
-            try {
-              const result = await githubReadFiles(await gitTokenForUser(user!.id), repo, String(args.branch || ''), Array.isArray(args.paths) ? args.paths : []);
-              conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(result, null, 2).slice(0, 1_500_000) });
-            } catch (error) {
-              conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: `GitHub read failed: ${error instanceof Error ? error.message : 'unknown error'}.` });
-            }
-          }
-        } else if (toolCall.function.name === 'git_apply_repository_changes') {
-          const args = JSON.parse(toolCall.function.arguments);
-          const repo = String(args.repo || '');
-          const { data: conn } = await supabase.from('git_connections').select('repo_access_mode,allowed_repos').eq('user_id', user!.id).eq('provider', 'github').maybeSingle();
-          if (conn?.repo_access_mode === 'selected' && !((Array.isArray(conn.allowed_repos) ? conn.allowed_repos : []).includes(repo))) {
-            conversationMessages.push({
-              role: 'tool', tool_call_id: toolCall.id,
-              content: `Access denied: Repository "${repo}" is not enabled in your GitHub settings. Remind the user they can add it in Settings > GitHub Integration or switch to 'All repositories'.`,
-            });
-          } else {
-            try {
-              const result = await githubCommitPullRequest(await gitTokenForUser(user!.id), {
-                repo,
-                baseBranch: String(args.baseBranch || ''),
-                files: (Array.isArray(args.files) ? args.files : []).map((item: any) => ({
-                  path: String(item?.path || ''),
-                  content: typeof item?.content === 'string' ? item.content : undefined,
-                  delete: item?.delete === true,
-                })),
-                commitMessage: String(args.commitMessage || ''),
-                pullRequestTitle: String(args.pullRequestTitle || ''),
-                pullRequestBody: String(args.pullRequestBody || ''),
-              });
-              conversationMessages.push({
-                role: 'tool', tool_call_id: toolCall.id,
-                content: `Remote changes applied on branch ${result.branch}. Pull request created: ${result.pullRequestUrl}. Commit ${result.commitSha}. Give the user the exact pull request URL.`,
-              });
-            } catch (error) {
-              conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: `GitHub update failed: ${error instanceof Error ? error.message : 'unknown error'}. No successful pull request was returned.` });
-            }
-          }
-        } else if (toolCall.function.name === 'update_canvas') {
-          const args = JSON.parse(toolCall.function.arguments);
-          console.log('Canvas update requested:', args.label || 'Untitled');
-          
-          canvasUpdate = {
-            content: args.content,
-            label: args.label
-          };
-          
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: `Canvas updated successfully with "${args.label || 'New Draft'}". The content is now in the user's Canvas editor.`
-          });
-        } else if (toolCall.function.name === 'update_code') {
-          const args = JSON.parse(toolCall.function.arguments);
-          console.log('Code update requested:', args.label || args.language);
-          
-          codeUpdate = {
-            code: args.code,
-            language: args.language,
-            label: args.label
-          };
-          
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: `Code Canvas updated successfully with "${args.label || args.language + ' code'}". The code is now in the user's Code Canvas editor with syntax highlighting.`
-          });
-        } else if (toolCall.function.name === 'generate_file') {
-          const args = JSON.parse(toolCall.function.arguments);
-          
-          // Get auth header from request
-          const authHeader = req.headers.get('Authorization');
-          
-          // Call the generate-file function with auth header
-          const fileResponse = await supabase.functions.invoke('generate-file', {
-            body: { fileType: args.fileType, prompt: args.prompt },
-            headers: authHeader ? {
-              Authorization: authHeader
-            } : undefined
-          });
-          
-          let fileResult = '';
-          if (fileResponse.error || !fileResponse.data?.success) {
-            fileResult = `Error generating file: ${fileResponse.error?.message || fileResponse.data?.error || 'Unknown error'}`;
-            console.error('File generation failed:', fileResponse.error || fileResponse.data);
-          } else {
-            // IMPORTANT: Include markdown link that MUST be in the response
-            // The AI must include this exact markdown link in its response for the user to download the file
-            fileResult = `File generated successfully!\n\nIMPORTANT: You MUST include this exact markdown link in your response so the user can download the file:\n[${fileResponse.data.fileName}](${fileResponse.data.fileUrl})\n\nDo NOT paraphrase or say "link provided" - include the actual markdown link above.`;
-            console.log('File generated:', fileResponse.data.fileName);
-          }
-          
-          // Add tool response to conversation
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: fileResult
-          });
-        } else if (toolCall.function.name === 'save_memory') {
-          const args = JSON.parse(toolCall.function.arguments);
-          const memoryContent = args.memory?.trim();
-          const replaces = Array.isArray(args.replaces)
-            ? args.replaces.filter((item: unknown): item is string => typeof item === 'string').slice(0, 20)
-            : [];
-          
-          if (memoryContent) {
-            try {
-              await applyLivingMemoryFromChat(memoryContent, authHeader, 'save', replaces);
-              console.log('💾 Living memory updated:', memoryContent);
-              memorySaved = { content: memoryContent };
-              conversationMessages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: `Living memory updated with: "${memoryContent}". Briefly acknowledge the update, then continue naturally.`
-              });
-            } catch (err) {
-              console.error('Error in save_memory:', err);
-              conversationMessages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: 'Error saving memory. Continue normally.'
-              });
-            }
-          }
-        } else if (toolCall.function.name === 'get_weather') {
-          const args = JSON.parse(toolCall.function.arguments);
-          try {
-            const wxBody = JSON.stringify({
-              location: args.location,
-              latitude: typeof args.latitude === 'number' ? args.latitude : undefined,
-              longitude: typeof args.longitude === 'number' ? args.longitude : undefined,
-            });
-            const wxRes = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/get-weather`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': authHeader ?? '', 'apikey': Deno.env.get('SUPABASE_ANON_KEY') ?? '' },
-              body: wxBody,
-            });
-            const wxResp = wxRes.ok ? { data: await wxRes.json(), error: null } : { data: null, error: { message: `HTTP ${wxRes.status}` } };
-            if (wxResp.error || wxResp.data?.error) {
-              conversationMessages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: `Weather lookup failed for "${args.location}": ${wxResp.data?.error || wxResp.error?.message || 'unknown error'}. Apologize briefly.`,
-              });
-            } else {
-              weatherData = wxResp.data;
-              conversationMessages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: `Weather card displayed for ${weatherData.location}: ${weatherData.temperature}°F, ${weatherData.condition}, H ${weatherData.high}°/L ${weatherData.low}°. Acknowledge briefly in one short sentence — do NOT repeat all the numbers since the card shows them.`,
-              });
-            }
-          } catch (e: any) {
-            conversationMessages.push({
-              role: 'tool',
-              tool_call_id: toolCall.id,
-              content: `Weather lookup error: ${e?.message || 'unknown'}.`,
-            });
-          }
-        } else if (toolCall.function.name === 'send_notification') {
-          const args = JSON.parse(toolCall.function.arguments);
-          const channel: 'push' | 'email' | 'both' = ['push', 'email', 'both'].includes(args.channel) ? args.channel : 'push';
-          const title = String(args.title ?? 'A note from Arc').slice(0, 200);
-          const body = String(args.body ?? '').slice(0, 2000);
-          const url = typeof args.url === 'string' && args.url.length > 0 ? args.url : '/dashboard';
-          const results: string[] = [];
-
-          if (channel === 'push' || channel === 'both') {
-            try {
-              const pushResp = await supabase.functions.invoke('send-push-notification', {
-                body: {
-              user_ids: [user!.id],
-                  payload: { title, body: body.slice(0, 200), url, tag: `arc-note-${Date.now()}` },
-                },
-              });
-              results.push(pushResp.error ? `push failed: ${pushResp.error.message}` : 'push sent');
-            } catch (e: any) {
-              results.push(`push failed: ${e?.message ?? e}`);
-            }
-          }
-          if (channel === 'email' || channel === 'both') {
-            results.push('email coming soon');
-          }
-
-          notificationDispatch = {
-            channel,
-            title,
-            body,
-            url,
-            results,
-            sent_at: new Date().toISOString(),
-          };
-
-          conversationMessages.push({
-            role: 'tool',
-            tool_call_id: toolCall.id,
-            content: `Notification dispatch (${channel}): ${results.join(', ')}. A confirmation card is already shown to the user — reply with ONE short friendly sentence (max 12 words) acknowledging it. Do NOT repeat the title/body.`,
-          });
-        } else if (toolCall.function.name === 'schedule_task') {
-          const args = JSON.parse(toolCall.function.arguments);
-          const title = String(args.title ?? 'Scheduled task').slice(0, 200);
-          const prompt = String(args.prompt ?? '').slice(0, 4000);
-          const deliverInChat = true;
-          // Default push ON whenever the user has an active push subscription;
-          // the model can only opt out by explicitly passing deliver_push=false.
-          const { count: pushSubCount } = await supabase
-            .from('push_subscriptions')
-            .select('endpoint', { count: 'exact', head: true })
-            .eq('user_id', user!.id);
-          const deliverPush = args.deliver_push === true || (args.deliver_push !== false && (pushSubCount ?? 0) > 0);
-          const requestedText = `${messages[messages.length - 1]?.content ?? ''}\n${title}\n${prompt}`;
-          const deliverEmail = args.deliver_email === true || requestedText.toLowerCase().includes('email') || requestedText.toLowerCase().includes('mail');
-          const deterministic = deterministicScheduleFromText(requestedText, parsedClientOffset);
-          const whenIso = deterministic?.whenIso ?? (typeof args.when_iso === 'string' ? args.when_iso : null);
-          const cronExpr = deterministic?.cronExpr ?? (typeof args.cron_expr === 'string' ? args.cron_expr : null);
-
-          try {
-            if (!prompt) throw new Error('prompt required');
-            if (!whenIso && !cronExpr) throw new Error('Provide when_iso or cron_expr');
-
-            const scheduleType = cronExpr ? 'cron' : 'once';
-            const nextRunAt = cronExpr
-              ? nextCronRun(cronExpr, new Date()).toISOString()
-              : new Date(whenIso!).toISOString();
-
-            const { data: inserted, error: insErr } = await supabase
-              .from('scheduled_tasks')
-              .insert({
-                user_id: user!.id,
-                title,
-                prompt,
-                schedule_type: scheduleType,
-                run_at: scheduleType === 'once' ? nextRunAt : null,
-                cron_expr: cronExpr,
-                next_run_at: nextRunAt,
-                timezone: clientTimezone || 'UTC',
-                result_chat_id: sessionId || null,
-                push_on_complete: deliverPush,
-                notify_email: deliverEmail,
-                model: selectedModel,
-                status: 'active',
-              })
-              .select('id')
-              .single();
-
-            if (insErr) throw insErr;
-
-            const channels = [
-              deliverInChat ? 'chat' : null,
-              deliverPush ? 'push' : null,
-              deliverEmail ? 'email' : null,
-            ].filter(Boolean).join(' + ') || 'chat';
-
-            scheduledTask = {
-              id: inserted?.id,
-              title,
-              prompt,
-              schedule_type: scheduleType,
-              cron_expr: cronExpr,
-              next_run_at: nextRunAt,
-              deliver_in_chat: deliverInChat,
-              deliver_push: deliverPush,
-              deliver_email: deliverEmail,
-            };
-
-            conversationMessages.push({
-              role: 'tool',
-              tool_call_id: toolCall.id,
-              content: `Scheduled task created (id=${inserted?.id}). A confirmation card with edit/delete is shown to the user. Reply with ONE short friendly sentence (max 12 words). Do NOT repeat the schedule details.`,
-            });
-          } catch (e: any) {
-            conversationMessages.push({
-              role: 'tool',
-              tool_call_id: toolCall.id,
-              content: `Schedule task failed: ${e?.message ?? e}. Apologize briefly and ask the user to retry.`,
-            });
-          }
-        } else if (toolCall.function.name === 'update_scheduled_task') {
-          const args = JSON.parse(toolCall.function.arguments);
-          try {
-            let query = supabase.from('scheduled_tasks').select('*').eq('user_id', user!.id);
-            query = args.task_id ? query.eq('id', args.task_id) : query.eq('status', 'active');
-            const { data: found, error: findErr } = await query.order('created_at', { ascending: false }).limit(1);
-            if (findErr) throw findErr;
-            const task = found?.[0];
-            if (!task) throw new Error('No matching scheduled task found');
-
-            if (args.cancel === true) {
-              const { error: delErr } = await supabase.from('scheduled_tasks').delete().eq('id', task.id);
-              if (delErr) throw delErr;
-              conversationMessages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: `Scheduled task "${task.title}" cancelled. Reply with ONE short friendly confirmation (max 12 words).`,
-              });
-            } else {
-              const updates: Record<string, unknown> = {};
-              if (typeof args.title === 'string' && args.title) updates.title = args.title.slice(0, 200);
-              if (typeof args.prompt === 'string' && args.prompt) updates.prompt = args.prompt.slice(0, 4000);
-              if (typeof args.deliver_push === 'boolean') updates.push_on_complete = args.deliver_push;
-              if (typeof args.deliver_email === 'boolean') updates.notify_email = args.deliver_email;
-
-              const updateText = String(messages[messages.length - 1]?.content ?? '');
-              const negatedEmail = /\b(no|without|stop|remove|disable|turn off)\b[^.!?]*\be-?mail/i.test(updateText);
-              const negatedPush = /\b(no|without|stop|remove|disable|turn off)\b[^.!?]*\bpush\b/i.test(updateText);
-              if (updates.notify_email === undefined && /\be-?mail\b/i.test(updateText)) updates.notify_email = !negatedEmail;
-              if (updates.push_on_complete === undefined && /\bpush\b/i.test(updateText)) updates.push_on_complete = !negatedPush;
-
-              // Retime deterministically from the user's own words when they contain a time.
-              const det = deterministicScheduleFromText(updateText, parsedClientOffset);
-              const newWhenIso = det?.whenIso ?? (typeof args.when_iso === 'string' ? args.when_iso : null);
-              const newCronExpr = det?.cronExpr ?? (typeof args.cron_expr === 'string' ? args.cron_expr : null);
-              if (newWhenIso) {
-                updates.schedule_type = 'once';
-                updates.run_at = new Date(newWhenIso).toISOString();
-                updates.next_run_at = updates.run_at;
-                updates.cron_expr = null;
-                updates.status = 'active';
-              } else if (newCronExpr) {
-                updates.schedule_type = 'cron';
-                updates.cron_expr = newCronExpr;
-                updates.run_at = null;
-                updates.next_run_at = nextCronRun(newCronExpr, new Date()).toISOString();
-                updates.status = 'active';
-              }
-
-              if (Object.keys(updates).length === 0) throw new Error('No changes requested');
-
-              const { data: updated, error: updErr } = await supabase
-                .from('scheduled_tasks')
-                .update(updates)
-                .eq('id', task.id)
-                .select('*')
-                .single();
-              if (updErr) throw updErr;
-
-              scheduledTask = {
-                id: updated.id,
-                title: updated.title,
-                prompt: updated.prompt,
-                schedule_type: updated.schedule_type,
-                cron_expr: updated.cron_expr,
-                next_run_at: updated.next_run_at,
-                deliver_in_chat: true,
-                deliver_push: updated.push_on_complete === true,
-                deliver_email: updated.notify_email === true,
-              };
-
-              conversationMessages.push({
-                role: 'tool',
-                tool_call_id: toolCall.id,
-                content: `Scheduled task updated (id=${task.id}). An updated confirmation card is shown to the user. Reply with ONE short friendly sentence (max 12 words). Do NOT repeat the schedule details.`,
-              });
-            }
-          } catch (e: any) {
-            conversationMessages.push({
-              role: 'tool',
-              tool_call_id: toolCall.id,
-              content: `Update scheduled task failed: ${e?.message ?? e}. Apologize briefly and ask the user to retry.`,
-            });
+            // Assistant finished without needing more tools (e.g. search query answered with text)
+            data = nextData;
+            break;
           }
         }
       }
 
-      
       // For code/canvas updates, skip the second API call entirely - we already have the output!
-      // This dramatically reduces latency for /code and /write commands (saves 30-60+ seconds)
-      // The second call was just to say "here's your code/content" which is unnecessary
       if (codeUpdate || canvasUpdate) {
         console.log('✅ Skipping second API call - code/canvas output already captured');
-        // Create a minimal synthetic response - the actual value is in codeUpdate/canvasUpdate
         const briefMessage = codeUpdate
           ? `Here's your ${codeUpdate.label || codeUpdate.language + ' code'}! I've added it to your Code Canvas.`
           : `Here's your ${canvasUpdate!.label || 'content'}! I've added it to your Canvas.`;
@@ -2485,12 +2575,12 @@ ${gitTarget ? `The selected remote target is ${gitTarget.repo} on branch ${gitTa
             finish_reason: 'stop'
           }]
         };
+      } else if (wantsGit && !gitChangesApplied && data?.choices?.[0]?.message?.content) {
+        console.log('✅ Git query already answered with text by assistant in loop');
       } else {
-        // For web_search and search_past_chats, we need the second call to synthesize results
+        // For web_search, search_past_chats, or applied git changes, we need the synthesis call
         console.log('🤖 Making second AI call to synthesize results (no forced tool)');
         
-        // Flatten tool call/response into assistant-owned context so the model
-        // cannot mistake ArcAI's tool output for text pasted by the user.
         const toolNameByCallId = new Map<string, string>();
         for (const msg of conversationMessages) {
           if (msg.role !== 'assistant' || !Array.isArray(msg.tool_calls)) continue;
@@ -2502,12 +2592,15 @@ ${gitTarget ? `The selected remote target is ${gitTarget.repo} on branch ${gitTa
         for (const msg of conversationMessages) {
           if (msg.role === 'tool') {
             const toolName = toolNameByCallId.get(msg.tool_call_id) || 'tool';
-            const webSearchDirection = toolName === 'web_search'
-              ? '\nAnswer the original question directly from this evidence. Do not ask the user to paste a link, quote, chatter, or timestamp. If evidence is incomplete, state that uncertainty and give the best-supported answer.'
-              : '';
+            let toolDirection = '';
+            if (toolName === 'web_search') {
+              toolDirection = '\nAnswer the original question directly from this evidence. Do not ask the user to paste a link, quote, chatter, or timestamp. If evidence is incomplete, state that uncertainty and give the best-supported answer.';
+            } else if (toolName === 'git_apply_repository_changes') {
+              toolDirection = '\nRemote changes have been committed and the pull request is created. Give the user a clear summary of the changes, the branch name, the commit SHA, and the exact pull request URL markdown link.';
+            }
             synthesisMessages.push({
               role: 'assistant',
-              content: `[ArcAI Tool Output: ${toolName}]\nThis context was retrieved by ArcAI, not supplied or pasted by the user.${webSearchDirection}\n\n${msg.content}`
+              content: `[ArcAI Tool Output: ${toolName}]\nThis context was retrieved by ArcAI, not supplied or pasted by the user.${toolDirection}\n\n${msg.content}`
             });
           } else if (msg.role === 'assistant' && msg.tool_calls) {
             // Skip the assistant's tool_call message - we've inlined the results
