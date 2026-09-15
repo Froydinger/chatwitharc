@@ -26,6 +26,9 @@ import {
   Cpu,
   ChevronDown,
   ArrowRight,
+  Plug,
+  Database,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -99,17 +102,48 @@ import { isMobileLocalDevice } from "@/utils/mobileLocal";
 import { useStarfieldStore } from "@/store/useStarfieldStore";
 import { BOOST_PLAN_SUMMARY, FREE_PLAN_SUMMARY } from "@/lib/planCopy";
 
-type SectionId = "account" | "appearance" | "ai" | "privacy" | "plan";
+type SectionId = "account" | "appearance" | "ai" | "connectors" | "privacy" | "plan";
 
 const SECTIONS: { id: SectionId; label: string; icon: LucideIcon; subtitle: string }[] = [
   { id: "account",    label: "Account",       icon: User,        subtitle: "Identity & login" },
   { id: "appearance", label: "Appearance",    icon: Palette,     subtitle: "Look & feel" },
   { id: "ai",         label: "AI & Models",   icon: Sparkles,    subtitle: "Models, voice, images" },
+  { id: "connectors", label: "Connectors",    icon: Plug,        subtitle: "GitHub & external services" },
   { id: "privacy",    label: "Privacy, Sharing, & Data",icon: Lock,        subtitle: "Memory, sharing, exports" },
   { id: "plan",       label: "Plan & Billing", icon: Stars,  subtitle: "Subscription details" },
 ];
 
 // ---------- Shared tile primitives (matches Arc Local look) ----------
+
+/** Placeholder tile for a connector that is planned but not yet wired up. */
+function ComingSoonConnector({
+  icon: Icon,
+  name,
+  description,
+}: {
+  icon: LucideIcon;
+  name: string;
+  description: string;
+}) {
+  return (
+    <GlassCard className="rounded-[28px] border border-white/[0.06] bg-white/[0.015] p-5 shadow-[0_22px_80px_rgba(0,0,0,0.12)]">
+      <div className="flex items-start gap-3">
+        <div className="p-2 rounded-xl bg-muted/40 border border-white/[0.06] shrink-0">
+          <Icon className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold text-muted-foreground">{name}</h3>
+            <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Coming soon
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground/70 mt-0.5">{description}</p>
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
 
 function SectionCard({
   icon: Icon,
@@ -921,6 +955,22 @@ export function SettingsPanel() {
             </Link>
           </>
         );
+      case "connectors":
+        return (
+          <>
+            <GitHubIntegrationCard />
+            <ComingSoonConnector
+              icon={Database}
+              name="Supabase"
+              description="Query tables, run migrations, and manage edge functions from chat"
+            />
+            <ComingSoonConnector
+              icon={Globe}
+              name="Netlify"
+              description="Trigger deploys and read build logs without leaving Arc"
+            />
+          </>
+        );
       case "privacy":
         return (
           <>
@@ -943,8 +993,8 @@ export function SettingsPanel() {
             {ProfileCard}
             {EmailCard}
             <PushNotificationsCard />
+            <CloudRunNotificationsCard />
             {ConnectedAccountsCard}
-            <GitHubIntegrationCard />
             {DangerZoneCard}
             {AdminCard}
           </>

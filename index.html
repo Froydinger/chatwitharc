@@ -367,6 +367,12 @@
           button.focus();
         }
 
+        // One owner for the pattern: ErrorBoundary asks before painting, so a
+        // chunk failure that is about to self-recover never flashes an error.
+        window.__isArcChunkError = function (value) {
+          return chunkErrorPattern.test(errorText(value));
+        };
+
         window.__recoverArcChunk = function (value) {
           if (!chunkErrorPattern.test(errorText(value))) return false;
           // Vite, window.error and ErrorBoundary can see the SAME failure.

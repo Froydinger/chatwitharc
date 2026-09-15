@@ -7,18 +7,37 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  // A chunk/import failure is about to be recovered by a reload, so the loud
+  // fallback would only flash for a frame before the page navigates away.
+  isRecovering: boolean;
+}
+
+// Same pattern index.html owns; the inline copy is the fallback for an older
+// cached index.html that predates __isArcChunkError.
+const CHUNK_ERROR_FALLBACK_PATTERN =
+  /Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module|Loading chunk|ChunkLoadError|not a valid JavaScript MIME type/i;
+
+function isChunkError(error: unknown): boolean {
+  const match = (window as unknown as { __isArcChunkError?: (e: unknown) => boolean }).__isArcChunkError;
+  if (typeof match === 'function') {
+    try { return match(error); } catch { /* fall through to the local pattern */ }
+  }
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return CHUNK_ERROR_FALLBACK_PATTERN.test(message);
 }
 
 export class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, isRecovering: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
     // Always render a fallback. A rejected React.lazy import stays rejected,
     // so rendering the same child again cannot retry its module factory.
-    return { hasError: true, error };
+    // This runs BEFORE componentDidCatch starts recovery, so decide here
+    // whether the fallback should be the loud one or the quiet one.
+    return { hasError: true, error, isRecovering: isChunkError(error) };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
@@ -38,6 +57,13 @@ export class ErrorBoundary extends React.Component<Props, State> {
   }
 
   render() {
+    // Recovery reloads the page (index.html escalates to its own screen if
+    // that navigation never lands). Stay quiet on the app background rather
+    // than flashing "Something went wrong" for the frame before it does.
+    if (this.state.hasError && this.state.isRecovering) {
+      return <div style={{ minHeight: '100vh', background: '#1a1a1a' }} aria-busy="true" />;
+    }
+
     if (this.state.hasError) {
       return (
         <div style={{
