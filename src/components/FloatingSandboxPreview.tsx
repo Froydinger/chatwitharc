@@ -17,6 +17,7 @@ export function FloatingSandboxPreview() {
   const [pipWidth, setPipWidth] = useState(220);
   const [pipHeight, setPipHeight] = useState(270);
   const pipObserverRef = useRef<ResizeObserver | null>(null);
+  const pipBoundsRef = useRef<HTMLDivElement>(null);
 
   // Callback ref: re-measures whenever the PIP viewport node mounts or is swapped
   // (open/close, minimize, offline state), which a deps-array effect would miss.
@@ -180,204 +181,173 @@ export function FloatingSandboxPreview() {
     );
   }
 
-  // Shared styling for the mobile PIP control bar: icon over micro-label so five
-  // buttons stay on one line with a ~44px touch target even at 1/4 size.
-  const pipBtn = "flex-1 min-w-0 h-12 rounded-xl bg-muted/80 hover:bg-muted active:scale-95 border border-border/60 flex flex-col items-center justify-center gap-0.5 text-foreground transition-all cursor-pointer";
-  const pipBtnLabel = "text-[9px] font-medium leading-none tracking-tight";
+  // One line of equal, thumb-sized icon targets. The frame widens while the
+  // control bar is open (see effectiveWidth) so these never get cramped.
+  const pipBtn = "flex-1 min-w-0 h-10 rounded-lg bg-background/80 hover:bg-muted border border-border/60 flex items-center justify-center text-foreground transition-colors active:scale-95 cursor-pointer";
 
-  // Mobile Picture-in-Picture (PIP) Window — 1/4 size of screen in the corner and draggable
+  // Mobile PIP — deliberately small so it never swallows the chat UI.
+  // Mobile device mode gets a narrow phone-shaped box; desktop mode gets a
+  // short landscape one. The chrome is fixed height, the viewport carries the
+  // device aspect ratio, so the frame is never taller than it needs to be.
   if (isMobile) {
-    const virtualWidth = deviceMode === 'desktop' ? 1024 : 375;
-    const scale = pipWidth > 0 ? pipWidth / virtualWidth : (deviceMode === 'desktop' ? 0.21 : 0.58);
-    const virtualHeight = scale > 0 && pipHeight > 0 ? Math.round(pipHeight / scale) : 550;
+    const isDesktopMode = deviceMode === 'desktop';
+    const frameWidth = isDesktopMode
+      ? (mobilePipZoomed ? 310 : 240)
+      : (mobilePipZoomed ? 200 : 150);
+    // Opening the controls temporarily widens the frame so five 44px-ish
+    // targets fit on one line even in the narrow phone-shaped layout.
+    const effectiveWidth = showMobileControls ? Math.max(frameWidth, 240) : frameWidth;
+    const aspect = isDesktopMode ? 16 / 10 : 9 / 16;
+    // Ceiling so the tall phone aspect can never balloon the frame past the
+    // chat UI, and never outgrow the drag bounds on a short phone. Capped
+    // again at 42vh below; the viewport just shows a shorter slice of the page.
+    const maxViewportHeight = isDesktopMode
+      ? (mobilePipZoomed ? 230 : 170)
+      : (mobilePipZoomed ? 350 : 255);
+    const virtualWidth = isDesktopMode ? 1280 : 390;
+
+    // Scale the live page from the measured viewport box, so it fills the
+    // frame edge to edge instead of rendering as a cut-off strip.
+    const scale = pipWidth > 0 ? pipWidth / virtualWidth : frameWidth / virtualWidth;
+    const virtualHeight = scale > 0 && pipHeight > 0 ? Math.round(pipHeight / scale) : 640;
 
     return (
-      <AnimatePresence>
-        <motion.div
-          drag
-          dragMomentum={false}
-          dragElastic={0.12}
-          initial={{ opacity: 0, scale: 0.9, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 15 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-          className={cn(
-            "fixed z-[85] flex flex-col rounded-2xl border border-primary/35 bg-background/95 backdrop-blur-2xl shadow-2xl overflow-hidden transition-all duration-200 select-none",
-            mobilePipZoomed
-              ? "top-16 right-3 w-[290px] h-[420px]"
-              : "top-20 right-3 w-[220px] h-[320px]"
-          )}
-        >
-          {/* Mobile PIP Header */}
-          <div className="flex items-center justify-between px-2.5 py-1.5 bg-muted/80 border-b border-border/50 cursor-grab active:cursor-grabbing touch-none select-none">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <GripVertical className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0 -ml-0.5" />
+      <>
+        {/* Drag bounds: keeps the PIP clear of the floating header and the
+            input dock, and stops it being flung off screen entirely. */}
+        <div
+          ref={pipBoundsRef}
+          aria-hidden
+          className="fixed left-2 right-2 top-14 bottom-28 z-[84] pointer-events-none"
+        />
+        <AnimatePresence>
+          <motion.div
+            drag
+            dragConstraints={pipBoundsRef}
+            dragMomentum={false}
+            dragElastic={0.05}
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.94 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            style={{ width: `min(${effectiveWidth}px, calc(100vw - 24px))` }}
+            className="fixed top-16 right-2 z-[85] flex flex-col rounded-xl border border-border/70 bg-background/95 backdrop-blur-2xl shadow-xl overflow-hidden select-none transition-[width] duration-200"
+          >
+            {/* Title bar — drag handle, status, and the controls caret */}
+            <div className="flex items-center gap-1.5 h-8 pl-2 pr-1 bg-muted/50 border-b border-border/50 cursor-grab active:cursor-grabbing touch-none">
+              <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0 -ml-1" />
               <span className="relative flex h-1.5 w-1.5 shrink-0">
-                <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping", isPortClosed ? "bg-amber-400" : "bg-emerald-400")}></span>
-                <span className={cn("relative inline-flex rounded-full h-1.5 w-1.5", isPortClosed ? "bg-amber-500" : "bg-emerald-500")}></span>
+                <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping", isPortClosed ? "bg-amber-400" : "bg-emerald-400")} />
+                <span className={cn("relative inline-flex rounded-full h-1.5 w-1.5", isPortClosed ? "bg-amber-500" : "bg-emerald-500")} />
               </span>
-              <span className="font-semibold text-[11px] text-foreground tracking-tight truncate">Live Preview</span>
+              {isDesktopMode
+                ? <Monitor className="h-3 w-3 text-muted-foreground shrink-0" />
+                : <Smartphone className="h-3 w-3 text-muted-foreground shrink-0" />}
               {port && (
-                <span className="text-[10px] font-mono text-primary font-medium">
-                  :{port}
-                </span>
+                <span className="text-[10px] font-mono text-muted-foreground truncate">:{port}</span>
               )}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setShowMobileControls((v) => !v); }}
+                className={cn(
+                  "ml-auto h-6 w-6 shrink-0 rounded-lg flex items-center justify-center transition-colors",
+                  showMobileControls ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted"
+                )}
+                title={showMobileControls ? "Hide controls" : "Show controls"}
+              >
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", showMobileControls && "rotate-180")} />
+              </button>
             </div>
 
-            {/* Caret Button to Expand/Collapse the Big Button Row */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowMobileControls((prev) => !prev);
-              }}
-              className={cn(
-                "flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer",
-                showMobileControls
-                  ? "bg-primary/20 text-primary border border-primary/30"
-                  : "bg-background/80 hover:bg-muted text-muted-foreground hover:text-foreground border border-border/50"
-              )}
-              title={showMobileControls ? "Hide controls" : "Expand controls"}
-            >
-              <span className="text-[10px] font-mono">{deviceMode === 'desktop' ? '💻 Desktop' : '📱 Mobile'}</span>
-              <ChevronDown className={cn("h-3 w-3 transition-transform duration-200", showMobileControls && "rotate-180")} />
-            </button>
-          </div>
-
-          {/* Expandable control bar — one line, 5 equal big touch targets */}
-          <AnimatePresence initial={false}>
-            {showMobileControls && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
-                className="overflow-hidden bg-background/95 border-b border-border/60 shadow-inner"
-              >
-                <div className="flex items-stretch gap-1 px-1.5 py-1.5">
-                  {/* Desktop / Mobile preview toggle — iframe rescales to fit either way */}
-                  <button
-                    type="button"
-                    onClick={() => setDeviceMode(deviceMode === 'mobile' ? 'desktop' : 'mobile')}
-                    className={pipBtn}
-                    title={`Switch to ${deviceMode === 'mobile' ? 'desktop' : 'mobile'} view`}
-                  >
-                    {deviceMode === 'mobile'
-                      ? <Smartphone className="h-4 w-4 text-primary" />
-                      : <Monitor className="h-4 w-4 text-primary" />}
-                    <span className={pipBtnLabel}>{deviceMode === 'mobile' ? 'Mobile' : 'Desktop'}</span>
-                  </button>
-
-                  {/* Size toggle */}
-                  <button
-                    type="button"
-                    onClick={() => setMobilePipZoomed(!mobilePipZoomed)}
-                    className={pipBtn}
-                    title={mobilePipZoomed ? "Shrink to 1/4 size" : "Zoom preview"}
-                  >
-                    {mobilePipZoomed
-                      ? <Minimize2 className="h-4 w-4" />
-                      : <Maximize2 className="h-4 w-4" />}
-                    <span className={pipBtnLabel}>{mobilePipZoomed ? 'Shrink' : 'Zoom'}</span>
-                  </button>
-
-                  {/* Open in a real browser tab */}
-                  <a
-                    href={previewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={pipBtn}
-                    title="Open in new tab"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span className={pipBtnLabel}>Open</span>
-                  </a>
-
-                  {/* Minimize to floating pill */}
-                  <button
-                    type="button"
-                    onClick={() => toggleMinimize()}
-                    className={pipBtn}
-                    title="Minimize to floating pill"
-                  >
-                    <Minus className="h-4 w-4" />
-                    <span className={pipBtnLabel}>Hide</span>
-                  </button>
-
-                  {/* Close */}
-                  <button
-                    type="button"
-                    onClick={() => closePreview()}
-                    className={cn(pipBtn, "bg-rose-500/10 hover:bg-rose-500/20 border-rose-500/25 text-rose-500")}
-                    title="Close preview"
-                  >
-                    <X className="h-4 w-4" />
-                    <span className={pipBtnLabel}>Close</span>
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Iframe or Offline State container */}
-          <div
-            ref={pipContainerRef}
-            className="relative flex-1 w-full bg-white dark:bg-zinc-950 overflow-hidden flex items-center justify-center"
-          >
-            {isPortClosed ? (
-              <SandboxClosedPortState
-                url={previewUrl}
-                port={port}
-                onRetry={() => {
-                  setIsLoading(true);
-                  checkHealth();
-                }}
-                isCompact={true}
-                className="w-full h-full p-2"
-              />
-            ) : (
-              <>
-                {isLoading && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm z-10 text-[10px] text-muted-foreground gap-1 pointer-events-none">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <span>Connecting...</span>
-                  </div>
-                )}
-
-                <div
-                  className="w-full h-full overflow-hidden"
-                  style={{
-                    width: `${pipWidth}px`,
-                    height: `${pipHeight}px`,
-                  }}
+            {/* Controls — one line of equal, thumb-sized targets */}
+            <AnimatePresence initial={false}>
+              {showMobileControls && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.16, ease: "easeOut" }}
+                  className="overflow-hidden border-b border-border/50 bg-muted/20"
                 >
+                  <div className="flex items-stretch gap-1 p-1">
+                    <button
+                      type="button"
+                      onClick={() => setDeviceMode(isDesktopMode ? 'mobile' : 'desktop')}
+                      className={pipBtn}
+                      title={`Switch to ${isDesktopMode ? 'mobile' : 'desktop'} view`}
+                    >
+                      {isDesktopMode ? <Smartphone className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMobilePipZoomed(!mobilePipZoomed)}
+                      className={pipBtn}
+                      title={mobilePipZoomed ? "Shrink" : "Enlarge"}
+                    >
+                      {mobilePipZoomed ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                    </button>
+                    <a href={previewUrl} target="_blank" rel="noopener noreferrer" className={pipBtn} title="Open in new tab">
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                    <button type="button" onClick={() => toggleMinimize()} className={pipBtn} title="Minimize to pill">
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => closePreview()}
+                      className={cn(pipBtn, "text-rose-500 hover:bg-rose-500/15 hover:border-rose-500/30")}
+                      title="Close preview"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Live viewport — aspect-ratio keeps the frame honest per device mode */}
+            <div
+              ref={pipContainerRef}
+              style={{ aspectRatio: String(aspect), maxHeight: `min(${maxViewportHeight}px, 42vh)` }}
+              className="relative w-full bg-white dark:bg-zinc-950 overflow-hidden"
+            >
+              {isPortClosed ? (
+                <SandboxClosedPortState
+                  url={previewUrl}
+                  port={port}
+                  onRetry={() => { setIsLoading(true); checkHealth(); }}
+                  isCompact={true}
+                  className="w-full h-full p-2"
+                />
+              ) : (
+                <>
+                  {isLoading && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm z-10 text-[10px] text-muted-foreground gap-1 pointer-events-none">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      <span>Connecting...</span>
+                    </div>
+                  )}
                   <iframe
                     key={iframeKey}
                     src={previewUrl}
                     title="Live App PIP"
-                    onLoad={() => {
-                      setIsLoading(false);
-                      checkHealth();
-                    }}
-                    onError={() => {
-                      setIsLoading(false);
-                      setHasError(true);
-                    }}
+                    onLoad={() => { setIsLoading(false); checkHealth(); }}
+                    onError={() => { setIsLoading(false); setHasError(true); }}
                     style={{
                       width: `${virtualWidth}px`,
                       height: `${virtualHeight}px`,
                       transform: `scale(${scale})`,
                       transformOrigin: "top left",
                     }}
-                    className="border-0 pointer-events-auto block"
+                    className="border-0 block"
                     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
                   />
-                </div>
-              </>
-            )}
-          </div>
-        </motion.div>
-      </AnimatePresence>
+                </>
+              )}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </>
     );
   }
 
