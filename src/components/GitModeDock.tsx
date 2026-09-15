@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, Unplug, Monitor } from 'lucide-react';
+import { RefreshCw, Unplug, Monitor, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useGitStore } from '@/store/useGitStore';
@@ -34,6 +34,7 @@ export function GitModeDock() {
   }, [error, toast]);
 
   const [activeSandbox, setActiveSandbox] = useState<{ id: string; expires_at: string; preview_url: string | null } | null>(null);
+  const [isLaunching, setIsLaunching] = useState(false);
 
   useEffect(() => {
     if (!connected || !selectedRepo) {
@@ -61,6 +62,60 @@ export function GitModeDock() {
     return () => clearInterval(interval);
   }, [connected, selectedRepo]);
 
+  // Terminate active sandbox when unmounting / leaving chat session to save compute
+  useEffect(() => {
+    const cleanupSandbox = () => {
+      if (selectedRepo) {
+        void supabase.functions.invoke('chat', {
+          body: { action: 'close_sandbox', repo: selectedRepo },
+        }).catch(() => undefined);
+      }
+    };
+
+    window.addEventListener('beforeunload', cleanupSandbox);
+    return () => {
+      window.removeEventListener('beforeunload', cleanupSandbox);
+      cleanupSandbox();
+    };
+  }, [selectedRepo]);
+
+  const handleLivePreviewClick = async () => {
+    if (!selectedRepo) return;
+    if (activeSandbox?.preview_url) {
+      useSandboxStore.getState().openPreview(activeSandbox.preview_url, selectedRepo);
+      return;
+    }
+
+    // Direct cloud sandbox dev server launch
+    setIsLaunching(true);
+    toast({ title: 'Cloud Sandbox', description: `Starting preview for ${selectedRepo}...` });
+    try {
+      const { data, error: launchError } = await supabase.functions.invoke('chat', {
+        body: {
+          action: 'launch_sandbox_preview',
+          repo: selectedRepo,
+          branch: selectedBranch || 'main',
+        },
+      });
+
+      if (launchError || !data?.previewUrl) {
+        throw new Error(data?.error || launchError?.message || 'Failed to start cloud sandbox preview');
+      }
+
+      useSandboxStore.getState().openPreview(data.previewUrl, selectedRepo, data.port);
+      setActiveSandbox({
+        id: data.sandboxId || 'current',
+        expires_at: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
+        preview_url: data.previewUrl,
+      });
+      toast({ title: 'Live Preview Ready', description: `Live app running on port :${data.port || 5173}` });
+    } catch (err: any) {
+      toast({ title: 'Sandbox Error', description: err.message || 'Could not launch preview', variant: 'destructive' });
+    } finally {
+      setIsLaunching(false);
+    }
+  };
+
   const handleRepoChange = async (repo: string) => {
     if (repo === '__manage_settings__') {
       window.location.assign('/dashboard/settings');
@@ -78,7 +133,7 @@ export function GitModeDock() {
   return (
     <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-background/85 backdrop-blur-xl shadow-lg px-3.5 py-2 text-xs text-foreground transition-all">
       <GitHubMark className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-300" />
-      <span className="shrink-0 px-2 py-0.5 rounded-full bg-muted font-mono text-[10px] font-semibold tracking-wide text-foreground/80 uppercase">
+      <span className="hidden sm:inline-flex shrink-0 px-2 py-0.5 rounded-full bg-muted font-mono text-[10px] font-semibold tracking-wide text-foreground/80 uppercase">
         Git Session
       </span>
       {!connected ? (
@@ -95,35 +150,76 @@ export function GitModeDock() {
         </>
       ) : (
         <>
-          <span className="max-w-28 truncate text-muted-foreground font-mono text-[11px]">@{providerLogin || 'github'}</span>
-          <select
-            aria-label="GitHub repository"
-            value={selectedRepo || ''}
-            disabled={loading}
-            onFocus={() => { if (!repositories.length) void loadRepositories(); }}
-            onChange={event => void handleRepoChange(event.target.value)}
-            className="min-w-0 flex-1 rounded-full border border-border/50 bg-background/60 px-2 py-1 text-xs outline-none cursor-pointer"
-          >
-            <option value="">{availableRepos.length ? 'Choose a repository…' : 'No allowed repositories…'}</option>
-            {availableRepos.map(repo => <option key={repo.full_name} value={repo.full_name}>{repo.full_name}</option>)}
-            {repoAccessMode === 'selected' && (
-              <option value="__manage_settings__">⚙️ Add more in Settings…</option>
-            )}
-          </select>
+          <span className="hidden sm:inline max-w-28 truncate text-muted-foreground font-mono text-[11px]">@{providerLogin || 'github'}</span>
+          <div className="relative min-w-0 flex-1 group">
+            <div
+              className="flex items-center justify-between gap-1.5 rounded-full border border-border/50 bg-background/60 px-2.5 py-1 text-xs pointer-events-none group-focus-within:border-primary/50 group-hover:border-border/80 transition-colors"
+              title={selectedRepo || 'Choose a repository'}
+            >
+              <span className="truncate">
+                {selectedRepo ? (
+                  <>
+                    <span className="sm:hidden font-medium">{selectedRepo.split('/').pop() || selectedRepo}</span>
+                    <span className="hidden sm:inline">{selectedRepo}</span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">
+                    {availableRepos.length ? 'Choose repo…' : 'No allowed repos…'}
+                  </span>
+                )}
+              </span>
+              <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground opacity-60" />
+            </div>
+            <select
+              aria-label="GitHub repository"
+              value={selectedRepo || ''}
+              disabled={loading}
+              onFocus={() => { if (!repositories.length) void loadRepositories(); }}
+              onChange={event => void handleRepoChange(event.target.value)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+            >
+              <option value="">{availableRepos.length ? 'Choose a repository…' : 'No allowed repositories…'}</option>
+              {availableRepos.map(repo => <option key={repo.full_name} value={repo.full_name}>{repo.full_name}</option>)}
+              {repoAccessMode === 'selected' && (
+                <option value="__manage_settings__">⚙️ Add more in Settings…</option>
+              )}
+            </select>
+          </div>
           <span className="hidden text-muted-foreground sm:inline font-mono text-[11px]">{selectedBranch || 'default'}</span>
-          {activeSandbox && (
+          {selectedRepo && (
             <button
               type="button"
-              onClick={() => {
-                if (activeSandbox.preview_url) {
-                  useSandboxStore.getState().openPreview(activeSandbox.preview_url, selectedRepo);
-                }
-              }}
-              className="hidden lg:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 font-mono text-[10px] font-medium border border-emerald-500/25 shrink-0 transition-colors cursor-pointer"
-              title={activeSandbox.preview_url ? "Click to open floating app preview" : `Active cloud sandbox (${new Date(activeSandbox.expires_at).toLocaleTimeString()} expiry)`}
+              onClick={() => void handleLivePreviewClick()}
+              disabled={isLaunching}
+              className={cn(
+                "hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[10px] font-medium border shrink-0 transition-all cursor-pointer",
+                activeSandbox?.preview_url
+                  ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border-emerald-500/25 shadow-sm"
+                  : "bg-primary/10 hover:bg-primary/20 text-primary border-primary/25 shadow-sm",
+                isLaunching && "opacity-80 cursor-wait"
+              )}
+              title={
+                activeSandbox?.preview_url
+                  ? "Open live app preview"
+                  : "Launch cloud sandbox and start dev server"
+              }
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              {activeSandbox.preview_url ? "Live Preview ↗" : "Sandbox (20m)"}
+              {isLaunching ? (
+                <>
+                  <RefreshCw className="h-2.5 w-2.5 animate-spin text-primary" />
+                  <span>Starting...</span>
+                </>
+              ) : activeSandbox?.preview_url ? (
+                <>
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Live Preview ↗</span>
+                </>
+              ) : (
+                <>
+                  <Monitor className="h-2.5 w-2.5 text-primary" />
+                  <span>Live Preview ↗</span>
+                </>
+              )}
             </button>
           )}
           <button type="button" onClick={() => void loadRepositories()} disabled={loading} className={cn('rounded-full p-1.5 hover:bg-muted/30 transition-colors', loading && 'animate-spin')} aria-label="Refresh repositories" title="Refresh repositories">

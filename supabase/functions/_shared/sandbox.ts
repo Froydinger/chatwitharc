@@ -40,6 +40,38 @@ const IDLE_INACTIVITY_MS = 3 * 60 * 1000; // 3 minutes
 const DEFAULT_COMMAND_TIMEOUT_MS = 90_000; // 90s per command
 
 /**
+ * Explicitly terminates active sandbox sessions for a user/repo to save compute hours.
+ */
+export async function closeSandboxSession(supabaseClient: any, userId: string, repo?: string) {
+  const apiKey = Deno.env.get('E2B_API_KEY');
+  if (!supabaseClient || !userId) return;
+  try {
+    let query = supabaseClient
+      .from('git_sandboxes')
+      .select('*')
+      .eq('user_id', userId)
+      .in('status', ['active', 'idle']);
+    if (repo) query = query.eq('repo', repo);
+    const { data: existing } = await query;
+    if (existing && existing.length > 0) {
+      for (const row of existing) {
+        if (apiKey) {
+          try {
+            const sbx = await Sandbox.connect(row.sandbox_id, { apiKey });
+            await sbx.kill();
+          } catch {
+            // Already dead
+          }
+        }
+        await supabaseClient.from('git_sandboxes').update({ status: 'closed' }).eq('id', row.id);
+      }
+    }
+  } catch (err) {
+    console.warn('Error closing sandbox session:', err);
+  }
+}
+
+/**
  * Run a command inside a persistent 20-minute E2B Linux sandbox.
  * Reconnects to existing sandboxes for the user/repo if within the 20-minute window.
  * Enforces the 20-concurrent-sandbox Hobby limit by evicting idle sessions.

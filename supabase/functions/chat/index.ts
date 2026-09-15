@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { decryptToken, githubCommitPullRequest, githubReadFiles, githubSearchFiles } from '../_shared/github.ts';
 import { gitEnabledForEmail, gitStaticTokenForUser } from '../_shared/gitFeature.ts';
-import { runInSandbox } from '../_shared/sandbox.ts';
+import { runInSandbox, closeSandboxSession } from '../_shared/sandbox.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -808,6 +808,51 @@ serve(async (req) => {
 
     if (isGuestMode && !user) {
       console.log('👤 Guest mode request (no auth)');
+    }
+
+    // Direct Sandbox actions (bypasses LLM pipeline for instant lifecycle management)
+    if (body.action === 'close_sandbox' && user) {
+      console.log('🛑 Explicit sandbox termination requested for user:', user.id, body.repo || 'all');
+      await closeSandboxSession(supabase, user.id, body.repo);
+      return new Response(JSON.stringify({ ok: true, closed: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (body.action === 'launch_sandbox_preview' && user) {
+      const { repo, branch } = body;
+      if (!repo) {
+        return new Response(JSON.stringify({ error: 'Missing repository' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const { data: hasBoost } = await supabase.rpc('user_has_boost', { check_user_id: user.id });
+      if (!hasBoost) {
+        return new Response(JSON.stringify({ error: 'Cloud sandboxes are exclusively available to ArcAI Boost subscribers.' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const token = await gitTokenForUser(user.id);
+      const res = await runInSandbox({
+        supabase,
+        userId: user.id,
+        command: 'npm run dev -- --host 0.0.0.0',
+        repo,
+        branch: branch || 'main',
+        gitToken: token,
+        port: 5173,
+        background: true,
+        timeoutMs: 90_000,
+      });
+
+      return new Response(JSON.stringify({
+        ok: res.exitCode === 0,
+        previewUrl: res.previewUrl,
+        port: res.previewPort || 5173,
+        sandboxId: res.sandboxId,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const { messages, profile, model, reasoningEffort, sessionId, forceWebSearch, forceCanvas, forceCode, forceGit, stream, streamEvents, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
