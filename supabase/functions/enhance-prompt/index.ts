@@ -1,6 +1,9 @@
 // Dedicated prompt-rewriter edge function. Does NOT execute the prompt — only
 // rewrites it into a clearer, more detailed instruction for an AI.
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 const MODEL = 'gpt-5.6-luna';
 
@@ -24,6 +27,20 @@ REMEMBER: rewrite the prompt. Do not answer it.`;
 
 const SYSTEM_IMAGE = `You are an IMAGE PROMPT REWRITER. Rewrite the user's request into a vivid, detailed image-generation prompt: subject, style, lighting, composition, mood, and quality cues. Keep the user's original intent. NEVER generate or describe the image itself — only output the improved prompt text, with no quotes or preamble.`;
 
+const SYSTEM_GIT_PLAN = `You are an ELITE SOFTWARE ARCHITECT AND GIT PLANNER.
+Your ONLY job is to take the user's input and rewrite it into a clear, comprehensive Git Engineering & Implementation Plan Prompt for Arc in Git Mode.
+
+ABSOLUTE RULES:
+1. Output ONLY the rewritten prompt. Do NOT answer or fulfill the request yourself.
+2. Structure the prompt to instruct Arc to:
+   - Formulate a clear step-by-step engineering plan.
+   - Inspect existing codebase files and directory structure first using git_read_repository / git_search_repository.
+   - Test in the cloud sandbox using git_run_in_sandbox (e.g. install dependencies, run test suites, check builds, or run dev servers).
+   - Apply clean, modular code modifications via git_apply_repository_changes to a new branch.
+   - Re-verify with sandbox tests and provide the pull request link.
+3. Keep it as a direct instruction prompt to an AI coding assistant.
+4. Return ONLY the improved prompt text with no conversational preamble or explanation.`;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -44,7 +61,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const system = kind === 'image' ? SYSTEM_IMAGE : SYSTEM_CHAT;
+    const system = kind === 'image' ? SYSTEM_IMAGE : (kind === 'git_plan' ? SYSTEM_GIT_PLAN : SYSTEM_CHAT);
 
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

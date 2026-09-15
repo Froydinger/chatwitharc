@@ -3225,30 +3225,38 @@ ${safeCode}
           );
         })()}
 
-      {/* Prompt enhancer chip — floats above input (portal) */}
+      {/* Prompt enhancer / Plan chip — floats above input and Git bar (portal) */}
       {!isVoiceActive &&
         inputValue.trim().split(/\s+/).filter(Boolean).length >= 2 &&
         portalRoot &&
         (() => {
+          const hasDocs = selectedDocuments.length > 0;
+          const hasImages = selectedImages.length > 0;
+          const previewStack = (hasDocs ? 80 : 0) + (hasImages ? 90 : 0);
+          const gitOffset = shouldShowGitMode ? 54 : 0;
           const rect = inputBarRef.current?.getBoundingClientRect();
           const bottom = rect
-            ? `${Math.max(12, window.innerHeight - rect.top + 8)}px`
-            : `calc(120px + env(safe-area-inset-bottom, 0px))`;
+            ? `${Math.max(12, window.innerHeight - rect.top + 8 + previewStack + gitOffset)}px`
+            : `calc(${120 + previewStack + gitOffset}px + env(safe-area-inset-bottom, 0px))`;
           const anchored = rect ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom } : { bottom };
+          const enhancerKind = shouldShowGitMode ? "git_plan" : (shouldShowBanana ? "image" : "chat");
           return createPortal(
             <div
-              className={rect ? "fixed z-[50] pointer-events-none" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[50] pointer-events-none"}
+              className={rect ? "fixed z-[70] pointer-events-none" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[70] pointer-events-none"}
               style={anchored}
             >
               <div className="px-4 flex justify-end mx-auto max-w-[760px]">
                 <PromptEnhancer
                   text={inputValue}
-                  kind={shouldShowBanana ? "image" : "chat"}
+                  kind={enhancerKind}
                   onAccept={(improved) => {
                     setInputValue(improved);
-                    toast({ title: "Prompt enhanced ✨", duration: 2000 });
+                    toast({
+                      title: shouldShowGitMode ? "Git Plan formulated 📋" : "Prompt enhanced ✨",
+                      duration: 2000,
+                    });
                   }}
-                  className="pointer-events-auto"
+                  className="pointer-events-auto shadow-lg"
                 />
               </div>
             </div>,

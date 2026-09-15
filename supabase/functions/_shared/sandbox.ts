@@ -241,11 +241,25 @@ export async function runInSandbox(options: RunSandboxOptions): Promise<SandboxE
     // 6. Execute command
     options.onProgress?.(`Executing: ${options.command}...`);
     const cmdTimeout = options.timeoutMs || DEFAULT_COMMAND_TIMEOUT_MS;
-    const res = await sandbox.commands.run(options.command, {
-      cwd: workdir,
-      timeoutMs: cmdTimeout,
-      background: !!options.background,
-    });
+    let res: any;
+    try {
+      res = await sandbox.commands.run(options.command, {
+        cwd: workdir,
+        timeoutMs: cmdTimeout,
+        background: !!options.background,
+      });
+    } catch (cmdErr: any) {
+      if (cmdErr && (typeof cmdErr.exitCode === 'number' || cmdErr.stdout !== undefined || cmdErr.stderr !== undefined)) {
+        res = {
+          stdout: cmdErr.stdout || '',
+          stderr: cmdErr.stderr || cmdErr.message || '',
+          exitCode: typeof cmdErr.exitCode === 'number' ? cmdErr.exitCode : 1,
+          error: cmdErr.message,
+        };
+      } else {
+        throw cmdErr;
+      }
+    }
 
     // 7. Preview URL detection: specified port or listening dev server ports
     let previewPort: number | undefined = options.port;

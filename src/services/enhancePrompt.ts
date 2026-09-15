@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
  * Rewrites the given text into a clearer, more effective prompt via the
  * dedicated `enhance-prompt` edge function. Never executes the prompt.
  */
-export async function enhancePrompt(text: string, kind: "chat" | "image" = "chat"): Promise<string> {
+export async function enhancePrompt(text: string, kind: "chat" | "image" | "git_plan" = "chat"): Promise<string> {
   const trimmed = text.trim();
   if (!trimmed) return trimmed;
   if (!supabase) throw new Error("Not connected");

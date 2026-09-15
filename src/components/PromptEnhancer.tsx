@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Check, X, Loader2 } from "lucide-react";
+import { Sparkles, Check, X, Loader2, ListTodo } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { enhancePrompt } from "@/services/enhancePrompt";
 import { useToast } from "@/hooks/use-toast";
@@ -10,21 +10,21 @@ interface PromptEnhancerProps {
   text: string;
   /** Called with the improved text only when the user accepts the preview. */
   onAccept: (improved: string) => void;
-  kind?: "chat" | "image";
+  kind?: "chat" | "image" | "git_plan";
   className?: string;
 }
 
 /**
- * A tiny "✨ Enhance" chip. Tapping it asks GPT-5.6 Luna to rewrite the current
- * input, then shows the suggestion in a small popover with Accept / Dismiss —
- * the input is only changed if the user accepts. Non-disruptive: it renders
- * nothing until there's a few words of text to work with.
+ * A tiny "✨ Enhance" or "📋 Plan" chip. Tapping it asks GPT-5.6 Luna to rewrite
+ * or structure the current input into a plan or enhanced prompt.
  */
 export function PromptEnhancer({ text, onAccept, kind = "chat", className }: PromptEnhancerProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [suggestion, setSuggestion] = useState("");
+
+  const isPlanMode = kind === "git_plan";
 
   // Only offer enhancement once there's something meaningful to improve.
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
@@ -39,7 +39,7 @@ export function PromptEnhancer({ text, onAccept, kind = "chat", className }: Pro
       setOpen(true);
     } catch (e: any) {
       toast({
-        title: "Couldn't enhance",
+        title: isPlanMode ? "Couldn't generate plan" : "Couldn't enhance",
         description: e?.message || "Try again in a moment.",
         variant: "destructive",
       });
@@ -63,7 +63,7 @@ export function PromptEnhancer({ text, onAccept, kind = "chat", className }: Pro
             if (!open) run();
           }}
           disabled={loading}
-          aria-label="Enhance prompt"
+          aria-label={isPlanMode ? "Plan prompt" : "Enhance prompt"}
           className={cn(
             "group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full",
             "border border-primary/40 bg-primary/10 backdrop-blur-md",
@@ -72,8 +72,14 @@ export function PromptEnhancer({ text, onAccept, kind = "chat", className }: Pro
             className,
           )}
         >
-          {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-          <span>{loading ? "Enhancing…" : "Enhance?"}</span>
+          {loading ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : isPlanMode ? (
+            <ListTodo className="h-3 w-3" />
+          ) : (
+            <Sparkles className="h-3 w-3" />
+          )}
+          <span>{loading ? (isPlanMode ? "Planning…" : "Enhancing…") : (isPlanMode ? "Plan?" : "Enhance?")}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -82,10 +88,10 @@ export function PromptEnhancer({ text, onAccept, kind = "chat", className }: Pro
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div className="flex items-center gap-1.5 mb-2 text-xs font-medium text-primary">
-          <Sparkles className="h-3.5 w-3.5" />
-          Enhanced prompt
+          {isPlanMode ? <ListTodo className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
+          {isPlanMode ? "Git Implementation Plan" : "Enhanced prompt"}
         </div>
-        <div className="max-h-48 overflow-y-auto rounded-md bg-background/60 border border-border/50 p-2.5 text-sm text-foreground/90 whitespace-pre-wrap">
+        <div className="max-h-56 overflow-y-auto rounded-md bg-background/60 border border-border/50 p-2.5 text-sm text-foreground/90 whitespace-pre-wrap">
           {suggestion}
         </div>
         <div className="flex items-center justify-end gap-2 mt-3">
@@ -101,7 +107,7 @@ export function PromptEnhancer({ text, onAccept, kind = "chat", className }: Pro
             onClick={accept}
             className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
           >
-            <Check className="h-3.5 w-3.5" /> Use this
+            <Check className="h-3.5 w-3.5" /> {isPlanMode ? "Use Plan" : "Use this"}
           </button>
         </div>
       </PopoverContent>
