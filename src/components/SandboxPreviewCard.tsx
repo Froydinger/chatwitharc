@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ExternalLink, RefreshCw, ChevronDown, ChevronUp, Monitor } from 'lucide-react';
+import { ExternalLink, RefreshCw, ChevronDown, ChevronUp, Monitor, ArrowUpRight } from 'lucide-react';
 import { useSandboxStore } from '@/store/useSandboxStore';
+import { cn } from '@/lib/utils';
 
 interface SandboxPreviewCardProps {
   url: string;
@@ -16,29 +17,45 @@ export function SandboxPreviewCard({ url, title }: SandboxPreviewCardProps) {
   const portMatch = url.match(/https?:\/\/(\d+)-/);
   const port = portMatch ? portMatch[1] : null;
 
+  // Clean concise display title (removes awkward "Open " prefix and avoids wrapping)
+  const displayTitle = title?.replace(/^Open\s+/i, '').trim() || 'Live Preview';
+
   return (
-    <div className="my-4 overflow-hidden rounded-2xl border border-primary/20 bg-background/80 backdrop-blur-md shadow-xl transition-all">
-      <div className="flex items-center justify-between px-4 py-3 bg-primary/5 border-b border-border/40">
-        <div className="flex items-center gap-2.5">
-          <span className="relative flex h-2.5 w-2.5">
+    <div className="my-3 overflow-hidden rounded-2xl border border-primary/20 bg-background/80 backdrop-blur-md shadow-xl transition-all">
+      <div className="flex items-center justify-between gap-2.5 px-3.5 py-2.5 bg-primary/5 border-b border-border/40 select-none">
+        {/* Left Side: Pulse dot + Clean Title + Port Badge */}
+        <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+          <span className="relative flex h-2 w-2 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          <Monitor className="h-4 w-4 text-primary" />
-          <span className="text-xs font-semibold text-foreground tracking-tight">
-            {title || 'Cloud Sandbox Live Preview'}
+          <Monitor className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span className="text-xs font-semibold text-foreground tracking-tight truncate whitespace-nowrap">
+            {displayTitle}
           </span>
           {port && (
-            <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary font-mono text-[10px] font-medium">
+            <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono text-[10px] font-medium shrink-0">
               :{port}
             </span>
           )}
-          <span className="hidden sm:inline-block text-[11px] text-muted-foreground/80">
-            • 20m persistent session
+          <span className="hidden lg:inline-flex items-center text-[10px] text-muted-foreground/70 bg-muted/40 px-1.5 py-0.5 rounded font-mono shrink-0">
+            20m session
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        {/* Right Side: Actions (Float pill + Refresh + Open tab + Toggle) */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              useSandboxStore.getState().openPreview(url, undefined, port ? parseInt(port, 10) : undefined);
+            }}
+            title="Pop out into floating window above chat"
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-primary hover:text-primary hover:bg-primary/15 bg-primary/10 border border-primary/20 transition-colors cursor-pointer"
+          >
+            <span>Float</span>
+            <ArrowUpRight className="h-3 w-3 shrink-0" />
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -48,25 +65,14 @@ export function SandboxPreviewCard({ url, title }: SandboxPreviewCardProps) {
             title="Refresh preview"
             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
           >
-            <RefreshCw className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              useSandboxStore.getState().openPreview(url, undefined, port ? parseInt(port, 10) : undefined);
-            }}
-            title="Pop out floating preview window"
-            className="p-1.5 rounded-lg text-primary hover:text-primary hover:bg-primary/10 transition-colors inline-flex items-center gap-1 text-[11px] font-medium"
-          >
-            <span>Float</span>
-            <ExternalLink className="h-3 w-3" />
+            <RefreshCw className={cn("h-3.5 w-3.5", isLoading && "animate-spin text-primary")} />
           </button>
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            title="Open in new tab"
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors inline-flex items-center gap-1"
+            title="Open in new browser tab"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
           >
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
