@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ExternalLink, RefreshCw, X, Minus, Maximize2, Minimize2, 
-  Monitor, Smartphone, Globe, AlertCircle, ArrowUpRight, Play
+  Monitor, Smartphone, Globe, AlertCircle, ArrowUpRight, Play,
+  GripVertical, ZoomIn
 } from 'lucide-react';
 import { useSandboxStore } from '@/store/useSandboxStore';
 import { SandboxClosedPortState } from '@/components/SandboxClosedPortState';
@@ -27,6 +28,17 @@ export function FloatingSandboxPreview() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isPortClosed, setIsPortClosed] = useState(false);
+  const [zoomScale, setZoomScale] = useState<number>(1);
+  const isDraggingRef = useRef(false);
+
+  const cycleZoom = () => {
+    setZoomScale((prev) => {
+      if (prev === 1) return 0.8;
+      if (prev === 0.8) return 0.65;
+      if (prev === 0.65) return 0.5;
+      return 1;
+    });
+  };
 
   const checkHealth = useCallback(async () => {
     if (!previewUrl) return;
@@ -67,16 +79,33 @@ export function FloatingSandboxPreview() {
 
   if (!isOpen || !previewUrl) return null;
 
-  // Minimized Pill floating above the UI
+  // Minimized Pill floating above the UI — freely draggable anywhere on screen
   if (isMinimized) {
     return (
       <motion.div
+        drag
+        dragMomentum={false}
+        dragElastic={0.15}
+        onDragStart={() => {
+          isDraggingRef.current = true;
+        }}
+        onDragEnd={() => {
+          setTimeout(() => {
+            isDraggingRef.current = false;
+          }, 120);
+        }}
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 20, scale: 0.95 }}
-        className="fixed bottom-28 right-6 z-[80] flex items-center gap-2.5 rounded-full border border-primary/30 bg-background/90 backdrop-blur-xl shadow-2xl px-3.5 py-2 text-xs text-foreground cursor-pointer hover:border-primary/50 transition-all group"
-        onClick={toggleMinimize}
+        whileDrag={{ scale: 1.05, opacity: 0.95, cursor: "grabbing" }}
+        className="fixed bottom-48 right-3 sm:bottom-28 sm:right-6 z-[80] flex items-center gap-2 rounded-full border border-primary/35 bg-background/95 backdrop-blur-xl shadow-2xl px-3 py-2 text-xs text-foreground cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors group select-none touch-none"
+        onClick={() => {
+          if (!isDraggingRef.current) {
+            toggleMinimize();
+          }
+        }}
       >
+        <GripVertical className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0 -mr-0.5 cursor-grab active:cursor-grabbing" />
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -136,10 +165,10 @@ export function FloatingSandboxPreview() {
         className={cn(
           "fixed z-[85] flex flex-col rounded-2xl border border-border/70 bg-background/95 backdrop-blur-2xl shadow-2xl overflow-hidden transition-all duration-200",
           isExpanded
-            ? "inset-4 md:inset-8"
+            ? "inset-2 sm:inset-6 md:inset-8"
             : deviceMode === "mobile"
-            ? "bottom-24 right-4 md:right-8 w-[380px] h-[640px] max-h-[82vh]"
-            : "bottom-24 right-4 md:right-8 w-[94vw] sm:w-[560px] md:w-[680px] lg:w-[740px] h-[580px] max-h-[82vh]"
+            ? "bottom-20 inset-x-2.5 top-16 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[380px] sm:h-[640px] sm:max-h-[82vh]"
+            : "bottom-20 inset-x-2.5 top-16 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[580px] md:w-[680px] lg:w-[740px] sm:h-[580px] sm:max-h-[82vh]"
         )}
       >
         {/* Floating Window Titlebar */}
@@ -215,6 +244,22 @@ export function FloatingSandboxPreview() {
               </button>
             </div>
 
+            {/* Zoom / Scale Preset Button */}
+            <button
+              type="button"
+              onClick={cycleZoom}
+              className={cn(
+                "flex items-center gap-1 px-1.5 py-1 rounded-lg border text-[10px] font-mono transition-colors",
+                zoomScale !== 1
+                  ? "bg-primary/15 border-primary/35 text-primary font-semibold"
+                  : "bg-background/60 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              )}
+              title={`Content scale: ${Math.round(zoomScale * 100)}% (tap to cycle 100% -> 80% -> 65% -> 50%)`}
+            >
+              <ZoomIn className="h-3 w-3" />
+              <span>{Math.round(zoomScale * 100)}%</span>
+            </button>
+
             <button
               type="button"
               onClick={() => {
@@ -259,7 +304,7 @@ export function FloatingSandboxPreview() {
         </div>
 
         {/* Iframe or Offline State container */}
-        <div className="relative flex-1 w-full bg-white dark:bg-zinc-950 overflow-hidden flex items-center justify-center">
+        <div className="relative flex-1 w-full bg-white dark:bg-zinc-950 overflow-auto flex items-start justify-center">
           {isPortClosed ? (
             <SandboxClosedPortState
               url={previewUrl}
@@ -273,30 +318,49 @@ export function FloatingSandboxPreview() {
           ) : (
             <>
               {isLoading && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm z-10 text-xs text-muted-foreground gap-2.5">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm z-10 text-xs text-muted-foreground gap-2.5 pointer-events-none">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   <span>Connecting to cloud preview...</span>
                 </div>
               )}
 
-              <iframe
-                key={iframeKey}
-                src={previewUrl}
-                title="App Preview"
-                onLoad={() => {
-                  setIsLoading(false);
-                  checkHealth();
-                }}
-                onError={() => {
-                  setIsLoading(false);
-                  setHasError(true);
-                }}
+              <div
                 className={cn(
-                  "border-0 transition-all duration-200",
-                  deviceMode === "mobile" ? "w-[375px] h-full shadow-2xl rounded-lg" : "w-full h-full"
+                  "w-full h-full overflow-auto flex items-start justify-center",
+                  zoomScale !== 1 && "origin-top-left"
                 )}
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-              />
+                style={
+                  zoomScale !== 1
+                    ? {
+                        transform: `scale(${zoomScale})`,
+                        transformOrigin: "top left",
+                        width: `${(100 / zoomScale).toFixed(1)}%`,
+                        height: `${(100 / zoomScale).toFixed(1)}%`,
+                      }
+                    : undefined
+                }
+              >
+                <iframe
+                  key={iframeKey}
+                  src={previewUrl}
+                  title="App Preview"
+                  onLoad={() => {
+                    setIsLoading(false);
+                    checkHealth();
+                  }}
+                  onError={() => {
+                    setIsLoading(false);
+                    setHasError(true);
+                  }}
+                  className={cn(
+                    "border-0 transition-all duration-200",
+                    deviceMode === "mobile" && zoomScale === 1
+                      ? "w-[375px] h-full shadow-2xl rounded-lg"
+                      : "w-full h-full"
+                  )}
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                />
+              </div>
             </>
           )}
         </div>

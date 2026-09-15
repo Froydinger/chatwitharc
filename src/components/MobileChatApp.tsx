@@ -67,6 +67,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { useAccentStore } from "@/store/useAccentStore";
+import { useGitStore } from "@/store/useGitStore";
 import { isLocalChatPreview } from "@/lib/localPreview";
 import {
   DropdownMenu,
@@ -1144,6 +1145,9 @@ export function MobileChatApp() {
   }, []);
 
   const currentSession = currentSessionId ? chatSessions.find(s => s.id === currentSessionId) : null;
+  const gitConnected = useGitStore((s) => s.connected);
+  const gitSelectedRepo = useGitStore((s) => s.selectedRepo);
+  const isGitDockActive = Boolean((currentSession as any)?.git_mode || (gitConnected && gitSelectedRepo));
   const sessionCanvas = currentSession?.canvasContent ?? '';
   const hasCanvas = (canvasContent || sessionCanvas).trim().length > 0;
   const canReopenCanvas = !isCanvasOpen && hasCanvas;
@@ -1584,8 +1588,11 @@ export function MobileChatApp() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="fixed bottom-32 left-0 z-40 flex justify-center pointer-events-none"
-                style={{ right: isDesktopCanvasMode ? `${canvasWidthPercent}%` : 0 }}
+                className="fixed left-0 z-40 flex justify-center pointer-events-none"
+                style={{
+                  right: isDesktopCanvasMode ? `${canvasWidthPercent}%` : 0,
+                  bottom: `calc(${inputHeight}px + ${isGitDockActive ? 68 : 16}px + env(safe-area-inset-bottom, 0px))`,
+                }}
               >
                 <Button
                   size="icon"
