@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { decryptToken, githubCommitPullRequest, githubReadFiles, githubSearchFiles } from '../_shared/github.ts';
 import { gitEnabledForEmail, gitStaticTokenForUser } from '../_shared/gitFeature.ts';
+import { runInSandbox } from '../_shared/sandbox.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -78,6 +79,36 @@ const GIT_TOOLS = [
           commitMessage: { type: 'string' }, pullRequestTitle: { type: 'string' }, pullRequestBody: { type: 'string' },
         },
         required: ['repo', 'baseBranch', 'files', 'commitMessage', 'pullRequestTitle', 'pullRequestBody'], additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'git_run_in_sandbox',
+      description: 'Run shell commands, tests, or scripts (e.g. npm test, pytest, cargo test, build) inside an isolated ephemeral cloud Linux micro-VM sandbox. The repository is cloned into the sandbox, and any proposed changes or files can be tested before creating or updating a pull request.',
+      parameters: {
+        type: 'object',
+        properties: {
+          repo: { type: 'string', description: 'GitHub owner/name repository.' },
+          branch: { type: 'string', description: 'Branch to clone into the sandbox.' },
+          command: { type: 'string', description: 'Shell command to execute in the repository (e.g. "npm test", "python -m pytest", "cargo check").' },
+          files: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                path: { type: 'string', description: 'Relative path of file to write before running command.' },
+                content: { type: 'string', description: 'File contents.' },
+              },
+              required: ['path', 'content'],
+              additionalProperties: false,
+            },
+            description: 'Optional uncommitted file modifications to test in the sandbox before committing.',
+          },
+        },
+        required: ['repo', 'command'],
+        additionalProperties: false,
       },
     },
   },
@@ -1040,11 +1071,12 @@ serve(async (req) => {
       conversationMessages.push({
         role: 'system',
         content: `Git mode is active.
-${gitTarget ? `The selected remote target is ${gitTarget.repo} on branch ${gitTarget.branch}.` : 'No target repository is currently selected.'}
-- You have full access to inspect and modify this repository using git_search_repository, git_read_repository, and git_apply_repository_changes.
-- NEVER claim that you do not have file-editing connections, tools, or permissions to inspect or modify files in this repository. You DO have the tools to search, read, and apply remote changes.
+- You have full access to inspect, test, and modify this repository using git_search_repository, git_read_repository, git_run_in_sandbox, and git_apply_repository_changes.
+- You have an isolated cloud Linux sandbox (E2B) available via git_run_in_sandbox. When working on code, bug fixes, or new features, YOU CAN TEST YOUR CHANGES (e.g. run test suites, check syntax, run build commands, or execute scripts) inside the sandbox before committing and opening a pull request.
+- NEVER claim that you do not have file-editing connections, tools, terminal/sandbox environments, or permissions to inspect, run, or modify files in this repository. You DO have the tools to search, read, run in a cloud sandbox, and apply remote changes.
 - If repo or branch are omitted by the user, default to repo="${gitTarget?.repo || ''}" and branch="${gitTarget?.branch || 'main'}".
 - Always inspect/read existing files first (using git_read_repository) before applying modifications so you preserve existing code structure.
+- When appropriate or requested, run tests in the sandbox using git_run_in_sandbox to verify your fix or code passes cleanly. Include the test results in your response.
 - DO NOT use update_code or update_canvas or write out freestanding code replacements in chat. Git mode is strictly for remote repository changes via git_apply_repository_changes.
 - When committing changes via git_apply_repository_changes, create a descriptive branch and pull request. Never push directly to the base branch.
 - After applying changes, always provide the user with the complete trail: the created branch, commit SHA, and exact pull request URL.
@@ -1416,7 +1448,7 @@ ${gitTarget ? `The selected remote target is ${gitTarget.repo} on branch ${gitTa
     if (wantsGit) {
       // Git mode is explicit and remote-only: expose only Git tools so a local
       // preview, IDE path, or unrelated tool cannot accidentally handle it.
-      toolsToUse = tools.filter(t => ['git_search_repository', 'git_read_repository', 'git_apply_repository_changes'].includes(t.function.name));
+      toolsToUse = tools.filter(t => ['git_search_repository', 'git_read_repository', 'git_run_in_sandbox', 'git_apply_repository_changes'].includes(t.function.name));
       const isPureGreeting = /^(hi|hello|hey|greetings|help)\b[!.?]?$/i.test(lastUserMessage.trim());
       if (!isPureGreeting) {
         toolChoice = "required";
@@ -2194,6 +2226,81 @@ ${gitTarget ? `The selected remote target is ${gitTarget.repo} on branch ${gitTa
             });
           } catch (error) {
             conversationMessages.push({ role: 'tool', tool_call_id: toolCall.id, content: `GitHub update failed: ${error instanceof Error ? error.message : 'unknown error'}. No pull request was created.` });
+          }
+        }
+      } else if (toolCall.function.name === 'git_run_in_sandbox') {
+        const args = JSON.parse(toolCall.function.arguments);
+        let repo = String(args.repo || '').trim();
+        if (!repo.includes('/') && gitTarget?.repo) {
+          if (!repo || repo === gitTarget.repo.split('/')[1]) repo = gitTarget.repo;
+        }
+        if (!repo && gitTarget?.repo) repo = gitTarget.repo;
+
+        let branch = String(args.branch || '').trim();
+        if (!branch && gitTarget?.branch) branch = gitTarget.branch;
+        if (!branch) branch = 'main';
+
+        const command = String(args.command || '').trim();
+        const files = Array.isArray(args.files) ? args.files.map((f: any) => ({
+          path: String(f.path || '').trim(),
+          content: String(f.content || ''),
+        })) : [];
+
+        const { data: conn } = await supabase.from('git_connections').select('repo_access_mode,allowed_repos').eq('user_id', user!.id).eq('provider', 'github').maybeSingle();
+        if (conn?.repo_access_mode === 'selected' && !((Array.isArray(conn.allowed_repos) ? conn.allowed_repos : []).includes(repo))) {
+          conversationMessages.push({
+            role: 'tool', tool_call_id: toolCall.id,
+            content: `Access denied: Repository "${repo}" is not enabled in your GitHub settings. Remind the user they can add it in Settings > GitHub Integration or switch to 'All repositories'.`,
+          });
+        } else {
+          try {
+            // Enforce Boost tier requirement for Cloud Sandbox execution
+            const { data: hasBoost } = await supabase.rpc('user_has_boost', { check_user_id: user!.id });
+            if (!hasBoost) {
+              conversationMessages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                content: 'Sandbox execution skipped: Cloud code testing and execution in Git mode is exclusively available to ArcAI Boost subscribers. Inform the user that they can upgrade to ArcAI Boost to enable live cloud sandbox testing before creating pull requests.',
+              });
+              continue;
+            }
+
+            sendEvent?.({
+              type: 'status',
+              activity: 'thinking',
+              tool: 'git_run_in_sandbox',
+              details: `Running "${command}" in cloud sandbox (${repo})...`,
+            });
+            const token = await gitTokenForUser(user!.id);
+            const res = await runInSandbox({
+              command,
+              repo,
+              branch,
+              gitToken: token,
+              files,
+              timeoutMs: 90_000,
+            });
+
+            const outputSummary = [
+              `Command: ${command}`,
+              `Exit code: ${res.exitCode}`,
+              `Duration: ${(res.durationMs / 1000).toFixed(1)}s`,
+              res.stdout ? `STDOUT:\n${res.stdout.slice(0, 10_000)}` : '',
+              res.stderr ? `STDERR:\n${res.stderr.slice(0, 10_000)}` : '',
+              res.error ? `Error: ${res.error}` : '',
+            ].filter(Boolean).join('\n\n');
+
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: outputSummary,
+            });
+          } catch (error) {
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: toolCall.id,
+              content: `Sandbox execution failed: ${error instanceof Error ? error.message : 'unknown error'}.`,
+            });
           }
         }
       } else if (toolCall.function.name === 'update_canvas') {
