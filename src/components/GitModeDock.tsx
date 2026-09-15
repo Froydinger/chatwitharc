@@ -48,6 +48,9 @@ export function GitModeDock() {
   return (
     <div className="flex items-center gap-2 rounded-2xl border border-border/60 bg-background/85 backdrop-blur-xl shadow-lg px-3.5 py-2 text-xs text-foreground transition-all">
       <GitHubMark className="h-4 w-4 shrink-0 text-zinc-500 dark:text-zinc-300" />
+      <span className="shrink-0 px-2 py-0.5 rounded-full bg-muted font-mono text-[10px] font-semibold tracking-wide text-foreground/80 uppercase">
+        Git Session
+      </span>
       {!connected ? (
         <>
           <span className="min-w-0 flex-1 text-muted-foreground truncate">GitHub mode is enabled.</span>

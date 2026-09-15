@@ -778,13 +778,36 @@ serve(async (req) => {
 
     const { messages, profile, model, reasoningEffort, sessionId, forceWebSearch, forceCanvas, forceCode, forceGit, stream, streamEvents, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
 
+    let isSessionGit = false;
+    if (sessionId && user && !isGuestMode) {
+      const { data: sessionData } = await supabase
+        .from('chat_sessions')
+        .select('is_git')
+        .eq('id', sessionId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (sessionData?.is_git === true) {
+        isSessionGit = true;
+      }
+    }
+
+    const effectiveForceGit = (forceGit === true) || isSessionGit;
+
     let gitTarget: { repo: string; branch: string } | null = null;
-    if (forceGit === true) {
+    if (effectiveForceGit) {
       const gitAllowed = !!user && !isGuestMode && await gitEnabledForEmail(supabase, user.email);
       if (!gitAllowed) {
         return new Response(JSON.stringify({ error: 'GitHub mode is not enabled for this account.' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+      }
+      // Ensure session is irreversibly marked as a Git session
+      if (sessionId && user && !isGuestMode && !isSessionGit) {
+        void supabase
+          .from('chat_sessions')
+          .update({ is_git: true })
+          .eq('id', sessionId)
+          .eq('user_id', user.id);
       }
       const { data: connection } = await supabase.from('git_connections')
         .select('selected_repo,selected_branch,repo_access_mode,allowed_repos').eq('user_id', user!.id).eq('provider', 'github').maybeSingle();
@@ -1013,7 +1036,7 @@ serve(async (req) => {
           return m;
         })
     ];
-    if (forceGit === true) {
+    if (effectiveForceGit) {
       conversationMessages.push({
         role: 'system',
         content: `Git mode is active.
@@ -1363,11 +1386,11 @@ ${gitTarget ? `The selected remote target is ${gitTarget.repo} on branch ${gitTa
       }
     ];
 
-    if (forceGit === true) tools.push(...GIT_TOOLS);
+    if (effectiveForceGit) tools.push(...GIT_TOOLS);
 
     // Detect if user explicitly wants canvas or code
     // Priority: forceGit (disallows code/canvas) > forceCode/forceCanvas from frontend > message content detection > forceWebSearch
-    const wantsGit = forceGit === true;
+    const wantsGit = effectiveForceGit;
     const lastUserMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
     const messageWantsCanvas = !wantsGit && (lastUserMessage.includes('use the update_canvas tool') ||
                                lastUserMessage.includes('update_canvas') ||

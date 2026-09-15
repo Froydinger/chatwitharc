@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, MessageSquare, RefreshCw, Search, LayoutDashboard, Share2, ChevronRight, X, FolderPlus, Folder, Pin, PinOff, MoreVertical } from "lucide-react";
+import { GitHubMark } from "@/components/GitModeDock";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
 import { useArcStore } from "@/store/useArcStore";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
@@ -22,6 +23,7 @@ type UnifiedSession = {
   timestamp: number;
   type: "chat" | "search";
   itemCount: number;
+  isGit?: boolean;
 };
 
 const ITEMS_PER_PAGE = 25;
@@ -178,6 +180,7 @@ export function ChatHistoryPanel() {
         timestamp: new Date(s.lastMessageAt).getTime(),
         type: "chat",
         itemCount: s.messageCount ?? s.messages.length,
+        isGit: s.isGit === true,
       }))
       .sort((a, b) => b.timestamp - a.timestamp);
   }, [chatSessions, corporateMode]);
@@ -532,21 +535,32 @@ function ChatSessionItem({ session, isActive, onLoad, onDelete, onShare, folders
         <div
           className={cn(
             "shrink-0 h-7 w-7 rounded-lg inline-flex items-center justify-center transition-colors",
-            isActive
-              ? "bg-primary/20 text-primary"
-              : "bg-muted/40 text-muted-foreground group-hover:text-primary",
+            session.isGit
+              ? "bg-zinc-800/15 text-zinc-800 dark:bg-zinc-200/15 dark:text-zinc-200"
+              : isActive
+                ? "bg-primary/20 text-primary"
+                : "bg-muted/40 text-muted-foreground group-hover:text-primary",
           )}
         >
-          <MessageSquare className="h-3.5 w-3.5" />
+          {session.isGit ? (
+            <GitHubMark className="h-3.5 w-3.5" />
+          ) : (
+            <MessageSquare className="h-3.5 w-3.5" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <h4
             className={cn(
-              "text-sm font-medium truncate leading-tight",
+              "text-sm font-medium truncate leading-tight flex items-center gap-1.5",
               isActive ? "text-primary" : "text-foreground",
             )}
           >
-            {session.title}
+            <span className="truncate">{session.title}</span>
+            {session.isGit && (
+              <span className="shrink-0 px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold uppercase bg-muted text-muted-foreground">
+                git
+              </span>
+            )}
           </h4>
           <div className="mt-0.5 text-[11px] text-muted-foreground truncate flex items-center gap-1">
             <AnimatedCounter value={session.itemCount} height={14} />

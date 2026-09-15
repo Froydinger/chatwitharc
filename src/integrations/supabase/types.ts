@@ -168,6 +168,7 @@ export type Database = {
           created_at: string | null
           folder_id: string | null
           id: string
+          is_git: boolean
           is_public: boolean
           messages: Json | null
           persona_id: string | null
@@ -181,6 +182,7 @@ export type Database = {
           created_at?: string | null
           folder_id?: string | null
           id?: string
+          is_git?: boolean
           is_public?: boolean
           messages?: Json | null
           persona_id?: string | null
@@ -194,6 +196,7 @@ export type Database = {
           created_at?: string | null
           folder_id?: string | null
           id?: string
+          is_git?: boolean
           is_public?: boolean
           messages?: Json | null
           persona_id?: string | null
@@ -1250,6 +1253,7 @@ export type Database = {
           created_at: string
           folder_id: string
           id: string
+          is_git: boolean
           message_count: number
           title: string
           updated_at: string

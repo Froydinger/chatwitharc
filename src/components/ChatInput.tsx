@@ -636,6 +636,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     upsertCanvasMessage,
     upsertCodeMessage,
     createNewSession,
+    markSessionAsGit,
+    currentSessionId,
+    chatSessions,
   } = useArcStore();
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
@@ -731,12 +734,17 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const [forceSearchMode, setForceSearchMode] = useState(false);
   const [forceBuildMode, setForceBuildMode] = useState(false);
   const [forceGitMode, setForceGitMode] = useState(false);
+  const isCurrentSessionGit = useMemo(() => {
+    if (!currentSessionId) return false;
+    const current = chatSessions.find((s) => s.id === currentSessionId);
+    return current?.isGit === true;
+  }, [currentSessionId, chatSessions]);
   const shouldShowBanana = forceImageMode || (!!inputValue && checkForImageRequest(inputValue));
   const shouldShowCodeMode = forceCodingMode || (!!inputValue && checkForCodingRequest(inputValue));
   const shouldShowCanvasMode = forceCanvasMode || (!!inputValue && checkForCanvasRequest(inputValue));
   const shouldShowSearchMode = forceSearchMode || (!!inputValue && checkForSearchRequest(inputValue));
   const shouldShowBuildMode = forceBuildMode || (!!inputValue && checkForBuildRequest(inputValue));
-  const shouldShowGitMode = forceGitMode || (!!inputValue && checkForGitRequest(inputValue));
+  const shouldShowGitMode = isCurrentSessionGit || forceGitMode || (!!inputValue && checkForGitRequest(inputValue));
 
   // Persisted user-chosen image model + aspect ratio (for /image, "draw…", etc.)
   const {
@@ -1743,6 +1751,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     // Reset cancellation flag
     cancelRequested = false;
     const requestSessionId = useArcStore.getState().currentSessionId || createNewSession();
+    if (wasGitMode && requestSessionId) {
+      void markSessionAsGit(requestSessionId);
+    }
     setLoading(true);
 
     // Show the right animation NOW rather than after the response reports what
@@ -3342,8 +3353,8 @@ ${safeCode}
                   )}
                 </button>
 
-                {/* Clear active tool badge */}
-                {!showMenu && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode || shouldShowBuildMode || shouldShowGitMode) && (
+                {/* Clear active tool badge (cannot clear if session is permanently Git) */}
+                {!showMenu && !isCurrentSessionGit && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode || shouldShowBuildMode || shouldShowGitMode) && (
                   <button
                     type="button"
                     onClick={(e) => {
