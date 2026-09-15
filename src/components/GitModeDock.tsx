@@ -192,7 +192,7 @@ export function GitModeDock() {
               onClick={() => void handleLivePreviewClick()}
               disabled={isLaunching}
               className={cn(
-                "hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[10px] font-medium border shrink-0 transition-all cursor-pointer",
+                "inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 rounded-full font-mono text-[10px] font-medium border shrink-0 transition-all cursor-pointer",
                 activeSandbox?.preview_url
                   ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border-emerald-500/25 shadow-sm"
                   : "bg-primary/10 hover:bg-primary/20 text-primary border-primary/25 shadow-sm",
@@ -207,17 +207,22 @@ export function GitModeDock() {
               {isLaunching ? (
                 <>
                   <RefreshCw className="h-2.5 w-2.5 animate-spin text-primary" />
-                  <span>Starting...</span>
+                  <span className="hidden sm:inline">Starting...</span>
+                  <span className="sm:hidden">Start...</span>
                 </>
               ) : activeSandbox?.preview_url ? (
                 <>
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Live Preview ↗</span>
+                  <span className="hidden sm:inline">Live Preview</span>
+                  <span className="sm:hidden">Preview</span>
+                  <span>↗</span>
                 </>
               ) : (
                 <>
                   <Monitor className="h-2.5 w-2.5 text-primary" />
-                  <span>Live Preview ↗</span>
+                  <span className="hidden sm:inline">Live Preview</span>
+                  <span className="sm:hidden">Preview</span>
+                  <span>↗</span>
                 </>
               )}
             </button>

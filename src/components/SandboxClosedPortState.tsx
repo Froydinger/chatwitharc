@@ -41,6 +41,37 @@ export function SandboxClosedPortState({
     }, 2500);
   };
 
+  if (isCompact) {
+    return (
+      <div className={cn("flex flex-col items-center justify-center text-center p-3 h-full bg-background/90 text-xs gap-2 select-none", className)}>
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+        </span>
+        <div className="font-semibold text-[11px] text-foreground">Port :{targetPort} Offline</div>
+        <p className="text-[10px] text-muted-foreground leading-tight max-w-[140px]">
+          Server hasn't started yet.
+        </p>
+        <button
+          type="button"
+          onClick={handleRepromptArc}
+          disabled={isPrompting}
+          className={cn(
+            "inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium text-[10px] shadow transition-all",
+            promptSent ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" : "bg-primary text-primary-foreground"
+          )}
+        >
+          {isPrompting ? (
+            <RefreshCw className="h-2.5 w-2.5 animate-spin" />
+          ) : (
+            <Play className="h-2.5 w-2.5 fill-current" />
+          )}
+          <span>{promptSent ? "Prompt Sent" : "Start Server"}</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}

@@ -8,8 +8,11 @@ import {
 import { useSandboxStore } from '@/store/useSandboxStore';
 import { SandboxClosedPortState } from '@/components/SandboxClosedPortState';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export function FloatingSandboxPreview() {
+  const isMobile = useIsMobile();
+  const [mobilePipZoomed, setMobilePipZoomed] = useState(false);
   const {
     isOpen,
     isMinimized,
@@ -154,7 +157,155 @@ export function FloatingSandboxPreview() {
     );
   }
 
-  // Full Floating Preview Window
+  // Mobile Picture-in-Picture (PIP) Window — 1/4 size of screen in the corner and draggable
+  if (isMobile) {
+    return (
+      <AnimatePresence>
+        <motion.div
+          drag
+          dragMomentum={false}
+          dragElastic={0.12}
+          initial={{ opacity: 0, scale: 0.9, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 15 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className={cn(
+            "fixed z-[85] flex flex-col rounded-2xl border border-primary/30 bg-background/95 backdrop-blur-2xl shadow-2xl overflow-hidden transition-all duration-200 select-none",
+            mobilePipZoomed
+              ? "top-16 right-3 w-[250px] h-[385px]"
+              : "top-20 right-3 w-[168px] h-[260px]"
+          )}
+        >
+          {/* Truncated Mobile PIP Header */}
+          <div className="flex items-center justify-between px-2.5 py-1.5 bg-muted/60 border-b border-border/50 cursor-grab active:cursor-grabbing touch-none">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <GripVertical className="h-3 w-3 text-muted-foreground/60 shrink-0 -ml-0.5" />
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping", isPortClosed ? "bg-amber-400" : "bg-emerald-400")}></span>
+                <span className={cn("relative inline-flex rounded-full h-1.5 w-1.5", isPortClosed ? "bg-amber-500" : "bg-emerald-500")}></span>
+              </span>
+              <span className="font-semibold text-[10px] text-foreground tracking-tight truncate">Live</span>
+              {port && (
+                <span className="text-[9px] font-mono text-primary font-medium">
+                  :{port}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-0.5">
+              {/* Zoom toggle: expands PIP slightly or restores 1/4 size */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMobilePipZoomed(!mobilePipZoomed);
+                }}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                title={mobilePipZoomed ? "Compact 1/4 PIP" : "Zoom PIP"}
+              >
+                {mobilePipZoomed ? <Minimize2 className="h-2.5 w-2.5" /> : <Maximize2 className="h-2.5 w-2.5" />}
+              </button>
+
+              {/* Open in new tab */}
+              <a
+                href={previewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                title="Open in new tab"
+              >
+                <ExternalLink className="h-2.5 w-2.5" />
+              </a>
+
+              {/* Minimize to pill */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleMinimize();
+                }}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                title="Minimize to floating pill"
+              >
+                <Minus className="h-2.5 w-2.5" />
+              </button>
+
+              {/* Close */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closePreview();
+                }}
+                className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-muted/50 transition-colors"
+                title="Close"
+              >
+                <X className="h-2.5 w-2.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Iframe or Offline State container */}
+          <div className="relative flex-1 w-full bg-white dark:bg-zinc-950 overflow-hidden flex items-center justify-center">
+            {isPortClosed ? (
+              <SandboxClosedPortState
+                url={previewUrl}
+                port={port}
+                onRetry={() => {
+                  setIsLoading(true);
+                  checkHealth();
+                }}
+                isCompact={true}
+                className="w-full h-full p-2"
+              />
+            ) : (
+              <>
+                {isLoading && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm z-10 text-[10px] text-muted-foreground gap-1 pointer-events-none">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <span>Connecting...</span>
+                  </div>
+                )}
+
+                <div
+                  className="w-full h-full overflow-hidden flex items-start justify-center origin-top-left"
+                  style={{
+                    width: mobilePipZoomed ? "250px" : "168px",
+                    height: mobilePipZoomed ? "350px" : "225px",
+                  }}
+                >
+                  <iframe
+                    key={iframeKey}
+                    src={previewUrl}
+                    title="Live App PIP"
+                    onLoad={() => {
+                      setIsLoading(false);
+                      checkHealth();
+                    }}
+                    onError={() => {
+                      setIsLoading(false);
+                      setHasError(true);
+                    }}
+                    style={{
+                      width: "375px",
+                      height: mobilePipZoomed ? "525px" : "510px",
+                      transform: `scale(${mobilePipZoomed ? 0.66 : 0.44})`,
+                      transformOrigin: "top left",
+                    }}
+                    className="border-0 pointer-events-auto"
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  // Full Desktop Floating Preview Window
   return (
     <AnimatePresence>
       <motion.div
@@ -165,10 +316,10 @@ export function FloatingSandboxPreview() {
         className={cn(
           "fixed z-[85] flex flex-col rounded-2xl border border-border/70 bg-background/95 backdrop-blur-2xl shadow-2xl overflow-hidden transition-all duration-200",
           isExpanded
-            ? "inset-2 sm:inset-6 md:inset-8"
+            ? "inset-4 md:inset-8"
             : deviceMode === "mobile"
-            ? "bottom-20 inset-x-2.5 top-16 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[380px] sm:h-[640px] sm:max-h-[82vh]"
-            : "bottom-20 inset-x-2.5 top-16 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[580px] md:w-[680px] lg:w-[740px] sm:h-[580px] sm:max-h-[82vh]"
+            ? "bottom-24 right-4 md:right-8 w-[380px] h-[640px] max-h-[82vh]"
+            : "bottom-24 right-4 md:right-8 w-[580px] md:w-[680px] lg:w-[740px] h-[580px] max-h-[82vh]"
         )}
       >
         {/* Floating Window Titlebar */}
