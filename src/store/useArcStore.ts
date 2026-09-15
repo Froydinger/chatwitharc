@@ -306,12 +306,14 @@ export interface ArcState {
    * once the stream mode is decided and cleared when loading ends.
    */
   activeTask: 'code' | 'writing' | null;
+  activeStatusDetails: string | null;
   setLoading: (loading: boolean) => void;
   setGeneratingImage: (generating: boolean) => void;
   setSearchingChats: (searching: boolean) => void;
   setAccessingMemory: (accessing: boolean) => void;
   setSearchingWeb: (searching: boolean) => void;
   setActiveTask: (task: 'code' | 'writing' | null) => void;
+  setActiveStatusDetails: (details: string | null) => void;
 
   // Quick Start
   startChatWithMessage: (message: string) => void;
@@ -2102,14 +2104,16 @@ export const useArcStore = create<ArcState>()(
       isAccessingMemory: false,
       isSearchingWeb: false,
       activeTask: null,
+      activeStatusDetails: null,
       // Clearing activeTask here means every existing setLoading(false) call
       // site resets it, rather than each one having to remember to.
-      setLoading: (loading) => set(loading ? { isLoading: true } : { isLoading: false, activeTask: null }),
+      setLoading: (loading) => set(loading ? { isLoading: true } : { isLoading: false, activeTask: null, activeStatusDetails: null }),
       setGeneratingImage: (generating) => set({ isGeneratingImage: generating }),
       setSearchingChats: (searching) => set({ isSearchingChats: searching }),
       setAccessingMemory: (accessing) => set({ isAccessingMemory: accessing }),
       setSearchingWeb: (searching) => set({ isSearchingWeb: searching }),
       setActiveTask: (task) => set({ activeTask: task }),
+      setActiveStatusDetails: (details) => set({ activeStatusDetails: details }),
       
       // Quick Start - modified to trigger proper image detection
       startChatWithMessage: async (message) => {

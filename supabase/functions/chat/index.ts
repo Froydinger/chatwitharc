@@ -86,13 +86,16 @@ const GIT_TOOLS = [
     type: 'function',
     function: {
       name: 'git_run_in_sandbox',
-      description: 'Run shell commands, tests, or scripts (e.g. npm test, pytest, cargo test, build) inside an isolated ephemeral cloud Linux micro-VM sandbox. The repository is cloned into the sandbox, and any proposed changes or files can be tested before creating or updating a pull request.',
+      description: 'Run shell commands, tests, or web applications (e.g. npm test, npm run dev, pytest, cargo test, build) inside a persistent 20-minute cloud Linux sandbox. The sandbox is kept open for 20 minutes across turns so dev servers stay running and live web previews can be inspected. Returns command stdout/stderr, exit code, and live web preview URL if a port/server is active.',
       parameters: {
         type: 'object',
         properties: {
           repo: { type: 'string', description: 'GitHub owner/name repository.' },
           branch: { type: 'string', description: 'Branch to clone into the sandbox.' },
-          command: { type: 'string', description: 'Shell command to execute in the repository (e.g. "npm test", "python -m pytest", "cargo check").' },
+          command: { type: 'string', description: 'Shell command to execute in the repository (e.g. "npm test", "npm run dev", "python -m pytest").' },
+          port: { type: 'integer', description: 'Optional port number (e.g. 5173, 3000, 8080) to expose a live web preview URL.' },
+          background: { type: 'boolean', description: 'Set to true when starting a persistent service like a dev server (e.g. npm run dev) so the command executes in the background.' },
+          killSandbox: { type: 'boolean', description: 'Set to true if the user explicitly asks to stop or terminate their cloud sandbox.' },
           files: {
             type: 'array',
             items: {
@@ -1072,11 +1075,15 @@ serve(async (req) => {
         role: 'system',
         content: `Git mode is active.
 - You have full access to inspect, test, and modify this repository using git_search_repository, git_read_repository, git_run_in_sandbox, and git_apply_repository_changes.
-- You have an isolated cloud Linux sandbox (E2B) available via git_run_in_sandbox. When working on code, bug fixes, or new features, YOU CAN TEST YOUR CHANGES (e.g. run test suites, check syntax, run build commands, or execute scripts) inside the sandbox before committing and opening a pull request.
+- You have a persistent 20-minute cloud Linux sandbox (E2B) available via git_run_in_sandbox. When working on code, bug fixes, or new features, YOU CAN TEST YOUR CHANGES (e.g. run test suites, check syntax, run build commands, or execute scripts) inside the sandbox before committing and opening a pull request.
+- The sandbox remains open in a 20-minute window across conversation turns! Dev servers stay alive, and subsequent commands reconnect instantly without re-cloning.
+- When the user asks to test, run, or preview the app:
+  * Run the build, test suite, or dev server using git_run_in_sandbox. If running a long-running dev server (e.g. npm run dev, vite), set background=true and specify port (e.g. 5173, 3000, 8080).
+  * When a live preview URL is returned (e.g. https://<port>-<id>.e2b.app), ALWAYS share it prominently with the user using Markdown link syntax: [Open Live Preview](https://...).
+  * The user wants to see you actively looking at and testing the app. Provide clear, step-by-step observations: what command ran, whether it compiled/passed, server listening port, stdout/stderr highlights, and your diagnostic assessment.
 - NEVER claim that you do not have file-editing connections, tools, terminal/sandbox environments, or permissions to inspect, run, or modify files in this repository. You DO have the tools to search, read, run in a cloud sandbox, and apply remote changes.
 - If repo or branch are omitted by the user, default to repo="${gitTarget?.repo || ''}" and branch="${gitTarget?.branch || 'main'}".
 - Always inspect/read existing files first (using git_read_repository) before applying modifications so you preserve existing code structure.
-- When appropriate or requested, run tests in the sandbox using git_run_in_sandbox to verify your fix or code passes cleanly. Include the test results in your response.
 - DO NOT use update_code or update_canvas or write out freestanding code replacements in chat. Git mode is strictly for remote repository changes via git_apply_repository_changes.
 - When committing changes via git_apply_repository_changes, create a descriptive branch and pull request. Never push directly to the base branch.
 - After applying changes, always provide the user with the complete trail: the created branch, commit SHA, and exact pull request URL.
@@ -2241,6 +2248,9 @@ serve(async (req) => {
         if (!branch) branch = 'main';
 
         const command = String(args.command || '').trim();
+        const port = typeof args.port === 'number' ? args.port : (args.port ? parseInt(String(args.port), 10) : undefined);
+        const background = Boolean(args.background);
+        const killSandbox = Boolean(args.killSandbox);
         const files = Array.isArray(args.files) ? args.files.map((f: any) => ({
           path: String(f.path || '').trim(),
           content: String(f.content || ''),
@@ -2267,24 +2277,40 @@ serve(async (req) => {
 
             sendEvent?.({
               type: 'status',
-              activity: 'thinking',
+              activity: 'testing',
               tool: 'git_run_in_sandbox',
-              details: `Running "${command}" in cloud sandbox (${repo})...`,
+              details: `Initializing 20-minute sandbox for ${repo}...`,
             });
             const token = await gitTokenForUser(user!.id);
             const res = await runInSandbox({
+              supabase,
+              userId: user!.id,
               command,
               repo,
               branch,
               gitToken: token,
               files,
+              port,
+              background,
+              killSandbox,
               timeoutMs: 90_000,
+              onProgress: (msg: string) => {
+                sendEvent?.({
+                  type: 'status',
+                  activity: 'testing',
+                  tool: 'git_run_in_sandbox',
+                  details: msg,
+                });
+              },
             });
 
             const outputSummary = [
               `Command: ${command}`,
               `Exit code: ${res.exitCode}`,
               `Duration: ${(res.durationMs / 1000).toFixed(1)}s`,
+              res.previewUrl ? `LIVE PREVIEW URL: ${res.previewUrl} (Port ${res.previewPort || 'detected'})` : '',
+              res.expiresAt ? `Sandbox Window: Active for 20 minutes (expires at ${new Date(res.expiresAt).toLocaleTimeString()})` : '',
+              res.isReusedSession ? `Session state: Reconnected to existing running sandbox` : `Session state: Fresh sandbox provisioned`,
               res.stdout ? `STDOUT:\n${res.stdout.slice(0, 10_000)}` : '',
               res.stderr ? `STDERR:\n${res.stderr.slice(0, 10_000)}` : '',
               res.error ? `Error: ${res.error}` : '',
@@ -2299,7 +2325,7 @@ serve(async (req) => {
             conversationMessages.push({
               role: 'tool',
               tool_call_id: toolCall.id,
-              content: `Sandbox execution failed: ${error instanceof Error ? error.message : 'unknown error'}.`,
+              content: `Sandbox status: ${error instanceof Error ? error.message : 'unknown error'}.`,
             });
           }
         }

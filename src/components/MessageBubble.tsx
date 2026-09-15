@@ -42,6 +42,7 @@ import { NotificationDispatchCard } from "@/components/NotificationDispatchCard"
 import { SvgArtifact } from "@/components/SvgArtifact";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
 import { InlineHumidityWheel, InlineProgressChart, type ProgressPoint } from "@/components/InlineDataVisual";
+import { SandboxPreviewCard } from "@/components/SandboxPreviewCard";
 
 function parseInlineVisual(code: string) {
   try {
@@ -121,6 +122,14 @@ const markdownComponents = {
       return (
         <div className="my-4">
           <MediaEmbed url={href} title={linkText !== href ? linkText : undefined} />
+        </div>
+      );
+    }
+    if (href && (href.includes('.e2b.app') || href.includes('.e2b.dev'))) {
+      const linkText = typeof children === 'string' ? children : (Array.isArray(children) ? children.join('') : String(children));
+      return (
+        <div className="my-4">
+          <SandboxPreviewCard url={href} title={linkText && linkText !== href ? linkText : 'Cloud Sandbox Live Preview'} />
         </div>
       );
     }

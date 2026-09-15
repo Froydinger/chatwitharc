@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
-import { RefreshCw, Unplug } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { RefreshCw, Unplug, Monitor } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useGitStore } from '@/store/useGitStore';
+import { supabase } from '@/integrations/supabase/client';
 
 export function GitHubMark({ className }: { className?: string }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.33-1.76-1.33-1.76-1.09-.75.08-.74.08-.74 1.2.08 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.48.99.11-.77.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.23-3.22-.12-.3-.53-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.3-1.55 3.3-1.23 3.3-1.23.65 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.58A12 12 0 0 0 12 .5Z" /></svg>;
@@ -30,6 +31,34 @@ export function GitModeDock() {
       useGitStore.setState({ error: null });
     }
   }, [error, toast]);
+
+  const [activeSandbox, setActiveSandbox] = useState<{ id: string; expires_at: string; preview_url: string | null } | null>(null);
+
+  useEffect(() => {
+    if (!connected || !selectedRepo) {
+      setActiveSandbox(null);
+      return;
+    }
+    const checkSandbox = async () => {
+      try {
+        const { data } = await supabase
+          .from('git_sandboxes' as any)
+          .select('id, expires_at, preview_url')
+          .eq('repo', selectedRepo)
+          .in('status', ['active', 'idle'])
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        setActiveSandbox(data || null);
+      } catch {
+        setActiveSandbox(null);
+      }
+    };
+    void checkSandbox();
+    const interval = setInterval(checkSandbox, 15000);
+    return () => clearInterval(interval);
+  }, [connected, selectedRepo]);
 
   const handleRepoChange = async (repo: string) => {
     if (repo === '__manage_settings__') {
@@ -81,6 +110,15 @@ export function GitModeDock() {
             )}
           </select>
           <span className="hidden text-muted-foreground sm:inline font-mono text-[11px]">{selectedBranch || 'default'}</span>
+          {activeSandbox && (
+            <span
+              className="hidden lg:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-mono text-[10px] font-medium border border-emerald-500/25 shrink-0"
+              title={`Active cloud sandbox (${new Date(activeSandbox.expires_at).toLocaleTimeString()} expiry)`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Sandbox (20m)
+            </span>
+          )}
           <button type="button" onClick={() => void loadRepositories()} disabled={loading} className={cn('rounded-full p-1.5 hover:bg-muted/30 transition-colors', loading && 'animate-spin')} aria-label="Refresh repositories" title="Refresh repositories">
             <RefreshCw className="h-3.5 w-3.5" />
           </button>

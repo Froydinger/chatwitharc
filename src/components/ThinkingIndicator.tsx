@@ -88,6 +88,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   const orbConfig = useThinkingOrbConfig();
   const motionConfig = useMotionConfig();
   const storeActiveTask = useArcStore((s) => s.activeTask);
+  const activeStatusDetails = useArcStore((s) => s.activeStatusDetails);
   // The admin preview drives the state through props, so it must not also pick
   // up whatever the live store happens to be doing.
   const activeTask = orbStateOverride ? null : storeActiveTask;
@@ -158,25 +159,26 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
 
   // Rotate through puns every 2 seconds when thinking
   useEffect(() => {
-    if (!showThinking || isGeneratingImage || searchingChats || accessingMemory || searchingWeb) return;
+    if (!showThinking || activeStatusDetails || isGeneratingImage || searchingChats || accessingMemory || searchingWeb) return;
 
     const interval = setInterval(() => {
       setCurrentPunIndex((prev) => (prev + 1) % ARC_PUNS.length);
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [showThinking, isGeneratingImage, searchingChats, accessingMemory, searchingWeb]);
+  }, [showThinking, activeStatusDetails, isGeneratingImage, searchingChats, accessingMemory, searchingWeb]);
 
   // Reset to first pun when thinking starts
   useEffect(() => {
-    if (showThinking && isLoading && !isGeneratingImage && !searchingChats && !accessingMemory && !searchingWeb) {
+    if (showThinking && isLoading && !activeStatusDetails && !isGeneratingImage && !searchingChats && !accessingMemory && !searchingWeb) {
       setCurrentPunIndex(0);
     }
-  }, [showThinking, isLoading, isGeneratingImage, searchingChats, accessingMemory, searchingWeb]);
+  }, [showThinking, isLoading, activeStatusDetails, isGeneratingImage, searchingChats, accessingMemory, searchingWeb]);
 
   if (!showThinking) return null;
 
   const getMessage = () => {
+    if (activeStatusDetails) return activeStatusDetails;
     if (isGeneratingImage) return "Creating your image";
     if (searchingWeb) return "Searching the web...";
     if (searchingChats) return "Searching past chats...";

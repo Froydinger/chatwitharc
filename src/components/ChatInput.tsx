@@ -1159,7 +1159,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
             setAccessingMemory(true);
             setSearchingWeb(false);
             setSearchingChats(false);
-          } else if (activity === "code") {
+          } else if (activity === "code" || activity === "testing") {
             useArcStore.getState().setActiveTask("code");
           } else if (activity === "writing") {
             useArcStore.getState().setActiveTask("writing");
@@ -1200,6 +1200,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           (status) => {
             if (status.activity) {
               applyActivity(status.activity);
+            }
+            if (status.details) {
+              useArcStore.getState().setActiveStatusDetails(status.details);
             }
           },
         );
@@ -2798,7 +2801,7 @@ ${safeCode}
                   setAccessingMemory(true);
                   setSearchingWeb(false);
                   setSearchingChats(false);
-                } else if (activity === "code") {
+                } else if (activity === "code" || activity === "testing") {
                   useArcStore.getState().setActiveTask("code");
                 } else if (activity === "writing") {
                   useArcStore.getState().setActiveTask("writing");
@@ -2835,6 +2838,9 @@ ${safeCode}
                 (status) => {
                   if (status.activity) {
                     applyActivity(status.activity);
+                  }
+                  if (status.details) {
+                    useArcStore.getState().setActiveStatusDetails(status.details);
                   }
                 },
                 currentAbortController.signal,
