@@ -239,19 +239,84 @@ export async function runInSandbox(options: RunSandboxOptions): Promise<SandboxE
     }
 
     // 6. Execute command
-    options.onProgress?.(`Executing: ${options.command}...`);
+    let cmd = options.command.trim();
+    let isServer = Boolean(options.background);
+    if (!isServer) {
+      const lower = cmd.toLowerCase();
+      if (
+        lower.includes('run dev') ||
+        lower.includes('run preview') ||
+        lower.includes('vite preview') ||
+        lower.includes('vite dev') ||
+        lower.includes('next dev') ||
+        lower.includes('http.server') ||
+        lower.includes('npm start') ||
+        options.port
+      ) {
+        isServer = true;
+      }
+    }
+
+    let preCommandOutput = '';
+    let serverCmd = cmd;
+
+    // If chained with &&, run build/setup steps synchronously before launching server
+    if (isServer && cmd.includes('&&')) {
+      const parts = cmd.split(/\s*&&\s*/);
+      const preParts = parts.slice(0, -1);
+      serverCmd = parts[parts.length - 1];
+
+      const preCmd = preParts.join(' && ');
+      options.onProgress?.(`Running build/setup: ${preCmd}...`);
+      const preRes = await sandbox.commands.run(preCmd, {
+        cwd: workdir,
+        timeoutMs: options.timeoutMs || DEFAULT_COMMAND_TIMEOUT_MS,
+      });
+
+      preCommandOutput = `[Build / Setup Output]\n${preRes.stdout}\n${preRes.stderr}\n\n`;
+      if (preRes.exitCode !== 0) {
+        return {
+          stdout: preCommandOutput,
+          stderr: `Build step failed with exit code ${preRes.exitCode}: ${preRes.stderr}`,
+          exitCode: preRes.exitCode,
+          durationMs: Date.now() - startTime,
+          sandboxId: sandbox.sandboxId,
+        };
+      }
+    }
+
+    // Auto-bind to 0.0.0.0 so E2B external proxy does not get connection refused
+    if ((serverCmd.includes('vite') || serverCmd.includes('dev') || serverCmd.includes('preview')) && !serverCmd.includes('--host')) {
+      if (serverCmd.includes('npm run ') || serverCmd.includes('npm start')) {
+        serverCmd = `${serverCmd} -- --host 0.0.0.0`;
+      } else {
+        serverCmd = `${serverCmd} --host 0.0.0.0`;
+      }
+    }
+
+    const fullServerCommand = `export HOST=0.0.0.0 PORT=${options.port || 5173}; ${serverCmd}`;
+    options.onProgress?.(`Executing: ${serverCmd}...`);
     const cmdTimeout = options.timeoutMs || DEFAULT_COMMAND_TIMEOUT_MS;
     let res: any;
+
     try {
-      res = await sandbox.commands.run(options.command, {
+      res = await sandbox.commands.run(fullServerCommand, {
         cwd: workdir,
         timeoutMs: cmdTimeout,
-        background: !!options.background,
+        background: isServer,
       });
+
+      if (isServer) {
+        res = {
+          stdout: `${preCommandOutput}Background server started: ${serverCmd}\n${res.stdout || ''}`.trim(),
+          stderr: res.stderr || '',
+          exitCode: 0,
+        };
+      }
     } catch (cmdErr: any) {
       if (cmdErr && (typeof cmdErr.exitCode === 'number' || cmdErr.stdout !== undefined || cmdErr.stderr !== undefined)) {
         res = {
-          stdout: cmdErr.stdout || '',
+          stdout: `${preCommandOutput}${cmdErr.stdout || ''}`,
           stderr: cmdErr.stderr || cmdErr.message || '',
           exitCode: typeof cmdErr.exitCode === 'number' ? cmdErr.exitCode : 1,
           error: cmdErr.message,
@@ -261,23 +326,32 @@ export async function runInSandbox(options: RunSandboxOptions): Promise<SandboxE
       }
     }
 
-    // 7. Preview URL detection: specified port or listening dev server ports
+    // 7. Preview URL detection: poll for listening dev server ports
     let previewPort: number | undefined = options.port;
     let previewUrl: string | undefined;
 
     try {
-      // Check for listening ports (e.g. 3000, 5173, 8080, 8000)
-      const portCheck = await sandbox.commands.run('ss -tulpn 2>/dev/null || netstat -tuln 2>/dev/null', { timeoutMs: 5000 });
-      const portMatches = [...portCheck.stdout.matchAll(/:(\d{3,5})\b/g)].map(m => parseInt(m[1], 10));
-      const commonPorts = [5173, 3000, 8080, 8000, 4173, 5000, 8081, 4000];
+      const commonPorts = [5173, 4173, 3000, 8080, 8000, 5000, 8081, 4000];
+      const maxWaitMs = isServer ? 15000 : 3000;
+      const pollStart = Date.now();
 
-      if (!previewPort) {
-        for (const p of commonPorts) {
-          if (portMatches.includes(p)) {
-            previewPort = p;
-            break;
+      while (Date.now() - pollStart < maxWaitMs) {
+        const portCheck = await sandbox.commands.run('ss -tulpn 2>/dev/null || netstat -tuln 2>/dev/null', { timeoutMs: 3000 });
+        const portMatches = [...portCheck.stdout.matchAll(/:(\d{3,5})\b/g)].map(m => parseInt(m[1], 10));
+
+        if (!previewPort) {
+          for (const p of commonPorts) {
+            if (portMatches.includes(p)) {
+              previewPort = p;
+              break;
+            }
           }
+        } else if (portMatches.includes(previewPort)) {
+          break;
         }
+
+        if (previewPort || !isServer) break;
+        await new Promise((r) => setTimeout(r, 1000));
       }
 
       if (previewPort) {

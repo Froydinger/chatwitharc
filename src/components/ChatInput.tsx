@@ -71,6 +71,7 @@ import { AnimateAttachmentModal } from "@/components/AnimateAttachmentModal";
 import { useImageQuota } from "@/hooks/useImageQuota";
 import { detectsLocationIntent, getCachedLocation, getUserLocation, requestsCurrentLocation } from "@/lib/userLocation";
 import { GitHubMark, GitModeDock } from "@/components/GitModeDock";
+import { useSandboxStore } from "@/store/useSandboxStore";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -2884,6 +2885,12 @@ ${safeCode}
                   : "cloud-chat",
                 modelUsed: result.modelUsed,
               });
+
+              // If a live cloud preview URL was returned, automatically open the floating preview window
+              const e2bMatch = result.content?.match(/https?:\/\/(\d+-[a-zA-Z0-9-]+\.e2b\.app[^\s\)]*)/);
+              if (e2bMatch) {
+                useSandboxStore.getState().openPreview(e2bMatch[0]);
+              }
 
               // Intelligently generate a title if it's the first assistant message or still has default title.
               // Keyed to the session that was answered, not the one on screen.

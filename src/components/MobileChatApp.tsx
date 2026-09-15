@@ -56,6 +56,7 @@ import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { LiveVoiceTranscript } from "@/components/LiveVoiceTranscript";
 import { VoiceModeController } from "@/components/VoiceModeController";
+import { FloatingSandboxPreview } from "@/components/FloatingSandboxPreview";
 import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
 import { MessageQueue } from "@/components/MessageQueue";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
@@ -2079,6 +2080,9 @@ export function MobileChatApp() {
 
       {/* Voice Mode Controller (orchestrates the conversation) */}
       <VoiceModeController />
+
+      {/* Floating Sandbox App Preview (Codex-style floating window) */}
+      <FloatingSandboxPreview />
 
       <Dialog open={isWorkHandoffOpen} onOpenChange={setIsWorkHandoffOpen}>
         <DialogContent className="glass-card max-w-md">

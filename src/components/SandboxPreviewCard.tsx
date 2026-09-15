@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ExternalLink, RefreshCw, ChevronDown, ChevronUp, Monitor } from 'lucide-react';
+import { useSandboxStore } from '@/store/useSandboxStore';
 
 interface SandboxPreviewCardProps {
   url: string;
@@ -49,11 +50,22 @@ export function SandboxPreviewCard({ url, title }: SandboxPreviewCardProps) {
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </button>
+          <button
+            type="button"
+            onClick={() => {
+              useSandboxStore.getState().openPreview(url, undefined, port ? parseInt(port, 10) : undefined);
+            }}
+            title="Pop out floating preview window"
+            className="p-1.5 rounded-lg text-primary hover:text-primary hover:bg-primary/10 transition-colors inline-flex items-center gap-1 text-[11px] font-medium"
+          >
+            <span>Float</span>
+            <ExternalLink className="h-3 w-3" />
+          </button>
           <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            title="Open in new window"
+            title="Open in new tab"
             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors inline-flex items-center gap-1"
           >
             <ExternalLink className="h-3.5 w-3.5" />
