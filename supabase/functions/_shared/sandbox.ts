@@ -375,6 +375,45 @@ export async function runInSandbox(options: RunSandboxOptions): Promise<SandboxE
       ? `nohup bash -c "export HOST=0.0.0.0 PORT=${targetPort}; ${serverCmd}" > /tmp/server.log 2>&1 &`
       : `export HOST=0.0.0.0 PORT=${targetPort}; ${serverCmd}`;
 
+    // If a dev server is already listening on this port, reuse it. Relaunching
+    // tears down a working preview and hands the client a URL that is not
+    // answering yet, which is what produced the "Server Offline" state.
+    if (isServer && isReused) {
+      const probe = await sandbox.commands
+        .run(
+          `python3 -c "import socket,sys; s=socket.socket(); s.settimeout(1); sys.exit(0 if s.connect_ex(('127.0.0.1',${targetPort}))==0 else 1)"`,
+          { timeoutMs: 8_000 },
+        )
+        .catch(() => ({ exitCode: 1 }));
+
+      if (probe.exitCode === 0) {
+        const host = sandbox.getHost(targetPort);
+        const reusedUrl = `https://${host}`;
+        options.onProgress?.(`Reusing the dev server already running on port ${targetPort}.`);
+
+        if (options.supabase && sandboxDbId) {
+          await options.supabase.from('git_sandboxes').update({
+            status: 'idle',
+            last_active_at: new Date().toISOString(),
+            preview_url: reusedUrl,
+            preview_port: targetPort,
+          }).eq('id', sandboxDbId);
+        }
+
+        return {
+          stdout: `${preCommandOutput}Dev server already running on port ${targetPort}; reused the existing live preview instead of starting a second one.`,
+          stderr: '',
+          exitCode: 0,
+          durationMs: Date.now() - startTime,
+          previewUrl: reusedUrl,
+          previewPort: targetPort,
+          sandboxId: sandbox.sandboxId,
+          expiresAt: new Date(Date.now() + SANDBOX_WINDOW_MS).toISOString(),
+          isReusedSession: true,
+        };
+      }
+    }
+
     options.onProgress?.(`Executing: ${serverCmd}...`);
     const cmdTimeout = options.timeoutMs || DEFAULT_COMMAND_TIMEOUT_MS;
     let res: any;

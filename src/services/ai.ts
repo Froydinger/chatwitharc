@@ -3,6 +3,7 @@ import { getModelForTask, resolveReasoningEffort, useModelStore } from "@/store/
 import { incrementDailyBalancedCount, incrementDailyDeepCount } from "@/hooks/useSubscription";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext, requestsCurrentLocation } from "@/lib/userLocation";
 import { useSandboxStore } from "@/store/useSandboxStore";
+import { useBotTestStore } from '@/store/useBotTestStore';
 
 // Detect if a user message warrants upgrading to a more powerful model
 export function detectComplexQuery(message: string): boolean {
@@ -379,6 +380,14 @@ export class AIService {
                   forceCanvas: forceCanvas || false,
                   forceCode: forceCode || false,
                   forceGit,
+                  // Lets the server tell the model a dev server is already up, so it
+                  // tests against that URL instead of launching a second one.
+                  livePreview: (() => {
+                    const sb = useSandboxStore.getState();
+                    return sb.previewUrl
+                      ? { url: sb.previewUrl, port: sb.port, repo: sb.repo }
+                      : undefined;
+                  })(),
                   useProModel: isComplex || false,
                   streamEvents: true,
                   clientDateTime: new Date().toString(),
@@ -447,6 +456,13 @@ export class AIService {
                     }
                   } else if (event.type === 'sandbox_preview' && event.url) {
                     useSandboxStore.getState().openPreview(event.url, event.repo, event.port);
+                  } else if (event.type === 'browser_test_started' && event.runId) {
+                    useBotTestStore.getState().startRun({
+                      runId: event.runId,
+                      devices: Array.isArray(event.devices) && event.devices.length ? event.devices : ['desktop'],
+                      goal: event.goal,
+                      stepCount: (event.stepCount || 0) * (Array.isArray(event.devices) ? event.devices.length : 1),
+                    });
                   } else if (event.type === 'done') {
                     data = event.result;
                   } else if (event.type === 'error') {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw, Unplug, Monitor, ChevronDown } from 'lucide-react';
+import { RefreshCw, Unplug, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useGitStore } from '@/store/useGitStore';
@@ -34,7 +34,7 @@ export function GitModeDock() {
   }, [error, toast]);
 
   const [activeSandbox, setActiveSandbox] = useState<{ id: string; expires_at: string; preview_url: string | null } | null>(null);
-  const [isLaunching, setIsLaunching] = useState(false);
+  const [browserState, setBrowserState] = useState<'idle' | 'warming' | 'ready'>('idle');
 
   useEffect(() => {
     if (!connected || !selectedRepo) {
@@ -79,42 +79,30 @@ export function GitModeDock() {
     };
   }, [selectedRepo]);
 
-  const handleLivePreviewClick = async () => {
-    if (!selectedRepo) return;
-    if (activeSandbox?.preview_url) {
-      useSandboxStore.getState().openPreview(activeSandbox.preview_url, selectedRepo);
+  // Chromium takes 1-2 minutes to install in a cold sandbox. Git mode being
+  // active with a repo selected is a strong enough intent signal to start that
+  // early, so the first "test this" does not stall on the install.
+  // Note this does claim a sandbox slot and start its 20-minute window.
+  useEffect(() => {
+    if (!connected || !selectedRepo) {
+      setBrowserState('idle');
       return;
     }
-
-    // Direct cloud sandbox dev server launch
-    setIsLaunching(true);
-    toast({ title: 'Cloud Sandbox', description: `Starting preview for ${selectedRepo}...` });
-    try {
-      const { data, error: launchError } = await supabase.functions.invoke('chat', {
-        body: {
-          action: 'launch_sandbox_preview',
-          repo: selectedRepo,
-          branch: selectedBranch || 'main',
-        },
+    let cancelled = false;
+    setBrowserState('warming');
+    void supabase.functions
+      .invoke('chat', {
+        body: { action: 'prewarm_browser', repo: selectedRepo, branch: selectedBranch || 'main' },
+      })
+      .then(({ data }) => {
+        if (cancelled) return;
+        setBrowserState(data?.status === 'prewarming' ? 'ready' : 'idle');
+      })
+      .catch(() => {
+        if (!cancelled) setBrowserState('idle');
       });
-
-      if (launchError || !data?.previewUrl) {
-        throw new Error(data?.error || launchError?.message || 'Failed to start cloud sandbox preview');
-      }
-
-      useSandboxStore.getState().openPreview(data.previewUrl, selectedRepo, data.port);
-      setActiveSandbox({
-        id: data.sandboxId || 'current',
-        expires_at: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
-        preview_url: data.previewUrl,
-      });
-      toast({ title: 'Live Preview Ready', description: `Live app running on port :${data.port || 5173}` });
-    } catch (err: any) {
-      toast({ title: 'Sandbox Error', description: err.message || 'Could not launch preview', variant: 'destructive' });
-    } finally {
-      setIsLaunching(false);
-    }
-  };
+    return () => { cancelled = true; };
+  }, [connected, selectedRepo, selectedBranch]);
 
   const handleRepoChange = async (repo: string) => {
     if (repo === '__manage_settings__') {
@@ -186,46 +174,34 @@ export function GitModeDock() {
             </select>
           </div>
           <span className="hidden text-muted-foreground sm:inline font-mono text-[11px]">{selectedBranch || 'default'}</span>
-          {selectedRepo && (
-            <button
-              type="button"
-              onClick={() => void handleLivePreviewClick()}
-              disabled={isLaunching}
+          {selectedRepo && (browserState !== 'idle' || activeSandbox?.preview_url) && (
+            <span
               className={cn(
-                "inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 rounded-full font-mono text-[10px] font-medium border shrink-0 transition-all cursor-pointer",
-                activeSandbox?.preview_url
-                  ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border-emerald-500/25 shadow-sm"
-                  : "bg-primary/10 hover:bg-primary/20 text-primary border-primary/25 shadow-sm",
-                isLaunching && "opacity-80 cursor-wait"
+                "inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 rounded-full font-mono text-[10px] font-medium border shrink-0",
+                browserState === 'ready' || activeSandbox?.preview_url
+                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/25"
+                  : "bg-primary/10 text-primary border-primary/25"
               )}
               title={
-                activeSandbox?.preview_url
-                  ? "Open live app preview"
-                  : "Launch cloud sandbox and start dev server"
+                browserState === 'ready' || activeSandbox?.preview_url
+                  ? "Cloud sandbox is warm. Ask Arc to test the app and watch it work."
+                  : "Warming the cloud sandbox and browser so the first test starts fast"
               }
             >
-              {isLaunching ? (
+              {browserState === 'warming' && !activeSandbox?.preview_url ? (
                 <>
-                  <RefreshCw className="h-2.5 w-2.5 animate-spin text-primary" />
-                  <span className="hidden sm:inline">Starting...</span>
-                  <span className="sm:hidden">Start...</span>
-                </>
-              ) : activeSandbox?.preview_url ? (
-                <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="hidden sm:inline">Live Preview</span>
-                  <span className="sm:hidden">Preview</span>
-                  <span>↗</span>
+                  <RefreshCw className="h-2.5 w-2.5 animate-spin" />
+                  <span className="hidden sm:inline">Warming sandbox…</span>
+                  <span className="sm:hidden">Warming…</span>
                 </>
               ) : (
                 <>
-                  <Monitor className="h-2.5 w-2.5 text-primary" />
-                  <span className="hidden sm:inline">Live Preview</span>
-                  <span className="sm:hidden">Preview</span>
-                  <span>↗</span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="hidden sm:inline">Sandbox ready</span>
+                  <span className="sm:hidden">Ready</span>
                 </>
               )}
-            </button>
+            </span>
           )}
           <button type="button" onClick={() => void loadRepositories()} disabled={loading} className={cn('rounded-full p-1.5 hover:bg-muted/30 transition-colors', loading && 'animate-spin')} aria-label="Refresh repositories" title="Refresh repositories">
             <RefreshCw className="h-3.5 w-3.5" />

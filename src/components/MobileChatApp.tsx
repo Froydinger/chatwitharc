@@ -56,7 +56,8 @@ import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { LiveVoiceTranscript } from "@/components/LiveVoiceTranscript";
 import { VoiceModeController } from "@/components/VoiceModeController";
-import { FloatingSandboxPreview } from "@/components/FloatingSandboxPreview";
+import { BotTestViewer } from "@/components/BotTestViewer";
+import { useBotTestSessionReset } from "@/hooks/useBotTestSessionReset";
 import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
 import { MessageQueue } from "@/components/MessageQueue";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
@@ -739,6 +740,9 @@ export function MobileChatApp() {
   const [isCanvasResizing, setIsCanvasResizing] = useState(false);
   const canvasResizingRef = useRef(false);
   const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Closing a chat or starting a new one tears down its preview and bot test.
+  useBotTestSessionReset();
+
   const chatInputRef = useRef<ChatInputRef>(null);
   const workSessionIdsRef = useRef<Set<string>>(new Set());
 
@@ -1458,6 +1462,7 @@ export function MobileChatApp() {
                   transition={{ duration: 0.2 }}
                   className="fixed bottom-6 left-16 right-4 z-[75]"
                 >
+                  <BotTestViewer />
                   <div className="mb-2 px-1">
                     <MessageQueue
                       onSendMessage={(content) => chatInputRef.current?.sendMessage(content)}
@@ -1668,6 +1673,10 @@ export function MobileChatApp() {
                   and the metal ring still painting underneath VoiceModeOverlay's
                   bar, which sits at the same width and offset — so their edges
                   showed through as the voice bar grew and moved while listening. */}
+              {/* Live "watch the bot work" viewer, in the same slot the voice
+                  mode image float occupies above the bar. */}
+              <BotTestViewer />
+
               {!isVoiceActive && (
               /* Entrance animation lives on the OUTER wrapper so the element
                  MetalFx measures (the .glass-dock below) is never mid-transform.
@@ -2087,9 +2096,6 @@ export function MobileChatApp() {
 
       {/* Voice Mode Controller (orchestrates the conversation) */}
       <VoiceModeController />
-
-      {/* Floating Sandbox App Preview (Codex-style floating window) */}
-      <FloatingSandboxPreview />
 
       <Dialog open={isWorkHandoffOpen} onOpenChange={setIsWorkHandoffOpen}>
         <DialogContent className="glass-card max-w-md">
