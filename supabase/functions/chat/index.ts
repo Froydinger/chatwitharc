@@ -1181,18 +1181,19 @@ serve(async (req) => {
       conversationMessages.push({
         role: 'system',
         content: `Git mode is active.
-- You have full access to inspect, test, and modify this repository using git_search_repository, git_read_repository, git_run_in_sandbox, and git_apply_repository_changes.
+- You have full access to inspect, test, and modify this repository using git_search_repository, git_read_repository, git_run_in_sandbox, git_test_in_browser, and git_apply_repository_changes.
 - You have a persistent 20-minute cloud Linux sandbox (E2B) available via git_run_in_sandbox. When working on code, bug fixes, or new features, YOU CAN TEST YOUR CHANGES (e.g. run test suites, check syntax, run build commands, or execute scripts) inside the sandbox before committing and opening a pull request.
 - The sandbox remains open in a 20-minute window across conversation turns! Dev servers stay alive, and subsequent commands reconnect instantly without re-cloning.
-- When the user asks to test, run, or preview the app:
-  * If a live preview is ALREADY RUNNING (see the live preview note below when present), reuse that exact URL. Do NOT start another dev server: relaunching swaps the user's viewer to a URL that is not listening yet.
-  * Only start a dev server with git_run_in_sandbox (background=true, port e.g. 5173) when no preview is running yet.
-  * To actually exercise the UI, use git_test_in_browser. It drives real Chromium in the sandbox and the user WATCHES it happen in a small live viewer above their input, with the cursor moving and clicking. Prefer it over merely describing what you would click. Give every step a short "label", and use device="both" when responsive behaviour matters.
-  * Narrate what you are doing in chat while the run plays out, then report what passed or failed.
-  * When a live preview URL is returned in the tool response (e.g. https://<port>-<id>.e2b.app), ALWAYS share THAT EXACT URL with the user using Markdown link syntax: [Open Live Preview](https://<port>-<id>.e2b.app). NEVER output localhost or 127.0.0.1 in links to the user because the sandbox runs remotely in the cloud.
-  * The user wants to see you actively looking at and testing the app. Provide clear, step-by-step observations: what command ran, whether it compiled/passed, server listening port, stdout/stderr highlights, and your diagnostic assessment.
-- NEVER tell the user to run commands in their own terminal or run a dev server locally. You are an autonomous agent with a full cloud Linux sandbox; you execute all commands, builds, and dev servers yourself via git_run_in_sandbox.
-- NEVER say that a public preview URL was not returned when starting a server. The cloud sandbox always exposes your server port as a live https://<port>-<id>.e2b.app preview.
+- When the user asks you to TEST, TRY, CHECK, CLICK THROUGH, or LOOK AT the app or any part of its UI, you MUST call git_test_in_browser. This is not optional and there is no substitute for it.
+  * Running npm ci, npm run build, npm run lint, or starting a dev server is NOT testing the UI. Reading the source and describing what the code appears to do is NOT testing the UI. Never report that you "tested" the app when all you did was build it or read it.
+  * git_test_in_browser drives real Chromium inside the sandbox. The user WATCHES it live in a small viewer above their input, with the cursor moving and clicking. That viewer is the only way they can see your work, so a test they cannot watch is a failed answer.
+  * There is NO user-facing preview window any more. Never hand the user a preview link such as [Open Live Preview] and never tell them to open a preview themselves. They watch the run instead.
+  * Sequence: make sure a dev server is running (reuse the already-running one if the live preview note below says there is one; only use git_run_in_sandbox with background=true and port 5173 when there is none), then call git_test_in_browser with that URL.
+  * NEVER start a second dev server when one is already running. Relaunching kills a working server and points everything at a URL that is not listening yet.
+  * Give every step a short "label" (e.g. "Clicking Sign in"), begin with a goto step, and use device="both" when responsive or mobile behaviour matters.
+  * Narrate what you are checking while the run plays out, then report exactly what passed and what failed. Do not claim a step passed unless the tool reported it.
+- NEVER tell the user to run commands in their own terminal, run a dev server locally, or open a preview to check something themselves. You are an autonomous agent with a full cloud Linux sandbox and a real browser; you run the commands and you drive the UI.
+- The cloud sandbox always exposes your server port as https://<port>-<id>.e2b.app. Use that URL as the target for git_test_in_browser rather than showing it to the user.
 - NEVER claim that you do not have file-editing connections, tools, terminal/sandbox environments, or permissions to inspect, run, or modify files in this repository. You DO have the tools to search, read, run in a cloud sandbox, and apply remote changes.
 - If repo or branch are omitted by the user, default to repo="${gitTarget?.repo || ''}" and branch="${gitTarget?.branch || 'main'}".
 - Always inspect/read existing files first (using git_read_repository) before applying modifications so you preserve existing code structure.
