@@ -43,6 +43,7 @@ import { SvgArtifact } from "@/components/SvgArtifact";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
 import { InlineHumidityWheel, InlineProgressChart, type ProgressPoint } from "@/components/InlineDataVisual";
 import { SandboxPreviewCard } from "@/components/SandboxPreviewCard";
+import { useSandboxStore } from "@/store/useSandboxStore";
 
 function parseInlineVisual(code: string) {
   try {
@@ -125,11 +126,28 @@ const markdownComponents = {
         </div>
       );
     }
-    if (href && (href.includes('.e2b.app') || href.includes('.e2b.dev'))) {
+    let targetUrl = href;
+    const isE2b = Boolean(href && (href.includes('.e2b.app') || href.includes('.e2b.dev')));
+    const isLocalhostPort = Boolean(href && /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0):(\d+)/.test(href));
+
+    if (isLocalhostPort && !isE2b) {
+      const currentPreview = useSandboxStore.getState().previewUrl;
+      if (currentPreview) {
+        const portMatch = href?.match(/:(\d+)/);
+        const portNum = portMatch ? portMatch[1] : null;
+        if (portNum) {
+          targetUrl = currentPreview.replace(/https?:\/\/\d+-/, `https://${portNum}-`);
+        } else {
+          targetUrl = currentPreview;
+        }
+      }
+    }
+
+    if (targetUrl && (targetUrl.includes('.e2b.app') || targetUrl.includes('.e2b.dev'))) {
       const linkText = typeof children === 'string' ? children : (Array.isArray(children) ? children.join('') : String(children));
       return (
         <div className="my-4">
-          <SandboxPreviewCard url={href} title={linkText && linkText !== href ? linkText : 'Cloud Sandbox Live Preview'} />
+          <SandboxPreviewCard url={targetUrl} title={linkText && linkText !== href ? linkText : 'Live Preview'} />
         </div>
       );
     }

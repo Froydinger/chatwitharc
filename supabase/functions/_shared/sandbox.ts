@@ -260,6 +260,50 @@ export async function runInSandbox(options: RunSandboxOptions): Promise<SandboxE
     let preCommandOutput = '';
     let serverCmd = cmd;
 
+    // Auto-install dependencies if node_modules is missing
+    if (isServer || cmd.includes('npm ') || cmd.includes('vite')) {
+      const checkDeps = await sandbox.commands.run('[ -f package.json ] && [ ! -d node_modules ] && echo "need_install" || echo "ok"', { cwd: workdir });
+      if (checkDeps.stdout.includes('need_install')) {
+        options.onProgress?.('Installing project dependencies (npm install)...');
+        const installRes = await sandbox.commands.run('npm install --prefer-offline --no-audit --no-fund', {
+          cwd: workdir,
+          timeoutMs: 90_000,
+        });
+        preCommandOutput += `[npm install]\n${installRes.stdout}\n${installRes.stderr}\n\n`;
+        if (installRes.exitCode !== 0) {
+          return {
+            stdout: preCommandOutput,
+            stderr: `npm install failed with code ${installRes.exitCode}: ${installRes.stderr}`,
+            exitCode: installRes.exitCode,
+            durationMs: Date.now() - startTime,
+            sandboxId: sandbox.sandboxId,
+          };
+        }
+      }
+    }
+
+    // If running preview, ensure dist/ exists
+    if (isServer && (serverCmd.includes('preview') || options.port === 4173)) {
+      const checkDist = await sandbox.commands.run('[ -d dist ] && echo "has_dist" || echo "missing_dist"', { cwd: workdir });
+      if (checkDist.stdout.includes('missing_dist')) {
+        options.onProgress?.('Building project for preview (npm run build)...');
+        const buildRes = await sandbox.commands.run('npm run build', {
+          cwd: workdir,
+          timeoutMs: 60_000,
+        });
+        preCommandOutput += `[npm run build]\n${buildRes.stdout}\n${buildRes.stderr}\n\n`;
+        if (buildRes.exitCode !== 0) {
+          return {
+            stdout: preCommandOutput,
+            stderr: `npm run build failed with code ${buildRes.exitCode}: ${buildRes.stderr}`,
+            exitCode: buildRes.exitCode,
+            durationMs: Date.now() - startTime,
+            sandboxId: sandbox.sandboxId,
+          };
+        }
+      }
+    }
+
     // If chained with &&, run build/setup steps synchronously before launching server
     if (isServer && cmd.includes('&&')) {
       const parts = cmd.split(/\s*&&\s*/);
@@ -273,7 +317,7 @@ export async function runInSandbox(options: RunSandboxOptions): Promise<SandboxE
         timeoutMs: options.timeoutMs || DEFAULT_COMMAND_TIMEOUT_MS,
       });
 
-      preCommandOutput = `[Build / Setup Output]\n${preRes.stdout}\n${preRes.stderr}\n\n`;
+      preCommandOutput += `[Build / Setup Output]\n${preRes.stdout}\n${preRes.stderr}\n\n`;
       if (preRes.exitCode !== 0) {
         return {
           stdout: preCommandOutput,
@@ -294,7 +338,11 @@ export async function runInSandbox(options: RunSandboxOptions): Promise<SandboxE
       }
     }
 
-    const fullServerCommand = `export HOST=0.0.0.0 PORT=${options.port || 5173}; ${serverCmd}`;
+    const targetPort = options.port || (serverCmd.includes('preview') ? 4173 : 5173);
+    const fullServerCommand = isServer
+      ? `export HOST=0.0.0.0 PORT=${targetPort}; ${serverCmd} > /tmp/server.log 2>&1`
+      : `export HOST=0.0.0.0 PORT=${targetPort}; ${serverCmd}`;
+
     options.onProgress?.(`Executing: ${serverCmd}...`);
     const cmdTimeout = options.timeoutMs || DEFAULT_COMMAND_TIMEOUT_MS;
     let res: any;
@@ -305,14 +353,6 @@ export async function runInSandbox(options: RunSandboxOptions): Promise<SandboxE
         timeoutMs: cmdTimeout,
         background: isServer,
       });
-
-      if (isServer) {
-        res = {
-          stdout: `${preCommandOutput}Background server started: ${serverCmd}\n${res.stdout || ''}`.trim(),
-          stderr: res.stderr || '',
-          exitCode: 0,
-        };
-      }
     } catch (cmdErr: any) {
       if (cmdErr && (typeof cmdErr.exitCode === 'number' || cmdErr.stdout !== undefined || cmdErr.stderr !== undefined)) {
         res = {
@@ -326,41 +366,58 @@ export async function runInSandbox(options: RunSandboxOptions): Promise<SandboxE
       }
     }
 
-    // 7. Preview URL detection: poll for listening dev server ports
+    // 7. Preview URL detection & verification using python socket
     let previewPort: number | undefined = options.port;
     let previewUrl: string | undefined;
 
-    try {
-      const commonPorts = [5173, 4173, 3000, 8080, 8000, 5000, 8081, 4000];
-      const maxWaitMs = isServer ? 15000 : 3000;
-      const pollStart = Date.now();
+    if (isServer) {
+      try {
+        options.onProgress?.(`Verifying server listening on port ${targetPort}...`);
+        const commonPorts = [targetPort, 5173, 4173, 3000, 8080, 8000];
+        const maxWaitMs = 15_000;
+        const pollStart = Date.now();
+        let isListening = false;
 
-      while (Date.now() - pollStart < maxWaitMs) {
-        const portCheck = await sandbox.commands.run('ss -tulpn 2>/dev/null || netstat -tuln 2>/dev/null', { timeoutMs: 3000 });
-        const portMatches = [...portCheck.stdout.matchAll(/:(\d{3,5})\b/g)].map(m => parseInt(m[1], 10));
-
-        if (!previewPort) {
+        while (Date.now() - pollStart < maxWaitMs) {
           for (const p of commonPorts) {
-            if (portMatches.includes(p)) {
+            const checkRes = await sandbox.commands.run(
+              `python3 -c "import socket; s = socket.socket(); exit(0 if s.connect_ex(('127.0.0.1', ${p})) == 0 else 1)"`,
+              { timeoutMs: 3000 }
+            );
+            if (checkRes.exitCode === 0) {
               previewPort = p;
+              isListening = true;
               break;
             }
           }
-        } else if (portMatches.includes(previewPort)) {
-          break;
+          if (isListening) break;
+          await new Promise((r) => setTimeout(r, 1000));
         }
 
-        if (previewPort || !isServer) break;
-        await new Promise((r) => setTimeout(r, 1000));
-      }
+        // Check server log if listening or if it failed
+        const logRes = await sandbox.commands.run('cat /tmp/server.log 2>/dev/null || true', { timeoutMs: 5000 });
+        const serverLog = logRes.stdout?.slice(0, 5000) || '';
 
-      if (previewPort) {
-        const host = sandbox.getHost(previewPort);
-        previewUrl = `https://${host}`;
-        options.onProgress?.(`Live preview available at ${previewUrl}`);
+        if (isListening && previewPort) {
+          const host = sandbox.getHost(previewPort);
+          previewUrl = `https://${host}`;
+          options.onProgress?.(`Live preview verified at ${previewUrl}`);
+          res = {
+            stdout: `${preCommandOutput}Server successfully running in background on port ${previewPort}:\n${serverLog}`.trim(),
+            stderr: '',
+            exitCode: 0,
+          };
+        } else {
+          res = {
+            stdout: `${preCommandOutput}${serverLog}`.trim(),
+            stderr: `Server did not start or failed to bind to port ${targetPort} within 15 seconds.\nServer Log:\n${serverLog}`,
+            exitCode: 1,
+            error: `Server failed to bind to port ${targetPort}`,
+          };
+        }
+      } catch (portErr) {
+        console.warn('Port inspection error:', portErr);
       }
-    } catch {
-      // Port inspection is non-fatal
     }
 
     // 8. Update DB with idle status and preview URL

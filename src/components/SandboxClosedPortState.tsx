@@ -27,7 +27,7 @@ export function SandboxClosedPortState({
     setIsPrompting(true);
     setPromptSent(true);
 
-    const promptText = `Please start the preview server on port ${targetPort} in the cloud sandbox (e.g. npm run preview -- --host 0.0.0.0 or npm run dev) so the live app is running and accessible.`;
+    const promptText = `Please install dependencies if needed and launch the web server in the cloud sandbox using git_run_in_sandbox (command: "npm run dev -- --host 0.0.0.0", background: true, port: 5173) so the live preview is accessible.`;
     
     // Dispatch standard Arc triggerPrompt custom event handled by ChatInput
     window.dispatchEvent(

@@ -1079,7 +1079,7 @@ serve(async (req) => {
 - The sandbox remains open in a 20-minute window across conversation turns! Dev servers stay alive, and subsequent commands reconnect instantly without re-cloning.
 - When the user asks to test, run, or preview the app:
   * Run the build, test suite, or dev server using git_run_in_sandbox. If running a long-running dev server (e.g. npm run dev, vite), set background=true and specify port (e.g. 5173, 3000, 8080).
-  * When a live preview URL is returned (e.g. https://<port>-<id>.e2b.app), ALWAYS share it prominently with the user using Markdown link syntax: [Open Live Preview](https://...).
+  * When a live preview URL is returned in the tool response (e.g. https://<port>-<id>.e2b.app), ALWAYS share THAT EXACT URL with the user using Markdown link syntax: [Open Live Preview](https://<port>-<id>.e2b.app). NEVER output localhost or 127.0.0.1 in links to the user because the sandbox runs remotely in the cloud.
   * The user wants to see you actively looking at and testing the app. Provide clear, step-by-step observations: what command ran, whether it compiled/passed, server listening port, stdout/stderr highlights, and your diagnostic assessment.
 - NEVER claim that you do not have file-editing connections, tools, terminal/sandbox environments, or permissions to inspect, run, or modify files in this repository. You DO have the tools to search, read, run in a cloud sandbox, and apply remote changes.
 - If repo or branch are omitted by the user, default to repo="${gitTarget?.repo || ''}" and branch="${gitTarget?.branch || 'main'}".
