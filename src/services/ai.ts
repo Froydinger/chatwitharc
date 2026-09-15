@@ -2,6 +2,7 @@ import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask, resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
 import { incrementDailyBalancedCount, incrementDailyDeepCount } from "@/hooks/useSubscription";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext, requestsCurrentLocation } from "@/lib/userLocation";
+import { useSandboxStore } from "@/store/useSandboxStore";
 
 // Detect if a user message warrants upgrading to a more powerful model
 export function detectComplexQuery(message: string): boolean {
@@ -173,6 +174,8 @@ export interface SendMessageResult {
   notificationDispatch?: import('@/components/NotificationDispatchCard').NotificationDispatchData;
   locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
   modelUsed?: string;
+  sandbox_preview_url?: string;
+  sandbox_preview_port?: number;
 }
 
 export interface ImageTaskResult {
@@ -442,6 +445,8 @@ export class AIService {
                     if (event.tool) {
                       onToolUsage?.([event.tool]);
                     }
+                  } else if (event.type === 'sandbox_preview' && event.url) {
+                    useSandboxStore.getState().openPreview(event.url, event.repo, event.port);
                   } else if (event.type === 'done') {
                     data = event.result;
                   } else if (event.type === 'error') {

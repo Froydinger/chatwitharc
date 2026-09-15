@@ -1902,6 +1902,8 @@ serve(async (req) => {
     const runChatPipeline = async (sendEvent?: (event: any) => void) => {
       let response: Response;
       let usedFallback = false;
+      let lastSandboxPreviewUrl: string | null = null;
+      let lastSandboxPreviewPort: number | null = null;
     
     try {
       const isReasoning = selectedModel.includes('gpt-5.6') || selectedModel.startsWith('o1') || selectedModel.startsWith('o3');
@@ -2303,6 +2305,17 @@ serve(async (req) => {
                 });
               },
             });
+
+            if (res.previewUrl) {
+              lastSandboxPreviewUrl = res.previewUrl;
+              lastSandboxPreviewPort = res.previewPort || port || null;
+              sendEvent?.({
+                type: 'sandbox_preview',
+                url: res.previewUrl,
+                port: lastSandboxPreviewPort,
+                repo,
+              });
+            }
 
             const outputSummary = [
               `Command: ${command}`,
@@ -2838,12 +2851,20 @@ serve(async (req) => {
     }
     
     // Add tool usage metadata, sources, canvas and code update to the response
-    const responseContent = appendFeaturedVideo(sanitizedContent, webSources);
+    let responseContent = appendFeaturedVideo(sanitizedContent, webSources);
+
+    // If sandbox preview is active, ensure the preview link is explicitly present in the message
+    if (lastSandboxPreviewUrl && !responseContent.includes(lastSandboxPreviewUrl) && !responseContent.includes('.e2b.app')) {
+      responseContent = `${responseContent.trim()}\n\n[Open Live Preview](${lastSandboxPreviewUrl})\n`;
+    }
+
     if (responseContent !== sanitizedContent) {
       data.choices[0].message.content = responseContent;
     }
     const finalResponse = {
       ...data,
+      sandbox_preview_url: lastSandboxPreviewUrl,
+      sandbox_preview_port: lastSandboxPreviewPort,
       tool_calls_used: toolsUsed,
       web_sources: webSources.length > 0 ? webSources : undefined,
       search_provider: searchProvider,

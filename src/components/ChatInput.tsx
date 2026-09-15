@@ -2887,9 +2887,9 @@ ${safeCode}
               });
 
               // If a live cloud preview URL was returned, automatically open the floating preview window
-              const e2bMatch = result.content?.match(/https?:\/\/(\d+-[a-zA-Z0-9-]+\.e2b\.app[^\s\)]*)/);
-              if (e2bMatch) {
-                useSandboxStore.getState().openPreview(e2bMatch[0]);
+              const previewUrl = result.sandbox_preview_url || result.content?.match(/https?:\/\/(\d+-[a-zA-Z0-9-]+\.e2b\.app[^\s\)]*)/)?.[0];
+              if (previewUrl) {
+                useSandboxStore.getState().openPreview(previewUrl, undefined, result.sandbox_preview_port);
               }
 
               // Intelligently generate a title if it's the first assistant message or still has default title.
