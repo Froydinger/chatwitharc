@@ -2262,7 +2262,7 @@ serve(async (req) => {
                 tool_call_id: toolCall.id,
                 content: 'Sandbox execution skipped: Cloud code testing and execution in Git mode is exclusively available to ArcAI Boost subscribers. Inform the user that they can upgrade to ArcAI Boost to enable live cloud sandbox testing before creating pull requests.',
               });
-              continue;
+              return;
             }
 
             sendEvent?.({
@@ -2693,12 +2693,20 @@ serve(async (req) => {
       }
 
       // For code/canvas updates, skip the second API call entirely - we already have the output!
-      if (codeUpdate || canvasUpdate) {
-        console.log('✅ Skipping second API call - code/canvas output already captured');
-        const briefMessage = codeUpdate
-          ? `Here's your ${codeUpdate.label || codeUpdate.language + ' code'}! I've added it to your Code Canvas.`
-          : `Here's your ${canvasUpdate!.label || 'content'}! I've added it to your Canvas.`;
-
+      const capturedCode = codeUpdate as any;
+      const capturedCanvas = canvasUpdate as any;
+      if (capturedCode) {
+        console.log('✅ Skipping second API call - code output already captured');
+        const briefMessage = `Here's your ${capturedCode.label || capturedCode.language + ' code'}! I've added it to your Code Canvas.`;
+        data = {
+          choices: [{
+            message: { content: briefMessage },
+            finish_reason: 'stop'
+          }]
+        };
+      } else if (capturedCanvas) {
+        console.log('✅ Skipping second API call - canvas output already captured');
+        const briefMessage = `Here's your ${capturedCanvas.label || 'content'}! I've added it to your Canvas.`;
         data = {
           choices: [{
             message: { content: briefMessage },

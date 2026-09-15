@@ -83,7 +83,7 @@ export async function runInSandbox(options: {
       stdout: sanitize(res.stdout),
       stderr: sanitize(res.stderr),
       exitCode: res.exitCode,
-      error: res.error?.message,
+      error: res.error ? String(res.error) : undefined,
       durationMs: Date.now() - startTime,
     };
   } finally {

@@ -2919,13 +2919,6 @@ ${safeCode}
               }
             }
           } catch (err: any) {
-            // On error, add error message
-            await addMessage({
-              content: "Sorry, I encountered an error. Please try again.",
-              role: "assistant",
-              type: "text",
-              sourceModel: "cloud-chat",
-            });
             throw err; // Re-throw to be caught by outer catch
           }
         }
@@ -2934,9 +2927,10 @@ ${safeCode}
         if (cancelRequested) {
           return;
         }
-        toast({ title: "Error", description: err?.message || "Failed to get AI response", variant: "destructive" });
+        const errorMsg = err?.message || "Failed to get AI response";
+        toast({ title: "Error", description: errorMsg, variant: "destructive" });
         await addMessage({
-          content: "Sorry, I encountered an error. Please try again.",
+          content: `Sorry, I encountered an error: ${errorMsg}`,
           role: "assistant",
           type: "text",
           sourceModel: "cloud-chat",
