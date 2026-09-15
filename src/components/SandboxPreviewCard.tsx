@@ -43,6 +43,7 @@ export function SandboxPreviewCard({ url, title }: SandboxPreviewCardProps) {
   }, [url]);
 
   useEffect(() => {
+    setIsPortClosed(false);
     checkHealth();
   }, [checkHealth, key]);
 

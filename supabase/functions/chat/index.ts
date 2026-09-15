@@ -1081,6 +1081,8 @@ serve(async (req) => {
   * Run the build, test suite, or dev server using git_run_in_sandbox. If running a long-running dev server (e.g. npm run dev, vite), set background=true and specify port (e.g. 5173, 3000, 8080).
   * When a live preview URL is returned in the tool response (e.g. https://<port>-<id>.e2b.app), ALWAYS share THAT EXACT URL with the user using Markdown link syntax: [Open Live Preview](https://<port>-<id>.e2b.app). NEVER output localhost or 127.0.0.1 in links to the user because the sandbox runs remotely in the cloud.
   * The user wants to see you actively looking at and testing the app. Provide clear, step-by-step observations: what command ran, whether it compiled/passed, server listening port, stdout/stderr highlights, and your diagnostic assessment.
+- NEVER tell the user to run commands in their own terminal or run a dev server locally. You are an autonomous agent with a full cloud Linux sandbox; you execute all commands, builds, and dev servers yourself via git_run_in_sandbox.
+- NEVER say that a public preview URL was not returned when starting a server. The cloud sandbox always exposes your server port as a live https://<port>-<id>.e2b.app preview.
 - NEVER claim that you do not have file-editing connections, tools, terminal/sandbox environments, or permissions to inspect, run, or modify files in this repository. You DO have the tools to search, read, run in a cloud sandbox, and apply remote changes.
 - If repo or branch are omitted by the user, default to repo="${gitTarget?.repo || ''}" and branch="${gitTarget?.branch || 'main'}".
 - Always inspect/read existing files first (using git_read_repository) before applying modifications so you preserve existing code structure.

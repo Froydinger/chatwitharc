@@ -52,6 +52,7 @@ export function FloatingSandboxPreview() {
   useEffect(() => {
     setIsLoading(true);
     setHasError(false);
+    setIsPortClosed(false);
     checkHealth();
   }, [previewUrl, iframeKey, checkHealth]);
 

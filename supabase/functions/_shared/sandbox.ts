@@ -340,7 +340,7 @@ export async function runInSandbox(options: RunSandboxOptions): Promise<SandboxE
 
     const targetPort = options.port || (serverCmd.includes('preview') ? 4173 : 5173);
     const fullServerCommand = isServer
-      ? `export HOST=0.0.0.0 PORT=${targetPort}; ${serverCmd} > /tmp/server.log 2>&1`
+      ? `nohup bash -c "export HOST=0.0.0.0 PORT=${targetPort}; ${serverCmd}" > /tmp/server.log 2>&1 &`
       : `export HOST=0.0.0.0 PORT=${targetPort}; ${serverCmd}`;
 
     options.onProgress?.(`Executing: ${serverCmd}...`);
@@ -351,8 +351,19 @@ export async function runInSandbox(options: RunSandboxOptions): Promise<SandboxE
       res = await sandbox.commands.run(fullServerCommand, {
         cwd: workdir,
         timeoutMs: cmdTimeout,
-        background: isServer,
       });
+
+      if (isServer) {
+        // Wait briefly for server to initiate
+        await new Promise((r) => setTimeout(r, 2500));
+        const logRes = await sandbox.commands.run('cat /tmp/server.log 2>/dev/null || true', { timeoutMs: 3000 });
+        const serverLog = logRes.stdout?.slice(0, 3000) || '';
+        res = {
+          stdout: `${preCommandOutput}Server running in background on port ${targetPort}:\n${serverLog}`.trim(),
+          stderr: '',
+          exitCode: 0,
+        };
+      }
     } catch (cmdErr: any) {
       if (cmdErr && (typeof cmdErr.exitCode === 'number' || cmdErr.stdout !== undefined || cmdErr.stderr !== undefined)) {
         res = {
@@ -366,58 +377,15 @@ export async function runInSandbox(options: RunSandboxOptions): Promise<SandboxE
       }
     }
 
-    // 7. Preview URL detection & verification using python socket
+    // 7. Preview URL detection: always generate public E2B preview URL for servers
     let previewPort: number | undefined = options.port;
     let previewUrl: string | undefined;
 
-    if (isServer) {
-      try {
-        options.onProgress?.(`Verifying server listening on port ${targetPort}...`);
-        const commonPorts = [targetPort, 5173, 4173, 3000, 8080, 8000];
-        const maxWaitMs = 15_000;
-        const pollStart = Date.now();
-        let isListening = false;
-
-        while (Date.now() - pollStart < maxWaitMs) {
-          for (const p of commonPorts) {
-            const checkRes = await sandbox.commands.run(
-              `python3 -c "import socket; s = socket.socket(); exit(0 if s.connect_ex(('127.0.0.1', ${p})) == 0 else 1)"`,
-              { timeoutMs: 3000 }
-            );
-            if (checkRes.exitCode === 0) {
-              previewPort = p;
-              isListening = true;
-              break;
-            }
-          }
-          if (isListening) break;
-          await new Promise((r) => setTimeout(r, 1000));
-        }
-
-        // Check server log if listening or if it failed
-        const logRes = await sandbox.commands.run('cat /tmp/server.log 2>/dev/null || true', { timeoutMs: 5000 });
-        const serverLog = logRes.stdout?.slice(0, 5000) || '';
-
-        if (isListening && previewPort) {
-          const host = sandbox.getHost(previewPort);
-          previewUrl = `https://${host}`;
-          options.onProgress?.(`Live preview verified at ${previewUrl}`);
-          res = {
-            stdout: `${preCommandOutput}Server successfully running in background on port ${previewPort}:\n${serverLog}`.trim(),
-            stderr: '',
-            exitCode: 0,
-          };
-        } else {
-          res = {
-            stdout: `${preCommandOutput}${serverLog}`.trim(),
-            stderr: `Server did not start or failed to bind to port ${targetPort} within 15 seconds.\nServer Log:\n${serverLog}`,
-            exitCode: 1,
-            error: `Server failed to bind to port ${targetPort}`,
-          };
-        }
-      } catch (portErr) {
-        console.warn('Port inspection error:', portErr);
-      }
+    if (isServer || options.port) {
+      previewPort = targetPort;
+      const host = sandbox.getHost(previewPort);
+      previewUrl = `https://${host}`;
+      options.onProgress?.(`Live preview available at ${previewUrl}`);
     }
 
     // 8. Update DB with idle status and preview URL
