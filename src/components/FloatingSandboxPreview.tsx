@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ExternalLink, RefreshCw, X, Minus, Maximize2, Minimize2, 
   Monitor, Smartphone, Globe, AlertCircle, ArrowUpRight, Play
 } from 'lucide-react';
 import { useSandboxStore } from '@/store/useSandboxStore';
+import { SandboxClosedPortState } from '@/components/SandboxClosedPortState';
 import { cn } from '@/lib/utils';
 
 export function FloatingSandboxPreview() {
@@ -25,11 +26,43 @@ export function FloatingSandboxPreview() {
   const [iframeKey, setIframeKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [isPortClosed, setIsPortClosed] = useState(false);
+
+  const checkHealth = useCallback(async () => {
+    if (!previewUrl) return;
+    try {
+      const res = await fetch(previewUrl, { signal: AbortSignal.timeout(4000) });
+      if (res.status === 502 || res.status === 503) {
+        setIsPortClosed(true);
+        setIsLoading(false);
+        return;
+      }
+      const data = await res.clone().json().catch(() => null);
+      if (data && (data.code === 502 || (typeof data.message === 'string' && data.message.toLowerCase().includes('not open')))) {
+        setIsPortClosed(true);
+        setIsLoading(false);
+        return;
+      }
+      setIsPortClosed(false);
+    } catch {
+      // Network or CORS blip: if already closed, keep polling, else let iframe attempt
+    }
+  }, [previewUrl]);
 
   useEffect(() => {
     setIsLoading(true);
     setHasError(false);
-  }, [previewUrl, iframeKey]);
+    checkHealth();
+  }, [previewUrl, iframeKey, checkHealth]);
+
+  // Background auto-polling when port is offline to auto-connect once Arc starts it
+  useEffect(() => {
+    if (!isPortClosed || !previewUrl) return;
+    const interval = setInterval(() => {
+      checkHealth();
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [isPortClosed, previewUrl, checkHealth]);
 
   if (!isOpen || !previewUrl) return null;
 
@@ -135,8 +168,8 @@ export function FloatingSandboxPreview() {
 
             <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping", isPortClosed ? "bg-amber-400" : "bg-emerald-400")}></span>
+                <span className={cn("relative inline-flex rounded-full h-2 w-2", isPortClosed ? "bg-amber-500" : "bg-emerald-500")}></span>
               </span>
               <span>Preview</span>
               {port && (
@@ -185,6 +218,7 @@ export function FloatingSandboxPreview() {
               type="button"
               onClick={() => {
                 setIsLoading(true);
+                checkHealth();
                 setIframeKey((k) => k + 1);
               }}
               className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
@@ -223,30 +257,47 @@ export function FloatingSandboxPreview() {
           </div>
         </div>
 
-        {/* Iframe container */}
+        {/* Iframe or Offline State container */}
         <div className="relative flex-1 w-full bg-white dark:bg-zinc-950 overflow-hidden flex items-center justify-center">
-          {isLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm z-10 text-xs text-muted-foreground gap-2.5">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              <span>Connecting to cloud preview...</span>
-            </div>
-          )}
+          {isPortClosed ? (
+            <SandboxClosedPortState
+              url={previewUrl}
+              port={port}
+              onRetry={() => {
+                setIsLoading(true);
+                checkHealth();
+              }}
+              className="w-full h-full"
+            />
+          ) : (
+            <>
+              {isLoading && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-sm z-10 text-xs text-muted-foreground gap-2.5">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  <span>Connecting to cloud preview...</span>
+                </div>
+              )}
 
-          <iframe
-            key={iframeKey}
-            src={previewUrl}
-            title="App Preview"
-            onLoad={() => setIsLoading(false)}
-            onError={() => {
-              setIsLoading(false);
-              setHasError(true);
-            }}
-            className={cn(
-              "border-0 transition-all duration-200",
-              deviceMode === "mobile" ? "w-[375px] h-full shadow-2xl rounded-lg" : "w-full h-full"
-            )}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-          />
+              <iframe
+                key={iframeKey}
+                src={previewUrl}
+                title="App Preview"
+                onLoad={() => {
+                  setIsLoading(false);
+                  checkHealth();
+                }}
+                onError={() => {
+                  setIsLoading(false);
+                  setHasError(true);
+                }}
+                className={cn(
+                  "border-0 transition-all duration-200",
+                  deviceMode === "mobile" ? "w-[375px] h-full shadow-2xl rounded-lg" : "w-full h-full"
+                )}
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+              />
+            </>
+          )}
         </div>
       </motion.div>
     </AnimatePresence>
