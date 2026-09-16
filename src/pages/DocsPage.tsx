@@ -327,7 +327,7 @@ export function DocsPage() {
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            Voice Mode gives you natural, low-latency conversations with Arc using GPT-Live-1 through OpenAI Realtime.
+            Voice Mode gives you natural, low-latency conversations with Arc powered by Voxi.
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li>Click the <strong>microphone</strong> or <strong>headphone</strong> icon next to the chat input to start the connection.</li>

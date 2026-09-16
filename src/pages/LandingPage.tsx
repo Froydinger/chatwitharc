@@ -21,7 +21,7 @@ const SITE = "https://askarc.chat";
 const LANDING_FAQ = [
   {
     q: "What is ArcAI?",
-    a: "ArcAI is a multimodal AI assistant founded and created by Win The Night™ Foundation, built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, natural GPT-Live-1 voice conversations, image generation, a code canvas, full React App Builder, and living memory, all in your browser.",
+    a: "ArcAI is a multimodal AI assistant founded and created by Win The Night™ Foundation, built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, natural voice conversations, image generation, a code canvas, full React App Builder, and living memory, all in your browser.",
   },
   {
     q: "Is ArcAI free?",
@@ -263,15 +263,15 @@ export function LandingPage() {
               Free is powerful. <span className="text-white/70">Boost is optional.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              Arc is built to be a safe, helpful hub for everyone. The free plan includes a living memory summary, GPT-Live-1 voice, search, and coding out of the box. Upgrade to Boost for $10/month if you want higher quotas, unlimited voice, or public app publishing.
+              Arc is built to be a safe, helpful hub for everyone. The free plan includes Arc Matrix™ reasoning, a living memory summary, natural voice, search, and coding out of the box. Upgrade to Boost for $10/month if you want higher quotas, unlimited voice, or full App Builder publishing.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
-                { icon: ImageIcon, title: "3 free images to start", body: "Create up to 3 images for free, or upgrade to Boost for unlimited generation and editing." },
-                { icon: Mic, title: "GPT-Live-1 voice conversations", body: "Speak naturally with low-latency, interruptible audio. Free accounts get tons of usage, and Boost includes unlimited live voice sessions." },
+                { icon: ImageIcon, title: "3 free images to start", body: "Create up to 3 images for free with Arc Imagix, or upgrade to Boost for unlimited generation and editing." },
+                { icon: Mic, title: "Natural voice conversations", body: "Speak naturally with low-latency, interruptible audio. Free accounts get generous voice usage, and Boost includes unlimited live voice sessions." },
                 { icon: Search, title: "Deep research, powered by Perplexity", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. 4 Deep and 1 Ultra a week free, unlimited on Boost." },
-                { icon: Code2, title: "Publish code online", body: "Share your canvases and running web creations with custom Arc links on Boost." },
+                { icon: Code2, title: "App Builder & live publishing", body: "Build full interactive React web apps and share running creations with custom Arc links on Boost." },
               ].map((b) => (
                 <div
                   key={b.title}

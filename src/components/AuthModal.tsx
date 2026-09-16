@@ -27,13 +27,13 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
   menu: { title: "Sign in to continue", subtitle: "Chats and settings need an account.", icon: Sparkles },
   music: { title: "Sign in for music", subtitle: "Lofi & YouTube, free with an account.", icon: Music },
   tools: { title: "Sign in to use tools", subtitle: "Search, images, code, canvas.", icon: Sparkles },
-  voice: { title: "Sign in for live voice with Arc", subtitle: "Natural GPT-Live-1 conversations with Arc.", icon: Mic },
-  "image-gen": { title: "Sign in to make images", subtitle: "Generate & edit with GPT Image 2.", icon: ImagePlus },
+  voice: { title: "Sign in for live voice with Arc", subtitle: "Natural voice conversations with Arc.", icon: Mic },
+  "image-gen": { title: "Sign in to make images", subtitle: "Generate & edit with Arc Imagix.", icon: ImagePlus },
   files: { title: "Sign in to attach files", subtitle: "PDFs, docs, images.", icon: Paperclip },
   research: { title: "Sign in for research", subtitle: "Cited sources from the web.", icon: Globe },
   code: { title: "Sign in to write code", subtitle: "Code and app generation.", icon: Code2 },
   canvas: { title: "Sign in for canvas", subtitle: "Long-form writing & layouts.", icon: PenLine },
-  boost: { title: "Sign in to upgrade", subtitle: "Access unlimited research and higher Luna limits.", icon: Zap },
+  boost: { title: "Sign in to upgrade", subtitle: "Access unlimited research and unlimited Arc Matrix reasoning.", icon: Zap },
   generic: { title: "Welcome to ArcAI", subtitle: "Sign in to unlock everything.", icon: Sparkles },
 };
 

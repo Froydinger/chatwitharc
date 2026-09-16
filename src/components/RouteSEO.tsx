@@ -10,7 +10,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/": {
     title: "ArcAI • Ask, Reflect, Create",
     description:
-      "Talk naturally with Arc through GPT-Live-1, generate images, write code and prose in one place. Free multimodal AI with living memory.",
+      "Talk naturally with Arc in real-time voice, generate images, write code and prose in one place. Free multimodal AI with living memory.",
   },
   "/pricing": {
     title: "ArcAI • Pricing",
@@ -149,7 +149,7 @@ export const RouteSEO = () => {
       : {
           title: "ArcAI • Page Not Found",
           description:
-            "Talk naturally with Arc through GPT-Live-1, generate images, write code and prose in one place. Free multimodal AI with living memory.",
+            "Talk naturally with Arc in real-time voice, generate images, write code and prose in one place. Free multimodal AI with living memory.",
         });
 
   return <SEO title={meta.title} description={meta.description} path={path} />;

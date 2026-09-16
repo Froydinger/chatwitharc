@@ -3527,7 +3527,7 @@ ${safeCode}
                   if (!hasBoost && !isAdmin && !canStartVoiceConversation) {
                     toast({
                       title: "Daily voice limit reached",
-                      description: "Free accounts get tons of natural GPT-Live-1 voice usage. Boost includes unlimited live voice sessions.",
+                      description: "Free accounts get generous natural voice usage. Boost includes unlimited live voice sessions.",
                       variant: "destructive",
                     });
                     openCheckout();

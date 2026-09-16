@@ -217,7 +217,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which AI has voice mode?",
-        a: "ArcAI has natural, interruptible voice conversations powered by GPT-Live-1 through OpenAI Realtime. Free accounts get tons of voice usage, while Boost includes unlimited voice sessions.",
+        a: "ArcAI has natural, interruptible voice conversations powered by Voxi. Free accounts get generous voice usage, while Boost includes unlimited voice sessions.",
       },
       {
         q: "Which free AI generates images?",
@@ -230,19 +230,19 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     slug: "free-ai-with-voice",
     title: "An AI with advanced real-time voice mode",
     description:
-      "Want to talk to an AI? ArcAI has natural, interruptible voice conversations built in, powered by GPT-Live-1 through OpenAI Realtime and connected to your living memory.",
+      "Want to talk to an AI? ArcAI has natural, interruptible voice conversations built in, powered by Voxi and connected to your living memory.",
     keywords: ["free AI voice", "voice AI free", "talk to AI free", "voice AI with memory"],
     updated: UPDATED,
     intro:
-      "Most AI assistants charge for voice. ArcAI gives free accounts tons of natural GPT-Live-1 voice usage through OpenAI Realtime, while Boost includes unlimited voice sessions.",
+      "Most AI assistants charge for voice. ArcAI gives free accounts generous natural voice usage powered by Voxi, while Boost includes unlimited voice sessions.",
     faq: [
       {
         q: "Which AI has voice conversations?",
-        a: "ArcAI. It uses GPT-Live-1 through OpenAI Realtime to deliver low-latency spoken conversations with multiple natural voice options. Free accounts get tons of voice usage, while Boost includes unlimited sessions.",
+        a: "ArcAI. It delivers low-latency spoken conversations powered by Voxi with multiple natural voice options. Free accounts get generous voice usage, while Boost includes unlimited sessions.",
       },
       {
         q: "Does voice mode connect to the bot's memory?",
-        a: "Yes. Arc's GPT-Live-1 voice mode shares the same living memory summary as text chat, so spoken conversations can recall your past projects, tone, and preferences seamlessly.",
+        a: "Yes. Arc's voice mode shares the same living memory summary as text chat, so spoken conversations can recall your past projects, tone, and preferences seamlessly.",
       },
       {
         q: "Can I interrupt the AI while it's talking?",
@@ -466,7 +466,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How do I use voice mode?",
-        a: "Tap the microphone icon in the sidebar or dashboard. Voice mode uses GPT-Live-1 through OpenAI Realtime, with natural interruptions. Free accounts get tons of voice usage, and Boost includes unlimited sessions.",
+        a: "Tap the microphone icon in the sidebar or dashboard. Voice mode offers natural, interruptible conversations powered by Voxi. Free accounts get generous voice usage, and Boost includes unlimited sessions.",
       },
       {
         q: "How do I generate an image?",
@@ -490,7 +490,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   },
   "free-chatgpt-alternative": {
     angle: "The reason people search for an alternative to ChatGPT is not because they hate ChatGPT — it is because the features they actually want (persistent memory, full web app building, uncapped voice, cited search) are often split across paid plans, usage caps, or separate apps.",
-    useCases: ["unlimited everyday chat", "in-browser App Builder", "natural GPT-Live-1 voice", "living memory", "web search", "document analysis"],
+    useCases: ["unlimited everyday chat", "in-browser App Builder", "natural voice", "living memory", "web search", "document analysis"],
     freeAccess: "ArcAI provides a robust free tier with unlimited chats, search citations, canvases, and memory, plus an optional Boost upgrade for $10/month to unlock advanced reasoning, the App Builder, and custom web publishing.",
     proof: "ArcAI is strongest when you want ChatGPT-style answers plus the builder tools and transparent memory that people usually associate with premium AI setups.",
   },

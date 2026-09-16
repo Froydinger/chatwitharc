@@ -209,7 +209,7 @@ export function BlogIndexPage() {
         <title>ArcAI Guides, Blog & FAQs — Free AI Assistant Hub</title>
         <meta
           name="description"
-          content="Explore tutorials, side-by-side model comparisons, and deep dives into ArcAI, free AI with natural GPT-Live-1 voice, code canvas, image generation, and living memory."
+          content="Explore tutorials, side-by-side model comparisons, and deep dives into ArcAI, free AI with natural voice, code canvas, image generation, and living memory."
         />
         <link rel="canonical" href={`${SITE}/blog`} />
         <meta property="og:title" content="ArcAI Guides & Blog" />
@@ -384,7 +384,7 @@ export function BlogIndexPage() {
                     </div>
                     <div className="space-y-2 text-xs">
                       <div className="flex items-center justify-between rounded-lg bg-white/5 p-2 text-white/80">
-                        <span>Natural Voice Mode (GPT-Live-1)</span>
+                        <span>Natural Voice Mode (Voxi)</span>
                         <span className="text-emerald-400 text-[10px] font-mono">Active</span>
                       </div>
                       <div className="flex items-center justify-between rounded-lg bg-white/5 p-2 text-white/80">
@@ -577,7 +577,7 @@ export function BlogIndexPage() {
           <p className="mx-auto mt-3 max-w-xl text-sm text-white/70 leading-relaxed">
             {isAuthenticated
               ? "Return to your conversations, canvas, and memory."
-              : "Unlimited fast chat, natural GPT-Live-1 voice, code canvas, and living memory, right in your browser."}
+              : "Unlimited fast chat, natural voice, code canvas, and living memory, right in your browser."}
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
             <button
