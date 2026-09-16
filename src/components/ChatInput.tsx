@@ -1535,12 +1535,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     // turn, then attach representative search data so the chat layout and
     // image carousel can be inspected without provider credentials.
     if (isLocalChatPreview() && messageToSend.trim()) {
-      const previewImages = [
-        "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=900&q=80",
-        "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=900&q=80",
-        "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=900&q=80",
-        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=900&q=80",
-      ];
       await addMessage({ content: messageToSend.trim(), role: "user", type: "text" });
       setInputValue("");
       setSelectedImages([]);
@@ -1552,17 +1546,21 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       setForceBuildMode(false);
       setShowMenu(false);
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 650));
+      await new Promise((resolve) => setTimeout(resolve, 700));
       await addMessage({
-        content: "Hey! This is the local preview response. I added a dummy image search underneath so you can test the carousel interaction.",
+        content: `Arc is now using a smooth staggered reveal animation to present responses without teleprompting or typing.
+
+Every paragraph and content block enters with an optical de-blur and upward drift, allowing you to begin reading the first line immediately while the rest gracefully cascades into place.
+
+Here is what makes this flow so smooth:
+- **Instant text parsing**: No dangling tokens or unclosed markdown tags.
+- **Buttery cascade**: Staggered 35ms timing between paragraphs with a 360ms ease.
+- **Zero layout shift**: Complete structured elements settle cleanly into the conversation.
+
+Feel free to send another message or test a prompt to see the animation again!`,
         role: "assistant",
         type: "text",
-        sourceModel: "local",
-        webSources: [
-          { title: "Unsplash landscapes", url: "https://unsplash.com/s/photos/landscape", snippet: "A dummy image-search source for local UI testing." },
-          { title: "Nature photography", url: "https://unsplash.com/s/photos/nature", snippet: "Representative image results for the carousel preview." },
-        ],
-        searchImages: previewImages,
+        sourceModel: "cloud-chat",
       });
       setLoading(false);
       return;

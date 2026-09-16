@@ -933,27 +933,17 @@ export function MobileChatApp() {
       // A brand-new message arriving resets the "scrolled up" guard
       if (countIncreased) userScrolledUpRef.current = false;
       // Use rAF + timeout so layout settles before scrolling
-      requestAnimationFrame(() => {
+      const scrollToBottom = () => {
         const node = messagesContainerRef.current;
         if (!node) return;
         node.scrollTo({ top: node.scrollHeight, behavior: sessionChanged ? "auto" : "smooth" });
-      });
+      };
+      requestAnimationFrame(scrollToBottom);
+      setTimeout(scrollToBottom, 60);
       lastScrolledSessionRef.current = currentSessionId;
     }
     lastMessageCountRef.current = messages.length;
   }, [messages.length, currentSessionId]);
-
-  // Scroll during typewriter typing - respects user scroll-up
-  useEffect(() => {
-    const handleTyping = () => {
-      const el = messagesContainerRef.current;
-      if (!el) return;
-      if (userScrolledUpRef.current) return; // user is reading; don't yank
-      el.scrollTo({ top: el.scrollHeight, behavior: "auto" });
-    };
-    window.addEventListener("typewriter-typing", handleTyping);
-    return () => window.removeEventListener("typewriter-typing", handleTyping);
-  }, []);
 
   // Reset the scroll-up guard when AI finishes responding
   useEffect(() => {
@@ -1524,8 +1514,8 @@ export function MobileChatApp() {
                   <AnimatePresence mode="popLayout" initial={false}>
                     {displayedMessages.map((message, index) => {
                       const isLastAssistantMessage = message.role === "assistant" && index === displayedMessages.length - 1;
-                      // Only animate typewriter if this is a new message (not loaded from history)
-                      const shouldAnimateTypewriter =
+                      // Only animate reveal if this is a new message (not loaded from history)
+                      const shouldAnimateReveal =
                         !isVoiceActive && isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current
                         && !isSessionLoading && message.sourceModel !== 'cloud-voice';
 
@@ -1536,15 +1526,16 @@ export function MobileChatApp() {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0 }}
                           transition={{
-                            duration: isSessionLoading ? 0 : 0.15,
-                            ease: "easeOut",
+                            duration: isSessionLoading ? 0 : isLastAssistantMessage ? 0.35 : 0.15,
+                            ease: [0.22, 1, 0.36, 1],
                           }}
                           layout={false}
                         >
                           <MessageBubble
                             message={message}
                             isLatestAssistant={isLastAssistantMessage}
-                            shouldAnimateTypewriter={shouldAnimateTypewriter}
+                            shouldAnimateTypewriter={shouldAnimateReveal}
+                            shouldAnimateReveal={shouldAnimateReveal}
                             isThinking={isLastAssistantMessage && isLoading && !isGeneratingImage}
                             onEdit={async (messageId: string, newContent: string) => {
                               const chatInputEvent = new CustomEvent("processEditedMessage", {

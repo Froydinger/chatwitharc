@@ -21,8 +21,6 @@ import { VideoGenerationPlaceholder } from "@/components/VideoGenerationPlacehol
 import { VideoAttachment } from "@/components/VideoAttachment";
 import { AnimateImageButton } from "@/components/AnimateImageButton";
 import { SmoothImage } from "@/components/ui/smooth-image";
-import { TypewriterMarkdown } from "@/components/TypewriterMarkdown";
-import { WordStreamMarkdown } from "@/components/WordStreamMarkdown";
 import { ImageModal } from "@/components/ImageModal";
 import { ImageEditModal } from "@/components/ImageEditModal";
 import { CodeBlock } from "@/components/CodeBlock";
@@ -193,11 +191,13 @@ interface MessageBubbleProps {
   onEdit?: (messageId: string, newContent: string) => void;
   isLatestAssistant?: boolean;
   shouldAnimateTypewriter?: boolean;
+  shouldAnimateReveal?: boolean;
   isThinking?: boolean;
 }
 
 export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
-  ({ message, onEdit, isLatestAssistant, shouldAnimateTypewriter, isThinking }, ref) => {
+  ({ message, onEdit, isLatestAssistant, shouldAnimateTypewriter, shouldAnimateReveal, isThinking }, ref) => {
+    const shouldAnimate = shouldAnimateReveal ?? shouldAnimateTypewriter ?? false;
     const { editMessage, currentSessionId, chatSessions } = useArcStore();
     const { profile } = useProfile();
     const { toast } = useToast();
@@ -313,10 +313,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
       }
     };
 
-    const handleTypewriterTyping = useCallback(() => {
-      const event = new CustomEvent('typewriter-typing');
-      window.dispatchEvent(event);
-    }, []);
 
     const handleMessageClick = () => {
       if (!isEditing) setShowActions((s) => !s);
@@ -719,27 +715,23 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                               return <Fragment key={idx}>{inlineVisual}</Fragment>;
                             }
                             return (
-                              <CodeBlock
+                              <div
                                 key={idx}
-                                code={part.content}
-                                language={part.language || "plaintext"}
-                              />
-                            );
-                          }
-
-                          if (shouldAnimateTypewriter && hasAssistantContent) {
-                            return (
-                              <WordStreamMarkdown
-                                key={idx}
-                                text={part.content}
-                                shouldAnimate={true}
-                                onTyping={handleTypewriterTyping}
-                              />
+                                className={shouldAnimate && hasAssistantContent ? "arc-response-reveal" : ""}
+                              >
+                                <CodeBlock
+                                  code={part.content}
+                                  language={part.language || "plaintext"}
+                                />
+                              </div>
                             );
                           }
 
                           return (
-                            <div key={idx} className="text-foreground break-words">
+                            <div
+                              key={idx}
+                              className={`text-foreground break-words ${shouldAnimate && hasAssistantContent ? "arc-response-stagger" : ""}`}
+                            >
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}
                                 rehypePlugins={[rehypeKatex]}
