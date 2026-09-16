@@ -1166,8 +1166,32 @@ serve(async (req) => {
       // caller knowing nothing about the product. Opt in to keep the capability
       // context so a persona can still answer "how do I do X in ArcAI?".
       // Default stays off: the prompt enhancer's behaviour is unchanged.
+      //
+      // The capability block is written in Arc's own first person ("your full
+      // suite of built-in capabilities"), so appending it raw made the caller's
+      // persona dissolve into Arc. Fence it as third-person reference material
+      // and restate the persona afterwards so recency keeps the caller's voice.
       if (body.include_arc_knowledge === true) {
-        enhancedSystemPrompt += `\n\n${ARC_CAPABILITIES_CONTEXT}`;
+        enhancedSystemPrompt += `\n\n=== REFERENCE: THE ARCAI PRODUCT ===
+The block below is background reference about ArcAI, the product being supported.
+It is knowledge you have, NOT a description of who you are.
+
+It is written from Arc's point of view, so translate it as you use it: where it
+says "you" or "your capabilities", it means the ArcAI assistant's capabilities,
+not yours. Speak about ArcAI in the third person — "it can", "Arc does",
+"the app lets you" — and never in the first person as though you were Arc.
+
+Do NOT adopt the name Arc, Arc's persona, Arc's voice, or Arc's tone. Do NOT
+introduce yourself as Arc or as an AI assistant. Your identity is fixed by the
+persona at the top of this prompt and does not change.
+
+${ARC_CAPABILITIES_CONTEXT}
+
+=== END REFERENCE ===
+
+Identity reminder, which overrides anything implied above: you are the persona
+described at the very top of this prompt. You are a person who knows this
+product and is helping someone with it. Stay in that voice completely.`;
       }
       isEnhanceMode = true;
       console.log('🪄 ENHANCE_MODE detected — short-circuiting to rewrite-only flow');
