@@ -53,7 +53,6 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
   const isLow = remaining > 0 && remaining <= Math.max(1, Math.floor(limit * 0.3));
 
   const Icon = isImage ? Sparkles : Mic;
-  const periodLabel = "today";
 
   const handleClick = () => {
     if (isImage) {
@@ -81,7 +80,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
       title={
         isImage
           ? isExhausted
-            ? "Daily image limit reached. Click to upgrade to Boost."
+            ? "Free image limit reached. Click to upgrade to Boost for unlimited images."
             : "Click to view image limits and upgrade options"
           : undefined
       }
@@ -97,7 +96,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border",
         className,
       )}
-      aria-label={isImage ? `${remaining} images remaining ${periodLabel}.` : `${voicePctLabel}.`}
+      aria-label={isImage ? `${remaining} free images remaining.` : `${voicePctLabel}.`}
     >
       {isExhausted && !hasBoost && !isAdmin ? (
         <Crown className="h-3.5 w-3.5 shrink-0 text-destructive animate-pulse" />
@@ -106,9 +105,9 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
       )}
       <span className="tabular-nums hidden sm:inline-flex items-center gap-1">
         {isExhausted ? (
-          "Daily limit reached · Upgrade to Boost"
+          isImage ? "Free limit reached · Upgrade to Boost" : "Daily limit reached · Upgrade to Boost"
         ) : (
-          <>{isImage ? <><AnimatedCounter value={remaining} height={15} /> / {limit} images left {periodLabel}</> : voicePctLabel}</>
+          <>{isImage ? <><AnimatedCounter value={remaining} height={15} /> / {limit} free images left</> : voicePctLabel}</>
         )}
       </span>
       <span className="tabular-nums sm:hidden inline-flex items-center gap-0.5">

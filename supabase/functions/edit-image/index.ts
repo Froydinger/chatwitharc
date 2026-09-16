@@ -17,13 +17,9 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const OPENAI_TIMEOUT_MS = 180_000;
 const DEFAULT_IMAGE_MODEL = 'gpt-image-2.5-sunburst';
-const ALLOWED_IMAGE_MODELS = new Set<string>([
-  'gpt-image-2.5-sunburst',
-  'gpt-image-2.5-flare',
-  'gpt-image-2',
-]);
-function pickModel(requested?: string): string {
-  return requested && ALLOWED_IMAGE_MODELS.has(requested) ? requested : DEFAULT_IMAGE_MODEL;
+function pickModel(_requested?: string): string {
+  // All image edits use GPT Image 2.5 Sunburst (OpenAI's precision editor)
+  return DEFAULT_IMAGE_MODEL;
 }
 
 function toOpenAIModel(model: string): string {
@@ -537,10 +533,10 @@ serve(async (req) => {
       return jsonResponse({ success: false, error: "Could not check today's image allowance.", errorType: 'quota_error' });
     }
     if (!quota?.allowed) {
-      await updateJob(supabase, jobId, { status: 'failed', error_message: 'Daily image limit reached', error_type: 'daily_limit' });
+      await updateJob(supabase, jobId, { status: 'failed', error_message: 'Free image limit reached', error_type: 'daily_limit' });
       return jsonResponse({
         success: false,
-        error: `Daily image limit reached. ${quota?.remaining ?? 0} of 20 remaining.`,
+        error: `Free image limit reached (3 images total). Upgrade to ArcAI Boost for unlimited image editing.`,
         errorType: 'daily_limit',
         quota,
       });

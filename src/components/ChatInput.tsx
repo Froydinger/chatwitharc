@@ -747,16 +747,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const shouldShowBuildMode = forceBuildMode || (!!inputValue && checkForBuildRequest(inputValue));
   const shouldShowGitMode = isCurrentSessionGit || forceGitMode || (!!inputValue && checkForGitRequest(inputValue));
 
-  // Persisted user-chosen image model + aspect ratio (for /image, "draw…", etc.)
+  // Persisted user-chosen image options (for /image, "draw…", etc.)
   const {
     aspectRatio: imageGenAspect,
     editAspectRatio: imageEditAspect,
     count: imageGenCount,
-    proImage,
-    toggleProImage,
   } = useImageGenStore();
   const isBoostTier = Boolean(hasBoost || isAdmin);
-  const isProActive = isBoostTier && proImage;
   const imageGenModel = useResolvedImageModel(isBoostTier);
   const imageEditModel = useEditImageModel(isBoostTier);
 
@@ -3493,43 +3490,6 @@ ${safeCode}
 
           {/* Action Button - Voice or Send or Stop */}
           <div className="flex items-center gap-1.5 shrink-0 self-center">
-            {/* Inline Pro / Quick Image Toggle when in image generation or edit mode */}
-            {(shouldShowBanana || (selectedImages.length > 0 && allImagesEditMode)) && !isLoading && !isGeneratingImage && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!isBoostTier) {
-                    openCheckout();
-                    return;
-                  }
-                  toggleProImage();
-                }}
-                className={cn(
-                  "flex items-center gap-1 px-2.5 h-8 rounded-full border text-xs font-medium transition-all select-none shrink-0",
-                  isProActive
-                    ? "border-primary/50 bg-primary/20 text-primary font-semibold shadow-xs"
-                    : "border-border/50 bg-muted/40 hover:bg-muted/70 text-muted-foreground hover:text-foreground"
-                )}
-                title={
-                  !isBoostTier
-                    ? "Upgrade to ArcAI Boost to unlock GPT Image 2.5 Pro (Sunburst)"
-                    : isProActive
-                    ? "GPT Image 2.5 Pro (Sunburst) active · Click to switch to Quick"
-                    : "GPT Image 2.5 Quick (Flare) active · Click to switch to Pro"
-                }
-                aria-label="Toggle Image Model"
-              >
-                <Sparkles className={cn("h-3 w-3", isProActive ? "text-primary fill-primary/30" : "text-muted-foreground")} />
-                <span>{isProActive ? "Pro (2.5)" : "Quick (2.5)"}</span>
-                {!isBoostTier && (
-                  <span className="text-[8px] uppercase font-bold tracking-wider px-1 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 ml-0.5">
-                    Boost
-                  </span>
-                )}
-              </button>
-            )}
-
             {isLoading || isGeneratingImage ? (
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -3652,8 +3612,8 @@ ${safeCode}
                       <Sparkles className="h-5 w-5 animate-pulse" />
                     </div>
                     <div>
-                      <h3 className="text-base font-semibold">Image Quotas & Limits</h3>
-                      <p className="text-[10px] text-muted-foreground">Daily limits reset at 00:00 UTC</p>
+                      <h3 className="text-base font-semibold">Image Quotas & Models</h3>
+                      <p className="text-[10px] text-muted-foreground">{isBoostTier ? "Unlimited access with ArcAI Boost" : "Free accounts get 3 images total"}</p>
                     </div>
                   </div>
 
@@ -3661,14 +3621,14 @@ ${safeCode}
                     {/* Active Model Progress Card */}
                     <div className="space-y-2.5 p-4 rounded-2xl bg-white/5 border border-black/10 dark:border-white/5 backdrop-blur-md">
                       <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">
-                        <span>Active model: <strong className="text-foreground">GPT Image 2</strong></span>
-                        <span className="tabular-nums text-foreground">{dailyImagesUsed} / {limit} used</span>
+                        <span>Status: <strong className="text-foreground">{isBoostTier ? "Unlimited Images" : "Free Plan"}</strong></span>
+                        <span className="tabular-nums text-foreground">{isBoostTier ? "Unlimited" : `${dailyImagesUsed} / 3 used`}</span>
                       </div>
                       <div className="w-full bg-black/30 rounded-full h-2.5 overflow-hidden border border-black/10 dark:border-white/5 p-0.5">
                         <motion.div
                           className="bg-primary h-full rounded-full"
                           initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(100, (dailyImagesUsed / (limit || 1)) * 100)}%` }}
+                          animate={{ width: isBoostTier ? "100%" : `${Math.min(100, (dailyImagesUsed / 3) * 100)}%` }}
                           transition={{ duration: 0.6, ease: "easeOut" }}
                         />
                       </div>
@@ -3676,22 +3636,20 @@ ${safeCode}
 
                     {/* Reference Table */}
                     <div className="space-y-1 text-xs">
-                      <div className="text-muted-foreground font-semibold px-1 mb-1 text-[11px] uppercase tracking-wider">Model Limits Reference</div>
+                      <div className="text-muted-foreground font-semibold px-1 mb-1 text-[11px] uppercase tracking-wider">Models & Workflows</div>
                       <div className="flex justify-between items-center px-1 py-2 border-b border-black/10 dark:border-white/5 text-muted-foreground">
-                        <span>GPT Image 1 (Default)</span>
-                        <span className="font-semibold text-foreground">10 daily</span>
+                        <div>
+                          <div className="font-medium text-foreground">Generation</div>
+                          <div className="text-[10px]">GPT-Image-2.5 Flare (Fast, high fidelity)</div>
+                        </div>
+                        <span className="font-semibold text-foreground">{isBoostTier ? "Unlimited" : "3 free total"}</span>
                       </div>
                       <div className="flex justify-between items-center px-1 py-2 border-b border-black/10 dark:border-white/5 text-muted-foreground">
-                        <span>GPT Image 1 Mini (Budget)</span>
-                        <span className="font-semibold text-foreground">40 daily</span>
-                      </div>
-                      <div className="flex justify-between items-center px-1 py-2 border-b border-black/10 dark:border-white/5 text-muted-foreground">
-                        <span>GPT Image 2 (Premium)</span>
-                        <span className="font-semibold text-foreground">3 free (Boost: 20)</span>
-                      </div>
-                      <div className="flex justify-between items-center px-1 py-2 text-muted-foreground">
-                        <span>Image Editing (Merge & Edit)</span>
-                        <span className="font-semibold text-foreground">Boost Only</span>
+                        <div>
+                          <div className="font-medium text-foreground">Editing & Variations</div>
+                          <div className="text-[10px]">GPT-Image-2.5 Sunburst (Tighter edit control)</div>
+                        </div>
+                        <span className="font-semibold text-foreground">{isBoostTier ? "Unlimited" : "3 free total"}</span>
                       </div>
                     </div>
                   </div>

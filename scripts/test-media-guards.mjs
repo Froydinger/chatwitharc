@@ -54,7 +54,7 @@ try {
   }
   const sunburstResponse = await (await image(request({prompt:'test',preferredModel:'gpt-image-2.5-sunburst',count:1}))).json();
   assert.equal(sunburstResponse.errorType,'daily_limit');
-  assert.equal(ctx.jobs.at(-1).preferred_model,'gpt-image-2.5-sunburst');
+  assert.equal(ctx.jobs.at(-1).preferred_model,'gpt-image-2.5-flare');
   assert.equal(ctx.fetches.length,0,'denied quota never reaches provider');
   ctx.allowed=true;
   await image(request({prompt:'test',preferredModel:'gpt-image-1-mini',count:1}));
@@ -70,7 +70,7 @@ try {
     globalThis.localStorage={getItem:()=>stored,setItem:(key,value)=>{stored=value;},removeItem(){}};
     const store = await import(`data:text/javascript;base64,${Buffer.from(storeBuild.outputFiles[0].text).toString('base64')}#v${version}`);
     assert.equal(store.getResolvedImageModel(),'gpt-image-2.5-flare');
-    assert.equal(store.getResolvedImageModel(true), version === 4 ? 'gpt-image-2.5-sunburst' : 'gpt-image-2.5-flare');
+    assert.equal(store.getResolvedImageModel(true),'gpt-image-2.5-flare');
     assert.equal(store.useImageGenStore.getState().aspectRatio,'2:3');
     assert.equal(store.useImageGenStore.getState().editAspectRatio,'1:1');
     assert.equal(store.useImageGenStore.getState().count,2);

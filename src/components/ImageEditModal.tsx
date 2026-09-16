@@ -4,15 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { SmoothImage } from "@/components/ui/smooth-image";
-import { X, Sparkles, ImagePlus, ChevronDown, Crown, Check, Ratio, Mic } from "lucide-react";
+import { X, Sparkles, ImagePlus, Ratio, Mic } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import {
   useImageGenStore,
-  IMAGE_MODEL_OPTIONS,
   EDIT_ASPECT_OPTIONS,
   type EditAspectRatio,
   type ImageModelId,
-  useEditImageModel,
 } from "@/store/useImageGenStore";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
 import { cn } from "@/lib/utils";
@@ -48,33 +46,13 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
   const isBoostTier = Boolean(hasBoost || isAdmin);
   const { editAspectRatio: selectedAspect, count: selectedCount, setEditAspectRatio: setAspectRatio } = useImageGenStore();
-  const fallbackModel = useEditImageModel(isBoostTier);
-  const resolveModel = (value?: string): ImageModelId =>
-    IMAGE_MODEL_OPTIONS.some((option) => option.id === value)
-      ? value as ImageModelId
-      : fallbackModel;
-  const [selectedModel, setSelectedModel] = useState<ImageModelId>(() => resolveModel(lastUsedModel));
-  const [openMenu, setOpenMenu] = useState<null | "model" | "aspect">(null);
+  const selectedModel: ImageModelId = 'gpt-image-2.5-sunburst';
+  const [openMenu, setOpenMenu] = useState<null | "aspect">(null);
 
-  useEffect(() => {
-    if (isOpen) setSelectedModel(resolveModel(lastUsedModel));
-  }, [isOpen, lastUsedModel, fallbackModel]);
-
-  const activeModel = IMAGE_MODEL_OPTIONS.find((m) => m.id === selectedModel) ?? IMAGE_MODEL_OPTIONS[0];
   const activeAspect = EDIT_ASPECT_OPTIONS.find((a) => a.id === selectedAspect) ?? EDIT_ASPECT_OPTIONS[0];
 
   const handlePickAspect = (a: EditAspectRatio) => {
     setAspectRatio(a);
-    setOpenMenu(null);
-  };
-
-  const handlePickModel = (model: ImageModelId) => {
-    const option = IMAGE_MODEL_OPTIONS.find((item) => item.id === model);
-    if (option?.pro && !isBoostTier) {
-      openCheckout();
-      return;
-    }
-    setSelectedModel(model);
     setOpenMenu(null);
   };
 
@@ -338,49 +316,13 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
             <div>
               <label className="text-sm font-medium mb-2 block">Output options</label>
               <div className="flex flex-wrap items-center gap-2">
-                {/* GPT Image 2.5 Flare and Sunburst both support edits. Keep
-                    the legacy GPT Image 2 option visible for old sessions. */}
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setOpenMenu(openMenu === "model" ? null : "model")}
-                    disabled={isSubmitting}
-                    className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
-                    title="Choose the image model for this edit"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
-                    <span className="font-medium">{activeModel.label.replace(' (Default)', '')}</span>
-                    {activeModel.pro && <Crown className="h-3 w-3 text-primary" />}
-                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-                  {openMenu === "model" && (
-                    <div className="absolute bottom-full mb-2 left-0 w-72 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
-                      {IMAGE_MODEL_OPTIONS.map((option) => {
-                        const isActive = option.id === selectedModel;
-                        const locked = Boolean(option.pro && !isBoostTier);
-                        return (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={() => handlePickModel(option.id)}
-                            className={cn(
-                              "w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-colors",
-                              isActive ? "bg-primary/10 text-foreground" : "hover:bg-muted/40 text-foreground",
-                            )}
-                          >
-                            <span className="min-w-0 flex-1">
-                              <span className="flex items-center gap-1.5 text-sm font-medium">
-                                {option.label.replace(' (Default)', '')}
-                                {option.pro && <Crown className="h-3 w-3 text-primary" />}
-                              </span>
-                              <span className="block text-[11px] text-muted-foreground mt-0.5">{option.blurb}</span>
-                            </span>
-                            {locked ? <span className="text-[10px] text-primary font-semibold">Boost</span> : isActive ? <Check className="h-4 w-4 text-primary shrink-0" /> : null}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                {/* All image edits use GPT Image 2.5 Sunburst for precision control */}
+                <div
+                  className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 text-sm text-foreground select-none"
+                  title="All image edits use GPT Image 2.5 Sunburst for precision control"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <span className="font-medium">GPT Image 2.5 Sunburst</span>
                 </div>
 
                 {/* Aspect picker */}

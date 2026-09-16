@@ -225,12 +225,12 @@ function Tile({
 
 
 function ImageDefaultsCard() {
-  const { aspectRatio, setAspectRatio, proImage, setProImage } = useImageGenStore();
-  const { hasBoost, isAdmin, openCheckout } = useSubscription();
+  const { aspectRatio, setAspectRatio } = useImageGenStore();
+  const { hasBoost, isAdmin } = useSubscription();
   const isBoost = Boolean(hasBoost || isAdmin);
 
   return (
-    <SectionCard icon={ImageIcon} title="Image Defaults" subtitle="Used when generating images">
+    <SectionCard icon={ImageIcon} title="Image Studio" subtitle="Defaults and model specifications">
       <div className="space-y-4 pt-1">
         <div>
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1 mb-2">Aspect Ratio</div>
@@ -252,33 +252,24 @@ function ImageDefaultsCard() {
           </div>
         </div>
 
-        <div className="pt-3 border-t border-border/40 flex items-center justify-between gap-4">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
-              <span>Pro Image Mode (2.5)</span>
-              {!isBoost && (
-                <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
-                  Boost
-                </span>
-              )}
+        <div className="pt-3 border-t border-border/40 space-y-2.5">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1">Models & Workflow</div>
+          <div className="p-3 rounded-xl bg-muted/20 border border-border/40 space-y-2 text-xs">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Generation</span>
+              <span className="font-medium text-foreground">GPT Image 2.5 Flare</span>
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              {isBoost
-                ? "Uses GPT-Image-2.5 Pro (Sunburst) for maximum fidelity and precision edits. Flare (Quick) is used when off."
-                : "Unlock GPT-Image-2.5 Pro (Sunburst) with ArcAI Boost."}
-            </p>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Edits & Variations</span>
+              <span className="font-medium text-foreground">GPT Image 2.5 Sunburst</span>
+            </div>
+            <div className="flex justify-between items-center pt-1 border-t border-border/30">
+              <span className="text-muted-foreground">Allowance</span>
+              <span className="font-medium text-primary">
+                {isBoost ? "Unlimited with Boost" : "3 images total (Free plan)"}
+              </span>
+            </div>
           </div>
-          <Switch
-            checked={isBoost && proImage}
-            onCheckedChange={(checked) => {
-              if (!isBoost) {
-                openCheckout();
-                return;
-              }
-              setProImage(checked);
-            }}
-            aria-label="Toggle Pro Image mode"
-          />
         </div>
       </div>
     </SectionCard>

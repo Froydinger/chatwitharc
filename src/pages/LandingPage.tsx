@@ -25,11 +25,11 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning, canvases, a living memory summary, image generation, weekly research, and tons of GPT-Live-1 voice usage. Upgrade to Boost for unlimited research, unlimited reasoning, App Builder, higher image quotas, and unlimited voice sessions.",
+    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning, canvases, a living memory summary, 3 AI images, weekly research, and tons of GPT-Live-1 voice usage. Upgrade to Boost for unlimited research, unlimited reasoning, App Builder, unlimited image generation, and unlimited voice sessions.",
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds unlimited Luna reasoning, unlimited Deep Search and Ultra Deep Search, GPT Image 2.5 Pro and Quick (20/day), full image editing, unlimited GPT-Live-1 voice, and the full App Builder with live web-app publishing.",
+    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds unlimited Luna reasoning, unlimited Deep Search and Ultra Deep Search, unlimited GPT Image 2.5 Flare generation, precision Sunburst editing, unlimited GPT-Live-1 voice, and the full App Builder with live web-app publishing.",
   },
   {
     q: "What is the App Builder in ArcAI?",
@@ -61,7 +61,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI generate images?",
-    a: "Yes. Free accounts receive GPT-Image-2.5 Quick (10/day). Boost accounts receive GPT-Image-2.5 Quick and Pro (20/day) plus full editing features.",
+    a: "Yes. Free accounts include 3 AI images total powered by GPT Image 2.5 Flare. Boost accounts receive unlimited image generation (Flare) and precision image editing (Sunburst).",
   },
   {
     q: "Does ArcAI have voice mode?",
@@ -268,7 +268,7 @@ export function LandingPage() {
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
-                { icon: ImageIcon, title: "10 free images a day", body: "Generate and edit up to 10 images daily for free, or 20 with Boost." },
+                { icon: ImageIcon, title: "3 free images to start", body: "Create up to 3 images for free, or upgrade to Boost for unlimited generation and editing." },
                 { icon: Mic, title: "GPT-Live-1 voice conversations", body: "Speak naturally with low-latency, interruptible audio. Free accounts get tons of usage, and Boost includes unlimited live voice sessions." },
                 { icon: Search, title: "Deep research, powered by Perplexity", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. 4 Deep and 1 Ultra a week free, unlimited on Boost." },
                 { icon: Code2, title: "Publish code online", body: "Share your canvases and running web creations with custom Arc links on Boost." },
@@ -382,7 +382,7 @@ export function LandingPage() {
           Find your creative center.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-              Start with 20 daily reasoning chats, 10 images a day, and tons of free voice usage. Upgrade to Boost for higher limits and unlimited voice sessions.
+          Start with 20 daily reasoning chats, 3 free images, and tons of free voice usage. Upgrade to Boost for unlimited image generation, higher reasoning, and unlimited voice sessions.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button

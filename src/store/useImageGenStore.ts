@@ -155,28 +155,19 @@ function checkIsBoostOrAdmin(): boolean {
   }
 }
 
-/** Resolve the generation model in non-React code (e.g. Zustand store getters). */
-export function getResolvedImageModel(isBoost?: boolean): ImageModelId {
-  const effectiveBoost = typeof isBoost === "boolean" ? isBoost : checkIsBoostOrAdmin();
-  const { proImage } = useImageGenStore.getState();
-  if (effectiveBoost && proImage) return PRO_IMAGE_MODEL;
+/** Resolve the generation model in non-React code (e.g. Zustand store getters). EVERYONE uses 2.5 Flare. */
+export function getResolvedImageModel(_isBoost?: boolean): ImageModelId {
   return DEFAULT_IMAGE_MODEL;
 }
 
-/** React hook for the model used by *initial generation*. */
-export function useResolvedImageModel(isBoost?: boolean): ImageModelId {
-  const proImage = useImageGenStore((s) => s.proImage);
-  const effectiveBoost = typeof isBoost === "boolean" ? isBoost : checkIsBoostOrAdmin();
-  if (effectiveBoost && proImage) return PRO_IMAGE_MODEL;
+/** React hook for the model used by *initial generation*. EVERYONE uses 2.5 Flare. */
+export function useResolvedImageModel(_isBoost?: boolean): ImageModelId {
   return DEFAULT_IMAGE_MODEL;
 }
 
 /**
- * The model used for edits. Boost and Admin users with Pro Image enabled use Sunburst for precision edits.
+ * The model used for edits. All edits use 2.5 Sunburst for precision control.
  */
-export function useEditImageModel(isBoost?: boolean): ImageModelId {
-  const proImage = useImageGenStore((s) => s.proImage);
-  const effectiveBoost = typeof isBoost === "boolean" ? isBoost : checkIsBoostOrAdmin();
-  if (effectiveBoost && proImage) return PRO_IMAGE_MODEL;
-  return effectiveBoost ? PRO_IMAGE_MODEL : DEFAULT_IMAGE_MODEL;
+export function useEditImageModel(_isBoost?: boolean): ImageModelId {
+  return EDIT_IMAGE_MODEL;
 }

@@ -66,7 +66,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/upgrade": {
     title: "ArcAI • Upgrade to Boost",
     description:
-      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited premium reasoning, higher image quotas, and unlimited GPT-Live-1 voice sessions. Free accounts get tons of voice usage.",
+      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited premium reasoning, unlimited image generation & Sunburst editing, and unlimited GPT-Live-1 voice sessions. Free accounts get tons of voice usage.",
   },
   "/share": {
     title: "ArcAI • Shared Conversation",

@@ -17,17 +17,10 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 const REQUEST_TIMEOUT_MS = 180_000;
 const RETRY_DELAY_MS = 3_000;
 
-// Default image generation to GPT Image 2.5 Flare (Quick). Pro Image uses Sunburst.
+// All users use GPT Image 2.5 Flare for image generation (OpenAI's fast high-fidelity generator).
 const DEFAULT_IMAGE_MODEL = "gpt-image-2.5-flare";
-const ALLOWED_IMAGE_MODELS = new Set<string>([
-  "gpt-image-2.5-flare",
-  "gpt-image-2.5-sunburst",
-  "gpt-image-2",
-]);
-function pickImageModel(requested?: unknown): string {
-  return typeof requested === "string" && ALLOWED_IMAGE_MODELS.has(requested)
-    ? requested
-    : DEFAULT_IMAGE_MODEL;
+function pickImageModel(_requested?: unknown): string {
+  return DEFAULT_IMAGE_MODEL;
 }
 
 // GPT-Image-2 only supports a fixed set of sizes. Map the user's aspect ratio
@@ -454,10 +447,10 @@ serve(async (req) => {
       return jsonResponse({ success: false, error: "Could not check today's image allowance.", errorType: "quota_error" });
     }
     if (!quota?.allowed) {
-      await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "Daily image limit reached", error_type: "daily_limit" });
+      await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "Free image limit reached", error_type: "daily_limit" });
       return jsonResponse({
         success: false,
-        error: `Daily image limit reached. ${quota?.remaining ?? 0} remaining.`,
+        error: `Free image limit reached (3 images total). Upgrade to ArcAI Boost for unlimited image generation.`,
         errorType: "daily_limit",
         quota,
       });

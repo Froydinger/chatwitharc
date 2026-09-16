@@ -86,8 +86,8 @@ export function DocsPage() {
             Usage quotas depend on your plan:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Free Tier</strong>: Luna chat plus limited daily image generations and plan-based usage limits.</li>
-            <li><strong className="text-foreground">Boost Plan ($10/mo or $95/yr)</strong>: Higher usage limits, offline local model support, premium image tools, unlimited voice, and publishing.</li>
+            <li><strong className="text-foreground">Free Tier</strong>: Luna chat plus 3 free AI images and plan-based usage limits.</li>
+            <li><strong className="text-foreground">Boost Plan ($10/mo or $95/yr)</strong>: Unlimited AI image generation &amp; Sunburst editing, higher reasoning limits, offline local model support, unlimited voice, and publishing.</li>
           </ul>
           <p>You can check your current daily usage and remaining limit at <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>
         </div>

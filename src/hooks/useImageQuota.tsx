@@ -69,19 +69,19 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
   }, [refreshQuota]);
 
   const value = useMemo<ImageQuotaState>(() => {
-    const isAdmin = quota?.isAdmin === true;
-    const remaining = isAdmin ? Infinity : quota?.remaining ?? DAILY_IMAGE_OUTPUT_LIMIT;
-    const limit = isAdmin ? Infinity : quota?.limit ?? 10;
+    const isUnlimited = quota?.isAdmin === true || quota?.remaining === null;
+    const remaining = isUnlimited ? Infinity : quota?.remaining ?? 3;
+    const limit = isUnlimited ? Infinity : quota?.limit ?? 3;
     return {
       loading,
-      isAdmin,
+      isAdmin: quota?.isAdmin === true,
       dailyImagesUsed: quota?.used ?? 0,
       remainingImages: remaining,
       limit,
-      canGenerateImage: !isAnonymous && (isAdmin || remaining > 0),
+      canGenerateImage: !isAnonymous && (isUnlimited || remaining > 0),
       resetAt: quota?.resetAt ?? null,
       refreshQuota,
-      FREE_DAILY_IMAGE_LIMIT: DAILY_IMAGE_OUTPUT_LIMIT,
+      FREE_DAILY_IMAGE_LIMIT: 3,
     };
   }, [isAnonymous, loading, quota, refreshQuota]);
 

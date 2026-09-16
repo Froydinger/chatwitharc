@@ -259,11 +259,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["AI image generator", "AI image free", "GPT image free", "image creator"],
     updated: UPDATED,
     intro:
-      "ArcAI includes a built-in AI image generator powered by GPT-Image-2. Free accounts get daily base image quotas, while Boost accounts unlock higher quotas and full image editing features.",
+      "ArcAI includes a built-in AI image generator powered by GPT Image 2.5 Flare and precision editing powered by GPT Image 2.5 Sunburst. Free accounts get 3 free images total, while Boost accounts unlock unlimited image generation and editing.",
     faq: [
       {
         q: "What is the best AI image generator?",
-        a: "ArcAI is a strong option because it integrates OpenAI's GPT-Image-2 model directly into your chat and workspace, making it easy to create and edit images.",
+        a: "ArcAI is a strong option because it integrates GPT Image 2.5 Flare for fast generation and Sunburst for precision editing directly into your chat and workspace.",
       },
       {
         q: "Can I use generated images in the App Builder?",
@@ -271,11 +271,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How many free images can I generate?",
-        a: "Free accounts get GPT-Image-1 Mini (40 outputs/day), GPT-Image-1 (10 outputs/day), and 3 premium GPT-Image-2 outputs. Upgrading to Boost gives you 20 premium GPT-Image-2 outputs per day.",
+        a: "Free accounts get 3 AI images total to try out image generation (powered by GPT Image 2.5 Flare). Upgrading to Boost gives you unlimited image generation and precision Sunburst editing.",
       },
       {
         q: "Can I edit generated images?",
-        a: "Yes. Full image editing (combining, inpainting, and variations of base images) is unlocked with a Boost subscription.",
+        a: "Yes. Full image editing (combining, inpainting, and precision variations) is powered by GPT Image 2.5 Sunburst and included with unlimited access on Boost.",
       },
     ],
     cta: "Generate AI images",
@@ -527,7 +527,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-ai-image-generator": {
     angle: "A standalone image generator is useful, but an image generator inside your AI assistant is more useful because the same chat can plan, revise, describe, and edit the image workflow.",
     useCases: ["social graphics", "App Builder assets", "concept art", "product mockups", "moodboards", "iterative image edits"],
-    freeAccess: "Free accounts receive basic image generation quotas, while Boost accounts unlock premium models, higher quotas, and full image editing.",
+    freeAccess: "Free accounts receive 3 AI images total with GPT Image 2.5 Flare, while Boost accounts unlock unlimited image generation and precision Sunburst editing.",
     proof: "ArcAI makes image generation feel like part of the conversation and app building workflow instead of a separate tool you have to manage.",
   },
   "ai-that-remembers-conversations": {

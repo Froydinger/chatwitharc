@@ -4,7 +4,7 @@
 
 GPT-5.6 Luna powers ArcAI chat, code, writing and analysis. The model picker offers Auto, Quick, Balanced and Deep reasoning; Auto starts with Quick and steps up for clearly harder requests. GPT-Live-1 powers natural, interruptible voice conversations. Living memory, Deep Search, web search, file uploads, document analysis, canvases, shared chats, code generation and one-tap publishing are also included.
 
-Permanent accounts can generate or edit up to 20 image outputs per UTC day. Multi-image requests count once per returned output. Administrators have unlimited image generation and editing.
+Free accounts can generate or edit up to 3 image outputs total (powered by GPT Image 2.5 Flare for generation and Sunburst for precision editing). Boost subscribers and administrators have unlimited image generation and editing.
 
 Published code creations use the `*.froydingermedia.online` domain and stay live until their owner unpublishes them.
 

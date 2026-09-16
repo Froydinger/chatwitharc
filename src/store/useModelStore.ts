@@ -83,10 +83,12 @@ export const useModelStore = create<ModelStore>()(
 
 import { useImageGenStore, getResolvedImageModel } from './useImageGenStore';
 
-/** Route every text, code, file, and analysis task through Luna. */
 export function getModelForTask(task: ModelTask, _complexity: 0 | 1 | 2 | 3 = 0): string {
-  if (task === 'image-gen' || task === 'image-edit') {
-    return getResolvedImageModel(useModelStore.getState().isBoost);
+  if (task === 'image-gen') {
+    return 'gpt-image-2.5-flare';
+  }
+  if (task === 'image-edit') {
+    return 'gpt-image-2.5-sunburst';
   }
   return LUNA_MODEL;
 }

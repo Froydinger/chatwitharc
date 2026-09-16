@@ -105,7 +105,7 @@ export const CLOUD_IMAGE_DEFINITIONS: CloudToolDefinition[] = [
   name,
   strict: true,
   description:
-    "Generate or edit 1–3 images. Pro is the default for generation and edits and uses GPT Image 2.5 Sunburst; Quick is available only when explicitly requested. Pro requires Boost/admin. Edits require owner-owned persisted source URLs; never pass base64 or browser credentials. Preserve the user prompt. Do not retry a recovery-required image with a new tool call.",
+    "Generate or edit 1–3 images. All image generation uses GPT Image 2.5 Flare; all image edits use GPT Image 2.5 Sunburst. Edits require owner-owned persisted source URLs; never pass base64 or browser credentials. Preserve the user prompt. Do not retry a recovery-required image with a new tool call.",
   parameters: {
     type: "object",
     properties: {
@@ -159,13 +159,7 @@ export function cloudImageArguments(call: ToolCall): CloudImageArgs {
       typeof u !== "string" || u.length > 2048
     ) || typeof a.transparent !== "boolean"
   ) throw new Error("Invalid image arguments");
-  const model = ({
-    quick: "gpt-image-2.5-flare",
-    pro: "gpt-image-2.5-sunburst",
-    legacy: "gpt-image-2",
-  } as Record<string, string>)[
-    a.model ?? "pro"
-  ];
+  const model = kind === "edit" ? "gpt-image-2.5-sunburst" : "gpt-image-2.5-flare";
   if (
     !model ||
     !["1:1", "3:2", "4:3", "16:9", "21:9", "2:3", "3:4", "9:16", "source"]

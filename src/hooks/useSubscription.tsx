@@ -4,8 +4,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { paymentsAvailable, getStripeEnvironment } from '@/lib/stripe';
 
 // ArcAI limits
-export const FREE_DAILY_IMAGE_LIMIT = 10;
-export const BOOST_DAILY_IMAGE_LIMIT = 20;
+export const FREE_IMAGE_LIMIT = 3;
+export const FREE_DAILY_IMAGE_LIMIT = 3; // Kept for backwards compatibility
+export const BOOST_DAILY_IMAGE_LIMIT = Infinity;
 export const FREE_DAILY_SMARTER_CHAT_LIMIT = 20;
 export const FREE_DAILY_BALANCED_LIMIT = 10;
 export const FREE_DAILY_DEEP_LIMIT = 3;
@@ -23,6 +24,7 @@ const UNLIMITED_EMAILS = new Set([
   'lopezvivtorymma@gmail.com',
 ]);
 
+const TOTAL_IMAGE_KEY = 'arcai-total-images';
 const DAILY_IMAGE_KEY = 'arcai-daily-images';
 const DAILY_SMARTER_CHAT_KEY = 'arcai-daily-smarter-chats';
 const DAILY_BALANCED_KEY = 'arcai-daily-balanced';
@@ -37,7 +39,6 @@ function rolloverIfNeeded() {
   const today = getTodayKey();
   if (localStorage.getItem(DAILY_DATE_KEY) !== today) {
     localStorage.setItem(DAILY_DATE_KEY, today);
-    localStorage.setItem(DAILY_IMAGE_KEY, '0');
     localStorage.setItem(DAILY_SMARTER_CHAT_KEY, '0');
     localStorage.setItem(DAILY_BALANCED_KEY, '0');
     localStorage.setItem(DAILY_DEEP_KEY, '0');
@@ -45,13 +46,12 @@ function rolloverIfNeeded() {
 }
 
 function getDailyImageCount(): number {
-  rolloverIfNeeded();
-  return parseInt(localStorage.getItem(DAILY_IMAGE_KEY) || '0', 10);
+  return parseInt(localStorage.getItem(TOTAL_IMAGE_KEY) || localStorage.getItem(DAILY_IMAGE_KEY) || '0', 10);
 }
 
 function incrementDailyImageCount(): number {
-  rolloverIfNeeded();
   const count = getDailyImageCount() + 1;
+  localStorage.setItem(TOTAL_IMAGE_KEY, String(count));
   localStorage.setItem(DAILY_IMAGE_KEY, String(count));
   return count;
 }
@@ -187,11 +187,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   // Image quota logic
   // Admin: unlimited
-  // Boost: 20
-  // Free: 10
-  const imageLimit = isAdmin ? Infinity : (hasBoost ? BOOST_DAILY_IMAGE_LIMIT : FREE_DAILY_IMAGE_LIMIT);
-  const canGenerateImage = isAdmin || dailyImagesUsed < imageLimit;
-  const remainingImages = isAdmin ? Infinity : Math.max(0, imageLimit - dailyImagesUsed);
+  // Boost: unlimited
+  // Free: 3 images total period
+  const imageLimit = isAdmin || hasBoost ? Infinity : FREE_IMAGE_LIMIT;
+  const canGenerateImage = isAdmin || hasBoost || dailyImagesUsed < imageLimit;
+  const remainingImages = isAdmin || hasBoost ? Infinity : Math.max(0, imageLimit - dailyImagesUsed);
 
   // Reasoning quota logic (daily: unlimited Quick, 10 Balanced, 3 Deep)
   // Admin: unlimited
