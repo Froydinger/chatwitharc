@@ -884,7 +884,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     if (e.animationName === "arc-logo-handoff") setLogoPulse(false);
                   }}
                 >
-                  <ThemedLogo className="h-10 w-10" alt="Arc" />
+                  <ThemedLogo className="h-10 w-10 -ml-[5px]" alt="Arc" />
                 </div>
                 {isThinking && (
                   <motion.div

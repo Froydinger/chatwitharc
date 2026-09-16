@@ -111,6 +111,12 @@ All colors MUST be HSL for perfect glass effects.
     /* Card & Surface Colors */
     --card: 240 8% 12%;
     --card-foreground: 240 5% 94%;
+
+    /* Popover/tooltip/menu fill. Must stay fully opaque: these float over chat
+       content, and shadcn's tooltip, dropdown, context-menu, menubar, command
+       and hover-card all read from it. */
+    --popover: 240 8% 12%;
+    --popover-foreground: 240 5% 94%;
     --surface: 240 6% 10%;
     --surface-foreground: 240 4% 92%;
 
@@ -193,6 +199,8 @@ All colors MUST be HSL for perfect glass effects.
     --foreground: 0 0% 8%;
     --card: 0 0% 99%;
     --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
     --input-bar: 0 0% 99%;
     --surface: 0 0% 97%;
     --surface-foreground: 0 0% 12%;
