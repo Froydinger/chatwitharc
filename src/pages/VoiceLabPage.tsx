@@ -35,6 +35,7 @@ import { supabase } from '@/integrations/supabase/client';
 const DEFAULT_VOICE_ID = 'PSZ39PJBY7BsKu1rx7ok';
 const STORAGE_KEY_API_KEY = 'arc_voice_lab_elevenlabs_key';
 const STORAGE_KEY_VOICE_ID = 'arc_voice_lab_voice_id';
+const STORAGE_KEY_MODEL_ID = 'arc_voice_lab_model_id';
 const STORAGE_KEY_PERSONA_PROMPT = 'arc_voice_lab_persona_prompt';
 
 export const JAKE_PERSONA_PROMPT = `You are an AI counterpart modeled after Jake Freudinger (@froydinger), a Chicagoland creator, video editor, writer, musician, designer, developer, and co-founder of Win The Night.
@@ -77,10 +78,10 @@ interface ChatTurn {
 }
 
 const SAMPLE_PHRASES = [
-  "Hey, it's Jake! Testing out my custom voice clone with Arc AI.",
-  "Arc here. I'm using your personal voice profile to speak our responses right now.",
-  "The quick brown fox jumps over the lazy dog, checking clarity, cadence, and warmth.",
-  "Let's test this in a conversational flow. Ask me any question and I'll answer.",
+  "Hey, it's Jake! [laughs] Testing out the ElevenLabs v3 expressive model with my custom voice clone.",
+  "Arc here. I'm using your personal voice clone on Eleven v3 Expressive to speak our responses.",
+  "Look, we move fast. We build, test, and iterate instead of endlessly planning shit.",
+  "One conversation at a time. No unsolicited advice, just real human storytelling without the bullshit.",
 ];
 
 export function VoiceLabPage() {
@@ -104,7 +105,23 @@ export function VoiceLabPage() {
     return localStorage.getItem(STORAGE_KEY_VOICE_ID) || DEFAULT_VOICE_ID;
   });
   const [showApiKey, setShowApiKey] = useState(false);
-  const [modelId, setModelId] = useState<'eleven_turbo_v2_5' | 'eleven_multilingual_v2' | 'eleven_flash_v2_5'>('eleven_turbo_v2_5');
+  const [modelId, setModelId] = useState<
+    'eleven_v3' | 'eleven_v3_conversational' | 'eleven_turbo_v2_5' | 'eleven_flash_v2_5' | 'eleven_multilingual_v2'
+  >(() => {
+    return (
+      (localStorage.getItem(STORAGE_KEY_MODEL_ID) as
+        | 'eleven_v3'
+        | 'eleven_v3_conversational'
+        | 'eleven_turbo_v2_5'
+        | 'eleven_flash_v2_5'
+        | 'eleven_multilingual_v2') || 'eleven_v3'
+    );
+  });
+
+  const handleSaveModelId = (newModelId: typeof modelId) => {
+    setModelId(newModelId);
+    localStorage.setItem(STORAGE_KEY_MODEL_ID, newModelId);
+  };
   const [stability, setStability] = useState<number>(0.5);
   const [similarityBoost, setSimilarityBoost] = useState<number>(0.8);
   const [style, setStyle] = useState<number>(0.0);
@@ -594,7 +611,7 @@ export function VoiceLabPage() {
                     Jake's Voice Lab
                   </h1>
                   <Badge variant="outline" className="border-primary/40 bg-primary/10 text-[10px] text-primary">
-                    ElevenLabs Test Mode
+                    ElevenLabs v3 Expressive
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -723,14 +740,16 @@ export function VoiceLabPage() {
                   <label className="text-xs font-medium text-foreground">ElevenLabs Model</label>
                   <select
                     value={modelId}
-                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setModelId(e.target.value as typeof modelId)}
-                    className="h-8 w-full rounded-md border border-white/10 bg-black/40 px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSaveModelId(e.target.value as typeof modelId)}
+                    className="h-8 w-full rounded-md border border-white/10 bg-black/40 px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                   >
-                    <option value="eleven_turbo_v2_5">Turbo v2.5 (Fastest, High Quality)</option>
-                    <option value="eleven_multilingual_v2">Multilingual v2 (Rich Cadence)</option>
+                    <option value="eleven_v3">Eleven v3 Expressive (Default · Flagship & Emotional)</option>
+                    <option value="eleven_v3_conversational">Eleven v3 Conversational (Low Latency / Dialogue)</option>
+                    <option value="eleven_turbo_v2_5">Turbo v2.5 (Fast & High Quality)</option>
                     <option value="eleven_flash_v2_5">Flash v2.5 (Ultra Low Latency)</option>
+                    <option value="eleven_multilingual_v2">Multilingual v2 (Legacy)</option>
                   </select>
-                  <p className="text-[10px] text-muted-foreground">Adjusts synthesis engine latency and nuances.</p>
+                  <p className="text-[10px] text-muted-foreground">v3 Expressive supports emotional audio tags like [laughs] and [sighs].</p>
                 </div>
 
                 {/* Stability Slider */}
