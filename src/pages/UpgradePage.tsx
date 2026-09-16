@@ -128,7 +128,7 @@ export function UpgradePage() {
               </div>
               <h1 className="text-4xl font-black tracking-tight text-white mb-3">Unlock ArcAI Boost.</h1>
               <p className="text-sm md:text-base text-muted-foreground max-w-md mx-auto">
-                Get unlimited Reese & Cora reasoning, unlimited research, Arc Imagix tools, and live web-app publishing.
+                Get unlimited River & Maya reasoning, unlimited research, Arc Imagix tools, and live web-app publishing.
               </p>
             </div>
 

@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { SmoothImage } from "@/components/ui/smooth-image";
-import { X, Sparkles, ImagePlus, Ratio, Mic } from "lucide-react";
+import { X, Sparkles, ImagePlus, Ratio, Mic, ChevronDown, Check } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import {
   useImageGenStore,
   EDIT_ASPECT_OPTIONS,

@@ -187,10 +187,10 @@ review markup risks a manual action against the rich results the site earns.
 - **Voice Mode: Natural voice powered by Voxi.** Browser voice uses OpenAI's speech-to-speech
   model over WebRTC, with Responses delegation to `gpt-5.6-luna` for Arc's tools and
   deeper work. The microphone stays active for natural interruptions; the assistant is always Arc.
-- **Arc Matrix™ Models: Auto, Flo, Cora, Reese.** The picker exposes Auto, Flo
-  (Fast & Agile), Cora (Balanced Intelligence), and Reese (Deep Reasoning). Flo,
-  Cora, and Reese map to `low`, `medium`, and `high` `reasoning_effort`; Auto
-  starts at Flo and steps up for clearly harder requests. Old Terra, Sol, GPT-5.4,
+- **Arc Matrix™ Models: Auto, Ava, Maya, River.** The picker exposes Auto, Ava
+  (Fast & Agile), Maya (Balanced Intelligence), and River (Deep Reasoning). Ava,
+  Maya, and River map to `low`, `medium`, and `high` `reasoning_effort`; Auto
+  starts at Ava and steps up for clearly harder requests. Old Terra, Sol, GPT-5.4,
   and GPT-5.5 selections normalize smoothly on both client and server. Specialized
   image, realtime voice, video, and search provider models remain separate.
 - **Image setup: Arc Imagix for generation, Arc Imagix Edit for edits.**

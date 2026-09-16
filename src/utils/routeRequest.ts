@@ -157,6 +157,6 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
 
 function getModelInfo(_m: string): { name: string; tier: string; providerName: string } {
   const effort = useModelStore.getState().reasoningEffort;
-  const name = effort === 'low' ? 'Flo' : effort === 'medium' ? 'Cora' : effort === 'high' ? 'Reese' : 'Arc Matrix';
+  const name = effort === 'low' ? 'Ava' : effort === 'medium' ? 'Maya' : effort === 'high' ? 'River' : 'Arc Matrix';
   return { name: `Arc · ${name}`, tier: name, providerName: 'Arc Matrix™' };
 }

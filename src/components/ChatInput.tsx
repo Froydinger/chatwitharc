@@ -3236,10 +3236,11 @@ ${safeCode}
           const hasImages = selectedImages.length > 0;
           const previewStack = (hasDocs ? 80 : 0) + (hasImages ? 90 : 0);
           const gitOffset = shouldShowGitMode ? 54 : 0;
+          const imageDockOffset = (shouldShowBanana && !hasImages) ? 116 : 0;
           const rect = inputBarRef.current?.getBoundingClientRect();
           const bottom = rect
-            ? `${Math.max(12, window.innerHeight - rect.top + 8 + previewStack + gitOffset)}px`
-            : `calc(${120 + previewStack + gitOffset}px + env(safe-area-inset-bottom, 0px))`;
+            ? `${Math.max(12, window.innerHeight - rect.top + 8 + previewStack + gitOffset + imageDockOffset)}px`
+            : `calc(${120 + previewStack + gitOffset + imageDockOffset}px + env(safe-area-inset-bottom, 0px))`;
           const anchored = rect ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom } : { bottom };
           const enhancerKind = shouldShowGitMode ? "git_plan" : (shouldShowBanana ? "image" : "chat");
           return createPortal(

@@ -15,7 +15,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/pricing": {
     title: "ArcAI • Pricing",
     description:
-      "ArcAI includes Arc Matrix™ intelligence with Flo, Cora, and Reese reasoning, plus natural voice, Deep Search, and shared chats.",
+      "ArcAI includes Arc Matrix™ intelligence with Ava, Maya, and River reasoning, plus natural voice, Deep Search, and shared chats.",
   },
   "/downloads": {
     title: "ArcAI • Downloads",
@@ -66,7 +66,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/upgrade": {
     title: "ArcAI • Upgrade to Boost",
     description:
-      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited Flo, Cora, and Reese reasoning, unlimited Arc Imagix generation & editing, and unlimited voice sessions.",
+      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited Ava, Maya, and River reasoning, unlimited Arc Imagix generation & editing, and unlimited voice sessions.",
   },
   "/share": {
     title: "ArcAI • Shared Conversation",

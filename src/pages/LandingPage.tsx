@@ -25,11 +25,11 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes Arc Matrix™ chat (unlimited Flo, 10 Cora, 3 Reese daily), canvases, a living memory summary, 3 Arc Imagix creations, weekly research, and generous voice usage with Arc. Upgrade to Boost for unlimited research, unlimited Flo, Cora, and Reese reasoning, App Builder, unlimited Arc Imagix creation & editing, and unlimited voice sessions.",
+    a: "Yes. Our free tier includes Arc Matrix™ chat (unlimited Ava, 10 Maya, 3 River daily), canvases, a living memory summary, 3 Arc Imagix creations, weekly research, and generous voice usage with Arc. Upgrade to Boost for unlimited research, unlimited Ava, Maya, and River reasoning, App Builder, unlimited Arc Imagix creation & editing, and unlimited voice sessions.",
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds unlimited Flo, Cora, and Reese reasoning across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, unlimited Arc Imagix generation & editing, unlimited voice sessions, and the full App Builder with live web-app publishing.",
+    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds unlimited Ava, Maya, and River reasoning across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, unlimited Arc Imagix generation & editing, unlimited voice sessions, and the full App Builder with live web-app publishing.",
   },
   {
     q: "What is the App Builder in ArcAI?",
@@ -49,7 +49,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "ArcAI is powered by Arc Matrix™—our proprietary orchestration engine combining frontier language models, multimodal vision, and deep reasoning architectures. Chat and analysis are driven by Flo (fast & agile), Cora (everyday powerhouse), and Reese (deep logic & code); image creation and precision editing are powered by Arc Imagix and Arc Imagix Edit; natural voice conversations run on our Voxi voice pipeline; and live web research is powered by Deep Search.",
+    a: "ArcAI is powered by Arc Matrix™—our proprietary orchestration engine combining frontier language models, multimodal vision, and deep reasoning architectures. Chat and analysis are driven by Ava (fast & agile), Maya (everyday powerhouse), and River (deep logic & code); image creation and precision editing are powered by Arc Imagix and Arc Imagix Edit; natural voice conversations run on our Voxi voice pipeline; and live web research is powered by Deep Search.",
   },
   {
     q: "Is ArcAI private?",
@@ -217,7 +217,7 @@ export function LandingPage() {
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "Chat with Flo, Cora, and Reese across Arc Matrix™ for writing, code, logic, and analysis. Auto-mode starts fast and steps up when needed." },
+            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "Chat with Ava, Maya, and River across Arc Matrix™ for writing, code, logic, and analysis. Auto-mode starts fast and steps up when needed." },
             { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
             { category: "Reflect", icon: Brain, title: "Living Cross-Session Memory", body: "Arc keeps one detailed, evolving summary of the preferences, goals, facts, and boundaries you want it to remember, then recalls it when relevant." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },

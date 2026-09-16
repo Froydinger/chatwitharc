@@ -19,9 +19,9 @@ interface Props {
 
 export const PRESETS = [
   { effort: 'auto', title: 'Auto', subtitle: 'Smart routing across Arc Matrix', icon: RefreshCcwDot },
-  { effort: 'low', title: 'Flo', subtitle: 'Snappy answers & everyday speed', icon: Zap },
-  { effort: 'medium', title: 'Cora', subtitle: 'Versatile powerhouse intelligence', icon: Scale },
-  { effort: 'high', title: 'Reese', subtitle: 'Deep logic & heavy reasoning', icon: Brain },
+  { effort: 'low', title: 'Ava', subtitle: 'Snappy answers & everyday speed', icon: Zap },
+  { effort: 'medium', title: 'Maya', subtitle: 'Versatile powerhouse intelligence', icon: Scale },
+  { effort: 'high', title: 'River', subtitle: 'Deep logic & heavy reasoning', icon: Brain },
 ] as const;
 
 export function ChatModelPicker({
@@ -146,7 +146,7 @@ export function ChatModelPicker({
                       </button>
                     </div>
                     <div className="text-[10px] text-muted-foreground mt-2">
-                      {arcWorkAvailable ? 'Chat with Arc here, or let Work continue after you leave.' : 'Arc Work is the Boost cloud agent (powered by Reese).'}
+                      {arcWorkAvailable ? 'Chat with Arc here, or let Work continue after you leave.' : 'Arc Work is the Boost cloud agent (powered by River).'}
                     </div>
                   </div>
                 )}

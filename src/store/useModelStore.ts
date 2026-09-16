@@ -37,9 +37,9 @@ const VALID_REASONING_SELECTIONS = new Set<LunaReasoningSelection>(['auto', 'low
 
 export function getModelDisplayName(selection: LunaReasoningSelection): string {
   switch (selection) {
-    case 'low': return 'Flo';
-    case 'medium': return 'Cora';
-    case 'high': return 'Reese';
+    case 'low': return 'Ava';
+    case 'medium': return 'Maya';
+    case 'high': return 'River';
     case 'auto': default: return 'Auto';
   }
 }

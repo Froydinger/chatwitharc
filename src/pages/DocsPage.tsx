@@ -57,7 +57,7 @@ export function DocsPage() {
       id: "switch-model",
       category: "models",
       title: "Choosing an Arc Matrix™ reasoning engine",
-      question: "How do I choose between Flo, Cora, and Reese?",
+      question: "How do I choose between Ava, Maya, and River?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
@@ -66,14 +66,14 @@ export function DocsPage() {
           </p>
           <p>ArcAI is powered by <strong>Arc Matrix™</strong>. Click the picker to choose the best reasoning engine for your task:</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Auto</strong>: Automatically routes between Flo, Cora, and Reese based on query complexity.</li>
-            <li><strong className="text-foreground">Flo</strong>: Lightning-fast everyday answers, brainstorming, and drafting.</li>
-            <li><strong className="text-foreground">Cora</strong>: Everyday powerhouse intelligence with deep nuance and balanced reasoning.</li>
-            <li><strong className="text-foreground">Reese</strong>: Deep reasoning, complex code architecture, and heavy analytical problem solving.</li>
+            <li><strong className="text-foreground">Auto</strong>: Automatically routes between Ava, Maya, and River based on query complexity.</li>
+            <li><strong className="text-foreground">Ava</strong>: Lightning-fast everyday answers, brainstorming, and drafting.</li>
+            <li><strong className="text-foreground">Maya</strong>: Everyday powerhouse intelligence with deep nuance and balanced reasoning.</li>
+            <li><strong className="text-foreground">River</strong>: Deep reasoning, complex code architecture, and heavy analytical problem solving.</li>
           </ul>
         </div>
       ),
-      keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "arc matrix", "auto", "flo", "cora", "reese"]
+      keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "arc matrix", "auto", "ava", "maya", "river"]
     },
     {
       id: "model-quotas",
@@ -86,8 +86,8 @@ export function DocsPage() {
             Usage quotas depend on your plan:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Free Tier</strong>: Unlimited Flo, 10 Cora, and 3 Reese daily, plus 3 Arc Imagix creations and generous voice access.</li>
-            <li><strong className="text-foreground">Boost Plan ($10/mo or $95/yr)</strong>: Unlimited Flo, Cora, and Reese reasoning, unlimited Arc Imagix generation &amp; editing, full App Builder, offline local model support, and unlimited voice.</li>
+            <li><strong className="text-foreground">Free Tier</strong>: Unlimited Ava, 10 Maya, and 3 River daily, plus 3 Arc Imagix creations and generous voice access.</li>
+            <li><strong className="text-foreground">Boost Plan ($10/mo or $95/yr)</strong>: Unlimited Ava, Maya, and River reasoning, unlimited Arc Imagix generation &amp; editing, full App Builder, offline local model support, and unlimited voice.</li>
           </ul>
           <p>You can check your current daily usage and remaining limit at <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>
         </div>
