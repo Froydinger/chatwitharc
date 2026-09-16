@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { SmoothImage } from "@/components/ui/smooth-image";
-import { X, Sparkles, ImagePlus, Ratio, Mic, ChevronDown, Check } from "lucide-react";
+import { X, Sparkles, ImagePlus, Ratio, Mic, ChevronDown, Check, Images } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import {
@@ -12,6 +12,7 @@ import {
   EDIT_ASPECT_OPTIONS,
   type EditAspectRatio,
   type ImageModelId,
+  type ImageCount,
 } from "@/store/useImageGenStore";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
 import { cn } from "@/lib/utils";
@@ -46,9 +47,10 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const { toast } = useToast();
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
   const isBoostTier = Boolean(hasBoost || isAdmin);
-  const { editAspectRatio: selectedAspect, count: selectedCount, setEditAspectRatio: setAspectRatio } = useImageGenStore();
+  const { editAspectRatio: selectedAspect, count: selectedCount, setEditAspectRatio: setAspectRatio, setCount } = useImageGenStore();
   const selectedModel: ImageModelId = 'gpt-image-2.5-sunburst';
-  const [openMenu, setOpenMenu] = useState<null | "aspect">(null);
+  const [openMenu, setOpenMenu] = useState<null | "aspect" | "count">(null);
+  const effectiveCount: ImageCount = selectedCount || 1;
 
   const activeAspect = EDIT_ASPECT_OPTIONS.find((a) => a.id === selectedAspect) ?? EDIT_ASPECT_OPTIONS[0];
 
@@ -148,7 +150,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
           editInstruction: textWithChips,
           imageModel: selectedModel,
           aspectRatio: selectedAspect,
-          count: selectedCount,
+          count: effectiveCount,
         },
       });
       window.dispatchEvent(editEvent);
@@ -353,6 +355,44 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
                             )}
                           >
                             <span>{a.label}</span>
+                            {isActive && <Check className="h-4 w-4 text-primary" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Count picker */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setOpenMenu(openMenu === "count" ? null : "count")}
+                    disabled={isSubmitting}
+                    className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 hover:bg-muted/50 transition-colors text-sm text-foreground"
+                  >
+                    <Images className="h-3.5 w-3.5 text-primary" />
+                    <span className="font-medium">{effectiveCount}x</span>
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                  {openMenu === "count" && (
+                    <div className="absolute bottom-full mb-2 left-0 w-40 rounded-2xl border border-border/60 bg-background/95 backdrop-blur-xl shadow-xl p-1.5 z-20">
+                      {([1, 2, 3] as ImageCount[]).map((c) => {
+                        const isActive = c === effectiveCount;
+                        return (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => {
+                              setCount(c);
+                              setOpenMenu(null);
+                            }}
+                            className={cn(
+                              "w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-sm transition-colors",
+                              isActive ? "bg-primary/10 text-foreground" : "hover:bg-muted/40 text-foreground"
+                            )}
+                          >
+                            <span>{c} {c === 1 ? "image" : "images"}</span>
                             {isActive && <Check className="h-4 w-4 text-primary" />}
                           </button>
                         );
