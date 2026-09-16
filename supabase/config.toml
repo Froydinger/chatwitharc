@@ -36,6 +36,10 @@ project_id = "jpqtoixhjnfdubvqshwk"
     verify_jwt = true
   [functions.delete-r2-image]
     verify_jwt = true
+  [functions.voice-lab-tts]
+    # Holds the ElevenLabs key server-side. Gateway rejects anonymous callers,
+    # and the handler re-checks admin_users because the page gate is UX only.
+    verify_jwt = true
   [functions.system-health]
     # Public status and privacy-safe aggregate pageview endpoint.
     # The function never trusts a caller identity and uses service_role only

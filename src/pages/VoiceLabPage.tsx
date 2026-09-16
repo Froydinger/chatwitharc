@@ -39,7 +39,6 @@ import { useAdminBanner } from '@/components/AdminBanner';
 import { shouldReserveDesktopTrafficLightSpace } from '@/utils/platform';
 
 const DEFAULT_VOICE_ID = 'PSZ39PJBY7BsKu1rx7ok';
-const STORAGE_KEY_API_KEY = 'arc_voice_lab_elevenlabs_key';
 const STORAGE_KEY_VOICE_ID = 'arc_voice_lab_voice_id';
 const STORAGE_KEY_MODEL_ID = 'arc_voice_lab_model_id';
 const STORAGE_KEY_PERSONA_PROMPT = 'arc_voice_lab_persona_prompt';
@@ -98,13 +97,9 @@ export function VoiceLabPage() {
   );
 
   // Settings & Configuration
-  const [apiKey, setApiKey] = useState<string>(() => {
-    return localStorage.getItem(STORAGE_KEY_API_KEY) || '';
-  });
   const [voiceId, setVoiceId] = useState<string>(() => {
     return localStorage.getItem(STORAGE_KEY_VOICE_ID) || DEFAULT_VOICE_ID;
   });
-  const [showApiKey, setShowApiKey] = useState(false);
   const [modelId, setModelId] = useState<
     'eleven_v3' | 'eleven_v3_conversational' | 'eleven_turbo_v2_5' | 'eleven_flash_v2_5' | 'eleven_multilingual_v2'
   >(() => {
@@ -182,25 +177,7 @@ export function VoiceLabPage() {
     turnByTurnRef.current = turnByTurnMode;
   }, [turnByTurnMode]);
 
-  // Save API Key & Voice ID to localStorage
-  const handleSaveApiKey = (newKey: string) => {
-    setApiKey(newKey);
-    localStorage.setItem(STORAGE_KEY_API_KEY, newKey.trim());
-    toast({
-      title: 'API Key Saved',
-      description: 'Your ElevenLabs key is securely saved to local storage on this device only.',
-    });
-  };
-
-  const handleClearApiKey = () => {
-    setApiKey('');
-    localStorage.removeItem(STORAGE_KEY_API_KEY);
-    toast({
-      title: 'API Key Cleared',
-      description: 'The ElevenLabs API key has been removed from this device.',
-    });
-  };
-
+  // Voice ID persistence (the ElevenLabs key lives server-side in voice-lab-tts)
   const handleSaveVoiceId = (newVoiceId: string) => {
     setVoiceId(newVoiceId);
     localStorage.setItem(STORAGE_KEY_VOICE_ID, newVoiceId.trim());
@@ -215,48 +192,46 @@ export function VoiceLabPage() {
     });
   };
 
-  // ElevenLabs TTS synthesis function
+  // TTS is proxied through the voice-lab-tts edge function, which holds the
+  // ElevenLabs key and re-verifies admin server-side. No key ever reaches the
+  // browser, so there is nothing here to paste, store, or leak.
   const synthesizeSpeech = async (text: string): Promise<Blob> => {
-    const trimmedKey = apiKey.trim();
-    if (!trimmedKey) {
-      throw new Error('ElevenLabs API Key required. Please enter your key above.');
-    }
-
     const trimmedVoiceId = voiceId.trim() || DEFAULT_VOICE_ID;
-    const url = `https://api.elevenlabs.io/v1/text-to-speech/${trimmedVoiceId}`;
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'xi-api-key': trimmedKey,
-      },
-      body: JSON.stringify({
+    const { data, error } = await supabase.functions.invoke('voice-lab-tts', {
+      body: {
         text,
-        model_id: modelId,
-        voice_settings: {
+        voiceId: trimmedVoiceId,
+        modelId,
+        voiceSettings: {
           stability,
           similarity_boost: similarityBoost,
           style,
-          use_speaker_boost: true,
         },
-      }),
+      },
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      let errorMsg = `ElevenLabs API error (${response.status})`;
-      try {
-        const errorJson = JSON.parse(errorText);
-        if (errorJson?.detail?.message) errorMsg = errorJson.detail.message;
-        else if (errorJson?.message) errorMsg = errorJson.message;
-      } catch {
-        if (errorText) errorMsg += `: ${errorText.slice(0, 120)}`;
+    if (error) {
+      // invoke() surfaces non-2xx as FunctionsHttpError with the JSON body on
+      // error.context; pull the server's message out when it is there.
+      let message = error.message || 'Speech synthesis failed';
+      const response = (error as { context?: Response }).context;
+      if (response && typeof response.json === 'function') {
+        try {
+          const body = await response.clone().json();
+          if (typeof body?.error === 'string') message = body.error;
+        } catch {
+          // keep error.message
+        }
       }
-      throw new Error(errorMsg);
+      throw new Error(message);
     }
 
-    return await response.blob();
+    if (!(data instanceof Blob)) {
+      throw new Error('Speech synthesis returned no audio');
+    }
+
+    return data;
   };
 
   // Audio Playback with Analyser
@@ -382,10 +357,6 @@ export function VoiceLabPage() {
       toast({ title: 'Text required', description: 'Please enter text to speak.', variant: 'destructive' });
       return;
     }
-    if (!apiKey.trim()) {
-      toast({ title: 'API Key required', description: 'Please enter your ElevenLabs API key first.', variant: 'destructive' });
-      return;
-    }
 
     setIsGenerating(true);
     try {
@@ -463,14 +434,6 @@ export function VoiceLabPage() {
   const handleSendChat = useCallback(async (promptOverride?: string) => {
     const prompt = (promptOverride || inputText).trim();
     if (!prompt) return;
-    if (!apiKey.trim()) {
-      toast({
-        title: 'API Key required',
-        description: 'Please enter your ElevenLabs API key at the top of the page.',
-        variant: 'destructive',
-      });
-      return;
-    }
 
     setInputText('');
     const userTurn: ChatTurn = {
@@ -514,7 +477,7 @@ export function VoiceLabPage() {
     } finally {
       setIsGenerating(false);
     }
-  }, [apiKey, generateAssistantResponse, inputText, playAudioBlob, synthesizeSpeech, toast]);
+  }, [generateAssistantResponse, inputText, playAudioBlob, synthesizeSpeech, toast]);
 
   useEffect(() => {
     handleSendChatRef.current = handleSendChat;
@@ -828,7 +791,7 @@ export function VoiceLabPage() {
               variant={isPlayingAudio ? 'destructive' : 'outline'}
               size="sm"
               onClick={isPlayingAudio ? stopAudio : () => handlePreviewPhrase()}
-              disabled={isGenerating || !apiKey.trim()}
+              disabled={isGenerating}
               className="h-8 gap-1.5 rounded-full text-xs"
             >
               {isPlayingAudio ? (
@@ -844,56 +807,22 @@ export function VoiceLabPage() {
           </div>
         </header>
 
-        {/* API Key Banner & Status */}
+        {/* Credential status: the key is server-side, so this is read-only */}
         <section className="mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 shadow-sm backdrop-blur-md">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-xl border shrink-0 ${apiKey.trim() ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
-                <Key className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium">ElevenLabs API Key</span>
-                  <span className={`inline-block h-2 w-2 rounded-full shrink-0 ${apiKey.trim() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                  <span className="text-[10px] text-muted-foreground truncate">
-                    {apiKey.trim() ? 'Stored locally in browser' : 'Key required'}
-                  </span>
-                </div>
-                <div className="text-[11px] text-muted-foreground">
-                  Saved only in your browser storage. Never sent to Arc servers or committed to Git.
-                </div>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl border shrink-0 bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
+              <Shield className="h-4 w-4" />
             </div>
-
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-72">
-                <Input
-                  type={showApiKey ? 'text' : 'password'}
-                  placeholder="Paste ElevenLabs key (sk_...)"
-                  value={apiKey}
-                  onChange={(e) => handleSaveApiKey(e.target.value)}
-                  className="h-9 text-[16px] sm:text-xs pr-8 font-mono bg-black/20 border-white/10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
-                  aria-label={showApiKey ? 'Hide key' : 'Show key'}
-                >
-                  {showApiKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                </button>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium">ElevenLabs</span>
+                <span className="inline-block h-2 w-2 rounded-full shrink-0 bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] text-muted-foreground truncate">Connected server-side</span>
               </div>
-              {apiKey && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleClearApiKey}
-                  className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
-                  title="Clear API Key"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              )}
+              <div className="text-[11px] text-muted-foreground">
+                Synthesis runs through Arc's <span className="font-mono">voice-lab-tts</span> function, which
+                verifies admin access and keeps the API key off this device.
+              </div>
             </div>
           </div>
         </section>
@@ -1278,7 +1207,7 @@ export function VoiceLabPage() {
                 <Button
                   type="button"
                   onClick={() => handleSendChat()}
-                  disabled={isGenerating || isTranscribing || !inputText.trim() || !apiKey.trim()}
+                  disabled={isGenerating || isTranscribing || !inputText.trim()}
                   className="h-11 w-11 shrink-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
                   <Send className="h-4 w-4" />
@@ -1303,7 +1232,7 @@ export function VoiceLabPage() {
                       setPreviewText(phrase);
                       handlePreviewPhrase(phrase);
                     }}
-                    disabled={isGenerating || !apiKey.trim()}
+                    disabled={isGenerating}
                     className="flex items-start gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-left transition-all hover:bg-white/[0.05] hover:border-primary/40 disabled:opacity-50"
                   >
                     <Play className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" />
@@ -1339,7 +1268,7 @@ export function VoiceLabPage() {
                   <Button
                     size="sm"
                     onClick={() => handlePreviewPhrase()}
-                    disabled={isGenerating || !previewText.trim() || !apiKey.trim()}
+                    disabled={isGenerating || !previewText.trim()}
                     className="h-8 gap-1.5 text-xs rounded-full"
                   >
                     {isGenerating ? (
