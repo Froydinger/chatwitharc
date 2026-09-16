@@ -70,8 +70,6 @@ interface RecentApp {
   id: string;
   title: string;
   prompt: string;
-  files?: VirtualFileSystem;
-  messages?: unknown[];
   favicon_label: string | null;
   netlify_url: string | null;
   netlify_subdomain: string | null;
@@ -261,6 +259,28 @@ useEffect(() => {
   const openIDECanvas = useIDEStore((s) => s.openIDECanvas);
   const reopenIDECanvas = useIDEStore((s) => s.reopenIDECanvas);
   const closeIDE = useIDEStore((s) => s.closeIDE);
+
+  // The dashboard list no longer carries `files`/`messages`, so fetch just the
+  // one project's payload at open time.
+  const openProject = async (appId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('ide_projects')
+        .select('files, messages')
+        .eq('id', appId)
+        .maybeSingle();
+      if (error) throw error;
+      reopenIDECanvas(appId, (data?.files as VirtualFileSystem) || {}, data?.messages as unknown[] | undefined);
+      navigate(`/build/${appId}`);
+    } catch (e) {
+      console.error('Failed to open project:', e);
+      toast({
+        title: 'Could not open that app',
+        description: e instanceof Error ? e.message : 'Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleLaunchAppBuilder = (prompt?: string) => {
     if (!hasBoost && !isAdmin) {
@@ -601,13 +621,16 @@ useEffect(() => {
     }
   };
 
-  // Kick off one eager image load on mount — use a ref so this never re-triggers
+  // Load images the first time the Images tab is opened, not on mount: this
+  // query pulls whole `messages` blobs to dig image attachments out of them,
+  // and nothing outside that tab renders the result. The ref keeps it to one
+  // eager fetch per visit.
   useEffect(() => {
-    if (user && isLoaded && !imageFetchStartedRef.current) {
+    if (user && isLoaded && activeTab === "images" && !imageFetchStartedRef.current) {
       imageFetchStartedRef.current = true;
       fetchMoreImages(true);
     }
-  }, [user, isLoaded]);
+  }, [user, isLoaded, activeTab]);
 
   useEffect(() => {
     if (!user) return;
@@ -705,9 +728,13 @@ useEffect(() => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return;
+        // Deliberately excludes `files` and `messages`: those are the whole
+        // virtual filesystem and the full chat history for every project, and
+        // the cards below only need titles, links and dates. They are fetched
+        // per-project in openProject() when someone actually opens one.
         const { data } = await supabase
           .from('ide_projects')
-          .select('id, title, prompt, files, messages, favicon_label, netlify_url, netlify_subdomain, updated_at, created_at, version, versions')
+          .select('id, title, prompt, favicon_label, netlify_url, netlify_subdomain, updated_at, created_at, version, versions')
           .eq('user_id', session.user.id)
           .order('updated_at', { ascending: false });
         if (data) setRecentApps(data as RecentApp[]);
@@ -1800,8 +1827,7 @@ useEffect(() => {
                               });
                               return;
                             }
-                            reopenIDECanvas(app.id, app.files || {}, app.messages);
-                            navigate(`/build/${app.id}`);
+                            void openProject(app.id);
                           }}
                           className="group relative flex flex-col justify-between rounded-2xl border border-border/40 bg-card/60 hover:bg-card/90 hover:border-purple-500/40 p-4 transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 overflow-hidden"
                         >
@@ -1904,8 +1930,7 @@ useEffect(() => {
                                     });
                                     return;
                                   }
-                                  reopenIDECanvas(app.id, app.files || {}, app.messages);
-                                  navigate(`/build/${app.id}`);
+                                  void openProject(app.id);
                                 }}
                                 className="h-7 px-2.5 text-xs rounded-lg text-purple-700 hover:text-purple-900 bg-purple-500/10 hover:bg-purple-500/20 dark:text-purple-300 dark:hover:text-purple-100 dark:bg-transparent dark:hover:bg-purple-500/20 gap-1 font-semibold"
                               >
