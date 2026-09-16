@@ -305,6 +305,11 @@ export function SettingsPanel() {
 
   const { isAdmin } = useAdminSettings();
   const isMobileLocal = isMobileLocalDevice();
+  const isJakeAccount = Boolean(
+    isAdmin ||
+    user?.email === "jakefreudinger@gmail.com" ||
+    user?.email === "jakefroydinger@gmail.com"
+  );
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -750,6 +755,31 @@ export function SettingsPanel() {
     </SectionCard>
   );
 
+  const VoiceLabCard = isJakeAccount ? (
+    <SectionCard
+      icon={Mic}
+      title="Voice Lab (Jake Exclusive)"
+      subtitle="Isolated ElevenLabs test sandbox with custom voice PSZ39PJBY7BsKu1rx7ok"
+      className="border-primary/30 bg-primary/[0.03]"
+    >
+      <Tile
+        icon={Sparkles}
+        title="Custom Voice Studio"
+        description="Full-page testing tool with your custom cloned voice, script previewer, and voice chat simulation."
+        right={
+          <GlassButton
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/voice-lab')}
+            className="text-primary hover:text-primary font-medium flex items-center gap-1.5"
+          >
+            Launch Studio <ArrowRight className="h-3.5 w-3.5" />
+          </GlassButton>
+        }
+      />
+    </SectionCard>
+  ) : null;
+
   const PersonaCard = (
     <SectionCard icon={Sparkles} title="Arc's Persona & Prompt" subtitle="Customize tone, candor, and behavior">
       <Tile>
@@ -924,6 +954,7 @@ export function SettingsPanel() {
         return (
           <>
             {VoiceCard}
+            {VoiceLabCard}
             {PersonaCard}
             <ImageDefaultsCard />
             <LocalAIPanel />

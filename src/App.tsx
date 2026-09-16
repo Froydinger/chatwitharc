@@ -65,6 +65,7 @@ const DesktopAuthCallbackPage = lazy(() => import("./pages/DesktopAuthCallbackPa
 const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage").then((m) => ({ default: m.AuthCallbackPage })));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
 const AppBuilderPage = lazy(() => import("./pages/AppBuilderPage").then((m) => ({ default: m.AppBuilderPage })));
+const VoiceLabPage = lazy(() => import("./pages/VoiceLabPage").then((m) => ({ default: m.VoiceLabPage })));
 import { useAuth } from "@/hooks/useAuth";
 import { GUEST_CHAT_ENABLED } from "@/lib/features";
 import { ThemedLogo } from "@/components/ThemedLogo";
@@ -298,6 +299,7 @@ const App = () => {
                     <Route path="/upgrade" element={<UpgradePage />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
+                    <Route path="/voice-lab" element={<VoiceLabPage />} />
                     <Route path="/build" element={<AppBuilderPage />} />
                     <Route path="/build/:projectId" element={<AppBuilderPage />} />
                     <Route path="/admin" element={<AdminPage />} />

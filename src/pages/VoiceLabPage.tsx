@@ -1,0 +1,1091 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Mic,
+  MicOff,
+  Volume2,
+  Play,
+  Pause,
+  RotateCcw,
+  Key,
+  Shield,
+  Sliders,
+  ArrowLeft,
+  Download,
+  Send,
+  Eye,
+  EyeOff,
+  Trash2,
+  Radio,
+  RefreshCw,
+} from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { ThemedLogo } from '@/components/ThemedLogo';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+
+const DEFAULT_VOICE_ID = 'PSZ39PJBY7BsKu1rx7ok';
+const STORAGE_KEY_API_KEY = 'arc_voice_lab_elevenlabs_key';
+const STORAGE_KEY_VOICE_ID = 'arc_voice_lab_voice_id';
+const STORAGE_KEY_PERSONA_PROMPT = 'arc_voice_lab_persona_prompt';
+
+export const JAKE_PERSONA_PROMPT = `You are an AI counterpart modeled after Jake Freudinger (@froydinger), a Chicagoland creator, video editor, writer, musician, designer, developer, and co-founder of Win The Night.
+
+Think like a creative builder. Jake moves fast, experiments constantly, changes direction mid-thought, and would rather build something and iterate than endlessly plan it. Follow pivots immediately and focus on what actually matters.
+
+Communicate conversationally, directly, and concisely. Short paragraphs. Occasional profanity and dry humor are natural. No em dashes. Avoid corporate language, canned AI enthusiasm, motivational clichés, unnecessary summaries, and the "it's not X, it's Y" construction.
+
+Jake values human connection, honest storytelling, mental health awareness, creative independence, simplicity, experimentation, and helping people without judging them. Win The Night's philosophy is judgment-free storytelling, not unsolicited advice, centered on "One Conversation at a Time."
+
+Be a collaborator, not a yes-man. Challenge bad ideas with reasoning and offer a better direction. Separate facts from assumptions. When researching, verify things instead of confidently guessing.
+
+Creatively, favor work that feels specific, human, slightly imperfect, funny when appropriate, and emotionally honest without becoming corny. Preserve Jake's natural voice instead of polishing it into generic AI writing.
+
+For products and design, favor modern, minimal, fast, mobile-friendly experiences with strong hierarchy and little clutter. Prefer simple systems, ownership, low recurring costs, and practical solutions.
+
+Default to action: understand the problem, find the root cause, choose the simplest good solution, execute, test, and iterate.
+
+Above all: make useful shit, keep it human, and don't overcomplicate it.`;
+
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  onstart: (() => void) | null;
+  onresult: ((event: { results: { [index: number]: { [index: number]: { transcript: string } } } }) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+}
+
+interface ChatTurn {
+  id: string;
+  role: 'user' | 'assistant';
+  text: string;
+  audioBlob?: Blob;
+  audioUrl?: string;
+  timestamp: Date;
+}
+
+const SAMPLE_PHRASES = [
+  "Hey, it's Jake! Testing out my custom voice clone with Arc AI.",
+  "Arc here. I'm using your personal voice profile to speak our responses right now.",
+  "The quick brown fox jumps over the lazy dog, checking clarity, cadence, and warmth.",
+  "Let's test this in a conversational flow. Ask me any question and I'll answer.",
+];
+
+export function VoiceLabPage() {
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
+  const { toast } = useToast();
+
+  // Authentication check: only Jake Freudinger's account or admin
+  const isJake = Boolean(
+    isAdmin ||
+    user?.email === 'jakefreudinger@gmail.com' ||
+    user?.email === 'jakefroydinger@gmail.com'
+  );
+
+  // Settings & Configuration
+  const [apiKey, setApiKey] = useState<string>(() => {
+    return localStorage.getItem(STORAGE_KEY_API_KEY) || '';
+  });
+  const [voiceId, setVoiceId] = useState<string>(() => {
+    return localStorage.getItem(STORAGE_KEY_VOICE_ID) || DEFAULT_VOICE_ID;
+  });
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [modelId, setModelId] = useState<'eleven_turbo_v2_5' | 'eleven_multilingual_v2' | 'eleven_flash_v2_5'>('eleven_turbo_v2_5');
+  const [stability, setStability] = useState<number>(0.5);
+  const [similarityBoost, setSimilarityBoost] = useState<number>(0.8);
+  const [style, setStyle] = useState<number>(0.0);
+  const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
+  const [personaPrompt, setPersonaPrompt] = useState<string>(() => {
+    return localStorage.getItem(STORAGE_KEY_PERSONA_PROMPT) || JAKE_PERSONA_PROMPT;
+  });
+
+  const handleSavePersonaPrompt = (newPrompt: string) => {
+    setPersonaPrompt(newPrompt);
+    localStorage.setItem(STORAGE_KEY_PERSONA_PROMPT, newPrompt);
+  };
+
+  const handleResetPersonaPrompt = () => {
+    setPersonaPrompt(JAKE_PERSONA_PROMPT);
+    localStorage.setItem(STORAGE_KEY_PERSONA_PROMPT, JAKE_PERSONA_PROMPT);
+    toast({
+      title: 'Persona Context Reset',
+      description: "Reset to Jake's core counterpart context.",
+    });
+  };
+
+  // Testing & Chat State
+  const [activeTab, setActiveTab] = useState<'chat' | 'preview'>('chat');
+  const [inputText, setInputText] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [previewText, setPreviewText] = useState(SAMPLE_PHRASES[0]);
+  const [lastAudioUrl, setLastAudioUrl] = useState<string | null>(null);
+
+  // Audio Context & Visualizer
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const [visualizerFrequencies, setVisualizerFrequencies] = useState<number[]>(new Array(16).fill(0));
+  const animationFrameRef = useRef<number | null>(null);
+  const currentAudioElementRef = useRef<HTMLAudioElement | null>(null);
+
+  // Speech Recognition
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+
+  // Save API Key & Voice ID to localStorage
+  const handleSaveApiKey = (newKey: string) => {
+    setApiKey(newKey);
+    localStorage.setItem(STORAGE_KEY_API_KEY, newKey.trim());
+    toast({
+      title: 'API Key Saved',
+      description: 'Your ElevenLabs key is securely saved to local storage on this device only.',
+    });
+  };
+
+  const handleClearApiKey = () => {
+    setApiKey('');
+    localStorage.removeItem(STORAGE_KEY_API_KEY);
+    toast({
+      title: 'API Key Cleared',
+      description: 'The ElevenLabs API key has been removed from this device.',
+    });
+  };
+
+  const handleSaveVoiceId = (newVoiceId: string) => {
+    setVoiceId(newVoiceId);
+    localStorage.setItem(STORAGE_KEY_VOICE_ID, newVoiceId.trim());
+  };
+
+  const handleResetVoiceId = () => {
+    setVoiceId(DEFAULT_VOICE_ID);
+    localStorage.setItem(STORAGE_KEY_VOICE_ID, DEFAULT_VOICE_ID);
+    toast({
+      title: 'Voice ID Reset',
+      description: `Reset to Jake's default voice ID (${DEFAULT_VOICE_ID})`,
+    });
+  };
+
+  // ElevenLabs TTS synthesis function
+  const synthesizeSpeech = async (text: string): Promise<Blob> => {
+    const trimmedKey = apiKey.trim();
+    if (!trimmedKey) {
+      throw new Error('ElevenLabs API Key required. Please enter your key above.');
+    }
+
+    const trimmedVoiceId = voiceId.trim() || DEFAULT_VOICE_ID;
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${trimmedVoiceId}?optimize_streaming_latency=3`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'xi-api-key': trimmedKey,
+      },
+      body: JSON.stringify({
+        text,
+        model_id: modelId,
+        voice_settings: {
+          stability,
+          similarity_boost: similarityBoost,
+          style,
+          use_speaker_boost: true,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMsg = `ElevenLabs API error (${response.status})`;
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson?.detail?.message) errorMsg = errorJson.detail.message;
+        else if (errorJson?.message) errorMsg = errorJson.message;
+      } catch {
+        if (errorText) errorMsg += `: ${errorText.slice(0, 120)}`;
+      }
+      throw new Error(errorMsg);
+    }
+
+    return await response.blob();
+  };
+
+  // Audio Playback with Analyser
+  const stopAudio = useCallback(() => {
+    if (currentAudioElementRef.current) {
+      currentAudioElementRef.current.pause();
+      currentAudioElementRef.current = null;
+    }
+    if (audioSourceRef.current) {
+      try {
+        audioSourceRef.current.stop();
+      } catch {
+        // audio source may have already finished
+      }
+      audioSourceRef.current = null;
+    }
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    setIsPlayingAudio(false);
+    setVisualizerFrequencies(new Array(16).fill(0));
+  }, []);
+
+  const playAudioBlob = useCallback(async (blob: Blob): Promise<void> => {
+    stopAudio();
+
+    const audioUrl = URL.createObjectURL(blob);
+    setLastAudioUrl(audioUrl);
+
+    try {
+      const windowWithAudio = window as unknown as {
+        AudioContext?: typeof AudioContext;
+        webkitAudioContext?: typeof AudioContext;
+      };
+      const AudioCtx = windowWithAudio.AudioContext || windowWithAudio.webkitAudioContext;
+      if (!AudioCtx) {
+        throw new Error('Web Audio API not supported in this browser.');
+      }
+
+      if (!audioContextRef.current) {
+        audioContextRef.current = new AudioCtx();
+      }
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+
+      const audio = new Audio(audioUrl);
+      currentAudioElementRef.current = audio;
+
+      const sourceNode = audioContextRef.current.createMediaElementSource(audio);
+      const analyser = audioContextRef.current.createAnalyser();
+      analyser.fftSize = 64;
+      sourceNode.connect(analyser);
+      analyser.connect(audioContextRef.current.destination);
+      analyserRef.current = analyser;
+
+      const updateFrequencyData = () => {
+        if (!analyserRef.current) return;
+        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(dataArray);
+
+        // Sample 16 frequencies
+        const samples: number[] = [];
+        const step = Math.max(1, Math.floor(dataArray.length / 16));
+        for (let i = 0; i < 16; i++) {
+          samples.push((dataArray[i * step] || 0) / 255);
+        }
+        setVisualizerFrequencies(samples);
+
+        animationFrameRef.current = requestAnimationFrame(updateFrequencyData);
+      };
+
+      audio.onplay = () => {
+        setIsPlayingAudio(true);
+        updateFrequencyData();
+      };
+
+      audio.onended = () => {
+        stopAudio();
+      };
+
+      audio.onerror = () => {
+        stopAudio();
+        toast({
+          title: 'Playback error',
+          description: 'Failed to play synthesized audio.',
+          variant: 'destructive',
+        });
+      };
+
+      await audio.play();
+    } catch (err: unknown) {
+      console.error('Audio playback error:', err);
+      stopAudio();
+      toast({
+        title: 'Audio error',
+        description: err instanceof Error ? err.message : 'Could not initialize audio player.',
+        variant: 'destructive',
+      });
+    }
+  }, [stopAudio, toast]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      stopAudio();
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+      }
+    };
+  }, [stopAudio]);
+
+  // Quick Speech Preview Handler
+  const handlePreviewPhrase = async (phraseToSpeak?: string) => {
+    const text = phraseToSpeak || previewText;
+    if (!text.trim()) {
+      toast({ title: 'Text required', description: 'Please enter text to speak.', variant: 'destructive' });
+      return;
+    }
+    if (!apiKey.trim()) {
+      toast({ title: 'API Key required', description: 'Please enter your ElevenLabs API key first.', variant: 'destructive' });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const blob = await synthesizeSpeech(text);
+      await playAudioBlob(blob);
+    } catch (err: unknown) {
+      console.error('Synthesis failed:', err);
+      toast({
+        title: 'Synthesis failed',
+        description: err instanceof Error ? err.message : 'Error communicating with ElevenLabs.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Conversational Assistant Logic (Powered by Arc AI with Jake's Counterpart Context)
+  const generateAssistantResponse = async (userPrompt: string): Promise<string> => {
+    try {
+      if (supabase) {
+        const { data, error } = await supabase.functions.invoke('chat', {
+          body: {
+            messages: [
+              {
+                role: 'system',
+                content: `[ENHANCE_MODE] ${personaPrompt.trim()}\n\nCRITICAL CONVERSATIONAL INSTRUCTION: You are speaking aloud over audio. Keep responses natural, conversational, punchy, and concise (1-3 short sentences unless more detail is directly asked for). Never use markdown headers, bullet points, asterisks, or formatting symbols that sound awkward when read aloud.`,
+              },
+              ...turns.slice(-6).map((t) => ({
+                role: t.role,
+                content: t.text,
+              })),
+              {
+                role: 'user',
+                content: `[ENHANCE_REQUEST_ONLY] ${userPrompt}`,
+              },
+            ],
+          },
+        });
+
+        if (!error) {
+          const content =
+            data?.choices?.[0]?.message?.content ||
+            data?.response ||
+            data?.message ||
+            data?.content;
+          if (content && typeof content === 'string' && content.trim()) {
+            return content.trim();
+          }
+        }
+      }
+    } catch (chatErr) {
+      console.warn('Chat AI invoke fallback:', chatErr);
+    }
+
+    // Direct contextual fallback modeled after Jake Freudinger
+    const lower = userPrompt.toLowerCase();
+    if (lower.includes('hello') || lower.includes('hey') || lower.includes('hi') || lower.includes('sup')) {
+      return `What's going on man. Custom voice is locked in and streaming. What are we building today?`;
+    }
+    if (lower.includes('how do you sound') || lower.includes('how does it sound')) {
+      return `Honestly, sounds pretty damn accurate. Cadence feels right. What do you think?`;
+    }
+    if (lower.includes('win the night')) {
+      return `One conversation at a time. No unsolicited advice, just real human storytelling without the bullshit.`;
+    }
+    return `Got it. Let's keep moving and test the next thing.`;
+  };
+
+  // Handle Send Chat Message
+  const handleSendChat = async (promptOverride?: string) => {
+    const prompt = (promptOverride || inputText).trim();
+    if (!prompt) return;
+    if (!apiKey.trim()) {
+      toast({ title: 'API Key required', description: 'Please enter your ElevenLabs API key at the top of the page.', variant: 'destructive' });
+      return;
+    }
+
+    setInputText('');
+    const userTurn: ChatTurn = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      text: prompt,
+      timestamp: new Date(),
+    };
+
+    setTurns((prev) => [...prev, userTurn]);
+    setIsGenerating(true);
+
+    try {
+      const assistantText = await generateAssistantResponse(prompt);
+      const audioBlob = await synthesizeSpeech(assistantText);
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      const assistantTurn: ChatTurn = {
+        id: `assistant-${Date.now()}`,
+        role: 'assistant',
+        text: assistantText,
+        audioBlob,
+        audioUrl,
+        timestamp: new Date(),
+      };
+
+      setTurns((prev) => [...prev, assistantTurn]);
+      await playAudioBlob(audioBlob);
+    } catch (err: unknown) {
+      console.error('Chat generation error:', err);
+      toast({
+        title: 'Error generating speech',
+        description: err instanceof Error ? err.message : 'Failed to synthesize speech.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Speech Recognition (Mic tap-to-talk)
+  const toggleListening = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const windowWithSpeech = window as unknown as {
+      SpeechRecognition?: new () => SpeechRecognitionInstance;
+      webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
+    };
+    const SpeechRec = windowWithSpeech.SpeechRecognition || windowWithSpeech.webkitSpeechRecognition;
+    if (!SpeechRec) {
+      toast({
+        title: 'Speech recognition unavailable',
+        description: 'Your browser does not support SpeechRecognition. You can type prompts directly.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRec();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: { results: { [index: number]: { [index: number]: { transcript: string } } } }) => {
+        const transcript = event.results[0]?.[0]?.transcript;
+        if (transcript) {
+          handleSendChat(transcript);
+        }
+      };
+
+      recognition.onerror = (event: { error: string }) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        if (event.error !== 'no-speech') {
+          toast({
+            title: 'Mic error',
+            description: `Microphone error: ${event.error}`,
+            variant: 'destructive',
+          });
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err: unknown) {
+      console.error('Failed to start recognition:', err);
+      setIsListening(false);
+    }
+  };
+
+  // Guard: if loading or not Jake, block access
+  if (authLoading || adminLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Verifying access credentials...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isJake) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background px-4">
+        <Card className="glass-card max-w-md border-destructive/20 text-center">
+          <CardHeader>
+            <Shield className="mx-auto h-12 w-12 text-destructive mb-2" />
+            <CardTitle className="text-xl">Access Restricted</CardTitle>
+            <CardDescription>
+              This Voice Lab is an exclusive internal testing sandbox restricted solely to Jake Freudinger's account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button variant="outline" onClick={() => navigate('/')} className="w-full">
+              Return to App
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative min-h-screen w-full bg-background text-foreground overflow-y-auto">
+      {/* Background ambient lighting */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -left-36 top-[-180px] h-[520px] w-[520px] rounded-full bg-primary/[0.08] blur-[140px]" />
+        <div className="absolute -right-40 bottom-[-220px] h-[560px] w-[560px] rounded-full bg-purple-500/[0.07] blur-[150px]" />
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.035] to-transparent" />
+      </div>
+
+      <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6 sm:px-8 sm:py-8">
+        {/* Navigation & Header */}
+        <header className="flex flex-col gap-4 border-b border-white/[0.08] pb-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => navigate('/dashboard/settings')}
+              className="h-9 w-9 rounded-full border-white/[0.09] bg-white/[0.04] hover:bg-primary/10 hover:text-primary"
+              aria-label="Back to settings"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.055] shadow-[0_0_28px_rgba(168,85,247,0.16)]">
+                <ThemedLogo className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-lg font-semibold tracking-[-0.02em] text-foreground">
+                    Jake's Voice Lab
+                  </h1>
+                  <Badge variant="outline" className="border-primary/40 bg-primary/10 text-[10px] text-primary">
+                    ElevenLabs Test Mode
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Isolated testing studio for Voice ID <code className="font-mono text-foreground/80">{voiceId}</code>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowSettingsDrawer(!showSettingsDrawer)}
+              className="h-8 gap-1.5 rounded-full border-white/10 bg-white/[0.03] text-xs"
+            >
+              <Sliders className="h-3.5 w-3.5 text-primary" />
+              <span>Voice Parameters</span>
+            </Button>
+            <Button
+              variant={isPlayingAudio ? 'destructive' : 'outline'}
+              size="sm"
+              onClick={isPlayingAudio ? stopAudio : () => handlePreviewPhrase()}
+              disabled={isGenerating || !apiKey.trim()}
+              className="h-8 gap-1.5 rounded-full text-xs"
+            >
+              {isPlayingAudio ? (
+                <>
+                  <Pause className="h-3.5 w-3.5" /> Stop Audio
+                </>
+              ) : (
+                <>
+                  <Play className="h-3.5 w-3.5" /> Sample Preview
+                </>
+              )}
+            </Button>
+          </div>
+        </header>
+
+        {/* API Key Banner & Status */}
+        <section className="mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 shadow-sm backdrop-blur-md">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl border ${apiKey.trim() ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
+                <Key className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium">ElevenLabs API Key</span>
+                  <span className={`inline-block h-2 w-2 rounded-full ${apiKey.trim() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                  <span className="text-[10px] text-muted-foreground">
+                    {apiKey.trim() ? 'Stored locally in browser' : 'Key required to synthesize'}
+                  </span>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Saved only in your browser storage. Never sent to Arc servers or committed to Git.
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 sm:w-72">
+                <Input
+                  type={showApiKey ? 'text' : 'password'}
+                  placeholder="Paste ElevenLabs key (sk_...)"
+                  value={apiKey}
+                  onChange={(e) => handleSaveApiKey(e.target.value)}
+                  className="h-8 text-xs pr-8 font-mono bg-black/20 border-white/10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={showApiKey ? 'Hide key' : 'Show key'}
+                >
+                  {showApiKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+              {apiKey && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleClearApiKey}
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  title="Clear API Key"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Voice Parameters Collapsible Drawer */}
+        <AnimatePresence>
+          {showSettingsDrawer && (
+            <motion.section
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-3 overflow-hidden rounded-2xl border border-white/[0.08] bg-black/30 p-5 backdrop-blur-md"
+            >
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Voice ID Input */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-foreground">Voice ID</label>
+                    <button
+                      onClick={handleResetVoiceId}
+                      className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                    >
+                      <RotateCcw className="h-2.5 w-2.5" /> Reset to default
+                    </button>
+                  </div>
+                  <Input
+                    value={voiceId}
+                    onChange={(e) => handleSaveVoiceId(e.target.value)}
+                    placeholder="Enter Voice ID"
+                    className="h-8 font-mono text-xs bg-black/40 border-white/10"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Default: Jake's Custom Voice ({DEFAULT_VOICE_ID})</p>
+                </div>
+
+                {/* Model Selector */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">ElevenLabs Model</label>
+                  <select
+                    value={modelId}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setModelId(e.target.value as typeof modelId)}
+                    className="h-8 w-full rounded-md border border-white/10 bg-black/40 px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="eleven_turbo_v2_5">Turbo v2.5 (Fastest, High Quality)</option>
+                    <option value="eleven_multilingual_v2">Multilingual v2 (Rich Cadence)</option>
+                    <option value="eleven_flash_v2_5">Flash v2.5 (Ultra Low Latency)</option>
+                  </select>
+                  <p className="text-[10px] text-muted-foreground">Adjusts synthesis engine latency and nuances.</p>
+                </div>
+
+                {/* Stability Slider */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-foreground">Stability</label>
+                    <span className="font-mono text-[11px] text-muted-foreground">{stability.toFixed(2)}</span>
+                  </div>
+                  <Slider
+                    value={[Math.round(stability * 100)]}
+                    min={0}
+                    max={100}
+                    step={5}
+                    onValueChange={(val) => setStability(val[0] / 100)}
+                    className="py-1"
+                  />
+                  <div className="flex justify-between text-[9px] text-muted-foreground">
+                    <span>More variable / emotional</span>
+                    <span>More stable / consistent</span>
+                  </div>
+                </div>
+
+                {/* Similarity Boost */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-foreground">Similarity Boost</label>
+                    <span className="font-mono text-[11px] text-muted-foreground">{similarityBoost.toFixed(2)}</span>
+                  </div>
+                  <Slider
+                    value={[Math.round(similarityBoost * 100)]}
+                    min={0}
+                    max={100}
+                    step={5}
+                    onValueChange={(val) => setSimilarityBoost(val[0] / 100)}
+                    className="py-1"
+                  />
+                  <div className="flex justify-between text-[9px] text-muted-foreground">
+                    <span>Low clarity</span>
+                    <span>High fidelity</span>
+                  </div>
+                </div>
+
+                {/* Style Exaggeration */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-foreground">Style Exaggeration</label>
+                    <span className="font-mono text-[11px] text-muted-foreground">{style.toFixed(2)}</span>
+                  </div>
+                  <Slider
+                    value={[Math.round(style * 100)]}
+                    min={0}
+                    max={100}
+                    step={5}
+                    onValueChange={(val) => setStyle(val[0] / 100)}
+                    className="py-1"
+                  />
+                  <div className="flex justify-between text-[9px] text-muted-foreground">
+                    <span>Neutral</span>
+                    <span>Exaggerated</span>
+                  </div>
+                </div>
+
+                {/* Jake's Counterpart Persona Prompt */}
+                <div className="sm:col-span-2 lg:col-span-3 space-y-2 pt-3 border-t border-white/[0.08]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      <label className="text-xs font-medium text-foreground">AI Counterpart Context (Jake Freudinger Model)</label>
+                    </div>
+                    <button
+                      onClick={handleResetPersonaPrompt}
+                      className="text-[10px] text-primary hover:underline flex items-center gap-1"
+                    >
+                      <RotateCcw className="h-2.5 w-2.5" /> Reset Context
+                    </button>
+                  </div>
+                  <Textarea
+                    value={personaPrompt}
+                    onChange={(e) => handleSavePersonaPrompt(e.target.value)}
+                    placeholder="Enter persona system context..."
+                    className="h-36 text-xs bg-black/40 border-white/10 font-mono leading-relaxed resize-y"
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Active context: Chicagoland creator, Win The Night co-founder, conversational, direct, fast builder, no em dashes, human storytelling.
+                  </p>
+                </div>
+              </div>
+            </motion.section>
+          )}
+        </AnimatePresence>
+
+        {/* Audio Visualizer Orb & Frequency Bars */}
+        <section className="mt-5 flex flex-col items-center justify-center rounded-3xl border border-white/[0.08] bg-white/[0.02] p-8 shadow-inner backdrop-blur-md">
+          <div className="relative flex items-center justify-center">
+            {/* Pulsing ambient halo */}
+            <motion.div
+              animate={{
+                scale: isPlayingAudio ? [1, 1.25, 1] : isListening ? [1, 1.15, 1] : 1,
+                opacity: isPlayingAudio ? [0.3, 0.7, 0.3] : isListening ? [0.2, 0.5, 0.2] : 0.1,
+              }}
+              transition={{ repeat: Infinity, duration: isPlayingAudio ? 1.4 : 2 }}
+              className="absolute h-36 w-36 rounded-full bg-gradient-to-tr from-purple-600/40 to-primary/40 blur-2xl"
+            />
+
+            {/* Center Orb */}
+            <div className={`relative z-10 flex h-20 w-20 items-center justify-center rounded-full border shadow-2xl transition-all duration-300 ${
+              isPlayingAudio
+                ? 'border-primary/80 bg-primary/20 shadow-[0_0_40px_rgba(168,85,247,0.5)]'
+                : isListening
+                ? 'border-rose-500/80 bg-rose-500/20 shadow-[0_0_40px_rgba(244,63,94,0.4)]'
+                : isGenerating
+                ? 'border-amber-400/80 bg-amber-400/20 animate-spin'
+                : 'border-white/10 bg-white/[0.04]'
+            }`}>
+              {isGenerating ? (
+                <RefreshCw className="h-6 w-6 text-amber-300 animate-spin" />
+              ) : isPlayingAudio ? (
+                <Volume2 className="h-7 w-7 text-primary animate-pulse" />
+              ) : isListening ? (
+                <Mic className="h-7 w-7 text-rose-400 animate-bounce" />
+              ) : (
+                <Radio className="h-6 w-6 text-muted-foreground/60" />
+              )}
+            </div>
+          </div>
+
+          {/* Status Label */}
+          <div className="mt-4 text-center">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              {isGenerating
+                ? 'Synthesizing speech via ElevenLabs...'
+                : isPlayingAudio
+                ? "Playing Jake's Custom Voice"
+                : isListening
+                ? 'Listening to microphone...'
+                : 'Ready for voice test'}
+            </p>
+          </div>
+
+          {/* Dynamic Frequency Bars */}
+          <div className="mt-4 flex items-end gap-1.5 h-10 px-6">
+            {visualizerFrequencies.map((freq, idx) => (
+              <motion.div
+                key={idx}
+                className="w-1.5 rounded-full bg-primary/70"
+                animate={{
+                  height: isPlayingAudio ? `${Math.max(4, freq * 40)}px` : isListening ? `${Math.random() * 20 + 4}px` : '4px',
+                  opacity: isPlayingAudio ? Math.max(0.4, freq) : 0.25,
+                }}
+                transition={{ duration: 0.08 }}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Tab Controls: Interactive Chat vs Script Previewer */}
+        <div className="mt-6 flex border-b border-white/[0.08]">
+          <button
+            onClick={() => setActiveTab('chat')}
+            className={`pb-3 text-xs font-medium transition-colors border-b-2 px-4 ${
+              activeTab === 'chat'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Voice Chat Simulation
+          </button>
+          <button
+            onClick={() => setActiveTab('preview')}
+            className={`pb-3 text-xs font-medium transition-colors border-b-2 px-4 ${
+              activeTab === 'preview'
+                ? 'border-primary text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Script & Phrase Previewer
+          </button>
+        </div>
+
+        {/* Tab Content: Chat Simulation */}
+        {activeTab === 'chat' && (
+          <div className="mt-4 flex flex-1 flex-col gap-4">
+            {/* Conversation turns container */}
+            <div className="flex-1 min-h-[260px] max-h-[420px] overflow-y-auto space-y-3 rounded-2xl border border-white/[0.06] bg-black/20 p-4">
+              {turns.length === 0 ? (
+                <div className="flex h-full flex-col items-center justify-center text-center p-8 text-muted-foreground">
+                  <Radio className="h-8 w-8 mb-2 opacity-40" />
+                  <p className="text-xs font-medium">No conversation turns yet</p>
+                  <p className="text-[11px] max-w-sm mt-1">
+                    Tap the mic below or type a message. Arc will answer using your custom ElevenLabs voice clone.
+                  </p>
+                </div>
+              ) : (
+                turns.map((turn) => (
+                  <motion.div
+                    key={turn.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex flex-col ${turn.role === 'user' ? 'items-end' : 'items-start'}`}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1 px-1">
+                      <span className="text-[10px] font-medium text-muted-foreground">
+                        {turn.role === 'user' ? 'Jake' : "Arc (Jake's Voice)"}
+                      </span>
+                      <span className="text-[9px] text-muted-foreground/60">
+                        {turn.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-xs leading-relaxed shadow-sm ${
+                        turn.role === 'user'
+                          ? 'bg-primary/20 text-foreground border border-primary/30 rounded-tr-sm'
+                          : 'bg-white/[0.04] text-foreground border border-white/[0.08] rounded-tl-sm'
+                      }`}
+                    >
+                      {turn.text}
+
+                      {turn.role === 'assistant' && turn.audioBlob && (
+                        <div className="mt-2.5 flex items-center gap-2 pt-2 border-t border-white/[0.06]">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => playAudioBlob(turn.audioBlob!)}
+                            className="h-6 gap-1 px-2 text-[10px] text-primary hover:text-primary"
+                          >
+                            <Play className="h-3 w-3" /> Replay Voice
+                          </Button>
+                          {turn.audioUrl && (
+                            <a
+                              href={turn.audioUrl}
+                              download={`jake-voice-${turn.id}.mp3`}
+                              className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                            >
+                              <Download className="h-3 w-3" /> Download MP3
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+
+            {/* Input Bar */}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant={isListening ? 'destructive' : 'outline'}
+                size="icon"
+                onClick={toggleListening}
+                className={`h-10 w-10 shrink-0 rounded-full border-white/10 ${isListening ? 'animate-pulse' : 'bg-white/[0.03]'}`}
+                title={isListening ? 'Stop listening' : 'Speak via microphone'}
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+
+              <Input
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendChat();
+                  }
+                }}
+                placeholder={isListening ? 'Listening...' : 'Type a test prompt or question for Arc...'}
+                disabled={isGenerating}
+                className="h-10 rounded-full bg-white/[0.04] border-white/10 text-xs px-4"
+              />
+
+              <Button
+                type="button"
+                onClick={() => handleSendChat()}
+                disabled={isGenerating || !inputText.trim() || !apiKey.trim()}
+                className="h-10 w-10 shrink-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Content: Script & Phrase Previewer */}
+        {activeTab === 'preview' && (
+          <div className="mt-4 flex flex-1 flex-col gap-5">
+            {/* Quick sample buttons */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Preset Test Phrases:</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {SAMPLE_PHRASES.map((phrase, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setPreviewText(phrase);
+                      handlePreviewPhrase(phrase);
+                    }}
+                    disabled={isGenerating || !apiKey.trim()}
+                    className="flex items-start gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-left transition-all hover:bg-white/[0.05] hover:border-primary/40 disabled:opacity-50"
+                  >
+                    <Play className="h-3.5 w-3.5 shrink-0 text-primary mt-0.5" />
+                    <span className="text-xs leading-snug text-foreground/90">{phrase}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom script text area */}
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-foreground">Custom Script / Text</label>
+              <Textarea
+                value={previewText}
+                onChange={(e) => setPreviewText(e.target.value)}
+                placeholder="Type or paste any text you want to synthesize in your voice..."
+                className="min-h-[120px] rounded-xl bg-black/20 border-white/10 text-xs p-3 leading-relaxed resize-y"
+              />
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[10px] text-muted-foreground">
+                  {previewText.length} characters · ~{Math.round(previewText.split(/\s+/).filter(Boolean).length)} words
+                </span>
+                <div className="flex items-center gap-2">
+                  {lastAudioUrl && (
+                    <a
+                      href={lastAudioUrl}
+                      download="jake-voice-preview.mp3"
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mr-2"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Download Audio
+                    </a>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => handlePreviewPhrase()}
+                    disabled={isGenerating || !previewText.trim() || !apiKey.trim()}
+                    className="h-8 gap-1.5 text-xs rounded-full"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Synthesizing...
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="h-3.5 w-3.5" /> Synthesize & Play
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+export default VoiceLabPage;
