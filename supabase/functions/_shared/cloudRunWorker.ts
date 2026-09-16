@@ -103,12 +103,24 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
     },
     startModel: context.provider.startModel,
     pollModel: context.provider.pollModel,
-    complete: (text, state) => options.store.complete(run,
-      { choices: [{ message: { role: 'assistant', content: text } }], model_used: 'gpt-5.6-luna', cloud_run_id: id,
-        ...cloudPresentation(state.receipts) },
-      { id: `cloud-${id}`, role: 'assistant', content: text, timestamp: run.created_at,
-        ...cloudMessagePresentation(cloudPresentation(state.receipts)), sourceModel: 'cloud-chat', modelUsed: 'gpt-5.6-luna',
-        metadata: { cloudRunId: id, modelTurns: state.turns } }),
+    complete: (text, state) => {
+      const presentation = cloudPresentation(state.receipts);
+      const message = cloudMessagePresentation(presentation);
+      // The run's closing summary is prose. cloudMessagePresentation types the
+      // message after whichever tool ran, so an image-producing run labelled its
+      // own write-up 'image' and the client dropped every character of it —
+      // MessageBubble only renders assistant text for type 'text'. Each artifact
+      // already arrives as its own message, so the summary stays text.
+      const summary = typeof text === 'string' && text.trim().length > 0
+        ? { ...message, type: 'text' }
+        : message;
+      return options.store.complete(run,
+        { choices: [{ message: { role: 'assistant', content: text } }], model_used: 'gpt-5.6-luna', cloud_run_id: id,
+          ...presentation },
+        { id: `cloud-${id}`, role: 'assistant', content: text, timestamp: run.created_at,
+          ...summary, sourceModel: 'cloud-chat', modelUsed: 'gpt-5.6-luna',
+          metadata: { cloudRunId: id, modelTurns: state.turns } });
+    },
     toolPolicy: (call) => {
       const tool = registeredTool(call.name);
       return {

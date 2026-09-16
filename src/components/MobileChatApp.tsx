@@ -289,6 +289,30 @@ export function ArcInputEffects({
   );
 }
 
+/** Work is an explicit per-session choice that must survive a reload. Browser
+ * storage can throw or come back empty (private windows, cleared site data), so
+ * every read and write is guarded and the caller still works without it. */
+const workSessionsKey = (ownerId: string) => `arc_work_sessions:${ownerId}`;
+function readWorkSessions(ownerId: string | null | undefined): Set<string> {
+  if (!ownerId) return new Set();
+  try {
+    const raw = localStorage.getItem(workSessionsKey(ownerId));
+    const parsed = raw ? JSON.parse(raw) : null;
+    return new Set(Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+function writeWorkSessions(ownerId: string | null | undefined, ids: Set<string>) {
+  if (!ownerId) return;
+  try {
+    // Keep the list bounded; only recent sessions are ever reopened.
+    localStorage.setItem(workSessionsKey(ownerId), JSON.stringify([...ids].slice(-200)));
+  } catch {
+    // A full or blocked store must never break sending a message.
+  }
+}
+
 export function MobileChatApp() {
   const navigate = useNavigate();
   const isLocalPreview = isLocalChatPreview();
@@ -347,6 +371,11 @@ export function MobileChatApp() {
   const arcCloudAvailable = cloudTextEnabled && (hasBoost || isAdmin);
   // Work is an explicit per-session choice. Reopening an ordinary chat must
   // never infer Work merely because that session has an old cloud run.
+  useEffect(() => {
+    // Reload the owner's explicit Work choices before deciding this session's
+    // mode; the in-memory set is empty on a fresh page load.
+    workSessionIdsRef.current = readWorkSessions(user?.id);
+  }, [user?.id]);
   useEffect(() => {
     const isWorkSession = !!currentSessionId && workSessionIdsRef.current.has(currentSessionId);
     setCloudModeChoice(user ? { ownerId: user.id, mode: isWorkSession ? 'auto' : 'ask' } : null);
@@ -521,7 +550,10 @@ export function MobileChatApp() {
     // transcript gets a deliberate handoff so Chat can never silently turn
     // into a background Work request.
     if (!currentSessionId || messages.length === 0 || workSessionIdsRef.current.has(currentSessionId)) {
-      if (currentSessionId) workSessionIdsRef.current.add(currentSessionId);
+      if (currentSessionId) {
+        workSessionIdsRef.current.add(currentSessionId);
+        writeWorkSessions(user.id, workSessionIdsRef.current);
+      }
       setCloudModeChoice({ ownerId: user.id, mode: 'auto' });
       return;
     }
@@ -530,8 +562,13 @@ export function MobileChatApp() {
 
   const confirmWorkHandoff = useCallback(() => {
     if (!user) return;
+    // Carry any message that actually has prose, not just type 'text'. Image,
+    // canvas, code and file messages all hold the surrounding conversation in
+    // their content, and requiring type 'text' meant a chat whose replies were
+    // images handed off with "No prior text context was available."
     const context = messages
-      .filter((message) => (message.role === 'user' || message.role === 'assistant') && message.type === 'text')
+      .filter((message) => (message.role === 'user' || message.role === 'assistant')
+        && typeof message.content === 'string' && message.content.trim().length > 0)
       .slice(-8)
       .map((message) => `${message.role === 'user' ? 'User' : 'Arc'}: ${message.content.trim().slice(0, 2_000)}`)
       .join('\n\n');
@@ -546,12 +583,24 @@ export function MobileChatApp() {
 
     const newSessionId = createNewSession();
     workSessionIdsRef.current.add(newSessionId);
+    writeWorkSessions(user.id, workSessionIdsRef.current);
     setCloudModeChoice({ ownerId: user.id, mode: 'auto' });
     setIsWorkHandoffOpen(false);
     sessionStorage.setItem('arc_session_model', 'gpt-5.6-luna');
     navigate(`/chat/${newSessionId}`);
-    window.setTimeout(() => chatInputRef.current?.sendMessage(handoffPrompt), 0);
+    // A 0ms timeout fired before the route and store settled on the new
+    // session, so the handoff prompt was posted back into the chat the user
+    // just left while the new Work chat stayed empty. Hold the prompt until the
+    // store actually reports the new session as current.
+    pendingWorkHandoffRef.current = { sessionId: newSessionId, prompt: handoffPrompt };
   }, [createNewSession, messages, navigate, user]);
+
+  useEffect(() => {
+    const pending = pendingWorkHandoffRef.current;
+    if (!pending || pending.sessionId !== currentSessionId) return;
+    pendingWorkHandoffRef.current = null;
+    chatInputRef.current?.sendMessage(pending.prompt);
+  }, [currentSessionId]);
 
   const requireAuth = useRequireAuth();
   const isMobile = useIsMobile();
@@ -744,7 +793,14 @@ export function MobileChatApp() {
   useBotTestSessionReset();
 
   const chatInputRef = useRef<ChatInputRef>(null);
+  // Work is an explicit per-session choice, but it used to live only in memory,
+  // so leaving a Work chat and coming back reopened it as ordinary Chat — and
+  // pressing Work then offered a handoff that spawned a second empty chat.
+  // Persist the choice per owner so a Work session reopens as Work. This still
+  // records only what the user explicitly chose; it never infers Work from a
+  // session merely having an old cloud run.
   const workSessionIdsRef = useRef<Set<string>>(new Set());
+  const pendingWorkHandoffRef = useRef<{ sessionId: string; prompt: string } | null>(null);
 
   // Static random prompts - picked once on mount, no AI call
   const staticSuggestions = useMemo(() => pickRandomPrompts(3), []);
