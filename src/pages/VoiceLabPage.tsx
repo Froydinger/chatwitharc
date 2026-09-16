@@ -409,10 +409,14 @@ export function VoiceLabPage() {
       if (supabase) {
         const { data, error } = await supabase.functions.invoke('chat', {
           body: {
+            // Voice Lab doubles as a product help bot test bench, so it asks the
+            // chat function to keep Arc's capability context alongside the
+            // persona instead of replacing the system prompt outright.
+            include_arc_knowledge: true,
             messages: [
               {
                 role: 'system',
-                content: `[ENHANCE_MODE] ${personaPrompt.trim()}\n\nCRITICAL CONVERSATIONAL INSTRUCTION: You are speaking aloud over audio. Keep responses natural, conversational, punchy, and concise (1-3 short sentences unless more detail is directly asked for). Never use markdown headers, bullet points, asterisks, or formatting symbols that sound awkward when read aloud.`,
+                content: `[ENHANCE_MODE] ${personaPrompt.trim()}\n\nYou also know ArcAI inside out and can act as a help bot for the app itself. When asked how something works or how to do something in ArcAI, answer from the product capability context below, concretely and in your own voice. If you genuinely do not know, say so rather than guessing.\n\nCRITICAL CONVERSATIONAL INSTRUCTION: You are speaking aloud over audio. Keep responses natural, conversational, punchy, and concise (1-3 short sentences unless more detail is directly asked for). Never use markdown headers, bullet points, asterisks, or formatting symbols that sound awkward when read aloud.`,
               },
               ...turns.slice(-6).map((t) => ({
                 role: t.role,

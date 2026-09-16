@@ -1161,6 +1161,14 @@ serve(async (req) => {
     let isEnhanceMode = false;
     if (leadingSystem && (leadingSystem.content.startsWith('[ENHANCE_MODE]') || lastUserContent.startsWith('[ENHANCE_REQUEST_ONLY]'))) {
       enhancedSystemPrompt = leadingSystem.content.replace(/^\[ENHANCE_MODE\]\s*/, '');
+      // Enhance mode replaces the whole Arc prompt with the caller's own, which
+      // is right for the rewrite-only prompt enhancer but leaves a conversational
+      // caller knowing nothing about the product. Opt in to keep the capability
+      // context so a persona can still answer "how do I do X in ArcAI?".
+      // Default stays off: the prompt enhancer's behaviour is unchanged.
+      if (body.include_arc_knowledge === true) {
+        enhancedSystemPrompt += `\n\n${ARC_CAPABILITIES_CONTEXT}`;
+      }
       isEnhanceMode = true;
       console.log('🪄 ENHANCE_MODE detected — short-circuiting to rewrite-only flow');
     }
