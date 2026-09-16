@@ -18,10 +18,10 @@ interface Props {
 }
 
 export const PRESETS = [
-  { effort: 'auto', title: 'Auto', subtitle: 'Quick first, more reasoning when needed', icon: RefreshCcwDot },
-  { effort: 'low', title: 'Quick', subtitle: 'Faster everyday answers', icon: Zap },
-  { effort: 'medium', title: 'Balanced', subtitle: 'A balance of speed and reasoning', icon: Scale },
-  { effort: 'high', title: 'Deep', subtitle: 'More reasoning for harder work', icon: Brain },
+  { effort: 'auto', title: 'Auto', subtitle: 'Smart routing across Arc Matrix', icon: RefreshCcwDot },
+  { effort: 'low', title: 'Flo', subtitle: 'Snappy answers & everyday speed', icon: Zap },
+  { effort: 'medium', title: 'Cora', subtitle: 'Versatile powerhouse intelligence', icon: Scale },
+  { effort: 'high', title: 'Reese', subtitle: 'Deep logic & heavy reasoning', icon: Brain },
 ] as const;
 
 export function ChatModelPicker({
@@ -86,11 +86,11 @@ export function ChatModelPicker({
           compact ? 'px-3' : 'px-4',
           className,
         )}
-        aria-label={`Luna reasoning: ${activePreset.title}`}
-        title={`Luna · ${activePreset.title} — tap to change reasoning level`}
+        aria-label={`Arc Matrix model: ${activePreset.title}`}
+        title={`Arc · ${activePreset.title} — tap to change model`}
       >
         <CurrentIcon className="h-4 w-4 text-primary" />
-        <span>{compact ? activePreset.title : `Luna · ${activePreset.title}`}</span>
+        <span>{compact ? activePreset.title : `Arc · ${activePreset.title}`}</span>
         <ChevronDown className={cn('h-3.5 w-3.5 opacity-60 transition-transform', open && 'rotate-180')} />
       </button>
 
@@ -146,13 +146,13 @@ export function ChatModelPicker({
                       </button>
                     </div>
                     <div className="text-[10px] text-muted-foreground mt-2">
-                      {arcWorkAvailable ? 'Chat here, or let Work continue after you leave.' : 'Arc Work is the Boost cloud agent.'}
+                      {arcWorkAvailable ? 'Chat with Arc here, or let Work continue after you leave.' : 'Arc Work is the Boost cloud agent (powered by Reese).'}
                     </div>
                   </div>
                 )}
                 <div className="px-2.5 pt-2 pb-1.5">
-                  <div className="text-xs font-semibold">Reasoning</div>
-                  <div className="text-[10px] text-muted-foreground">Choose how much reasoning Arc uses.</div>
+                  <div className="text-xs font-semibold">Arc Matrix™ Models</div>
+                  <div className="text-[10px] text-muted-foreground">Select a reasoning engine for Arc.</div>
                 </div>
                 {PRESETS.map((preset) => {
                   let badge: string | undefined;

@@ -1,10 +1,10 @@
 # ArcAI
 
-> ArcAI (Ask, Reflect, Create) is a free multimodal AI assistant by Win The Night Productions. Natural GPT-Live-1 voice conversations, image generation, code canvas, writing tools, music player and living memory in one app.
+> ArcAI (Ask, Reflect, Create) is a free multimodal AI assistant by Win The Night Productions. Natural voice conversations, Arc Imagix image generation, code canvas, writing tools, music player and living memory in one app.
 
-GPT-5.6 Luna powers ArcAI chat, code, writing and analysis. The model picker offers Auto, Quick, Balanced and Deep reasoning; Auto starts with Quick and steps up for clearly harder requests. GPT-Live-1 powers natural, interruptible voice conversations. Living memory, Deep Search, web search, file uploads, document analysis, canvases, shared chats, code generation and one-tap publishing are also included.
+Arc Matrix™ powers ArcAI chat, code, writing and analysis. The model picker offers Auto, Flo (fast & agile), Cora (everyday powerhouse) and Reese (deep reasoning); Auto starts with Flo and steps up for clearly harder requests. Natural, interruptible voice conversations are powered by Voxi. Living memory, Deep Search, web search, file uploads, document analysis, canvases, shared chats, code generation and one-tap publishing are also included.
 
-Free accounts can generate or edit up to 3 image outputs total (powered by GPT Image 2.5 Flare for generation and Sunburst for precision editing). Boost subscribers and administrators have unlimited image generation and editing.
+Free accounts can generate or edit up to 3 image outputs total with Arc Imagix. Boost subscribers and administrators have unlimited image generation and precision Arc Imagix Edit tools.
 
 Published code creations use the `*.froydingermedia.online` domain and stay live until their owner unpublishes them.
 

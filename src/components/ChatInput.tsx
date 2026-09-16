@@ -3639,15 +3639,15 @@ ${safeCode}
                       <div className="text-muted-foreground font-semibold px-1 mb-1 text-[11px] uppercase tracking-wider">Models & Workflows</div>
                       <div className="flex justify-between items-center px-1 py-2 border-b border-black/10 dark:border-white/5 text-muted-foreground">
                         <div>
-                          <div className="font-medium text-foreground">Generation</div>
-                          <div className="text-[10px]">GPT-Image-2.5 Flare (Fast, high fidelity)</div>
+                          <div className="font-medium text-foreground">Arc Imagix</div>
+                          <div className="text-[10px]">High-fidelity creative synthesis powered by Arc Matrix™</div>
                         </div>
                         <span className="font-semibold text-foreground">{isBoostTier ? "Unlimited" : "3 free total"}</span>
                       </div>
                       <div className="flex justify-between items-center px-1 py-2 border-b border-black/10 dark:border-white/5 text-muted-foreground">
                         <div>
-                          <div className="font-medium text-foreground">Editing & Variations</div>
-                          <div className="text-[10px]">GPT-Image-2.5 Sunburst (Tighter edit control)</div>
+                          <div className="font-medium text-foreground">Arc Imagix Edit</div>
+                          <div className="text-[10px]">Precision visual editing, inpainting, and alteration</div>
                         </div>
                         <span className="font-semibold text-foreground">{isBoostTier ? "Unlimited" : "3 free total"}</span>
                       </div>

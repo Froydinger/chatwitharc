@@ -1370,7 +1370,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
                 {publishedAppTitle || messages.find(m => m.role === 'user')?.content?.slice(0, 45) || 'Arc Web App'}
               </span>
               <span className="text-[8px] font-mono font-bold bg-primary/15 text-primary border border-primary/25 px-1 py-0.2 rounded uppercase tracking-wider select-none shrink-0">
-                LUNA
+                ARC MATRIX
               </span>
             </div>
           </div>
@@ -1487,7 +1487,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
                 {publishedAppTitle || messages.find(m => m.role === 'user')?.content?.slice(0, 45) || 'Arc Web App'}
               </span>
               <span className="text-[9px] font-mono font-bold bg-primary/15 text-primary border border-primary/25 px-1.5 py-0.2 rounded-md uppercase tracking-wider select-none">
-                LUNA
+                ARC MATRIX
               </span>
             </div>
           </div>

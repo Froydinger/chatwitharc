@@ -56,24 +56,24 @@ export function DocsPage() {
     {
       id: "switch-model",
       category: "models",
-      title: "How to change Luna's reasoning mode",
-      question: "How do I choose a Luna reasoning mode?",
+      title: "Choosing an Arc Matrix™ reasoning engine",
+      question: "How do I choose between Flo, Cora, and Reese?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            You can change Luna's reasoning mode using the <strong>Model Picker dropdown</strong> located at the
+            You can change your active model using the <strong>Model Picker dropdown</strong> located at the
             <strong> top left of the chat window</strong> (above the chat input).
           </p>
-          <p>Luna is Arc's default and only model for now. Click the picker to choose a reasoning mode:</p>
+          <p>ArcAI is powered by <strong>Arc Matrix™</strong>. Click the picker to choose the best reasoning engine for your task:</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Auto</strong>: Starts with Quick and steps up for clearly harder requests.</li>
-            <li><strong className="text-foreground">Quick</strong>: Faster everyday Luna answers.</li>
-            <li><strong className="text-foreground">Balanced</strong>: A balance of speed and reasoning.</li>
-            <li><strong className="text-foreground">Deep</strong>: More Luna reasoning for harder work.</li>
+            <li><strong className="text-foreground">Auto</strong>: Automatically routes between Flo, Cora, and Reese based on query complexity.</li>
+            <li><strong className="text-foreground">Flo</strong>: Lightning-fast everyday answers, brainstorming, and drafting.</li>
+            <li><strong className="text-foreground">Cora</strong>: Everyday powerhouse intelligence with deep nuance and balanced reasoning.</li>
+            <li><strong className="text-foreground">Reese</strong>: Deep reasoning, complex code architecture, and heavy analytical problem solving.</li>
           </ul>
         </div>
       ),
-      keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "gpt-5.6", "auto", "quick", "balanced", "deep", "luna"]
+      keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "arc matrix", "auto", "flo", "cora", "reese"]
     },
     {
       id: "model-quotas",
@@ -86,8 +86,8 @@ export function DocsPage() {
             Usage quotas depend on your plan:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Free Tier</strong>: Luna chat plus 3 free AI images and plan-based usage limits.</li>
-            <li><strong className="text-foreground">Boost Plan ($10/mo or $95/yr)</strong>: Unlimited AI image generation &amp; Sunburst editing, higher reasoning limits, offline local model support, unlimited voice, and publishing.</li>
+            <li><strong className="text-foreground">Free Tier</strong>: Unlimited Flo, 10 Cora, and 3 Reese daily, plus 3 Arc Imagix creations and generous voice access.</li>
+            <li><strong className="text-foreground">Boost Plan ($10/mo or $95/yr)</strong>: Unlimited Flo, Cora, and Reese reasoning, unlimited Arc Imagix generation &amp; editing, full App Builder, offline local model support, and unlimited voice.</li>
           </ul>
           <p>You can check your current daily usage and remaining limit at <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>
         </div>
@@ -243,7 +243,7 @@ export function DocsPage() {
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            The <strong>App Builder</strong> is ArcAI's integrated IDE workspace powered by <strong>Luna (gpt-5.6-luna)</strong>. It allows you to generate, edit, run, and deploy complete multi-file interactive React applications directly inside your browser.
+            The <strong>App Builder</strong> is ArcAI's integrated IDE workspace powered by <strong>Arc Matrix™</strong>. It allows you to generate, edit, run, and deploy complete multi-file interactive React applications directly inside your browser.
           </p>
           <p>How to access and use the App Builder:</p>
           <ul className="list-disc pl-5 space-y-1.5">

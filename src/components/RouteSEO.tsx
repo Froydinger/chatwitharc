@@ -15,7 +15,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/pricing": {
     title: "ArcAI • Pricing",
     description:
-      "ArcAI includes GPT-5.6 Luna with Auto, Quick, Balanced and Deep reasoning, plus voice, Perplexity-powered Deep Search and Ultra Deep Search, and shared chats.",
+      "ArcAI includes Arc Matrix™ intelligence with Flo, Cora, and Reese reasoning, plus natural voice, Deep Search, and shared chats.",
   },
   "/downloads": {
     title: "ArcAI • Downloads",
@@ -56,7 +56,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/welcome": {
     title: "ArcAI — Free AI Assistant with Voice, Images & Memory",
     description:
-      "ArcAI is a free multimodal AI assistant with natural GPT-Live-1 voice conversations, image generation, code and living memory. A free ChatGPT, Gemini and Claude alternative.",
+      "ArcAI is a free multimodal AI assistant with natural voice conversations, Arc Imagix image generation, code and living memory. A free ChatGPT, Gemini and Claude alternative.",
   },
   "/blog": {
     title: "ArcAI Guides & FAQs — Free AI Assistant",
@@ -66,7 +66,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/upgrade": {
     title: "ArcAI • Upgrade to Boost",
     description:
-      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited premium reasoning, unlimited image generation & Sunburst editing, and unlimited GPT-Live-1 voice sessions. Free accounts get tons of voice usage.",
+      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited Flo, Cora, and Reese reasoning, unlimited Arc Imagix generation & editing, and unlimited voice sessions.",
   },
   "/share": {
     title: "ArcAI • Shared Conversation",
@@ -86,7 +86,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/build": {
     title: "ArcAI • App Builder",
     description:
-      "Build, preview, and deploy full React applications powered by GPT-5.6 Luna.",
+      "Build, preview, and deploy full React applications powered by Arc Matrix™.",
   },
   "/docs": {
     title: "ArcAI • Docs",

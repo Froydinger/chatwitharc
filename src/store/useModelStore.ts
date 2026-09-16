@@ -35,7 +35,15 @@ interface ModelStore {
 
 const VALID_REASONING_SELECTIONS = new Set<LunaReasoningSelection>(['auto', 'low', 'medium', 'high']);
 
-/** Auto starts fast and only spends more reasoning on clearly harder requests. */
+export function getModelDisplayName(selection: LunaReasoningSelection): string {
+  switch (selection) {
+    case 'low': return 'Flo';
+    case 'medium': return 'Cora';
+    case 'high': return 'Reese';
+    case 'auto': default: return 'Auto';
+  }
+}
+
 export function resolveReasoningEffort(
   selection: LunaReasoningSelection,
   complexity: 0 | 1 | 2 | 3 = 0,

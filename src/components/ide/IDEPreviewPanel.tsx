@@ -87,13 +87,13 @@ function SandpackLoadingOverlay({ isBuilding }: { isBuilding?: boolean }) {
     return !isBuilding && (sandpack.status === 'idle' || sandpack.status === 'done');
   });
   const [loadingStep, setLoadingStep] = useState(
-    isBuilding ? 'Building Live App with Luna…' : 'Booting sandbox runtime…'
+    isBuilding ? 'Building Live App with Arc Matrix…' : 'Booting sandbox runtime…'
   );
 
   useEffect(() => {
     if (isBuilding) {
       setIsReady(false);
-      setLoadingStep('Building Live App with Luna…');
+      setLoadingStep('Building Live App with Arc Matrix…');
 
       const timer1 = setTimeout(() => {
         setLoadingStep('Writing components & interface…');

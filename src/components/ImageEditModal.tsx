@@ -316,13 +316,13 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
             <div>
               <label className="text-sm font-medium mb-2 block">Output options</label>
               <div className="flex flex-wrap items-center gap-2">
-                {/* All image edits use GPT Image 2.5 Sunburst for precision control */}
+                {/* Precision image editing via Arc Imagix Edit */}
                 <div
                   className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 text-sm text-foreground select-none"
-                  title="All image edits use GPT Image 2.5 Sunburst for precision control"
+                  title="Precision image editing via Arc Imagix Edit"
                 >
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  <span className="font-medium">GPT Image 2.5 Sunburst</span>
+                  <span className="font-medium">Arc Imagix Edit</span>
                 </div>
 
                 {/* Aspect picker */}

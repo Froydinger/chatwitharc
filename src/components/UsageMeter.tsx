@@ -38,7 +38,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
         aria-label={`Unlimited ${kind}`}
       >
         <Icon className="h-3.5 w-3.5 shrink-0" />
-        <span className="hidden sm:inline">Unlimited {isImage ? "images" : "voice"}</span>
+        <span className="hidden sm:inline">Unlimited {isImage ? "Arc Imagix" : "voice"}</span>
         <span className="sm:hidden">{isImage ? "Unltd." : "Unltd."}</span>
       </div>
     );
@@ -80,7 +80,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
       title={
         isImage
           ? isExhausted
-            ? "Free image limit reached. Click to upgrade to Boost for unlimited images."
+            ? "Free Arc Imagix limit reached. Click to upgrade to Boost for unlimited creations."
             : "Click to view image limits and upgrade options"
           : undefined
       }
@@ -96,7 +96,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border",
         className,
       )}
-      aria-label={isImage ? `${remaining} free images remaining.` : `${voicePctLabel}.`}
+      aria-label={isImage ? `${remaining} free Arc Imagix creations remaining.` : `${voicePctLabel}.`}
     >
       {isExhausted && !hasBoost && !isAdmin ? (
         <Crown className="h-3.5 w-3.5 shrink-0 text-destructive animate-pulse" />
@@ -107,7 +107,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
         {isExhausted ? (
           isImage ? "Free limit reached · Upgrade to Boost" : "Daily limit reached · Upgrade to Boost"
         ) : (
-          <>{isImage ? <><AnimatedCounter value={remaining} height={15} /> / {limit} free images left</> : voicePctLabel}</>
+          <>{isImage ? <><AnimatedCounter value={remaining} height={15} /> / {limit} free Arc Imagix left</> : voicePctLabel}</>
         )}
       </span>
       <span className="tabular-nums sm:hidden inline-flex items-center gap-0.5">

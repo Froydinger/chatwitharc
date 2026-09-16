@@ -196,7 +196,7 @@ export function IDEChatPanel({
           <div>
             <h2 className="font-semibold text-xs leading-none flex items-center gap-1.5 text-foreground">
               <span>Arc Agent</span>
-              <span className="text-[8.5px] bg-primary/15 text-primary px-1.5 py-0.2 rounded font-mono font-medium tracking-wider">LUNA</span>
+              <span className="text-[8.5px] bg-primary/15 text-primary px-1.5 py-0.2 rounded font-mono font-medium tracking-wider">ARC MATRIX</span>
             </h2>
             <p className="text-[9.5px] text-muted-foreground mt-0.5">
               {syncStatus === 'saving' && 'Saving changes…'}
@@ -405,7 +405,7 @@ export function IDEChatPanel({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder={isLoading ? "Luna is thinking..." : "Message Arc Studio..."}
+            placeholder={isLoading ? "Arc is thinking..." : "Message Arc Studio..."}
             rows={1}
             className="flex-1 min-h-[28px] max-h-32 resize-none text-[15px] sm:text-xs bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-1 text-foreground placeholder:text-muted-foreground/60 scrollbar-hide"
             disabled={isLoading}

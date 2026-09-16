@@ -44,11 +44,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI free?",
-        a: "Yes. The free tier includes GPT-5.6 Luna chat, adjustable reasoning (unlimited Quick, 10 Balanced, 3 Deep daily), image generation, weekly research, and tons of free voice usage. Boost raises the rest: unlimited Deep Search and Ultra Deep Search, higher image quotas, the full App Builder, and unlimited voice sessions.",
+        a: "Yes. The free tier includes Arc Matrix™ chat (unlimited Flo, 10 Cora, 3 Reese daily), image generation with Arc Imagix, weekly research, and tons of free voice usage. Boost raises the rest: unlimited Deep Search and Ultra Deep Search, unlimited Arc Imagix generation and editing, the full App Builder, and unlimited voice sessions.",
       },
       {
         q: "Can I build full web applications with ArcAI?",
-        a: "Yes. With the App Builder (IDE), ArcAI creates, previews, and deploys full multi-file React apps powered by Luna, complete with built-in Netlify database, auth, Sandpack previews, and one-click publishing.",
+        a: "Yes. With the App Builder (IDE), ArcAI creates, previews, and deploys full multi-file React apps powered by Arc Matrix™, complete with built-in Netlify database, auth, Sandpack previews, and one-click publishing.",
       },
       {
         q: "How does the bot's memory work in ArcAI?",
@@ -64,7 +64,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which AI models does ArcAI use?",
-        a: "GPT-5.6 Luna powers ArcAI chat, code, writing, document analysis, reasoning, and the App Builder. GPT Image 2.5 Flare and Sunburst power images, GPT-Live-1 powers natural voice conversations through OpenAI Realtime, and Perplexity powers Deep Search and Ultra Deep Search research.",
+        a: "ArcAI is powered by Arc Matrix™—our proprietary orchestration engine combining frontier language models, multimodal vision, and deep reasoning architectures. Chat and analysis are driven by Flo, Cora, and Reese; visual generation and precision editing are powered by Arc Imagix and Arc Imagix Edit; natural voice conversations run on Voxi; and live web research is powered by Deep Search.",
       },
     ],
     cta: "Try ArcAI now",
@@ -77,7 +77,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["ChatGPT alternative", "ChatGPT free", "free AI chatbot", "AI app builder", "AI with memory"],
     updated: UPDATED,
     intro:
-      "ChatGPT's free tier is highly limited. ArcAI is a ChatGPT alternative that gives you a generous free tier with GPT-5.6 Luna reasoning, search citations, canvases, an interactive App Builder, and long-term memory, plus a premium Boost upgrade to unlock power-user features.",
+      "ChatGPT's free tier is highly limited. ArcAI is a ChatGPT alternative that gives you a generous free tier with Arc Matrix™ intelligence, search citations, canvases, an interactive App Builder, and long-term memory, plus a premium Boost upgrade to unlock power-user features.",
     faq: [
       {
         q: "What is the best alternative to ChatGPT?",
@@ -93,11 +93,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI as good as ChatGPT Plus?",
-        a: "Boost adds unlimited Deep Search and Ultra Deep Search, unlimited Luna reasoning, the App Builder with live publishing, premium image tools, and unlimited voice sessions.",
+        a: "Boost adds unlimited Deep Search and Ultra Deep Search, unlimited Flo, Cora, and Reese reasoning, the App Builder with live publishing, premium Arc Imagix tools, and unlimited voice sessions.",
       },
       {
         q: "Does the free tier have message limits?",
-        a: "ArcAI uses GPT-5.6 Luna for all chat reasoning levels with unlimited Quick reasoning, 10 Balanced, and 3 Deep daily on the free plan. Boost unlocks unlimited for all levels.",
+        a: "ArcAI provides unlimited Flo, 10 Cora, and 3 Reese reasoning daily on the free plan. Boost unlocks unlimited for all models.",
       },
       {
         q: "Can I use ArcAI without signing up?",
@@ -147,15 +147,15 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["GPT-4 alternative", "GPT-4 free", "free GPT", "AI app generator"],
     updated: UPDATED,
     intro:
-      "GPT-4 and GPT-5 access is restricted on many services. ArcAI gives free accounts GPT-5.6 Luna with adjustable reasoning and offers higher usage limits through Boost.",
+      "Access to advanced reasoning is restricted on many services. ArcAI gives free accounts Arc Matrix™ intelligence with Flo, Cora, and Reese, and offers unlimited usage through Boost.",
     faq: [
       {
-        q: "Is there a free version of GPT-4?",
-        a: "ArcAI is a GPT alternative that uses GPT-5.6 Luna for chat, code, writing, and analysis, with Auto, Quick, Balanced, and Deep reasoning choices. Auto starts with Quick and steps up when needed.",
+        q: "Is there a free version of advanced AI reasoning?",
+        a: "ArcAI is a leading alternative that gives you Flo for speed, Cora for balanced intelligence, and Reese for deep reasoning and code architecture. Auto-mode picks the best engine for your task.",
       },
       {
         q: "Can ArcAI turn ideas into working applications?",
-        a: "Yes. Using GPT-5.6 Luna with the App Builder, ArcAI generates complete multi-file React applications with real-time browser preview, built-in Netlify database, authentication, and live web hosting.",
+        a: "Yes. Using Arc Matrix™ with the App Builder, ArcAI generates complete multi-file React applications with real-time browser preview, built-in Netlify database, authentication, and live web hosting.",
       },
       {
         q: "Does ArcAI remember instructions between chats?",
@@ -163,7 +163,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "What model does ArcAI use for chat?",
-        a: "All ArcAI chat currently runs on GPT-5.6 Luna. The picker controls Luna's reasoning level rather than switching models.",
+        a: "ArcAI chat is powered by Arc Matrix™, letting you select Flo for quick tasks, Cora for nuanced conversation, and Reese for complex problem solving.",
       },
       {
         q: "Can ArcAI do everything GPT-4 can?",
@@ -259,11 +259,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["AI image generator", "AI image free", "GPT image free", "image creator"],
     updated: UPDATED,
     intro:
-      "ArcAI includes a built-in AI image generator powered by GPT Image 2.5 Flare and precision editing powered by GPT Image 2.5 Sunburst. Free accounts get 3 free images total, while Boost accounts unlock unlimited image generation and editing.",
+      "ArcAI includes a built-in AI image studio powered by Arc Imagix for generation and Arc Imagix Edit for precision editing. Free accounts get 3 free creations total, while Boost accounts unlock unlimited image generation and editing.",
     faq: [
       {
         q: "What is the best AI image generator?",
-        a: "ArcAI is a strong option because it integrates GPT Image 2.5 Flare for fast generation and Sunburst for precision editing directly into your chat and workspace.",
+        a: "ArcAI is a strong option because it integrates Arc Imagix for fast creative synthesis and Arc Imagix Edit for precision editing directly into your chat and workspace.",
       },
       {
         q: "Can I use generated images in the App Builder?",
@@ -271,11 +271,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How many free images can I generate?",
-        a: "Free accounts get 3 AI images total to try out image generation (powered by GPT Image 2.5 Flare). Upgrading to Boost gives you unlimited image generation and precision Sunburst editing.",
+        a: "Free accounts get 3 Arc Imagix creations total to try out image generation. Upgrading to Boost gives you unlimited Arc Imagix generation and precision Arc Imagix Edit tools.",
       },
       {
         q: "Can I edit generated images?",
-        a: "Yes. Full image editing (combining, inpainting, and precision variations) is powered by GPT Image 2.5 Sunburst and included with unlimited access on Boost.",
+        a: "Yes. Full image editing (combining, inpainting, and precision variations) is powered by Arc Imagix Edit and included with unlimited access on Boost.",
       },
     ],
     cta: "Generate AI images",
@@ -404,7 +404,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     slug: "free-ai-for-coding",
     title: "The best free AI for coding and building web apps in your browser",
     description:
-      "ArcAI includes a free code canvas and full App Builder IDE for HTML, CSS, JavaScript, and complete multi-file React apps — powered by GPT-5.6 Luna.",
+      "ArcAI includes a free code canvas and full App Builder IDE for HTML, CSS, JavaScript, and complete multi-file React apps — powered by Arc Matrix™.",
     keywords: ["free AI coding", "AI code generator free", "AI app builder", "free Copilot alternative", "AI code canvas"],
     updated: UPDATED,
     intro:
@@ -437,7 +437,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "What is the best free AI for writing?",
-        a: "ArcAI. Its writing canvas is powered by GPT-5.6 Luna and includes selection-based edits, tone changes and rewrites — all free.",
+        a: "ArcAI. Its writing canvas is powered by Arc Matrix™ and includes selection-based edits, tone changes and rewrites — all free.",
       },
       {
         q: "Does the writing canvas use the bot's memory?",
@@ -503,13 +503,13 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-gpt-4-alternative": {
     angle: "Most people searching for a GPT-4 alternative want strong reasoning without turning every useful feature into a massive monthly bill. ArcAI focuses on GPT-class quality with practical tools, persistent memory, and an App Builder around it.",
     useCases: ["reasoning through hard questions", "building React web apps", "writing drafts", "debugging code", "generating images", "persistent bot memory"],
-    freeAccess: "Free accounts get GPT-5.6 Luna with unlimited Quick, 10 Balanced, and 3 Deep reasoning daily; Boost adds unlimited reasoning, the App Builder, and premium tools.",
+    freeAccess: "Free accounts get Arc Matrix™ with unlimited Flo, 10 Cora, and 3 Reese reasoning daily; Boost adds unlimited reasoning, the App Builder, and premium tools.",
     proof: "The result is GPT-style usefulness without needing to choose between chat, voice, images, memory, and app building in separate products.",
   },
   "free-claude-alternative": {
     angle: "Claude is known for thoughtful writing and analysis, but many users want that style of assistance with voice, images, full-stack app building, and persistent cross-session memory in the same product.",
     useCases: ["long-form writing", "building web apps", "structured thinking", "brainstorming", "voice notes", "saved personal context"],
-    freeAccess: "We offer both a generous free tier for daily use and a Boost upgrade with unlimited Luna reasoning and full App Builder deployment for power users.",
+    freeAccess: "We offer both a generous free tier for daily use and a Boost upgrade with unlimited Flo, Cora, and Reese reasoning and full App Builder deployment for power users.",
     proof: "ArcAI is especially useful when you want a writing-friendly assistant that can also build working apps, search, speak, and remember your context.",
   },
   "best-free-ai-assistant-2026": {
@@ -527,7 +527,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-ai-image-generator": {
     angle: "A standalone image generator is useful, but an image generator inside your AI assistant is more useful because the same chat can plan, revise, describe, and edit the image workflow.",
     useCases: ["social graphics", "App Builder assets", "concept art", "product mockups", "moodboards", "iterative image edits"],
-    freeAccess: "Free accounts receive 3 AI images total with GPT Image 2.5 Flare, while Boost accounts unlock unlimited image generation and precision Sunburst editing.",
+    freeAccess: "Free accounts receive 3 Arc Imagix creations total, while Boost accounts unlock unlimited Arc Imagix generation and precision Arc Imagix Edit tools.",
     proof: "ArcAI makes image generation feel like part of the conversation and app building workflow instead of a separate tool you have to manage.",
   },
   "ai-that-remembers-conversations": {

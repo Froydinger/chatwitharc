@@ -137,25 +137,13 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
 
     case 'cloud-image':
     case 'cloud-image-pro': {
-      if (modelUsed === 'gpt-image-2.5-sunburst') {
-        return { label: 'Cloud · GPT Image 2.5 Sunburst', icon: 'cloud', tooltip: 'Image generation — gpt-image-2.5-sunburst.' };
-      }
-      if (modelUsed === 'gpt-image-2') {
-        return { label: 'Cloud · GPT Image 2', icon: 'cloud', tooltip: 'Image generation — gpt-image-2.' };
-      }
-      return { label: 'Cloud · GPT Image 2.5 Flare', icon: 'cloud', tooltip: 'Image generation — gpt-image-2.5-flare.' };
+      return { label: 'Cloud · Arc Imagix', icon: 'cloud', tooltip: 'Image generation — Arc Imagix.' };
     }
     case 'cloud-image-edit': {
-      if (modelUsed === 'gpt-image-2.5-sunburst') {
-        return { label: 'Cloud · GPT Image 2.5 Sunburst (Edit)', icon: 'cloud', tooltip: 'Image editing — gpt-image-2.5-sunburst.' };
-      }
-      if (modelUsed === 'gpt-image-2') {
-        return { label: 'Cloud · GPT Image 2 (Edit)', icon: 'cloud', tooltip: 'Image editing — gpt-image-2.' };
-      }
-      return { label: 'Cloud · GPT Image 2.5 Flare (Edit)', icon: 'cloud', tooltip: 'Image editing — gpt-image-2.5-flare.' };
+      return { label: 'Cloud · Arc Imagix Edit', icon: 'cloud', tooltip: 'Precision image editing — Arc Imagix Edit.' };
     }
     case 'cloud-image-edit-fallback':
-      return { label: 'Cloud · Nano Banana 2 (Edit, fallback)', icon: 'cloud', tooltip: 'GPT-Image-2 was unavailable, so this edit was served by Google Gemini Nano Banana 2 as a fallback.' };
+      return { label: 'Cloud · Arc Imagix Edit (Fallback)', icon: 'cloud', tooltip: 'Image editing served by Arc Matrix fallback provider.' };
     case 'cloud-video':
       return { label: 'Cloud · Video', icon: 'cloud', tooltip: 'Video generation.' };
     case 'cloud-ide':
@@ -167,9 +155,8 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
   }
 }
 
-function getModelInfo(m: string): { name: string; tier: string; providerName: string } {
-  if (m === 'gpt-5.6-luna') {
-    return { name: 'GPT-5.6 Luna', tier: 'Luna', providerName: 'GPT-5.6 Luna' };
-  }
-  return { name: 'GPT-5.6 Luna', tier: 'Luna', providerName: 'GPT-5.6 Luna' };
+function getModelInfo(_m: string): { name: string; tier: string; providerName: string } {
+  const effort = useModelStore.getState().reasoningEffort;
+  const name = effort === 'low' ? 'Flo' : effort === 'medium' ? 'Cora' : effort === 'high' ? 'Reese' : 'Arc Matrix';
+  return { name: `Arc · ${name}`, tier: name, providerName: 'Arc Matrix™' };
 }

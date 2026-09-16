@@ -25,15 +25,15 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes GPT-5.6 Luna chat with adjustable reasoning, canvases, a living memory summary, 3 AI images, weekly research, and tons of GPT-Live-1 voice usage. Upgrade to Boost for unlimited research, unlimited reasoning, App Builder, unlimited image generation, and unlimited voice sessions.",
+    a: "Yes. Our free tier includes Arc Matrix™ chat (unlimited Flo, 10 Cora, 3 Reese daily), canvases, a living memory summary, 3 Arc Imagix creations, weekly research, and generous voice usage with Arc. Upgrade to Boost for unlimited research, unlimited Flo, Cora, and Reese reasoning, App Builder, unlimited Arc Imagix creation & editing, and unlimited voice sessions.",
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds unlimited Luna reasoning, unlimited Deep Search and Ultra Deep Search, unlimited GPT Image 2.5 Flare generation, precision Sunburst editing, unlimited GPT-Live-1 voice, and the full App Builder with live web-app publishing.",
+    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds unlimited Flo, Cora, and Reese reasoning across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, unlimited Arc Imagix generation & editing, unlimited voice sessions, and the full App Builder with live web-app publishing.",
   },
   {
     q: "What is the App Builder in ArcAI?",
-    a: "ArcAI's App Builder is an interactive in-browser IDE powered by Luna that turns your ideas into full-stack React web applications. It includes a Monaco code editor, live Sandpack preview, integrated Netlify database and user authentication, and one-click deployment to custom askarc.chat URLs or complete Git-ready Vite+React ZIP export.",
+    a: "ArcAI's App Builder is an interactive in-browser IDE powered by Arc Matrix™ that turns your ideas into full-stack React web applications. It includes a Monaco code editor, live Sandpack preview, integrated Netlify database and user authentication, and one-click deployment to custom askarc.chat URLs or complete Git-ready Vite+React ZIP export.",
   },
   {
     q: "How does Arc's memory work?",
@@ -41,7 +41,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI a free ChatGPT alternative?",
-    a: "Yes. ArcAI is a powerful alternative to ChatGPT, Gemini and Claude, offering a robust free plan with GPT-5.6 Luna reasoning, search citations, canvases, and long-term memory.",
+    a: "Yes. ArcAI is a powerful alternative to ChatGPT, Gemini and Claude, offering a robust free plan with Arc Matrix™ intelligence, search citations, canvases, and long-term memory.",
   },
   {
     q: "Do I need to sign up?",
@@ -49,7 +49,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "GPT-5.6 Luna powers chat, code, document analysis, reasoning, and the App Builder. GPT Image 2.5 Flare and Sunburst power images, GPT-Live-1 powers natural voice conversations, and a dedicated search provider handles live web research.",
+    a: "ArcAI is powered by Arc Matrix™—our proprietary orchestration engine combining frontier language models, multimodal vision, and deep reasoning architectures. Chat and analysis are driven by Flo (fast & agile), Cora (everyday powerhouse), and Reese (deep logic & code); image creation and precision editing are powered by Arc Imagix and Arc Imagix Edit; natural voice conversations run on our Voxi voice pipeline; and live web research is powered by Deep Search.",
   },
   {
     q: "Is ArcAI private?",
@@ -61,11 +61,11 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI generate images?",
-    a: "Yes. Free accounts include 3 AI images total powered by GPT Image 2.5 Flare. Boost accounts receive unlimited image generation (Flare) and precision image editing (Sunburst).",
+    a: "Yes. Free accounts include 3 Arc Imagix creations total. Boost accounts receive unlimited Arc Imagix creation and precision editing with Arc Imagix Edit.",
   },
   {
     q: "Does ArcAI have voice mode?",
-    a: "Yes. Voice mode provides low-latency, interruptible conversations with Arc through GPT-Live-1 and multiple natural voices. Free accounts get tons of voice usage, while Boost includes unlimited voice sessions.",
+    a: "Yes. Voice mode provides low-latency, interruptible conversations with Arc using natural voices powered by our Voxi speech engine. Free accounts get generous voice usage, while Boost includes unlimited voice sessions.",
   },
   {
     q: "Can ArcAI write code and build apps?",
@@ -217,7 +217,7 @@ export function LandingPage() {
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { category: "Ask", icon: MessageSquare, title: "GPT-5.6 Luna Inside", body: "Choose Auto, Quick, Balanced, or Deep reasoning while Luna powers every chat, writing, code, and analysis task. Auto starts fast and steps up when needed." },
+            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "Chat with Flo, Cora, and Reese across Arc Matrix™ for writing, code, logic, and analysis. Auto-mode starts fast and steps up when needed." },
             { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
             { category: "Reflect", icon: Brain, title: "Living Cross-Session Memory", body: "Arc keeps one detailed, evolving summary of the preferences, goals, facts, and boundaries you want it to remember, then recalls it when relevant." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },

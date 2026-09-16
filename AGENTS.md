@@ -107,7 +107,7 @@ is not the thing deploying edge functions or migrations.
 ## App Builder (IDE)
 
 The App Builder allows users to create full interactive React web applications
-powered by Luna (`gpt-5.6-luna`) with medium reasoning.
+powered by Arc Matrix™ with medium reasoning.
 - **Entitlement**: Exclusively available to ArcAI Boost subscribers and admins
   (enforced both client-side and in the `agent` edge function via `user_has_boost`).
 - **Triggers**: Accessible via the `+` Tools & Actions menu ("App" tool card),
@@ -184,22 +184,21 @@ review markup risks a manual action against the rich results the site earns.
   normal build plus a live beta verification. Local agent changes must respect
   the remote Git boundary so they cannot accidentally make the feature public.
 
-- **Voice Mode: GPT-Live-1 full-duplex.** Browser voice uses OpenAI's speech-to-speech
+- **Voice Mode: Natural voice powered by Voxi.** Browser voice uses OpenAI's speech-to-speech
   model over WebRTC, with Responses delegation to `gpt-5.6-luna` for Arc's tools and
-  deeper work. The microphone stays active for natural interruptions; the orb remains
-  a deliberate local tap-to-interrupt control for stopping playback.
-- **Luna is the only text/reasoning model for now.** The picker exposes Auto,
-  Quick, Balanced, and Deep. Quick, Balanced, and Deep map to `low`, `medium`,
-  and `high` `reasoning_effort`; Auto starts at Quick and steps up for clearly
-  harder requests. All use `gpt-5.6-luna`. Old Terra, Sol, GPT-5.4, and GPT-5.5
-  selections normalize to Luna on both client and server so stale sessions keep
-  working. Specialized image, realtime voice, video, and search provider models
-  remain separate. Luna calls use `reasoning_effort`, never `temperature`.
-- **Image setup: GPT Image 2.5 Flare for generation, Sunburst for edits.**
-  Everyone uses `gpt-image-2.5-flare` for initial image generation (higher
-  quality, 50% lower latency). All edits and variations use `gpt-image-2.5-sunburst`
-  (built for tighter control and precision across edits). Free tier accounts receive
-  3 images total (period), and Boost subscribers receive unlimited image generation and editing.
+  deeper work. The microphone stays active for natural interruptions; the assistant is always Arc.
+- **Arc Matrix™ Models: Auto, Flo, Cora, Reese.** The picker exposes Auto, Flo
+  (Fast & Agile), Cora (Balanced Intelligence), and Reese (Deep Reasoning). Flo,
+  Cora, and Reese map to `low`, `medium`, and `high` `reasoning_effort`; Auto
+  starts at Flo and steps up for clearly harder requests. Old Terra, Sol, GPT-5.4,
+  and GPT-5.5 selections normalize smoothly on both client and server. Specialized
+  image, realtime voice, video, and search provider models remain separate.
+- **Image setup: Arc Imagix for generation, Arc Imagix Edit for edits.**
+  Initial image generation uses Arc Imagix (backed by `gpt-image-2.5-flare`). All
+  edits and variations use Arc Imagix Edit (backed by `gpt-image-2.5-sunburst` for
+  tighter control and precision across edits). Free tier accounts receive 3
+  creations total (period), and Boost subscribers receive unlimited image generation
+  and editing.
 - **Accent color: Noir only.** Arc went black-and-white a long time ago and
   accent selection is retired — there is no picker to add colors back to.
   `useAccentStore.ts` force-writes `noir` to `localStorage` on every start, so

@@ -392,7 +392,7 @@ export function BlogIndexPage() {
                         <span className="text-cyan-400 text-[10px] font-mono">Synced</span>
                       </div>
                       <div className="flex items-center justify-between rounded-lg bg-white/5 p-2 text-white/80">
-                        <span>GPT-5.6 Luna Reasoning</span>
+                        <span>Arc Matrix™ Intelligence</span>
                         <span className="text-purple-400 text-[10px] font-mono">Ready</span>
                       </div>
                     </div>

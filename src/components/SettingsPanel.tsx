@@ -253,20 +253,20 @@ function ImageDefaultsCard() {
         </div>
 
         <div className="pt-3 border-t border-border/40 space-y-2.5">
-          <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1">Models & Workflow</div>
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1">Visual Intelligence (Arc Imagix)</div>
           <div className="p-3 rounded-xl bg-muted/20 border border-border/40 space-y-2 text-xs">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Generation</span>
-              <span className="font-medium text-foreground">GPT Image 2.5 Flare</span>
+              <span className="font-medium text-foreground">Arc Imagix</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Edits & Variations</span>
-              <span className="font-medium text-foreground">GPT Image 2.5 Sunburst</span>
+              <span className="font-medium text-foreground">Arc Imagix Edit</span>
             </div>
             <div className="flex justify-between items-center pt-1 border-t border-border/30">
               <span className="text-muted-foreground">Allowance</span>
               <span className="font-medium text-primary">
-                {isBoost ? "Unlimited with Boost" : "3 images total (Free plan)"}
+                {isBoost ? "Unlimited with Boost" : "3 creations total (Free plan)"}
               </span>
             </div>
           </div>

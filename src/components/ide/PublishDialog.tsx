@@ -301,7 +301,7 @@ function PublishForm({
   const handleAiGenerate = async () => {
     setIsGeneratingSeo(true);
     try {
-      toast.info('Luna is crafting app identity & SEO metadata...');
+      toast.info('Arc Matrix is crafting app identity & SEO metadata...');
       const result = await generateAppSeoMetadata({
         prompt: prompt || siteTitle,
         currentTitle: siteTitle,
@@ -325,7 +325,7 @@ function PublishForm({
           setAiPickLabel(result.faviconLabel);
         }
       }
-      toast.success('Generated metadata & favicon with Luna!');
+      toast.success('Generated metadata & favicon with Arc Matrix!');
     } catch (err) {
       toast.error('Could not generate metadata. Using current inputs.');
     } finally {
@@ -402,7 +402,7 @@ function PublishForm({
               <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                 <span>AI Smart Setup</span>
                 <span className="text-[8px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-1 py-0.2 rounded uppercase">
-                  Luna
+                  Arc Matrix
                 </span>
               </h4>
               <p className="text-[10.5px] text-muted-foreground truncate">
@@ -564,7 +564,7 @@ function PublishForm({
                     key={opt.label}
                     type="button"
                     onClick={() => setSelectedIndex(i)}
-                    title={`${opt.label}${isAiPick ? ' (Luna recommendation)' : ''}`}
+                    title={`${opt.label}${isAiPick ? ' (Arc recommendation)' : ''}`}
                     className={cn(
                       "relative h-8 w-8 rounded-lg flex items-center justify-center transition-all border shrink-0",
                       isSelected

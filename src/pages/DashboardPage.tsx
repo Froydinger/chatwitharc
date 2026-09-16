@@ -1358,7 +1358,7 @@ useEffect(() => {
                       ) : (
                         <>
                           <Smartphone className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                          <span className="text-[9px] font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/30 px-1.5 py-0.5 rounded uppercase dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30">Luna</span>
+                          <span className="text-[9px] font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/30 px-1.5 py-0.5 rounded uppercase dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30">App</span>
                         </>
                       )}
                     </div>
@@ -1366,7 +1366,7 @@ useEffect(() => {
                       {!hasBoost && !isAdmin ? "Upgrade to Boost" : "App Builder"}
                     </p>
                     <p className="mt-0.5 text-[11px] text-slate-600 dark:text-muted-foreground font-medium">
-                      {!hasBoost && !isAdmin ? "Unlock App Builder, Luna & Deep Search" : "Build full web apps"}
+                      {!hasBoost && !isAdmin ? "Unlock App Builder & Arc Matrix" : "Build full web apps"}
                     </p>
                   </button>
                   <div className="grid grid-cols-2 gap-3">
@@ -1835,7 +1835,7 @@ useEffect(() => {
                                 </div>
                               </div>
                               <span className="text-[9px] font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/30 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 px-2 py-0.5 rounded-full shrink-0">
-                                Luna
+                                App
                               </span>
                             </div>
 
