@@ -35,6 +35,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { ThemedLogo } from '@/components/ThemedLogo';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAdminBanner } from '@/components/AdminBanner';
+import { shouldReserveDesktopTrafficLightSpace } from '@/utils/platform';
 
 const DEFAULT_VOICE_ID = 'PSZ39PJBY7BsKu1rx7ok';
 const STORAGE_KEY_API_KEY = 'arc_voice_lab_elevenlabs_key';
@@ -81,6 +83,12 @@ export function VoiceLabPage() {
   const { user, loading: authLoading } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdminAccess();
   const { toast } = useToast();
+  const isAdminBannerActive = useAdminBanner();
+
+  const [isDesktopStandalone, setIsDesktopStandalone] = useState(false);
+  useEffect(() => {
+    setIsDesktopStandalone(shouldReserveDesktopTrafficLightSpace());
+  }, []);
 
   // Authentication check: only Jake Freudinger's account or admin
   const isJake = Boolean(
@@ -753,7 +761,15 @@ export function VoiceLabPage() {
   }
 
   return (
-    <div className="relative min-h-screen w-full bg-background text-foreground overflow-y-auto">
+    <div
+      className="relative min-h-screen w-full bg-background text-foreground overflow-y-auto touch-pan-y"
+      style={{
+        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 0.75rem)`,
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)',
+        paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))',
+      }}
+    >
       {/* Background ambient lighting */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-36 top-[-180px] h-[520px] w-[520px] rounded-full bg-primary/[0.08] blur-[140px]" />
@@ -761,40 +777,40 @@ export function VoiceLabPage() {
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.035] to-transparent" />
       </div>
 
-      <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col px-4 py-6 sm:px-8 sm:py-8">
+      <div className="relative mx-auto flex min-h-full max-w-5xl flex-col pb-8">
         {/* Navigation & Header */}
-        <header className="flex flex-col gap-4 border-b border-white/[0.08] pb-6 sm:flex-row sm:items-center sm:justify-between">
+        <header className="flex flex-col gap-3.5 border-b border-white/[0.08] pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="icon"
               onClick={() => navigate('/dashboard/settings')}
-              className="h-9 w-9 rounded-full border-white/[0.09] bg-white/[0.04] hover:bg-primary/10 hover:text-primary"
+              className="h-9 w-9 shrink-0 rounded-full border-white/[0.09] bg-white/[0.04] hover:bg-primary/10 hover:text-primary shadow-[0_0_18px_rgba(168,85,247,0.08)]"
               aria-label="Back to settings"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.055] shadow-[0_0_28px_rgba(168,85,247,0.16)]">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.055] shadow-[0_0_28px_rgba(168,85,247,0.16)]">
                 <ThemedLogo className="h-5 w-5" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-semibold tracking-[-0.02em] text-foreground">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-base sm:text-lg font-semibold tracking-[-0.02em] text-foreground">
                     Jake's Voice Lab
                   </h1>
                   <Badge variant="outline" className="border-primary/40 bg-primary/10 text-[10px] text-primary">
-                    ElevenLabs v3 Expressive
+                    ElevenLabs v3
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Isolated testing studio for Voice ID <code className="font-mono text-foreground/80">{voiceId}</code>
+                <p className="text-[11px] text-muted-foreground truncate">
+                  Custom Voice <code className="font-mono text-foreground/80">{voiceId}</code>
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <Button
               variant="outline"
               size="sm"
@@ -802,7 +818,7 @@ export function VoiceLabPage() {
               className="h-8 gap-1.5 rounded-full border-white/10 bg-white/[0.03] text-xs"
             >
               <Sliders className="h-3.5 w-3.5 text-primary" />
-              <span>Voice Parameters</span>
+              <span>Parameters</span>
             </Button>
             <Button
               variant={isPlayingAudio ? 'destructive' : 'outline'}
@@ -813,11 +829,11 @@ export function VoiceLabPage() {
             >
               {isPlayingAudio ? (
                 <>
-                  <Pause className="h-3.5 w-3.5" /> Stop Audio
+                  <Pause className="h-3.5 w-3.5" /> Stop
                 </>
               ) : (
                 <>
-                  <Play className="h-3.5 w-3.5" /> Sample Preview
+                  <Play className="h-3.5 w-3.5" /> Preview
                 </>
               )}
             </Button>
@@ -828,15 +844,15 @@ export function VoiceLabPage() {
         <section className="mt-5 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 shadow-sm backdrop-blur-md">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-xl border ${apiKey.trim() ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
+              <div className={`p-2 rounded-xl border shrink-0 ${apiKey.trim() ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border-amber-500/20 text-amber-400'}`}>
                 <Key className="h-4 w-4" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-medium">ElevenLabs API Key</span>
-                  <span className={`inline-block h-2 w-2 rounded-full ${apiKey.trim() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                  <span className="text-[10px] text-muted-foreground">
-                    {apiKey.trim() ? 'Stored locally in browser' : 'Key required to synthesize'}
+                  <span className={`inline-block h-2 w-2 rounded-full shrink-0 ${apiKey.trim() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                  <span className="text-[10px] text-muted-foreground truncate">
+                    {apiKey.trim() ? 'Stored locally in browser' : 'Key required'}
                   </span>
                 </div>
                 <div className="text-[11px] text-muted-foreground">
@@ -845,19 +861,19 @@ export function VoiceLabPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:w-72">
                 <Input
                   type={showApiKey ? 'text' : 'password'}
                   placeholder="Paste ElevenLabs key (sk_...)"
                   value={apiKey}
                   onChange={(e) => handleSaveApiKey(e.target.value)}
-                  className="h-8 text-xs pr-8 font-mono bg-black/20 border-white/10"
+                  className="h-9 text-[16px] sm:text-xs pr-8 font-mono bg-black/20 border-white/10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowApiKey(!showApiKey)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
                   aria-label={showApiKey ? 'Hide key' : 'Show key'}
                 >
                   {showApiKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
@@ -868,7 +884,7 @@ export function VoiceLabPage() {
                   variant="ghost"
                   size="icon"
                   onClick={handleClearApiKey}
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
                   title="Clear API Key"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -903,7 +919,7 @@ export function VoiceLabPage() {
                     value={voiceId}
                     onChange={(e) => handleSaveVoiceId(e.target.value)}
                     placeholder="Enter Voice ID"
-                    className="h-8 font-mono text-xs bg-black/40 border-white/10"
+                    className="h-9 font-mono text-[16px] sm:text-xs bg-black/40 border-white/10"
                   />
                   <p className="text-[10px] text-muted-foreground">Default: Jake's Custom Voice ({DEFAULT_VOICE_ID})</p>
                 </div>
@@ -914,7 +930,7 @@ export function VoiceLabPage() {
                   <select
                     value={modelId}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSaveModelId(e.target.value as typeof modelId)}
-                    className="h-8 w-full rounded-md border border-white/10 bg-black/40 px-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
+                    className="h-9 w-full rounded-md border border-white/10 bg-black/40 px-2.5 text-[16px] sm:text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                   >
                     <option value="eleven_v3">Eleven v3 Expressive (Default · Flagship & Emotional)</option>
                     <option value="eleven_v3_conversational">Eleven v3 Conversational (Low Latency / Dialogue)</option>
@@ -1003,7 +1019,7 @@ export function VoiceLabPage() {
                     value={personaPrompt}
                     onChange={(e) => handleSavePersonaPrompt(e.target.value)}
                     placeholder="Enter persona system context..."
-                    className="h-36 text-xs bg-black/40 border-white/10 font-mono leading-relaxed resize-y"
+                    className="min-h-[140px] text-[16px] sm:text-xs bg-black/40 border-white/10 font-mono leading-relaxed resize-y p-3"
                   />
                   <p className="text-[10px] text-muted-foreground">
                     Active context: Chicagoland creator, Win The Night co-founder, conversational, direct, fast builder, no em dashes, human storytelling.
@@ -1015,7 +1031,7 @@ export function VoiceLabPage() {
         </AnimatePresence>
 
         {/* Audio Visualizer Orb & Frequency Bars */}
-        <section className="mt-5 flex flex-col items-center justify-center rounded-3xl border border-white/[0.08] bg-white/[0.02] p-8 shadow-inner backdrop-blur-md">
+        <section className="mt-4 sm:mt-5 flex flex-col items-center justify-center rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-8 shadow-inner backdrop-blur-md">
           <div className="relative flex items-center justify-center">
             {/* Pulsing ambient halo */}
             <motion.div
@@ -1024,7 +1040,7 @@ export function VoiceLabPage() {
                 opacity: isPlayingAudio ? [0.3, 0.7, 0.3] : isRecording ? [0.2, 0.6, 0.2] : 0.1,
               }}
               transition={{ repeat: Infinity, duration: isPlayingAudio ? 1.4 : isRecording ? 1.2 : 2 }}
-              className={`absolute h-36 w-36 rounded-full blur-2xl ${
+              className={`absolute h-28 w-28 sm:h-36 sm:w-36 rounded-full blur-2xl ${
                 isRecording
                   ? 'bg-gradient-to-tr from-rose-600/50 to-red-500/50'
                   : isTranscribing
@@ -1034,7 +1050,7 @@ export function VoiceLabPage() {
             />
 
             {/* Center Orb */}
-            <div className={`relative z-10 flex h-20 w-20 items-center justify-center rounded-full border shadow-2xl transition-all duration-300 ${
+            <div className={`relative z-10 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full border shadow-2xl transition-all duration-300 ${
               isPlayingAudio
                 ? 'border-primary/80 bg-primary/20 shadow-[0_0_40px_rgba(168,85,247,0.5)]'
                 : isRecording
@@ -1046,21 +1062,21 @@ export function VoiceLabPage() {
                 : 'border-white/10 bg-white/[0.04]'
             }`}>
               {isGenerating ? (
-                <RefreshCw className="h-6 w-6 text-amber-300 animate-spin" />
+                <RefreshCw className="h-5 w-5 sm:h-6 sm:w-6 text-amber-300 animate-spin" />
               ) : isTranscribing ? (
-                <Loader2 className="h-6 w-6 text-cyan-300 animate-spin" />
+                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 text-cyan-300 animate-spin" />
               ) : isPlayingAudio ? (
-                <Volume2 className="h-7 w-7 text-primary animate-pulse" />
+                <Volume2 className="h-6 w-6 sm:h-7 sm:w-7 text-primary animate-pulse" />
               ) : isRecording ? (
-                <Mic className="h-7 w-7 text-rose-400" />
+                <Mic className="h-6 w-6 sm:h-7 sm:w-7 text-rose-400" />
               ) : (
-                <Radio className="h-6 w-6 text-muted-foreground/60" />
+                <Radio className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground/60" />
               )}
             </div>
           </div>
 
           {/* Status Label */}
-          <div className="mt-4 text-center">
+          <div className="mt-3 sm:mt-4 text-center">
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {isGenerating
                 ? 'Synthesizing speech via ElevenLabs...'
@@ -1203,7 +1219,7 @@ export function VoiceLabPage() {
                       }`}
                     />
                   </button>
-                  <span className="text-[10px] text-muted-foreground/70">
+                  <span className="text-[10px] text-muted-foreground/70 hidden sm:inline">
                     {turnByTurnMode ? '(Mic automatically listens after Arc speaks)' : '(Manual tap-to-talk)'}
                   </span>
                 </div>
@@ -1221,17 +1237,17 @@ export function VoiceLabPage() {
                   size="icon"
                   onClick={toggleRecording}
                   disabled={isTranscribing || isGenerating}
-                  className={`h-10 w-10 shrink-0 rounded-full border-white/10 ${
+                  className={`h-11 w-11 shrink-0 rounded-full border-white/10 ${
                     isRecording ? 'animate-pulse bg-rose-600 hover:bg-rose-700 text-white' : 'bg-white/[0.03]'
                   }`}
                   title={isRecording ? 'Stop speaking and send turn' : 'Speak via microphone (Whisper)'}
                 >
                   {isTranscribing ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+                    <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
                   ) : isRecording ? (
                     <Square className="h-4 w-4 fill-white" />
                   ) : (
-                    <Mic className="h-4 w-4" />
+                    <Mic className="h-5 w-5" />
                   )}
                 </Button>
 
@@ -1246,20 +1262,20 @@ export function VoiceLabPage() {
                   }}
                   placeholder={
                     isRecording
-                      ? 'Listening... speak naturally, or tap stop to send'
+                      ? 'Listening... speak naturally, or tap stop'
                       : isTranscribing
                       ? 'Transcribing audio with Whisper...'
                       : 'Type a test prompt or question for Arc...'
                   }
                   disabled={isGenerating || isTranscribing}
-                  className="h-10 rounded-full bg-white/[0.04] border-white/10 text-xs px-4"
+                  className="h-11 rounded-full bg-white/[0.04] border-white/10 text-[16px] sm:text-xs px-4"
                 />
 
                 <Button
                   type="button"
                   onClick={() => handleSendChat()}
                   disabled={isGenerating || isTranscribing || !inputText.trim() || !apiKey.trim()}
-                  className="h-10 w-10 shrink-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className="h-11 w-11 shrink-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
@@ -1300,7 +1316,7 @@ export function VoiceLabPage() {
                 value={previewText}
                 onChange={(e) => setPreviewText(e.target.value)}
                 placeholder="Type or paste any text you want to synthesize in your voice..."
-                className="min-h-[120px] rounded-xl bg-black/20 border-white/10 text-xs p-3 leading-relaxed resize-y"
+                className="min-h-[120px] rounded-xl bg-black/20 border-white/10 text-[16px] sm:text-xs p-3 leading-relaxed resize-y"
               />
               <div className="flex items-center justify-between pt-1">
                 <span className="text-[10px] text-muted-foreground">
