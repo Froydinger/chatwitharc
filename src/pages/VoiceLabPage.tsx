@@ -19,6 +19,10 @@ import {
   Trash2,
   Radio,
   RefreshCw,
+  Sparkles,
+  Square,
+  AudioWaveform,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
@@ -55,18 +59,6 @@ For products and design, favor modern, minimal, fast, mobile-friendly experience
 Default to action: understand the problem, find the root cause, choose the simplest good solution, execute, test, and iterate.
 
 Above all: make useful shit, keep it human, and don't overcomplicate it.`;
-
-interface SpeechRecognitionInstance {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start: () => void;
-  stop: () => void;
-  onstart: (() => void) | null;
-  onresult: ((event: { results: { [index: number]: { [index: number]: { transcript: string } } } }) => void) | null;
-  onerror: ((event: { error: string }) => void) | null;
-  onend: (() => void) | null;
-}
 
 interface ChatTurn {
   id: string;
@@ -149,12 +141,15 @@ export function VoiceLabPage() {
   const [inputText, setInputText] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [isListening, setIsListening] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [turnByTurnMode, setTurnByTurnMode] = useState(true);
+  const [micVolume, setMicVolume] = useState(0);
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [previewText, setPreviewText] = useState(SAMPLE_PHRASES[0]);
   const [lastAudioUrl, setLastAudioUrl] = useState<string | null>(null);
 
-  // Audio Context & Visualizer
+  // Audio Context & Visualizer (Playback)
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
@@ -162,8 +157,22 @@ export function VoiceLabPage() {
   const animationFrameRef = useRef<number | null>(null);
   const currentAudioElementRef = useRef<HTMLAudioElement | null>(null);
 
-  // Speech Recognition
-  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  // MediaRecorder & Mic Capture Refs
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const micAudioContextRef = useRef<AudioContext | null>(null);
+  const micAnalyserRef = useRef<AnalyserNode | null>(null);
+  const micAnimFrameRef = useRef<number | null>(null);
+  const turnByTurnRef = useRef<boolean>(true);
+  const isTranscribingRef = useRef<boolean>(false);
+  const startRecordingRef = useRef<() => Promise<void>>();
+  const handleSendChatRef = useRef<(promptOverride?: string) => Promise<void>>();
+
+  useEffect(() => {
+    turnByTurnRef.current = turnByTurnMode;
+  }, [turnByTurnMode]);
 
   // Save API Key & Voice ID to localStorage
   const handleSaveApiKey = (newKey: string) => {
@@ -206,7 +215,7 @@ export function VoiceLabPage() {
     }
 
     const trimmedVoiceId = voiceId.trim() || DEFAULT_VOICE_ID;
-    const url = `https://api.elevenlabs.io/v1/text-to-speech/${trimmedVoiceId}?optimize_streaming_latency=3`;
+    const url = `https://api.elevenlabs.io/v1/text-to-speech/${trimmedVoiceId}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -320,6 +329,11 @@ export function VoiceLabPage() {
 
       audio.onended = () => {
         stopAudio();
+        if (turnByTurnRef.current) {
+          setTimeout(() => {
+            void startRecordingRef.current?.();
+          }, 450);
+        }
       };
 
       audio.onerror = () => {
@@ -434,11 +448,15 @@ export function VoiceLabPage() {
   };
 
   // Handle Send Chat Message
-  const handleSendChat = async (promptOverride?: string) => {
+  const handleSendChat = useCallback(async (promptOverride?: string) => {
     const prompt = (promptOverride || inputText).trim();
     if (!prompt) return;
     if (!apiKey.trim()) {
-      toast({ title: 'API Key required', description: 'Please enter your ElevenLabs API key at the top of the page.', variant: 'destructive' });
+      toast({
+        title: 'API Key required',
+        description: 'Please enter your ElevenLabs API key at the top of the page.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -476,75 +494,230 @@ export function VoiceLabPage() {
         description: err instanceof Error ? err.message : 'Failed to synthesize speech.',
         variant: 'destructive',
       });
+      if (turnByTurnRef.current) {
+        setTimeout(() => {
+          void startRecordingRef.current?.();
+        }, 1000);
+      }
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [apiKey, generateAssistantResponse, inputText, playAudioBlob, synthesizeSpeech, toast]);
 
-  // Speech Recognition (Mic tap-to-talk)
-  const toggleListening = () => {
-    if (isListening) {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      setIsListening(false);
+  useEffect(() => {
+    handleSendChatRef.current = handleSendChat;
+  }, [handleSendChat]);
+
+  // Stop recording and send audio to Whisper for transcription
+  const stopRecordingAndSend = useCallback(async () => {
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') {
+      setIsRecording(false);
       return;
     }
 
-    const windowWithSpeech = window as unknown as {
-      SpeechRecognition?: new () => SpeechRecognitionInstance;
-      webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
-    };
-    const SpeechRec = windowWithSpeech.SpeechRecognition || windowWithSpeech.webkitSpeechRecognition;
-    if (!SpeechRec) {
-      toast({
-        title: 'Speech recognition unavailable',
-        description: 'Your browser does not support SpeechRecognition. You can type prompts directly.',
-        variant: 'destructive',
-      });
-      return;
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
     }
+    if (micAnimFrameRef.current) {
+      cancelAnimationFrame(micAnimFrameRef.current);
+      micAnimFrameRef.current = null;
+    }
+
+    const recorder = mediaRecorderRef.current;
+    const blobPromise = new Promise<Blob>((resolve) => {
+      recorder.onstop = () => {
+        const mimeType = recorder.mimeType || 'audio/webm';
+        resolve(new Blob(recordedChunksRef.current, { type: mimeType }));
+      };
+    });
 
     try {
-      const recognition = new SpeechRec();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
-
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
-
-      recognition.onresult = (event: { results: { [index: number]: { [index: number]: { transcript: string } } } }) => {
-        const transcript = event.results[0]?.[0]?.transcript;
-        if (transcript) {
-          handleSendChat(transcript);
-        }
-      };
-
-      recognition.onerror = (event: { error: string }) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        if (event.error !== 'no-speech') {
-          toast({
-            title: 'Mic error',
-            description: `Microphone error: ${event.error}`,
-            variant: 'destructive',
-          });
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (err: unknown) {
-      console.error('Failed to start recognition:', err);
-      setIsListening(false);
+      recorder.stop();
+    } catch {
+      // ignore
     }
-  };
+
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+
+    setIsRecording(false);
+    setIsTranscribing(true);
+    isTranscribingRef.current = true;
+
+    try {
+      const audioBlob = await blobPromise;
+      if (audioBlob.size < 1200) {
+        // Practically empty audio, restart listening if in turn-by-turn mode
+        setIsTranscribing(false);
+        isTranscribingRef.current = false;
+        if (turnByTurnRef.current) {
+          setTimeout(() => {
+            void startRecordingRef.current?.();
+          }, 400);
+        }
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'turn.webm');
+
+      const { data, error } = await supabase.functions.invoke('whisper-transcribe', {
+        body: formData,
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Whisper transcription failed');
+      }
+
+      const transcript = (data?.text || '').trim();
+      if (transcript) {
+        await handleSendChatRef.current?.(transcript);
+      } else {
+        if (turnByTurnRef.current) {
+          setTimeout(() => {
+            void startRecordingRef.current?.();
+          }, 500);
+        }
+      }
+    } catch (err: unknown) {
+      console.error('Transcription error:', err);
+      toast({
+        title: 'Transcription error',
+        description: err instanceof Error ? err.message : 'Failed to transcribe audio.',
+        variant: 'destructive',
+      });
+      if (turnByTurnRef.current) {
+        setTimeout(() => {
+          void startRecordingRef.current?.();
+        }, 800);
+      }
+    } finally {
+      setIsTranscribing(false);
+      isTranscribingRef.current = false;
+    }
+  }, [toast]);
+
+  // Start recording from mic
+  const startRecording = useCallback(async () => {
+    if (isPlayingAudio) {
+      stopAudio();
+    }
+    if (isTranscribingRef.current) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      mediaStreamRef.current = stream;
+
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
+        : 'audio/webm';
+
+      const recorder = new MediaRecorder(stream, { mimeType });
+      recordedChunksRef.current = [];
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          recordedChunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start(200);
+      setIsRecording(true);
+
+      const windowWithAudio = window as unknown as {
+        AudioContext?: typeof AudioContext;
+        webkitAudioContext?: typeof AudioContext;
+      };
+      const AudioCtx = windowWithAudio.AudioContext || windowWithAudio.webkitAudioContext;
+      if (AudioCtx) {
+        const audioCtx = new AudioCtx();
+        micAudioContextRef.current = audioCtx;
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        source.connect(analyser);
+        micAnalyserRef.current = analyser;
+
+        let hasSpoken = false;
+        let silenceStartTime: number | null = null;
+
+        const checkVolume = () => {
+          if (!micAnalyserRef.current) return;
+          const dataArray = new Uint8Array(micAnalyserRef.current.frequencyBinCount);
+          micAnalyserRef.current.getByteFrequencyData(dataArray);
+
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+          }
+          const avg = sum / dataArray.length / 255;
+          setMicVolume(avg);
+
+          if (avg > 0.07) {
+            hasSpoken = true;
+            silenceStartTime = null;
+          } else if (hasSpoken) {
+            if (!silenceStartTime) {
+              silenceStartTime = Date.now();
+            } else if (Date.now() - silenceStartTime > 1600) {
+              // 1.6s silence after speaking -> auto send turn!
+              void stopRecordingAndSend();
+              return;
+            }
+          }
+
+          micAnimFrameRef.current = requestAnimationFrame(checkVolume);
+        };
+        checkVolume();
+      }
+    } catch (err: unknown) {
+      console.error('Microphone access error:', err);
+      toast({
+        title: 'Microphone Access Denied',
+        description: 'Please allow microphone access in your browser to talk.',
+        variant: 'destructive',
+      });
+      setIsRecording(false);
+    }
+  }, [isPlayingAudio, stopAudio, stopRecordingAndSend, toast]);
+
+  useEffect(() => {
+    startRecordingRef.current = startRecording;
+  }, [startRecording]);
+
+  const toggleRecording = useCallback(() => {
+    if (isRecording) {
+      void stopRecordingAndSend();
+    } else {
+      void startRecording();
+    }
+  }, [isRecording, startRecording, stopRecordingAndSend]);
+
+  useEffect(() => {
+    return () => {
+      stopAudio();
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
+      if (silenceTimerRef.current) {
+        clearTimeout(silenceTimerRef.current);
+      }
+      if (micAnimFrameRef.current) {
+        cancelAnimationFrame(micAnimFrameRef.current);
+      }
+    };
+  }, [stopAudio]);
 
   // Guard: if loading or not Jake, block access
   if (authLoading || adminLoading) {
@@ -847,29 +1020,39 @@ export function VoiceLabPage() {
             {/* Pulsing ambient halo */}
             <motion.div
               animate={{
-                scale: isPlayingAudio ? [1, 1.25, 1] : isListening ? [1, 1.15, 1] : 1,
-                opacity: isPlayingAudio ? [0.3, 0.7, 0.3] : isListening ? [0.2, 0.5, 0.2] : 0.1,
+                scale: isPlayingAudio ? [1, 1.25, 1] : isRecording ? [1, 1.15, 1] : 1,
+                opacity: isPlayingAudio ? [0.3, 0.7, 0.3] : isRecording ? [0.2, 0.6, 0.2] : 0.1,
               }}
-              transition={{ repeat: Infinity, duration: isPlayingAudio ? 1.4 : 2 }}
-              className="absolute h-36 w-36 rounded-full bg-gradient-to-tr from-purple-600/40 to-primary/40 blur-2xl"
+              transition={{ repeat: Infinity, duration: isPlayingAudio ? 1.4 : isRecording ? 1.2 : 2 }}
+              className={`absolute h-36 w-36 rounded-full blur-2xl ${
+                isRecording
+                  ? 'bg-gradient-to-tr from-rose-600/50 to-red-500/50'
+                  : isTranscribing
+                  ? 'bg-gradient-to-tr from-cyan-500/40 to-blue-500/40'
+                  : 'bg-gradient-to-tr from-purple-600/40 to-primary/40'
+              }`}
             />
 
             {/* Center Orb */}
             <div className={`relative z-10 flex h-20 w-20 items-center justify-center rounded-full border shadow-2xl transition-all duration-300 ${
               isPlayingAudio
                 ? 'border-primary/80 bg-primary/20 shadow-[0_0_40px_rgba(168,85,247,0.5)]'
-                : isListening
-                ? 'border-rose-500/80 bg-rose-500/20 shadow-[0_0_40px_rgba(244,63,94,0.4)]'
+                : isRecording
+                ? 'border-rose-500/80 bg-rose-500/20 shadow-[0_0_40px_rgba(244,63,94,0.5)] animate-pulse'
+                : isTranscribing
+                ? 'border-cyan-400/80 bg-cyan-400/20 shadow-[0_0_40px_rgba(34,211,238,0.4)]'
                 : isGenerating
                 ? 'border-amber-400/80 bg-amber-400/20 animate-spin'
                 : 'border-white/10 bg-white/[0.04]'
             }`}>
               {isGenerating ? (
                 <RefreshCw className="h-6 w-6 text-amber-300 animate-spin" />
+              ) : isTranscribing ? (
+                <Loader2 className="h-6 w-6 text-cyan-300 animate-spin" />
               ) : isPlayingAudio ? (
                 <Volume2 className="h-7 w-7 text-primary animate-pulse" />
-              ) : isListening ? (
-                <Mic className="h-7 w-7 text-rose-400 animate-bounce" />
+              ) : isRecording ? (
+                <Mic className="h-7 w-7 text-rose-400" />
               ) : (
                 <Radio className="h-6 w-6 text-muted-foreground/60" />
               )}
@@ -881,10 +1064,12 @@ export function VoiceLabPage() {
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               {isGenerating
                 ? 'Synthesizing speech via ElevenLabs...'
+                : isTranscribing
+                ? 'Transcribing speech with Whisper...'
                 : isPlayingAudio
                 ? "Playing Jake's Custom Voice"
-                : isListening
-                ? 'Listening to microphone...'
+                : isRecording
+                ? 'Listening to microphone... (Speak naturally)'
                 : 'Ready for voice test'}
             </p>
           </div>
@@ -894,10 +1079,14 @@ export function VoiceLabPage() {
             {visualizerFrequencies.map((freq, idx) => (
               <motion.div
                 key={idx}
-                className="w-1.5 rounded-full bg-primary/70"
+                className={`w-1.5 rounded-full ${isRecording ? 'bg-rose-500/70' : 'bg-primary/70'}`}
                 animate={{
-                  height: isPlayingAudio ? `${Math.max(4, freq * 40)}px` : isListening ? `${Math.random() * 20 + 4}px` : '4px',
-                  opacity: isPlayingAudio ? Math.max(0.4, freq) : 0.25,
+                  height: isPlayingAudio
+                    ? `${Math.max(4, freq * 40)}px`
+                    : isRecording
+                    ? `${Math.max(4, Math.min(36, micVolume * 80 * (1 + (idx % 4) * 0.3)))}px`
+                    : '4px',
+                  opacity: isPlayingAudio ? Math.max(0.4, freq) : isRecording ? Math.max(0.3, micVolume * 2) : 0.25,
                 }}
                 transition={{ duration: 0.08 }}
               />
@@ -995,41 +1184,86 @@ export function VoiceLabPage() {
               )}
             </div>
 
-            {/* Input Bar */}
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant={isListening ? 'destructive' : 'outline'}
-                size="icon"
-                onClick={toggleListening}
-                className={`h-10 w-10 shrink-0 rounded-full border-white/10 ${isListening ? 'animate-pulse' : 'bg-white/[0.03]'}`}
-                title={isListening ? 'Stop listening' : 'Speak via microphone'}
-              >
-                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </Button>
+            {/* Input Bar & Turn-by-Turn mode toggle */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Hands-free Auto Turn Loop</span>
+                  <button
+                    type="button"
+                    onClick={() => setTurnByTurnMode(!turnByTurnMode)}
+                    className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      turnByTurnMode ? 'bg-primary' : 'bg-white/10'
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        turnByTurnMode ? 'translate-x-3' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                  <span className="text-[10px] text-muted-foreground/70">
+                    {turnByTurnMode ? '(Mic automatically listens after Arc speaks)' : '(Manual tap-to-talk)'}
+                  </span>
+                </div>
+                {isRecording && (
+                  <span className="text-[10px] text-rose-400 animate-pulse font-medium">
+                    Recording live...
+                  </span>
+                )}
+              </div>
 
-              <Input
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendChat();
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant={isRecording ? 'destructive' : 'outline'}
+                  size="icon"
+                  onClick={toggleRecording}
+                  disabled={isTranscribing || isGenerating}
+                  className={`h-10 w-10 shrink-0 rounded-full border-white/10 ${
+                    isRecording ? 'animate-pulse bg-rose-600 hover:bg-rose-700 text-white' : 'bg-white/[0.03]'
+                  }`}
+                  title={isRecording ? 'Stop speaking and send turn' : 'Speak via microphone (Whisper)'}
+                >
+                  {isTranscribing ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+                  ) : isRecording ? (
+                    <Square className="h-4 w-4 fill-white" />
+                  ) : (
+                    <Mic className="h-4 w-4" />
+                  )}
+                </Button>
+
+                <Input
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendChat();
+                    }
+                  }}
+                  placeholder={
+                    isRecording
+                      ? 'Listening... speak naturally, or tap stop to send'
+                      : isTranscribing
+                      ? 'Transcribing audio with Whisper...'
+                      : 'Type a test prompt or question for Arc...'
                   }
-                }}
-                placeholder={isListening ? 'Listening...' : 'Type a test prompt or question for Arc...'}
-                disabled={isGenerating}
-                className="h-10 rounded-full bg-white/[0.04] border-white/10 text-xs px-4"
-              />
+                  disabled={isGenerating || isTranscribing}
+                  className="h-10 rounded-full bg-white/[0.04] border-white/10 text-xs px-4"
+                />
 
-              <Button
-                type="button"
-                onClick={() => handleSendChat()}
-                disabled={isGenerating || !inputText.trim() || !apiKey.trim()}
-                className="h-10 w-10 shrink-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleSendChat()}
+                  disabled={isGenerating || isTranscribing || !inputText.trim() || !apiKey.trim()}
+                  className="h-10 w-10 shrink-0 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         )}
