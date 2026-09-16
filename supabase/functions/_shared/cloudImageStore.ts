@@ -4,6 +4,7 @@ import {
 } from "./cloudImageHttp.ts";
 import {
   CloudImagePending,
+  CloudImageRecoveryRequired,
   type CloudImageReceipt,
   type CloudImageStore,
 } from "./cloudImageTool.ts";
@@ -53,7 +54,12 @@ export function cloudImageStore(
         if (isCloudImageTransientStatus(response.status)) {
           throw new CloudImagePending(run.id);
         }
-        throw new Error("Image durable step unavailable");
+        // A permanent rejection (bad grant, fenced lease, argument conflict) is
+        // a terminal tool outcome, not a worker crash. Throwing a plain Error
+        // here escaped the engine, so the run kept its lease, was silently
+        // reclaimed every 5 minutes and died at the attempt limit with nothing
+        // recorded. Surface it as recovery-required instead.
+        throw new CloudImageRecoveryRequired(run.id);
       }
       const data = response.json();
       if (

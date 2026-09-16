@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, RefreshCcwDot, Scale, Brain, Check, ChevronDown, Crown } from 'lucide-react';
+import { Bubbles, RefreshCcwDot, Droplets, WavesHorizontal, Check, ChevronDown, Crown } from 'lucide-react';
 import { useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
@@ -19,9 +19,9 @@ interface Props {
 
 export const PRESETS = [
   { effort: 'auto', title: 'Auto', subtitle: 'Smart routing across Arc Matrix', icon: RefreshCcwDot },
-  { effort: 'low', title: 'Ava', subtitle: 'Snappy answers & everyday speed', icon: Zap },
-  { effort: 'medium', title: 'Maya', subtitle: 'Versatile powerhouse intelligence', icon: Scale },
-  { effort: 'high', title: 'River', subtitle: 'Deep logic & heavy reasoning', icon: Brain },
+  { effort: 'low', title: 'Ava', subtitle: 'Snappy answers & everyday speed', icon: Bubbles },
+  { effort: 'medium', title: 'Maya', subtitle: 'Versatile powerhouse intelligence', icon: Droplets },
+  { effort: 'high', title: 'River', subtitle: 'Deep logic & heavy reasoning', icon: WavesHorizontal },
 ] as const;
 
 export function ChatModelPicker({

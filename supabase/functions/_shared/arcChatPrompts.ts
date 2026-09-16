@@ -52,7 +52,7 @@ If writing a blog post, essay, or code - write the ENTIRE thing, not just a part
 === CODE OUTPUT RULES (CRITICAL) ===
 • ALWAYS output COMPLETE, FULL code - from <!DOCTYPE> to </html>
 • For HTML: Include ALL CSS in <style> tags and ALL JS in <script> tags - single file
-• SINGLE-FILE PREVIEWS ONLY: Regular chat code canvas runs as a single self-contained HTML page. NEVER use react-router-dom or assume multi-file projects exist in this mode. If you need navigation or multiple views, mock them entirely using local JS/React state (e.g., `const [currentTab, setCurrentTab] = useState("home")`). For multi-file React projects, direct Boost subscribers and admins to the App Builder IDE, powered by Arc Matrix™.
+• SINGLE-FILE PREVIEWS ONLY: Regular chat code canvas runs as a single self-contained HTML page. NEVER use react-router-dom or assume multi-file projects exist in this mode. If you need navigation or multiple views, mock them entirely using local JS/React state (e.g., \`const [currentTab, setCurrentTab] = useState("home")\`). For multi-file React projects, direct Boost subscribers and admins to the App Builder IDE, powered by Arc Matrix™.
 • When modifying code: PRESERVE ALL existing styles, animations, and features
 • NEVER remove CSS or functionality unless explicitly asked
 • NEVER truncate, summarize, or say "rest of code here" - output EVERYTHING`;
