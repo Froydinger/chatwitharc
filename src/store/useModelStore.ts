@@ -7,13 +7,18 @@ export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-ana
 /** Luna is the default user-facing text/reasoning model. */
 export const LUNA_MODEL = 'gpt-5.6-luna';
 /**
- * Flash is Arc's fast tier, currently Gemini 3.8 Flash reached through Google's
- * OpenAI-compatible endpoint. Limited to the accounts in FLASH_EMAILS while it
- * is being evaluated; every other account normalizes back to Luna client- and
- * server-side.
+ * Flash is Arc's fast tier, reached through Google's OpenAI-compatible endpoint.
+ *
+ * Deliberately Flash-Lite, not the newer full Flash line: Gemini 3 models cannot
+ * turn reasoning off, and gemini-3.8-flash burned ~423 hidden thinking tokens on
+ * a trivial question (2.4s) versus 0 tokens and 0.8s here. A tier called Flash
+ * that is no faster than Luna has no reason to exist. Pinned to an explicit id
+ * rather than the moving `gemini-flash-lite-latest` alias so Google cannot swap
+ * the model out from under us. Limited to FLASH_EMAILS; every other account
+ * normalizes back to Luna client- and server-side.
  */
-export const FLASH_MODEL = 'gemini-3.8-flash';
-export const FLASH_EMAILS = new Set(['jkrd09@gmail.com', 'j@froydinger.com']);
+export const FLASH_MODEL = 'gemini-3.5-flash-lite';
+export const FLASH_EMAILS = new Set(['jkrd09@gmail.com', 'jakefroydinger@gmail.com']);
 export function flashEnabledForEmail(email: string | null | undefined): boolean {
   return !!email && FLASH_EMAILS.has(email.toLowerCase());
 }

@@ -188,14 +188,19 @@ review markup risks a manual action against the rich results the site earns.
   model over WebRTC, with Responses delegation to `gpt-5.6-luna` for Arc's tools and
   deeper work. The microphone stays active for natural interruptions; the assistant is always Arc.
 - **Flash (Gemini) is account-gated, not public.** Flash is Arc's fast tier,
-  backed by `gemini-3.8-flash` through Google's OpenAI-compatible endpoint
+  backed by `gemini-3.5-flash-lite` through Google's OpenAI-compatible endpoint
   (`https://generativelanguage.googleapis.com/v1beta/openai/`), so the existing
   OpenAI-shaped request/tool/streaming plumbing is reused unchanged. It is
-  limited to the emails in `FLASH_EMAILS` (`src/store/useModelStore.ts` and the
+  limited to the owner's own account (`FLASH_EMAILS`) (`src/store/useModelStore.ts` and the
   `chat` edge function, which enforces it server-side); every other account
   normalizes back to Luna. Do not widen that allowlist or market Flash without
   the owner asking. Notes: the compat endpoint silently ignores unsupported
-  params, so `reasoning_effort` does nothing on Flash; Gemini's
+  params, so `reasoning_effort` does nothing on Flash; Flash-Lite is chosen on
+  purpose over the newer full Flash line, because Gemini 3 models cannot disable
+  reasoning and `gemini-3.8-flash` spent ~423 hidden thinking tokens and 2.4s on
+  a trivial question versus 0 tokens and 0.8s for Lite — a "fast" tier that is
+  no faster than Luna is pointless; Arc Work never uses Flash (the `agent` edge
+  function hardcodes Luna and ignores any client model); Gemini's
   `extra_content.thought_signature` is stripped off tool calls before any
   OpenAI call replays them; code, canvas, file generation, image analysis and
   memory wording stay on Luna; a Flash failure falls back to Luna. The key

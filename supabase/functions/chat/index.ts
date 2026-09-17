@@ -1049,8 +1049,8 @@ serve(async (req) => {
     // Luna is the default chat model. Flash (Gemini) is limited to the accounts
     // below while it is evaluated. Everything else normalizes to Luna rather
     // than erroring, so users on an older cached frontend are never disrupted.
-    const FLASH_MODEL = 'gemini-3.8-flash';
-    const FLASH_EMAILS = new Set(['jkrd09@gmail.com', 'j@froydinger.com']);
+    const FLASH_MODEL = 'gemini-3.5-flash-lite';
+    const FLASH_EMAILS = new Set(['jkrd09@gmail.com', 'jakefroydinger@gmail.com']);
     const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
     const flashAllowed = !isGuestMode
       && !!geminiApiKey
