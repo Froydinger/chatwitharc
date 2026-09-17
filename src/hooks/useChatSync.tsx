@@ -3,7 +3,7 @@ import { useArcStore } from '@/store/useArcStore';
 import { useAuth } from './useAuth';
 import { useCorporateModeStore } from '@/store/useCorporateModeStore';
 
-export function useChatSync() {
+export function useChatSync({ enabled = true }: { enabled?: boolean } = {}) {
   const { user, isAnonymous } = useAuth();
   const syncFromSupabase = useArcStore((state) => state.syncFromSupabase);
   const generateTitlesForUnnamedChats = useArcStore((state) => state.generateTitlesForUnnamedChats);
@@ -28,6 +28,7 @@ export function useChatSync() {
 
   const corporateMode = useCorporateModeStore((s) => s.enabled);
   useEffect(() => {
+    if (!enabled) return;
     if (!effectiveUserId) return;
     if (corporateMode) return;
     if (syncedUserId === effectiveUserId) return;
@@ -35,13 +36,14 @@ export function useChatSync() {
 
     console.log('🔄 useChatSync: Triggering sync for user:', effectiveUserId);
     syncFromSupabase();
-  }, [effectiveUserId, syncFromSupabase, syncedUserId, isSyncing, corporateMode]);
+  }, [effectiveUserId, syncFromSupabase, syncedUserId, isSyncing, corporateMode, enabled]);
 
   // Backfill titles for chats still sitting at "New Chat" — either from before
   // naming worked, or from a turn where the naming call failed. Runs once per
   // signed-in user per app load, after the sync has populated the session list,
   // and idles out immediately when there is nothing to name.
   useEffect(() => {
+    if (!enabled) return;
     if (!effectiveUserId) return;
     if (corporateMode) return;
     if (syncedUserId !== effectiveUserId) return;
@@ -57,7 +59,7 @@ export function useChatSync() {
     }, 4000);
 
     return () => clearTimeout(timer);
-  }, [effectiveUserId, syncedUserId, isSyncing, corporateMode, generateTitlesForUnnamedChats]);
+  }, [effectiveUserId, syncedUserId, isSyncing, corporateMode, generateTitlesForUnnamedChats, enabled]);
 
   const isLoaded =
     !effectiveUserId || corporateMode || (syncedUserId === effectiveUserId && !isSyncing);
