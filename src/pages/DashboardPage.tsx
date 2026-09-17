@@ -140,7 +140,6 @@ export function DashboardPageInner({ embedded = false, activeTabOverride }: { em
   const { isLoaded } = useChatSync();
   const {
     chatSessions, createNewSession, loadSession, deleteSession,
-    hydrateAllSessions, allSessionsHydrated, isHydratingAll,
     syncFromSupabase, currentSessionId, messages,
     folders, createFolder, deleteFolder, pinFolder, moveChatToFolder
   } = useArcStore();
@@ -205,6 +204,10 @@ useEffect(() => {
   const [dbSessionOffset, setDbSessionOffset] = useState(0);
   const [dbHasMoreSessions, setDbHasMoreSessions] = useState(true);
   const DB_SESSION_BATCH = 30;
+  const [dbCanvases, setDbCanvases] = useState<CanvasItem[]>([]);
+  const [dbCanvasesLoading, setDbCanvasesLoading] = useState(false);
+  const [dbCanvasOffset, setDbCanvasOffset] = useState(0);
+  const [dbHasMoreCanvasSessions, setDbHasMoreCanvasSessions] = useState(true);
   const [totalImageCount, setTotalImageCount] = useState<number | null>(() => {
     // Read synchronously so the count shows on the very first render
     for (let i = 0; i < localStorage.length; i++) {
@@ -254,6 +257,7 @@ useEffect(() => {
     setTimeout(() => navigate(path), 280);
   };
   const imageFetchStartedRef = useRef(false);
+  const canvasFetchStartedRef = useRef(false);
   const { openWithContent } = useCanvasStore();
   const isIDEOpen = useIDEStore((s) => s.isOpen);
   const openIDECanvas = useIDEStore((s) => s.openIDECanvas);
@@ -566,15 +570,10 @@ useEffect(() => {
     if (!authLoading && !user) navigate("/", { replace: true });
   }, [authLoading, user, navigate]);
 
-  // Only the Canvases tab needs message bodies. Hydrating every session on mount
-  // meant downloading and JSON.parsing the full transcript of every chat the
-  // account has just to show titles and counts — on a phone with a few hundred
-  // chats that is seconds of blocked main thread, which is the dashboard
-  // "freeze". Metadata from list_chat_sessions_meta covers everything else.
-  useEffect(() => {
-    if (!user || !isLoaded || activeTab !== "canvases") return;
-    void hydrateAllSessions();
-  }, [user, isLoaded, activeTab, hydrateAllSessions]);
+  // Nothing on this page reads message bodies any more: chats and counts come
+  // from the metadata RPC, images and canvases from their own targeted queries.
+  // The dashboard therefore never downloads or parses a transcript, which is
+  // what used to freeze it on a phone with a few hundred chats.
 
   // Optimized image fetching: only fetch sessions that actually contain images
   const fetchMoreImages = async (reset = false) => {
@@ -624,6 +623,109 @@ useEffect(() => {
       setDbImagesLoading(false);
     }
   };
+
+  /**
+   * Canvases used to be found by hydrating every session and scanning it. That
+   * meant pulling the full transcript of every chat on the account to surface a
+   * handful of code and writing blocks. Postgres can do the filtering: `cs`
+   * (contains) matches only sessions that actually hold a canvas message, and
+   * results are paged like the images grid.
+   */
+  const extractCanvases = (rows: Array<{ id: string; title: string | null; messages: unknown }>): CanvasItem[] => {
+    const items: CanvasItem[] = [];
+    rows.forEach((row) => {
+      ((row.messages as any[]) || []).forEach((m: any) => {
+        if (m?.type !== 'code' && m?.type !== 'canvas') return;
+        // For writing canvases use canvasContent. For code canvases prefer
+        // codeContent (the actual code) over content (which is just the label),
+        // falling back to a fenced block inside content for legacy messages.
+        let canvasContent = '';
+        if (m.type === 'canvas') {
+          canvasContent = m.canvasContent || (typeof m.content === 'string' ? m.content : '');
+        } else {
+          const codeContent = m.codeContent;
+          const rawContent = typeof m.content === 'string' ? m.content : '';
+          if (typeof codeContent === 'string' && codeContent.trim().length > 0) {
+            canvasContent = codeContent;
+          } else {
+            const fenced = rawContent.match(/```(?:\w+)?\n([\s\S]*?)```/);
+            canvasContent = fenced ? fenced[1] : rawContent;
+          }
+        }
+        items.push({
+          id: m.id,
+          type: m.type === 'canvas' ? 'writing' : 'code',
+          content: canvasContent,
+          language: m.codeLanguage,
+          sessionId: row.id,
+          sessionTitle: row.title || undefined,
+          timestamp: toDate(m.timestamp) || new Date(),
+          label: m.codeLabel || m.canvasLabel || (m.type === 'code' ? 'Code Block' : 'Writing'),
+        });
+      });
+    });
+    return items;
+  };
+
+  const fetchMoreCanvases = async (reset = false) => {
+    if (dbCanvasesLoading) return;
+    if (!reset && !dbHasMoreCanvasSessions) return;
+    setDbCanvasesLoading(true);
+    const offset = reset ? 0 : dbCanvasOffset;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      // Two separate containment filters rather than one `or(...)`: PostgREST's
+      // or-syntax is comma-delimited, so a JSON value with punctuation in it is
+      // a quoting hazard. `.filter(... 'cs' ...)` is the exact form the images
+      // grid already uses, so this stays on a path known to work.
+      const page = { from: offset, to: offset + DB_SESSION_BATCH - 1 };
+      const [codeRes, canvasRes] = await Promise.all([
+        supabase.from('chat_sessions')
+          .select('id, title, messages, updated_at')
+          .eq('user_id', session.user.id)
+          .filter('messages', 'cs', '[{"type": "code"}]')
+          .order('updated_at', { ascending: false })
+          .range(page.from, page.to),
+        supabase.from('chat_sessions')
+          .select('id, title, messages, updated_at')
+          .eq('user_id', session.user.id)
+          .filter('messages', 'cs', '[{"type": "canvas"}]')
+          .order('updated_at', { ascending: false })
+          .range(page.from, page.to),
+      ]);
+
+      if (codeRes.error) throw codeRes.error;
+      if (canvasRes.error) throw canvasRes.error;
+
+      // A session holding both kinds comes back from both queries; keep one copy.
+      const rowsById = new Map<string, any>();
+      [...(codeRes.data || []), ...(canvasRes.data || [])].forEach((row: any) => rowsById.set(row.id, row));
+      const data = [...rowsById.values()];
+
+      const found = extractCanvases(data as any);
+      found.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      setDbCanvases(prev => reset ? found : [...prev, ...found]);
+      setDbCanvasOffset(offset + DB_SESSION_BATCH);
+      setDbHasMoreCanvasSessions(
+        (codeRes.data || []).length === DB_SESSION_BATCH || (canvasRes.data || []).length === DB_SESSION_BATCH,
+      );
+    } catch (e) {
+      console.error('Failed to load canvases from DB:', e);
+    } finally {
+      setDbCanvasesLoading(false);
+    }
+  };
+
+  // Same deal as images: load when the tab is first opened, once per visit.
+  useEffect(() => {
+    if (user && isLoaded && activeTab === "canvases" && !canvasFetchStartedRef.current) {
+      canvasFetchStartedRef.current = true;
+      void fetchMoreCanvases(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isLoaded, activeTab]);
 
   // Load images the first time the Images tab is opened, not on mount: this
   // query pulls whole `messages` blobs to dig image attachments out of them,
@@ -904,64 +1006,19 @@ useEffect(() => {
     return recentApps.filter(app => (app.title || '').toLowerCase().includes(q));
   }, [recentApps, appSearch]);
 
-  // The stat tile only needs a number, and counting is cheap. Building the list
-  // is not: it walks every message of every session and runs a regex over each
-  // one, which is why it is gated on the tab actually being open.
-  const canvasCount = useMemo(() => {
-    // Message bodies only exist after the Canvases tab has hydrated them, so a
-    // count before that would be a confident zero rather than "not known yet".
-    if (!allSessionsHydrated) return null;
-    let count = 0;
-    (chatSessions || []).forEach(s => {
-      ((s && s.messages) || []).forEach(m => {
-        if (m.type === 'code' || m.type === 'canvas') count++;
-      });
-    });
-    return count;
-  }, [chatSessions, allSessionsHydrated]);
+  // Canvases come from the targeted query above, not from hydrated sessions, so
+  // the dashboard never loads a transcript it does not display. The count is
+  // only known once that tab has fetched; "—" beats a confident zero.
+  const canvasCount = useMemo(
+    () => (canvasFetchStartedRef.current && !dbCanvasesLoading ? dbCanvases.length : null),
+    [dbCanvases, dbCanvasesLoading],
+  );
 
   const filteredCanvases = useMemo(() => {
-    const items: CanvasItem[] = [];
-    if (activeTab !== "canvases") return items;
-    (chatSessions || []).forEach(s => {
-      ((s && s.messages) || []).forEach(m => {
-        if (m.type === 'code' || m.type === 'canvas') {
-          // For writing canvases, use canvasContent.
-          // For code canvases, prefer codeContent (the actual code) over content (which is just the label).
-          // Fall back through legacy fields, and finally strip ```html fences if the real code was saved inside content.
-          let canvasContent = '';
-          if (m.type === 'canvas') {
-            canvasContent = (m as any).canvasContent || (typeof m.content === 'string' ? m.content : '');
-          } else {
-            const codeContent = (m as any).codeContent;
-            const rawContent = typeof m.content === 'string' ? m.content : '';
-            if (typeof codeContent === 'string' && codeContent.trim().length > 0) {
-              canvasContent = codeContent;
-            } else {
-              // Legacy: extract fenced code from content if present, else use content directly
-              const fenced = rawContent.match(/```(?:\w+)?\n([\s\S]*?)```/);
-              canvasContent = fenced ? fenced[1] : rawContent;
-            }
-          }
-          items.push({
-            id: m.id,
-            type: m.type === 'canvas' ? 'writing' : 'code',
-            content: canvasContent,
-            language: m.codeLanguage,
-            sessionId: s.id,
-            sessionTitle: s.title,
-            timestamp: toDate(m.timestamp) || new Date(),
-            label: m.codeLabel || m.canvasLabel || (m.type === 'code' ? 'Code Block' : 'Writing')
-          });
-        }
-      });
-    });
-
-    items.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    if (!canvasSearch.trim()) return items;
+    if (!canvasSearch.trim()) return dbCanvases;
     const q = canvasSearch.toLowerCase();
-    return items.filter(i => i.label?.toLowerCase().includes(q) || i.content.toLowerCase().includes(q));
-  }, [chatSessions, canvasSearch, activeTab]);
+    return dbCanvases.filter(i => i.label?.toLowerCase().includes(q) || i.content.toLowerCase().includes(q));
+  }, [dbCanvases, canvasSearch]);
 
   const timeAgo = (date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
@@ -2153,7 +2210,7 @@ useEffect(() => {
                         <Input value={canvasSearch} onChange={e => setCanvasSearch(e.target.value)} placeholder="Search code & canvases…" className="pl-9 bg-muted/30 border-border/40 rounded-xl" />
                       </div>
                     </div>
-                    {!allSessionsHydrated ? (
+                    {dbCanvasesLoading && dbCanvases.length === 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {[1,2,3,4].map(i => <div key={i} className="rounded-xl border border-border/30 bg-muted/20 overflow-hidden"><Skeleton className="h-32 w-full" /><div className="p-3"><Skeleton className="h-4 w-3/4 mb-1.5" /><Skeleton className="h-3 w-1/2" /></div></div>)}
                       </div>
