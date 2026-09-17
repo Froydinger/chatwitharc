@@ -67,7 +67,11 @@ export function useContextBlocks() {
 
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        fetchBlocks();
+        // Supabase invokes auth listeners while holding its internal auth lock.
+        // fetchBlocks() calls auth.getUser(), which tries to acquire that same
+        // lock. Defer the work until the callback has returned; WebKit/PWA
+        // session restoration is especially sensitive to this re-entry.
+        window.setTimeout(() => { void fetchBlocks(); }, 0);
       }
     });
 
