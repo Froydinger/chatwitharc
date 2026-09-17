@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
 import { UpgradeModal } from "@/components/UpgradeModal";
@@ -43,9 +43,6 @@ const AdminPage = lazy(() => import("./pages/AdminPage").then((m) => ({ default:
 const DownloadPage = lazy(() => import("./pages/DownloadPage").then((m) => ({ default: m.DownloadPage })));
 const PricingPage = lazy(() => import("./pages/PricingPage").then((m) => ({ default: m.PricingPage })));
 const UpgradePage = lazy(() => import("./pages/UpgradePage").then((m) => ({ default: m.UpgradePage })));
-// Chunk recovery has one owner: the pre-entrypoint handler in index.html.
-// Let rejected imports reach ErrorBoundary; React.lazy caches rejected promises.
-const DashboardPage = lazy(() => import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
 const DashboardSettingsPage = lazy(() => import("./pages/DashboardSettingsPage").then((m) => ({ default: m.DashboardSettingsPage })));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const SupportPage = lazy(() => import("./pages/SupportPage").then((m) => ({ default: m.SupportPage })));
@@ -75,14 +72,6 @@ import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { isLocalChatPreview } from "@/lib/localPreview";
 import { isLocalDashboardPreview } from "@/lib/localPreview";
 import { DashboardPreviewPage } from "./pages/DashboardPreviewPage";
-
-function preloadDashboardRoute() {
-  if (typeof window === "undefined") return;
-  const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean };
-  const standalone = window.matchMedia('(display-mode: standalone)').matches
-    || navigatorWithStandalone.standalone === true;
-  if (standalone) void import("./pages/DashboardPage").catch(() => {});
-}
 
 const FullscreenLoader = () => {
   const [stage, setStage] = useState<'spin' | 'bloop'>('spin');
@@ -197,6 +186,23 @@ const RootGate = () => {
   return canEnterApp ? <Index /> : <LandingPage />;
 };
 
+const DashboardShellGate = () => {
+  const navigate = useNavigate();
+  const { user, loading: authLoading, isAnonymous } = useAuth();
+  const signedOut = !authLoading && (isAnonymous || !user);
+
+  useEffect(() => {
+    if (!signedOut) return;
+    navigate("/", { replace: true });
+    window.dispatchEvent(
+      new CustomEvent("auth-gate-feature", { detail: { feature: "menu" } }),
+    );
+  }, [signedOut, navigate]);
+
+  if (signedOut) return null;
+  return <DashboardPreviewPage live />;
+};
+
 const queryClient = new QueryClient();
 
 // Detect PWA/Electron mode and add class to body
@@ -258,7 +264,6 @@ const App = () => {
   // Detect standalone mode on mount
   useEffect(() => {
     detectStandaloneMode();
-    preloadDashboardRoute();
   }, []);
 
   return (
@@ -307,7 +312,7 @@ const App = () => {
                     <Route path="/downloads" element={<DownloadPage />} />
                     <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/upgrade" element={<UpgradePage />} />
-                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/dashboard" element={<DashboardShellGate />} />
                     <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
                     <Route path="/voice-lab" element={<VoiceLabPage />} />
                     <Route path="/build" element={<AppBuilderPage />} />
