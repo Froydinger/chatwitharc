@@ -1267,9 +1267,10 @@ export function MobileChatApp() {
               </motion.div>
             </div>
 
-            {/* The mode switch is the one persistent header control. Model and
-                voice choices live together in the centered input picker. */}
-            {!isVoiceActive && (
+            {/* The mode switch only shows on an empty chat, outside canvas. Once a
+                chat is running, switching to Work happens from within the chat so the
+                conversation's context carries over. */}
+            {!isVoiceActive && !isCanvasOpen && messages.length === 0 && (
               <div
                 className="fixed left-1/2 z-40 flex h-16 -translate-x-1/2 items-center pointer-events-auto"
                 style={{

@@ -1430,10 +1430,10 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
                   className="flex items-center justify-between text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10 opacity-80"
                 >
                   <div className="flex items-center gap-2">
-                    <GitBranch className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    <GitBranch className="w-3.5 h-3.5 text-neon-400 shrink-0" />
                     <span className="font-medium text-foreground">Push to GitHub</span>
                   </div>
-                  <span className="text-[8px] font-mono uppercase bg-purple-500/15 text-purple-400 border border-purple-500/25 px-1 py-0.5 rounded">Soon</span>
+                  <span className="text-[8px] font-mono uppercase bg-neon-500/15 text-neon-400 border border-neon-500/25 px-1 py-0.5 rounded">Soon</span>
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator className="bg-white/10 my-1" />
@@ -1598,10 +1598,10 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
                   className="flex items-center justify-between text-xs py-2 px-2.5 rounded-lg cursor-pointer focus:bg-white/10 opacity-80"
                 >
                   <div className="flex items-center gap-2.5">
-                    <GitBranch className="w-4 h-4 text-purple-400 shrink-0" />
+                    <GitBranch className="w-4 h-4 text-neon-400 shrink-0" />
                     <span className="font-medium text-foreground">Push to GitHub</span>
                   </div>
-                  <span className="text-[9px] font-mono uppercase bg-purple-500/15 text-purple-400 border border-purple-500/25 px-1.5 py-0.5 rounded">Soon</span>
+                  <span className="text-[9px] font-mono uppercase bg-neon-500/15 text-neon-400 border border-neon-500/25 px-1.5 py-0.5 rounded">Soon</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1620,15 +1620,15 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
 
       {/* Boost Entitlement Banner */}
       {!hasBoost && !isAdmin && (
-        <div className="mx-3 mb-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500/10 via-primary/10 to-purple-500/10 border border-purple-500/20 flex items-center justify-between shrink-0 text-xs">
-          <div className="flex items-center gap-2 text-purple-300">
-            <Sparkles className="h-3.5 w-3.5 text-purple-400 shrink-0" />
+        <div className="mx-3 mb-2 px-4 py-2 rounded-xl bg-gradient-to-r from-neon-500/10 via-primary/10 to-neon-500/10 border border-neon-500/20 flex items-center justify-between shrink-0 text-xs">
+          <div className="flex items-center gap-2 text-neon-300">
+            <Sparkles className="h-3.5 w-3.5 text-neon-400 shrink-0" />
             <span>ArcAI Boost is required to generate, edit, and publish web applications.</span>
           </div>
           <Button
             size="sm"
             onClick={() => openCheckout()}
-            className="h-6 px-2.5 text-[11px] rounded-lg bg-purple-500 hover:bg-purple-600 text-white shadow-sm"
+            className="h-6 px-2.5 text-[11px] rounded-lg bg-neon-500 hover:bg-neon-600 text-white shadow-sm"
           >
             Upgrade to Boost
           </Button>
@@ -1704,8 +1704,8 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
                 <MessageSquare className="h-5 w-5" />
                 {isAgentRunning && (
                   <span className="absolute -top-1 -right-1.5 flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-purple-500" />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-neon-500" />
                   </span>
                 )}
               </div>

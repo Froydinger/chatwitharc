@@ -37,7 +37,7 @@ export const FILE_TYPE_COLORS: Record<string, string> = {
   xlsx: 'from-green-500/20 to-green-600/20',
   csv: 'from-green-500/20 to-green-600/20',
   json: 'from-yellow-500/20 to-yellow-600/20',
-  xml: 'from-purple-500/20 to-purple-600/20',
+  xml: 'from-neon-500/20 to-neon-600/20',
   html: 'from-orange-500/20 to-orange-600/20',
   md: 'from-indigo-500/20 to-indigo-600/20',
   default: 'from-muted/20 to-muted/30'

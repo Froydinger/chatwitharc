@@ -28,7 +28,7 @@ export function WeatherIcon({ code, isDay, className }: { code: number; isDay: b
 export function WeatherCard({ weather, onClose }: { weather: WeatherData; onClose?: () => void }) {
   const gradient = weather.isDay
     ? 'from-sky-500/30 via-blue-500/20 to-indigo-500/30'
-    : 'from-indigo-900/40 via-slate-800/30 to-purple-900/40';
+    : 'from-indigo-900/40 via-slate-800/30 to-neon-900/40';
   return (
     <div className={`relative w-full max-w-[300px] rounded-2xl border border-primary/20 bg-gradient-to-br ${gradient} backdrop-blur-xl shadow-2xl overflow-hidden`}>
       {onClose && (

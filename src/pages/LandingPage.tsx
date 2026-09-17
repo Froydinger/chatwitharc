@@ -234,7 +234,7 @@ export function LandingPage() {
                 <span className={cn(
                   "px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider border",
                   f.category === "Ask" && "bg-blue-500/10 text-blue-400 border-blue-500/20",
-                  f.category === "Reflect" && "bg-purple-500/10 text-purple-400 border-purple-500/20",
+                  f.category === "Reflect" && "bg-neon-500/10 text-neon-400 border-neon-500/20",
                   f.category === "Create" && "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                 )}>
                   {f.category}

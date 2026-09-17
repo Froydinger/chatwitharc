@@ -935,7 +935,7 @@ export function VoiceLabPage() {
       {/* Background ambient lighting */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-36 top-[-180px] h-[520px] w-[520px] rounded-full bg-primary/[0.08] blur-[140px]" />
-        <div className="absolute -right-40 bottom-[-220px] h-[560px] w-[560px] rounded-full bg-purple-500/[0.07] blur-[150px]" />
+        <div className="absolute -right-40 bottom-[-220px] h-[560px] w-[560px] rounded-full bg-neon-500/[0.07] blur-[150px]" />
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.035] to-transparent" />
       </div>
 
@@ -1183,7 +1183,7 @@ export function VoiceLabPage() {
                   ? 'bg-gradient-to-tr from-rose-600/50 to-red-500/50'
                   : isTranscribing
                   ? 'bg-gradient-to-tr from-cyan-500/40 to-blue-500/40'
-                  : 'bg-gradient-to-tr from-purple-600/40 to-primary/40'
+                  : 'bg-gradient-to-tr from-neon-600/40 to-primary/40'
               }`}
             />
 

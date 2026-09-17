@@ -988,8 +988,8 @@ useEffect(() => {
   // Stats for overview
   const stats = [
     { label: "Chats", tab: "chats" as DashboardTab, value: quickCounts.chats !== null ? quickCounts.chats : (allChats.length > 0 ? allChats.length : 0), icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
-    { label: "Images", tab: "images" as DashboardTab, value: totalImageCount, icon: Image, color: "270 80% 65%", tw: "text-purple-400" },
-    { label: "Apps", tab: "apps" as DashboardTab, value: recentApps.length, icon: Smartphone, color: "270 80% 65%", tw: "text-purple-400" },
+    { label: "Images", tab: "images" as DashboardTab, value: totalImageCount, icon: Image, color: "270 80% 65%", tw: "text-neon-400" },
+    { label: "Apps", tab: "apps" as DashboardTab, value: recentApps.length, icon: Smartphone, color: "270 80% 65%", tw: "text-neon-400" },
     { label: "Canvases", tab: "canvases" as DashboardTab, value: filteredCanvases.length, icon: Code2, color: "35 90% 60%", tw: "text-orange-400" },
     { label: "Living memory", tab: "memories" as DashboardTab, value: quickCounts.memories !== null ? quickCounts.memories : (contextBlocks.length > 0 ? 1 : 0), icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
@@ -1136,7 +1136,7 @@ useEffect(() => {
         {!embedded && <div className="relative">
           {/* Ambient glow behind greeting */}
           <div className="absolute -top-12 left-1/4 w-48 h-48 rounded-full bg-primary/8 blur-[80px] pointer-events-none" />
-          <div className="absolute -top-8 right-1/3 w-32 h-32 rounded-full bg-purple-500/10 blur-[70px] pointer-events-none" />
+          <div className="absolute -top-8 right-1/3 w-32 h-32 rounded-full bg-neon-500/10 blur-[70px] pointer-events-none" />
           
           <div className="relative flex items-center justify-between rounded-3xl border border-border/30 bg-background/35 px-3 py-3 sm:px-5 sm:py-4 backdrop-blur-xl">
             <div className="flex items-center gap-3">
@@ -1166,17 +1166,17 @@ useEffect(() => {
                     setActiveTab("apps");
                   }
                 }}
-                className="h-8 w-8 p-0 sm:w-auto sm:h-9 sm:px-3 rounded-full bg-purple-500/10 hover:bg-purple-500/15 dark:bg-gradient-to-r dark:from-purple-500/20 dark:via-primary/20 dark:to-purple-500/20 dark:hover:from-purple-500/30 dark:hover:to-primary/30 border border-purple-500/30 text-purple-700 dark:text-purple-200 text-xs font-semibold gap-1.5 shadow-sm transition-all shrink-0"
+                className="h-8 w-8 p-0 sm:w-auto sm:h-9 sm:px-3 rounded-full bg-neon-500/10 hover:bg-neon-500/15 dark:bg-gradient-to-r dark:from-neon-500/20 dark:via-primary/20 dark:to-neon-500/20 dark:hover:from-neon-500/30 dark:hover:to-primary/30 border border-neon-500/30 text-neon-700 dark:text-neon-200 text-xs font-semibold gap-1.5 shadow-sm transition-all shrink-0"
                 title={!hasBoost && !isAdmin ? "Unlock App Builder with Boost" : "View All Apps"}
               >
                 {!hasBoost && !isAdmin ? (
-                  <Crown className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <Crown className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-neon-600 dark:text-neon-400 shrink-0" />
                 ) : (
-                  <Smartphone className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                  <Smartphone className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-neon-600 dark:text-neon-400 shrink-0" />
                 )}
                 <span className="hidden sm:inline">App Builder</span>
                 {!hasBoost && !isAdmin && (
-                  <span className="hidden sm:inline text-[9px] font-mono font-bold bg-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-500/30 px-1 py-0.2 rounded uppercase">Boost</span>
+                  <span className="hidden sm:inline text-[9px] font-mono font-bold bg-neon-500/20 text-neon-700 dark:text-neon-300 border border-neon-500/30 px-1 py-0.2 rounded uppercase">Boost</span>
                 )}
               </Button>
               <Button
@@ -1360,7 +1360,7 @@ useEffect(() => {
                         </div>
                       </div>
                       {!isAdmin && !hasBoost && (
-                        <Button variant="outline" size="sm" className="mt-3 sm:mt-4 w-full rounded-full hover:border-purple-500/40 hover:text-purple-600 dark:hover:text-purple-300 transition-colors text-xs" onClick={() => openCheckout()}>
+                        <Button variant="outline" size="sm" className="mt-3 sm:mt-4 w-full rounded-full hover:border-neon-500/40 hover:text-neon-600 dark:hover:text-neon-300 transition-colors text-xs" onClick={() => openCheckout()}>
                           Explore Boost
                         </Button>
                       )}
@@ -1374,22 +1374,22 @@ useEffect(() => {
                         setActiveTab("apps");
                       }
                     }} 
-                    className="rounded-3xl border border-purple-500/25 bg-purple-500/10 p-4 text-left shadow-sm transition-all hover:border-purple-500/40 hover:bg-purple-500/15 dark:border-purple-500/30 dark:bg-purple-500/10 dark:hover:border-purple-500/50 dark:hover:bg-purple-500/15"
+                    className="rounded-3xl border border-neon-500/25 bg-neon-500/10 p-4 text-left shadow-sm transition-all hover:border-neon-500/40 hover:bg-neon-500/15 dark:border-neon-500/30 dark:bg-neon-500/10 dark:hover:border-neon-500/50 dark:hover:bg-neon-500/15"
                   >
                     <div className="flex items-center justify-between">
                       {!hasBoost && !isAdmin ? (
                         <>
-                          <Crown className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                          <span className="text-[9px] font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/30 px-1.5 py-0.5 rounded uppercase dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30">Boost</span>
+                          <Crown className="h-5 w-5 text-neon-600 dark:text-neon-400" />
+                          <span className="text-[9px] font-mono font-bold bg-neon-500/15 text-neon-700 border border-neon-500/30 px-1.5 py-0.5 rounded uppercase dark:bg-neon-500/20 dark:text-neon-300 dark:border-neon-500/30">Boost</span>
                         </>
                       ) : (
                         <>
-                          <Smartphone className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                          <span className="text-[9px] font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/30 px-1.5 py-0.5 rounded uppercase dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30">App</span>
+                          <Smartphone className="h-5 w-5 text-neon-600 dark:text-neon-400" />
+                          <span className="text-[9px] font-mono font-bold bg-neon-500/15 text-neon-700 border border-neon-500/30 px-1.5 py-0.5 rounded uppercase dark:bg-neon-500/20 dark:text-neon-300 dark:border-neon-500/30">App</span>
                         </>
                       )}
                     </div>
-                    <p className="mt-3 text-sm font-semibold text-purple-900 dark:text-purple-200">
+                    <p className="mt-3 text-sm font-semibold text-neon-900 dark:text-neon-200">
                       {!hasBoost && !isAdmin ? "Upgrade to Boost" : "App Builder"}
                     </p>
                     <p className="mt-0.5 text-[11px] text-slate-600 dark:text-muted-foreground font-medium">
@@ -1438,13 +1438,13 @@ useEffect(() => {
                           className={cn(
                             "group relative overflow-hidden rounded-2xl sm:rounded-3xl border border-border/60 bg-background/80 p-3 sm:p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 shrink-0 w-[calc((100vw-52px)/3)] min-w-[100px] max-w-[140px] snap-start sm:w-auto sm:min-w-0 sm:max-w-none sm:flex-1",
                             isPurpleCard 
-                              ? "hover:border-purple-500/35 hover:bg-purple-500/[0.04] dark:border-border/35 dark:bg-background/40 dark:shadow-none dark:hover:border-purple-500/40 dark:hover:bg-purple-500/[0.06]"
+                              ? "hover:border-neon-500/35 hover:bg-neon-500/[0.04] dark:border-border/35 dark:bg-background/40 dark:shadow-none dark:hover:border-neon-500/40 dark:hover:bg-neon-500/[0.06]"
                               : "hover:border-primary/35 hover:bg-primary/[0.035] dark:border-border/35 dark:bg-background/40 dark:shadow-none dark:hover:bg-primary/[0.055]"
                           )}
                         >
                           <div className="flex items-center justify-between">
-                            <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 transition-colors", isPurpleCard ? "text-purple-600 dark:text-purple-400" : "text-primary")} />
-                            <ArrowRight className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-1", isPurpleCard ? "group-hover:text-purple-500" : "group-hover:text-primary")} />
+                            <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5 transition-colors", isPurpleCard ? "text-neon-600 dark:text-neon-400" : "text-primary")} />
+                            <ArrowRight className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-1", isPurpleCard ? "group-hover:text-neon-500" : "group-hover:text-primary")} />
                           </div>
                           <p className="mt-2.5 sm:mt-6 text-xl sm:text-3xl font-light tabular-nums text-foreground">{value ?? 0}</p>
                           <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground truncate">{label}</p>
@@ -1768,10 +1768,10 @@ useEffect(() => {
                 </div>
                 <Button
                   onClick={() => handleLaunchAppBuilder()}
-                  className="rounded-full h-9 px-3.5 bg-purple-500/10 hover:bg-purple-500/15 dark:bg-gradient-to-r dark:from-purple-500/20 dark:via-primary/20 dark:to-purple-500/20 dark:hover:from-purple-500/30 dark:hover:to-primary/30 border border-purple-500/30 text-purple-700 dark:text-purple-200 text-xs font-semibold gap-1.5 shadow-sm transition-all"
+                  className="rounded-full h-9 px-3.5 bg-neon-500/10 hover:bg-neon-500/15 dark:bg-gradient-to-r dark:from-neon-500/20 dark:via-primary/20 dark:to-neon-500/20 dark:hover:from-neon-500/30 dark:hover:to-primary/30 border border-neon-500/30 text-neon-700 dark:text-neon-200 text-xs font-semibold gap-1.5 shadow-sm transition-all"
                   title="New App"
                 >
-                  <Plus className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <Plus className="h-4 w-4 text-neon-600 dark:text-neon-400" />
                   <span>New App</span>
                 </Button>
               </div>
@@ -1791,8 +1791,8 @@ useEffect(() => {
                 </div>
               ) : filteredApps.length === 0 ? (
                 <div className="rounded-3xl border border-dashed border-border/60 bg-muted/10 p-12 text-center flex flex-col items-center justify-center">
-                  <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/25 flex items-center justify-center mb-4">
-                    <Smartphone className="h-7 w-7 text-purple-600 dark:text-purple-400" />
+                  <div className="w-14 h-14 rounded-2xl bg-neon-500/10 border border-neon-500/25 flex items-center justify-center mb-4">
+                    <Smartphone className="h-7 w-7 text-neon-600 dark:text-neon-400" />
                   </div>
                   <h3 className="text-base font-semibold text-foreground">
                     {appSearch ? "No matching apps" : "No apps yet"}
@@ -1804,7 +1804,7 @@ useEffect(() => {
                   </p>
                   <Button
                     onClick={() => handleLaunchAppBuilder()}
-                    className="mt-5 rounded-full bg-purple-600 hover:bg-purple-500 text-white font-medium px-4 text-xs gap-1.5 shadow-md"
+                    className="mt-5 rounded-full bg-neon-600 hover:bg-neon-500 text-white font-medium px-4 text-xs gap-1.5 shadow-md"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Create Your First App
@@ -1829,16 +1829,16 @@ useEffect(() => {
                             }
                             void openProject(app.id);
                           }}
-                          className="group relative flex flex-col justify-between rounded-2xl border border-border/40 bg-card/60 hover:bg-card/90 hover:border-purple-500/40 p-4 transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 overflow-hidden"
+                          className="group relative flex flex-col justify-between rounded-2xl border border-border/40 bg-card/60 hover:bg-card/90 hover:border-neon-500/40 p-4 transition-all cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 overflow-hidden"
                         >
                           <div className="space-y-3">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="h-9 w-9 rounded-xl bg-purple-500/10 border border-purple-500/25 dark:bg-purple-500/15 dark:border-purple-500/30 flex items-center justify-center shrink-0">
-                                  <Smartphone className="h-4.5 w-4.5 text-purple-600 dark:text-purple-400" />
+                                <div className="h-9 w-9 rounded-xl bg-neon-500/10 border border-neon-500/25 dark:bg-neon-500/15 dark:border-neon-500/30 flex items-center justify-center shrink-0">
+                                  <Smartphone className="h-4.5 w-4.5 text-neon-600 dark:text-neon-400" />
                                 </div>
                                 <div className="min-w-0">
-                                  <h4 className="font-semibold text-sm text-foreground truncate group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
+                                  <h4 className="font-semibold text-sm text-foreground truncate group-hover:text-neon-600 dark:group-hover:text-neon-300 transition-colors">
                                     {app.title || "Untitled App"}
                                   </h4>
                                   <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-muted-foreground font-medium">
@@ -1850,7 +1850,7 @@ useEffect(() => {
                                       return (
                                         <>
                                           <span>·</span>
-                                          <span className="inline-flex items-center gap-1 text-purple-600 dark:text-purple-400 font-semibold">
+                                          <span className="inline-flex items-center gap-1 text-neon-600 dark:text-neon-400 font-semibold">
                                             <Users className="h-2.5 w-2.5" />
                                             {uCount} {uCount === 1 ? 'user' : 'users'}
                                           </span>
@@ -1860,7 +1860,7 @@ useEffect(() => {
                                   </div>
                                 </div>
                               </div>
-                              <span className="text-[9px] font-mono font-bold bg-purple-500/15 text-purple-700 border border-purple-500/30 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30 px-2 py-0.5 rounded-full shrink-0">
+                              <span className="text-[9px] font-mono font-bold bg-neon-500/15 text-neon-700 border border-neon-500/30 dark:bg-neon-500/20 dark:text-neon-300 dark:border-neon-500/30 px-2 py-0.5 rounded-full shrink-0">
                                 App
                               </span>
                             </div>
@@ -1878,10 +1878,10 @@ useEffect(() => {
                                   e.stopPropagation();
                                   window.open(askarcUrl, "_blank", "noopener,noreferrer");
                                 }}
-                                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-purple-700 hover:text-purple-900 dark:text-purple-300 dark:hover:text-purple-200 truncate group/link"
+                                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neon-700 hover:text-neon-900 dark:text-neon-300 dark:hover:text-neon-200 truncate group/link"
                                 title={askarcUrl}
                               >
-                                <Globe className="h-3 w-3 shrink-0 text-purple-600 dark:text-purple-400" />
+                                <Globe className="h-3 w-3 shrink-0 text-neon-600 dark:text-neon-400" />
                                 <span className="truncate">{app.netlify_subdomain}.askarc.chat</span>
                                 <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-70 group-hover/link:opacity-100" />
                               </button>
@@ -1896,7 +1896,7 @@ useEffect(() => {
                                 size="sm"
                                 variant="ghost"
                                 onClick={(e) => handleOpenSettings(e, app)}
-                                className="h-7 w-7 p-0 rounded-lg opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-slate-400 hover:text-purple-600 hover:bg-purple-500/10 dark:text-muted-foreground dark:hover:text-purple-300"
+                                className="h-7 w-7 p-0 rounded-lg opacity-80 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity text-slate-400 hover:text-neon-600 hover:bg-neon-500/10 dark:text-muted-foreground dark:hover:text-neon-300"
                                 title="App settings & branding"
                               >
                                 <Settings className="h-3.5 w-3.5" />
@@ -1932,7 +1932,7 @@ useEffect(() => {
                                   }
                                   void openProject(app.id);
                                 }}
-                                className="h-7 px-2.5 text-xs rounded-lg text-purple-700 hover:text-purple-900 bg-purple-500/10 hover:bg-purple-500/20 dark:text-purple-300 dark:hover:text-purple-100 dark:bg-transparent dark:hover:bg-purple-500/20 gap-1 font-semibold"
+                                className="h-7 px-2.5 text-xs rounded-lg text-neon-700 hover:text-neon-900 bg-neon-500/10 hover:bg-neon-500/20 dark:text-neon-300 dark:hover:text-neon-100 dark:bg-transparent dark:hover:bg-neon-500/20 gap-1 font-semibold"
                               >
                                 <span>Open</span>
                                 <ArrowRight className="h-3 w-3" />
@@ -1954,7 +1954,7 @@ useEffect(() => {
                       <DialogContent className="sm:max-w-md bg-[#0f1117] border-white/10 text-foreground">
                         <DialogHeader>
                           <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
-                            <Settings className="h-4 w-4 text-purple-400" />
+                            <Settings className="h-4 w-4 text-neon-400" />
                             <span>App Settings & Branding</span>
                           </DialogTitle>
                           <DialogDescription className="text-xs text-muted-foreground">
@@ -1994,7 +1994,7 @@ useEffect(() => {
                           <div className="flex items-center justify-between p-3 rounded-xl border border-white/10 bg-background/40">
                             <div className="space-y-0.5 pr-3">
                               <div className="flex items-center gap-1.5">
-                                <Tag className="h-3.5 w-3.5 text-purple-400" />
+                                <Tag className="h-3.5 w-3.5 text-neon-400" />
                                 <span className="text-xs font-semibold text-foreground">"Built with ArcAi" Badge</span>
                               </div>
                               <p className="text-[10.5px] text-muted-foreground leading-tight">
@@ -2015,7 +2015,7 @@ useEffect(() => {
                                 href={settingsApp.netlify_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-purple-400 hover:underline flex items-center gap-1 font-mono text-[11px]"
+                                className="text-neon-400 hover:underline flex items-center gap-1 font-mono text-[11px]"
                               >
                                 <span>{settingsApp.netlify_subdomain}.askarc.chat</span>
                                 <ExternalLink className="h-3 w-3" />
@@ -2038,7 +2038,7 @@ useEffect(() => {
                             size="sm"
                             onClick={handleSaveSettings}
                             disabled={savingSettings || !settingsTitle.trim()}
-                            className="gap-1.5 rounded-xl text-xs bg-purple-600 hover:bg-purple-500 text-white font-semibold"
+                            className="gap-1.5 rounded-xl text-xs bg-neon-600 hover:bg-neon-500 text-white font-semibold"
                           >
                             {savingSettings ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                             <span>Save Settings</span>
@@ -2368,7 +2368,7 @@ useEffect(() => {
 
           {/* Jelly bubble — rendered first so tabs stack above it visually but bubble captures pointer via z-index */}
           <motion.div
-            className="absolute top-1/2 rounded-full touch-none select-none border-2 border-purple-600/85 dark:border-purple-400/85"
+            className="absolute top-1/2 rounded-full touch-none select-none border-2 border-neon-600/85 dark:border-neon-400/85"
             style={{
               left: bubbleLeft,
               width: BUBBLE_R * 2,
@@ -2506,7 +2506,7 @@ useEffect(() => {
                   onClick={() => switchTab(key)}
                   className={cn(
                     "flex items-center justify-center px-3 py-3 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation",
-                    isActive ? "text-purple-600 dark:text-purple-400" : "text-muted-foreground/60 hover:text-purple-500/80 dark:hover:text-purple-400/80"
+                    isActive ? "text-neon-600 dark:text-neon-400" : "text-muted-foreground/60 hover:text-neon-500/80 dark:hover:text-neon-400/80"
                   )}
                   style={{ zIndex: 20, opacity: isHiddenByBubble ? 0 : 1, transitionProperty: 'opacity', transitionDuration: '0.15s' }}
                 >

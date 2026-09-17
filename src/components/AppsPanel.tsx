@@ -246,7 +246,7 @@ export function AppsPanel() {
                     {(() => {
                       const userCount = getAppUserCount(project);
                       return (
-                        <span className="flex items-center gap-1 text-purple-600 dark:text-purple-400 font-semibold">
+                        <span className="flex items-center gap-1 text-neon-600 dark:text-neon-400 font-semibold">
                           <Users className="w-3 h-3" />
                           <span>{userCount} {userCount === 1 ? 'user' : 'users'}</span>
                         </span>

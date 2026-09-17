@@ -111,7 +111,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
         autofillBg: "rgb(255, 255, 255)",
         autofillText: "#18181b",
         blob1: "bg-blue-500/15",
-        blob2: "bg-purple-500/15",
+        blob2: "bg-neon-500/15",
         blob3: "bg-cyan-400/10",
       }
     : {
@@ -137,7 +137,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
         autofillBg: "rgb(0, 0, 0)",
         autofillText: "#fff",
         blob1: "bg-blue-500/30",
-        blob2: "bg-purple-500/25",
+        blob2: "bg-neon-500/25",
         blob3: "bg-cyan-400/20",
       };
 
@@ -287,7 +287,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                     transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                     className="flex justify-center mb-4"
                   >
-                    <div className={cn("w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 border flex items-center justify-center backdrop-blur-sm relative", t.border)}>
+                    <div className={cn("w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-neon-500/20 border flex items-center justify-center backdrop-blur-sm relative", t.border)}>
                       <img src="/arc-logo-ui.png" alt="ArcAI" className="h-10 w-10" />
                     </div>
                   </motion.div>

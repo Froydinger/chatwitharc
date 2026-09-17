@@ -450,7 +450,7 @@ export function IDECloudPanel({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold text-white flex items-center gap-2">
-            <Cloud className="h-4 w-4 text-purple-400" /> Netlify Cloud & Database
+            <Cloud className="h-4 w-4 text-neon-400" /> Netlify Cloud & Database
           </h2>
           <p className="text-xs text-slate-400 mt-0.5">Manage user accounts, persistence collections, and credentials</p>
         </div>
@@ -469,7 +469,7 @@ export function IDECloudPanel({
         <div className="rounded-2xl border border-white/10 bg-[#12141d]/95 p-4 space-y-3 backdrop-blur-xl shadow-lg">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Shield className="h-4 w-4 text-purple-400" /> User Accounts & Auth
+              <Shield className="h-4 w-4 text-neon-400" /> User Accounts & Auth
             </span>
             <Button 
               size="sm" 
@@ -479,7 +479,7 @@ export function IDECloudPanel({
               className={cn(
                 "h-8 rounded-xl transition-all gap-1.5 text-xs font-medium",
                 authEnabled
-                  ? "bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/30 shadow-sm"
+                  ? "bg-neon-600 hover:bg-neon-500 text-white border border-neon-400/30 shadow-sm"
                   : "bg-white/5 hover:bg-white/10 text-slate-200 border border-white/15"
               )}
             >
@@ -490,7 +490,7 @@ export function IDECloudPanel({
             </Button>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Injects <code className="px-1.5 py-0.5 rounded bg-white/10 text-purple-300 border border-white/10 font-mono text-[11px]">NetlifyAuthModal.tsx</code> custom dialog component. Toggling requests Arc to wire up login/signup in your code.
+            Injects <code className="px-1.5 py-0.5 rounded bg-white/10 text-neon-300 border border-white/10 font-mono text-[11px]">NetlifyAuthModal.tsx</code> custom dialog component. Toggling requests Arc to wire up login/signup in your code.
           </p>
         </div>
 
@@ -498,7 +498,7 @@ export function IDECloudPanel({
         <div className="rounded-2xl border border-white/10 bg-[#12141d]/95 p-4 space-y-3 backdrop-blur-xl shadow-lg">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Database className="h-4 w-4 text-purple-400" /> Lightweight Database SDK
+              <Database className="h-4 w-4 text-neon-400" /> Lightweight Database SDK
             </span>
             <Button 
               size="sm" 
@@ -508,7 +508,7 @@ export function IDECloudPanel({
               className={cn(
                 "h-8 rounded-xl transition-all gap-1.5 text-xs font-medium",
                 dbEnabled
-                  ? "bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/30 shadow-sm"
+                  ? "bg-neon-600 hover:bg-neon-500 text-white border border-neon-400/30 shadow-sm"
                   : "bg-white/5 hover:bg-white/10 text-slate-200 border border-white/15"
               )}
             >
@@ -519,7 +519,7 @@ export function IDECloudPanel({
             </Button>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Injects <code className="px-1.5 py-0.5 rounded bg-white/10 text-purple-300 border border-white/10 font-mono text-[11px]">netlifyDb.ts</code> helper with collections and CRUD. Toggling requests Arc to wire persistent storage into your code.
+            Injects <code className="px-1.5 py-0.5 rounded bg-white/10 text-neon-300 border border-white/10 font-mono text-[11px]">netlifyDb.ts</code> helper with collections and CRUD. Toggling requests Arc to wire persistent storage into your code.
           </p>
         </div>
 
@@ -527,10 +527,10 @@ export function IDECloudPanel({
         <div className="rounded-2xl border border-white/10 bg-[#12141d]/95 p-4 space-y-3 md:col-span-2 backdrop-blur-xl shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Tag className="h-4 w-4 text-purple-400" />
+              <Tag className="h-4 w-4 text-neon-400" />
               <div>
                 <span className="text-sm font-semibold text-white">"Built with ArcAi" Badge</span>
-                <span className="ml-2 text-[10px] font-medium text-purple-300 bg-purple-500/15 px-2 py-0.5 rounded-full border border-purple-500/30">Voluntary</span>
+                <span className="ml-2 text-[10px] font-medium text-neon-300 bg-neon-500/15 px-2 py-0.5 rounded-full border border-neon-500/30">Voluntary</span>
               </div>
             </div>
             <Switch
@@ -540,7 +540,7 @@ export function IDECloudPanel({
                   onToggleHideBadge(!checked);
                 }
               }}
-              className="data-[state=checked]:bg-purple-600 data-[state=unchecked]:bg-white/20 border border-white/20"
+              className="data-[state=checked]:bg-neon-600 data-[state=unchecked]:bg-white/20 border border-white/20"
             />
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
@@ -552,7 +552,7 @@ export function IDECloudPanel({
                 variant="ghost"
                 size="sm"
                 onClick={onDeployClick}
-                className="text-[11px] text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 rounded-lg shrink-0 gap-1 h-7 px-2 border border-purple-500/20"
+                className="text-[11px] text-neon-400 hover:text-neon-300 hover:bg-neon-500/10 rounded-lg shrink-0 gap-1 h-7 px-2 border border-neon-500/20"
               >
                 <span>Update Live App</span>
                 <ExternalLink className="h-3 w-3" />
@@ -566,7 +566,7 @@ export function IDECloudPanel({
       <div className="rounded-2xl border border-white/10 bg-[#12141d]/95 overflow-hidden backdrop-blur-xl shadow-lg">
         <div className="bg-white/5 border-b border-white/10 px-4 py-3 flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-slate-200">
-            <Users className="h-3.5 w-3.5 text-purple-400" /> App User Accounts
+            <Users className="h-3.5 w-3.5 text-neon-400" /> App User Accounts
           </span>
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-slate-400 font-medium">{mockUsers.length} registered</span>
@@ -576,7 +576,7 @@ export function IDECloudPanel({
               onClick={() => setShowAddUser(!showAddUser)}
               className="h-6 px-2.5 text-[11px] rounded-lg gap-1 border border-white/15 bg-white/5 hover:bg-white/10 text-slate-200 font-medium"
             >
-              <UserPlus className="h-3 w-3 text-purple-400" /> Add Account
+              <UserPlus className="h-3 w-3 text-neon-400" /> Add Account
             </Button>
           </div>
         </div>
@@ -588,7 +588,7 @@ export function IDECloudPanel({
               placeholder="Name (e.g. Alex)"
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              className="h-8 px-2.5 rounded-lg bg-[#0b0c10] border border-white/15 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500 flex-1 min-w-[120px]"
+              className="h-8 px-2.5 rounded-lg bg-[#0b0c10] border border-white/15 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-neon-500 flex-1 min-w-[120px]"
             />
             <input 
               type="email"
@@ -596,9 +596,9 @@ export function IDECloudPanel({
               placeholder="Email (e.g. user@app.com)"
               value={newEmail}
               onChange={e => setNewEmail(e.target.value)}
-              className="h-8 px-2.5 rounded-lg bg-[#0b0c10] border border-white/15 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500 flex-1 min-w-[160px]"
+              className="h-8 px-2.5 rounded-lg bg-[#0b0c10] border border-white/15 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-neon-500 flex-1 min-w-[160px]"
             />
-            <Button type="submit" size="sm" className="h-8 text-xs rounded-lg px-3 bg-purple-600 hover:bg-purple-500 text-white font-medium">
+            <Button type="submit" size="sm" className="h-8 text-xs rounded-lg px-3 bg-neon-600 hover:bg-neon-500 text-white font-medium">
               Save Account
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddUser(false)} className="h-8 text-xs rounded-lg px-2 text-slate-400 hover:text-white">
@@ -612,7 +612,7 @@ export function IDECloudPanel({
             mockUsers.map((user) => (
               <div key={user.id} className="px-4 py-3 flex items-center justify-between text-xs hover:bg-white/[0.02] transition-colors">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-purple-500/20 text-purple-300 font-bold text-[11px] flex items-center justify-center border border-purple-500/30 uppercase">
+                  <div className="w-7 h-7 rounded-full bg-neon-500/20 text-neon-300 font-bold text-[11px] flex items-center justify-center border border-neon-500/30 uppercase">
                     {user.name ? user.name.slice(0, 2) : user.email.slice(0, 2)}
                   </div>
                   <div>
@@ -621,7 +621,7 @@ export function IDECloudPanel({
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/25 text-[10px] font-mono">{user.role}</span>
+                  <span className="px-2 py-0.5 rounded-full bg-neon-500/15 text-neon-300 border border-neon-500/25 text-[10px] font-mono">{user.role}</span>
                   <button onClick={() => deleteUser(user.id)} className="text-slate-400 hover:text-red-400 transition-colors p-1" title="Delete user">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -637,7 +637,7 @@ export function IDECloudPanel({
       <div className="rounded-2xl border border-white/10 bg-[#12141d]/95 overflow-hidden backdrop-blur-xl shadow-lg">
         <div className="bg-white/5 border-b border-white/10 px-4 py-3 flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-slate-200">
-            <Database className="h-3.5 w-3.5 text-purple-400" /> Database Records & Collections
+            <Database className="h-3.5 w-3.5 text-neon-400" /> Database Records & Collections
           </span>
           <span className="text-[11px] text-slate-400 font-medium">{Object.keys(dbRecords).length} keys</span>
         </div>
@@ -645,7 +645,7 @@ export function IDECloudPanel({
           {Object.keys(dbRecords).length > 0 ? (
             Object.entries(dbRecords).map(([key, val]) => (
               <div key={key} className="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-white/[0.02] transition-colors">
-                <div className="font-mono text-[11px] text-purple-300 font-medium truncate max-w-[200px] sm:max-w-xs">
+                <div className="font-mono text-[11px] text-neon-300 font-medium truncate max-w-[200px] sm:max-w-xs">
                   {key}
                 </div>
                 <div className="flex items-center gap-4">

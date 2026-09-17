@@ -23,6 +23,17 @@ export default {
 				mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
 			},
 			colors: {
+				// Neon blue — the app's one accent hue (replaced the old purple).
+				neon: {
+					100: 'hsl(199 100% 92%)',
+					200: 'hsl(199 100% 84%)',
+					300: 'hsl(199 100% 74%)',
+					400: 'hsl(199 100% 62%)',
+					500: 'hsl(202 100% 52%)',
+					600: 'hsl(206 100% 46%)',
+					700: 'hsl(210 100% 40%)',
+					900: 'hsl(214 96% 24%)'
+				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',

@@ -53,8 +53,8 @@ const CATEGORIES: Record<string, PostCategory> = {
   features: {
     id: "features",
     label: "Features & Voice",
-    badgeClass: "bg-purple-500/10 border-purple-500/20 text-purple-400",
-    textClass: "text-purple-400",
+    badgeClass: "bg-neon-500/10 border-neon-500/20 text-neon-400",
+    textClass: "text-neon-400",
     icon: Volume2,
   },
   coding: {
@@ -254,7 +254,7 @@ export function BlogIndexPage() {
       {/* Hero Banner Section */}
       <section className="relative overflow-hidden px-6 pt-12 pb-10 md:px-10 md:pt-16 md:pb-14">
         {/* Background glow graphics */}
-        <div className="pointer-events-none absolute left-1/2 top-0 -z-10 -translate-x-1/2 h-[350px] w-[800px] rounded-full bg-gradient-to-tr from-primary/20 via-purple-600/10 to-transparent blur-[120px] opacity-70" />
+        <div className="pointer-events-none absolute left-1/2 top-0 -z-10 -translate-x-1/2 h-[350px] w-[800px] rounded-full bg-gradient-to-tr from-primary/20 via-neon-600/10 to-transparent blur-[120px] opacity-70" />
 
         <div className="mx-auto max-w-5xl text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-medium text-primary-glow backdrop-blur-md">
@@ -341,7 +341,7 @@ export function BlogIndexPage() {
               to={`/blog/${featuredPost.slug}`}
               className="group relative block overflow-hidden rounded-3xl border border-white/12 bg-gradient-to-br from-white/[0.07] via-white/[0.03] to-transparent p-8 md:p-12 backdrop-blur-2xl transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_40px_rgba(56,189,248,0.12)]"
             >
-              <div className="absolute right-0 top-0 -z-10 h-full w-1/2 bg-gradient-to-l from-primary/10 via-purple-500/5 to-transparent blur-2xl opacity-60" />
+              <div className="absolute right-0 top-0 -z-10 h-full w-1/2 bg-gradient-to-l from-primary/10 via-neon-500/5 to-transparent blur-2xl opacity-60" />
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                 <div className="lg:col-span-8 space-y-4">
@@ -393,7 +393,7 @@ export function BlogIndexPage() {
                       </div>
                       <div className="flex items-center justify-between rounded-lg bg-white/5 p-2 text-white/80">
                         <span>Arc Matrix™ Intelligence</span>
-                        <span className="text-purple-400 text-[10px] font-mono">Ready</span>
+                        <span className="text-neon-400 text-[10px] font-mono">Ready</span>
                       </div>
                     </div>
                   </div>
@@ -569,7 +569,7 @@ export function BlogIndexPage() {
         )}
 
         {/* Footer CTA Banner */}
-        <section className="mt-20 relative overflow-hidden rounded-3xl border border-white/12 bg-gradient-to-r from-primary/20 via-purple-600/15 to-blue-600/15 p-8 sm:p-12 text-center backdrop-blur-2xl">
+        <section className="mt-20 relative overflow-hidden rounded-3xl border border-white/12 bg-gradient-to-r from-primary/20 via-neon-600/15 to-blue-600/15 p-8 sm:p-12 text-center backdrop-blur-2xl">
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent_70%)]" />
           <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
             {isAuthenticated ? "Continue Your AI Workspace" : "Experience ArcAI Free Today"}

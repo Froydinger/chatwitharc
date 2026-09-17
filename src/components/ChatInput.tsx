@@ -3017,7 +3017,7 @@ ${safeCode}
     { id: "attach", label: "Attach", description: "Add files or images", keywords: "upload file image document", icon: Paperclip, tileClass: "border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/10", iconClass: "bg-blue-500/15 text-blue-500 dark:text-blue-400", run: () => { fileInputRef.current?.click(); setShowMenu(false); } },
     { id: "generate", label: "Generate", description: "Create or edit an image", keywords: "image draw picture art", icon: ImagePlus, tileClass: "border-rose-500/20 hover:border-rose-500/40 hover:bg-rose-500/10", iconClass: "bg-rose-500/15 text-rose-500 dark:text-rose-400", run: () => { setForceImageMode(true); setInputValue("image/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "write", label: "Write", description: "Open a live writing canvas", keywords: "canvas prose draft document", icon: PenLine, tileClass: "border-sky-500/20 hover:border-sky-500/40 hover:bg-sky-500/10", iconClass: "bg-sky-500/15 text-sky-600 dark:text-sky-400", run: () => { setForceCanvasMode(true); setInputValue("write/ "); setShowMenu(false); textareaRef.current?.focus(); } },
-    { id: "app", label: "App", description: "Build an interactive app", keywords: "builder project react application", icon: Smartphone, tileClass: "border-purple-500/20 hover:border-purple-500/40 hover:bg-purple-500/10", iconClass: "bg-purple-500/15 text-purple-500 dark:text-purple-400", badge: "Boost", run: () => { if (!hasBoost && !isAdmin) { setShowMenu(false); openCheckout(); toast({ title: "ArcAI Boost Required", description: "App Builder is exclusively available to Boost subscribers and admins." }); return; } setForceBuildMode(true); setInputValue("app/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "app", label: "App", description: "Build an interactive app", keywords: "builder project react application", icon: Smartphone, tileClass: "border-neon-500/20 hover:border-neon-500/40 hover:bg-neon-500/10", iconClass: "bg-neon-500/15 text-neon-500 dark:text-neon-400", badge: "Boost", run: () => { if (!hasBoost && !isAdmin) { setShowMenu(false); openCheckout(); toast({ title: "ArcAI Boost Required", description: "App Builder is exclusively available to Boost subscribers and admins." }); return; } setForceBuildMode(true); setInputValue("app/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "code", label: "Code", description: "Work in a code canvas", keywords: "programming developer code editor", icon: Code2, tileClass: "border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/10", iconClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400", run: () => { setForceCodingMode(true); setInputValue("code/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "git", label: "GitHub", description: "Update a remote repo via a pull request", keywords: "github git repository pull request branch", icon: GitHubMark, tileClass: "border-zinc-500/20 hover:border-zinc-500/40 hover:bg-zinc-500/10", iconClass: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-300", run: () => { setForceGitMode(true); setInputValue("git/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "search", label: "Search", description: "Search the web inline", keywords: "web browse lookup sources", icon: Globe, tileClass: "border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10", iconClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", run: () => { setForceSearchMode(true); setInputValue("search/ "); setShowMenu(false); textareaRef.current?.focus(); } },
@@ -3357,7 +3357,7 @@ ${safeCode}
                   ) : shouldShowCodeMode ? (
                     <Code2 className="h-4 w-4 text-emerald-500" />
                   ) : shouldShowBuildMode ? (
-                    <Smartphone className="h-4 w-4 text-purple-400" />
+                    <Smartphone className="h-4 w-4 text-neon-400" />
                   ) : showCanvasIndicator ? (
                     <PenLine className="h-4 w-4 text-pink-400" />
                   ) : (
@@ -3441,7 +3441,7 @@ ${safeCode}
                                 <span className="min-w-0 flex-1 truncate font-medium">
                                   {action.label}
                                 </span>
-                                {action.badge && <span className="rounded-full bg-purple-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-300">{action.badge}</span>}
+                                {action.badge && <span className="rounded-full bg-neon-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-neon-700 dark:text-neon-300">{action.badge}</span>}
                               </motion.button>
                             );
                           })}
@@ -3507,7 +3507,7 @@ ${safeCode}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleSend()}
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-transparent text-primary hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-500/10 transition-all"
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-transparent text-primary hover:text-neon-600 dark:hover:text-neon-400 hover:bg-neon-500/10 transition-all"
                 aria-label="Send"
               >
                 <ArrowRight className="h-4 w-4" />

@@ -401,7 +401,7 @@ function ScheduledRemindersDemo() {
   const [activeIndex, setActiveIndex] = useState(0);
   const reminders = [
     { time: "9:00 AM", task: "Team standup", color: "from-blue-400 to-blue-600" },
-    { time: "2:30 PM", task: "Client presentation", color: "from-purple-400 to-purple-600" },
+    { time: "2:30 PM", task: "Client presentation", color: "from-neon-400 to-neon-600" },
     { time: "5:00 PM", task: "Wrap up weekly review", color: "from-emerald-400 to-emerald-600" },
   ];
 
@@ -715,7 +715,7 @@ function colorize(line: string) {
             <span key={i}>
               {words.map((w, j) =>
                 keywords.includes(w) ? (
-                  <span key={j} className="text-purple-400">{w}</span>
+                  <span key={j} className="text-neon-400">{w}</span>
                 ) : /^["'`]/.test(w) ? (
                   <span key={j} className="text-green-400">{w}</span>
                 ) : /^[{()}[\]=>]/.test(w) ? (
@@ -735,7 +735,7 @@ function colorize(line: string) {
     <span>
       {words.map((w, i) =>
         keywords.includes(w) ? (
-          <span key={i} className="text-purple-400">{w}</span>
+          <span key={i} className="text-neon-400">{w}</span>
         ) : /^["'`]/.test(w) ? (
           <span key={i} className="text-green-400">{w}</span>
         ) : /^[{()}[\]=>:;]/.test(w) ? (

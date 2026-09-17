@@ -58,7 +58,7 @@ export function getLanguageColor(lang: string): string {
     'jsx': 'bg-cyan-500/20 text-cyan-600 dark:text-cyan-400',
     'python': 'bg-green-500/20 text-green-600 dark:text-green-400',
     'html': 'bg-orange-500/20 text-orange-600 dark:text-orange-400',
-    'css': 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
+    'css': 'bg-neon-500/20 text-neon-600 dark:text-neon-400',
     'scss': 'bg-pink-500/20 text-pink-600 dark:text-pink-400',
     'json': 'bg-gray-500/20 text-gray-600 dark:text-gray-400',
     'sql': 'bg-pink-500/20 text-pink-600 dark:text-pink-400',
@@ -68,7 +68,7 @@ export function getLanguageColor(lang: string): string {
     'ruby': 'bg-red-500/20 text-red-600 dark:text-red-400',
     'php': 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400',
     'swift': 'bg-orange-500/20 text-orange-600 dark:text-orange-400',
-    'kotlin': 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
+    'kotlin': 'bg-neon-500/20 text-neon-600 dark:text-neon-400',
     'bash': 'bg-gray-500/20 text-gray-600 dark:text-gray-400',
     'shell': 'bg-gray-500/20 text-gray-600 dark:text-gray-400',
   };
