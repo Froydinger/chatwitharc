@@ -38,6 +38,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useImageQuota } from "@/hooks/useImageQuota";
 import { useIDEStore } from "@/store/useIDEStore";
 import { supabase } from "@/integrations/supabase/client";
+import { isIOSPWA } from "@/utils/platform";
 const DashboardPageInner = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPageInner })));
 
 type DashboardTab = "overview" | "chats" | "apps" | "images" | "canvases" | "memory";
@@ -98,7 +99,7 @@ function ArcMark({ compact = false, iconOnly = false, onClick }: { compact?: boo
   return onClick ? <button type="button" onClick={onClick} className={cn(className, "rounded-2xl transition-opacity hover:opacity-80")} aria-label="Return to chat">{content}</button> : <div className={className}>{content}</div>;
 }
 
-function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: DashboardTab; onChange: (tab: DashboardTab) => void; onSettings: () => void }) {
+function AnimatedBottomShelf({ activeTab, onChange, onSettings }: { activeTab: DashboardTab; onChange: (tab: DashboardTab) => void; onSettings: () => void }) {
   const navRef = useRef<HTMLDivElement>(null);
   const [trackSize, setTrackSize] = useState({ width: 0, height: 46 });
   const [isCompact, setIsCompact] = useState(false);
@@ -374,6 +375,34 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
       </div>
     </div>
   );
+}
+
+function StaticIOSBottomShelf({ activeTab, onChange, onSettings }: { activeTab: DashboardTab; onChange: (tab: DashboardTab) => void; onSettings: () => void }) {
+  const activeIndex = Math.max(0, navItems.findIndex((item) => item.id === activeTab));
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[10px] sm:px-6">
+      <div className="dashboard-preview-dock pointer-events-auto flex w-full max-w-[850px] items-center gap-2 rounded-full border border-white/[0.12] bg-[#111113]/92 p-2 shadow-[0_20px_70px_rgba(0,0,0,0.55),0_0_38px_rgba(168,85,247,0.08)] sm:rounded-[26px]">
+        <div className="relative flex min-w-0 flex-1 items-center">
+          <div className="absolute inset-y-0 rounded-full border border-primary/75 bg-background/90 shadow-[0_0_0_1px_rgba(168,85,247,0.3),0_0_22px_rgba(168,85,247,0.22)]" style={{ left: `${(activeIndex * 100) / navItems.length}%`, width: `${100 / navItems.length}%` }} aria-hidden="true" />
+          <nav className="relative flex h-full min-w-0 flex-1 items-center justify-between gap-1" aria-label="Bottom dock navigation">
+            {navItems.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => onChange(id)} aria-label={label} aria-current={activeTab === id ? "page" : undefined} className={cn("relative flex min-w-0 flex-1 items-center justify-center rounded-[18px] px-2 py-3 text-[12px] font-medium", activeTab === id ? "text-primary" : "text-muted-foreground hover:text-foreground")}><Icon className="h-[17px] w-[17px] shrink-0" /></button>)}
+          </nav>
+        </div>
+        <button type="button" onClick={onSettings} className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/[0.09] text-muted-foreground hover:bg-white/[0.07] hover:text-foreground sm:flex" aria-label="Settings" title="Settings"><Settings2 className="h-4 w-4" /></button>
+      </div>
+    </div>
+  );
+}
+
+function BottomShelf(props: { activeTab: DashboardTab; onChange: (tab: DashboardTab) => void; onSettings: () => void }) {
+  const [staticIOS, setStaticIOS] = useState(() => isIOSPWA());
+
+  useEffect(() => {
+    // Standalone mode can be finalized by iOS just after the first JS turn.
+    setStaticIOS(isIOSPWA());
+  }, []);
+
+  return staticIOS ? <StaticIOSBottomShelf {...props} /> : <AnimatedBottomShelf {...props} />;
 }
 
 function NotificationTray({ notifications, onClear, onOpen }: { notifications: PreviewNotification[]; onClear: () => void; onOpen: (notification: PreviewNotification) => void }) {
