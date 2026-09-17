@@ -547,17 +547,15 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   useEffect(() => {
     if (!live) return;
     logDashboardNavPhase("dashboard_commit");
-    let secondFrame = 0;
     const firstFrame = window.requestAnimationFrame(() => {
       logDashboardNavPhase("dashboard_frame_1");
-      secondFrame = window.requestAnimationFrame(() => {
-        logDashboardNavPhase("dashboard_frame_2");
-        setDashboardDataReady(true);
-      });
+      // One frame is enough to let the shell paint before live data work
+      // starts. A nested RAF is unreliable in iOS PWAs and was observed to
+      // pause for ~4 seconds before firing.
+      setDashboardDataReady(true);
     });
     return () => {
       window.cancelAnimationFrame(firstFrame);
-      if (secondFrame) window.cancelAnimationFrame(secondFrame);
     };
   }, [live]);
 
