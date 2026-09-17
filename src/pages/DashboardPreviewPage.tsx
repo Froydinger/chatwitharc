@@ -39,6 +39,7 @@ import { useImageQuota } from "@/hooks/useImageQuota";
 import { useIDEStore } from "@/store/useIDEStore";
 import { supabase } from "@/integrations/supabase/client";
 import { logDashboardNavPhase, type DashboardNavPhase } from "@/lib/dashboardNavTrace";
+import { isIOSPWA } from "@/utils/platform";
 const DashboardPageInner = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPageInner })));
 
 type DashboardTab = "overview" | "chats" | "apps" | "images" | "canvases" | "memory";
@@ -433,7 +434,7 @@ function NotificationTray({ notifications, onClear, onOpen }: { notifications: P
   );
 }
 
-function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat, onOpenReminders, unreadChatIds }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; canRunWork: boolean; onBoostRequired: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void; onOpenReminders?: () => void; unreadChatIds?: Set<string> }) {
+function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat, onOpenReminders, unreadChatIds, immediateEntry = false }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; canRunWork: boolean; onBoostRequired: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void; onOpenReminders?: () => void; unreadChatIds?: Set<string>; immediateEntry?: boolean }) {
   const [query, setQuery] = useState("");
   const visibleChats = useMemo(() => chatItems.filter((chat) => chat.title.toLowerCase().includes(query.toLowerCase())), [chatItems, query]);
 
@@ -441,7 +442,7 @@ function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired,
   if (activeTab !== "overview") {
     const item = navItems.find((nav) => nav.id === activeTab) ?? navItems[0];
     return (
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex min-h-[520px] flex-col items-center justify-center rounded-[32px] border border-white/[0.08] bg-white/[0.025] px-6 text-center">
+      <motion.div initial={immediateEntry ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex min-h-[520px] flex-col items-center justify-center rounded-[32px] border border-white/[0.08] bg-white/[0.025] px-6 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-primary/20 bg-primary/[0.08] shadow-[0_0_32px_rgba(168,85,247,0.14)]"><item.icon className="h-7 w-7 text-primary" /></div>
         <h2 className="mt-5 text-2xl font-semibold tracking-tight">{item.label}</h2>
         <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">This is a working nav state in the dashboard preview. The selected bubble stays locked to whichever layout you choose above.</p>
@@ -451,7 +452,7 @@ function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired,
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 pb-28 lg:space-y-6">
+    <motion.div initial={immediateEntry ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 pb-28 lg:space-y-6">
       <section className="relative overflow-hidden rounded-[32px] border border-white/[0.09] bg-gradient-to-br from-white/[0.075] via-white/[0.025] to-primary/[0.07] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.16)] sm:p-6">
         <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
         <div className="relative grid gap-7 lg:grid-cols-[1fr_1.05fr] lg:gap-8">
@@ -512,7 +513,6 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   // The dashboard shell is ready as soon as this component commits. Its
   // effects start the live requests after that commit, while the first render
   // keeps the real cards and placeholders visible.
-  const dashboardDataReady = true;
   const { isLoaded } = useChatSync();
   const chatSessions = useArcStore((state) => state.chatSessions);
   const createNewSession = useArcStore((state) => state.createNewSession);
@@ -550,14 +550,13 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   useEffect(() => {
     if (!live) return;
     logDashboardNavPhase("dashboard_commit");
-    // Keep this phase name for the existing diagnostic table. There is no
-    // requestAnimationFrame gate here: WebKit PWAs can defer RAF callbacks for
-    // several seconds during route transitions.
     logDashboardNavPhase("dashboard_frame_1");
+    const frame = window.requestAnimationFrame(() => logDashboardNavPhase("dashboard_frame_2"));
+    return () => window.cancelAnimationFrame(frame);
   }, [live]);
 
   useEffect(() => {
-    if (!live || !dashboardDataReady) return;
+    if (!live) return;
     if (!user) {
       setLiveCountsReady(true);
       return;
@@ -587,7 +586,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
       }
     });
     return () => { cancelled = true; };
-  }, [dailyImagesUsed, dashboardDataReady, live, user]);
+  }, [dailyImagesUsed, live, user]);
 
   const formatTimeAgo = (value: unknown) => {
     const date = value instanceof Date ? value : new Date(String(value || ""));
@@ -613,8 +612,10 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
     { label: "Images", value: liveCounts.images, detail: "Generated with Arc", icon: ImageIcon, tint: "text-fuchsia-300", glow: "from-fuchsia-500/18" },
     { label: "Reminders", value: liveCounts.reminders, detail: "Active scheduled tasks", icon: CalendarClock, tint: "text-amber-200", glow: "from-amber-500/16" },
   ], [chatSessions, liveCounts]);
-  const pendingLiveStats: DashboardStat[] = useMemo(() => liveStats.map((stat) => ({ ...stat, value: "—", detail: "Loading…" })), [liveStats]);
-  const liveDashboardReady = dashboardDataReady && isLoaded && liveCountsReady;
+  const displayLiveStats = useMemo(() => liveStats.map((stat) => {
+    const ready = stat.label === "Chats" ? isLoaded : liveCountsReady;
+    return ready ? stat : { ...stat, value: "—", detail: "Loading…" };
+  }), [isLoaded, liveCountsReady, liveStats]);
 
   const resolveNotificationChat = useCallback((notification: PreviewNotification) => {
     const availableChats = live ? liveChatItems : previewChatItems;
@@ -707,7 +708,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.035] to-transparent" />
       </div>
 
-      <header className="dashboard-preview-header relative z-50 mx-auto flex w-full max-w-[1440px] flex-row items-center justify-between gap-2 px-4 pb-5 sm:gap-4 sm:px-7 md:px-10 md:pt-8">
+      <header className="dashboard-preview-header relative z-50 flex w-full flex-row items-center justify-between gap-2 px-4 pb-5 sm:gap-4">
         <div className="flex min-w-0 items-center gap-2"><ArcMark iconOnly onClick={returnToChat} /><div className="min-w-0"><p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground">ArcAI</p><p className="truncate text-[11px] text-muted-foreground">Jake’s workspace</p></div>{!cleanPreview && <span className="hidden rounded-full border border-primary/20 bg-primary/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary sm:inline-flex">Dashboard preview</span>}</div>
         <div className="relative flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button type="button" onClick={handleAppBuilder} className="dashboard-preview-control hidden h-10 items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.08] px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/[0.14] sm:flex" aria-label={canRunWork ? "Open App Builder" : "Unlock App Builder with Boost"} title={canRunWork ? "Open App Builder" : "Unlock App Builder with Boost"}>
@@ -738,7 +739,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
       </header>
 
       <div className="dashboard-preview-page-content relative z-10 mx-auto flex w-full max-w-[1440px] px-4 sm:px-7 lg:px-10">
-        <main className="min-w-0 flex-1">{activeTab !== "overview" ? <Suspense fallback={<div role="status" className="py-8 text-center text-sm text-muted-foreground">Loading library…</div>}><DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} /></Suspense> : <DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} chatItems={live ? (liveDashboardReady ? liveChatItems : []) : previewChatItems} stats={live ? (liveDashboardReady ? liveStats : pendingLiveStats) : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} onOpenReminders={() => navigate("/tasks")} unreadChatIds={unreadChatIds} />}</main>
+        <main className="min-w-0 flex-1">{activeTab !== "overview" ? <Suspense fallback={<div role="status" className="py-8 text-center text-sm text-muted-foreground">Loading library…</div>}><DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} /></Suspense> : <DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} immediateEntry={live && isIOSPWA()} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? displayLiveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} onOpenReminders={() => navigate("/tasks")} unreadChatIds={unreadChatIds} />}</main>
       </div>
 
       {/* Keep the fixed dock outside a transformed motion parent. On iOS PWAs,

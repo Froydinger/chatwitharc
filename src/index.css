@@ -670,7 +670,9 @@ All colors MUST be HSL for perfect glass effects.
 
 @media (min-width: 768px) {
   .dashboard-preview-header {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 2rem);
+    /* Match the chat controls: their 64px bar starts 8px below the safe area,
+       putting the 40px control centers at the same vertical position. */
+    padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem);
   }
 }
 
