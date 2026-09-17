@@ -2943,6 +2943,7 @@ function ChatListItem({ session, currentSessionId, timeAgo, onLoad, onDelete, fo
 }
 
 // Auth gate. Keeping the signed-out check in its own component means
+// DashboardPageInner only mounts for an authenticated user.
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading, isAnonymous } = useAuth();
