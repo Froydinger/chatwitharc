@@ -36,7 +36,6 @@ import { useChatSync } from "@/hooks/useChatSync";
 import { useArcStore } from "@/store/useArcStore";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useImageQuota } from "@/hooks/useImageQuota";
-import { DashboardNavTiming } from "@/components/DashboardNavTiming";
 import { useIDEStore } from "@/store/useIDEStore";
 import { supabase } from "@/integrations/supabase/client";
 const DashboardPageInner = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPageInner })));
@@ -329,7 +328,7 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
             <motion.button
               type="button"
               aria-label={`Drag dashboard navigation, currently ${navItems.find((item) => item.id === activeTab)?.label ?? "Dashboard"}`}
-              className="absolute top-1/2 touch-none select-none overflow-hidden rounded-[18px] border border-primary/75 bg-white/[0.11] shadow-[0_0_0_1px_rgba(168,85,247,0.3),0_0_22px_rgba(168,85,247,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
+              className="dashboard-preview-dock-bubble absolute top-1/2 touch-none select-none overflow-hidden rounded-[18px] border border-primary/75 bg-white/[0.11] shadow-[0_0_0_1px_rgba(168,85,247,0.3),0_0_22px_rgba(168,85,247,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
               style={{ left: bubbleLeft, width: bubbleWidth, height: trackSize.height, translateY: "-50%", scaleX: bubbleScaleX, scaleY: bubbleScaleY, transformOrigin: "center", borderRadius: trackSize.height / 2, background: "hsl(var(--background) / 0.78)", backdropFilter: "blur(10px) saturate(140%)", WebkitBackdropFilter: "blur(10px) saturate(140%)", zIndex: 20, cursor: isDragging ? "grabbing" : "grab" }}
               onPointerDown={startDrag}
               onPointerMove={moveDrag}
@@ -345,7 +344,7 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
                 <ActiveIcon className="h-[17px] w-[17px]" />
                 <span className="hidden text-[12px] font-medium sm:inline">{navItems.find((item) => item.id === activeTab)?.label}</span>
               </motion.div>
-              <motion.div animate={{ opacity: isDragging ? 1 : 0 }} transition={{ duration: 0.12 }} className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-full bg-background/[0.88]">
+              <motion.div animate={{ opacity: isDragging ? 1 : 0 }} transition={{ duration: 0.12 }} className="dashboard-preview-dock-lens pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-full bg-background/[0.88]">
                 <motion.div style={{ position: "absolute", left: lensLeft, top: lensTop, width: trackSize.width, height: trackSize.height, gap: navGap, scale: springLensScale, transformOrigin: "0 0", display: "flex" }}>
                   {navItems.map(({ label, icon: Icon }) => (
                     <div key={label} className="flex shrink-0 items-center justify-center gap-2 px-2 text-[12px] font-medium text-primary" style={{ width: itemWidth, height: trackSize.height }}>
@@ -666,8 +665,7 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
 
   return (
     <div className="dashboard-preview-shell min-h-screen overflow-x-hidden bg-background text-foreground">
-      {live && <DashboardNavTiming enabled={isAdmin} />}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+      <div className="dashboard-preview-ambient pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-36 top-[-180px] h-[480px] w-[480px] rounded-full bg-primary/[0.09] blur-[120px]" />
         <div className="absolute -right-40 bottom-[-220px] h-[560px] w-[560px] rounded-full bg-violet-500/[0.07] blur-[140px]" />
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.035] to-transparent" />
