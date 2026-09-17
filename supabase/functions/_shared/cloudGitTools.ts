@@ -66,11 +66,11 @@ function parsed(raw: string): Record<string, unknown> {
 }
 
 async function tokenFor(db: Db, userId: string): Promise<string> {
+  const staticToken = await gitStaticTokenForUser(db as SupabaseClient, userId);
+  if (staticToken) return staticToken;
   const result = await db.from('git_connections').select('access_token_ciphertext').eq('user_id', userId).eq('provider', 'github').maybeSingle();
   const key = Deno.env.get('GIT_TOKEN_ENCRYPTION_KEY');
   if (result.error || !result.data?.access_token_ciphertext || !key) {
-    const staticToken = await gitStaticTokenForUser(db as SupabaseClient, userId);
-    if (staticToken) return staticToken;
     throw new Error('GitHub is not connected for this account.');
   }
   return decryptToken(result.data.access_token_ciphertext, key);

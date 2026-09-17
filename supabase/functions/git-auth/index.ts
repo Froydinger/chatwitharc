@@ -29,16 +29,39 @@ async function currentUser(req: Request) {
   return result.data.user || null;
 }
 
-async function tokenFor(db: ReturnType<typeof serviceClient>, userId: string): Promise<string> {
-  const result = await db.from('git_connections').select('access_token_ciphertext').eq('user_id', userId).eq('provider', 'github').maybeSingle();
-  if (result.error || !result.data?.access_token_ciphertext) {
-    const staticToken = await gitStaticTokenForUser(db, userId);
-    if (staticToken) return staticToken;
-    throw new Error('Connect GitHub before using repository tools.');
+const INVALID_GITHUB_AUTH = 'GitHub authorization is invalid. Reconnect GitHub.';
+type GithubAuthProbe = { token: string; user: Record<string, unknown> | null };
+
+async function probeStaticAuth(db: ReturnType<typeof serviceClient>, userId: string): Promise<GithubAuthProbe | null> {
+  const token = await gitStaticTokenForUser(db, userId);
+  if (!token) return null;
+  try {
+    return { token, user: await githubUser(token) };
+  } catch {
+    return { token, user: null };
   }
+}
+
+async function probeStoredAuth(db: ReturnType<typeof serviceClient>, userId: string): Promise<GithubAuthProbe | null> {
+  const result = await db.from('git_connections').select('access_token_ciphertext').eq('user_id', userId).eq('provider', 'github').maybeSingle();
+  if (result.error || !result.data?.access_token_ciphertext) return null;
   const key = Deno.env.get('GIT_TOKEN_ENCRYPTION_KEY');
-  if (!key) throw new Error('Git integration is not configured.');
-  return decryptToken(result.data.access_token_ciphertext, key);
+  if (!key) return { token: '', user: null };
+  try {
+    const token = await decryptToken(result.data.access_token_ciphertext, key);
+    return { token, user: await githubUser(token) };
+  } catch {
+    return { token: '', user: null };
+  }
+}
+
+async function tokenFor(db: ReturnType<typeof serviceClient>, userId: string): Promise<string> {
+  const staticAuth = await probeStaticAuth(db, userId);
+  if (staticAuth?.user) return staticAuth.token;
+  const storedAuth = await probeStoredAuth(db, userId);
+  if (storedAuth?.user) return storedAuth.token;
+  if (staticAuth || storedAuth) throw new Error(INVALID_GITHUB_AUTH);
+  throw new Error('Connect GitHub before using repository tools.');
 }
 
 serve(async (req) => {
@@ -64,22 +87,23 @@ serve(async (req) => {
       return json({ enabled: false, error: 'Git integration is not enabled for this account.' }, 403);
     }
 
-    const staticToken = await gitStaticTokenForUser(db, user.id);
-    const existing = await db.from('git_connections').select('id').eq('user_id', user.id).eq('provider', 'github').maybeSingle();
-    if (!existing.data && staticToken) {
-      try {
-        const github = await githubUser(staticToken);
-        const key = Deno.env.get('GIT_TOKEN_ENCRYPTION_KEY');
-        if (key) {
-          await db.from('git_connections').upsert({
-            user_id: user.id, provider: 'github',
-            provider_user_id: typeof github.id === 'number' ? github.id : null,
-            provider_login: typeof github.login === 'string' ? github.login : null,
-            access_token_ciphertext: await encryptToken(staticToken, key), scopes: 'repo (beta static token)',
-          }, { onConflict: 'user_id,provider' });
-        }
-      } catch (err) {
-        console.error('[git-auth] Static token init failed:', err);
+    const staticAuth = await probeStaticAuth(db, user.id);
+    const storedAuth = staticAuth?.user ? null : await probeStoredAuth(db, user.id);
+    const activeAuth = staticAuth?.user ? staticAuth : storedAuth?.user ? storedAuth : null;
+    const configuredAuth = !!staticAuth || !!storedAuth;
+
+    // A current static token is authoritative for the beta owner. Refresh the
+    // encrypted row even when an older OAuth token already exists, otherwise
+    // repository actions keep selecting the revoked token.
+    if (staticAuth?.user) {
+      const key = Deno.env.get('GIT_TOKEN_ENCRYPTION_KEY');
+      if (key) {
+        await db.from('git_connections').upsert({
+          user_id: user.id, provider: 'github',
+          provider_user_id: typeof staticAuth.user.id === 'number' ? staticAuth.user.id : null,
+          provider_login: typeof staticAuth.user.login === 'string' ? staticAuth.user.login : null,
+          access_token_ciphertext: await encryptToken(staticAuth.token, key), scopes: 'repo (beta static token)',
+        }, { onConflict: 'user_id,provider' });
       }
     }
 
@@ -87,11 +111,13 @@ serve(async (req) => {
       const result = await db.from('git_connections').select('provider_login,selected_repo,selected_branch,repo_access_mode,allowed_repos,updated_at')
         .eq('user_id', user.id).eq('provider', 'github').maybeSingle();
       if (result.error) throw new Error('Unable to read Git connection.');
-      const staticReady = !!await gitStaticTokenForUser(db, user.id);
+      if (!activeAuth && configuredAuth) {
+        return json({ enabled: true, connected: false, providerLogin: null, selectedRepo: null, selectedBranch: null, error: INVALID_GITHUB_AUTH });
+      }
       return json({
         enabled: true,
-        connected: !!result.data || staticReady,
-        providerLogin: result.data?.provider_login || (staticReady ? 'beta token' : null),
+        connected: !!activeAuth,
+        providerLogin: result.data?.provider_login || (typeof activeAuth?.user?.login === 'string' ? activeAuth.user.login : null),
         selectedRepo: result.data?.selected_repo || null,
         selectedBranch: result.data?.selected_branch || null,
         repoAccessMode: (result.data?.repo_access_mode as 'all' | 'selected') || 'all',
@@ -102,19 +128,20 @@ serve(async (req) => {
       const clientId = Deno.env.get('GITHUB_CLIENT_ID');
       const redirectUri = Deno.env.get('GITHUB_OAUTH_REDIRECT_URI');
       if (!clientId || !redirectUri) {
-        if (await gitStaticTokenForUser(db, user.id)) {
+        if (activeAuth) {
           const result = await db.from('git_connections').select('provider_login,selected_repo,selected_branch,repo_access_mode,allowed_repos')
             .eq('user_id', user.id).eq('provider', 'github').maybeSingle();
           return json({
             enabled: true,
             connected: true,
-            providerLogin: result.data?.provider_login || 'beta token',
+            providerLogin: result.data?.provider_login || (typeof activeAuth.user?.login === 'string' ? activeAuth.user.login : 'beta token'),
             selectedRepo: result.data?.selected_repo || null,
             selectedBranch: result.data?.selected_branch || null,
             repoAccessMode: (result.data?.repo_access_mode as 'all' | 'selected') || 'all',
             allowedRepos: Array.isArray(result.data?.allowed_repos) ? result.data.allowed_repos : [],
           });
         }
+        if (configuredAuth) return json({ enabled: true, connected: false, error: INVALID_GITHUB_AUTH });
         return json({ error: 'GitHub authorization is not configured yet.' }, 503);
       }
       const state = randomState();

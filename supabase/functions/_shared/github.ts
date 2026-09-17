@@ -42,6 +42,7 @@ export async function githubRequest(token: string, path: string, init: RequestIn
   let body: unknown = {};
   try { body = text ? JSON.parse(text) : {}; } catch { body = {}; }
   if (!response.ok) {
+    if (response.status === 401) throw new Error('GitHub authorization is invalid. Reconnect GitHub.');
     const errorBody = body && typeof body === 'object' && !Array.isArray(body) ? body as Row : {};
     const message = typeof errorBody.message === 'string' ? errorBody.message : `GitHub HTTP ${response.status}`;
     throw new Error(message.slice(0, 240));

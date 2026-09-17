@@ -30,10 +30,10 @@ export const useGitStore = create<GitState>((set, get) => ({
       const status = await gitApi.status();
       set({ ...status, loading: false });
       if (status.connected && get().repositories.length === 0) {
-        void get().loadRepositories();
+        void get().loadRepositories().catch(() => undefined);
       }
     } catch (error) {
-      set({ loading: false, error: error instanceof Error ? error.message : 'GitHub status failed.' });
+      set({ connected: false, providerLogin: null, selectedRepo: null, selectedBranch: null, repositories: [], loading: false, error: error instanceof Error ? error.message : 'GitHub status failed.' });
     }
   },
   connect: async () => {
@@ -42,7 +42,7 @@ export const useGitStore = create<GitState>((set, get) => ({
       const result = await gitApi.start(`${window.location.pathname}${window.location.search}`);
       if (result.connected) {
         set({ enabled: result.enabled !== false, connected: true, providerLogin: result.providerLogin || 'beta token', selectedRepo: result.selectedRepo || null, selectedBranch: result.selectedBranch || null, loading: false });
-        void get().loadRepositories();
+        void get().loadRepositories().catch(() => undefined);
         return;
       }
       if (!result.authorizationUrl) throw new Error('GitHub authorization did not return a URL.');

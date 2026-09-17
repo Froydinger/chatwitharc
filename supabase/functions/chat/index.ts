@@ -16,12 +16,12 @@ const supabase = createClient(
 );
 
 async function gitTokenForUser(userId: string): Promise<string> {
+  const staticToken = await gitStaticTokenForUser(supabase, userId);
+  if (staticToken) return staticToken;
   const { data, error } = await supabase.from('git_connections')
     .select('access_token_ciphertext').eq('user_id', userId).eq('provider', 'github').maybeSingle();
   const key = Deno.env.get('GIT_TOKEN_ENCRYPTION_KEY');
   if (error || !data?.access_token_ciphertext || !key) {
-    const staticToken = await gitStaticTokenForUser(supabase, userId);
-    if (staticToken) return staticToken;
     throw new Error('GitHub is not connected for this account.');
   }
   return decryptToken(data.access_token_ciphertext, key);
