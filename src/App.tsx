@@ -64,15 +64,24 @@ const LandingPage = lazy(() => import("./pages/LandingPage").then((m) => ({ defa
  * them. This reduces first-visit latency without making navigation depend on
  * prefetch success. The dashboard library stays lazy behind its own tabs. */
 function prefetchCommonRoutes() {
-  const warm = () => {
+  const warmDashboard = () => {
     void import("./pages/DashboardRoute").catch(() => {});
+  };
+  const warmSecondaryRoutes = () => {
     void import("./pages/DashboardSettingsPage").catch(() => {});
     void import("./pages/Index").catch(() => {});
   };
   if (typeof window === "undefined") return;
+
+  // iOS Safari has no requestIdleCallback, and the old two-second fallback
+  // left a fresh PWA launch vulnerable to a cold dashboard tap. Start only
+  // the small route shell immediately after the first commit; the overview
+  // module is already split from the heavy library tabs.
+  warmDashboard();
+
   const idle = (window as any).requestIdleCallback;
-  if (typeof idle === "function") idle(warm, { timeout: 4000 });
-  else window.setTimeout(warm, 2000); // iOS Safari has no requestIdleCallback
+  if (typeof idle === "function") idle(warmSecondaryRoutes, { timeout: 4000 });
+  else window.setTimeout(warmSecondaryRoutes, 2000); // iOS Safari has no requestIdleCallback
 }
 const CheckoutReturnPage = lazy(() => import("./pages/CheckoutReturnPage"));
 const BlogIndexPage = lazy(() => import("./pages/BlogIndexPage").then((m) => ({ default: m.BlogIndexPage })));

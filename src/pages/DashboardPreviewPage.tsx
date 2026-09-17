@@ -36,6 +36,7 @@ import { useChatSync } from "@/hooks/useChatSync";
 import { useArcStore } from "@/store/useArcStore";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useImageQuota } from "@/hooks/useImageQuota";
+import { DashboardNavTiming } from "@/components/DashboardNavTiming";
 import { useIDEStore } from "@/store/useIDEStore";
 import { supabase } from "@/integrations/supabase/client";
 const DashboardPageInner = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPageInner })));
@@ -77,21 +78,23 @@ const previewNotifications: PreviewNotification[] = [
 
 // The "3 things Arc can keep moving" tile was removed pending a redesign.
 
-function ArcMark({ compact = false, onClick }: { compact?: boolean; onClick?: () => void }) {
-  const content = (
-    <>
-      <div className={cn(
-        "flex shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.055] shadow-[0_0_28px_rgba(168,85,247,0.16)]",
-        compact ? "h-9 w-9" : "h-11 w-11",
-      )}>
-        <ThemedLogo className={compact ? "h-5 w-5" : "h-6 w-6"} alt="Arc" />
-      </div>
-      <div>
-        <p className="text-[15px] font-semibold tracking-[-0.02em] text-foreground">ArcAI</p>
-        {!compact && <p className="text-[11px] text-muted-foreground">Jake’s workspace</p>}
-      </div>
-    </>
+function ArcMark({ compact = false, iconOnly = false, onClick }: { compact?: boolean; iconOnly?: boolean; onClick?: () => void }) {
+  const mark = (
+    <div className={cn(
+      "flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-white/[0.055] shadow-[0_0_28px_rgba(168,85,247,0.16)]",
+      compact ? "h-9 w-9 rounded-2xl" : iconOnly ? "h-10 w-10 rounded-full" : "h-11 w-11 rounded-2xl",
+    )}>
+      <span className={cn("flex h-full w-full items-center justify-center", iconOnly && "scale-[1.18]")}>
+        <ThemedLogo className={compact ? "h-5 w-5" : iconOnly ? "h-8 w-8" : "h-6 w-6"} alt="Arc" />
+      </span>
+    </div>
   );
+
+  if (iconOnly && onClick) {
+    return <button type="button" onClick={onClick} className="flex h-10 w-10 shrink-0 rounded-full transition-opacity hover:opacity-80" aria-label="Return to chat" title="Return to chat">{mark}</button>;
+  }
+
+  const content = <>{mark}<div><p className="text-[15px] font-semibold tracking-[-0.02em] text-foreground">ArcAI</p>{!compact && <p className="text-[11px] text-muted-foreground">Jake’s workspace</p>}</div></>;
   const className = cn("flex items-center text-left", compact ? "gap-2" : "gap-3");
   return onClick ? <button type="button" onClick={onClick} className={cn(className, "rounded-2xl transition-opacity hover:opacity-80")} aria-label="Return to chat">{content}</button> : <div className={className}>{content}</div>;
 }
@@ -663,15 +666,16 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
 
   return (
     <div className="dashboard-preview-shell min-h-screen overflow-x-hidden bg-background text-foreground">
+      {live && <DashboardNavTiming enabled={isAdmin} />}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-36 top-[-180px] h-[480px] w-[480px] rounded-full bg-primary/[0.09] blur-[120px]" />
         <div className="absolute -right-40 bottom-[-220px] h-[560px] w-[560px] rounded-full bg-violet-500/[0.07] blur-[140px]" />
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.035] to-transparent" />
       </div>
 
-      <header className="dashboard-preview-header relative z-50 mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 pb-5 sm:px-7 md:flex-row md:items-center md:justify-between md:px-10 md:pt-8">
-        <div className="flex items-center justify-between gap-4"><div className="flex items-center gap-1.5"><button type="button" onClick={returnToChat} className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary" aria-label="Back to Arc chat" title="Back to Arc chat"><ArrowLeft className="h-4 w-4" /></button><ArcMark onClick={returnToChat} /></div>{!cleanPreview && <span className="rounded-full border border-primary/20 bg-primary/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary">Dashboard preview</span>}</div>
-        <div className="relative flex items-center gap-2 self-end md:self-auto">
+      <header className="dashboard-preview-header relative z-50 mx-auto flex w-full max-w-[1440px] flex-row items-center justify-between gap-2 px-4 pb-5 sm:gap-4 sm:px-7 md:px-10 md:pt-8">
+        <div className="flex min-w-0 items-center gap-2"><ArcMark iconOnly onClick={returnToChat} /><div className="min-w-0"><p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground">ArcAI</p><p className="truncate text-[11px] text-muted-foreground">Jake’s workspace</p></div>{!cleanPreview && <span className="hidden rounded-full border border-primary/20 bg-primary/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary sm:inline-flex">Dashboard preview</span>}</div>
+        <div className="relative flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button type="button" onClick={handleAppBuilder} className="dashboard-preview-control hidden h-10 items-center gap-2 rounded-full border border-primary/25 bg-primary/[0.08] px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/[0.14] sm:flex" aria-label={canRunWork ? "Open App Builder" : "Unlock App Builder with Boost"} title={canRunWork ? "Open App Builder" : "Unlock App Builder with Boost"}>
             {canRunWork ? <Smartphone className="h-4 w-4" /> : <Crown className="h-4 w-4" />}
             <span>App Builder</span>
