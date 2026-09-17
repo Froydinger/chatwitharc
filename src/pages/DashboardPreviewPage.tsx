@@ -78,11 +78,60 @@ const previewNotifications: PreviewNotification[] = [
   { title: "Arc saved your chat", detail: "The good news digest is synced.", time: "Yesterday", unread: false, chatId: "preview-news" },
 ];
 
-const workspaceTasks = [
-  { id: "retail-trends", title: "Finish the retail trends canvas", detail: "Research the latest signals and update the canvas.", tone: "bg-emerald-300" },
-  { id: "image-set", title: "Review your latest image set", detail: "Check the newest images and call out the strongest ones.", tone: "bg-violet-300" },
-  { id: "reminder", title: "Prepare the 7:00 PM reminder", detail: "Draft the reminder and queue it for delivery.", tone: "bg-amber-200" },
+type WorkspaceTask = { id: string; title: string; detail: string; tone: string };
+
+const TASK_TONES = ["bg-emerald-300", "bg-violet-300", "bg-amber-200"];
+
+/** Day number since epoch — the rotation seed, so the set is stable for a day. */
+function dayIndex(now: Date = new Date()): number {
+  return Math.floor(
+    new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 86_400_000,
+  );
+}
+
+const CHAT_ANGLES = [
+  { verb: "Pick up", detail: (t: string) => `Continue where you left off in ${t}.` },
+  { verb: "Summarize", detail: (t: string) => `Pull the decisions and open threads out of ${t}.` },
+  { verb: "Draft next steps from", detail: (t: string) => `Turn ${t} into a short action list.` },
+  { verb: "Turn into a canvas:", detail: (t: string) => `Move ${t} into a canvas you can edit.` },
 ];
+
+const STARTERS: Omit<WorkspaceTask, "tone">[] = [
+  { id: "starter-week", title: "Review this week", detail: "Recap what you have been working on across recent chats." },
+  { id: "starter-plan", title: "Plan tomorrow", detail: "Draft a short plan from your recent threads and reminders." },
+  { id: "starter-images", title: "Review your latest images", detail: "Look over the newest set and call out the strongest ones." },
+  { id: "starter-reminders", title: "Tidy your reminders", detail: "Check what is queued and drop anything stale." },
+];
+
+/**
+ * Three suggestions drawn from the user's actual recent chats, rotating once a
+ * day. `seed` is the day number, so everything below is deterministic: the card
+ * stays put while you use it and changes when the date does. Falls back to
+ * generic starters when there are no chats yet.
+ */
+function buildWorkspaceTasks(chatItems: DashboardChatPreview[], seed: number): WorkspaceTask[] {
+  const chats = chatItems.slice(0, 6);
+  const tasks: WorkspaceTask[] = [];
+
+  chats.slice(0, 3).forEach((chat, i) => {
+    const angle = CHAT_ANGLES[(seed + i) % CHAT_ANGLES.length];
+    const quoted = `“${chat.title}”`;
+    tasks.push({
+      id: `chat-${chat.id}-${angle.verb}`,
+      title: `${angle.verb} ${quoted}`,
+      detail: angle.detail(quoted),
+      tone: TASK_TONES[i % TASK_TONES.length],
+    });
+  });
+
+  for (let i = 0; tasks.length < 3; i++) {
+    const starter = STARTERS[(seed + i) % STARTERS.length];
+    if (tasks.some((t) => t.id === starter.id)) continue;
+    tasks.push({ ...starter, tone: TASK_TONES[tasks.length % TASK_TONES.length] });
+  }
+
+  return tasks.slice(0, 3);
+}
 
 function ArcMark({ compact = false, onClick }: { compact?: boolean; onClick?: () => void }) {
   const content = (
@@ -435,10 +484,17 @@ function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, 
   const [taskStates, setTaskStates] = useState<Record<string, "idle" | "running" | "complete">>({});
   const taskTimersRef = useRef<number[]>([]);
   const visibleChats = useMemo(() => chatItems.filter((chat) => chat.title.toLowerCase().includes(query.toLowerCase())), [chatItems, query]);
+  // Recomputed when the day rolls over, so the card refreshes daily without a reload.
+  const [today, setToday] = useState(() => dayIndex());
+  useEffect(() => {
+    const tick = window.setInterval(() => setToday(dayIndex()), 60_000);
+    return () => window.clearInterval(tick);
+  }, []);
+  const workspaceTasks = useMemo(() => buildWorkspaceTasks(chatItems, today), [chatItems, today]);
 
   useEffect(() => () => taskTimersRef.current.forEach((timer) => window.clearTimeout(timer)), []);
 
-  const runWorkspaceTask = (task: (typeof workspaceTasks)[number]) => {
+  const runWorkspaceTask = (task: WorkspaceTask) => {
     if (!canRunWork) {
       onBoostRequired();
       return;
