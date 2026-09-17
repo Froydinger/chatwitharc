@@ -567,9 +567,24 @@ useEffect(() => {
   }, [authLoading, user, navigate]);
 
   // Wait for sessions to be loaded before hydrating so hydrateAllSessions
-  // doesn't see an empty chatSessions array and bail out early.
+  // doesn't see an empty chatSessions array and bail out early. Run it once the
+  // browser is idle: nothing above the fold needs message bodies, and on iOS
+  // parsing every session's messages on the critical path is what the user sees
+  // as the dashboard hanging.
   useEffect(() => {
-    if (user && isLoaded) hydrateAllSessions();
+    if (!user || !isLoaded) return;
+    let cancelled = false;
+    const run = () => { if (!cancelled) void hydrateAllSessions(); };
+    const idle = (window as any).requestIdleCallback;
+    const handle = typeof idle === "function"
+      ? idle(run, { timeout: 2000 })
+      : window.setTimeout(run, 400); // iOS Safari has no requestIdleCallback
+    return () => {
+      cancelled = true;
+      const cancelIdle = (window as any).cancelIdleCallback;
+      if (typeof idle === "function" && typeof cancelIdle === "function") cancelIdle(handle);
+      else window.clearTimeout(handle as number);
+    };
   }, [user, isLoaded, hydrateAllSessions]);
 
   // Optimized image fetching: only fetch sessions that actually contain images

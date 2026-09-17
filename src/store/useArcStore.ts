@@ -1161,12 +1161,12 @@ export const useArcStore = create<ArcState>()(
       },
 
       hydrateAllSessions: async () => {
-        if (cloudSessionOperationsEnabled) {
-          for (const session of get().chatSessions) {
-            if (!session.isLocalOnly && !session.isHydrated) await get().hydrateSession(session.id);
-          }
-          return;
-        }
+        // This used to fan out into one awaited round-trip per session when
+        // cloud session operations were on — a few hundred sequential requests,
+        // each pulling a whole messages blob, re-run on every dashboard mount
+        // because this branch also skipped the guards below. That is the
+        // dashboard freeze on iOS, where the requests are slower and the parse
+        // is slower. Both modes now take the single bulk, guarded path.
         if (!supabase || !isSupabaseConfigured) return;
 
         const state = get();
