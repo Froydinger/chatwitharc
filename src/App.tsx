@@ -59,29 +59,16 @@ const SharedChatsPage = lazy(() => import("./pages/SharedChatsPage").then((m) =>
 const SharedChatRoomPage = lazy(() => import("./pages/SharedChatRoomPage").then((m) => ({ default: m.SharedChatRoomPage })));
 const LandingPage = lazy(() => import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })));
 
-/** Warm common routes during idle time. Native module imports and the HTTP
- * cache reuse loaded chunks; the service worker intentionally does not cache
- * them. This reduces first-visit latency without making navigation depend on
- * prefetch success. The dashboard library stays lazy behind its own tabs. */
+/** Warm the lightweight dashboard route shell after the app mounts. The
+ * dashboard library stays lazy behind its own tabs; importing unrelated routes
+ * in the background competes with the first dashboard navigation on iOS. */
 function prefetchCommonRoutes() {
-  const warmDashboard = () => {
-    void import("./pages/DashboardRoute").catch(() => {});
-  };
-  const warmSecondaryRoutes = () => {
-    void import("./pages/DashboardSettingsPage").catch(() => {});
-    void import("./pages/Index").catch(() => {});
-  };
   if (typeof window === "undefined") return;
 
-  // iOS Safari has no requestIdleCallback, and the old two-second fallback
-  // left a fresh PWA launch vulnerable to a cold dashboard tap. Start only
-  // the small route shell immediately after the first commit; the overview
-  // module is already split from the heavy library tabs.
-  warmDashboard();
-
-  const idle = (window as any).requestIdleCallback;
-  if (typeof idle === "function") idle(warmSecondaryRoutes, { timeout: 4000 });
-  else window.setTimeout(warmSecondaryRoutes, 2000); // iOS Safari has no requestIdleCallback
+  // iOS Safari has no requestIdleCallback. Start only the small route shell
+  // immediately after the first commit; the overview module is already split
+  // from the heavy library tabs.
+  void import("./pages/DashboardRoute").catch(() => {});
 }
 const CheckoutReturnPage = lazy(() => import("./pages/CheckoutReturnPage"));
 const BlogIndexPage = lazy(() => import("./pages/BlogIndexPage").then((m) => ({ default: m.BlogIndexPage })));
