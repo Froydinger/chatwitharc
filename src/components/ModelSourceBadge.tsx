@@ -7,10 +7,12 @@ interface ModelSourceBadgeProps {
   source: RouteDestination;
   /** Exact model id recorded when the message was generated; wins over the current picker selection. */
   modelUsed?: string;
+  /** Reasoning effort recorded on the message; names the model Auto actually chose. */
+  effortUsed?: string;
 }
 
-export function ModelSourceBadge({ source, modelUsed }: ModelSourceBadgeProps) {
-  const { label, icon, tooltip } = getRouteLabel(source, modelUsed);
+export function ModelSourceBadge({ source, modelUsed, effortUsed }: ModelSourceBadgeProps) {
+  const { label, icon, tooltip } = getRouteLabel(source, modelUsed, effortUsed);
   const Icon = icon === 'local' ? Cpu : Cloud;
   const isLocal = icon === 'local';
 

@@ -1237,6 +1237,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
               : "cloud-search"
             : "cloud-chat",
           modelUsed: result.modelUsed,
+          reasoningEffortUsed: result.reasoningEffortUsed,
         });
       } catch (err: any) {
         console.error("Chat error:", err);
@@ -2481,7 +2482,7 @@ ${safeCode}
                   const idx = state.messages.findIndex((m) => m.id === codeMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code", modelUsed: result.modelUsed } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code", modelUsed: result.modelUsed, reasoningEffortUsed: result.reasoningEffortUsed } as any;
                   return { messages: updated } as any;
                 });
 
@@ -2511,7 +2512,7 @@ ${safeCode}
                   const idx = state.messages.findIndex((m) => m.id === canvasMsgId);
                   if (idx === -1) return state;
                   const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas", modelUsed: result.modelUsed } as any;
+                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas", modelUsed: result.modelUsed, reasoningEffortUsed: result.reasoningEffortUsed } as any;
                   return { messages: updated } as any;
                 });
 

@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { getModelForTask, resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
+import { getModelForTask, resolveReasoningEffort, useModelStore, type LunaReasoningEffort } from "@/store/useModelStore";
 import { incrementDailyBalancedCount, incrementDailyDeepCount } from "@/hooks/useSubscription";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext, requestsCurrentLocation } from "@/lib/userLocation";
 import { useSandboxStore } from "@/store/useSandboxStore";
@@ -175,6 +175,8 @@ export interface SendMessageResult {
   notificationDispatch?: import('@/components/NotificationDispatchCard').NotificationDispatchData;
   locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
   modelUsed?: string;
+  /** Reasoning effort that actually ran, so a stored message can name the model that answered it. */
+  reasoningEffortUsed?: LunaReasoningEffort;
   sandbox_preview_url?: string;
   sandbox_preview_port?: number;
 }
@@ -533,6 +535,7 @@ export class AIService {
               longitude: usedLocation.longitude,
             } : undefined,
             modelUsed: data.model_used,
+            reasoningEffortUsed: reasoningEffort,
           };
         } catch (err: any) {
           if (abortSignal?.aborted || err?.name === 'AbortError') {
@@ -609,7 +612,7 @@ export class AIService {
     forceCode: boolean = false,
     onStart?: (mode: 'canvas' | 'code' | 'text') => void,
     onDelta?: (content: string) => void,
-    onDone?: (result: { mode: 'canvas' | 'code' | 'text'; content: string; label?: string; language?: string; webSources?: WebSource[]; modelUsed?: string }) => void,
+    onDone?: (result: { mode: 'canvas' | 'code' | 'text'; content: string; label?: string; language?: string; webSources?: WebSource[]; modelUsed?: string; reasoningEffortUsed?: LunaReasoningEffort }) => void,
     onError?: (error: string) => void,
     sessionId?: string,
     forceWebSearch?: boolean,
@@ -789,7 +792,12 @@ export class AIService {
                 label: event.label,
                 language: event.language,
                 webSources: event.webSources,
-                modelUsed: event.model_used
+                modelUsed: event.model_used,
+                // The server takes this value verbatim from the request, so the
+                // effort resolved here is the one that ran. Recording it lets a
+                // stored message report the model that answered it rather than
+                // whatever the picker happens to say later.
+                reasoningEffortUsed: reasoningEffort,
               });
             } else if (event.type === 'error') {
               onError?.(event.message);

@@ -79,7 +79,7 @@ export function routeRequest(ctx: RouteContext): RouteDestination {
  * generated; when present it wins over the picker's current selection so
  * badges stay accurate for stored messages and current Luna requests.
  */
-export function getRouteLabel(route: RouteDestination, modelUsed?: string): { label: string; icon: 'local' | 'cloud'; tooltip: string } {
+export function getRouteLabel(route: RouteDestination, modelUsed?: string, effortUsed?: string): { label: string; icon: 'local' | 'cloud'; tooltip: string } {
   switch (route) {
     case 'local': {
       let label = 'Local Model';
@@ -98,40 +98,33 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
     }
     case 'cloud-chat':
     case 'cloud-chat-pro': {
-      const m = modelUsed || useModelStore.getState().chatModel;
-      const { name, tier, providerName } = getModelInfo(m);
-      return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `${tier} mode — ${providerName}.` };
+      const { name, providerName } = getModelInfo(effortUsed);
+      return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `${providerName}.` };
     }
     case 'cloud-search': {
-      const m = modelUsed || useModelStore.getState().chatModel;
-      const { name, providerName } = getModelInfo(m);
+      const { name, providerName } = getModelInfo(effortUsed);
       return { label: `Cloud · ${name} (Web)`, icon: 'cloud', tooltip: `Web search synthesis — ${providerName}.` };
     }
     case 'cloud-search-tavily': {
-      const m = modelUsed || useModelStore.getState().chatModel;
-      const { name, providerName } = getModelInfo(m);
+      const { name, providerName } = getModelInfo(effortUsed);
       return { label: `Cloud · ${name} (Web)`, icon: 'cloud', tooltip: `Web search synthesis — ${providerName}.` };
     }
     case 'cloud-vision': {
-      const m = modelUsed || useModelStore.getState().chatModel;
-      const { name, providerName } = getModelInfo(m);
+      const { name, providerName } = getModelInfo(effortUsed);
       return { label: `Cloud · ${name} (Vision)`, icon: 'cloud', tooltip: `Image understanding — ${providerName}.` };
     }
     case 'cloud-document': {
-      const m = modelUsed || useModelStore.getState().chatModel;
-      const { name, providerName } = getModelInfo(m);
+      const { name, providerName } = getModelInfo(effortUsed);
       return { label: `Cloud · ${name} (Docs)`, icon: 'cloud', tooltip: `Document analysis — ${providerName}.` };
     }
     case 'cloud-voice':
       return { label: 'Cloud · Voxi Voice', icon: 'cloud', tooltip: 'Natural live voice conversation powered by Voxi.' };
     case 'cloud-code': {
-      const m = modelUsed || useModelStore.getState().chatModel;
-      const { name, providerName } = getModelInfo(m);
+      const { name, providerName } = getModelInfo(effortUsed);
       return { label: `Cloud · ${name} (Code)`, icon: 'cloud', tooltip: `Code generation — ${providerName}.` };
     }
     case 'cloud-canvas': {
-      const m = modelUsed || useModelStore.getState().chatModel;
-      const { name, providerName } = getModelInfo(m);
+      const { name, providerName } = getModelInfo(effortUsed);
       return { label: `Cloud · ${name} (Canvas)`, icon: 'cloud', tooltip: `Long-form writing canvas — ${providerName}.` };
     }
 
@@ -155,8 +148,27 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string): { la
   }
 }
 
-function getModelInfo(_m: string): { name: string; tier: string; providerName: string } {
-  const effort = useModelStore.getState().reasoningEffort;
-  const name = effort === 'low' ? 'Ava' : effort === 'medium' ? 'Maya' : effort === 'high' ? 'River' : 'Arc Matrix';
-  return { name: `Arc · ${name}`, tier: name, providerName: 'Arc Matrix™' };
+const EFFORT_NAMES: Record<string, string> = { low: 'Ava', medium: 'Maya', high: 'River' };
+
+/**
+ * `effortUsed` is the effort recorded on the message when it was generated.
+ * Without it we can only report the picker's current selection, which is wrong
+ * for stored messages and says nothing useful under Auto — Auto picks a model
+ * per request, so "Arc Matrix" alone never names what actually answered.
+ */
+function getModelInfo(effortUsed?: string): { name: string; tier: string; providerName: string } {
+  const selection = useModelStore.getState().reasoningEffort;
+  const resolved = EFFORT_NAMES[effortUsed ?? ''] ?? EFFORT_NAMES[selection] ?? null;
+  const isAuto = selection === 'auto' && !EFFORT_NAMES[effortUsed ?? ''];
+
+  if (isAuto || !resolved) {
+    return { name: 'Arc · Arc Matrix', tier: 'Arc Matrix', providerName: 'Arc Matrix™ picks a model per request' };
+  }
+
+  const viaAuto = selection === 'auto' && !!EFFORT_NAMES[effortUsed ?? ''];
+  return {
+    name: `Arc · ${resolved}`,
+    tier: resolved,
+    providerName: viaAuto ? `${resolved}, chosen by Arc Matrix™` : `${resolved} on Arc Matrix™`,
+  };
 }
