@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, animate, motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import {
@@ -36,10 +36,10 @@ import { useChatSync } from "@/hooks/useChatSync";
 import { useArcStore } from "@/store/useArcStore";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useImageQuota } from "@/hooks/useImageQuota";
-import { useContextBlocks } from "@/hooks/useContextBlocks";
+import { DashboardNavTiming } from "@/components/DashboardNavTiming";
 import { useIDEStore } from "@/store/useIDEStore";
 import { supabase } from "@/integrations/supabase/client";
-import { DashboardPageInner } from "@/pages/DashboardPage";
+const DashboardPageInner = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPageInner })));
 
 type DashboardTab = "overview" | "chats" | "apps" | "images" | "canvases" | "memory";
 
@@ -500,10 +500,12 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
   const { user, profile: authProfile } = useAuth();
   const { profile: fetchedProfile } = useProfile();
   const { isLoaded } = useChatSync();
-  const { chatSessions, createNewSession, loadSession, deleteSession } = useArcStore();
+  const chatSessions = useArcStore((state) => state.chatSessions);
+  const createNewSession = useArcStore((state) => state.createNewSession);
+  const loadSession = useArcStore((state) => state.loadSession);
+  const deleteSession = useArcStore((state) => state.deleteSession);
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
   const { dailyImagesUsed } = useImageQuota();
-  const { blocks: contextBlocks } = useContextBlocks();
   const openIDECanvas = useIDEStore((state) => state.openIDECanvas);
   const queryTab = searchParams.get("tab");
   const initialTab: DashboardTab = queryTab === "memories" ? "memory" : (navItems.some((item) => item.id === queryTab) ? queryTab as DashboardTab : "overview");
@@ -662,6 +664,7 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
 
   return (
     <div className="dashboard-preview-shell min-h-screen overflow-x-hidden bg-background text-foreground">
+      {live && <DashboardNavTiming enabled={isAdmin} />}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-36 top-[-180px] h-[480px] w-[480px] rounded-full bg-primary/[0.09] blur-[120px]" />
         <div className="absolute -right-40 bottom-[-220px] h-[560px] w-[560px] rounded-full bg-violet-500/[0.07] blur-[140px]" />
@@ -699,7 +702,7 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
       </header>
 
       <div className="dashboard-preview-page-content relative z-10 mx-auto flex w-full max-w-[1440px] px-4 sm:px-7 lg:px-10">
-        <main className="min-w-0 flex-1">{activeTab !== "overview" ? <DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} /> : <DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? liveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} onOpenReminders={() => navigate("/tasks")} unreadChatIds={unreadChatIds} />}</main>
+        <main className="min-w-0 flex-1">{activeTab !== "overview" ? <Suspense fallback={<div role="status" className="py-8 text-center text-sm text-muted-foreground">Loading library…</div>}><DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} /></Suspense> : <DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? liveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} onOpenReminders={() => navigate("/tasks")} unreadChatIds={unreadChatIds} />}</main>
       </div>
 
       {/* Keep the fixed dock outside a transformed motion parent. On iOS PWAs,

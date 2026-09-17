@@ -33,7 +33,6 @@ import { SmoothImage } from "@/components/ui/smooth-image";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { markNavStart, msSinceNavStart, readNavMark, clearNavMark } from "@/lib/navPerf";
 import { getFaviconByLabel } from "@/constants/faviconOptions";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { useAccentColor } from "@/hooks/useAccentColor";
@@ -54,7 +53,6 @@ import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
 import { KineticDeleteButton } from "@/components/ui/rare-ui/kinetic-delete-button";
-import { DashboardPreviewPage } from "@/pages/DashboardPreviewPage";
 
 type DashboardTab = "overview" | "apps" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -570,24 +568,6 @@ useEffect(() => {
   useEffect(() => {
     if (!authLoading && !user) navigate("/", { replace: true });
   }, [authLoading, user, navigate]);
-
-  // On-device timing for the dashboard hang. Admin-only and purely additive.
-  const [navPerf, setNavPerf] = useState<{ label: string; nav: number; paint: number } | null>(null);
-  const navPerfDoneRef = useRef(false);
-  if (!navPerfDoneRef.current) {
-    // Read during the first render: this is the moment the component exists.
-    const mark = readNavMark();
-    if (mark) {
-      const nav = msSinceNavStart() ?? 0;
-      navPerfDoneRef.current = true;
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setNavPerf({ label: mark.label, nav, paint: Math.round(performance.now() - mark.startedAt) });
-          clearNavMark();
-        });
-      });
-    }
-  }
 
   // Nothing on this page reads message bodies any more: chats and counts come
   // from the metadata RPC, images and canvases from their own targeted queries.
@@ -1227,12 +1207,6 @@ useEffect(() => {
       <Helmet>
         <title>ArcAI • Dashboard</title>
       </Helmet>
-      {isAdmin && navPerf && (
-        <div className="fixed left-2 z-[100] rounded-md bg-black/80 px-2 py-1 font-mono text-[10px] leading-tight text-lime-300 pointer-events-none"
-             style={{ top: "calc(env(safe-area-inset-top, 0px) + 4px)" }}>
-          {navPerf.label}: nav {navPerf.nav}ms · paint {navPerf.paint}ms
-        </div>
-      )}
       <div className={cn("mx-auto w-full max-w-7xl px-4 sm:px-6 pt-3 sm:pt-5 pb-8 sm:pb-12 space-y-6 sm:space-y-8", embedded && "dashboard-preview-embedded-content")}>
 
         {/* ═══ HEADER with ambient glow ═══ */}
@@ -2968,23 +2942,3 @@ function ChatListItem({ session, currentSessionId, timeAgo, onLoad, onDelete, fo
 }
 
 // Auth gate. Keeping the signed-out check in its own component means
-// DashboardPageInner either mounts with its full hook list or does not mount at
-// all — the hook count can never change between renders.
-export function DashboardPage() {
-  const navigate = useNavigate();
-  const { user, loading: authLoading, isAnonymous } = useAuth();
-  const signedOut = !authLoading && (isAnonymous || !user);
-
-  useEffect(() => {
-    if (signedOut) {
-      navigate("/", { replace: true });
-      window.dispatchEvent(
-        new CustomEvent("auth-gate-feature", { detail: { feature: "menu" } }),
-      );
-    }
-  }, [signedOut, navigate]);
-
-  if (signedOut) return null;
-
-  return <DashboardPreviewPage live />;
-}

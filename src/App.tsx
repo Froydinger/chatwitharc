@@ -45,7 +45,7 @@ const PricingPage = lazy(() => import("./pages/PricingPage").then((m) => ({ defa
 const UpgradePage = lazy(() => import("./pages/UpgradePage").then((m) => ({ default: m.UpgradePage })));
 // Chunk recovery has one owner: the pre-entrypoint handler in index.html.
 // Let rejected imports reach ErrorBoundary; React.lazy caches rejected promises.
-const DashboardPage = lazy(() => import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const DashboardPage = lazy(() => import("./pages/DashboardRoute").then((m) => ({ default: m.DashboardRoute })));
 const DashboardSettingsPage = lazy(() => import("./pages/DashboardSettingsPage").then((m) => ({ default: m.DashboardSettingsPage })));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const SupportPage = lazy(() => import("./pages/SupportPage").then((m) => ({ default: m.SupportPage })));
@@ -59,21 +59,13 @@ const SharedChatsPage = lazy(() => import("./pages/SharedChatsPage").then((m) =>
 const SharedChatRoomPage = lazy(() => import("./pages/SharedChatRoomPage").then((m) => ({ default: m.SharedChatRoomPage })));
 const LandingPage = lazy(() => import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })));
 
-/**
- * Warm the chunks for the routes people actually bounce between.
- *
- * Nothing caches route chunks: the service worker deliberately has no fetch
- * handler (so PWAs can never serve a stale build), which leaves every lazy
- * route a cold network fetch the moment it is navigated to. On desktop wifi
- * that is invisible; in the iOS PWA it is the several-second hang going from
- * a chat to the dashboard, and from settings back to the dashboard. Fetching
- * them while the app is idle means the module is already in memory when the
- * tap happens. Failures are ignored on purpose — this is only ever a warmup,
- * and React.lazy will retry the real import on navigation.
- */
+/** Warm common routes during idle time. Native module imports and the HTTP
+ * cache reuse loaded chunks; the service worker intentionally does not cache
+ * them. This reduces first-visit latency without making navigation depend on
+ * prefetch success. The dashboard library stays lazy behind its own tabs. */
 function prefetchCommonRoutes() {
   const warm = () => {
-    void import("./pages/DashboardPage").catch(() => {});
+    void import("./pages/DashboardRoute").catch(() => {});
     void import("./pages/DashboardSettingsPage").catch(() => {});
     void import("./pages/Index").catch(() => {});
   };
@@ -97,7 +89,7 @@ import { motion } from "framer-motion";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { isLocalChatPreview } from "@/lib/localPreview";
 import { isLocalDashboardPreview } from "@/lib/localPreview";
-import { DashboardPreviewPage } from "./pages/DashboardPreviewPage";
+const DashboardPreviewPage = lazy(() => import("./pages/DashboardPreviewPage").then((m) => ({ default: m.DashboardPreviewPage })));
 
 const FullscreenLoader = () => {
   const [stage, setStage] = useState<'spin' | 'bloop'>('spin');
