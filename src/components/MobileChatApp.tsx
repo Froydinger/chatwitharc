@@ -348,7 +348,7 @@ export function MobileChatApp() {
     voiceHistoryRef.current = new Set(messages.map((message) => message.id));
     voiceStartedAtRef.current = new Date();
   }
-  const displayedMessages: Message[] = isVoiceActive ? [
+  const allDisplayedMessages: Message[] = isVoiceActive ? [
     ...messages.filter((message) => voiceHistoryRef.current?.has(message.id) || message.type !== 'text'),
     ...liveCaptionEntries.map((entry): Message => ({
       id: `voice-caption-${entry.id}`, role: entry.role, content: entry.text,
@@ -357,11 +357,25 @@ export function MobileChatApp() {
       modelUsed: entry.role === 'assistant' ? 'gpt-live-1' : undefined,
     })),
   ] : messages;
+  // Rich messages can contain markdown, code previews, images, and their own
+  // effects. Keeping an entire long transcript mounted makes route teardown a
+  // multi-second synchronous job in iOS WebKit. Keep the full history in the
+  // store, but mount only a recent window until the user asks for older turns.
+  const MESSAGE_WINDOW_SIZE = 48;
+  const [visibleMessageCount, setVisibleMessageCount] = useState(MESSAGE_WINDOW_SIZE);
+  const displayedMessages = isVoiceActive
+    ? allDisplayedMessages
+    : allDisplayedMessages.slice(-visibleMessageCount);
+  const hiddenMessageCount = Math.max(0, allDisplayedMessages.length - displayedMessages.length);
   const voiceVolume = useVoiceModeStore((s) => s.volume);
   const setVoiceVolume = useVoiceModeStore((s) => s.setVolume);
   const [isVolumePopoverOpen, setIsVolumePopoverOpen] = useState(false);
   const { profile } = useProfile();
   const { user, isAnonymous, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    setVisibleMessageCount(MESSAGE_WINDOW_SIZE);
+  }, [currentSessionId]);
   // Arc Chat is the safe default and stays on the normal conversational
   // request path. Durable cloud execution belongs only to explicit Arc Work.
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
@@ -1586,6 +1600,17 @@ export function MobileChatApp() {
                   className="space-y-4 chat-messages w-full max-w-xl" // Messages only, now max-w-xl
                 >
 
+                  {hiddenMessageCount > 0 && !isVoiceActive && (
+                    <div className="flex justify-center pb-1">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleMessageCount((count) => count + MESSAGE_WINDOW_SIZE)}
+                        className="rounded-full border border-border/60 bg-background/70 px-3 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        Load earlier messages ({hiddenMessageCount})
+                      </button>
+                    </div>
+                  )}
 
                   <AnimatePresence mode="popLayout" initial={false}>
                     {displayedMessages.map((message, index) => {

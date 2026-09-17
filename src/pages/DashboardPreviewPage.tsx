@@ -495,7 +495,7 @@ function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired,
   );
 }
 
-export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
+function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile: authProfile } = useAuth();
@@ -734,4 +734,47 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
       </AnimatePresence>
     </div>
   );
+}
+
+function DashboardEntryShell() {
+  return (
+    <div className="dashboard-preview-shell min-h-screen overflow-hidden bg-background text-foreground" aria-busy="true">
+      <header className="relative z-10 mx-auto flex w-full max-w-[1440px] items-center justify-between gap-2 px-4 pb-5 sm:px-7 md:px-10 md:pt-8">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/[0.055]">
+            <ThemedLogo className="h-8 w-8" alt="Arc" />
+          </div>
+          <div className="min-w-0"><p className="text-[15px] font-semibold">ArcAI</p><p className="text-[11px] text-muted-foreground">Your workspace</p></div>
+        </div>
+        <div className="flex gap-1.5"><span className="h-10 w-10 rounded-full border border-white/[0.09] bg-white/[0.04]" /><span className="h-10 w-10 rounded-full border border-white/[0.09] bg-white/[0.04]" /><span className="h-10 w-14 rounded-full border border-white/[0.09] bg-white/[0.04]" /></div>
+      </header>
+      <main className="relative z-10 mx-auto w-full max-w-[1440px] px-4 sm:px-7 lg:px-10">
+        <section className="rounded-[32px] border border-white/[0.09] bg-white/[0.035] p-5 sm:p-6">
+          <div className="h-3 w-20 animate-pulse rounded-full bg-primary/20" />
+          <div className="mt-4 h-9 w-56 max-w-full animate-pulse rounded-xl bg-white/[0.08]" />
+          <div className="mt-3 h-4 w-72 max-w-full animate-pulse rounded-full bg-white/[0.05]" />
+          <div className="mt-8 grid grid-cols-3 gap-2"><div className="h-16 animate-pulse rounded-2xl bg-white/[0.05]" /><div className="h-16 animate-pulse rounded-2xl bg-white/[0.05]" /><div className="h-16 animate-pulse rounded-2xl bg-white/[0.05]" /></div>
+        </section>
+        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-24 animate-pulse rounded-[24px] border border-white/[0.08] bg-white/[0.035]" />)}</div>
+      </main>
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+5px)] z-50 flex justify-center px-3"><div className="h-[62px] w-full max-w-[850px] rounded-full border border-white/[0.12] bg-[#111113]" /></div>
+    </div>
+  );
+}
+
+export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
+  const [contentReady, setContentReady] = useState(false);
+
+  useEffect(() => {
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => setContentReady(true));
+    });
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+    };
+  }, []);
+
+  return contentReady ? <DashboardPreviewContent live={live} /> : <DashboardEntryShell />;
 }
