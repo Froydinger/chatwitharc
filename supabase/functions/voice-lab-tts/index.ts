@@ -153,11 +153,16 @@ serve(async (req) => {
       return json({ error: message }, upstream.status === 401 ? 502 : upstream.status);
     }
 
+    // Must be application/octet-stream, not audio/mpeg: supabase-js invoke()
+    // picks its parser from Content-Type and falls back to response.text() for
+    // anything it does not recognise, which corrupts the audio. The client
+    // re-wraps these bytes as audio/mpeg.
     return new Response(upstream.body, {
       status: 200,
       headers: {
         ...corsHeaders,
-        'Content-Type': 'audio/mpeg',
+        'Content-Type': 'application/octet-stream',
+        'X-Audio-Content-Type': 'audio/mpeg',
         'Cache-Control': 'no-store',
       },
     });

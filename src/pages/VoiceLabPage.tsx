@@ -227,11 +227,16 @@ export function VoiceLabPage() {
       throw new Error(message);
     }
 
-    if (!(data instanceof Blob)) {
-      throw new Error('Speech synthesis returned no audio');
+    // invoke() hands back a Blob for application/octet-stream; re-tag it as mp3
+    // so the audio element and decodeAudioData know what they are getting.
+    if (data instanceof Blob) {
+      return data.type === 'audio/mpeg' ? data : new Blob([data], { type: 'audio/mpeg' });
+    }
+    if (data instanceof ArrayBuffer) {
+      return new Blob([data], { type: 'audio/mpeg' });
     }
 
-    return data;
+    throw new Error('Speech synthesis returned no audio');
   };
 
   // Audio Playback with Analyser
