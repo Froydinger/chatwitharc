@@ -40,6 +40,7 @@ import { shouldReserveDesktopTrafficLightSpace } from '@/utils/platform';
 
 const DEFAULT_VOICE_ID = 'PSZ39PJBY7BsKu1rx7ok';
 const STORAGE_KEY_VOICE_ID = 'arc_voice_lab_voice_id';
+const STORAGE_KEY_CUSTOMER_VIEW = 'arc_voice_lab_customer_view';
 const STORAGE_KEY_MODEL_ID = 'arc_voice_lab_model_id';
 const STORAGE_KEY_PERSONA_PROMPT = 'arc_voice_lab_persona_prompt';
 
@@ -84,6 +85,20 @@ export function VoiceLabPage() {
   const { toast } = useToast();
   const isAdminBannerActive = useAdminBanner();
 
+  // Voice Lab opens on the customer-facing support chat: the lab chrome is what
+  // a tester needs, not what a customer would ever see. The toggle is sticky so
+  // a dev who flips to the lab stays there.
+  const [customerView, setCustomerView] = useState<boolean>(() => {
+    try { return localStorage.getItem(STORAGE_KEY_CUSTOMER_VIEW) !== 'false'; } catch { return true; }
+  });
+  const toggleCustomerView = () => {
+    setCustomerView((prev) => {
+      const next = !prev;
+      try { localStorage.setItem(STORAGE_KEY_CUSTOMER_VIEW, String(next)); } catch { /* private mode */ }
+      return next;
+    });
+  };
+  const supportScrollRef = useRef<HTMLDivElement | null>(null);
   const [isDesktopStandalone, setIsDesktopStandalone] = useState(false);
   useEffect(() => {
     setIsDesktopStandalone(shouldReserveDesktopTrafficLightSpace());
@@ -699,6 +714,13 @@ export function VoiceLabPage() {
     };
   }, [stopAudio]);
 
+  // Auto-scroll the support transcript as turns arrive.
+  useEffect(() => {
+    if (!customerView) return;
+    const el = supportScrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [turns, isGenerating, customerView]);
+
   // Guard: if loading or not Jake, block access
   if (authLoading || adminLoading) {
     return (
@@ -728,6 +750,174 @@ export function VoiceLabPage() {
             </Button>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  if (customerView) {
+    const busy = isGenerating || isTranscribing;
+    return (
+      <div
+        className="relative flex h-[100dvh] w-full flex-col bg-background text-foreground"
+        style={{
+          paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
+      >
+        <header className="flex shrink-0 items-center gap-3 border-b border-border/60 bg-card/60 px-4 py-3 backdrop-blur-md">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/dashboard/settings')}
+            className="h-9 w-9 shrink-0 rounded-full"
+            aria-label="Back"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+
+          <div className="relative shrink-0">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border/60 bg-muted/40">
+              <ThemedLogo className="h-5 w-5" />
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-emerald-500" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold tracking-[-0.01em]">Arc Support</p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {busy ? 'Typing…' : 'Online · Typically replies instantly'}
+            </p>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleCustomerView}
+            className="h-8 shrink-0 gap-1.5 rounded-full px-3 text-[11px] text-muted-foreground"
+            title="Switch to the Voice Lab controls"
+          >
+            <Sliders className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Lab</span>
+          </Button>
+        </header>
+
+        <div ref={supportScrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-5 touch-pan-y">
+          <div className="mx-auto max-w-2xl space-y-4">
+            {turns.length === 0 && (
+              <div className="flex items-end gap-2">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted/40">
+                  <ThemedLogo className="h-3.5 w-3.5" />
+                </div>
+                <div className="max-w-[80%] rounded-2xl rounded-bl-md border border-border/60 bg-muted/40 px-4 py-2.5 text-sm leading-relaxed">
+                  Hey — I'm Arc. Ask me anything about the app and I'll talk you through it. You can type, or tap the mic and just speak.
+                </div>
+              </div>
+            )}
+
+            {turns.map((turn) => (
+              <motion.div
+                key={turn.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex items-end gap-2 ${turn.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {turn.role === 'assistant' && (
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted/40">
+                    <ThemedLogo className="h-3.5 w-3.5" />
+                  </div>
+                )}
+
+                <div
+                  className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                    turn.role === 'user'
+                      ? 'rounded-br-md bg-primary text-primary-foreground'
+                      : 'rounded-bl-md border border-border/60 bg-muted/40 text-foreground'
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{turn.text}</p>
+
+                  {turn.role === 'assistant' && turn.audioBlob && (
+                    <button
+                      type="button"
+                      onClick={() => playAudioBlob(turn.audioBlob!)}
+                      className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <Volume2 className="h-3 w-3" /> Play voice
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+
+            {busy && (
+              <div className="flex items-end gap-2">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted/40">
+                  <ThemedLogo className="h-3.5 w-3.5" />
+                </div>
+                <div className="flex items-center gap-1 rounded-2xl rounded-bl-md border border-border/60 bg-muted/40 px-4 py-3">
+                  {[0, 1, 2].map((i) => (
+                    <motion.span
+                      key={i}
+                      className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70"
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.18 }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="shrink-0 border-t border-border/60 bg-card/60 px-4 py-3 backdrop-blur-md">
+          <div className="mx-auto flex max-w-2xl items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={toggleRecording}
+              disabled={busy}
+              className={`h-11 w-11 shrink-0 rounded-full border border-border/60 ${
+                isRecording ? 'animate-pulse bg-rose-600 text-white hover:bg-rose-700' : 'bg-background'
+              }`}
+              aria-label={isRecording ? 'Stop recording' : 'Speak'}
+            >
+              {isTranscribing ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : isRecording ? (
+                <Square className="h-4 w-4 fill-current" />
+              ) : (
+                <Mic className="h-5 w-5" />
+              )}
+            </Button>
+
+            <Input
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendChat();
+                }
+              }}
+              placeholder={
+                isRecording ? 'Listening…' : isTranscribing ? 'Transcribing…' : 'Message Arc Support…'
+              }
+              disabled={busy}
+              className="h-11 flex-1 rounded-full border-border/60 bg-background px-4 text-[16px] sm:text-sm"
+            />
+
+            <Button
+              type="button"
+              onClick={() => handleSendChat()}
+              disabled={busy || !inputText.trim()}
+              className="h-11 w-11 shrink-0 rounded-full"
+              aria-label="Send"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -783,6 +973,16 @@ export function VoiceLabPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleCustomerView}
+              className="h-8 gap-1.5 rounded-full border-white/10 bg-white/[0.03] text-xs"
+              title="See what a customer sees"
+            >
+              <Eye className="h-3.5 w-3.5 text-primary" />
+              <span>Customer view</span>
+            </Button>
             <Button
               variant="outline"
               size="sm"
