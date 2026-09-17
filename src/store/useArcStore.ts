@@ -813,7 +813,13 @@ export const useArcStore = create<ArcState>()(
         let currentUserId: string | null = null;
 
         try {
-          const { data: { user } } = await supabase.auth.getUser();
+          // The AuthProvider already validated the persisted session before
+          // this hook runs. getUser() performs another network round-trip and
+          // can hold the iOS PWA's auth lock for several seconds while the
+          // dashboard count requests are waiting. Read the local session here;
+          // RLS still validates every data request on the server.
+          const { data: { session } } = await supabase.auth.getSession();
+          const user = session?.user ?? null;
           if (!user) {
             console.log('⚠️ No user found, skipping sync');
             return;
