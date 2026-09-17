@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { markNavStart } from "@/lib/navPerf";
 import { ArrowLeft, Monitor, Moon, Sun } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
@@ -50,7 +51,7 @@ export function DashboardSettingsPage() {
           className="flex items-center justify-between gap-4 pb-6 pt-5 sm:pt-8"
         >
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" onClick={() => navigate("/dashboard")} className="h-9 w-9 rounded-full border-white/[0.09] bg-white/[0.04] shadow-[0_0_18px_rgba(168,85,247,0.08)] hover:bg-primary/10 hover:text-primary" aria-label="Back to dashboard">
+            <Button variant="outline" size="icon" onClick={() => { markNavStart("settings→dash"); navigate("/dashboard"); }} className="h-9 w-9 rounded-full border-white/[0.09] bg-white/[0.04] shadow-[0_0_18px_rgba(168,85,247,0.08)] hover:bg-primary/10 hover:text-primary" aria-label="Back to dashboard">
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-2.5">

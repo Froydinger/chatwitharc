@@ -48,6 +48,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useTheme } from "@/hooks/useTheme";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { markNavStart } from "@/lib/navPerf";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { usePromptPreload } from "@/hooks/usePromptPreload";
 import { useAdminBanner } from "@/components/AdminBanner";
@@ -1111,6 +1112,7 @@ export function MobileChatApp() {
       console.warn('Canvas save before dashboard navigation failed; continuing.', error);
     });
     sessionStorage.setItem('arc_dashboard_entry', 'menu');
+    markNavStart('chat→dash');
     navigate(isLocalPreview ? '/?preview=dashboard&clean=1' : '/dashboard');
   };
 
