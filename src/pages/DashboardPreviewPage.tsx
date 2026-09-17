@@ -38,6 +38,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useImageQuota } from "@/hooks/useImageQuota";
 import { useIDEStore } from "@/store/useIDEStore";
 import { supabase } from "@/integrations/supabase/client";
+import { logDashboardNavPhase, type DashboardNavPhase } from "@/lib/dashboardNavTrace";
 const DashboardPageInner = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPageInner })));
 
 type DashboardTab = "overview" | "chats" | "apps" | "images" | "canvases" | "memory";
@@ -61,6 +62,13 @@ const statCards: DashboardStat[] = [
 ];
 
 type DashboardChatPreview = { id: string; title: string; detail: string; tone: string };
+
+function traceDashboardRequest<T>(phase: DashboardNavPhase, request: PromiseLike<T>) {
+  return Promise.resolve(request).then((result) => {
+    logDashboardNavPhase(phase);
+    return result;
+  });
+}
 
 const recentChats: DashboardChatPreview[] = [
   { id: "preview-restore", title: "Restore Mac dashboard", detail: "Arc Work · 8 minutes ago", tone: "from-violet-500/35 via-indigo-500/15 to-transparent" },
@@ -538,9 +546,14 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
 
   useEffect(() => {
     if (!live) return;
+    logDashboardNavPhase("dashboard_commit");
     let secondFrame = 0;
     const firstFrame = window.requestAnimationFrame(() => {
-      secondFrame = window.requestAnimationFrame(() => setDashboardDataReady(true));
+      logDashboardNavPhase("dashboard_frame_1");
+      secondFrame = window.requestAnimationFrame(() => {
+        logDashboardNavPhase("dashboard_frame_2");
+        setDashboardDataReady(true);
+      });
     });
     return () => {
       window.cancelAnimationFrame(firstFrame);
@@ -554,14 +567,16 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
       setLiveCountsReady(true);
       return;
     }
+    logDashboardNavPhase("counts_start");
     setLiveCountsReady(false);
     let cancelled = false;
     (async () => {
       const [appsResult, imagesResult, remindersResult] = await Promise.all([
-        supabase.from("ide_projects").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-        supabase.rpc("count_user_images", { target_user_id: user.id } as unknown as never),
-        supabase.from("scheduled_tasks").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active"),
+        traceDashboardRequest("apps_query_finish", supabase.from("ide_projects").select("id", { count: "exact", head: true }).eq("user_id", user.id)),
+        traceDashboardRequest("images_query_finish", supabase.rpc("count_user_images", { target_user_id: user.id } as unknown as never)),
+        traceDashboardRequest("reminders_query_finish", supabase.from("scheduled_tasks").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "active")),
       ]);
+      logDashboardNavPhase("counts_finish");
       if (cancelled) return;
       setLiveCounts({
         apps: appsResult.count ?? 0,
@@ -570,6 +585,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
       });
       setLiveCountsReady(true);
     })().catch(() => {
+      logDashboardNavPhase("counts_error");
       if (!cancelled) {
         setLiveCounts((current) => ({ ...current, images: dailyImagesUsed }));
         setLiveCountsReady(true);

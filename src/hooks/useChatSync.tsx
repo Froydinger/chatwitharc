@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useArcStore } from '@/store/useArcStore';
 import { useAuth } from './useAuth';
 import { useCorporateModeStore } from '@/store/useCorporateModeStore';
+import { logDashboardNavPhase } from '@/lib/dashboardNavTrace';
 
 export function useChatSync({ enabled = true }: { enabled?: boolean } = {}) {
   const { user, isAnonymous } = useAuth();
@@ -35,7 +36,11 @@ export function useChatSync({ enabled = true }: { enabled?: boolean } = {}) {
     if (isSyncing) return;
 
     console.log('🔄 useChatSync: Triggering sync for user:', effectiveUserId);
-    syncFromSupabase();
+    logDashboardNavPhase('chat_sync_start');
+    const sync = syncFromSupabase();
+    void sync
+      .then(() => logDashboardNavPhase('chat_sync_finish'))
+      .catch(() => logDashboardNavPhase('chat_sync_error'));
   }, [effectiveUserId, syncFromSupabase, syncedUserId, isSyncing, corporateMode, enabled]);
 
   // Backfill titles for chats still sitting at "New Chat" — either from before

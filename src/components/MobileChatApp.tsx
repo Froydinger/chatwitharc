@@ -51,6 +51,7 @@ import { cn } from "@/lib/utils";
 import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { usePromptPreload } from "@/hooks/usePromptPreload";
 import { useAdminBanner } from "@/components/AdminBanner";
+import { logDashboardNavPhase, startDashboardNavTrace } from "@/lib/dashboardNavTrace";
 import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
@@ -1118,13 +1119,16 @@ export function MobileChatApp() {
       requireAuth("menu");
       return;
     }
+    if (user) startDashboardNavTrace(user.id);
     void persistCanvasBeforeLeaving().catch((error) => {
       // Navigation should never be blocked by an opportunistic canvas save.
       // Consume the rejection so the global error reporter cannot flash a bug
       // dialog over the dashboard during the transition.
       console.warn('Canvas save before dashboard navigation failed; continuing.', error);
     });
+    if (user && isCanvasOpen && currentSessionId && canvasContent.trim()) logDashboardNavPhase("canvas_save_scheduled");
     sessionStorage.setItem('arc_dashboard_entry', 'menu');
+    if (user) logDashboardNavPhase("navigate_called");
     navigate(isLocalPreview ? '/?preview=dashboard&clean=1' : '/dashboard');
   };
 
