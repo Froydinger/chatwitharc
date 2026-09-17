@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bubbles, RefreshCcwDot, Droplets, WavesHorizontal, Zap, Check, ChevronDown, Crown } from 'lucide-react';
+import { Bubbles, RefreshCcwDot, Droplets, WavesHorizontal, FastForward, Check, ChevronDown, Crown } from 'lucide-react';
 import { useModelStore, flashEnabledForEmail, type LunaReasoningSelection } from '@/store/useModelStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,7 +23,7 @@ export const PRESETS = [
   { effort: 'low', title: 'Ava', subtitle: 'Snappy answers & everyday speed', icon: Bubbles },
   { effort: 'medium', title: 'Maya', subtitle: 'Versatile powerhouse intelligence', icon: Droplets },
   { effort: 'high', title: 'River', subtitle: 'Deep logic & heavy reasoning', icon: WavesHorizontal },
-  { effort: 'flash', title: 'Flash', subtitle: 'Fastest tier for quick turns', icon: Zap },
+  { effort: 'flash', title: 'Flash', subtitle: 'Fastest tier for quick turns', icon: FastForward },
 ] as const;
 
 export function ChatModelPicker({
