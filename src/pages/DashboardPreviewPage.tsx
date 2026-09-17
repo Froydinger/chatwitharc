@@ -36,7 +36,6 @@ import { useChatSync } from "@/hooks/useChatSync";
 import { useArcStore } from "@/store/useArcStore";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useImageQuota } from "@/hooks/useImageQuota";
-import { DashboardNavTiming } from "@/components/DashboardNavTiming";
 import { useIDEStore } from "@/store/useIDEStore";
 import { supabase } from "@/integrations/supabase/client";
 const DashboardPageInner = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPageInner })));
@@ -666,7 +665,6 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
 
   return (
     <div className="dashboard-preview-shell min-h-screen overflow-x-hidden bg-background text-foreground">
-      {live && <DashboardNavTiming enabled={isAdmin} />}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-36 top-[-180px] h-[480px] w-[480px] rounded-full bg-primary/[0.09] blur-[120px]" />
         <div className="absolute -right-40 bottom-[-220px] h-[560px] w-[560px] rounded-full bg-violet-500/[0.07] blur-[140px]" />
