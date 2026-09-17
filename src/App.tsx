@@ -58,6 +58,30 @@ const StatusPage = lazy(() => import("./pages/StatusPage").then((m) => ({ defaul
 const SharedChatsPage = lazy(() => import("./pages/SharedChatsPage").then((m) => ({ default: m.SharedChatsPage })));
 const SharedChatRoomPage = lazy(() => import("./pages/SharedChatRoomPage").then((m) => ({ default: m.SharedChatRoomPage })));
 const LandingPage = lazy(() => import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })));
+
+/**
+ * Warm the chunks for the routes people actually bounce between.
+ *
+ * Nothing caches route chunks: the service worker deliberately has no fetch
+ * handler (so PWAs can never serve a stale build), which leaves every lazy
+ * route a cold network fetch the moment it is navigated to. On desktop wifi
+ * that is invisible; in the iOS PWA it is the several-second hang going from
+ * a chat to the dashboard, and from settings back to the dashboard. Fetching
+ * them while the app is idle means the module is already in memory when the
+ * tap happens. Failures are ignored on purpose — this is only ever a warmup,
+ * and React.lazy will retry the real import on navigation.
+ */
+function prefetchCommonRoutes() {
+  const warm = () => {
+    void import("./pages/DashboardPage").catch(() => {});
+    void import("./pages/DashboardSettingsPage").catch(() => {});
+    void import("./pages/Index").catch(() => {});
+  };
+  if (typeof window === "undefined") return;
+  const idle = (window as any).requestIdleCallback;
+  if (typeof idle === "function") idle(warm, { timeout: 4000 });
+  else window.setTimeout(warm, 2000); // iOS Safari has no requestIdleCallback
+}
 const CheckoutReturnPage = lazy(() => import("./pages/CheckoutReturnPage"));
 const BlogIndexPage = lazy(() => import("./pages/BlogIndexPage").then((m) => ({ default: m.BlogIndexPage })));
 const BlogPostPage = lazy(() => import("./pages/BlogPostPage").then((m) => ({ default: m.BlogPostPage })));
@@ -249,6 +273,10 @@ const App = () => {
   // Detect standalone mode on mount
   useEffect(() => {
     detectStandaloneMode();
+  }, []);
+
+  useEffect(() => {
+    prefetchCommonRoutes();
   }, []);
 
   return (

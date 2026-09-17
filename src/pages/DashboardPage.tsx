@@ -900,8 +900,22 @@ useEffect(() => {
     return recentApps.filter(app => (app.title || '').toLowerCase().includes(q));
   }, [recentApps, appSearch]);
 
+  // The stat tile only needs a number, and counting is cheap. Building the list
+  // is not: it walks every message of every session and runs a regex over each
+  // one, which is why it is gated on the tab actually being open.
+  const canvasCount = useMemo(() => {
+    let count = 0;
+    (chatSessions || []).forEach(s => {
+      ((s && s.messages) || []).forEach(m => {
+        if (m.type === 'code' || m.type === 'canvas') count++;
+      });
+    });
+    return count;
+  }, [chatSessions]);
+
   const filteredCanvases = useMemo(() => {
     const items: CanvasItem[] = [];
+    if (activeTab !== "canvases") return items;
     (chatSessions || []).forEach(s => {
       ((s && s.messages) || []).forEach(m => {
         if (m.type === 'code' || m.type === 'canvas') {
@@ -940,7 +954,7 @@ useEffect(() => {
     if (!canvasSearch.trim()) return items;
     const q = canvasSearch.toLowerCase();
     return items.filter(i => i.label?.toLowerCase().includes(q) || i.content.toLowerCase().includes(q));
-  }, [chatSessions, canvasSearch]);
+  }, [chatSessions, canvasSearch, activeTab]);
 
   const timeAgo = (date: Date | string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
@@ -990,7 +1004,7 @@ useEffect(() => {
     { label: "Chats", tab: "chats" as DashboardTab, value: quickCounts.chats !== null ? quickCounts.chats : (allChats.length > 0 ? allChats.length : 0), icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
     { label: "Images", tab: "images" as DashboardTab, value: totalImageCount, icon: Image, color: "270 80% 65%", tw: "text-neon-400" },
     { label: "Apps", tab: "apps" as DashboardTab, value: recentApps.length, icon: Smartphone, color: "270 80% 65%", tw: "text-neon-400" },
-    { label: "Canvases", tab: "canvases" as DashboardTab, value: filteredCanvases.length, icon: Code2, color: "35 90% 60%", tw: "text-orange-400" },
+    { label: "Canvases", tab: "canvases" as DashboardTab, value: canvasCount, icon: Code2, color: "35 90% 60%", tw: "text-orange-400" },
     { label: "Living memory", tab: "memories" as DashboardTab, value: quickCounts.memories !== null ? quickCounts.memories : (contextBlocks.length > 0 ? 1 : 0), icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 

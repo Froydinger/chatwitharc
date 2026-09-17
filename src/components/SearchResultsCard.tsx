@@ -1,6 +1,7 @@
 import { ExternalLink, Globe2, Search, Sparkles } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { richMarkdownComponents } from "@/components/richMarkdown";
 import { cn } from "@/lib/utils";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { ImageModal } from "@/components/ImageModal";
@@ -34,6 +35,23 @@ function sourceHost(url: string) {
     return url;
   }
 }
+
+/**
+ * Search answers use the same renderer as ordinary chat, so tables, diagrams,
+ * SVG and inline charts all come out identically — only the vertical rhythm is
+ * tightened to suit the card. Before this, the card carried its own minimal map
+ * with no table or code handling at all.
+ */
+const searchMarkdownComponents = {
+  ...richMarkdownComponents,
+  p: ({ node, ...props }: any) => <p className="mb-3 text-base leading-relaxed last:mb-0" {...props} />,
+  h1: ({ node, ...props }: any) => <h1 className="mb-2 mt-4 text-xl font-bold first:mt-0" {...props} />,
+  h2: ({ node, ...props }: any) => <h2 className="mb-2 mt-4 text-lg font-semibold first:mt-0" {...props} />,
+  h3: ({ node, ...props }: any) => <h3 className="mb-1.5 mt-3 text-base font-semibold first:mt-0" {...props} />,
+  ul: ({ node, ...props }: any) => <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0" {...props} />,
+  ol: ({ node, ...props }: any) => <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0" {...props} />,
+  li: ({ node, ...props }: any) => <li className="text-base leading-relaxed" {...props} />,
+};
 
 export function SearchResultsCard({ content, sources, query, images = [] }: SearchResultsCardProps) {
   const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
@@ -252,24 +270,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
         <div className="search-result-copy rounded-2xl border border-border/40 bg-background/45 px-4 py-4 text-foreground/90 sm:px-5">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
-            components={{
-              p: ({ node, ...props }) => <p className="mb-3 text-base leading-relaxed last:mb-0" {...props} />,
-              h1: ({ node, ...props }) => <h1 className="mb-2 mt-4 text-xl font-bold first:mt-0" {...props} />,
-              h2: ({ node, ...props }) => <h2 className="mb-2 mt-4 text-lg font-semibold first:mt-0" {...props} />,
-              h3: ({ node, ...props }) => <h3 className="mb-1.5 mt-3 text-base font-semibold first:mt-0" {...props} />,
-              ul: ({ node, ...props }) => <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0" {...props} />,
-              ol: ({ node, ...props }) => <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0" {...props} />,
-              li: ({ node, ...props }) => <li className="text-base leading-relaxed" {...props} />,
-              strong: ({ node, ...props }) => <strong className="font-semibold text-foreground" {...props} />,
-              a: ({ node, ...props }) => (
-                <a
-                  className="text-primary underline underline-offset-2 hover:text-primary/80"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  {...props}
-                />
-              ),
-            }}
+            components={searchMarkdownComponents}
           >
             {content}
           </ReactMarkdown>

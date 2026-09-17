@@ -81,6 +81,28 @@
   transform: translateX(calc(100% + 3px));
 }
 
+/* Tables and diagrams inside a search-result card were squeezed into the card's
+   own horizontal padding, which on a phone left them unreadable. Let them span
+   the full card width instead; they keep their own overflow-x for wide data. */
+.search-result-copy .arc-md-wide,
+.search-result-copy > div > svg,
+.search-result-copy .mermaid-diagram {
+  margin-left: -1rem;
+  margin-right: -1rem;
+  width: calc(100% + 2rem);
+  max-width: none;
+  border-radius: 0.75rem;
+}
+@media (min-width: 640px) {
+  .search-result-copy .arc-md-wide,
+  .search-result-copy > div > svg,
+  .search-result-copy .mermaid-diagram {
+    margin-left: -1.25rem;
+    margin-right: -1.25rem;
+    width: calc(100% + 2.5rem);
+  }
+}
+
 /* iOS/WebKit already supplies the translucent Dynamic Island safe-area
    treatment. Keep the header's glass tint and rim, but do not add another
    backdrop blur across the content immediately below it. */

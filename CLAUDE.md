@@ -166,6 +166,15 @@ Do not add `aggregateRating` (or any review markup) unless it is backed by
 real collected reviews. A previous hardcoded 4.8/150 was removed: self-serving
 review markup risks a manual action against the rich results the site earns.
 
+## Markdown rendering
+
+`src/components/richMarkdown.tsx` holds the one component map for assistant
+prose — tables, fenced code, SVG, Mermaid and inline charts. `MessageBubble` and
+`SearchResultsCard` both use it. Do not hand-roll a second cut-down map: that is
+exactly what made search answers render unstyled cramped tables and dump chart
+source as raw code instead of drawing it. A card that needs different spacing
+spreads this map and overrides only the typography keys.
+
 ## Notes
 
 ## Remote Git integration
