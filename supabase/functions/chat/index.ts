@@ -1046,10 +1046,21 @@ serve(async (req) => {
       );
     }
 
-    // Luna is the only enabled chat model. Normalize stale clients rather than
-    // rejecting them so users with an older cached frontend are not disrupted.
-    const validatedModel = 'gpt-5.6-luna';
-    if (model && model !== validatedModel) {
+    // Luna is the default chat model. Flash (Gemini) is limited to the accounts
+    // below while it is evaluated. Everything else normalizes to Luna rather
+    // than erroring, so users on an older cached frontend are never disrupted.
+    const FLASH_MODEL = 'gemini-3.8-flash';
+    const FLASH_EMAILS = new Set(['jkrd09@gmail.com', 'j@froydinger.com']);
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    const flashAllowed = !isGuestMode
+      && !!geminiApiKey
+      && !!user?.email
+      && FLASH_EMAILS.has(user.email.toLowerCase());
+
+    const validatedModel = (model === FLASH_MODEL && flashAllowed) ? FLASH_MODEL : 'gpt-5.6-luna';
+    if (model === FLASH_MODEL && !flashAllowed) {
+      console.log('Flash requested but not enabled for this account; using Luna');
+    } else if (model && model !== validatedModel) {
       console.log(`Normalizing stale model request "${model}" to ${validatedModel}`);
     }
     
@@ -1254,6 +1265,17 @@ product and is helping someone with it. Stay in that voice completely.`;
     if (!openaiApiKey) {
       throw new Error('OpenAI API key not configured');
     }
+
+    // Flash reaches Gemini through Google's OpenAI-compatible endpoint, so the
+    // entire request/response/tool/streaming shape below is unchanged — only the
+    // base URL, key and model id differ. Note the endpoint silently ignores
+    // params it does not support (reasoning_effort among them) rather than
+    // erroring, which is why Flash never relies on one.
+    const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
+    const GEMINI_CHAT_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+    const isFlashModel = (model: string) => typeof model === 'string' && model.startsWith('gemini-');
+    const chatUrlFor = (model: string) => (isFlashModel(model) ? GEMINI_CHAT_URL : OPENAI_CHAT_URL);
+    const apiKeyFor = (model: string) => (isFlashModel(model) ? geminiApiKey! : openaiApiKey);
 
     // === GUEST MODE: Simple chat without tools ===
     if (isGuestMode) {
@@ -1694,10 +1716,10 @@ product and is helping someone with it. Stay in that voice completely.`;
       console.log('🌊 Using streaming mode', isCanvasOrCodeMode ? 'for canvas/code' : 'for text');
       
       const isReasoning = selectedModel.includes('gpt-5.6') || selectedModel.startsWith('o1') || selectedModel.startsWith('o3');
-      const streamResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      const streamResponse = await fetch(chatUrlFor(selectedModel), {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
+          'Authorization': `Bearer ${apiKeyFor(selectedModel)}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -2065,10 +2087,10 @@ product and is helping someone with it. Stay in that voice completely.`;
     
     try {
       const isReasoning = selectedModel.includes('gpt-5.6') || selectedModel.startsWith('o1') || selectedModel.startsWith('o3');
-      response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
+      response = await fetchWithRetry(chatUrlFor(selectedModel), {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
+          'Authorization': `Bearer ${apiKeyFor(selectedModel)}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -2084,9 +2106,11 @@ product and is helping someone with it. Stay in that voice completely.`;
         }),
       });
     } catch (primaryError) {
-      // Retry canvas/code through the same enabled Luna model.
+      // Retry canvas/code through the same enabled Luna model. A Flash failure
+      // always falls back to Luna — a second opinion from Google is not an
+      // option, and the user should get an answer rather than an error.
       const isReasoningModel = selectedModel === lunaModel;
-      if (isCanvasOrCodeMode && isReasoningModel) {
+      if (isFlashModel(selectedModel) || (isCanvasOrCodeMode && isReasoningModel)) {
         const actualFallback = fallbackModel;
         const fallbackTokenParam = { max_completion_tokens: 65536 };
         
@@ -2133,11 +2157,24 @@ product and is helping someone with it. Stay in that voice completely.`;
     let data = await response.json();
     let assistantMessage = data.choices[0].message;
 
+    // Gemini hangs an `extra_content.google.thought_signature` off each tool
+    // call. That message is replayed into later calls, some of which go to
+    // OpenAI (memory delegation, the Git loop, the Luna fallback), and OpenAI
+    // rejects unrecognized fields — so drop it as soon as it arrives.
+    if (isFlashModel(selectedModel) && Array.isArray(assistantMessage?.tool_calls)) {
+      assistantMessage = {
+        ...assistantMessage,
+        tool_calls: assistantMessage.tool_calls.map(({ extra_content: _ignored, ...rest }: any) => rest),
+      };
+    }
+
     // GPT-5.6 Chat Completions currently requires reasoning_effort=none on a
     // request that includes function tools. If no tool was selected, regenerate
     // the user-facing answer without tools so Quick/Balanced/Deep still maps to
     // low/medium/high reasoning without breaking function calling.
-    if (!(assistantMessage.tool_calls?.length > 0)) {
+    // Flash answers for itself: regenerating on Luna here would erase the whole
+    // point of the fast tier, and Flash has no reasoning_effort to honour anyway.
+    if (!(assistantMessage.tool_calls?.length > 0) && !isFlashModel(selectedModel)) {
       try {
         const reasonedResponse = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -3042,14 +3079,16 @@ product and is helping someone with it. Stay in that voice completely.`;
         console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
         const usedMemoryTool = toolsUsed.some(name => memoryToolNames.has(name));
-        const secondCallModel = lunaModel;
+        // Memory wording always comes from Luna; otherwise synthesis stays on the
+        // selected model so a Flash turn stays a Flash turn end to end.
+        const secondCallModel = (isFlashModel(selectedModel) && !usedMemoryTool) ? selectedModel : lunaModel;
         if (usedMemoryTool) finalResponseModel = lunaModel;
         const secondTokenParam = { max_completion_tokens: 65536 };
         const isSecondCallReasoning = secondCallModel.includes('gpt-5.6') || secondCallModel.startsWith('o1') || secondCallModel.startsWith('o3');
-        response = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
+        response = await fetchWithRetry(chatUrlFor(secondCallModel), {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
+            'Authorization': `Bearer ${apiKeyFor(secondCallModel)}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({

@@ -98,33 +98,33 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string, effor
     }
     case 'cloud-chat':
     case 'cloud-chat-pro': {
-      const { name, providerName } = getModelInfo(effortUsed);
+      const { name, providerName } = getModelInfo(effortUsed, modelUsed);
       return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `${providerName}.` };
     }
     case 'cloud-search': {
-      const { name, providerName } = getModelInfo(effortUsed);
+      const { name, providerName } = getModelInfo(effortUsed, modelUsed);
       return { label: `Cloud · ${name} (Web)`, icon: 'cloud', tooltip: `Web search synthesis — ${providerName}.` };
     }
     case 'cloud-search-tavily': {
-      const { name, providerName } = getModelInfo(effortUsed);
+      const { name, providerName } = getModelInfo(effortUsed, modelUsed);
       return { label: `Cloud · ${name} (Web)`, icon: 'cloud', tooltip: `Web search synthesis — ${providerName}.` };
     }
     case 'cloud-vision': {
-      const { name, providerName } = getModelInfo(effortUsed);
+      const { name, providerName } = getModelInfo(effortUsed, modelUsed);
       return { label: `Cloud · ${name} (Vision)`, icon: 'cloud', tooltip: `Image understanding — ${providerName}.` };
     }
     case 'cloud-document': {
-      const { name, providerName } = getModelInfo(effortUsed);
+      const { name, providerName } = getModelInfo(effortUsed, modelUsed);
       return { label: `Cloud · ${name} (Docs)`, icon: 'cloud', tooltip: `Document analysis — ${providerName}.` };
     }
     case 'cloud-voice':
       return { label: 'Cloud · Voxi Voice', icon: 'cloud', tooltip: 'Natural live voice conversation powered by Voxi.' };
     case 'cloud-code': {
-      const { name, providerName } = getModelInfo(effortUsed);
+      const { name, providerName } = getModelInfo(effortUsed, modelUsed);
       return { label: `Cloud · ${name} (Code)`, icon: 'cloud', tooltip: `Code generation — ${providerName}.` };
     }
     case 'cloud-canvas': {
-      const { name, providerName } = getModelInfo(effortUsed);
+      const { name, providerName } = getModelInfo(effortUsed, modelUsed);
       return { label: `Cloud · ${name} (Canvas)`, icon: 'cloud', tooltip: `Long-form writing canvas — ${providerName}.` };
     }
 
@@ -156,8 +156,13 @@ const EFFORT_NAMES: Record<string, string> = { low: 'Ava', medium: 'Maya', high:
  * for stored messages and says nothing useful under Auto — Auto picks a model
  * per request, so "Arc Matrix" alone never names what actually answered.
  */
-function getModelInfo(effortUsed?: string): { name: string; tier: string; providerName: string } {
+function getModelInfo(effortUsed?: string, modelUsed?: string): { name: string; tier: string; providerName: string } {
   const selection = useModelStore.getState().reasoningEffort;
+  // Flash records effort 'low', so effort alone would badge it as Ava. The model
+  // id is the only thing that tells the two apart on a stored message.
+  if (modelUsed?.startsWith('gemini-')) {
+    return { name: 'Arc · Flash', tier: 'Flash', providerName: 'Flash, Arc Matrix™ fast tier' };
+  }
   const resolved = EFFORT_NAMES[effortUsed ?? ''] ?? EFFORT_NAMES[selection] ?? null;
   const isAuto = selection === 'auto' && !EFFORT_NAMES[effortUsed ?? ''];
 

@@ -334,6 +334,7 @@ export function MobileChatApp() {
     isHydratingSession,
     loadSession,
     refreshSessionFromSupabase,
+    markSessionAsWork,
   } = useArcStore();
   const isArcWorking = isLoading || isGeneratingImage || isSearchingChats || isAccessingMemory || isSearchingWeb;
   const isVoiceActive = useVoiceModeStore((s) => s.isActive);
@@ -376,6 +377,17 @@ export function MobileChatApp() {
     // mode; the in-memory set is empty on a fresh page load.
     workSessionIdsRef.current = readWorkSessions(user?.id);
   }, [user?.id]);
+  // Work picked on a blank composer has no session to attach to yet. Claim the
+  // first session that appears, before the mode sync below reads the set —
+  // otherwise that effect would read "not a Work session" and snap back to Chat.
+  useEffect(() => {
+    if (!user || !currentSessionId || !pendingWorkModeRef.current) return;
+    pendingWorkModeRef.current = false;
+    workSessionIdsRef.current.add(currentSessionId);
+    writeWorkSessions(user.id, workSessionIdsRef.current);
+    void markSessionAsWork(currentSessionId);
+  }, [currentSessionId, markSessionAsWork, user]);
+
   useEffect(() => {
     const isWorkSession = !!currentSessionId && workSessionIdsRef.current.has(currentSessionId);
     setCloudModeChoice(user ? { ownerId: user.id, mode: isWorkSession ? 'auto' : 'ask' } : null);
@@ -542,6 +554,7 @@ export function MobileChatApp() {
   const requestWorkMode = useCallback((mode: CloudRunMode) => {
     if (!user) return;
     if (mode === 'ask') {
+      pendingWorkModeRef.current = false;
       setCloudModeChoice({ ownerId: user.id, mode: 'ask' });
       return;
     }
@@ -553,12 +566,15 @@ export function MobileChatApp() {
       if (currentSessionId) {
         workSessionIdsRef.current.add(currentSessionId);
         writeWorkSessions(user.id, workSessionIdsRef.current);
+        void markSessionAsWork(currentSessionId);
+      } else {
+        pendingWorkModeRef.current = true;
       }
       setCloudModeChoice({ ownerId: user.id, mode: 'auto' });
       return;
     }
     setIsWorkHandoffOpen(true);
-  }, [currentSessionId, messages.length, user]);
+  }, [currentSessionId, markSessionAsWork, messages.length, user]);
 
   const confirmWorkHandoff = useCallback(() => {
     if (!user) return;
@@ -584,6 +600,7 @@ export function MobileChatApp() {
     const newSessionId = createNewSession();
     workSessionIdsRef.current.add(newSessionId);
     writeWorkSessions(user.id, workSessionIdsRef.current);
+    void markSessionAsWork(newSessionId);
     setCloudModeChoice({ ownerId: user.id, mode: 'auto' });
     setIsWorkHandoffOpen(false);
     sessionStorage.setItem('arc_session_model', 'gpt-5.6-luna');
@@ -593,7 +610,7 @@ export function MobileChatApp() {
     // just left while the new Work chat stayed empty. Hold the prompt until the
     // store actually reports the new session as current.
     pendingWorkHandoffRef.current = { sessionId: newSessionId, prompt: handoffPrompt };
-  }, [createNewSession, messages, navigate, user]);
+  }, [createNewSession, markSessionAsWork, messages, navigate, user]);
 
   useEffect(() => {
     const pending = pendingWorkHandoffRef.current;
@@ -800,6 +817,8 @@ export function MobileChatApp() {
   // records only what the user explicitly chose; it never infers Work from a
   // session merely having an old cloud run.
   const workSessionIdsRef = useRef<Set<string>>(new Set());
+  /** Work was selected before any session existed; claim the next one created. */
+  const pendingWorkModeRef = useRef(false);
   const pendingWorkHandoffRef = useRef<{ sessionId: string; prompt: string } | null>(null);
 
   // Static random prompts - picked once on mount, no AI call

@@ -187,6 +187,25 @@ review markup risks a manual action against the rich results the site earns.
 - **Voice Mode: Natural voice powered by Voxi.** Browser voice uses OpenAI's speech-to-speech
   model over WebRTC, with Responses delegation to `gpt-5.6-luna` for Arc's tools and
   deeper work. The microphone stays active for natural interruptions; the assistant is always Arc.
+- **Flash (Gemini) is account-gated, not public.** Flash is Arc's fast tier,
+  backed by `gemini-3.8-flash` through Google's OpenAI-compatible endpoint
+  (`https://generativelanguage.googleapis.com/v1beta/openai/`), so the existing
+  OpenAI-shaped request/tool/streaming plumbing is reused unchanged. It is
+  limited to the emails in `FLASH_EMAILS` (`src/store/useModelStore.ts` and the
+  `chat` edge function, which enforces it server-side); every other account
+  normalizes back to Luna. Do not widen that allowlist or market Flash without
+  the owner asking. Notes: the compat endpoint silently ignores unsupported
+  params, so `reasoning_effort` does nothing on Flash; Gemini's
+  `extra_content.thought_signature` is stripped off tool calls before any
+  OpenAI call replays them; code, canvas, file generation, image analysis and
+  memory wording stay on Luna; a Flash failure falls back to Luna. The key
+  lives in Supabase secrets as `GEMINI_API_KEY`. Billing is paid-tier only —
+  enabling billing replaces the free tier rather than stacking with it, which is
+  the point: paid means user content is not used to train Google's models.
+- **Chat vs Work is recorded on the session.** `chat_sessions.is_work` (mirroring
+  `is_git`) marks a conversation that was handed to Arc Work, and dashboard
+  history badges each chat accordingly. It used to live only in localStorage, so
+  it was device-local and invisible to the dashboard.
 - **Arc Matrix™ Models: Auto, Ava, Maya, River.** The picker exposes Auto, Ava
   (Fast & Agile), Maya (Balanced Intelligence), and River (Deep Reasoning). Ava,
   Maya, and River map to `low`, `medium`, and `high` `reasoning_effort`; Auto

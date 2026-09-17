@@ -2571,6 +2571,25 @@ function Section({ title, icon: Icon, action, actionLabel, count, children }: {
   );
 }
 
+/** History has to say whether a conversation was a Chat or an Arc Work run —
+    they behave differently and Work chats are easy to mistake for ordinary ones. */
+function SessionKindBadge({ isWork, className }: { isWork?: boolean; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide leading-none shrink-0",
+        isWork
+          ? "bg-primary/15 text-primary border border-primary/25"
+          : "bg-muted/60 text-muted-foreground border border-border/40",
+        className,
+      )}
+    >
+      {isWork ? <Rocket className="h-2.5 w-2.5" /> : <MessageSquare className="h-2.5 w-2.5" />}
+      {isWork ? "Work" : "Chat"}
+    </span>
+  );
+}
+
 function ChatCard({ session, timeAgo, onClick }: { session: any; timeAgo: (d: any) => string; onClick: () => void; index?: number }) {
   return (
     <div
@@ -2587,7 +2606,10 @@ function ChatCard({ session, timeAgo, onClick }: { session: any; timeAgo: (d: an
           <MessageSquare className="h-3.5 w-3.5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-foreground truncate text-sm">{session.title}</p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <p className="font-semibold text-foreground truncate text-sm">{session.title}</p>
+            <SessionKindBadge isWork={session.isWork} />
+          </div>
           <div className="flex items-center gap-1.5 mt-1">
             <Clock className="h-3 w-3 text-foreground/50 group-hover:text-primary/70 transition-colors" />
             <span className="text-[11px] text-foreground/75 font-medium">{timeAgo(session.lastMessageAt)}</span>
@@ -2776,7 +2798,10 @@ function ChatListItem({ session, currentSessionId, timeAgo, onLoad, onDelete, fo
             <MessageSquare className={cn("h-5 w-5", currentSessionId === session.id ? "text-primary" : "text-muted-foreground")} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-foreground truncate">{session.title}</p>
+            <div className="flex items-center gap-2 min-w-0">
+              <p className="font-semibold text-foreground truncate">{session.title}</p>
+              <SessionKindBadge isWork={session.isWork} />
+            </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-xs text-muted-foreground">{timeAgo(session.lastMessageAt)}</span>
               <span className="text-muted-foreground/30">·</span>

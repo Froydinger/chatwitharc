@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bubbles, RefreshCcwDot, Droplets, WavesHorizontal, Check, ChevronDown, Crown } from 'lucide-react';
-import { useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
+import { Bubbles, RefreshCcwDot, Droplets, WavesHorizontal, Zap, Check, ChevronDown, Crown } from 'lucide-react';
+import { useModelStore, flashEnabledForEmail, type LunaReasoningSelection } from '@/store/useModelStore';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -22,6 +23,7 @@ export const PRESETS = [
   { effort: 'low', title: 'Ava', subtitle: 'Snappy answers & everyday speed', icon: Bubbles },
   { effort: 'medium', title: 'Maya', subtitle: 'Versatile powerhouse intelligence', icon: Droplets },
   { effort: 'high', title: 'River', subtitle: 'Deep logic & heavy reasoning', icon: WavesHorizontal },
+  { effort: 'flash', title: 'Flash', subtitle: 'Fastest tier for quick turns', icon: Zap },
 ] as const;
 
 export function ChatModelPicker({
@@ -41,12 +43,15 @@ export function ChatModelPicker({
     FREE_DAILY_BALANCED_LIMIT,
     FREE_DAILY_DEEP_LIMIT,
   } = useSubscription();
+  const { user } = useAuth();
+  const flashEnabled = flashEnabledForEmail(user?.email);
   const reasoningEffort = useModelStore((state) => state.reasoningEffort);
   const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
-  const activePreset = PRESETS.find((preset) => preset.effort === reasoningEffort) ?? PRESETS[0];
+  const visiblePresets = PRESETS.filter((preset) => preset.effort !== 'flash' || flashEnabled);
+  const activePreset = visiblePresets.find((preset) => preset.effort === reasoningEffort) ?? PRESETS[0];
   const CurrentIcon = activePreset.icon;
 
   useEffect(() => {
@@ -69,6 +74,10 @@ export function ChatModelPicker({
       window.removeEventListener('scroll', compute, true);
     };
   }, [open]);
+
+  useEffect(() => {
+    if (reasoningEffort === 'flash' && !flashEnabled) setReasoningEffort('auto');
+  }, [flashEnabled, reasoningEffort, setReasoningEffort]);
 
   const pick = (effort: LunaReasoningSelection) => {
     setReasoningEffort(effort);
@@ -154,7 +163,7 @@ export function ChatModelPicker({
                   <div className="text-xs font-semibold">Arc Matrix™ Models</div>
                   <div className="text-[10px] text-muted-foreground">Select a reasoning engine for Arc.</div>
                 </div>
-                {PRESETS.map((preset) => {
+                {visiblePresets.map((preset) => {
                   let badge: string | undefined;
                   if (preset.effort === 'low') {
                     badge = 'Unlimited';
@@ -162,6 +171,8 @@ export function ChatModelPicker({
                     badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_BALANCED_LIMIT - dailyBalancedUsed)}/10 left`;
                   } else if (preset.effort === 'high') {
                     badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_DEEP_LIMIT - dailyDeepUsed)}/3 left`;
+                  } else if (preset.effort === 'flash') {
+                    badge = 'Beta';
                   }
                   return (
                     <Row

@@ -154,6 +154,7 @@ export interface ChatSession {
   personaId?: string; // Locks conversation to a specific persona
   folderId?: string; // Links to chat_folders
   isGit?: boolean; // Irreversibly locks conversation to Git mode
+  isWork?: boolean; // Conversation was handed to Arc Work (background cloud run)
 }
 
 export type MemoryActionType = 'memory_saved' | 'memory_accessed' | 'chats_searched' | 'web_searched' | 'context_saved';
@@ -277,6 +278,7 @@ export interface ArcState {
   updateSessionCanvasContent: (sessionId: string, canvasContent: string) => Promise<void>;
   updateSessionTitle: (sessionId: string, title: string) => Promise<void>;
   markSessionAsGit: (sessionId: string) => Promise<void>;
+  markSessionAsWork: (sessionId: string) => Promise<void>;
   generateChatTitle: (sessionId: string) => Promise<void>;
   generateTitlesForUnnamedChats: () => Promise<void>;
 
@@ -625,6 +627,43 @@ export const useArcStore = create<ArcState>()(
         }
       },
 
+      markSessionAsWork: async (sessionId: string) => {
+        const state = get();
+        const existing = state.chatSessions.find(s => s.id === sessionId);
+        if (existing?.isWork) return; // Already marked as a Work session
+
+        const updated: ChatSession = existing
+          ? { ...existing, isWork: true }
+          : {
+              id: sessionId,
+              title: "New Work Chat",
+              createdAt: new Date(),
+              lastMessageAt: new Date(),
+              messages: [],
+              isWork: true,
+              isHydrated: true,
+              messageCount: 0,
+            };
+
+        set({
+          chatSessions: existing
+            ? state.chatSessions.map(s => (s.id === sessionId ? updated : s))
+            : [updated, ...state.chatSessions],
+        });
+
+        if (supabase && isSupabaseConfigured && !existing?.isLocalOnly) {
+          try {
+            const { error } = await supabase
+              .from('chat_sessions')
+              .update({ is_work: true })
+              .eq('id', sessionId);
+            if (error) throw error;
+          } catch (e) {
+            console.error('❌ Failed to mark session as Work in Supabase:', e);
+          }
+        }
+      },
+
       generateChatTitle: async (sessionId: string) => {
         if (!supabase || !isSupabaseConfigured) return;
 
@@ -814,7 +853,7 @@ export const useArcStore = create<ArcState>()(
             // FIX: Added folder_id to the select query to ensure it persists on refresh
             const { data: fallbackRows, error: fallbackError } = await supabase
               .from('chat_sessions')
-              .select('id, title, created_at, updated_at, canvas_content, folder_id, persona_id, is_git')
+              .select('id, title, created_at, updated_at, canvas_content, folder_id, persona_id, is_git, is_work')
               .eq('user_id', user.id)
               .order('updated_at', { ascending: false })
               .limit(fetchLimit);
@@ -841,6 +880,7 @@ export const useArcStore = create<ArcState>()(
               folder_id: row.folder_id,
               persona_id: row.persona_id,
               is_git: row.is_git ?? false,
+              is_work: row.is_work ?? false,
               message_count: 0,
             }));
           } else {
@@ -873,6 +913,7 @@ export const useArcStore = create<ArcState>()(
               folderId: meta.folder_id || undefined,
               personaId: meta.persona_id || undefined,
               isGit: meta.is_git === true,
+              isWork: meta.is_work === true,
               messageCount: meta.message_count || 0,
               isHydrated: false
             }));
@@ -892,6 +933,7 @@ export const useArcStore = create<ArcState>()(
                   messages: local.messages,
                   isHydrated: local.isHydrated,
                   isGit: loaded.isGit || local.isGit,
+                  isWork: loaded.isWork || local.isWork,
                   messageCount: Math.max(loaded.messageCount, local.messages.length),
                   canvasContent: local.canvasContent || loaded.canvasContent
                 };
@@ -1035,6 +1077,7 @@ export const useArcStore = create<ArcState>()(
                     canvasContent,
                     personaId: remotePersonaId || cs.personaId,
                     isGit: (data?.is_git === true) || cs.isGit,
+                    isWork: (data?.is_work === true) || cs.isWork,
                     isHydrated: true,
                     messageCount: remoteMessages.length
                   } 
@@ -1100,6 +1143,7 @@ export const useArcStore = create<ArcState>()(
                     personaId: remotePersonaId || cs.personaId,
                     lastMessageAt: data?.updated_at ? new Date(data.updated_at) : new Date(),
                     isGit: (data?.is_git === true) || cs.isGit,
+                    isWork: (data?.is_work === true) || cs.isWork,
                     isHydrated: true,
                     messageCount: remoteMessages.length,
                   }
@@ -1338,6 +1382,7 @@ export const useArcStore = create<ArcState>()(
                 folder_id: session.folderId ?? null,
                 persona_id: session.personaId && !session.personaId.startsWith('builtin-') ? session.personaId : null,
                 is_git: session.isGit === true || (existingSession as any)?.is_git === true,
+                is_work: session.isWork === true || (existingSession as any)?.is_work === true,
                 updated_at: new Date().toISOString(),
                 id: session.id
               });
@@ -1725,6 +1770,7 @@ export const useArcStore = create<ArcState>()(
               revision: existingSession?.revision,
               isLocalOnly: existingSession?.isLocalOnly,
               isGit: existingSession?.isGit,
+              isWork: existingSession?.isWork,
               // Preserve hydration so local-only sessions don't get wiped by a
               // cloud fetch on next load (the cloud row never exists for them).
               isHydrated: existingSession?.isHydrated ?? true,
