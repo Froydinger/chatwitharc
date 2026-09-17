@@ -11,7 +11,8 @@ function isThemeMode(value: unknown): value is ThemeMode {
 
 function syncIOSStatusBar(isLight: boolean) {
   const meta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-  meta?.setAttribute("content", isLight ? "default" : "black");
+  const content = isLight ? "default" : "black";
+  if (meta && meta.getAttribute("content") !== content) meta.setAttribute("content", content);
 }
 
 export function useTheme() {
@@ -21,6 +22,8 @@ export function useTheme() {
   const { user, isAnonymous, loading } = useAuth();
   const [loadedUserId, setLoadedUserId] = useState<string | null>(null);
   const location = useLocation();
+  const forceDark = location.pathname.startsWith("/share/")
+    || location.pathname === "/pricing" || location.pathname === "/upgrade" || isIDEOpen;
 
   useEffect(() => {
     if (loading) return;
@@ -67,14 +70,12 @@ export function useTheme() {
     const root = document.documentElement;
 
     const apply = (isLight: boolean) => {
-      // Shared chat, pricing, upgrade pages, and App Builder (IDE) always render in dark theme
-      const path = location.pathname;
-      if (path.startsWith("/share/") || path === "/pricing" || path === "/upgrade" || isIDEOpen) {
-        root.classList.remove("light");
-        root.classList.add("dark");
-        syncIOSStatusBar(false);
-        return;
-      }
+      isLight = !forceDark && isLight;
+      syncIOSStatusBar(isLight);
+      // Ordinary navigation must not reset every animation and synchronously
+      // lay out the entire page when its effective theme has not changed.
+      if (root.classList.contains(isLight ? "light" : "dark")
+        && !root.classList.contains(isLight ? "dark" : "light")) return;
       // Disable transitions during theme swap for instant switching
       root.classList.add("theme-switching");
       if (isLight) {
@@ -84,7 +85,6 @@ export function useTheme() {
         root.classList.remove("light");
         root.classList.add("dark");
       }
-      syncIOSStatusBar(isLight);
       // Force a reflow then re-enable transitions on next frame
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       root.offsetHeight;
@@ -106,5 +106,5 @@ export function useTheme() {
     }
 
     apply(themeMode === "light");
-  }, [themeMode, location.pathname, isIDEOpen]);
+  }, [themeMode, forceDark]);
 }
