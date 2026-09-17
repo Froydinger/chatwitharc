@@ -425,6 +425,16 @@ function NotificationTray({ notifications, onClear, onOpen }: { notifications: P
   );
 }
 
+function DashboardBuildPill() {
+  return (
+    <div className="dashboard-build-pill pointer-events-none fixed inset-x-0 z-40 flex justify-center px-3">
+      <span className="rounded-full border border-white/[0.14] bg-black/75 px-2.5 py-1 font-mono text-[10px] font-medium tracking-[0.08em] text-white/70 shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-md" aria-label={`Dashboard build ${__ARC_BUILD_VERSION__}`}>
+        Build {__ARC_BUILD_VERSION__}
+      </span>
+    </div>
+  );
+}
+
 function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat, onOpenReminders, unreadChatIds }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; canRunWork: boolean; onBoostRequired: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void; onOpenReminders?: () => void; unreadChatIds?: Set<string> }) {
   const [query, setQuery] = useState("");
   const visibleChats = useMemo(() => chatItems.filter((chat) => chat.title.toLowerCase().includes(query.toLowerCase())), [chatItems, query]);
@@ -709,6 +719,7 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
           a transformed ancestor makes fixed positioning relative to the page
           content instead of the viewport, leaving the dock floating above the
           home-indicator edge. */}
+      <DashboardBuildPill />
       <div key="bottom-dock"><BottomShelf activeTab={activeTab} onChange={handleTabChange} onSettings={() => navigate("/dashboard/settings")} /></div>
       <AnimatePresence>
         {pendingDeleteChat && (
