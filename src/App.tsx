@@ -59,17 +59,6 @@ const SharedChatsPage = lazy(() => import("./pages/SharedChatsPage").then((m) =>
 const SharedChatRoomPage = lazy(() => import("./pages/SharedChatRoomPage").then((m) => ({ default: m.SharedChatRoomPage })));
 const LandingPage = lazy(() => import("./pages/LandingPage").then((m) => ({ default: m.LandingPage })));
 
-/** Warm the lightweight dashboard route shell after the app mounts. The
- * dashboard library stays lazy behind its own tabs; importing unrelated routes
- * in the background competes with the first dashboard navigation on iOS. */
-function prefetchCommonRoutes() {
-  if (typeof window === "undefined") return;
-
-  // iOS Safari has no requestIdleCallback. Start only the small route shell
-  // immediately after the first commit; the overview module is already split
-  // from the heavy library tabs.
-  void import("./pages/DashboardRoute").catch(() => {});
-}
 const CheckoutReturnPage = lazy(() => import("./pages/CheckoutReturnPage"));
 const BlogIndexPage = lazy(() => import("./pages/BlogIndexPage").then((m) => ({ default: m.BlogIndexPage })));
 const BlogPostPage = lazy(() => import("./pages/BlogPostPage").then((m) => ({ default: m.BlogPostPage })));
@@ -261,10 +250,6 @@ const App = () => {
   // Detect standalone mode on mount
   useEffect(() => {
     detectStandaloneMode();
-  }, []);
-
-  useEffect(() => {
-    prefetchCommonRoutes();
   }, []);
 
   return (

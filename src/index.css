@@ -112,34 +112,6 @@
     -webkit-backdrop-filter: none !important;
   }
 
-  /* WebKit can stall the first PWA paint when a fixed dock, a large blurred
-     ambient layer, and a transformed backdrop-filter bubble are mounted at the
-     same time. Keep the dashboard surfaces opaque on iPhone while preserving
-     their borders, shadows, and navigation behavior. */
-  @media (max-width: 767px) {
-    .dashboard-preview-ambient {
-      display: none;
-    }
-
-    .dashboard-preview-dock,
-    .dashboard-preview-dock-bubble,
-    .dashboard-preview-dock-lens {
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-    }
-
-    .dashboard-preview-dock {
-      background: rgba(17, 17, 19, 0.97) !important;
-    }
-
-    .dashboard-preview-dock-bubble {
-      background: hsl(var(--background) / 0.94) !important;
-    }
-
-    .dashboard-preview-dock-lens {
-      background: hsl(var(--background) / 0.96) !important;
-    }
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
