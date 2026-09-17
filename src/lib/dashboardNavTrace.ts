@@ -4,6 +4,7 @@ export type DashboardNavPhase =
   | "button_start"
   | "canvas_save_scheduled"
   | "navigate_called"
+  | "navigate_returned"
   | "dashboard_commit"
   | "dashboard_frame_1"
   | "dashboard_frame_2"

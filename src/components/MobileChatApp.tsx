@@ -1124,6 +1124,7 @@ export function MobileChatApp() {
     sessionStorage.setItem('arc_dashboard_entry', 'menu');
     if (user) logDashboardNavPhase("navigate_called");
     navigate(isLocalPreview ? '/?preview=dashboard&clean=1' : '/dashboard');
+    if (user) logDashboardNavPhase("navigate_returned");
     window.setTimeout(() => {
       if (shouldPersistCanvas) logDashboardNavPhase("canvas_save_scheduled");
       void persistCanvasBeforeLeaving().catch((error) => {
