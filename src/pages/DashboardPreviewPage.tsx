@@ -737,27 +737,57 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
 }
 
 function DashboardEntryShell() {
+  const mockStats = [
+    { label: "Chats", icon: MessageSquare },
+    { label: "Apps", icon: FolderKanban },
+    { label: "Images", icon: ImageIcon },
+    { label: "Reminders", icon: CalendarClock },
+  ];
+
   return (
-    <div className="dashboard-preview-shell min-h-screen overflow-hidden bg-background text-foreground" aria-busy="true">
+    <div className="dashboard-preview-shell min-h-screen overflow-hidden bg-background text-foreground" aria-busy="true" aria-label="Loading dashboard">
       <header className="relative z-10 mx-auto flex w-full max-w-[1440px] items-center justify-between gap-2 px-4 pb-5 sm:px-7 md:px-10 md:pt-8">
         <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-white/[0.055]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-card shadow-sm">
             <ThemedLogo className="h-8 w-8" alt="Arc" />
           </div>
           <div className="min-w-0"><p className="text-[15px] font-semibold">ArcAI</p><p className="text-[11px] text-muted-foreground">Your workspace</p></div>
         </div>
-        <div className="flex gap-1.5"><span className="h-10 w-10 rounded-full border border-white/[0.09] bg-white/[0.04]" /><span className="h-10 w-10 rounded-full border border-white/[0.09] bg-white/[0.04]" /><span className="h-10 w-14 rounded-full border border-white/[0.09] bg-white/[0.04]" /></div>
+        <div className="flex items-center gap-1.5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground"><Smartphone className="h-4 w-4" /></div>
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-muted-foreground"><Bell className="h-4 w-4" /></div>
+          <div className="h-10 w-14 rounded-full border border-border bg-card" />
+        </div>
       </header>
-      <main className="relative z-10 mx-auto w-full max-w-[1440px] px-4 sm:px-7 lg:px-10">
-        <section className="rounded-[32px] border border-white/[0.09] bg-white/[0.035] p-5 sm:p-6">
-          <div className="h-3 w-20 animate-pulse rounded-full bg-primary/20" />
-          <div className="mt-4 h-9 w-56 max-w-full animate-pulse rounded-xl bg-white/[0.08]" />
-          <div className="mt-3 h-4 w-72 max-w-full animate-pulse rounded-full bg-white/[0.05]" />
-          <div className="mt-8 grid grid-cols-3 gap-2"><div className="h-16 animate-pulse rounded-2xl bg-white/[0.05]" /><div className="h-16 animate-pulse rounded-2xl bg-white/[0.05]" /><div className="h-16 animate-pulse rounded-2xl bg-white/[0.05]" /></div>
+
+      <main className="relative z-10 mx-auto w-full max-w-[1440px] px-4 pb-28 sm:px-7 lg:px-10">
+        <section className="overflow-hidden rounded-[30px] border border-border bg-card p-5 shadow-sm sm:p-6">
+          <div className="grid gap-6 lg:grid-cols-[1fr_1.05fr]">
+            <div>
+              <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.16em] text-primary"><span className="h-1.5 w-1.5 rounded-full bg-primary" />Signed in</div>
+              <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">Your dashboard</h1>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Loading your latest chats, apps, images, and reminders.</p>
+              <div className="mt-7 h-9 w-28 animate-pulse rounded-full bg-foreground/90" />
+            </div>
+            <div className="rounded-[22px] border border-border bg-muted/35 p-4">
+              <div className="flex items-center justify-between"><div><p className="text-sm font-semibold">Recent chats</p><p className="mt-1 text-[11px] text-muted-foreground">Picking up where you left off.</p></div><div className="h-7 w-16 animate-pulse rounded-full bg-muted" /></div>
+              <div className="mt-3 space-y-2">
+                {[0, 1, 2].map((item) => <div key={item} className="flex items-center gap-3 rounded-2xl border border-border/70 bg-background/70 p-2.5"><div className="h-8 w-8 shrink-0 animate-pulse rounded-xl bg-primary/15" /><div className="flex-1"><div className="h-3 w-2/3 animate-pulse rounded-full bg-foreground/15" /><div className="mt-2 h-2.5 w-1/3 animate-pulse rounded-full bg-muted-foreground/15" /></div></div>)}
+              </div>
+            </div>
+          </div>
         </section>
-        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-24 animate-pulse rounded-[24px] border border-white/[0.08] bg-white/[0.035]" />)}</div>
+
+        <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {mockStats.map(({ label, icon: Icon }) => <div key={label} className="rounded-[22px] border border-border bg-card p-4 shadow-sm"><div className="flex items-center justify-between text-xs text-muted-foreground"><span>{label}</span><Icon className="h-4 w-4 text-primary/70" /></div><div className="mt-5 h-7 w-12 animate-pulse rounded-lg bg-foreground/12" /><div className="mt-2 h-2.5 w-20 animate-pulse rounded-full bg-muted" /></div>)}
+        </div>
       </main>
-      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+5px)] z-50 flex justify-center px-3"><div className="h-[62px] w-full max-w-[850px] rounded-full border border-white/[0.12] bg-[#111113]" /></div>
+
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom,0px)+5px)] z-50 flex justify-center px-3">
+        <div className="flex h-[62px] w-full max-w-[850px] items-center justify-around rounded-full border border-border bg-card px-3 shadow-[0_16px_45px_rgba(0,0,0,0.16)]">
+          {navItems.map(({ label, icon: Icon }, index) => <div key={label} className={cn("flex h-10 w-10 items-center justify-center rounded-full", index === 0 ? "bg-foreground text-background" : "text-muted-foreground")}><Icon className="h-4 w-4" /></div>)}
+        </div>
+      </div>
     </div>
   );
 }
