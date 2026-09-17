@@ -566,26 +566,15 @@ useEffect(() => {
     if (!authLoading && !user) navigate("/", { replace: true });
   }, [authLoading, user, navigate]);
 
-  // Wait for sessions to be loaded before hydrating so hydrateAllSessions
-  // doesn't see an empty chatSessions array and bail out early. Run it once the
-  // browser is idle: nothing above the fold needs message bodies, and on iOS
-  // parsing every session's messages on the critical path is what the user sees
-  // as the dashboard hanging.
+  // Only the Canvases tab needs message bodies. Hydrating every session on mount
+  // meant downloading and JSON.parsing the full transcript of every chat the
+  // account has just to show titles and counts — on a phone with a few hundred
+  // chats that is seconds of blocked main thread, which is the dashboard
+  // "freeze". Metadata from list_chat_sessions_meta covers everything else.
   useEffect(() => {
-    if (!user || !isLoaded) return;
-    let cancelled = false;
-    const run = () => { if (!cancelled) void hydrateAllSessions(); };
-    const idle = (window as any).requestIdleCallback;
-    const handle = typeof idle === "function"
-      ? idle(run, { timeout: 2000 })
-      : window.setTimeout(run, 400); // iOS Safari has no requestIdleCallback
-    return () => {
-      cancelled = true;
-      const cancelIdle = (window as any).cancelIdleCallback;
-      if (typeof idle === "function" && typeof cancelIdle === "function") cancelIdle(handle);
-      else window.clearTimeout(handle as number);
-    };
-  }, [user, isLoaded, hydrateAllSessions]);
+    if (!user || !isLoaded || activeTab !== "canvases") return;
+    void hydrateAllSessions();
+  }, [user, isLoaded, activeTab, hydrateAllSessions]);
 
   // Optimized image fetching: only fetch sessions that actually contain images
   const fetchMoreImages = async (reset = false) => {
@@ -919,6 +908,9 @@ useEffect(() => {
   // is not: it walks every message of every session and runs a regex over each
   // one, which is why it is gated on the tab actually being open.
   const canvasCount = useMemo(() => {
+    // Message bodies only exist after the Canvases tab has hydrated them, so a
+    // count before that would be a confident zero rather than "not known yet".
+    if (!allSessionsHydrated) return null;
     let count = 0;
     (chatSessions || []).forEach(s => {
       ((s && s.messages) || []).forEach(m => {
@@ -926,7 +918,7 @@ useEffect(() => {
       });
     });
     return count;
-  }, [chatSessions]);
+  }, [chatSessions, allSessionsHydrated]);
 
   const filteredCanvases = useMemo(() => {
     const items: CanvasItem[] = [];
@@ -1019,7 +1011,7 @@ useEffect(() => {
     { label: "Chats", tab: "chats" as DashboardTab, value: quickCounts.chats !== null ? quickCounts.chats : (allChats.length > 0 ? allChats.length : 0), icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
     { label: "Images", tab: "images" as DashboardTab, value: totalImageCount, icon: Image, color: "270 80% 65%", tw: "text-neon-400" },
     { label: "Apps", tab: "apps" as DashboardTab, value: recentApps.length, icon: Smartphone, color: "270 80% 65%", tw: "text-neon-400" },
-    { label: "Canvases", tab: "canvases" as DashboardTab, value: canvasCount, icon: Code2, color: "35 90% 60%", tw: "text-orange-400" },
+    { label: "Canvases", tab: "canvases" as DashboardTab, value: canvasCount ?? "—", icon: Code2, color: "35 90% 60%", tw: "text-orange-400" },
     { label: "Living memory", tab: "memories" as DashboardTab, value: quickCounts.memories !== null ? quickCounts.memories : (contextBlocks.length > 0 ? 1 : 0), icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
 
