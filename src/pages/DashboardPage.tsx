@@ -53,6 +53,7 @@ import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
 import { KineticDeleteButton } from "@/components/ui/rare-ui/kinetic-delete-button";
+import { DashboardPreviewPage } from "@/pages/DashboardPreviewPage";
 
 type DashboardTab = "overview" | "apps" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -2942,3 +2943,19 @@ function ChatListItem({ session, currentSessionId, timeAgo, onLoad, onDelete, fo
 }
 
 // Auth gate. Keeping the signed-out check in its own component means
+export function DashboardPage() {
+  const navigate = useNavigate();
+  const { user, loading: authLoading, isAnonymous } = useAuth();
+  const signedOut = !authLoading && (isAnonymous || !user);
+
+  useEffect(() => {
+    if (!signedOut) return;
+    navigate("/", { replace: true });
+    window.dispatchEvent(
+      new CustomEvent("auth-gate-feature", { detail: { feature: "menu" } }),
+    );
+  }, [signedOut, navigate]);
+
+  if (signedOut) return null;
+  return <DashboardPreviewPage live />;
+}

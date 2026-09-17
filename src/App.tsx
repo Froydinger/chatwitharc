@@ -45,7 +45,7 @@ const PricingPage = lazy(() => import("./pages/PricingPage").then((m) => ({ defa
 const UpgradePage = lazy(() => import("./pages/UpgradePage").then((m) => ({ default: m.UpgradePage })));
 // Chunk recovery has one owner: the pre-entrypoint handler in index.html.
 // Let rejected imports reach ErrorBoundary; React.lazy caches rejected promises.
-const DashboardPage = lazy(() => import("./pages/DashboardRoute").then((m) => ({ default: m.DashboardRoute })));
+const DashboardPage = lazy(() => import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
 const DashboardSettingsPage = lazy(() => import("./pages/DashboardSettingsPage").then((m) => ({ default: m.DashboardSettingsPage })));
 const UnsubscribePage = lazy(() => import("./pages/UnsubscribePage"));
 const SupportPage = lazy(() => import("./pages/SupportPage").then((m) => ({ default: m.SupportPage })));
@@ -75,6 +75,14 @@ import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { isLocalChatPreview } from "@/lib/localPreview";
 import { isLocalDashboardPreview } from "@/lib/localPreview";
 import { DashboardPreviewPage } from "./pages/DashboardPreviewPage";
+
+function preloadDashboardRoute() {
+  if (typeof window === "undefined") return;
+  const navigatorWithStandalone = window.navigator as Navigator & { standalone?: boolean };
+  const standalone = window.matchMedia('(display-mode: standalone)').matches
+    || navigatorWithStandalone.standalone === true;
+  if (standalone) void import("./pages/DashboardPage").catch(() => {});
+}
 
 const FullscreenLoader = () => {
   const [stage, setStage] = useState<'spin' | 'bloop'>('spin');
@@ -250,6 +258,7 @@ const App = () => {
   // Detect standalone mode on mount
   useEffect(() => {
     detectStandaloneMode();
+    preloadDashboardRoute();
   }, []);
 
   return (
