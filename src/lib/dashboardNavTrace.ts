@@ -118,13 +118,18 @@ export function logDashboardNavPhase(phase: DashboardNavPhase) {
 
   const elapsedMs = Math.max(0, Math.round(performance.now() - trace.startedAtPerformance));
   // This table is intentionally temporary and is not in the generated schema
-  // types. Keep the write fire-and-forget so diagnostics cannot delay routing.
-  const timingClient = supabase as unknown as TimingClient;
-  void timingClient
-    .from("dashboard_nav_timings")
-    .insert({ trace_id: trace.id, user_id: trace.userId, phase, elapsed_ms: elapsedMs })
-    .then(({ error }: { error: unknown }) => {
-      if (error) console.warn("[dashboard-nav] timing write failed", error);
-    })
-    .catch((error: unknown) => console.warn("[dashboard-nav] timing write failed", error));
+  // types. Defer the network request itself so diagnostics cannot contend with
+  // the navigation event or the dashboard's first commit on iOS.
+  const write = () => {
+    const timingClient = supabase as unknown as TimingClient;
+    void timingClient
+      .from("dashboard_nav_timings")
+      .insert({ trace_id: trace.id, user_id: trace.userId, phase, elapsed_ms: elapsedMs })
+      .then(({ error }: { error: unknown }) => {
+        if (error) console.warn("[dashboard-nav] timing write failed", error);
+      })
+      .catch((error: unknown) => console.warn("[dashboard-nav] timing write failed", error));
+  };
+  if (typeof window !== "undefined") window.setTimeout(write, 0);
+  else write();
 }

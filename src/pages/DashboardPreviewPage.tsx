@@ -508,9 +508,12 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile: authProfile } = useAuth();
   const { profile: fetchedProfile } = useProfile();
-  const [dashboardDataReady, setDashboardDataReady] = useState(!live);
   const [liveCountsReady, setLiveCountsReady] = useState(!live);
-  const { isLoaded } = useChatSync({ enabled: !live || dashboardDataReady });
+  // The dashboard shell is ready as soon as this component commits. Its
+  // effects start the live requests after that commit, while the first render
+  // keeps the real cards and placeholders visible.
+  const dashboardDataReady = true;
+  const { isLoaded } = useChatSync();
   const chatSessions = useArcStore((state) => state.chatSessions);
   const createNewSession = useArcStore((state) => state.createNewSession);
   const loadSession = useArcStore((state) => state.loadSession);
@@ -547,16 +550,10 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   useEffect(() => {
     if (!live) return;
     logDashboardNavPhase("dashboard_commit");
-    const firstFrame = window.requestAnimationFrame(() => {
-      logDashboardNavPhase("dashboard_frame_1");
-      // One frame is enough to let the shell paint before live data work
-      // starts. A nested RAF is unreliable in iOS PWAs and was observed to
-      // pause for ~4 seconds before firing.
-      setDashboardDataReady(true);
-    });
-    return () => {
-      window.cancelAnimationFrame(firstFrame);
-    };
+    // Keep this phase name for the existing diagnostic table. There is no
+    // requestAnimationFrame gate here: WebKit PWAs can defer RAF callbacks for
+    // several seconds during route transitions.
+    logDashboardNavPhase("dashboard_frame_1");
   }, [live]);
 
   useEffect(() => {

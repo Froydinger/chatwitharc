@@ -1120,16 +1120,18 @@ export function MobileChatApp() {
       return;
     }
     if (user) startDashboardNavTrace(user.id);
-    void persistCanvasBeforeLeaving().catch((error) => {
-      // Navigation should never be blocked by an opportunistic canvas save.
-      // Consume the rejection so the global error reporter cannot flash a bug
-      // dialog over the dashboard during the transition.
-      console.warn('Canvas save before dashboard navigation failed; continuing.', error);
-    });
-    if (user && isCanvasOpen && currentSessionId && canvasContent.trim()) logDashboardNavPhase("canvas_save_scheduled");
+    const shouldPersistCanvas = user && isCanvasOpen && currentSessionId && canvasContent.trim();
     sessionStorage.setItem('arc_dashboard_entry', 'menu');
     if (user) logDashboardNavPhase("navigate_called");
     navigate(isLocalPreview ? '/?preview=dashboard&clean=1' : '/dashboard');
+    window.setTimeout(() => {
+      if (shouldPersistCanvas) logDashboardNavPhase("canvas_save_scheduled");
+      void persistCanvasBeforeLeaving().catch((error) => {
+        // Consume the rejection so the global error reporter cannot flash a bug
+        // dialog over the dashboard during the transition.
+        console.warn('Canvas save before dashboard navigation failed; continuing.', error);
+      });
+    }, 0);
   };
 
   const handleNewChat = () => {
