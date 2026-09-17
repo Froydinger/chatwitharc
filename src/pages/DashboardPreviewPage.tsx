@@ -7,7 +7,6 @@ import {
   BarChart3,
   Bell,
   Brain,
-  Check,
   CalendarClock,
   Crown,
   ChevronRight,
@@ -16,7 +15,6 @@ import {
   FolderKanban,
   Image as ImageIcon,
   LayoutDashboard,
-  Loader2,
   MessageSquare,
   Plus,
   Search,
@@ -78,60 +76,7 @@ const previewNotifications: PreviewNotification[] = [
   { title: "Arc saved your chat", detail: "The good news digest is synced.", time: "Yesterday", unread: false, chatId: "preview-news" },
 ];
 
-type WorkspaceTask = { id: string; title: string; detail: string; tone: string };
-
-const TASK_TONES = ["bg-emerald-300", "bg-violet-300", "bg-amber-200"];
-
-/** Day number since epoch — the rotation seed, so the set is stable for a day. */
-function dayIndex(now: Date = new Date()): number {
-  return Math.floor(
-    new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 86_400_000,
-  );
-}
-
-const CHAT_ANGLES = [
-  { verb: "Pick up", detail: (t: string) => `Continue where you left off in ${t}.` },
-  { verb: "Summarize", detail: (t: string) => `Pull the decisions and open threads out of ${t}.` },
-  { verb: "Draft next steps from", detail: (t: string) => `Turn ${t} into a short action list.` },
-  { verb: "Turn into a canvas:", detail: (t: string) => `Move ${t} into a canvas you can edit.` },
-];
-
-const STARTERS: Omit<WorkspaceTask, "tone">[] = [
-  { id: "starter-week", title: "Review this week", detail: "Recap what you have been working on across recent chats." },
-  { id: "starter-plan", title: "Plan tomorrow", detail: "Draft a short plan from your recent threads and reminders." },
-  { id: "starter-images", title: "Review your latest images", detail: "Look over the newest set and call out the strongest ones." },
-  { id: "starter-reminders", title: "Tidy your reminders", detail: "Check what is queued and drop anything stale." },
-];
-
-/**
- * Three suggestions drawn from the user's actual recent chats, rotating once a
- * day. `seed` is the day number, so everything below is deterministic: the card
- * stays put while you use it and changes when the date does. Falls back to
- * generic starters when there are no chats yet.
- */
-function buildWorkspaceTasks(chatItems: DashboardChatPreview[], seed: number): WorkspaceTask[] {
-  const chats = chatItems.slice(0, 6);
-  const tasks: WorkspaceTask[] = [];
-
-  chats.slice(0, 3).forEach((chat, i) => {
-    const angle = CHAT_ANGLES[(seed + i) % CHAT_ANGLES.length];
-    const quoted = `“${chat.title}”`;
-    tasks.push({
-      id: `chat-${chat.id}-${angle.verb}`,
-      title: `${angle.verb} ${quoted}`,
-      detail: angle.detail(quoted),
-      tone: TASK_TONES[i % TASK_TONES.length],
-    });
-  });
-
-  for (let i = 0; tasks.length < 3; i++) {
-    const starter = STARTERS[(seed + i) % STARTERS.length];
-    if (tasks.some((t) => t.id === starter.id)) continue;
-    tasks.push({ ...starter, tone: TASK_TONES[tasks.length % TASK_TONES.length] });
-  }
-
-  return tasks.slice(0, 3);
-}
+// The "3 things Arc can keep moving" tile was removed pending a redesign.
 
 function ArcMark({ compact = false, onClick }: { compact?: boolean; onClick?: () => void }) {
   const content = (
@@ -479,34 +424,10 @@ function NotificationTray({ notifications, onClear, onOpen }: { notifications: P
   );
 }
 
-function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, onBoostRequired, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat, onOpenReminders, unreadChatIds }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; onTaskComplete: (title: string) => void; canRunWork: boolean; onBoostRequired: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void; onOpenReminders?: () => void; unreadChatIds?: Set<string> }) {
+function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat, onOpenReminders, unreadChatIds }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; canRunWork: boolean; onBoostRequired: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void; onOpenReminders?: () => void; unreadChatIds?: Set<string> }) {
   const [query, setQuery] = useState("");
-  const [taskStates, setTaskStates] = useState<Record<string, "idle" | "running" | "complete">>({});
-  const taskTimersRef = useRef<number[]>([]);
   const visibleChats = useMemo(() => chatItems.filter((chat) => chat.title.toLowerCase().includes(query.toLowerCase())), [chatItems, query]);
-  // Recomputed when the day rolls over, so the card refreshes daily without a reload.
-  const [today, setToday] = useState(() => dayIndex());
-  useEffect(() => {
-    const tick = window.setInterval(() => setToday(dayIndex()), 60_000);
-    return () => window.clearInterval(tick);
-  }, []);
-  const workspaceTasks = useMemo(() => buildWorkspaceTasks(chatItems, today), [chatItems, today]);
 
-  useEffect(() => () => taskTimersRef.current.forEach((timer) => window.clearTimeout(timer)), []);
-
-  const runWorkspaceTask = (task: WorkspaceTask) => {
-    if (!canRunWork) {
-      onBoostRequired();
-      return;
-    }
-    if (taskStates[task.id] === "running") return;
-    setTaskStates((current) => ({ ...current, [task.id]: "running" }));
-    const timer = window.setTimeout(() => {
-      setTaskStates((current) => ({ ...current, [task.id]: "complete" }));
-      onTaskComplete(task.title);
-    }, 1800);
-    taskTimersRef.current.push(timer);
-  };
 
   if (activeTab !== "overview") {
     const item = navItems.find((nav) => nav.id === activeTab) ?? navItems[0];
@@ -567,7 +488,6 @@ function DashboardOverview({ activeTab, onNavigate, onTaskComplete, canRunWork, 
 
       <div className="grid gap-5">
         <section className="relative overflow-hidden">
-          <div className="dashboard-preview-workspace-card rounded-[28px] border border-primary/20 bg-gradient-to-br from-primary/[0.14] via-white/[0.04] to-transparent p-4 shadow-[0_20px_60px_rgba(0,0,0,0.14)] sm:p-5 lg:p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-lg font-semibold tracking-[-0.02em] sm:text-xl">3 things Arc can keep moving</p><p className="mt-1 text-xs text-muted-foreground">Quick actions ready when you are.</p></div><span className="shrink-0 pt-1 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{canRunWork ? "Boost" : "Arc Work"}</span></div><div className="mt-4 grid gap-2.5 sm:grid-cols-3">{workspaceTasks.map((task) => { const status = taskStates[task.id] ?? "idle"; return <button key={task.id} type="button" onClick={() => runWorkspaceTask(task)} disabled={status === "running"} className="group rounded-2xl border border-white/[0.1] bg-white/[0.045] p-3 text-left transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-white/[0.08] disabled:cursor-wait sm:p-3.5"><span className="flex items-start gap-2.5"><span className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full", status === "complete" ? "bg-emerald-400/15 text-emerald-300" : "bg-white/[0.08] text-muted-foreground")} >{status === "running" ? <Loader2 className="h-3 w-3 animate-spin" /> : status === "complete" ? <Check className="h-3 w-3" /> : <span className={cn("h-1.5 w-1.5 rounded-full", task.tone)} />}</span><span className="min-w-0"><span className="block truncate text-xs font-medium sm:text-sm">{task.title}</span><span className="mt-1 block truncate text-[10px] text-muted-foreground">{status === "running" ? "Running in cloud!" : status === "complete" ? "Complete!" : "Run in Arc Work"}</span></span></span></button>; })}</div></div>
         </section>
       </div>
     </motion.div>
@@ -674,9 +594,6 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
     return ids;
   }, [notifications, resolveNotificationChat]);
 
-  const handleTaskComplete = (title: string) => {
-    setNotifications((current) => [{ title: "Cloud run complete", detail: `${title} is ready. Push + email sent.`, time: "Just now", unread: true }, ...current].slice(0, 4));
-  };
   const handleTabChange = (tab: DashboardTab) => {
     setActiveTab(tab);
     const nextParams = new URLSearchParams(searchParams);
@@ -782,7 +699,7 @@ export function DashboardPreviewPage({ live = false }: { live?: boolean }) {
       </header>
 
       <div className="dashboard-preview-page-content relative z-10 mx-auto flex w-full max-w-[1440px] px-4 sm:px-7 lg:px-10">
-        <main className="min-w-0 flex-1">{activeTab !== "overview" ? <DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} /> : <DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} onTaskComplete={handleTaskComplete} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? liveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} onOpenReminders={() => navigate("/tasks")} unreadChatIds={unreadChatIds} />}</main>
+        <main className="min-w-0 flex-1">{activeTab !== "overview" ? <DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} /> : <DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? liveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} onOpenReminders={() => navigate("/tasks")} unreadChatIds={unreadChatIds} />}</main>
       </div>
 
       {/* Keep the fixed dock outside a transformed motion parent. On iOS PWAs,
