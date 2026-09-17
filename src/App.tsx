@@ -74,7 +74,7 @@ import { motion } from "framer-motion";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { isLocalChatPreview } from "@/lib/localPreview";
 import { isLocalDashboardPreview } from "@/lib/localPreview";
-const DashboardPreviewPage = lazy(() => import("./pages/DashboardPreviewPage").then((m) => ({ default: m.DashboardPreviewPage })));
+import { DashboardPreviewPage } from "./pages/DashboardPreviewPage";
 
 const FullscreenLoader = () => {
   const [stage, setStage] = useState<'spin' | 'bloop'>('spin');
