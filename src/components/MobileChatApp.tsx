@@ -1288,23 +1288,25 @@ export function MobileChatApp() {
                 </Button>
               </motion.div>
 
-              <motion.div 
-                whileHover={{ scale: 1.1, y: -2 }} 
-                whileTap={{ scale: 0.95 }} 
-                transition={{ type: "spring", damping: 15, stiffness: 300 }}
-                className="cursor-pointer"
-                onClick={handleNewChat}
-              >
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full glass-shimmer transition-all pointer-events-none"
-                  title="New chat"
-                  aria-label="New chat"
+              {messages.length > 0 && (
+                <motion.div
+                  whileHover={{ scale: 1.1, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                  className="cursor-pointer"
+                  onClick={handleNewChat}
                 >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </motion.div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full glass-shimmer transition-all pointer-events-none"
+                    title="New chat"
+                    aria-label="New chat"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+              )}
             </div>
 
             {/* The mode switch only shows on an empty chat, outside canvas. Once a
