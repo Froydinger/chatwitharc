@@ -380,7 +380,7 @@ export function IDEChatPanel({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-[#13151c]/90 border border-white/10 rounded-full px-2.5 py-1.5 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all shadow-inner">
+        <form onSubmit={handleSubmit} className="arc-ide-chat-form relative flex items-center gap-2 bg-[#13151c]/90 border border-white/10 rounded-full px-2.5 py-1.5 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/20 transition-all shadow-inner">
           <input
             ref={fileInputRef}
             type="file"

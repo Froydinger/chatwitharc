@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIDEStore } from '@/store/useIDEStore';
 import { ThemedLogo } from '@/components/ThemedLogo';
-import { shouldReserveDesktopTrafficLightSpace } from '@/utils/platform';
+import { isIOSPWA, shouldReserveDesktopTrafficLightSpace } from '@/utils/platform';
 import { IDECodeEditor } from './IDECodeEditor';
 import { IDEPreviewPanel } from './IDEPreviewPanel';
 import { IDEChatPanel } from './IDEChatPanel';
@@ -128,6 +128,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
     return () => window.removeEventListener('resize', handleResize);
   }, []);
   const isMobile = isMobileHook || isMobileWindow;
+  const isIOSStandalone = isIOSPWA();
   const { toast } = useToast();
 
   const isProjectHydratedRef = useRef<boolean>(!ideProjectId);
@@ -1296,7 +1297,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
   // Render Workspace
   return (
     <div
-      className={cn("dark arc-ide-workspace h-[100dvh] max-h-[100dvh] w-screen max-w-full flex flex-col bg-[#08090c] text-foreground select-none overflow-hidden", className)}
+      className={cn("dark arc-ide-workspace h-[100dvh] max-h-[100dvh] w-screen max-w-full flex flex-col bg-[#08090c] text-foreground select-none overflow-hidden", isIOSStandalone && "arc-ide-ios-pwa", className)}
       style={{ colorScheme: 'dark' }}
     >
       {projectSaveError && (
@@ -1348,7 +1349,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
 
       {/* Floating Glass Studio Header Dock */}
       {isMobile ? (
-        <header className="px-3 pb-2.5 bg-[#0f1117]/95 border-b border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 z-30 pt-[max(56px,calc(env(safe-area-inset-top,0px)+12px))]">
+        <header className="arc-ide-mobile-header px-3 pb-2.5 bg-[#0f1117]/95 border-b border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 z-30 pt-[max(56px,calc(env(safe-area-inset-top,0px)+12px))]">
           {/* Left: Project identity & Back */}
           <div className="flex items-center gap-2 min-w-0">
             <Button 

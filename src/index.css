@@ -2262,6 +2262,26 @@ All colors MUST be HSL for perfect glass effects.
     --ai-message-border: 240 10% 24%;
   }
 
+  /* iOS Safari zooms focused fields smaller than 16px. Keep every editable
+     App Builder field at the native size on phones, while desktop keeps the
+     compact IDE typography. */
+  @media (max-width: 767px) {
+    .arc-ide-workspace :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), textarea, select) {
+      font-size: 16px !important;
+    }
+
+    .arc-ide-workspace .arc-ide-chat-form textarea {
+      background: transparent !important;
+      border-color: transparent !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    .arc-ide-ios-pwa .arc-ide-mobile-header {
+      padding-top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
+    }
+  }
+
   /* iPad PWA: Apply 30px top padding only in standalone mode */
   body.standalone-app.is-ipad #root {
     padding-top: 30px !important;

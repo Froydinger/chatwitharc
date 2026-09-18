@@ -496,9 +496,24 @@ function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired,
         ))}
       </div>
 
-      <div className="grid gap-5">
-        <section className="relative overflow-hidden">
-        </section>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <button type="button" onClick={() => onNavigate("memory")} className="dashboard-preview-memory-tile group relative flex min-h-[92px] w-full items-center justify-between gap-4 overflow-hidden rounded-[24px] border border-primary/20 bg-primary/[0.055] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/[0.08] sm:p-5">
+          <div className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-primary/10 blur-2xl" />
+          <div className="relative flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/[0.1] text-primary"><Brain className="h-5 w-5" /></div>
+            <div className="min-w-0"><p className="text-xs font-semibold text-foreground">Living memory</p><p className="mt-1 truncate text-[11px] text-muted-foreground">See the details Arc carries forward for you.</p></div>
+          </div>
+          <div className="relative flex shrink-0 items-center gap-2 text-primary"><span className="hidden text-[11px] font-medium sm:inline">Open memory</span><ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></div>
+        </button>
+
+        <button type="button" onClick={handleAppBuilder} className="dashboard-preview-builder-tile group relative flex min-h-[92px] w-full items-center justify-between gap-4 overflow-hidden rounded-[24px] border border-white/[0.1] bg-white/[0.035] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-white/[0.06] sm:p-5">
+          <div className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-violet-500/10 blur-2xl" />
+          <div className="relative flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/[0.1] text-primary">{canRunWork ? <Smartphone className="h-5 w-5" /> : <Crown className="h-5 w-5" />}</div>
+            <div className="min-w-0"><p className="text-xs font-semibold text-foreground">App Builder</p><p className="mt-1 truncate text-[11px] text-muted-foreground">Turn an idea into a working app with Arc.</p></div>
+          </div>
+          <div className="relative flex shrink-0 items-center gap-2 text-primary"><span className="hidden text-[11px] font-medium sm:inline">{canRunWork ? "Open builder" : "Unlock"}</span><ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></div>
+        </button>
       </div>
     </motion.div>
   );
@@ -507,7 +522,7 @@ function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired,
 function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, profile: authProfile } = useAuth();
+  const { user, profile: authProfile, loading: authLoading } = useAuth();
   const { profile: fetchedProfile } = useProfile();
   const [liveCountsReady, setLiveCountsReady] = useState(!live);
   // The dashboard shell is ready as soon as this component commits. Its
@@ -528,7 +543,13 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [isBoostGateOpen, setIsBoostGateOpen] = useState(false);
-  const [notifications, setNotifications] = useState<PreviewNotification[]>(previewNotifications);
+  const notificationStorageKey = `arc_dashboard_notifications_cleared:${user?.id || "preview"}`;
+  const notificationReady = !live || (!authLoading && Boolean(user));
+  const [notifications, setNotifications] = useState<PreviewNotification[]>(() => {
+    if (typeof window === "undefined") return previewNotifications;
+    if (!notificationReady) return [];
+    return window.localStorage.getItem(notificationStorageKey) === "1" ? [] : previewNotifications;
+  });
   const [previewChatItems, setPreviewChatItems] = useState<DashboardChatPreview[]>(recentChats);
   const [pendingDeleteChat, setPendingDeleteChat] = useState<{ id: string; title: string } | null>(null);
   const [isDeletingChat, setIsDeletingChat] = useState(false);
@@ -546,6 +567,16 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
   const themeLabel = themeMode === "light" ? "Light" : themeMode === "system" ? "System" : "Dark";
   const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening";
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !notificationReady) return;
+    setNotifications(window.localStorage.getItem(notificationStorageKey) === "1" ? [] : previewNotifications);
+  }, [notificationReady, notificationStorageKey]);
+
+  const clearNotifications = useCallback(() => {
+    setNotifications([]);
+    if (typeof window !== "undefined") window.localStorage.setItem(notificationStorageKey, "1");
+  }, [notificationStorageKey]);
 
   useEffect(() => {
     if (!live) return;
@@ -734,7 +765,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
               )}
             </AnimatePresence>
           </div>
-          <AnimatePresence>{isNotificationsOpen && <NotificationTray notifications={notifications} onClear={() => setNotifications([])} onOpen={handleOpenNotification} />}</AnimatePresence>
+          <AnimatePresence>{isNotificationsOpen && <NotificationTray notifications={notifications} onClear={clearNotifications} onOpen={handleOpenNotification} />}</AnimatePresence>
         </div>
       </header>
 
