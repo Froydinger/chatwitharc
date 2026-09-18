@@ -52,7 +52,7 @@ import { getAllPromptsFlat } from "@/utils/promptGenerator";
 import { usePromptPreload } from "@/hooks/usePromptPreload";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { logDashboardNavPhase, startDashboardNavTrace } from "@/lib/dashboardNavTrace";
-import { isIOSPWA, shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
+import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { LiveVoiceTranscript } from "@/components/LiveVoiceTranscript";
@@ -1270,36 +1270,23 @@ export function MobileChatApp() {
                 top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
               }}
             >
-              {isIOSPWA() ? (
+              <motion.div
+                whileHover={{ scale: 1.1, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", damping: 15, stiffness: 300 }}
+                className="cursor-pointer"
+                onClick={handleOpenDashboard}
+              >
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={handleOpenDashboard}
-                  className="rounded-full glass-shimmer transition-all"
+                  className="rounded-full glass-shimmer transition-all pointer-events-none"
                   title="Open menu"
                   aria-label="Open menu"
                 >
                   <LayoutDashboard className="h-4 w-4" />
                 </Button>
-              ) : (
-                <motion.div
-                  whileHover={{ scale: 1.1, y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ type: "spring", damping: 15, stiffness: 300 }}
-                  className="cursor-pointer"
-                  onClick={handleOpenDashboard}
-                >
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full glass-shimmer transition-all pointer-events-none"
-                    title="Open menu"
-                    aria-label="Open menu"
-                  >
-                    <LayoutDashboard className="h-4 w-4" />
-                  </Button>
-                </motion.div>
-              )}
+              </motion.div>
 
               <motion.div 
                 whileHover={{ scale: 1.1, y: -2 }} 
