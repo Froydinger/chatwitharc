@@ -434,7 +434,7 @@ function NotificationTray({ notifications, onClear, onOpen }: { notifications: P
   );
 }
 
-function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat, onOpenReminders, unreadChatIds, immediateEntry = false }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; canRunWork: boolean; onBoostRequired: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void; onOpenReminders?: () => void; unreadChatIds?: Set<string>; immediateEntry?: boolean }) {
+function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired, onAppBuilder, chatItems = recentChats, stats = statCards, onOpenChat, onNewChat, onViewAll, onDeleteChat, onOpenReminders, unreadChatIds, immediateEntry = false }: { activeTab: DashboardTab; onNavigate: (tab: DashboardTab) => void; canRunWork: boolean; onBoostRequired: () => void; onAppBuilder: () => void; chatItems?: DashboardChatPreview[]; stats?: DashboardStat[]; onOpenChat?: (id: string) => void; onNewChat?: () => void; onViewAll?: () => void; onDeleteChat?: (id: string, title: string) => void; onOpenReminders?: () => void; unreadChatIds?: Set<string>; immediateEntry?: boolean }) {
   const [query, setQuery] = useState("");
   const visibleChats = useMemo(() => chatItems.filter((chat) => chat.title.toLowerCase().includes(query.toLowerCase())), [chatItems, query]);
 
@@ -506,7 +506,7 @@ function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired,
           <div className="relative flex shrink-0 items-center gap-2 text-primary"><span className="hidden text-[11px] font-medium sm:inline">Open memory</span><ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></div>
         </button>
 
-        <button type="button" onClick={handleAppBuilder} className="dashboard-preview-builder-tile group relative flex min-h-[92px] w-full items-center justify-between gap-4 overflow-hidden rounded-[24px] border border-white/[0.1] bg-white/[0.035] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-white/[0.06] sm:p-5">
+        <button type="button" onClick={onAppBuilder} className="dashboard-preview-builder-tile group relative flex min-h-[92px] w-full items-center justify-between gap-4 overflow-hidden rounded-[24px] border border-white/[0.1] bg-white/[0.035] p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-white/[0.06] sm:p-5">
           <div className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-violet-500/10 blur-2xl" />
           <div className="relative flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/[0.1] text-primary">{canRunWork ? <Smartphone className="h-5 w-5" /> : <Crown className="h-5 w-5" />}</div>
@@ -770,7 +770,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
       </header>
 
       <div className="dashboard-preview-page-content relative z-10 mx-auto flex w-full max-w-[1440px] px-4 sm:px-7 lg:px-10">
-        <main className="min-w-0 flex-1">{activeTab !== "overview" ? <Suspense fallback={<div role="status" className="py-8 text-center text-sm text-muted-foreground">Loading library…</div>}><DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} /></Suspense> : <DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} immediateEntry={live && isIOSPWA()} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? displayLiveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} onOpenReminders={() => navigate("/tasks")} unreadChatIds={unreadChatIds} />}</main>
+        <main className="min-w-0 flex-1">{activeTab !== "overview" ? <Suspense fallback={<div role="status" className="py-8 text-center text-sm text-muted-foreground">Loading library…</div>}><DashboardPageInner embedded key={activeTab} activeTabOverride={activeTab === "memory" ? "memories" : activeTab} /></Suspense> : <DashboardOverview activeTab={activeTab} onNavigate={handleTabChange} canRunWork={canRunWork} onBoostRequired={() => setIsBoostGateOpen(true)} onAppBuilder={handleAppBuilder} immediateEntry={live && isIOSPWA()} chatItems={live ? (isLoaded ? liveChatItems : []) : previewChatItems} stats={live ? displayLiveStats : statCards} onOpenChat={handleOpenChat} onNewChat={handleNewChat} onViewAll={() => handleTabChange("chats")} onDeleteChat={requestDeleteChat} onOpenReminders={() => navigate("/tasks")} unreadChatIds={unreadChatIds} />}</main>
       </div>
 
       {/* Keep the fixed dock outside a transformed motion parent. On iOS PWAs,
