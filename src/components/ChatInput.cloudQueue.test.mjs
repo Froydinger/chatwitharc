@@ -80,6 +80,8 @@ test('natural app requests hand off while explanatory and ordinary coding prompt
     'make a budgeting website',
     'create a full web app for my business',
     'build a tutorial app that shows how much I spend',
+    'Do some research find new trends and make the best website lander for BearCraft Woodworks founded by Tommy Barry 2026 in Chicagoland. Make it a full website with multi pages and policies etc the whole kit and caboodle',
+    'research current trends and create a multi-page website for my business',
     'turn this into an app',
     'make this a website',
     '/build a recipe planner',
@@ -87,7 +89,10 @@ test('natural app requests hand off while explanatory and ordinary coding prompt
   for (const prompt of [
     'how do I build an app',
     'explain app builders',
+    'Can you explain how to build a multi-page website?',
     'write a function that sorts an array',
+    'how do I build a website',
+    'generate an image of a website',
     'make a logo for my website',
     'create a list of apps',
   ]) assert.equal(detect(prompt), false, prompt);

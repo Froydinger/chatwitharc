@@ -293,12 +293,29 @@ function checkForBuildRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
   if (/^(build|app|apps)\//.test(m) || /^\/(build|app|apps)\b/.test(m)) return true;
+  if (/^(?:can you\s+)?(?:explain|tell me about|how (?:do i|can i|to)|what is|should i)\b/i.test(m)) return false;
+  if (/\b(list|directory|catalog|comparison)\s+of\s+(apps?|websites?|sites?)\b/i.test(m)) return false;
   if (/^(can\s+you\s+)?(please\s+)?(turn|convert)\s+(this|that|it)\s+into\s+(an?\s+)?(app|apps|website|web\s+app)\b/i.test(m)
     || /^(can\s+you\s+)?(please\s+)?make\s+(this|that|it)\s+(an?\s+)?(app|apps|website|web\s+app)\b/i.test(m)) return true;
   // Natural app requests may put the app name between the verb and "app"
   // ("build me a habit tracker app", "make a budgeting website"). Keep
   // explanatory questions and ordinary coding requests on the chat path.
   if (/^(can\s+you\s+)?(please\s+)?(build|create|code|make)\s+(me\s+)?(an?\s+)?(?:(?!(?:for|of|about|on|with)\b)[\w'&.-]+\s+){0,8}(app|apps|website|web\s+app)\b/i.test(m)) return true;
+  // Compound briefs often begin with research or design context before the
+  // actual build instruction ("research trends and make a full website").
+  // Multi-page/landing/site language means App Builder intent here, while
+  // explanatory questions, code snippets, and image-only mockups stay routed
+  // through their existing paths.
+  if (/\b(?:copy|policy|policies|article|guide|tutorial)\s+(?:for|of|about)\b/i.test(m)
+    && !/\b(?:and|then|also)\s+(?:build|create|make|develop)\b/i.test(m)) return false;
+  const hasSiteTarget = /\b(app|apps|website|web\s+app|site|landing\s*page|lander|multi[-\s]?page|multiple\s+pages|full\s+website|complete\s+website)\b/i.test(m);
+  const hasBuildVerb = /\b(build|create|make|design|develop|turn|convert)\b/i.test(m);
+  const explanatory = /^(how\s+(do\s+i|to)\b|what\s+is\b|why\s+use\b|explain\b|tell\s+me\s+about\b)/i.test(m);
+  const codeOnly = /^(write|code|implement)\b.*\b(function|component|script|snippet)\b/i.test(m);
+  const imageOnly = ( /\b(generate|draw|render|paint)\b[^.\n]{0,100}\b(image|picture|photo|illustration|mockup)\b/i.test(m)
+    || /^(make|create|design)\s+(me\s+)?(a|an)\s+(logo|icon|image|picture|illustration)\b/i.test(m) )
+    && !/\b(website|site|landing\s*page)\b[^.\n]{0,80}\b(build|create|make|design)\b/i.test(m);
+  if (hasSiteTarget && hasBuildVerb && !explanatory && !codeOnly && !imageOnly) return true;
   return false;
 }
 

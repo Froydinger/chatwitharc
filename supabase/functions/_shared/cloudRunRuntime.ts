@@ -1,3 +1,4 @@
+import { isMultiPageBuildRequest, latestUserMessage } from './multiPageIntent.ts';
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.89.0';
 import { loadCloudRunContext } from './cloudRunContext.ts';
 import { cloudCanvasTools, CLOUD_CANVAS_DEFINITIONS } from './cloudRunCanvasTools.ts';
@@ -106,6 +107,17 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
         run.mode === 'auto' && await authorizeAppBuilder(run);
       const request = run.request && typeof run.request === 'object' && !Array.isArray(run.request)
         ? run.request as Record<string, unknown> : {};
+      const requiresAppProject = isMultiPageBuildRequest(latestUserMessage(request));
+      // Keep the requested deliverable consistent through every tool round,
+      // including after web research. A code canvas is not a multi-page app.
+      const canvasDefinitions = CLOUD_CANVAS_DEFINITIONS.filter(tool => !requiresAppProject || tool.name !== 'update_code');
+      const canvasTools = cloudCanvasTools(authorizeOwner);
+      if (requiresAppProject) delete canvasTools.update_code;
+      const appRoutingInstructions = requiresAppProject
+        ? appBuilderAllowed
+          ? '\nThis request requires a saved App Builder project. Complete the research requested, then use build_app with all pages and source files. update_code is unavailable for this request. Do not claim completion without a successful build_app result.'
+          : '\nThis request requires App Builder, which is unavailable for this run/account. Explain the access limitation. Do not substitute a single-file code canvas or claim an app was built.'
+        : '';
       const initialMessages = run.execution_messages ?? request.messages;
       const mediaReferences = Array.isArray(request.attachments) ? request.attachments : undefined;
       const mediaScope = { ownerId: run.user_id, sessionId: run.session_id };
@@ -116,8 +128,8 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
         : '';
       return {
         provider: cloudResponseProvider({ apiKey, ...context,
-          instructions: `${context.instructions}${imageInstructions}${appBuilderAllowed ? `\n\n=== APP BUILDER ===\nWhen the user asks to build an app or website, use build_app after planning the complete implementation. This Work tool creates the saved multi-file App Builder project directly; do not tell the user to open the IDE first. Generate a complete modern React/Tailwind app with src/App.tsx and src/main.tsx plus all supporting source files, using standard installed React and lucide-react patterns. For persistent data, import the preinstalled ./lib/netlifyDb and use its collection/get/set APIs; for accounts, import ./components/NetlifyAuthModal. Those two system files are injected by the builder and must not be supplied or rewritten. Include honest empty states and functional navigation. Pass every generated file in one build_app call. Do not claim the app was tested or published; report the saved builder link from the tool result. The single-file canvas guidance applies only to update_code, not to this tool.` : ''}`,
-          firstTool: cloudInitialTool(run.request),
+          instructions: `${context.instructions}${imageInstructions}${appRoutingInstructions}${appBuilderAllowed ? `\n\n=== APP BUILDER ===\nWhen the user asks to build an app or website, use build_app after planning the complete implementation. This Work tool creates the saved multi-file App Builder project directly; do not tell the user to open the IDE first. Generate a complete modern React/Tailwind app with src/App.tsx and src/main.tsx plus all supporting source files, using standard installed React and lucide-react patterns. For persistent data, import the preinstalled ./lib/netlifyDb and use its collection/get/set APIs; for accounts, import ./components/NetlifyAuthModal. Those two system files are injected by the builder and must not be supplied or rewritten. Include honest empty states and functional navigation. Pass every generated file in one build_app call. Do not claim the app was tested or published; report the saved builder link from the tool result. The single-file canvas guidance applies only to update_code, not to this tool.` : ''}`,
+          firstTool: cloudInitialTool(run.request, { appBuilderAllowed }),
           ...(mediaReferences && options.mediaConfig && Array.isArray(initialMessages) ? {
             expandInput: transcript => withCloudMediaInput({
               scope: mediaScope,
@@ -135,7 +147,7 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
               },
             }, expanded => Promise.resolve(responseInput(expanded))),
           } : {}),
-          tools: [...CLOUD_CANVAS_DEFINITIONS, ...CLOUD_READ_DEFINITIONS, CLOUD_MEMORY_DEFINITION,
+          tools: [...canvasDefinitions, ...CLOUD_READ_DEFINITIONS, CLOUD_MEMORY_DEFINITION,
           ...CLOUD_SCHEDULED_DEFINITIONS,
           ...(options.fileStore ? [CLOUD_FILE_DEFINITION] : []),
           ...(images?.definitions ?? []),
@@ -145,7 +157,7 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
           ...(gitAccess.enabled && request.forceGit === true ? CLOUD_GIT_DEFINITIONS : [])] }),
         tools: {
           ...(images?.tools ?? {}),
-          ...cloudCanvasTools(authorizeOwner),
+          ...canvasTools,
           ...cloudScheduledTools({ store: cloudScheduledStore(db), authorizeOwner, authorizeSchedule: authorizeOwner }),
           ...(options.fileStore ? { generate_file: cloudFileTool({ store: options.fileStore, authorizeOwner: authorizeFile }) } : {}),
           ...cloudReadTools({ db, authorizeOwner, tavilyApiKey: options.tavilyApiKey }),
