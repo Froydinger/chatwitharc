@@ -722,14 +722,18 @@ All colors MUST be HSL for perfect glass effects.
 }
 
 .dashboard-preview-header {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem);
+  /* Every other top-level surface reserves the macOS traffic lights via this
+     var; this header did not, so the window controls sat on top of the logo
+     at any width. The var is 0px outside the Mac app/PWA, so browsers are
+     unaffected. */
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1.25rem);
 }
 
 @media (min-width: 768px) {
   .dashboard-preview-header {
     /* Match the chat controls: their 64px bar starts 8px below the safe area,
        putting the 40px control centers at the same vertical position. */
-    padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem);
+    padding-top: calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1.25rem);
   }
 }
 
