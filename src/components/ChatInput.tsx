@@ -293,7 +293,12 @@ function checkForBuildRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
   if (/^(build|app|apps)\//.test(m) || /^\/(build|app|apps)\b/.test(m)) return true;
-  if (/^(can\s+you\s+)?(please\s+)?(build|create|code|make)\s+(me\s+)?(an?\s+)?(full\s+)?(web\s+)?(app|apps)\b/i.test(m)) return true;
+  if (/^(can\s+you\s+)?(please\s+)?(turn|convert)\s+(this|that|it)\s+into\s+(an?\s+)?(app|apps|website|web\s+app)\b/i.test(m)
+    || /^(can\s+you\s+)?(please\s+)?make\s+(this|that|it)\s+(an?\s+)?(app|apps|website|web\s+app)\b/i.test(m)) return true;
+  // Natural app requests may put the app name between the verb and "app"
+  // ("build me a habit tracker app", "make a budgeting website"). Keep
+  // explanatory questions and ordinary coding requests on the chat path.
+  if (/^(can\s+you\s+)?(please\s+)?(build|create|code|make)\s+(me\s+)?(an?\s+)?(?:(?!(?:for|of|about|on|with)\b)[\w'&.-]+\s+){0,8}(app|apps|website|web\s+app)\b/i.test(m)) return true;
   return false;
 }
 
@@ -594,6 +599,8 @@ export interface CloudTextSubmitIntent {
   forceCanvas: boolean;
   forceCode: boolean;
   forceGit: boolean;
+  /** Explicit natural-language app request from regular Chat. */
+  buildApp?: boolean;
   modelOverride?: string;
 }
 
@@ -1794,7 +1801,10 @@ Feel free to send another message or test a prompt to see the animation again!`,
         return;
       }
 
-      // App Builder Mode: launch IDE workspace
+      // Explicit app requests from regular Chat use the durable Work builder
+      // when available. The user message is added below and the saved project
+      // link comes back beside the Work summary. Keep the old IDE launch as a
+      // fallback for accounts/environments without the cloud callback.
       if (!isArcWorkMode && wasBuildMode) {
         if (!hasBoost && !isAdmin) {
           openCheckout();
@@ -1805,11 +1815,13 @@ Feel free to send another message or test a prompt to see the animation again!`,
           setLoading(false);
           return;
         }
-        const cleanPrompt = extractPrefixPrompt(finalMessage);
-        useIDEStore.getState().openIDECanvas(cleanPrompt || "New App", undefined, !!cleanPrompt);
-        navigate('/build');
-        setLoading(false);
-        return;
+        if (!onCloudTextSubmit) {
+          const cleanPrompt = extractPrefixPrompt(finalMessage);
+          useIDEStore.getState().openIDECanvas(cleanPrompt || "New App", undefined, !!cleanPrompt);
+          navigate('/build');
+          setLoading(false);
+          return;
+        }
       }
 
       // With Documents -> analyze
@@ -2349,12 +2361,12 @@ ${safeCode}
           shouldSearchForVideo,
         });
 
-        // Arc Chat stays on the normal conversational path. Only an explicit
-        // Arc Work selection may enter the durable cloud queue; keeping this
-        // boundary here also protects slash commands such as /code from being
-        // mistaken for background Work.
+        // Ordinary Chat stays direct. Explicit app requests can hand off to
+        // the durable builder without changing the session mode; /code and
+        // other ordinary messages retain their existing route.
+        const buildAppFromChat = wasBuildMode && !isArcWorkMode;
         const durableCloudSubmit = onCloudTextSubmit && !isGuestMode && !corporateMode && !isLocalChatPreview()
-          && cloudExecutionMode === 'auto';
+          && (cloudExecutionMode === 'auto' || buildAppFromChat);
         const durableRoute = durableCloudSubmit ? 'cloud-chat' : (cloudExecutionMode === 'auto' ? 'cloud-chat' : routeRequest({
           forceWebSearch: wasSearchMode || shouldSearchForVideo,
           forceCanvas: shouldForceCanvas,
@@ -2371,8 +2383,8 @@ ${safeCode}
             // Durable text only: capture the actual current editor, including a
             // deliberately cleared live draft. The legacy augmented prose above
             // remains unchanged and is not used as cloud execution context.
-            const workspaceKind = !wasGitMode && (shouldUseCodeContext || (isCodingRequest && freshestCanvasContent))
-              ? 'code' : !wasGitMode && shouldRouteToCanvas && freshCanvasState.isOpen ? 'canvas' : undefined;
+            const workspaceKind = !buildAppFromChat && !wasGitMode && (shouldUseCodeContext || (isCodingRequest && freshestCanvasContent))
+              ? 'code' : !buildAppFromChat && !wasGitMode && shouldRouteToCanvas && freshCanvasState.isOpen ? 'canvas' : undefined;
             const currentWorkspaceContent = typeof window !== 'undefined'
               && typeof (window as any).__arcaiLiveCanvasContent === 'string'
               ? (window as any).__arcaiLiveCanvasContent : freshCanvasState.content;
@@ -2389,10 +2401,11 @@ ${safeCode}
               ...((images.length || documents.length) ? {attachments: [...images, ...documents]} : {}),
               ...(workspaceContext ? {workspaceContext} : {}),
               forceWebSearch: cloudExecutionMode === 'auto' ? false : wasSearchMode || shouldSearchForVideo,
-              forceCanvas: cloudExecutionMode === 'auto' ? false : shouldForceCanvas,
-              forceCode: cloudExecutionMode === 'auto' ? false : shouldForceCode,
+              forceCanvas: buildAppFromChat || cloudExecutionMode === 'auto' ? false : shouldForceCanvas,
+              forceCode: buildAppFromChat || cloudExecutionMode === 'auto' ? false : shouldForceCode,
               forceGit: wasGitMode,
-              modelOverride: codeContextModelOverride,
+              buildApp: buildAppFromChat,
+              modelOverride: buildAppFromChat ? undefined : codeContextModelOverride,
             });
           } catch (error) {
             // An acknowledgement may be lost after acceptance. Do not fall back

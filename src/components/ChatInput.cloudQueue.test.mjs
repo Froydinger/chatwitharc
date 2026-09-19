@@ -11,6 +11,7 @@ function extract(predicate) {
   visit(ast); assert.equal(found.length, 1); return found[0];
 }
 const helper = extract(n => ts.isVariableDeclaration(n) && n.name.getText(ast) === 'canSubmitCloudTextWhileBusy');
+const buildDetector = extract(n => ts.isFunctionDeclaration(n) && n.name?.getText(ast) === 'checkForBuildRequest');
 const busy = extract(n => ts.isIfStatement(n) && n.expression.getText(ast).startsWith('(isLoading || storeIsLoading || storeIsGenerating)'));
 const keyboard = extract(n => ts.isVariableDeclaration(n) && n.name.getText(ast) === 'handleKeyPress');
 function fixture(overrides = {}) {
@@ -67,6 +68,29 @@ test('Arc Work keeps ordinary conversation durable without forcing extra agent s
   assert.equal(conversational.eligible('what do you think?'), true);
   conversational.busy();
   assert.deepEqual(conversational.calls, []);
+});
+
+test('natural app requests hand off while explanatory and ordinary coding prompts stay in chat', () => {
+  const code = ts.transpileModule(`${buildDetector}; return checkForBuildRequest;`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const detect = new Function(code)();
+  for (const prompt of [
+    'build me a habit tracker app',
+    'make a budgeting website',
+    'create a full web app for my business',
+    'build a tutorial app that shows how much I spend',
+    'turn this into an app',
+    'make this a website',
+    '/build a recipe planner',
+  ]) assert.equal(detect(prompt), true, prompt);
+  for (const prompt of [
+    'how do I build an app',
+    'explain app builders',
+    'write a function that sorts an array',
+    'make a logo for my website',
+    'create a list of apps',
+  ]) assert.equal(detect(prompt), false, prompt);
 });
 test('Ctrl/Cmd Enter submits eligible cloud text immediately; legacy remains queued', () => {
   for (const key of ['ctrlKey', 'metaKey']) {

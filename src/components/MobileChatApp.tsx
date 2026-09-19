@@ -418,11 +418,17 @@ export function MobileChatApp() {
   // Chat default before another message can be queued.
   const cloudExecutionMode = cloudModeChoice && cloudModeChoice.ownerId === user?.id ? cloudModeChoice.mode : 'ask';
   const cloudWorkEnabled = cloudTextEnabled && cloudExecutionMode === 'auto';
+  // Boost users can hand an explicit app request from regular Chat to the
+  // durable builder. Keep the coordinator alive for that one-shot handoff so
+  // the first send does not race its startup, while ordinary Chat remains
+  // direct and local to its existing path.
+  const cloudAppChatEnabled = cloudTextEnabled && (hasBoost || isAdmin);
+  const cloudRunObserverEnabled = cloudWorkEnabled || cloudAppChatEnabled;
   useEffect(() => {
     if (!arcCloudAvailable && cloudModeChoice?.mode === 'auto') setCloudModeChoice(null);
   }, [arcCloudAvailable, cloudModeChoice]);
   const cloudRuns = useCloudRuns({
-    enabled: cloudWorkEnabled, ownerId: user?.id ?? null, sessionId: currentSessionId,
+    enabled: cloudRunObserverEnabled, ownerId: user?.id ?? null, sessionId: currentSessionId,
     onTerminal: async (entry, context) => {
       try {
         context.signal.throwIfAborted();
@@ -470,7 +476,9 @@ export function MobileChatApp() {
     if (!activeCloudRuns.ready) {
       throw new Error('Cloud connection is still starting. Your message is retained; please try again in a moment.');
     }
-    const mode = cloudExecutionMode;
+    // App Builder runs need Work's auto mode so the server exposes build_app.
+    // This does not change the chat session into Work or route other messages.
+    const mode = captured.buildApp ? 'auto' : cloudExecutionMode;
     const store = useArcStore.getState();
     const localSession = store.chatSessions.find(s => s.id === captured.sessionId);
     let message = localSession
@@ -1568,7 +1576,7 @@ export function MobileChatApp() {
                     <div className="glass-dock" data-arc-working={isArcWorking}>
                       <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
                         cloudExecutionMode={cloudExecutionMode}
-                        onCloudTextSubmit={cloudWorkEnabled ? submitCloudText : undefined} />
+                        onCloudTextSubmit={cloudRunObserverEnabled ? submitCloudText : undefined} />
                     </div>
                   </ArcInputEffects>
                 </motion.div>
@@ -1660,14 +1668,14 @@ export function MobileChatApp() {
                               window.dispatchEvent(chatInputEvent);
                             }}
                           />
-                          {cloudWorkEnabled && !isVoiceActive && message.role === 'assistant' && message.id.startsWith('cloud-') && (
+                          {cloudRunObserverEnabled && !isVoiceActive && message.role === 'assistant' && message.id.startsWith('cloud-') && (
                             <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} runId={message.id.slice(6)} />
                           )}
                         </motion.div>
                       );
                     })}
                   </AnimatePresence>
-                {cloudWorkEnabled && !isVoiceActive && <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} enabled={cloudWorkEnabled} transcriptRunIds={messages.filter(message => message.role === 'assistant' && message.id.startsWith('cloud-')).map(message => message.id.slice(6))} />}
+                {(cloudWorkEnabled || (cloudRunObserverEnabled && cloudRuns.entries.some(entry => entry.sessionId === currentSessionId))) && !isVoiceActive && <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} enabled={cloudRunObserverEnabled} transcriptRunIds={messages.filter(message => message.role === 'assistant' && message.id.startsWith('cloud-')).map(message => message.id.slice(6))} />}
                   {/* Show thinking indicator when loading */}
                   <AnimatePresence>
                     {isLoading &&
@@ -1813,7 +1821,7 @@ export function MobileChatApp() {
                   >
                     <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
                       cloudExecutionMode={cloudExecutionMode}
-                      onCloudTextSubmit={cloudWorkEnabled ? submitCloudText : undefined} />
+                      onCloudTextSubmit={cloudRunObserverEnabled ? submitCloudText : undefined} />
                   </div>
                 </ArcInputEffects>
               </motion.div>
