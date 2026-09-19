@@ -215,12 +215,17 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
     const contentParts = !isUser && message.type === "text" ? parseCodeBlocks(message.content || "") : [];
 
+    // The search results card is its own modal-ish surface. On phones the
+    // shared 85% message column made it noticeably skinnier than the user
+    // bubble above it, so let that one card use the full width there.
+    const isWideSearchCard = !isUser && !!message.webSources && message.webSources.length > 0;
+
     return (
       <div
         ref={ref}
         className={`flex ${isUser ? "justify-end" : "justify-start"} group`}
       >
-        <div className={`flex flex-col gap-2 max-w-[85%] ${isUser ? "ml-auto items-end" : "mr-auto items-start"}`}>
+        <div className={`flex flex-col gap-2 ${isWideSearchCard ? "max-w-full sm:max-w-[85%]" : "max-w-[85%]"} ${isUser ? "ml-auto items-end" : "mr-auto items-start"}`}>
           {/* Message Bubble */}
           <div
             onClick={handleMessageClick}
@@ -588,7 +593,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                           return (
                             <div
                               key={idx}
-                              className={`text-foreground break-words ${shouldAnimate && hasAssistantContent ? "arc-response-stagger" : ""}`}
+                              className={`text-foreground break-words arc-wrap-anywhere ${shouldAnimate && hasAssistantContent ? "arc-response-stagger" : ""}`}
                             >
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}

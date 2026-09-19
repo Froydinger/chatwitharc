@@ -103,6 +103,34 @@
   }
 }
 
+/* No string is allowed to push a message past the viewport. `break-words`
+   alone leaves long unbroken runs (URLs, keys, model ids) sticking out on
+   phones, so force a break anywhere for prose and inline code. Tables keep
+   their own horizontal scroll — this deliberately does not touch them. */
+.arc-wrap-anywhere p,
+.arc-wrap-anywhere li,
+.arc-wrap-anywhere h1,
+.arc-wrap-anywhere h2,
+.arc-wrap-anywhere h3,
+.arc-wrap-anywhere a,
+.arc-wrap-anywhere code,
+.search-result-copy p,
+.search-result-copy li,
+.search-result-copy h1,
+.search-result-copy h2,
+.search-result-copy h3,
+.search-result-copy a,
+.search-result-copy code,
+.user-message-bubble {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.arc-wrap-anywhere table code,
+.search-result-copy table code {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
 /* iOS/WebKit already supplies the translucent Dynamic Island safe-area
    treatment. Keep the header's glass tint and rim, but do not add another
    backdrop blur across the content immediately below it. */

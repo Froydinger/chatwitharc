@@ -239,7 +239,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
     <>
     <div
       className={cn(
-        "min-w-0 w-[min(46rem,calc(100vw-2.5rem))] max-w-full overflow-hidden rounded-3xl",
+        "min-w-0 w-[min(46rem,calc(100vw-1.5rem))] sm:w-[min(46rem,calc(100vw-2.5rem))] max-w-full overflow-hidden rounded-3xl",
         "border border-primary/20 bg-background/80 shadow-[0_18px_60px_-28px_hsl(var(--primary)/0.45)] ring-1 ring-foreground/[0.04] backdrop-blur-2xl",
       )}
     >
