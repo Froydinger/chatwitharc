@@ -377,6 +377,12 @@ export function MobileChatApp() {
   useEffect(() => {
     setVisibleMessageCount(MESSAGE_WINDOW_SIZE);
   }, [currentSessionId]);
+  useEffect(() => {
+    const target = new URLSearchParams(window.location.search).get('workSummary');
+    if (!target) return;
+    const index = messages.findIndex(message => message.id === `cloud-${target}`);
+    if (index >= 0) setVisibleMessageCount(count => Math.max(count, messages.length - index));
+  }, [currentSessionId, messages]);
   // Arc Chat is the safe default and stays on the normal conversational
   // request path. Durable cloud execution belongs only to explicit Arc Work.
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
@@ -1654,11 +1660,14 @@ export function MobileChatApp() {
                               window.dispatchEvent(chatInputEvent);
                             }}
                           />
+                          {cloudWorkEnabled && !isVoiceActive && message.role === 'assistant' && message.id.startsWith('cloud-') && (
+                            <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} runId={message.id.slice(6)} />
+                          )}
                         </motion.div>
                       );
                     })}
                   </AnimatePresence>
-                {cloudWorkEnabled && !isVoiceActive && <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} enabled={cloudWorkEnabled} />}
+                {cloudWorkEnabled && !isVoiceActive && <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} enabled={cloudWorkEnabled} transcriptRunIds={messages.filter(message => message.role === 'assistant' && message.id.startsWith('cloud-')).map(message => message.id.slice(6))} />}
                   {/* Show thinking indicator when loading */}
                   <AnimatePresence>
                     {isLoading &&

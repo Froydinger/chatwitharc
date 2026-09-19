@@ -209,7 +209,7 @@ export function CloudRunStatus(props: CloudRunStatusProps) {
   return <CloudRunStatusCard key={key} {...props} />;
 }
 
-function CloudRunStatusCard({ run, mode = 'auto', connection = 'idle', observationError, onApprove, onDeny, onCancel, onReconnect, autoOpenSummary = true }: CloudRunStatusProps) {
+function CloudRunStatusCard({ run, mode = 'auto', connection = 'idle', observationError, onApprove, onDeny, onCancel, onReconnect, autoOpenSummary = false }: CloudRunStatusProps) {
   const titleId = useId();
   const argsId = useId();
   const [state, setState] = useState<ActionState>({ pending: null, error: null, reconnectRequired: false, submitted: false });
@@ -229,8 +229,14 @@ function CloudRunStatusCard({ run, mode = 'auto', connection = 'idle', observati
     return () => window.clearInterval(timer);
   }, [terminal, elapsedStartMs]);
   useEffect(() => {
-    if (autoOpenSummary && run.status === 'completed' && mode === 'auto') setSummaryOpen(true);
-  }, [autoOpenSummary, mode, run.status]);
+    if (run.status !== 'completed' || mode !== 'auto') return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('workSummary') !== run.id) return;
+    setSummaryOpen(true);
+    // Consume the notification intent so refresh/back/history cannot reopen it.
+    url.searchParams.delete('workSummary');
+    window.history.replaceState(window.history.state, '', url);
+  }, [mode, run.id, run.status]);
   const elapsedMs = Number.isFinite(elapsedStartMs)
     ? Math.max(0, (Number.isFinite(elapsedEndMs) ? elapsedEndMs : clock) - elapsedStartMs)
     : null;

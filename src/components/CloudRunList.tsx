@@ -1,14 +1,12 @@
 import { CloudRunStatus, hasWorkCompletionSummary } from './CloudRunStatus';
 import type { CloudRunsApi } from '@/hooks/useCloudRuns';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 /** The parent provider owns transport. This list never starts another observer,
  * writes an assistant message, or connects to voice mode. */
-export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId: string | null; cloud: CloudRunsApi; enabled?: boolean }) {
+export function CloudRunList({ sessionId, cloud, enabled = false, runId, transcriptRunIds = [] }: { sessionId: string | null; cloud: CloudRunsApi; enabled?: boolean; runId?: string; transcriptRunIds?: string[] }) {
   const restorePending = useRef(false);
   const [restoring, setRestoring] = useState(false);
-  const [autoOpenRunId, setAutoOpenRunId] = useState<string | null>(null);
-  const autoOpenConsumed = useRef(false);
   const restore = async () => {
     if (restorePending.current) return;
     restorePending.current = true;
@@ -17,45 +15,14 @@ export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId:
     catch { /* The owner-bound hook publishes the error for this list. */ }
     finally { restorePending.current = false; setRestoring(false); }
   };
-  const entries = cloud.entries.filter(entry => entry.sessionId === sessionId);
+  const entries = cloud.entries.filter(entry => entry.sessionId === sessionId && (runId ? entry.id === runId : !transcriptRunIds.includes(entry.id)));
   const visibleEntries = entries.filter(entry => {
     if (entry.run?.status !== 'completed') return true;
     if (entry.mode === 'ask') return false;
     return hasWorkCompletionSummary(entry.run);
   });
 
-  // A Work visit may surface one newly relevant Work summary, never a stack of
-  // historical modals. Chat owns its normal reply presentation and never
-  // mounts this durable-run surface.
-  useEffect(() => {
-    autoOpenConsumed.current = false;
-    setAutoOpenRunId(null);
-  }, [sessionId]);
-  useEffect(() => {
-    if (!sessionId || !cloud.ready || cloud.restoring || autoOpenConsumed.current) return;
-    const eligible = entries
-      .filter(entry => entry.mode === 'auto' && entry.run && hasWorkCompletionSummary(entry.run))
-      .sort((a, b) => {
-        const aTime = Date.parse(a.run?.updatedAt ?? a.run?.createdAt ?? '') || 0;
-        const bTime = Date.parse(b.run?.updatedAt ?? b.run?.createdAt ?? '') || 0;
-        return aTime - bTime || a.id.localeCompare(b.id);
-      });
-    const unseen = eligible.filter(entry => {
-      try { return localStorage.getItem(`arc-work-summary-seen:${entry.id}`) !== '1'; }
-      catch { return true; }
-    });
-    if (!unseen.length) return;
-    const newest = unseen[unseen.length - 1];
-    // Mark every currently-known eligible run as seen before opening the one
-    // newest result. That prevents an older completion from taking over on a
-    // later history visit while keeping its View summary tile available.
-    for (const entry of eligible) {
-      try { localStorage.setItem(`arc-work-summary-seen:${entry.id}`, '1'); } catch { /* private mode */ }
-    }
-    autoOpenConsumed.current = true;
-    setAutoOpenRunId(newest.id);
-  }, [cloud.ready, cloud.restoring, entries, sessionId]);
-  const loading = enabled && !cloud.error && (!cloud.ready || cloud.restoring);
+  const loading = !runId && enabled && !cloud.error && (!cloud.ready || cloud.restoring);
   if (loading) return <section aria-label="Loading cloud tasks" aria-busy="true" role="status"
     className="glass-card w-full max-w-xl rounded-2xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
     <div className="flex items-center gap-3">
@@ -66,7 +33,7 @@ export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId:
   </section>;
   if (!visibleEntries.length && !cloud.error && !cloud.activeCursor && !cloud.historyCursor) return null;
   return <section aria-label="Cloud chat requests" className="space-y-3">
-    {cloud.error && <div className="glass-card rounded-2xl p-4 text-sm">
+    {!runId && cloud.error && <div className="glass-card rounded-2xl p-4 text-sm">
       <p role="alert" className="text-muted-foreground">{cloud.error}</p>
       <button type="button" disabled={restoring || cloud.restoring}
         className="mt-2 rounded-full border border-border px-3 py-1.5 disabled:opacity-50"
@@ -75,7 +42,7 @@ export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId:
     {visibleEntries.map(entry => entry.run
       ? <CloudRunStatus key={entry.id} run={entry.run} connection={entry.connection}
         mode={entry.mode}
-        autoOpenSummary={entry.id === autoOpenRunId}
+        autoOpenSummary={false}
         observationError={entry.error}
         onApprove={response => cloud.respond(entry.id, response)}
         onDeny={response => cloud.respond(entry.id, response)}
@@ -90,9 +57,9 @@ export function CloudRunList({ sessionId, cloud, enabled = false }: { sessionId:
           className="mt-2 rounded-full border border-border px-3 py-1.5"
           onClick={() => { void cloud.reconnect(entry.id).catch(() => {}); }}>Check status</button>}
       </div>)}
-    {cloud.activeCursor && <button type="button" className="text-sm text-muted-foreground underline"
+    {!runId && cloud.activeCursor && <button type="button" className="text-sm text-muted-foreground underline"
       onClick={() => { void cloud.loadMore(cloud.activeCursor!, false).catch(() => {}); }}>Load more active requests</button>}
-    {cloud.historyCursor && <button type="button" className="block text-sm text-muted-foreground underline"
+    {!runId && cloud.historyCursor && <button type="button" className="block text-sm text-muted-foreground underline"
       onClick={() => { void cloud.loadMore(cloud.historyCursor!, true).catch(() => {}); }}>Recover older cloud replies</button>}
   </section>;
 }

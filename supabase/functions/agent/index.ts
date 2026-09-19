@@ -1,3 +1,4 @@
+import { SITE_DESIGN_PROMPT } from "../_shared/siteDesignPrompt.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
@@ -367,7 +368,7 @@ serve(async (req) => {
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
 
-    let systemPrompt = AGENT_SYSTEM_PROMPT;
+    let systemPrompt = AGENT_SYSTEM_PROMPT + SITE_DESIGN_PROMPT;
     if (currentFiles && typeof currentFiles === "object" && Object.keys(currentFiles).length > 0) {
       const fileList = Object.entries(currentFiles)
         .map(([path, content]: [string, any]) => {

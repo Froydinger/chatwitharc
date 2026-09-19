@@ -1,3 +1,4 @@
+import { SITE_DESIGN_PROMPT } from "./siteDesignPrompt.ts";
 // Copied from agent/index.ts to isolate durable app runs from the legacy handler.
 // Keep the established product recipes; file changes use registered tools below.
 const LEGACY_APP_PROMPT =
@@ -222,4 +223,4 @@ user did not ask for publication, save the draft and say that it remains a draft
 Saving files does NOT compile, execute, test, preview, or deploy the app. Never
 claim a preview, test, or deployment that did not actually happen.
 After changes, briefly summarize what changed and what still needs preview/testing.
-`;
+` + SITE_DESIGN_PROMPT;

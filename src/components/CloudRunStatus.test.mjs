@@ -46,7 +46,7 @@ test('plain awaiting-input text never becomes approval; terminal states offer no
 });
 
 test('completed Work runs show one summary modal without replaying the result', () => {
-  const html = render({ run: { ...base.run, status: 'completed', checkpoint: {
+  const html = render({ autoOpenSummary: true, run: { ...base.run, status: 'completed', checkpoint: {
     progress: { phase: 'done', turns: 3, tokens: 90 }, pendingApproval: null,
     activity: [{ tool: 'update_code', outcome: 'completed' }, { tool: 'generate_image', outcome: 'blocked' }],
     aiSummary: 'Built the code block and prepared the image step.',
@@ -152,4 +152,10 @@ test('approval buttons send only exact decision, callId and hash; render perform
     await Promise.resolve();
     assert.deepEqual(calls, [{ decision, callId: 'call-1', argumentsHash: 'hash-1' }]);
   }
+});
+
+ test('ordinary Work history keeps the summary closed', () => {
+  const html = render({ run: { ...base.run, status: 'completed', result: { code_update: { code: 'hello', language: 'text' } } } });
+  assert.match(html, /View summary/);
+  assert.doesNotMatch(html, /role="dialog"/);
 });

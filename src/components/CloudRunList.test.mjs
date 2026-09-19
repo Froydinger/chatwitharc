@@ -14,8 +14,8 @@ new Function('require', 'exports', await compile('./CloudRunStatus.tsx'))(requir
 new Function('require', 'exports', await compile('./CloudRunList.tsx'))(
   name => name === './CloudRunStatus' ? status : require(name), list);
 const noCalls = () => { throw Error('Rendering must not trigger network actions'); };
-const render = ({ enabled = false, ...overrides } = {}) => renderToStaticMarkup(React.createElement(list.CloudRunList, {
-  sessionId: 'selected', enabled, cloud: { entries: [], error: null, ready: true, restoring: false, activeCursor: null,
+const render = ({ enabled = false, runId, transcriptRunIds, ...overrides } = {}) => renderToStaticMarkup(React.createElement(list.CloudRunList, {
+  sessionId: 'selected', enabled, runId, transcriptRunIds, cloud: { entries: [], error: null, ready: true, restoring: false, activeCursor: null,
     restore: noCalls, respond: noCalls, cancel: noCalls, reconnect: noCalls, loadMore: noCalls, ...overrides },
 }));
 test('inactive list is inert and completed replies are not duplicated', () => {
@@ -56,4 +56,11 @@ test('completed history is recoverable even without active requests', () => {
   const html = render({ historyCursor: 'older', activeCursor: null });
   assert.match(html, /Recover older cloud replies/);
   assert.doesNotMatch(html, /Load more active requests/);
+});
+
+test('completed summary appears only at its transcript anchor, never again at the bottom', () => {
+  const entries = [{ id: 'one', sessionId: 'selected', mode: 'auto', run: { id: 'one', status: 'completed', result: { code_update: { code: 'hello' } } } }];
+  assert.match(render({ entries, runId: 'one' }), /View summary/);
+  assert.doesNotMatch(render({ entries, transcriptRunIds: ['one'] }), /View summary/);
+  assert.doesNotMatch(render({ entries, runId: 'other' }), /View summary/);
 });

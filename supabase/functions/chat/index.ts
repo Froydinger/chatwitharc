@@ -1,3 +1,4 @@
+import { SITE_DESIGN_PROMPT } from "../_shared/siteDesignPrompt.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { decryptToken, githubCommitPullRequest, githubReadFiles, githubSearchFiles } from '../_shared/github.ts';
@@ -1688,6 +1689,8 @@ product and is helping someone with it. Stay in that voice completely.`;
       conversationMessages[0] = { role: 'system', content: focusedPrompt };
       console.log('⚡ Using optimized system prompt for canvas/code mode');
     }
+
+    conversationMessages[0].content += '\n\n' + SITE_DESIGN_PROMPT;
 
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();

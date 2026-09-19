@@ -57,7 +57,7 @@ export function cloudRunCompletionPushSweep(
         payload: {
           title: `Arc ${claim.mode === 'auto' ? 'Work' : 'Chat'} finished`,
           body: resultPreview(claim.result) || 'Your Arc run finished. Open Arc to view the result.',
-          url: `${options.siteUrl ?? 'https://askarc.chat'}/chat/${claim.session_id}`,
+          url: `${options.siteUrl ?? 'https://askarc.chat'}/chat/${claim.session_id}${claim.mode === 'auto' ? `?workSummary=${claim.run_id}` : ''}`,
           tag: claim.idempotency_key,
         },
       }),
