@@ -3078,6 +3078,16 @@ product and is helping someone with it. Stay in that voice completely.`;
         const toolContextSize = synthesisMessages.reduce((acc: number, m: any) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0);
         console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
+        // Gemini rejects a request whose last message is a model turn, and the
+        // loop above inlines tool output as assistant messages. Close with a
+        // user turn so a Flash synthesis call is valid.
+        if (isFlashModel(selectedModel) && synthesisMessages[synthesisMessages.length - 1]?.role !== 'user') {
+          synthesisMessages.push({
+            role: 'user',
+            content: 'Using the tool output above, answer my last request directly.'
+          });
+        }
+
         const usedMemoryTool = toolsUsed.some(name => memoryToolNames.has(name));
         // Memory wording always comes from Luna; otherwise synthesis stays on the
         // selected model so a Flash turn stays a Flash turn end to end.
