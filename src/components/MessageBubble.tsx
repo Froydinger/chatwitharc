@@ -473,8 +473,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </motion.div>
               )}
 
+              {/* Work summaries are text messages that can also carry saved artifacts. */}
               {/* Canvas Attachment */}
-              {message.type === "canvas" && message.canvasContent && (
+              {message.canvasContent && (
                 <motion.div
                   key="card-canvas"
                   initial={{ opacity: 0 }}
@@ -491,7 +492,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               )}
 
               {/* Code Artifact */}
-              {message.type === "code" && message.codeContent && (
+              {message.codeContent && (
                 <motion.div
                   key="card-code"
                   initial={{ opacity: 0 }}
