@@ -1,5 +1,19 @@
 /** UI payloads come from registered server tools, never parsed from model prose. */
 export type CloudPresentation = {
+  app_artifact?: {
+    projectId: string;
+    runId: string;
+    version: number;
+    title: string;
+    prompt: string;
+    fileCount: number;
+    url: string;
+    published: boolean;
+    publishedUrl?: string | null;
+    executed: false;
+    tested: false;
+    deployed: boolean;
+  };
   generated_file?: import('./cloudFileTool.ts').CloudGeneratedFile;
   generated_files?: import('./cloudFileTool.ts').CloudGeneratedFile[];
   generated_image?: import('./cloudImageTool.ts').CloudGeneratedImage;
@@ -27,6 +41,7 @@ export function cloudPresentation(receipts: Record<string, { state: string; pres
     // owner, role or timestamps. Later completed revisions replace earlier ones.
     if (value.canvas_update) result.canvas_update = value.canvas_update;
     if (value.code_update) result.code_update = value.code_update;
+    if (value.app_artifact) result.app_artifact = value.app_artifact;
     if (value.web_sources) result.web_sources = value.web_sources;
     if (value.search_images) result.search_images = value.search_images;
     if (value.search_provider) result.search_provider = value.search_provider;
@@ -45,7 +60,11 @@ export function cloudPresentation(receipts: Record<string, { state: string; pres
 
 export function cloudMessagePresentation(value: CloudPresentation) {
   return {
-    type: value.code_update ? 'code' : value.canvas_update ? 'canvas' : value.generated_file ? 'file' : value.generated_image ? 'image' : 'text',
+    type: value.app_artifact ? 'ide' : value.code_update ? 'code' : value.canvas_update ? 'canvas' : value.generated_file ? 'file' : value.generated_image ? 'image' : 'text',
+    ...(value.app_artifact ? { appArtifact: value.app_artifact, ideProjectId: value.app_artifact.projectId,
+      ideFileCount: value.app_artifact.fileCount, ideTitle: value.app_artifact.title,
+      idePrompt: value.app_artifact.prompt,
+      ideUrl: value.app_artifact.url, sourceModel: 'cloud-ide' } : {}),
     ...(value.generated_file ? { fileUrl: value.generated_file.fileUrl, fileName: value.generated_file.fileName,
       fileType: value.generated_file.fileType, fileSize: value.generated_file.fileSize } : {}),
     ...(value.generated_files?.length ? { generatedFiles: value.generated_files.map(file => ({

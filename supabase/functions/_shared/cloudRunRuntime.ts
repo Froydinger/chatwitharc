@@ -19,6 +19,7 @@ import { responseInput } from './cloudRunProvider.ts';
 import type { CloudMediaReference } from './cloudMedia.ts';
 import { cloudGitTools, CLOUD_GIT_DEFINITIONS } from './cloudGitTools.ts';
 import { gitEnabledForUser } from './gitFeature.ts';
+import { cloudAppBuildTool, CLOUD_BUILD_APP_DEFINITION } from './cloudAppBuildTool.ts';
 
 /** Server composition root. Remains deployment-gated until the complete tool
  * registry, atomic submit and browser reconnect paths pass end-to-end tests. */
@@ -29,6 +30,7 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
   imageConfig?: { supabaseUrl: string; serviceRoleKey: string; r2WorkerUrl: string; r2WorkerSecret: string };
   weatherLookup?: Parameters<typeof cloudWeatherTool>[0]['lookup'];
   notificationDispatch?: Parameters<typeof cloudNotificationTool>[0]['dispatch'];
+  appBuilderEnabled?: boolean;
 } = {}) {
   const store = cloudWorkerStore(db);
   const authorizeOwner = async (run: ClaimedCloudRun) => {
@@ -45,6 +47,12 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
     return !!data && data.id === run.id && data.user_id === run.user_id && data.session_id === run.session_id
       && data.status === 'running' && data.lease_token === run.lease_token
       && Date.parse(data.lease_expires_at) > Date.now();
+  };
+  const authorizeAppBuilder = async (run: ClaimedCloudRun) => {
+    if (!await authorizeOwner(run)) return false;
+    const { data, error } = await db.rpc('user_has_boost', { check_user_id: run.user_id });
+    if (error) throw new Error('Unable to verify App Builder entitlement');
+    return data === true;
   };
   const readCloudMedia = async (reference: CloudMediaReference, signal?: AbortSignal) => {
     if (!options.mediaConfig) throw new CloudMediaError('owner', 'Cloud media storage is unavailable.');
@@ -92,6 +100,10 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
       if ('kind' in run && run.kind === 'app') throw new Error('Cloud app adapter is not enabled');
       const context = await loadCloudRunContext(db, run);
       const gitAccess = await gitEnabledForUser(db, run.user_id);
+      // Build requests are regular Arc Work runs. Resolve entitlement before
+      // exposing the tool to Luna, then recheck it inside the tool/RPC.
+      const appBuilderAllowed = options.appBuilderEnabled === true &&
+        run.mode === 'auto' && await authorizeAppBuilder(run);
       const request = run.request && typeof run.request === 'object' && !Array.isArray(run.request)
         ? run.request as Record<string, unknown> : {};
       const initialMessages = run.execution_messages ?? request.messages;
@@ -104,7 +116,7 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
         : '';
       return {
         provider: cloudResponseProvider({ apiKey, ...context,
-          instructions: `${context.instructions}${imageInstructions}`,
+          instructions: `${context.instructions}${imageInstructions}${appBuilderAllowed ? `\n\n=== APP BUILDER ===\nWhen the user asks to build an app or website, use build_app after planning the complete implementation. This Work tool creates the saved multi-file App Builder project directly; do not tell the user to open the IDE first. Generate a complete modern React/Tailwind app with src/App.tsx and src/main.tsx plus all supporting source files, using standard installed React and lucide-react patterns. For persistent data, import the preinstalled ./lib/netlifyDb and use its collection/get/set APIs; for accounts, import ./components/NetlifyAuthModal. Those two system files are injected by the builder and must not be supplied or rewritten. Include honest empty states and functional navigation. Pass every generated file in one build_app call. Do not claim the app was tested or published; report the saved builder link from the tool result. The single-file canvas guidance applies only to update_code, not to this tool.` : ''}`,
           firstTool: cloudInitialTool(run.request),
           ...(mediaReferences && options.mediaConfig && Array.isArray(initialMessages) ? {
             expandInput: transcript => withCloudMediaInput({
@@ -129,6 +141,7 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
           ...(images?.definitions ?? []),
           ...(options.notificationDispatch ? [CLOUD_NOTIFICATION_DEFINITION] : []),
           ...(options.weatherLookup ? [CLOUD_WEATHER_DEFINITION] : []),
+          ...(appBuilderAllowed ? [CLOUD_BUILD_APP_DEFINITION] : []),
           ...(gitAccess.enabled && request.forceGit === true ? CLOUD_GIT_DEFINITIONS : [])] }),
         tools: {
           ...(images?.tools ?? {}),
@@ -141,6 +154,21 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
           ...(options.notificationDispatch ? { send_notification: cloudNotificationTool({ authorizeOwner, dispatch: options.notificationDispatch }) } : {}),
           ...(options.weatherLookup ? { get_weather: cloudWeatherTool({ authorizeOwner, lookup: options.weatherLookup }) } : {}),
           ...(gitAccess.enabled && request.forceGit === true ? cloudGitTools({ db, authorizeOwner }) : {}),
+          ...(appBuilderAllowed ? { build_app: cloudAppBuildTool({
+            authorize: authorizeAppBuilder,
+            build: async (run, call, key, args) => {
+              const { data, error } = await db.rpc('cloud_build_app', {
+                p_run_id: run.id, p_lease_token: run.lease_token, p_receipt_key: key,
+                p_call: call, p_title: args.title, p_prompt: args.prompt, p_files: args.files,
+              });
+              if (error) {
+                if (['22023','23505','40001','42501'].includes(String(error.code))) throw new Error('App could not be saved safely.');
+                throw new Error('App persistence unavailable; the same receipt will be retried.');
+              }
+              if (!data || typeof data !== 'object' || Array.isArray(data) || (data as Record<string, unknown>).status !== 'saved') throw new Error('Invalid app save receipt.');
+              return (data as Record<string, unknown>).artifact as Record<string, unknown>;
+            },
+          }) } : {}),
         },
       };
     },

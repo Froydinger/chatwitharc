@@ -75,6 +75,9 @@ if (import.meta.main) Deno.serve((req) => handleCloudWorker(req, {
           },
         }),
         chat: cloudRunAdvance(db, apiKey, { tavilyApiKey: Deno.env.get('TAVILY_API_KEY'), weatherLookup: cloudWeatherLookup(url, serviceKey),
+          // Ordinary Work app creation is independently available to Boost
+          // users; the separate durable app-run flag remains for IDE runs.
+          appBuilderEnabled: Deno.env.get('CLOUD_WORK_APP_BUILDER_ENABLED') !== 'false',
           mediaConfig: { supabaseUrl: url, serviceRoleKey: serviceKey },
           fileStore: cloudFileStore({ supabaseUrl: url, serviceRoleKey: serviceKey }),
           imageConfig: cloudImageConfig(name => Deno.env.get(name)),

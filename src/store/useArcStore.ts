@@ -205,6 +205,7 @@ export interface Message {
   idePrompt?: string; // For IDE app builder artifacts
   ideFileCount?: number; // Number of files generated
   ideProjectId?: string; // Database project ID for cloud persistence
+  ideTitle?: string; // Display title for IDE app builder artifacts
   memoryAction?: MemoryAction; // Track memory/search actions
   webSources?: Array<{ url: string; title?: string; snippet?: string }>; // Inline web citations
   weatherData?: import('@/components/WeatherCard').WeatherData; // Inline weather card

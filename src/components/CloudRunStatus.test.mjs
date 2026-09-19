@@ -13,7 +13,7 @@ const compiled = ts.transpileModule(source, { compilerOptions: {
 } }).outputText;
 const api = {};
 new Function('require', 'exports', compiled)(require, api);
-const { CloudRunStatus, createCloudRunActionGuard } = api;
+const { CloudRunStatus, createCloudRunActionGuard, hasWorkCompletionSummary } = api;
 const pendingApproval = { callId: 'call-1', argumentsHash: 'hash-1', name: 'send_notification', arguments: '{"message":"<script>alert(1)</script>"}' };
 const base = { mode: 'auto', run: { id: 'run', status: 'awaiting_input', checkpoint: {
   progress: { phase: 'tools', turns: 1, tokens: 25 }, pendingApproval,
@@ -154,8 +154,19 @@ test('approval buttons send only exact decision, callId and hash; render perform
   }
 });
 
- test('ordinary Work history keeps the summary closed', () => {
+test('ordinary Work history keeps the summary closed', () => {
   const html = render({ run: { ...base.run, status: 'completed', result: { code_update: { code: 'hello', language: 'text' } } } });
   assert.match(html, /View summary/);
   assert.doesNotMatch(html, /role="dialog"/);
+});
+
+test('completed Work app artifacts create a summary and validate the internal builder link', () => {
+  const projectId = '123e4567-e89b-12d3-a456-426614174000';
+  const run = { ...base.run, status: 'completed', result: {
+    app_artifact: { projectId, title: 'BearCraft', fileCount: 4, prompt: 'Build the app', url: 'https://example.com/should-not-override' },
+  } };
+  assert.equal(hasWorkCompletionSummary(run), true);
+  assert.match(source, /app_artifact/);
+  assert.match(source, /encodeURIComponent\(asset\.projectId\)/);
+  assert.match(source, /\/build\/\$\{encodeURIComponent\(asset\.projectId\)\}/);
 });

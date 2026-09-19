@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Code2, Layers, Cloud, Wrench } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Code2, Layers, Cloud, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import type { VirtualFileSystem } from '@/types/ide';
 import { toast } from 'sonner';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface IDEArtifactCardProps {
   prompt: string;
@@ -21,6 +22,8 @@ export function IDEArtifactCard({
   title: propTitle,
   className
 }: IDEArtifactCardProps) {
+  const navigate = useNavigate();
+  const { hasBoost, isAdmin, openCheckout } = useSubscription();
   const [resolvedFileCount, setResolvedFileCount] = useState(initialFileCount || 0);
   const [resolvedTitle, setResolvedTitle] = useState(propTitle || '');
 
@@ -45,16 +48,23 @@ export function IDEArtifactCard({
   }, [projectId]);
 
   const handleOpen = () => {
-    toast.info("This project can't be opened right now", {
-      description: "Existing IDE artifacts are read-only while the workspace is offline.",
-    });
+    if (!projectId) {
+      toast.error('This app is missing its project link.');
+      return;
+    }
+    if (!hasBoost && !isAdmin) {
+      openCheckout();
+      toast.error('ArcAI Boost is required to open App Builder.');
+      return;
+    }
+    navigate(`/build/${projectId}`);
   };
 
   return (
     <div
       className={cn(
         "group relative rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm",
-        "transition-all duration-200 cursor-not-allowed overflow-hidden opacity-80",
+        "transition-all duration-200 cursor-pointer overflow-hidden hover:border-primary/50 hover:bg-primary/5",
         className
       )}
       onClick={handleOpen}
@@ -77,14 +87,13 @@ export function IDEArtifactCard({
           variant="ghost"
           size="sm"
           className="h-7 px-2 text-xs text-amber-500"
-          disabled
           onClick={(e) => {
             e.stopPropagation();
             handleOpen();
           }}
         >
-          <Wrench className="w-3.5 h-3.5 mr-1" />
-          Soon
+          <ExternalLink className="w-3.5 h-3.5 mr-1" />
+          Open app
         </Button>
       </div>
 

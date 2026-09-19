@@ -510,7 +510,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
               )}
 
               {/* IDE App Builder Artifact */}
-              {message.type === "ide" && message.idePrompt && (
+              {message.idePrompt && message.ideProjectId && (
                 <motion.div
                   key="card-ide"
                   initial={{ opacity: 0 }}
@@ -522,6 +522,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     prompt={message.idePrompt}
                     fileCount={message.ideFileCount}
                     projectId={message.ideProjectId}
+                    title={message.ideTitle}
                     className="max-w-md"
                   />
                 </motion.div>
