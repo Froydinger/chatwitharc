@@ -10,12 +10,12 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/": {
     title: "ArcAI • Ask, Reflect, Create",
     description:
-      "Talk naturally with Arc in real-time voice, generate images, write code and prose in one place. Free multimodal AI with living memory.",
+      "Talk naturally with Arc in real-time voice, generate images, write code and prose in one place. Free multimodal AI with 3 voice sessions per UTC day up to 5 minutes each and living memory.",
   },
   "/pricing": {
     title: "ArcAI • Pricing",
     description:
-      "ArcAI includes Arc Matrix™ intelligence with Ava, Maya, and River reasoning, plus natural voice, Deep Search, and shared chats.",
+      "ArcAI includes Arc Matrix™ intelligence with Ava, Maya, and River reasoning, plus 3 voice sessions per UTC day up to 5 minutes each, Deep Search, and shared chats.",
   },
   "/downloads": {
     title: "ArcAI • Downloads",
@@ -56,7 +56,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/welcome": {
     title: "ArcAI — Free AI Assistant with Voice, Images & Memory",
     description:
-      "ArcAI is a free multimodal AI assistant with natural voice conversations, Arc Imagix image generation, code and living memory. A free ChatGPT, Gemini and Claude alternative.",
+      "ArcAI is a free multimodal AI assistant with natural voice conversations, 3 voice sessions per UTC day up to 5 minutes each, Arc Imagix image generation, code and living memory. A free ChatGPT, Gemini and Claude alternative.",
   },
   "/blog": {
     title: "ArcAI Guides & FAQs — Free AI Assistant",
@@ -66,7 +66,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/upgrade": {
     title: "ArcAI • Upgrade to Boost",
     description:
-      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited Ava, Maya, and River reasoning, unlimited Arc Imagix generation & editing, and unlimited voice sessions.",
+      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited Ava, Maya, and River reasoning, unlimited Arc Imagix generation & editing, and unlimited voice sessions up to 2 hours each.",
   },
   "/share": {
     title: "ArcAI • Shared Conversation",
@@ -149,7 +149,7 @@ export const RouteSEO = () => {
       : {
           title: "ArcAI • Page Not Found",
           description:
-            "Talk naturally with Arc in real-time voice, generate images, write code and prose in one place. Free multimodal AI with living memory.",
+            "Talk naturally with Arc in real-time voice, generate images, write code and prose in one place. Free multimodal AI with 3 voice sessions per UTC day up to 5 minutes each and living memory.",
         });
 
   return <SEO title={meta.title} description={meta.description} path={path} />;

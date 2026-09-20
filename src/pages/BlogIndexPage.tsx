@@ -577,7 +577,7 @@ export function BlogIndexPage() {
           <p className="mx-auto mt-3 max-w-xl text-sm text-white/70 leading-relaxed">
             {isAuthenticated
               ? "Return to your conversations, canvas, and memory."
-              : "Unlimited fast chat, natural voice, code canvas, and living memory, right in your browser."}
+              : "Unlimited fast chat, 3 voice sessions per UTC day up to 5 minutes each, code canvas, and living memory, right in your browser."}
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
             <button

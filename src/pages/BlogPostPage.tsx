@@ -180,7 +180,7 @@ export function BlogPostPage() {
           <p className="mt-2 text-sm text-white/[0.55]">
             {isAuthenticated
               ? "Return to your active sessions, canvas, and tools."
-              : "Free forever. Voice, images, code and memory included."}
+              : "Free forever. 3 voice sessions per UTC day up to 5 minutes each, images, code and memory included."}
           </p>
           <button
             onClick={handleTry}

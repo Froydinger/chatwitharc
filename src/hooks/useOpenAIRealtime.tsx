@@ -2294,7 +2294,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       resetPendingFunctionResults();
       const err = error as any;
       const errorMsg = error instanceof Error ? error.message : String(error);
-      const isDailyVoiceLimit = /three voice sessions per day|daily voice allowance/i.test(errorMsg);
+      const isDailyVoiceLimit = /three voice sessions per (?:UTC )?day|daily voice allowance/i.test(errorMsg);
       let userFacingError = 'Failed to connect to voice service';
 
       if (

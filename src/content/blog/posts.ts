@@ -44,7 +44,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI free?",
-        a: "Yes. The free tier includes Arc Matrix™ chat (unlimited Ava, 10 Maya, 3 River daily), image generation with Arc Imagix, weekly research, and tons of free voice usage. Boost raises the rest: unlimited Deep Search and Ultra Deep Search, unlimited Arc Imagix generation and editing, the full App Builder, and unlimited voice sessions.",
+        a: "Yes. The free tier includes Arc Matrix™ chat (unlimited Ava, 10 Maya, 3 River daily), image generation with Arc Imagix, weekly research, and 3 voice sessions per UTC day, up to 5 minutes each. Boost raises the rest: unlimited Deep Search and Ultra Deep Search, unlimited Arc Imagix generation and editing, the full App Builder, and unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "Can I build full web applications with ArcAI?",
@@ -93,7 +93,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI as good as ChatGPT Plus?",
-        a: "Boost adds unlimited Deep Search and Ultra Deep Search, unlimited Ava, Maya, and River reasoning, the App Builder with live publishing, premium Arc Imagix tools, and unlimited voice sessions.",
+        a: "Boost adds unlimited Deep Search and Ultra Deep Search, unlimited Ava, Maya, and River reasoning, the App Builder with live publishing, premium Arc Imagix tools, and unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "Does the free tier have message limits?",
@@ -217,7 +217,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which AI has voice mode?",
-        a: "ArcAI has natural, interruptible voice conversations powered by Voxi. Free accounts get generous voice usage, while Boost includes unlimited voice sessions.",
+        a: "ArcAI has natural, interruptible voice conversations powered by Voxi. Free accounts get 3 voice sessions per UTC day, up to 5 minutes each, while Boost includes unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "Which free AI generates images?",
@@ -234,11 +234,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["free AI voice", "voice AI free", "talk to AI free", "voice AI with memory"],
     updated: UPDATED,
     intro:
-      "Most AI assistants charge for voice. ArcAI gives free accounts generous natural voice usage powered by Voxi, while Boost includes unlimited voice sessions.",
+      "Most AI assistants charge for voice. ArcAI gives free accounts 3 natural voice sessions per UTC day, each up to 5 minutes, powered by Voxi, while Boost includes unlimited voice sessions up to 2 hours each.",
     faq: [
       {
         q: "Which AI has voice conversations?",
-        a: "ArcAI. It delivers low-latency spoken conversations powered by Voxi with multiple natural voice options. Free accounts get generous voice usage, while Boost includes unlimited sessions.",
+        a: "ArcAI. It delivers low-latency spoken conversations powered by Voxi with multiple natural voice options. Free accounts get 3 voice sessions per UTC day, up to 5 minutes each, while Boost includes unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "Does voice mode connect to the bot's memory?",
@@ -466,7 +466,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How do I use voice mode?",
-        a: "Tap the microphone icon in the sidebar or dashboard. Voice mode offers natural, interruptible conversations powered by Voxi. Free accounts get generous voice usage, and Boost includes unlimited sessions.",
+        a: "Tap the microphone icon in the sidebar or dashboard. Voice mode offers natural, interruptible conversations powered by Voxi. Free accounts get 3 voice sessions per UTC day, up to 5 minutes each, and Boost includes unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "How do I generate an image?",
@@ -485,11 +485,11 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "what-is-arcai": {
     angle: "ArcAI is built around a simple idea: one assistant should handle the whole loop — thinking, searching, speaking, writing, coding, building web apps, creating images, and remembering the context that makes those tasks personal.",
     useCases: ["daily planning", "app building", "research with sources", "image generation", "voice brainstorming", "long-term bot memory"],
-    freeAccess: "Every ArcAI feature is accessible on the free plan with unlimited Quick reasoning, 10 Balanced, and 3 Deep daily, plus tons of free voice usage. Boost unlocks unlimited research, unlimited reasoning, higher image quotas, the full App Builder, and unlimited voice sessions.",
+    freeAccess: "Every ArcAI feature is accessible on the free plan with unlimited Quick reasoning, 10 Balanced, and 3 Deep daily, plus 3 voice sessions per UTC day, up to 5 minutes each. Boost unlocks unlimited research, unlimited reasoning, higher image quotas, the full App Builder, and unlimited voice sessions up to 2 hours each.",
     proof: "That combination makes ArcAI feel less like a single chatbot tab and more like an operating workspace for creative work and app building.",
   },
   "free-chatgpt-alternative": {
-    angle: "The reason people search for an alternative to ChatGPT is not because they hate ChatGPT — it is because the features they actually want (persistent memory, full web app building, uncapped voice, cited search) are often split across paid plans, usage caps, or separate apps.",
+    angle: "The reason people search for an alternative to ChatGPT is not because they hate ChatGPT — it is because the features they actually want (persistent memory, full web app building, natural voice access, cited search) are often split across paid plans, usage caps, or separate apps.",
     useCases: ["unlimited everyday chat", "in-browser App Builder", "natural voice", "living memory", "web search", "document analysis"],
     freeAccess: "ArcAI provides a robust free tier with unlimited chats, search citations, canvases, and memory, plus an optional Boost upgrade for $10/month to unlock advanced reasoning, the App Builder, and custom web publishing.",
     proof: "ArcAI is strongest when you want ChatGPT-style answers plus the builder tools and transparent memory that people usually associate with premium AI setups.",
@@ -497,7 +497,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-gemini-alternative": {
     angle: "Gemini is powerful, but many users want an assistant that is not organized around one ecosystem. ArcAI is browser-first and independent while still giving you multimodal tools, an interactive App Builder, and persistent memory in one place.",
     useCases: ["chat without Google Workspace", "building React apps", "voice conversations", "AI images", "source-backed web answers", "memory across projects"],
-    freeAccess: "ArcAI's free plan includes unlimited fast chat, image generation, canvases, long-term memory, weekly research, and tons of free voice usage. Boost adds unlimited research, the full App Builder IDE, and unlimited voice sessions.",
+    freeAccess: "ArcAI's free plan includes unlimited fast chat, image generation, canvases, long-term memory, weekly research, and 3 voice sessions per UTC day, up to 5 minutes each. Boost adds unlimited research, the full App Builder IDE, and unlimited voice sessions up to 2 hours each.",
     proof: "That makes ArcAI a practical Gemini alternative for people who want less lock-in, dedicated app building, and more creative surface area.",
   },
   "free-gpt-4-alternative": {
@@ -521,7 +521,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-ai-with-voice": {
     angle: "Voice changes the way people use AI: it turns the assistant into a thinking partner while walking, driving, cooking, planning, or working through an idea out loud.",
     useCases: ["hands-free brainstorming", "voice notes with memory", "planning your day", "talking through code", "capturing ideas", "voice-first coaching"],
-    freeAccess: "Voice mode includes tons of usage on Free and unlimited sessions on Boost, sharing the same living memory summary as chat.",
+    freeAccess: "Voice mode includes 3 sessions per UTC day on Free, each up to 5 minutes, and unlimited voice sessions up to 2 hours each on Boost, sharing the same living memory summary as chat.",
     proof: "Because voice shares context with the rest of ArcAI, spoken conversations connect directly back to memory, chat, research, and creative work.",
   },
   "free-ai-image-generator": {
@@ -539,7 +539,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "ask-arc-what-is-it": {
     angle: "Ask Arc is the natural way to describe using ArcAI: you bring a question, problem, draft, file, idea, or voice note, and Arc helps move it forward.",
     useCases: ["asking questions", "building web apps", "rewriting text", "researching", "generating images", "remembering preferences"],
-    freeAccess: "Get started for free at askarc.chat, with an optional Boost subscription that unlocks advanced reasoning, unlimited research, the App Builder, and unlimited voice sessions. Free accounts get tons of free voice usage.",
+    freeAccess: "Get started for free at askarc.chat, with an optional Boost subscription that unlocks advanced reasoning, unlimited research, the App Builder, and unlimited voice sessions up to 2 hours each. Free accounts get 3 voice sessions per UTC day, up to 5 minutes each.",
     proof: "The product is meant to feel approachable: open it, ask, refine, save, and continue later.",
   },
   "arcai-vs-chatgpt": {
@@ -592,7 +592,7 @@ function enrichPost(post: BlogPost): BlogPost {
         `${item.a} In practical terms, this means you can start with a normal question and keep going into follow-ups, research, drafts, files, images, voice, or code without switching products. ArcAI is designed for the kind of messy, real workflow where a user asks one thing, changes direction, adds context, and expects the assistant to keep up.`,
         index === 0
           ? context.proof
-          : `ArcAI offers a generous free tier with Luna reasoning, image generation, weekly research, and tons of free voice usage. Boost unlocks unlimited research, higher Luna limits, higher image quotas, and unlimited voice sessions.`
+          : `ArcAI offers a generous free tier with Luna reasoning, image generation, weekly research, and 3 voice sessions per UTC day, up to 5 minutes each. Boost unlocks unlimited research, higher Luna limits, higher image quotas, and unlimited voice sessions up to 2 hours each.`
       ],
     bullets:
       item.bullets ??

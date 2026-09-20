@@ -20,7 +20,7 @@ export default function TermsPage() {
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight m-0">Terms of Service</h1>
           </div>
-          <p className="text-sm text-muted-foreground mb-10">Last updated: September 11, 2026</p>
+          <p className="text-sm text-muted-foreground mb-10">Last updated: September 20, 2026</p>
 
           <div className="space-y-8 text-[15px] leading-relaxed text-foreground/90">
             <section>
@@ -39,12 +39,14 @@ export default function TermsPage() {
               <h2 className="text-xl font-semibold mb-2">2. Free tier and Boost</h2>
               <p className="text-muted-foreground">
                 ArcAI is <strong>free to use</strong>. A free account includes chat, voice, memory, canvases, file
-                uploads, shared chats, and a daily allowance of image generations, plus 4 Deep Searches and 1 Ultra
-                Deep Search each week.
+                uploads, shared chats, 3 voice sessions per UTC day with each session up to 5 minutes, and a daily
+                allowance of image generations, plus 4 Deep Searches and 1 Ultra Deep Search each week.
               </p>
               <p className="text-muted-foreground mt-3">
                 <strong>Boost</strong> is an optional paid subscription that raises those allowances — unlimited Deep
-                Search and Ultra Deep Search, a higher daily image limit, and higher chat and reasoning limits. It is
+                Search and Ultra Deep Search, unlimited voice sessions up to 2 hours each, a higher daily image limit,
+                and higher chat and reasoning limits. Boost and administrators have unlimited voice sessions up to 2
+                hours each. It is
                 billed through Stripe on a monthly or annual term, renews automatically until cancelled, and can be
                 cancelled at any time from your account settings; access continues to the end of the paid period.
               </p>
@@ -81,10 +83,10 @@ export default function TermsPage() {
                 <li>
                   Use the service to build a competing product, train competing models on outputs, or resell access.
                 </li>
-                <li>Bypass the daily image limit, authentication, or any other technical guardrail.</li>
+                <li>Bypass the daily image or voice limits, authentication, or any other technical guardrail.</li>
               </ul>
               <p className="text-muted-foreground mt-3">
-                If you abuse the free, unlimited service, your account may be suspended or terminated. 99.99% of people
+                If you abuse the free service, your account may be suspended or terminated. 99.99% of people
                 will never have to think about this — you know who you are.
               </p>
             </section>

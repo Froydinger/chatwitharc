@@ -107,7 +107,7 @@ export function PrivacyTermsModal({ trigger }: PrivacyTermsModalProps) {
                 <div>
                   <h3 className="font-medium mb-2">Fair Use & Service Abuse</h3>
                   <p className="text-muted-foreground">
-                    If you abuse our free, unlimited service via ArcAi tools (it takes a LOT to do this, don't worry)
+                    If you abuse our free service or attempt to bypass its usage limits via ArcAI tools (it takes a LOT to do this, don't worry)
                     you will be banned. 99.99% of people don't need to worry about this–you know who you are. 👀
                   </p>
                 </div>

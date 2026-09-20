@@ -1430,7 +1430,7 @@ useEffect(() => {
                         </div>
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
                           <span className="text-muted-foreground">Voice sessions</span>
-                          <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : `${Math.min(100, Math.round((dailyVoiceSessionsUsed / FREE_DAILY_VOICE_LIMIT) * 100))}% used`}</span>
+                          <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited · 2h max" : `${dailyVoiceSessionsUsed}/${FREE_DAILY_VOICE_LIMIT} sessions · 5 min max`}</span>
                         </div>
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
                           <span className="text-muted-foreground">Search</span>

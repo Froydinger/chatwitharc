@@ -195,7 +195,9 @@ spreads this map and overrides only the typography keys.
 
 - **Voice Mode: Natural voice powered by Voxi.** Browser voice uses OpenAI's speech-to-speech
   model over WebRTC, with Responses delegation to `gpt-5.6-luna` for Arc's tools and
-  deeper work. The microphone stays active for natural interruptions; the assistant is always Arc.
+  deeper work. Free accounts receive 3 voice sessions per UTC day, up to 5 minutes each;
+  Boost subscribers and administrators get unlimited voice sessions up to 2 hours each. The microphone stays
+  active for natural interruptions; the assistant is always Arc.
 - **Flash (Gemini) is account-gated, not public.** Flash is Arc's fast tier,
   backed by `gemini-3.5-flash-lite` through Google's OpenAI-compatible endpoint
   (`https://generativelanguage.googleapis.com/v1beta/openai/`), so the existing

@@ -35,10 +35,10 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           "text-xs font-medium text-primary",
           className,
         )}
-        aria-label={`Unlimited ${kind}`}
+        aria-label={isImage ? "Unlimited Arc Imagix" : "Unlimited voice sessions, up to 2 hours each"}
       >
         <Icon className="h-3.5 w-3.5 shrink-0" />
-        <span className="hidden sm:inline">Unlimited {isImage ? "Arc Imagix" : "voice"}</span>
+        <span className="hidden sm:inline">{isImage ? "Unlimited Arc Imagix" : "Unlimited voice · 2h max"}</span>
         <span className="sm:hidden">{isImage ? "Unltd." : "Unltd."}</span>
       </div>
     );
@@ -48,7 +48,8 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
   const limit = isImage ? imageLimit : FREE_DAILY_VOICE_LIMIT;
   const remaining = isImage ? Math.max(0, limit - used) : remainingVoiceConversations;
   const pct = Math.min(100, (used / limit) * 100);
-  const voicePctLabel = `${Math.round(pct)}% used today`;
+  const voicePctLabel = `${used}/${limit} sessions used today`;
+  const voicePolicyLabel = "Free voice: 3 sessions per UTC day, up to 5 minutes each";
   const isExhausted = remaining === 0;
   const isLow = remaining > 0 && remaining <= Math.max(1, Math.floor(limit * 0.3));
 
@@ -82,7 +83,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           ? isExhausted
             ? "Free Arc Imagix limit reached. Click to upgrade to Boost for unlimited creations."
             : "Click to view image limits and upgrade options"
-          : undefined
+          : voicePolicyLabel
       }
       className={cn(
         "group flex items-center gap-2 px-3 py-1.5 rounded-full transition-all",
@@ -96,7 +97,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border",
         className,
       )}
-      aria-label={isImage ? `${remaining} free Arc Imagix creations remaining.` : `${voicePctLabel}.`}
+      aria-label={isImage ? `${remaining} free Arc Imagix creations remaining.` : `${voicePctLabel}. ${voicePolicyLabel}.`}
     >
       {isExhausted && !hasBoost && !isAdmin ? (
         <Crown className="h-3.5 w-3.5 shrink-0 text-destructive animate-pulse" />
