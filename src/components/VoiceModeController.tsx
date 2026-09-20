@@ -611,13 +611,11 @@ export function VoiceModeController() {
       }
 
       const { data, error } = await withTimeout(
-        supabase.functions.invoke('chat', {
-          body: {
-            messages: [{ role: 'user', content: searchQuery }],
-            forceWebSearch: true
-          }
+        supabase.functions.invoke('voice-search', {
+          body: { query: searchQuery },
+          signal: abortControllerRef.current.signal,
         }),
-        50000,
+        12000,
         'Web search took too long.'
       );
       
@@ -634,7 +632,7 @@ export function VoiceModeController() {
         return `I couldn't complete that search right now. Please try again in a moment.`;
       }
       
-      const response = data?.choices?.[0]?.message?.content || 'No results found for that search.';
+      const response = data?.content || 'No results found for that search.';
       const sources = (data?.web_sources || data?.sources || data?.choices?.[0]?.message?.sources || [])
         .slice(0, 6)
         .map((s: any) => ({

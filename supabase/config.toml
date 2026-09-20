@@ -1,6 +1,9 @@
 project_id = "jpqtoixhjnfdubvqshwk"
 
 [functions]
+  [functions.voice-search]
+    # Handler validates the user with auth.getUser before any paid search.
+    verify_jwt = false
   [functions.cloud-run]
     # Handler verifies the current user with auth.getUser on every request.
     # Deployment alone does not enable it: CLOUD_RUNS_ENABLED must be true.
