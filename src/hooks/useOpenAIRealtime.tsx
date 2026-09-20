@@ -1,5 +1,7 @@
 import { BargeInProbe, BARGE_IN_PROBE_MS } from '@/lib/bargeInProbe';
 import { RealtimeBrowserTransport } from '@/lib/realtimeBrowserTransport';
+import { LiveSpeechIndicator } from '@/lib/liveSpeechIndicator';
+import { LiveDelegationState } from '@/lib/liveDelegationState';
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { useVoiceModeStore, VoiceName, REALTIME_SUPPORTED_VOICES, consumePendingMicStream } from '@/store/useVoiceModeStore';
 import { supabase } from '@/integrations/supabase/client';
@@ -176,6 +178,39 @@ let liveInputTranscript = '';
 let liveInputCaptionId: string | null = null;
 let currentResponseCaptionId: string | null = null;
 
+// Native Live has transcript fragments, not Realtime's finalized turns. Keep
+// the same speaker segments the live captions show; a speaker change commits
+// the previous segment. Packet delays are not utterance boundaries.
+let nativeLiveCaption: {
+  role: 'user' | 'assistant';
+  transcript: string;
+  captionId: string | null;
+} | null = null;
+
+const flushNativeLiveCaption = () => {
+  const caption = nativeLiveCaption;
+  nativeLiveCaption = null;
+  if (!caption?.transcript.trim()) return;
+  const state = useVoiceModeStore.getState();
+  const imageUrl = caption.role === 'assistant' ? state.lastGeneratedImageUrl : undefined;
+  state.addConversationTurn({
+    role: caption.role,
+    transcript: caption.transcript,
+    timestamp: new Date(),
+    liveCaptionId: caption.captionId || undefined,
+    imageUrl: imageUrl || undefined,
+  });
+  if (imageUrl) state.setLastGeneratedImageUrl(null);
+};
+
+const appendNativeLiveCaption = (role: 'user' | 'assistant', delta: string) => {
+  if (nativeLiveCaption && nativeLiveCaption.role !== role) flushNativeLiveCaption();
+  const captionId = useVoiceModeStore.getState().appendLiveCaption(role, delta);
+  if (!nativeLiveCaption) nativeLiveCaption = { role, transcript: '', captionId };
+  nativeLiveCaption.transcript += delta;
+};
+
+
 const startIosSpeakingGate = () => {
   if (iosSpeakingPlaybackTimer) {
     clearTimeout(iosSpeakingPlaybackTimer);
@@ -346,6 +381,7 @@ let pendingAssistantTurns: QueuedTurn[] = [];
 let turnFlushTimer: ReturnType<typeof setTimeout> | null = null;
 
 const resetTurnOrderingBuffer = () => {
+  nativeLiveCaption = null;
   pendingUserTurns = [];
   pendingAssistantTurns = [];
   liveInputTranscript = '';
@@ -429,6 +465,7 @@ const scheduleTurnFlush = () => {
 };
 
 const forceFlushTurnOrderingBuffer = () => {
+  flushNativeLiveCaption();
   if (turnFlushTimer) {
     clearTimeout(turnFlushTimer);
     turnFlushTimer = null;
@@ -616,6 +653,8 @@ let queuedToolCalls: Array<{ name: string; call_id: string; arguments?: string }
 const queuedToolCallIds = new Set<string>();
 
 let responseInProgress = false;
+const liveDelegationState = new LiveDelegationState();
+let pendingDelegatedToolResponse = false;
 let pendingFunctionResults: PendingFunctionResult[] = [];
 let pendingFunctionResultCallIds = new Set<string>();
 let pendingFunctionFlushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -671,6 +710,11 @@ const deliverFunctionResult = (
     return false;
   }
 
+  if (liveDelegationState.hasCall(callId)) {
+    liveDelegationState.markDelivered(callId);
+    pendingDelegatedToolResponse = true;
+  }
+
   // The output is now on the conversation, so the model can never lose it.
   // Asking for the spoken reply is the part that has to wait for a free turn.
   if (!pendingToolResponseRequest) pendingToolResponseSince = Date.now();
@@ -693,7 +737,11 @@ const requestToolResponse = () => {
 
   const voiceState = useVoiceModeStore.getState();
   const waitedTooLong = Date.now() - pendingToolResponseSince > TOOL_RESPONSE_MAX_WAIT_MS;
-  const turnIsBusy = waitedTooLong
+  // Live can keep listening/speaking while its Responses backend works. Its
+  // speech status must never block continuation of completed delegated tools.
+  const turnIsBusy = pendingDelegatedToolResponse
+    ? liveDelegationState.isBusy
+    : waitedTooLong
     ? responseInProgress
     : responseInProgress ||
       voiceState.hasPendingSpeech ||
@@ -705,8 +753,9 @@ const requestToolResponse = () => {
     return false;
   }
 
+  const isDelegatedContinuation = pendingDelegatedToolResponse;
   pendingToolResponseRequest = false;
-  awaitingToolResponse = true;
+  awaitingToolResponse = !isDelegatedContinuation;
 
   // NOTE: the Realtime API has no `reasoning` parameter — that belongs to the
   // Responses API. Sending it made OpenAI reject every tool reply with an
@@ -726,7 +775,8 @@ const requestToolResponse = () => {
     return false;
   }
 
-  responseInProgress = true;
+  pendingDelegatedToolResponse = false;
+  if (!isDelegatedContinuation) responseInProgress = true;
   return true;
 };
 
@@ -846,6 +896,8 @@ const resetPendingFunctionResults = () => {
     toolResponseRetryTimer = null;
   }
   responseInProgress = false;
+  pendingDelegatedToolResponse = false;
+  liveDelegationState.reset();
 };
 
 const resetToolCallQueue = () => {
@@ -970,8 +1022,26 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       // Keep tool completions and unwrap the Live events that drive captions,
       // turn persistence, and readiness.
       const innerType = event.event.type;
+      const delegationId = event.delegation_id ?? null;
+      const responseId = event.event.response?.id ?? event.event.response_id ?? null;
+      if (innerType === 'response.created') {
+        const automaticContinuation = liveDelegationState.responseStarted(delegationId, responseId);
+        if (automaticContinuation && pendingDelegatedToolResponse) {
+          pendingDelegatedToolResponse = false;
+          pendingToolResponseRequest = false;
+        }
+        return;
+      }
+      if (innerType === 'response.completed' || innerType === 'response.incomplete' || innerType === 'response.failed' || innerType === 'response.cancelled') {
+        liveDelegationState.responseFinished(delegationId, responseId,
+          innerType === 'response.incomplete' && event.event.response?.incomplete_details?.reason === 'steered');
+        requestToolResponse();
+        return;
+      }
+      if (innerType === 'response.output_item.done' && event.event.item?.type === 'function_call') {
+        if (!liveDelegationState.registerCall(event.event.item.call_id, delegationId, responseId)) return;
+      }
       const isLiveEvent =
-        innerType === 'response.created' ||
         innerType === 'response.done' ||
         innerType === 'input_audio_buffer.speech_started' ||
         innerType === 'input_audio_buffer.speech_stopped' ||
@@ -1145,16 +1215,24 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       case 'session.input_transcript.delta': {
         const delta = typeof event.delta === 'string' ? event.delta : '';
         if (!delta) break;
-        // `speech_stopped` can arrive before the last transcript fragments.
-        // Do not clear the accumulator here or Safari/iOS can split one spoken
-        // sentence into several partial words. The next speech_started event
-        // is the boundary that resets it.
         userSpeechInProgress = true;
         userSpokeAfterLastResponse = true;
         hasRealTranscription = true;
-        liveInputTranscript += delta;
-        liveInputCaptionId = useVoiceModeStore.getState().appendLiveCaption('user', delta);
+        appendNativeLiveCaption('user', delta);
         useVoiceModeStore.getState().setHasPendingSpeech(true);
+        optionsRef.current.onTranscriptUpdate?.(delta, false);
+        break;
+      }
+
+      case 'session.output_transcript.delta': {
+        if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
+        const delta = typeof event.delta === 'string' ? event.delta : '';
+        if (!delta) break;
+        const startsCaption = nativeLiveCaption?.role !== 'assistant';
+        appendNativeLiveCaption('assistant', delta);
+        startIosSpeakingGate();
+        setStatus('speaking');
+        setCurrentTranscript(startsCaption ? delta : useVoiceModeStore.getState().currentTranscript + delta);
         optionsRef.current.onTranscriptUpdate?.(delta, false);
         break;
       }
@@ -1204,7 +1282,6 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       case 'response.audio_transcript.delta':
       case 'response.output_audio_transcript.delta':
-      case 'session.output_transcript.delta':
       case 'response.text.delta':
         if (suppressInterruptedResponseAudio || isInterruptedResponseEvent(event)) return;
         // A transcript.done event is the boundary even if a Live session does
@@ -1989,16 +2066,24 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
       const realtimeModel = GPT_LIVE_MODEL;
       if (generation !== connectionGeneration || !useVoiceModeStore.getState().isActive) return;
+      const speechIndicator = new LiveSpeechIndicator();
       const ws = new RealtimeBrowserTransport({
         audioConstraints: getVoiceAudioConstraints(),
         prewarmedStream: consumePendingMicStream(),
         onInputAmplitude: (level) => useVoiceModeStore.getState().setInputAmplitude(level),
-        onOutputAmplitude: (level) => useVoiceModeStore.getState().setOutputAmplitude(level),
+        onOutputAmplitude: (level) => {
+          const state = useVoiceModeStore.getState();
+          state.setOutputAmplitude(level);
+          if (!state.isActive || !sessionReady || generation !== connectionGeneration) return;
+          const speaking = speechIndicator.sample(level, performance.now());
+          if (state.isAudioPlaying !== speaking) state.setIsAudioPlaying(speaking);
+          if (speaking && state.status !== 'speaking') state.setStatus('speaking');
+          else if (!speaking && state.status === 'speaking') state.setStatus('listening');
+        },
         onOutputEvent: (event) => {
-          if (event.type === 'playing') {
-            useVoiceModeStore.getState().setIsAudioPlaying(true);
-            useVoiceModeStore.getState().setStatus('speaking');
-          } else if (event.type === 'paused' || event.type === 'ended') {
+          // `playing` stays active while the RTP stream carries silence.
+          // Speech indication comes from the existing audio-level samples.
+          if (event.type === 'paused' || event.type === 'ended') {
             responseInProgress = false;
             useVoiceModeStore.getState().setIsAudioPlaying(false);
             useVoiceModeStore.getState().setOutputAmplitude(0);
