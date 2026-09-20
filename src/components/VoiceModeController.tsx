@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { updateVoiceToolCue } from '@/lib/voiceToolCue';
 import { useVoiceModeStore, REALTIME_SUPPORTED_VOICES, VoiceName } from '@/store/useVoiceModeStore';
 import { useOpenAIRealtime, ARC_LIVE_PROMPT } from '@/hooks/useOpenAIRealtime';
 import { useCameraCapture } from '@/hooks/useCameraCapture';
@@ -387,8 +388,24 @@ export function VoiceModeController() {
   const latestPastChatSearchRunRef = useRef<symbol | null>(null);
   const latestImageRunRef = useRef<symbol | null>(null);
 
-  // Tool progress is visual. A second oscillator audio graph competes with
-  // the native call route on iOS and can feed synthetic ticks into the mic.
+  useEffect(() => {
+    const update = () => {
+      const voice = useVoiceModeStore.getState();
+      updateVoiceToolCue({
+        active: voice.isActive,
+        busy: voice.isSearching || voice.isSearchingPastChats || voice.isGeneratingImage
+          || voice.isFetchingWeather || voice.isSchedulingTask,
+        speaking: voice.isAudioPlaying,
+        volume: voice.volume,
+      });
+    };
+    update();
+    const unsubscribe = useVoiceModeStore.subscribe(update);
+    return () => {
+      unsubscribe();
+      updateVoiceToolCue({ active: false, busy: false, speaking: false, volume: 0 });
+    };
+  }, []);
 
   const withTimeout = useCallback(<T,>(promise: Promise<T>, ms: number, message: string): Promise<T> => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;

@@ -1,6 +1,7 @@
 import { BargeInProbe, BARGE_IN_PROBE_MS } from '@/lib/bargeInProbe';
 import { RealtimeBrowserTransport } from '@/lib/realtimeBrowserTransport';
 import { LiveSpeechIndicator } from '@/lib/liveSpeechIndicator';
+import { setVoiceToolPending } from '@/lib/voiceToolCue';
 import { LiveDelegationState } from '@/lib/liveDelegationState';
 import { useRef, useCallback, useState, useEffect } from 'react';
 import { useVoiceModeStore, VoiceName, REALTIME_SUPPORTED_VOICES, consumePendingMicStream } from '@/store/useVoiceModeStore';
@@ -904,6 +905,7 @@ const resetToolCallQueue = () => {
   activeToolCallId = null;
   queuedToolCalls = [];
   queuedToolCallIds.clear();
+  setVoiceToolPending(false);
 };
 
 const buildReconnectPrompt = async () => {
@@ -929,6 +931,7 @@ const cleanupStaleToolCalls = () => {
     if (now - timestamp > TOOL_CALL_TIMEOUT_MS) {
       console.warn('Cleaning up stale tool call:', callId);
       toolCallsInFlight.delete(callId);
+      setVoiceToolPending(toolCallsInFlight.size > 0 || queuedToolCalls.length > 0);
       if (activeToolCallId === callId) activeToolCallId = null;
     }
   }
@@ -1384,6 +1387,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
           }
           activeToolCallId = call_id;
           toolCallsInFlight.set(call_id, Date.now());
+          setVoiceToolPending(true);
           console.log('Function call received:', { name, call_id, argsStr });
           logVoiceDiagnostic({
             event_type: 'tool_call_received',
@@ -1395,11 +1399,14 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
 
           const cleanupToolCall = () => {
             toolCallsInFlight.delete(call_id);
+            setVoiceToolPending(toolCallsInFlight.size > 0 || queuedToolCalls.length > 0);
             if (activeToolCallId === call_id) activeToolCallId = null;
             const nextToolCall = queuedToolCalls.shift();
             if (nextToolCall) {
               queuedToolCallIds.delete(nextToolCall.call_id);
+              const queuedGeneration = connectionGeneration;
               window.setTimeout(() => {
+                if (queuedGeneration !== connectionGeneration || !useVoiceModeStore.getState().isActive) return;
                 handleServerEvent({
                   type: 'response.output_item.done',
                   item: { type: 'function_call', ...nextToolCall },

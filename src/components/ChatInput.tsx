@@ -3542,7 +3542,7 @@ ${safeCode}
               >
                 <ArrowRight className="h-4 w-4" />
               </motion.button>
-            ) : (
+            ) : cloudExecutionMode !== 'auto' ? (
               <div className="flex items-center gap-1 shrink-0">
                 {/* Keep voice selection beside the waveform control. */}
                 <ChatVoicePicker name={currentVoice?.name ?? "Marina"} selectedVoice={selectedVoice}
@@ -3587,7 +3587,7 @@ ${safeCode}
                 <AudioWaveform className="ci-voice-icon h-4 w-4" strokeWidth={1.8} />
                 </motion.button>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

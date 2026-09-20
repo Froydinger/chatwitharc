@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { prepareVoiceToolCue } from '@/lib/voiceToolCue';
 import { getVoiceAudioConstraints } from '@/utils/platform';
 
 export type VoiceStatus = 'idle' | 'connecting' | 'listening' | 'thinking' | 'speaking';
@@ -153,6 +154,7 @@ export function setGlobalVolumeChangeHandler(handler: ((vol: number) => void) | 
 let pendingMicPromise: Promise<MediaStream> | null = null;
 
 export function prewarmMicrophone(): Promise<MediaStream> | null {
+  prepareVoiceToolCue();
   if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
     return null;
   }
