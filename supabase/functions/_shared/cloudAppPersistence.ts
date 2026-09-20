@@ -69,7 +69,7 @@ export function cloudAppPersistence(
       // Known rejected arguments/conflicts are not ambiguous paid calls.
       if (
         ["apply", "publish_start", "publish_commit"].includes(action) &&
-        ["22023", "23505", "40001"].includes(error.code)
+        ["22023", "23505", "PT409", "40001"].includes(error.code)
       ) return { status: error.code === "22023" ? "invalid" : "conflict" };
       throw new Error(
         "App persistence unavailable; same receipt required for recovery.",

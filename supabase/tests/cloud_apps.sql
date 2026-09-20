@@ -144,7 +144,7 @@ begin
  begin
    perform public.save_cloud_app_project(gen_random_uuid(),p,rev,files,history);
    raise exception 'FAIL: stale manual snapshot accepted';
- exception when serialization_failure then null; end;
+ exception when sqlstate 'PT409' then null; end;
  begin
    perform public.save_cloud_app_project(operation,p,rev,'{}',history);
    raise exception 'FAIL: operation identity reused with different data';

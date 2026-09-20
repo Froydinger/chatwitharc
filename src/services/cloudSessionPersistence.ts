@@ -85,7 +85,7 @@ export function createCloudSessionPersistence(options: {
       }
       if (response.error) {
         const code = response.error.code;
-        const status = code === '40001' || code === '23505' ? 'conflict'
+        const status = code === 'PT409' || code === '40001' || code === '23505' ? 'conflict'
           : code === '42501' || code === '22023' ? 'rejected' : 'uncertain';
         const result: SessionPersistenceResult = { status, applied, revision, operationId: item.id, code };
         if (status !== 'uncertain') stopped = { ...result, applied: 0 };

@@ -659,7 +659,7 @@ export async function handleCloudRun(req: Request): Promise<Response> {
             "Run or message id conflicts with a different submission.",
           );
         }
-        if (error.code === "40001") {
+        if (error.code === "PT409" || error.code === "40001") {
           throw new HttpError(
             409,
             "Session revision changed; refresh before submitting.",

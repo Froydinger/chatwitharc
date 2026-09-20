@@ -37,7 +37,7 @@ test('transport uncertainty survives refresh with identical UUID and payload', a
   assert.equal(retry.p_operation_id, journal.pending[0].operationId); assert.equal(retry.p_expected_revision, 0);
 });
 test('conflict retains edits and cannot silently rebase', async () => {
-  let calls = 0; const f = fixture({ save: async () => { calls++; return { data: null, error: { code: '40001' } }; } });
+  let calls = 0; const f = fixture({ save: async () => { calls++; return { data: null, error: { code: 'PT409' } }; } });
   f.adapter.capture(snap()); assert.equal((await f.adapter.flush()).status, 'conflict');
   assert.equal((await f.adapter.flush()).status, 'conflict'); assert.equal(calls, 1);
   assert.equal((await f.adapter.reload()).status, 'pending');

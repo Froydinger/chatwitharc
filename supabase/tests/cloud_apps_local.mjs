@@ -40,6 +40,7 @@ try {
   migration('20260828213000_expire_admin_boost_grants.sql');
   migration('20260912085941_durable_cloud_runs.sql');
   migration('20260912100349_durable_cloud_app_versions.sql');
+  migration('20260920071113_stop_rpc_conflict_retry_storm.sql');
   console.log(sql(readFileSync(new URL('./cloud_apps.sql', import.meta.url), 'utf8')));
   console.log('App migration + PostgreSQL regression suite passed. No network/provider calls.');
 } catch (error) {

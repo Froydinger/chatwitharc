@@ -63,7 +63,7 @@ test('conflict stops partial batch and later enqueues, never retries or rebases'
   let count = 0;
   const f = fixture({ client: { rpc: async (_, args) => ++count === 1
     ? { data: { operation_id: args.p_operation_id, session_revision: 1, replayed: false }, error: null }
-    : { data: null, error: { code: '40001' } } } });
+    : { data: null, error: { code: 'PT409' } } } });
   f.adapter.enqueue(snap(), snap(message('a'), message('b'), message('c')));
   const result = await f.adapter.flush();
   assert.equal(result.status, 'conflict');
@@ -107,11 +107,11 @@ test('journal failure prevents fetch and preserves operation IDs for retry', asy
   assert.equal(f.calls[0].p_operation_id, ids[0]);
 });
 
-for (const code of ['23505', '42501', '22023', '']) {
+for (const code of ['PT409', '40001', '23505', '42501', '22023', '']) {
   test(`RPC error ${code || 'transport'} is explicit, never false success`, async () => {
     const f = fixture({ client: { rpc: async () => ({ data: null, error: { code } }) } });
     f.adapter.enqueue(snap(), snap(message('a')));
-    assert.equal((await f.adapter.flush()).status, code === '23505' ? 'conflict' : code ? 'rejected' : 'uncertain');
+    assert.equal((await f.adapter.flush()).status, ['PT409', '40001', '23505'].includes(code) ? 'conflict' : code ? 'rejected' : 'uncertain');
     assert.equal(f.adapter.snapshot().pending.length, 1);
   });
 }

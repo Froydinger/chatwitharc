@@ -601,7 +601,7 @@ Deno.test("stable user message and expected revision are required and allowliste
 
 Deno.test("RPC conflicts and failures never fall back to insert or another submission", async () => {
   for (
-    const [code, status] of [["40001", 409], ["23505", 409], ["22023", 400], [
+    const [code, status] of [["PT409", 409], ["40001", 409], ["23505", 409], ["22023", 400], [
       "PGRST202",
       500,
     ], ["XX000", 500]] as const

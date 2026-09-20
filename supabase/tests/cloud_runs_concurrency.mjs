@@ -128,6 +128,10 @@ try {
   check(await query("select indisvalid from pg_index where indexrelid='public.chat_sessions_id_user_id_cloud_runs_key'::regclass") === 't','Concurrent index valid');
   await query(migration);
   pass('concurrent prerequisite index and migration apply');
+  const conflictMigration = readFileSync(`${root}/supabase/migrations/20260920071113_stop_rpc_conflict_retry_storm.sql`, 'utf8');
+  await query(conflictMigration);
+  await query(conflictMigration); // Safe when the emergency patch already ran.
+  check(await query("select count(*) from pg_proc where proname in ('apply_chat_session_operation','submit_cloud_run') and prosrc like '%40001%'") === '0', 'Application conflicts must not trigger PostgREST transaction retries');
   if (process.argv.includes('--memory')) {
     for (const file of ['20250910205114_15e4466e-d756-40c0-9a14-28fb83c4b20e.sql',
       '20260217044842_c604df0e-752d-4231-84f2-2bfa3346a94d.sql','20260911151101_add_living_memory_summary.sql',
@@ -224,7 +228,7 @@ try {
     {
       const sid = await session(), id = randomUUID(), msg = message();
       const legacy = `${auth(A)} update public.chat_sessions set messages=${json([message()])} where id=${quote(sid)};`;
-      await race(`${mode}: legacy edit invalidates submit revision`,legacy,submit(id,sid,mode,msg),'40001');
+      await race(`${mode}: legacy edit invalidates submit revision`,legacy,submit(id,sid,mode,msg),'PT409');
       check(await query(`select count(*) from public.cloud_runs where id=${quote(id)}`) === '0','Stale submission never queues');
       const other = await session(), otherRun = randomUUID();
       await race(`${mode}: submission protects against legacy overwrite`,submit(otherRun,other,mode,message()),
@@ -247,7 +251,7 @@ try {
       const r = await running(mode), original = r.msg;
       const op1 = { kind:'replace',id:original.id,expected:original,message:{...original,content:'first'} };
       const op2 = { kind:'replace',id:original.id,expected:original,message:{...original,content:'second'} };
-      await race(`${mode}: same-message CAS`,operation(r.sid,op1),operation(r.sid,op2),'40001');
+      await race(`${mode}: same-message CAS`,operation(r.sid,op1),operation(r.sid,op2),'PT409');
       check((await state(r.sid)).messages[0].content === 'first','CAS winning content');
       await race(`${mode}: operation preserves concurrent completion`,r.complete,
         operation(r.sid,{kind:'append',message:message(randomUUID(),'voice-style turn','assistant')}));
@@ -264,7 +268,7 @@ try {
         operation(first,{kind:'append',message:message()},id),operation(second,{kind:'append',message:message()},id),'23505');
       check((await state(second)).messages.length === 0 && (await state(second)).revision === 0,'Receipt collision rolls edit back');
       await race(`${mode}: canvas CAS`,operation(first,{kind:'canvas',expected:null,value:'winner'}),
-        operation(first,{kind:'canvas',expected:null,value:'loser'}),'40001');
+        operation(first,{kind:'canvas',expected:null,value:'loser'}),'PT409');
       check(await query(`select canvas_content from public.chat_sessions where id=${quote(first)}`) === 'winner','Canvas winner retained');
     }
     {

@@ -310,7 +310,7 @@ begin
     begin
       perform public.submit_cloud_run(other_id,owner_id,sid,m,'chat','{}',msg,0);
       raise exception 'FAIL: stale revision accepted';
-    exception when serialization_failure then null; end;
+    exception when sqlstate 'PT409' then null; end;
     begin
       perform public.submit_cloud_run(other_id,owner_id,sid,m,'chat','{}',msg || '{"content":"changed"}',1);
       raise exception 'FAIL: same message id conflict accepted';
@@ -438,7 +438,7 @@ begin
         '{"messages":[{"role":"user","content":"forged edit"},{"role":"user","content":"fourth"}]}',
         '{"id":"fourth","role":"user","content":"fourth"}',0);
       raise exception 'FAIL: conflicting submitted history accepted';
-    exception when serialization_failure then null;end;
+    exception when sqlstate 'PT409' then null;end;
     perform pg_temp.assert_true(not exists(select 1 from public.claim_cloud_run(b)),mode||': follower cannot claim');
     perform pg_temp.assert_true(not exists(select 1 from public.list_claimable_cloud_runs(4) where id in (b,c)),mode||': scheduler excludes followers');
     update public.cloud_runs set created_at=now()-interval '2 days' where id=a;
@@ -470,7 +470,7 @@ begin
       perform public.submit_cloud_run(gen_random_uuid(),owner_id,sid,mode,'chat',
         '{"messages":[{"role":"user","content":"new"}]}','{"id":"new","role":"user","content":"new"}',0);
       raise exception 'FAIL: edit watermark bypassed';
-    exception when serialization_failure then null;end;
+    exception when sqlstate 'PT409' then null;end;
   end loop;
   -- Owned message edits before first start pause the head; do not silently
   -- execute the new text or let its follower skip the decision.
@@ -555,7 +555,7 @@ begin
   begin
     perform public.apply_chat_session_operation(gen_random_uuid(),sid,op);
     raise exception 'FAIL: new append intent overwrote existing id';
-  exception when serialization_failure then null; end;
+  exception when sqlstate 'PT409' then null; end;
 
   execute 'set local role service_role';
   insert into public.cloud_runs(id,user_id,session_id,request) values
@@ -574,12 +574,12 @@ begin
   begin
     perform public.apply_chat_session_operation(gen_random_uuid(),sid,op);
     raise exception 'FAIL: stale old message accepted';
-  exception when serialization_failure then null; end;
+  exception when sqlstate 'PT409' then null; end;
   begin
     perform public.apply_chat_session_operation(gen_random_uuid(),sid,
       jsonb_build_object('kind','remove','id',msg->>'id','expected',msg));
     raise exception 'FAIL: stale remove accepted';
-  exception when serialization_failure then null; end;
+  exception when sqlstate 'PT409' then null; end;
   perform public.apply_chat_session_operation(gen_random_uuid(),sid,
     jsonb_build_object('kind','remove','id',msg->>'id','expected',final_msg));
   result := public.apply_chat_session_operation(oid,sid,op);
@@ -593,7 +593,7 @@ begin
   begin
     perform public.apply_chat_session_operation(gen_random_uuid(),sid,op);
     raise exception 'FAIL: stale canvas accepted';
-  exception when serialization_failure then null; end;
+  exception when sqlstate 'PT409' then null; end;
   perform public.apply_chat_session_operation(gen_random_uuid(),sid,
     '{"kind":"canvas","expected":"draft","value":null}');
   perform pg_temp.assert_true((select revision = 6 and canvas_content is null and messages = jsonb_build_array(cloud_msg)

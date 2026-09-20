@@ -74,7 +74,7 @@
 `save_cloud_app_project(p_operation_id uuid, p_project_id uuid,
 p_expected_revision bigint, p_files jsonb, p_messages jsonb)` runs authenticated.
 
-It returns `{operationId,revision,replayed}`. SQLSTATE `40001` means an explicit
+It returns `{operationId,revision,replayed}`. SQLSTATE `PT409` means an explicit
 revision conflict; `23505` means the UUID was reused for a different operation;
 `42501` means access/system-file denial; `22023` means invalid input. Transport
 failure or a malformed acknowledgement is uncertain: retain the same intent.

@@ -93,7 +93,7 @@ export class CloudAppProjectPersistence {
       } catch { return { status: 'uncertain', revision: this.journal.revision }; }
       if (result.error) {
         const code = result.error.code;
-        const status = code === '40001' || code === '23505' ? 'conflict' : code === '42501' || code === '22023' ? 'rejected' : 'uncertain';
+        const status = code === 'PT409' || code === '40001' || code === '23505' ? 'conflict' : code === '42501' || code === '22023' ? 'rejected' : 'uncertain';
         if (status !== 'uncertain') this.blocked = status;
         return { status, revision: this.journal.revision };
       }
