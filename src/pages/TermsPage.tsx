@@ -39,7 +39,7 @@ export default function TermsPage() {
               <h2 className="text-xl font-semibold mb-2">2. Free tier and Boost</h2>
               <p className="text-muted-foreground">
                 ArcAI is <strong>free to use</strong>. A free account includes chat, voice, memory, canvases, file
-                uploads, shared chats, 3 voice sessions per UTC day with each session up to 5 minutes, and a daily
+                uploads, shared chats, 3 voice sessions per UTC day with each session up to 10 minutes, and a daily
                 allowance of image generations, plus 4 Deep Searches and 1 Ultra Deep Search each week.
               </p>
               <p className="text-muted-foreground mt-3">

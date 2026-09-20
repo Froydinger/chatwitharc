@@ -25,7 +25,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes Arc Matrix™ chat (unlimited Ava, 10 Maya, 3 River daily), canvases, a living memory summary, 3 Arc Imagix creations, weekly research, and 3 voice sessions per UTC day up to 5 minutes each with Arc. Upgrade to Boost for unlimited research, unlimited Ava, Maya, and River reasoning, App Builder, unlimited Arc Imagix creation & editing, and unlimited voice sessions up to 2 hours each.",
+    a: "Yes. Our free tier includes Arc Matrix™ chat (unlimited Ava, 10 Maya, 3 River daily), canvases, a living memory summary, 3 Arc Imagix creations, weekly research, and 3 voice sessions per UTC day up to 10 minutes each with Arc. Upgrade to Boost for unlimited research, unlimited Ava, Maya, and River reasoning, App Builder, unlimited Arc Imagix creation & editing, and unlimited voice sessions up to 2 hours each.",
   },
   {
     q: "Is there a paid tier?",
@@ -65,7 +65,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Does ArcAI have voice mode?",
-    a: "Yes. Voice mode provides low-latency, interruptible conversations with Arc using natural voices powered by our Voxi speech engine. Free accounts get 3 voice sessions per UTC day, up to 5 minutes each, while Boost includes unlimited voice sessions up to 2 hours each.",
+    a: "Yes. Voice mode provides low-latency, interruptible conversations with Arc using natural voices powered by our Voxi speech engine. Free accounts get 3 voice sessions per UTC day, up to 10 minutes each, while Boost includes unlimited voice sessions up to 2 hours each.",
   },
   {
     q: "Can ArcAI write code and build apps?",
@@ -263,13 +263,13 @@ export function LandingPage() {
               Free is powerful. <span className="text-white/70">Boost is optional.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              Arc is built to be a safe, helpful hub for everyone. The free plan includes Arc Matrix™ reasoning, a living memory summary, 3 voice sessions per UTC day up to 5 minutes each, search, and coding out of the box. Upgrade to Boost for $10/month if you want higher quotas, unlimited voice sessions up to 2 hours each, or full App Builder publishing.
+              Arc is built to be a safe, helpful hub for everyone. The free plan includes Arc Matrix™ reasoning, a living memory summary, 3 voice sessions per UTC day up to 10 minutes each, search, and coding out of the box. Upgrade to Boost for $10/month if you want higher quotas, unlimited voice sessions up to 2 hours each, or full App Builder publishing.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
                 { icon: ImageIcon, title: "3 free images to start", body: "Create up to 3 images for free with Arc Imagix, or upgrade to Boost for unlimited generation and editing." },
-                { icon: Mic, title: "Natural voice conversations", body: "Speak naturally with low-latency, interruptible audio. Free accounts get 3 voice sessions per UTC day, up to 5 minutes each, and Boost includes unlimited live voice sessions up to 2 hours each." },
+                { icon: Mic, title: "Natural voice conversations", body: "Speak naturally with low-latency, interruptible audio. Free accounts get 3 voice sessions per UTC day, up to 10 minutes each, and Boost includes unlimited live voice sessions up to 2 hours each." },
                 { icon: Search, title: "Deep research, powered by Perplexity", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. 4 Deep and 1 Ultra a week free, unlimited on Boost." },
                 { icon: Code2, title: "App Builder & live publishing", body: "Build full interactive React web apps and share running creations with custom Arc links on Boost." },
               ].map((b) => (
@@ -382,7 +382,7 @@ export function LandingPage() {
           Find your creative center.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-          Start with 20 daily reasoning chats, 3 free images, and 3 voice sessions per UTC day up to 5 minutes each. Upgrade to Boost for unlimited image generation, higher reasoning, and unlimited voice sessions up to 2 hours each.
+          Start with 20 daily reasoning chats, 3 free images, and 3 voice sessions per UTC day up to 10 minutes each. Upgrade to Boost for unlimited image generation, higher reasoning, and unlimited voice sessions up to 2 hours each.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button

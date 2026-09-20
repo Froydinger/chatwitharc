@@ -49,7 +49,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
   const remaining = isImage ? Math.max(0, limit - used) : remainingVoiceConversations;
   const pct = Math.min(100, (used / limit) * 100);
   const voicePctLabel = `${used}/${limit} sessions used today`;
-  const voicePolicyLabel = "Free voice: 3 sessions per UTC day, up to 5 minutes each";
+  const voicePolicyLabel = "Free voice: 3 sessions per UTC day, up to 10 minutes each";
   const isExhausted = remaining === 0;
   const isLow = remaining > 0 && remaining <= Math.max(1, Math.floor(limit * 0.3));
 

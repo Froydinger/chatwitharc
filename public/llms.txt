@@ -2,7 +2,7 @@
 
 > ArcAI (Ask, Reflect, Create) is a free multimodal AI assistant by Win The Night Productions. Natural voice conversations, Arc Imagix image generation, code canvas, writing tools, music player and living memory in one app.
 
-Arc Matrix™ powers ArcAI chat, code, writing and analysis. The model picker offers Auto, Ava (fast & agile), Maya (everyday powerhouse) and River (deep reasoning); Auto starts with Ava and steps up for clearly harder requests. Natural, interruptible voice conversations are powered by Voxi. Free accounts get 3 voice sessions per UTC day, up to 5 minutes each; Boost subscribers and administrators get unlimited voice sessions up to 2 hours each. Living memory, Deep Search, web search, file uploads, document analysis, canvases, shared chats, code generation and one-tap publishing are also included.
+Arc Matrix™ powers ArcAI chat, code, writing and analysis. The model picker offers Auto, Ava (fast & agile), Maya (everyday powerhouse) and River (deep reasoning); Auto starts with Ava and steps up for clearly harder requests. Natural, interruptible voice conversations are powered by Voxi. Free accounts get 3 voice sessions per UTC day, up to 10 minutes each; Boost subscribers and administrators get unlimited voice sessions up to 2 hours each. Living memory, Deep Search, web search, file uploads, document analysis, canvases, shared chats, code generation and one-tap publishing are also included.
 
 Free accounts can generate or edit up to 3 image outputs total with Arc Imagix. Boost subscribers and administrators have unlimited image generation and precision Arc Imagix Edit tools.
 

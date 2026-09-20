@@ -3558,7 +3558,7 @@ ${safeCode}
                   if (!hasBoost && !isAdmin && !canStartVoiceConversation) {
                     toast({
                       title: "Daily voice limit reached",
-                      description: "Free accounts get 3 voice sessions per UTC day, up to 5 minutes each. Upgrade to Boost for unlimited live voice sessions up to 2 hours each.",
+                      description: "Free accounts get 3 voice sessions per UTC day, up to 10 minutes each. Upgrade to Boost for unlimited live voice sessions up to 2 hours each.",
                       variant: "destructive",
                     });
                     openCheckout(undefined, "voice_daily_limit");

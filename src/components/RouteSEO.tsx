@@ -10,12 +10,12 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/": {
     title: "ArcAI • Ask, Reflect, Create",
     description:
-      "Talk naturally with Arc in real-time voice, generate images, write code and prose in one place. Free multimodal AI with 3 voice sessions per UTC day up to 5 minutes each and living memory.",
+      "Talk naturally with Arc in real-time voice, generate images, write code and prose in one place. Free multimodal AI with 3 voice sessions per UTC day up to 10 minutes each and living memory.",
   },
   "/pricing": {
     title: "ArcAI • Pricing",
     description:
-      "ArcAI includes Arc Matrix™ intelligence with Ava, Maya, and River reasoning, plus 3 voice sessions per UTC day up to 5 minutes each, Deep Search, and shared chats.",
+      "ArcAI includes Arc Matrix™ intelligence with Ava, Maya, and River reasoning, plus 3 voice sessions per UTC day up to 10 minutes each, Deep Search, and shared chats.",
   },
   "/downloads": {
     title: "ArcAI • Downloads",
@@ -56,7 +56,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/welcome": {
     title: "ArcAI — Free AI Assistant with Voice, Images & Memory",
     description:
-      "ArcAI is a free multimodal AI assistant with natural voice conversations, 3 voice sessions per UTC day up to 5 minutes each, Arc Imagix image generation, code and living memory. A free ChatGPT, Gemini and Claude alternative.",
+      "ArcAI is a free multimodal AI assistant with natural voice conversations, 3 voice sessions per UTC day up to 10 minutes each, Arc Imagix image generation, code and living memory. A free ChatGPT, Gemini and Claude alternative.",
   },
   "/blog": {
     title: "ArcAI Guides & FAQs — Free AI Assistant",
@@ -149,7 +149,7 @@ export const RouteSEO = () => {
       : {
           title: "ArcAI • Page Not Found",
           description:
-            "Talk naturally with Arc in real-time voice, generate images, write code and prose in one place. Free multimodal AI with 3 voice sessions per UTC day up to 5 minutes each and living memory.",
+            "Talk naturally with Arc in real-time voice, generate images, write code and prose in one place. Free multimodal AI with 3 voice sessions per UTC day up to 10 minutes each and living memory.",
         });
 
   return <SEO title={meta.title} description={meta.description} path={path} />;

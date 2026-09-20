@@ -116,7 +116,7 @@ WHAT ARC CAN DO
 
 VOICE MODE
 - Voice is a live, interruptible conversation with Arc (powered by the Voxi voice engine) started from the voice control in chat. It can use web search, weather, memories, past-chat search, images, camera vision, reminders, and the bug-report form.
-- Free accounts get 3 voice sessions per UTC day, up to 5 minutes each. Boost subscribers and administrators get unlimited voice sessions, up to 2 hours per session. A free session ends after 5 minutes; any voice session also pauses after 10 minutes with no user or assistant speech. Its transcript is saved into the current chat.
+- Free accounts get 3 voice sessions per UTC day, up to 10 minutes each. Boost subscribers and administrators get unlimited voice sessions, up to 2 hours per session. A free session ends after 10 minutes; any voice session also pauses after 10 minutes with no user or assistant speech. Its transcript is saved into the current chat.
 
 SUPPORT AND NAVIGATION
 - Home/chat: https://askarc.chat/

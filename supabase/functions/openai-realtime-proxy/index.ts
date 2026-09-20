@@ -122,7 +122,7 @@ serve(async (req) => {
   }
   if (!voiceQuota?.allowed) {
     return new Response(JSON.stringify({
-      error: 'Free accounts get three voice sessions per UTC day, up to five minutes each. Upgrade to Boost for unlimited voice sessions up to two hours each.',
+      error: 'Free accounts get three voice sessions per UTC day, up to ten minutes each. Upgrade to Boost for unlimited voice sessions up to two hours each.',
       code: 'voice_daily_limit',
       used: voiceQuota?.used ?? 0,
       remaining: 0,

@@ -118,7 +118,7 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string, effor
       return { label: `Cloud · ${name} (Docs)`, icon: 'cloud', tooltip: `Document analysis — ${providerName}.` };
     }
     case 'cloud-voice':
-      return { label: 'Cloud · Voxi Voice', icon: 'cloud', tooltip: 'Natural live voice powered by Voxi. Free: 3 sessions per UTC day, up to 5 minutes each; Boost: unlimited sessions up to 2 hours each.' };
+      return { label: 'Cloud · Voxi Voice', icon: 'cloud', tooltip: 'Natural live voice powered by Voxi. Free: 3 sessions per UTC day, up to 10 minutes each; Boost: unlimited sessions up to 2 hours each.' };
     case 'cloud-code': {
       const { name, providerName } = getModelInfo(effortUsed, modelUsed);
       return { label: `Cloud · ${name} (Code)`, icon: 'cloud', tooltip: `Code generation — ${providerName}.` };

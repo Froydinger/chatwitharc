@@ -148,7 +148,7 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
             {isVoiceLimit && (
               <p className="text-sm text-foreground/80 mb-1">
                 {reason === 'voice_session_timeout'
-                  ? 'Your free voice session reached its 5-minute limit.'
+                  ? 'Your free voice session reached its 10-minute limit.'
                   : 'You have used the free voice allowance for today.'}
                 {' '}Boost unlocks unlimited live voice sessions up to 2 hours each.
               </p>

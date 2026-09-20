@@ -85,7 +85,7 @@ const WelcomeEmail = ({ displayName }: WelcomeEmailProps) => {
             <Text className="arc-email-emoji" style={emoji}>⚡</Text>
             <Heading style={h2}>Start free. Upgrade when you want more.</Heading>
             <Text style={supportParagraph}>
-              ArcAI's free plan includes Luna chat, reasoning modes, web research, 3 voice sessions per UTC day up to 5 minutes each, memory, files, canvases, reminders, shared chats, and image generation with plan-based limits. Boost adds higher limits, unlimited voice sessions up to 2 hours each, premium image tools, advanced editing, priority access, and live web-app publishing for $10/month or $95/year.
+              ArcAI's free plan includes Luna chat, reasoning modes, web research, 3 voice sessions per UTC day up to 10 minutes each, memory, files, canvases, reminders, shared chats, and image generation with plan-based limits. Boost adds higher limits, unlimited voice sessions up to 2 hours each, premium image tools, advanced editing, priority access, and live web-app publishing for $10/month or $95/year.
             </Text>
             <Button style={supportButton} href="https://askarc.chat/pricing">
               Compare Free and Boost
