@@ -10,7 +10,7 @@ export const BOOST_DAILY_IMAGE_LIMIT = Infinity;
 export const FREE_DAILY_SMARTER_CHAT_LIMIT = 20;
 export const FREE_DAILY_BALANCED_LIMIT = 10;
 export const FREE_DAILY_DEEP_LIMIT = 3;
-export const FREE_DAILY_VOICE_LIMIT = 10;
+export const FREE_DAILY_VOICE_LIMIT = 3;
 
 // Legacy export kept for older call sites. Voice is now limited by sessions
 // per UTC day, not by a rolling 30-day conversation count.
@@ -155,7 +155,7 @@ interface SubscriptionState {
   recordImageGeneration: () => void;
   recordSmarterChat: () => void;
   recordReasoningUsage: (effort: 'medium' | 'high' | string) => void;
-  openCheckout: () => void;
+  openCheckout: (priceId?: string | unknown, reason?: string) => void;
   openCustomerPortal: () => Promise<void>;
 
   // Constants
@@ -213,7 +213,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const remainingSmarterChats = hasBoost ? Infinity : 0;
 
   // Boost/admin users can keep a voice session alive across the provider's
-  // reconnects. Free users get a generous daily voice allowance.
+  // reconnects. Free users get three daily voice sessions.
   const canStartVoiceConversation = hasBoost || dailyVoiceSessionsUsed < FREE_DAILY_VOICE_LIMIT;
   const remainingVoiceConversations = hasBoost
     ? Infinity
@@ -308,9 +308,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, [isAdmin, hasBoost]);
 
   // Opens the Boost upgrade modal (mounted globally in App.tsx).
-  const openCheckout = useCallback((priceId?: string | unknown) => {
+  const openCheckout = useCallback((priceId?: string | unknown, reason?: string) => {
     const cleanPriceId = typeof priceId === 'string' ? priceId : undefined;
-    window.dispatchEvent(new CustomEvent('open-upgrade-modal', { detail: { priceId: cleanPriceId } }));
+    window.dispatchEvent(new CustomEvent('open-upgrade-modal', {
+      detail: { priceId: cleanPriceId, reason },
+    }));
   }, []);
 
   const openCustomerPortal = useCallback(async () => {

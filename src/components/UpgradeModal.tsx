@@ -23,9 +23,10 @@ interface UpgradeModalProps {
   onClose: () => void;
   userName?: string;
   priceId?: string;
+  reason?: string;
 }
 
-export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
+export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalProps) {
   const { user, isAnonymous } = useAuth();
   const requireAuth = useRequireAuth();
   const [selectedPriceId, setSelectedPriceId] = useState(priceId || BOOST_PRICE_ID);
@@ -35,6 +36,7 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
 
   const isRealUser = !!user && !isAnonymous;
   const canCheckout = paymentsAvailable() && isRealUser;
+  const isVoiceLimit = reason === 'voice_daily_limit' || reason === 'voice_session_timeout';
 
   useEffect(() => {
     if (isOpen) {
@@ -107,7 +109,7 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/15 mb-4">
               <Zap className="h-7 w-7 text-primary" />
             </div>
-            <h2 className="text-2xl font-bold mb-1">ArcAI Boost</h2>
+            <h2 className="text-2xl font-bold mb-1">{isVoiceLimit ? 'Keep the conversation going' : 'ArcAI Boost'}</h2>
             
             {/* Billing Cycle Selector Switch */}
             <div className="flex justify-center my-5">
@@ -143,6 +145,14 @@ export function UpgradeModal({ isOpen, onClose, priceId }: UpgradeModalProps) {
             <p className="text-sm text-muted-foreground mb-1">
               {priceDisplay} paid upgrade
             </p>
+            {isVoiceLimit && (
+              <p className="text-sm text-foreground/80 mb-1">
+                {reason === 'voice_session_timeout'
+                  ? 'Your free voice session reached its 5-minute limit.'
+                  : 'You have used the free voice allowance for today.'}
+                {' '}Boost unlocks unlimited live voice sessions.
+              </p>
+            )}
             <div className="flex items-baseline justify-center gap-1 my-4">
               <span className="text-4xl font-bold">{priceDisplay.split('/')[0]}</span>
               <span className="text-muted-foreground">/ {isAnnual ? "year" : "month"}</span>

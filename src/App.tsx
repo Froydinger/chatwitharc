@@ -243,6 +243,7 @@ const App = () => {
   const { isOpen, errorMessage, errorStack, closeBugReport } = useBugReport();
   const showStarfield = useStarfieldStore((s) => s.showStarfield);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<string | undefined>(undefined);
   
   useVisibilityHandler();
   useCorporateModeEnforcer();
@@ -255,6 +256,7 @@ const App = () => {
     const handleOpen = (e: Event) => {
       const customEvent = e as CustomEvent;
       setUpgradePriceId(customEvent.detail?.priceId);
+      setUpgradeReason(customEvent.detail?.reason);
       setUpgradeOpen(true);
     };
     window.addEventListener('open-upgrade-modal', handleOpen);
@@ -290,8 +292,12 @@ const App = () => {
               />
               <UpgradeModal 
                 isOpen={upgradeOpen} 
-                onClose={() => setUpgradeOpen(false)} 
+                onClose={() => {
+                  setUpgradeOpen(false);
+                  setUpgradeReason(undefined);
+                }}
                 priceId={upgradePriceId}
+                reason={upgradeReason}
               />
               <BoostSync />
               <BrowserRouter>

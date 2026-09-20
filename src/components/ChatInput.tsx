@@ -3558,10 +3558,10 @@ ${safeCode}
                   if (!hasBoost && !isAdmin && !canStartVoiceConversation) {
                     toast({
                       title: "Daily voice limit reached",
-                      description: "Free accounts get generous natural voice usage. Boost includes unlimited live voice sessions.",
+                      description: "Free accounts get 3 voice sessions per day, up to 5 minutes each. Upgrade to Boost for unlimited live voice sessions.",
                       variant: "destructive",
                     });
-                    openCheckout();
+                    openCheckout(undefined, "voice_daily_limit");
                     return;
                   }
                   // Start mic acquisition immediately within the user gesture event frame

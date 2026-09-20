@@ -10,6 +10,7 @@ import { AIService } from '@/services/ai';
 import { getResolvedImageModel } from '@/store/useImageGenStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfile } from '@/hooks/useProfile';
+import { useSubscription } from '@/hooks/useSubscription';
 import { detectsLocationIntent, formatLocationForContext, getCachedLocation, getUserLocation, UserLocation } from '@/lib/userLocation';
 import { getMemorySummary, applyMemorySummary } from '@/lib/memorySummary';
 import { 
@@ -22,6 +23,7 @@ import {
 } from './VoiceModeOverlay';
 
 const aiService = new AIService();
+const FREE_VOICE_SESSION_DURATION_MS = 5 * 60 * 1000;
 
 function isCurrentLocationRequest(text: string): boolean {
   return /\b(near\s*me|nearby|around\s*(me|here)|my\s*(area|city|town|region|location)|current\s*location|where\s*i\s*am|here|local\b|locally)\b/i.test(text || '');
@@ -184,7 +186,7 @@ Remember: you are not a generic AI assistant. You are Arc—a caring, curious, c
 const ARC_VOICE_IDENTITY_CONTEXT = `=== ARC IDENTITY AND PRODUCT CONTEXT (CRITICAL) ===
 You are Arc, the AI companion inside the ArcAI app, founded and created by Win The Night™ Foundation (winthenight.org). ArcAI is the app the user is currently using to talk with you. Speak about ArcAI and its capabilities in the first person ("I can…", "my memory…", "our chat…"). Never claim you have no idea which app or interface you are part of.
 
-ArcAI includes regular chat, this natural voice mode powered by Voxi, one living memory summary, searchable past chats, web search, Deep Search and Ultra Deep Search research modes powered by Perplexity (free accounts get 4 Deep and 1 Ultra per week, unlimited on Boost), weather, image generation and editing (using Arc Imagix for generation and Arc Imagix Edit for precision editing; free accounts get 3 creations total period, while Boost gets unlimited generation and editing), files, writing and code canvases, reminders and recurring tasks, shared chats, downloads, support tickets, and camera/image vision. Free accounts get generous voice usage; Boost and admins are unlimited. Voice pauses after 10 minutes with no user or assistant speech, and its transcript is saved to the current chat. Those capabilities are real. When the user refers to their living memory or earlier chats, use recall_memory or search_past_chats instead of claiming you cannot access it or asking them to repeat it.
+ArcAI includes regular chat, this natural voice mode powered by Voxi, one living memory summary, searchable past chats, web search, Deep Search and Ultra Deep Search research modes powered by Perplexity (free accounts get 4 Deep and 1 Ultra per week, unlimited on Boost), weather, image generation and editing (using Arc Imagix for generation and Arc Imagix Edit for precision editing; free accounts get 3 creations total period, while Boost gets unlimited generation and editing), files, writing and code canvases, reminders and recurring tasks, shared chats, downloads, support tickets, and camera/image vision. Free accounts get 3 voice sessions per UTC day, up to 5 minutes each; Boost and admins are unlimited. Voice pauses after 10 minutes with no user or assistant speech, and its transcript is saved to the current chat. Those capabilities are real. When the user refers to their living memory or earlier chats, use recall_memory or search_past_chats instead of claiming you cannot access it or asking them to repeat it.
 
 For customer support, give concrete answers and accurate destinations: support is https://askarc.chat/support, docs are https://askarc.chat/docs, account settings are https://askarc.chat/dashboard/settings, pricing is https://askarc.chat/pricing, and tasks are https://askarc.chat/tasks. Use open_bug_report when the user asks to report a bug, send feedback, contact the team about a problem, or send ArcAI a message. Admin chat and storage audit browsers are disabled for privacy; never imply staff casually browse private chats or files.
 
@@ -332,6 +334,7 @@ let savedTurnIndex = 0;
 
 export function VoiceModeController() {
   const { toast } = useToast();
+  const { hasBoost, isAdmin, loading: subscriptionLoading, openCheckout } = useSubscription();
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const { addMessage, replaceMessage, messages, createNewSession } = useArcStore();
   const { profile, updateProfile } = useProfile();
@@ -377,6 +380,7 @@ export function VoiceModeController() {
   
   // Auto-save interval ref
   const autoSaveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const freeSessionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep a stable ref to profile and messages for use inside callbacks
   const profileRef = useRef(profile);
@@ -1059,6 +1063,37 @@ export function VoiceModeController() {
     },
     onSessionExpired: handleSessionExpired,
   });
+
+  // Free sessions have a hard wall so an abandoned call cannot keep billing.
+  // The server-side daily reservation still protects the three-start quota;
+  // this timer protects the duration of each free call across reconnects.
+  useEffect(() => {
+    if (freeSessionTimeoutRef.current) {
+      clearTimeout(freeSessionTimeoutRef.current);
+      freeSessionTimeoutRef.current = null;
+    }
+
+    if (!isActive || subscriptionLoading || hasBoost || isAdmin) return;
+
+    freeSessionTimeoutRef.current = setTimeout(() => {
+      freeSessionTimeoutRef.current = null;
+      if (!useVoiceModeStore.getState().isActive) return;
+
+      useVoiceModeStore.getState().deactivateVoiceMode();
+      toast({
+        title: 'Free voice session ended',
+        description: 'Free voice sessions last up to 5 minutes. Your conversation was saved. Upgrade to Boost for unlimited live voice sessions.',
+      });
+      openCheckout(undefined, 'voice_session_timeout');
+    }, FREE_VOICE_SESSION_DURATION_MS);
+
+    return () => {
+      if (freeSessionTimeoutRef.current) {
+        clearTimeout(freeSessionTimeoutRef.current);
+        freeSessionTimeoutRef.current = null;
+      }
+    };
+  }, [hasBoost, isActive, isAdmin, openCheckout, subscriptionLoading, toast]);
 
   // Track when we last sent a camera frame to throttle
   const lastFrameSentRef = useRef<number>(0);

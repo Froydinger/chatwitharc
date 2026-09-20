@@ -2116,7 +2116,9 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
               // The local usage card is optimistic between devices/tabs. If
               // the server is the first place to see exhaustion, open the
               // same Boost checkout modal used by the input bar.
-              window.dispatchEvent(new CustomEvent('open-upgrade-modal'));
+              window.dispatchEvent(new CustomEvent('open-upgrade-modal', {
+                detail: { reason: 'voice_daily_limit' },
+              }));
             }
             throw new Error(
               typeof details?.error === 'string'
@@ -2292,6 +2294,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       resetPendingFunctionResults();
       const err = error as any;
       const errorMsg = error instanceof Error ? error.message : String(error);
+      const isDailyVoiceLimit = /three voice sessions per day|daily voice allowance/i.test(errorMsg);
       let userFacingError = 'Failed to connect to voice service';
 
       if (
@@ -2320,6 +2323,12 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
         },
       });
       optionsRef.current.onError?.(userFacingError);
+      if (isDailyVoiceLimit) {
+        // A quota rejection is terminal for this activation. Leave the
+        // overlay cleanly so it cannot sit idle and look reconnectable behind
+        // the Boost modal.
+        useVoiceModeStore.getState().deactivateVoiceMode();
+      }
       setStatus('idle');
     }
   }, [handleServerEvent]);
