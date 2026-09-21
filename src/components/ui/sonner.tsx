@@ -18,7 +18,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
     if (isDesktopStandalone) {
       setTopOffset("calc(var(--arcai-desktop-titlebar-safe-area, 30px) + 1rem)");
     } else if (isStandalone && isMobileDevice) {
-      setTopOffset("calc(env(safe-area-inset-top, 0px) + 1rem)");
+      setTopOffset("calc(var(--arcai-safe-area-top) + 1rem)");
     }
   }, []);
 

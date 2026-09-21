@@ -254,7 +254,7 @@ export function AdminBanner() {
           className="fixed left-0 right-0 z-50 border-b-2 border-black shadow-lg transition-all duration-300"
           style={{ 
             backgroundColor: bannerSettings.color,
-            top: 'env(safe-area-inset-top, 0px)'
+            top: 'var(--arcai-safe-area-top)'
           }}
         >
           <div className="container mx-auto px-4 py-3">
@@ -284,8 +284,8 @@ export function AdminBanner() {
           }`}
           style={{
             top: isDismissed 
-              ? 'calc(env(safe-area-inset-top, 0px) + 28px)' 
-              : `calc(env(safe-area-inset-top, 0px) + ${bannerHeight}px)`,
+              ? 'calc(var(--arcai-safe-area-top) + 28px)'
+              : `calc(var(--arcai-safe-area-top) + ${bannerHeight}px)`,
             backgroundColor: bannerSettings.color
           }}
           onMouseEnter={(e) => {

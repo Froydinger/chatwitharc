@@ -195,10 +195,10 @@ export function RightPanel({
           isOpen ? "pointer-events-auto" : "pointer-events-none"
         )}
         style={{
-          top: `calc(env(safe-area-inset-top, 0px) + ${
+          top: `calc(var(--arcai-safe-area-top) + ${
             isAdminBannerActive ? "var(--admin-banner-height, 0px)" : "0px"
           })`,
-          height: `calc(100vh - env(safe-area-inset-top, 0px) - ${
+          height: `calc(100vh - var(--arcai-safe-area-top) - ${
             isAdminBannerActive ? "var(--admin-banner-height, 0px)" : "0px"
           })`,
         }}

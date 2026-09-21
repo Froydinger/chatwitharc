@@ -56,7 +56,7 @@ export function StatusPage() {
   const SummaryIcon = summary.Icon;
 
   return (
-    <main className="relative z-10 min-h-screen px-4 pb-6 pt-[calc(env(safe-area-inset-top)+1.5rem)] text-foreground sm:px-6 sm:py-10">
+    <main className="relative z-10 min-h-screen px-4 pb-6 pt-[calc(var(--arcai-safe-area-top)+1.5rem)] text-foreground sm:px-6 sm:py-10">
       <div className="mx-auto w-full max-w-5xl">
         <header className="mb-10 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">

@@ -61,7 +61,7 @@ export function SourceSurveyBanner() {
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className="fixed inset-x-0 top-0 z-[1000] mx-auto w-full max-w-3xl px-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:pt-3"
+      className="fixed inset-x-0 top-0 z-[1000] mx-auto w-full max-w-3xl px-3 pt-[calc(var(--arcai-safe-area-top)+0.75rem)] sm:pt-3"
     >
       <div className="relative rounded-2xl border border-primary/25 bg-background/95 px-4 py-3 shadow-lg backdrop-blur-xl sm:px-5">
         <button type="button" onClick={dismiss} aria-label="Dismiss survey" className="absolute right-4 top-4 rounded-full p-1 text-muted-foreground hover:bg-muted/50 hover:text-foreground"><X className="h-4 w-4" /></button>

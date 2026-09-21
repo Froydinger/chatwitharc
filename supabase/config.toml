@@ -1,6 +1,11 @@
 project_id = "jpqtoixhjnfdubvqshwk"
 
 [functions]
+  [functions.chat-subagents]
+    # The handler verifies the caller and Boost/admin entitlement itself before
+    # starting any temporary parallel provider work.
+    verify_jwt = false
+
   [functions.voice-search]
     # Handler validates the user with auth.getUser before any paid search.
     verify_jwt = false
@@ -55,4 +60,3 @@ project_id = "jpqtoixhjnfdubvqshwk"
   [functions.git-auth]
     # Handler verifies caller identity with auth.getUser directly.
     verify_jwt = false
-

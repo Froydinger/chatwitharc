@@ -7,6 +7,19 @@ export function isStandaloneRuntime(): boolean {
   );
 }
 
+export function isAndroidDevice(): boolean {
+  return typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+}
+
+export function isAndroidPWA(): boolean {
+  if (typeof window === "undefined" || !isAndroidDevice()) return false;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as Navigator & { standalone?: boolean }).standalone === true ||
+    (typeof document !== "undefined" && document.referrer.includes("android-app://"))
+  );
+}
+
 export function isMobileLikeDevice(): boolean {
   if (typeof navigator === "undefined" || !navigator.userAgent) return false;
   return (

@@ -12,6 +12,8 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { MessageBubble } from "@/components/MessageBubble";
+import { SubagentProgress } from "@/components/SubagentProgress";
+import { useSubagentStore } from "@/store/useSubagentStore";
 import { ChatInput, cancelCurrentRequest, inferPromptMode, type ChatInputRef, type CloudTextSubmitIntent } from "@/components/ChatInput";
 import { CloudRunList } from "@/components/CloudRunList";
 import { useCloudRuns, type CloudRunsApi } from "@/hooks/useCloudRuns";
@@ -338,6 +340,7 @@ export function MobileChatApp() {
     markSessionAsWork,
   } = useArcStore();
   const isArcWorking = isLoading || isGeneratingImage || isSearchingChats || isAccessingMemory || isSearchingWeb;
+  const hasSubagentRun = useSubagentStore((state) => Boolean(state.run));
   const isVoiceActive = useVoiceModeStore((s) => s.isActive);
   const liveCaptionEntries = useVoiceModeStore((s) => s.liveCaptionEntries);
   // Snapshot pre-call history. Finalized voice text continues saving behind
@@ -1265,7 +1268,7 @@ export function MobileChatApp() {
     <div
       className="h-screen flex relative overflow-hidden"
       style={{
-        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
+        paddingTop: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
       }}
     >
 
@@ -1281,7 +1284,7 @@ export function MobileChatApp() {
                 isMobile && !headerVisible && "-translate-y-24",
               )}
               style={{
-                top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
+                top: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
               }}
             >
               <motion.div
@@ -1330,7 +1333,7 @@ export function MobileChatApp() {
               <div
                 className="fixed left-1/2 z-40 flex h-16 -translate-x-1/2 items-center pointer-events-auto"
                 style={{
-                  top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
+                  top: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
                 }}
               >
                 <ArcModeTabs
@@ -1350,7 +1353,7 @@ export function MobileChatApp() {
                   isMobile && !headerVisible && "-translate-y-24",
                 )}
                 style={{
-                  top: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
+                  top: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
                 }}
               >
               {/* Upgrade / Boost CTA Button for Free Accounts */}
@@ -1676,9 +1679,11 @@ export function MobileChatApp() {
                     })}
                   </AnimatePresence>
                 {(cloudWorkEnabled || (cloudRunObserverEnabled && cloudRuns.entries.some(entry => entry.sessionId === currentSessionId))) && !isVoiceActive && <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} enabled={cloudRunObserverEnabled} transcriptRunIds={messages.filter(message => message.role === 'assistant' && message.id.startsWith('cloud-')).map(message => message.id.slice(6))} />}
+                  <SubagentProgress />
                   {/* Show thinking indicator when loading */}
                   <AnimatePresence>
-                    {isLoading &&
+                    {!hasSubagentRun &&
+                      isLoading &&
                       !isGeneratingImage &&
                       messages.length > 0 &&
                       messages[messages.length - 1]?.role === "user" && (

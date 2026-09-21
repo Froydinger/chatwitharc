@@ -1341,7 +1341,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
         <div
           className="w-full shrink-0 select-none pointer-events-none"
           style={{
-            height: 'calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 30px))',
+            height: 'calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 30px))',
             WebkitAppRegion: 'drag',
           } as React.CSSProperties}
         />
@@ -1349,7 +1349,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
 
       {/* Floating Glass Studio Header Dock */}
       {isMobile ? (
-        <header className="arc-ide-mobile-header px-3 pb-2.5 bg-[#0f1117]/95 border-b border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 z-30 pt-[max(56px,calc(env(safe-area-inset-top,0px)+12px))]">
+        <header className="arc-ide-mobile-header px-3 pb-2.5 bg-[#0f1117]/95 border-b border-white/10 backdrop-blur-2xl flex items-center justify-between shrink-0 z-30 pt-[max(56px,calc(var(--arcai-safe-area-top)+12px))]">
           {/* Left: Project identity & Back */}
           <div className="flex items-center gap-2 min-w-0">
             <Button 

@@ -116,7 +116,7 @@ export function SharedChatPage() {
       {/* Top bar */}
       <header
         className="sticky top-0 z-40 flex items-center justify-between gap-3 px-4 py-3 border-b border-border/40 backdrop-blur-xl bg-background/60"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
+        style={{ paddingTop: "calc(var(--arcai-safe-area-top) + 12px)" }}
       >
         <Button asChild variant="ghost" size="sm" className="gap-2">
           <Link to="/">

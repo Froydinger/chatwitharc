@@ -401,11 +401,11 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
       {/* Header - Glassy style */}
       <div className="flex min-h-16 items-center justify-between gap-2 px-3.5 py-2.5 border-b border-border/30 bg-background/85 backdrop-blur-xl" style={{
         paddingTop: isStandaloneApp && !embedded
-          ? 'calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 30px))'
+          ? 'calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 30px))'
           : isIOSPWA
-          ? 'calc(env(safe-area-inset-top, 0px) + 14px)'  // iOS PWA (Dynamic Island)
+          ? 'calc(var(--arcai-safe-area-top) + 14px)'  // iOS PWA (Dynamic Island)
           : isIOS
-          ? 'env(safe-area-inset-top, 0px)'                // iOS browser (viewport-fit=cover)
+          ? 'var(--arcai-safe-area-top)'                  // iOS browser (viewport-fit=cover)
           : undefined                                        // Android / desktop
       }}>
         <div className="flex items-center gap-2 sm:gap-3">

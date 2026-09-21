@@ -582,7 +582,7 @@ export function AdminPanel() {
             <div
               className="w-64 max-w-[80vw] h-full bg-background border-r border-border flex flex-col p-4 space-y-4"
               onClick={(e) => e.stopPropagation()}
-              style={{ paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))" }}
+              style={{ paddingTop: "calc(1rem + var(--arcai-safe-area-top))" }}
             >
               <div className="flex items-center justify-between">
                 <span className="font-bold text-sm tracking-wider uppercase flex items-center gap-1.5">

@@ -760,7 +760,7 @@ export function VoiceLabPage() {
       <div
         className="relative flex h-[100dvh] w-full flex-col bg-background text-foreground"
         style={{
-          paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
+          paddingTop: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
@@ -926,7 +926,7 @@ export function VoiceLabPage() {
     <div
       className="relative min-h-screen w-full bg-background text-foreground overflow-y-auto touch-pan-y"
       style={{
-        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 0.75rem)`,
+        paddingTop: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 0.75rem)`,
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 2rem)',
         paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))',
         paddingRight: 'max(1rem, env(safe-area-inset-right, 0px))',

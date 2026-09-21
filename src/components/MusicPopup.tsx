@@ -69,7 +69,7 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
       <motion.div ref={popupRef} role="dialog" aria-modal="true" aria-labelledby="arc-music-title"
         initial={{ opacity: 0, y: reducedMotion ? 0 : -12 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: reducedMotion ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed right-2 top-[max(1rem,env(safe-area-inset-top))] z-50 max-h-[calc(100dvh-2rem)] w-[340px] max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/60 bg-background/95 text-foreground shadow-2xl backdrop-blur-2xl sm:right-4 sm:top-20 sm:max-h-[calc(100dvh-6rem)]">
+        className="fixed right-2 top-[max(1rem,var(--arcai-safe-area-top))] z-50 max-h-[calc(100dvh-2rem)] w-[340px] max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/60 bg-background/95 text-foreground shadow-2xl backdrop-blur-2xl sm:right-4 sm:top-20 sm:max-h-[calc(100dvh-6rem)]">
         <div className="flex items-center justify-between px-5 pt-4 pb-1">
           <h2 id="arc-music-title" className="flex items-center gap-2 text-sm font-medium"><Music className="h-4 w-4" />Music</h2>
           <Button ref={closeRef} variant="ghost" size="icon" onClick={onClose} aria-label="Close music" className="h-8 w-8 rounded-full"><X className="h-4 w-4" /></Button>

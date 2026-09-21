@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --arcai-safe-area-top: env(safe-area-inset-top, 0px);
+}
+
+/* Android PWAs do not need the iOS Dynamic Island inset. Keep the variable
+   platform-scoped so every iOS/browser surface retains its existing spacing. */
+body.is-android-pwa {
+  --arcai-safe-area-top: 0px;
+}
+
 /* Segmented Arc Chat / Arc Work control. The two equal slots let the active
    pill render in its final position on first paint, then glide between modes. */
 .t-tabs.arc-mode-tabs {
@@ -726,14 +736,14 @@ All colors MUST be HSL for perfect glass effects.
      var; this header did not, so the window controls sat on top of the logo
      at any width. The var is 0px outside the Mac app/PWA, so browsers are
      unaffected. */
-  padding-top: calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1.25rem);
+  padding-top: calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1.25rem);
 }
 
 @media (min-width: 768px) {
   .dashboard-preview-header {
     /* Match the chat controls: their 64px bar starts 8px below the safe area,
        putting the 40px control centers at the same vertical position. */
-    padding-top: calc(env(safe-area-inset-top, 0px) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1.25rem);
+    padding-top: calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1.25rem);
   }
 }
 
@@ -2310,7 +2320,7 @@ All colors MUST be HSL for perfect glass effects.
     }
 
     .arc-ide-ios-pwa .arc-ide-mobile-header {
-      padding-top: calc(env(safe-area-inset-top, 0px) + 8px) !important;
+      padding-top: calc(var(--arcai-safe-area-top) + 8px) !important;
     }
   }
 
@@ -2546,7 +2556,7 @@ All colors MUST be HSL for perfect glass effects.
 
 /* Marketing-page nav: keep py-5 rhythm but push below the iOS notch/Dynamic Island */
 .safe-area-top-nav {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 1.25rem);
+  padding-top: calc(var(--arcai-safe-area-top) + 1.25rem);
 }
 
 /* ============================================================

@@ -72,6 +72,8 @@ import { useImageQuota } from "@/hooks/useImageQuota";
 import { detectsLocationIntent, getCachedLocation, getUserLocation, requestsCurrentLocation } from "@/lib/userLocation";
 import { GitHubMark, GitModeDock } from "@/components/GitModeDock";
 import { useSandboxStore } from "@/store/useSandboxStore";
+import { parseSubagentDirective, runChatSubagents, type SubagentDirective, type SubagentStreamEvent } from "@/services/subagents";
+import { useSubagentStore } from "@/store/useSubagentStore";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -108,6 +110,11 @@ export const cancelCurrentRequest = () => {
   if (currentAbortController) {
     currentAbortController.abort();
     currentAbortController = null;
+  }
+  const activeSubagentRun = useSubagentStore.getState().run;
+  if (activeSubagentRun) {
+    useSubagentStore.getState().setPhase(activeSubagentRun.id, "cancelled");
+    window.setTimeout(() => useSubagentStore.getState().clearRun(activeSubagentRun.id), 1800);
   }
   const store = useArcStore.getState();
   store.setLoading(false);
@@ -1549,6 +1556,68 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     return true;
   };
 
+  const runSubagentChat = async (directive: SubagentDirective, requestSessionId: string) => {
+    const runId = crypto.randomUUID();
+    useSubagentStore.getState().startRun(runId);
+    const abortController = new AbortController();
+    currentAbortController = abortController;
+
+    const handleSubagentEvent = (event: SubagentStreamEvent) => {
+      if (event.runId && event.runId !== runId) return;
+      const store = useSubagentStore.getState();
+      if (event.type === "plan") {
+        store.setPlan(runId, event.tasks);
+      } else if (event.type === "worker_started") {
+        store.setTaskStatus(runId, event.id, "working");
+      } else if (event.type === "worker_completed") {
+        store.setTaskStatus(runId, event.id, "complete");
+      } else if (event.type === "worker_failed") {
+        store.setTaskStatus(runId, event.id, "failed");
+      } else if (event.type === "synthesis_started") {
+        store.setPhase(runId, "synthesizing");
+      }
+    };
+
+    try {
+      const history = useArcStore.getState().messages
+        .filter((message) => (message.role === "user" || message.role === "assistant") && message.type === "text")
+        .slice(-16)
+        .map((message) => ({ role: message.role, content: message.content }));
+      const result = await runChatSubagents({
+        prompt: directive.prompt,
+        messages: history,
+        maxSubagents: directive.maxSubagents,
+        signal: abortController.signal,
+        onEvent: handleSubagentEvent,
+      });
+
+      if (cancelRequested) return;
+      await addMessage({
+        content: result.content,
+        role: "assistant",
+        type: "text",
+        sourceModel: "cloud-chat",
+        modelUsed: result.modelUsed || LUNA_MODEL,
+      });
+      useSubagentStore.getState().completeRun(runId);
+      window.setTimeout(() => useSubagentStore.getState().clearRun(runId), 6000);
+
+      const { chatSessions: currentSessions, generateChatTitle } = useArcStore.getState();
+      const session = currentSessions.find((item) => item.id === requestSessionId);
+      if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
+        await generateChatTitle(requestSessionId);
+      }
+    } catch (error) {
+      if (cancelRequested) return;
+      const message = error instanceof Error ? error.message : "Parallel Chat help failed.";
+      useSubagentStore.getState().failRun(runId, message);
+      window.setTimeout(() => useSubagentStore.getState().clearRun(runId), 6000);
+      throw error;
+    } finally {
+      if (currentAbortController === abortController) currentAbortController = null;
+    }
+  };
+
   const handleSend = async (messageOverride?: string) => {
     const messageToSend = messageOverride ?? inputValue;
     if (!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) return;
@@ -1619,6 +1688,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
     }
 
     const userMessage = messageToSend.trim();
+    const subagentDirective = parseSubagentDirective(userMessage);
     // Run location permission from the send interaction, before profile/tool
     // work introduces a delay that can prevent iOS from showing its sheet.
     // Do not await here: the shared location promise is awaited later by the
@@ -1710,6 +1780,39 @@ Feel free to send another message or test a prompt to see the animation again!`,
         setForceGitMode(false);
         setShowMenu(false);
         setLoading(false);
+        return;
+      }
+    }
+
+    if (subagentDirective.requested) {
+      const isUnsupportedSubagentMode =
+        isArcWorkMode ||
+        useCorporateModeStore.getState().enabled ||
+        isWriteCanvasOpen ||
+        documents.length > 0 ||
+        images.length > 0 ||
+        wasCanvasMode ||
+        wasCodingMode ||
+        wasVideoMode ||
+        wasImageMode ||
+        wasSearchMode ||
+        wasBuildMode ||
+        wasGitMode;
+
+      if (isUnsupportedSubagentMode) {
+        toast({
+          title: "Parallel help is Chat-only for now",
+          description: "Switch back to a plain Chat request without tools or attachments, then try again.",
+        });
+        return;
+      }
+
+      if (!hasBoost && !isAdmin) {
+        openCheckout();
+        toast({
+          title: "ArcAI Boost required",
+          description: "Parallel Chat help is available to Boost subscribers and admins for now.",
+        });
         return;
       }
     }
@@ -2190,6 +2293,11 @@ Feel free to send another message or test a prompt to see the animation again!`,
         role: "user",
         type: "text",
       });
+
+      if (subagentDirective.requested) {
+        await runSubagentChat(subagentDirective, requestSessionId);
+        return;
+      }
 
       // Memory detection is now handled server-side via the AI's save_memory tool
       // The AI dynamically decides what to remember and saves to context_blocks

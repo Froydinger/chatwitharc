@@ -135,7 +135,7 @@ export function LandingPage() {
       <header 
         className="relative z-10 flex items-center justify-between px-6 pb-5 mx-auto max-w-6xl border-b border-white/[0.06]"
         style={{
-          paddingTop: `calc(env(safe-area-inset-top, 0px) + 1.25rem)`
+          paddingTop: `calc(var(--arcai-safe-area-top) + 1.25rem)`
         }}
       >
         <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">

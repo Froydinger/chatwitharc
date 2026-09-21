@@ -34,7 +34,7 @@ export function DashboardSettingsPage() {
     <div
       className="relative z-10 min-h-screen overflow-y-auto bg-background text-foreground touch-pan-y"
       style={{
-        paddingTop: `calc(env(safe-area-inset-top, 0px) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
+      paddingTop: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
       }}
     >
       <div className="pointer-events-none fixed inset-0 overflow-hidden">

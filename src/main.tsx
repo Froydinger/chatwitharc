@@ -4,7 +4,7 @@ import App from './App.tsx'
 import './index.css'
 import 'katex/dist/katex.min.css'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
-import { isMacDesktopRuntime, shouldReserveDesktopTrafficLightSpace } from './utils/platform.ts'
+import { isAndroidPWA, isMacDesktopRuntime, shouldReserveDesktopTrafficLightSpace } from './utils/platform.ts'
 import { captureFirstTouch } from './lib/acquisition.ts'
 
 // Before anything can navigate: document.referrer only exists on the visit that
@@ -30,6 +30,7 @@ const isStandalone = () => {
 
 // Apply device-specific classes after DOM is ready
 const applyDeviceClasses = () => {
+  document.body.classList.toggle('is-android-pwa', isAndroidPWA());
   if (isStandalone()) {
     document.body.classList.add('standalone-app');
     document.body.classList.toggle('reserve-traffic-lights', shouldReserveDesktopTrafficLightSpace());
