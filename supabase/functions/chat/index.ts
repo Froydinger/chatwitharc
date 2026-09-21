@@ -1811,6 +1811,16 @@ product and is helping someone with it. Stay in that voice completely.`;
         console.log('⏰ Future-dated request detected — forcing schedule_task');
       }
     }
+
+    // An explicit request for parallel helpers takes priority over a stale Web
+    // toggle. Helpers are reasoning-only and cannot perform web searches, but
+    // the model must be able to see and select spawn_subagents when the user
+    // directly asks for it.
+    const explicitSubagentRequest = /\b(?:spawn|use|run|call|try)\b[\s\S]{0,40}\bsubagents?\b|\b(?:parallel|multiple)\s+(?:agents?|helpers?)\b/i.test(lastUserMessage);
+    if (explicitSubagentRequest && !wantsGit && !wantsCode && !wantsCanvas) {
+      toolChoice = "auto";
+      console.log('🧠 Explicit subagent request detected — allowing spawn_subagents');
+    }
     
     // For canvas/code mode, use a trimmed system prompt for better performance
     if (isCanvasOrCodeMode) {
