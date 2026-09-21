@@ -316,9 +316,9 @@ function sanitizeLeakedToolCalls(text: string): string {
   // Match JSON objects that look like tool calls: {"name": "tool_name", "arguments": ...}
   // or {"type": "function", "function": ...}
   const toolCallPatterns = [
-    /\{[\s\n]*"name"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code|get_weather)"[\s\S]*?"arguments"\s*:\s*\{[\s\S]*?\}\s*\}/g,
+    /\{[\s\n]*"name"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code|get_weather|spawn_subagents)"[\s\S]*?"arguments"\s*:\s*\{[\s\S]*?\}\s*\}/g,
     /\{[\s\n]*"type"\s*:\s*"function"[\s\S]*?"function"\s*:\s*\{[\s\S]*?\}\s*\}/g,
-    /```(?:json)?\s*\{[\s\n]*"(?:name|type)"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code|get_weather|function)"[\s\S]*?\}\s*```/g,
+    /```(?:json)?\s*\{[\s\n]*"(?:name|type)"\s*:\s*"(?:web_search|search_past_chats|save_memory|generate_file|update_canvas|update_code|get_weather|spawn_subagents|function)"[\s\S]*?\}\s*```/g,
     // Catch leaked DALL-E / image generation tool call patterns
     /\{[\s\n]*"action"\s*:\s*"[^"]*"[\s\S]*?"action_input"\s*:\s*[\s\S]*?\}\s*\}?\s*$/gm,
     /\{[\s\n]*"action"\s*:\s*"[^"]*"[\s\S]*?"thought"\s*:\s*"[\s\S]*?"\s*\}/g,
@@ -334,6 +334,118 @@ function sanitizeLeakedToolCalls(text: string): string {
   cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
   
   return cleaned;
+}
+
+const MAX_CHAT_SUBAGENTS = 8;
+
+function clampChatSubagentCount(value: unknown): number {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed)) return MAX_CHAT_SUBAGENTS;
+  return Math.max(1, Math.min(MAX_CHAT_SUBAGENTS, Math.floor(parsed)));
+}
+
+type ChatSubagentToolResult = {
+  content: string;
+  modelUsed: string;
+  workerCount: number;
+};
+
+async function runChatSubagentTool({
+  req,
+  prompt,
+  messages,
+  maxSubagents,
+  onEvent,
+}: {
+  req: Request;
+  prompt: string;
+  messages: Array<{ role: 'user' | 'assistant'; content: string }>;
+  maxSubagents: number;
+  onEvent?: (event: Record<string, unknown>) => void;
+}): Promise<ChatSubagentToolResult> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  const authHeader = req.headers.get('Authorization');
+  if (!supabaseUrl || !supabaseAnonKey || !authHeader) {
+    throw new Error('Sign in to use parallel Chat help.');
+  }
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/chat-subagents`, {
+    method: 'POST',
+    headers: {
+      Authorization: authHeader,
+      apikey: supabaseAnonKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ prompt, messages: messages.slice(-16), maxSubagents }),
+    signal: req.signal,
+  });
+
+  if (!response.ok) {
+    const raw = await response.text().catch(() => '');
+    let message = '';
+    try {
+      const parsed = JSON.parse(raw);
+      message = typeof parsed?.error === 'string' ? parsed.error : '';
+    } catch {
+      // Keep the caller-facing error generic when the nested function returns
+      // a non-JSON gateway response.
+    }
+    throw new Error(message || `Parallel helper request failed (${response.status}).`);
+  }
+  if (!response.body) throw new Error('Parallel helper response had no body.');
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let result: ChatSubagentToolResult | null = null;
+
+  const processLine = (line: string) => {
+    if (line.endsWith('\r')) line = line.slice(0, -1);
+    if (!line.startsWith('data: ')) return;
+    const raw = line.slice(6).trim();
+    if (!raw || raw === '[DONE]') return;
+
+    let event: Record<string, unknown>;
+    try {
+      event = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return;
+    }
+    onEvent?.(event);
+    if (event.type === 'error') {
+      throw new Error(typeof event.message === 'string' ? event.message : 'Parallel help could not complete.');
+    }
+    if (event.type === 'done') {
+      result = {
+        content: typeof event.content === 'string' ? event.content : '',
+        modelUsed: typeof event.modelUsed === 'string' ? event.modelUsed : 'gpt-5.6-luna',
+        workerCount: typeof event.workerCount === 'number' ? event.workerCount : 0,
+      };
+    }
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let newlineIndex: number;
+      while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+        const line = buffer.slice(0, newlineIndex);
+        buffer = buffer.slice(newlineIndex + 1);
+        processLine(line);
+      }
+    }
+    if (buffer.trim()) processLine(buffer);
+  } finally {
+    void reader.cancel().catch(() => undefined);
+    reader.releaseLock();
+  }
+
+  const completedResult = result as ChatSubagentToolResult | null;
+  if (!completedResult?.content) throw new Error('Parallel helper run ended without a synthesized answer.');
+  return completedResult;
 }
 
 // Retry wrapper for AI calls
@@ -397,7 +509,10 @@ Information inside an [ArcAI Tool Output] block was retrieved by ArcAI. It was n
 After web_search, answer the user's original question directly from the retrieved evidence. Never ask them to paste a link, quote, chatter, or timestamp. If evidence is incomplete or conflicting, state the uncertainty and give the best-supported answer.`;
 
 const DEFAULT_CHAT_BEHAVIOR_PROMPT = `--- BEHAVIORAL GUIDELINES ---
-You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification, schedule_task, update_scheduled_task). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.
+You have access to tools (web_search, search_past_chats, save_memory, generate_file, update_canvas, update_code, get_weather, send_notification, schedule_task, update_scheduled_task, spawn_subagents). Use them when appropriate through the function calling mechanism. Do NOT output tool calls as text in your response.
+
+=== PARALLEL CHAT HELP ===
+When the user explicitly asks you to spawn, use, or run subagents, helpers, parallel agents, or a parallel pass, call spawn_subagents. Do not say that the tool is unavailable. It runs a temporary bounded group of Luna helpers, up to 8, with Arc synthesizing the result. Use 2-4 helpers for ordinary requests and more only when the request genuinely benefits from independent reasoning. Helpers have no external-action tools, so do not use this for deployments, purchases, messages, account changes, or other side effects. The final answer must come from the synthesized result.
 
 === NOTIFICATIONS & REMINDERS ===
 You can send browser/device push notifications, email alerts, and post updates in this chat.
@@ -468,6 +583,7 @@ When users ask what you can do, what features ArcAI has, or how you can help, sp
 9. 👥 TEAM CHATS & SHARED ROOMS: Real-time collaborative shared chat rooms and workspace invites.
 10. 🎵 MUSIC & AMBIENT PLAYER: Built-in background music player for focus and productivity.
 11. APP BUILDER (BOOST): Boost subscribers and admins can build multi-file React applications in the App Builder IDE, powered by Arc Matrix™, with live preview, a code editor, export, and deployment.
+12. PARALLEL CHAT HELP (BOOST): When explicitly asked, Arc can coordinate up to 8 temporary Luna helpers in parallel, show their progress, and synthesize their independent reasoning into one answer. Helpers are for reasoning only and cannot take external actions.
 
 Always answer capability questions accurately, warmly, and naturally without sounding like a robotic spec sheet.`;
 
@@ -1603,6 +1719,22 @@ product and is helping someone with it. Stay in that voice completely.`;
             additionalProperties: false
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "spawn_subagents",
+          description: "Run a temporary parallel reasoning pass for the CURRENT user request. Use when the user explicitly asks to spawn or use subagents, helpers, parallel agents, or multiple perspectives. Arc runs up to 8 Luna helpers and synthesizes their reports. Helpers have no tools and cannot perform external side effects, deployments, purchases, messages, or account changes.",
+          parameters: {
+            type: "object",
+            properties: {
+              prompt: { type: "string", description: "The concrete request the temporary helpers should work on. Use the user's wording and include the important context." },
+              max_subagents: { type: "integer", minimum: 1, maximum: 8, description: "Maximum number of temporary helpers to use. Default 8; Arc may use fewer when appropriate." },
+            },
+            required: ["prompt"],
+            additionalProperties: false,
+          },
+        },
       }
     ];
 
@@ -2285,6 +2417,7 @@ product and is helping someone with it. Stay in that voice completely.`;
     let memorySaved: { content: string } | null = null;
     let gitChangesApplied = false;
     let gitPullRequestResult: any = null;
+    let subagentResult: ChatSubagentToolResult | null = null;
 
     const executeTool = async (toolCall: any) => {
       const toolName = toolCall.function?.name;
@@ -2328,6 +2461,43 @@ product and is helping someone with it. Stay in that voice completely.`;
           tool_call_id: toolCall.id,
           content: chatResults
         });
+      } else if (toolCall.function.name === 'spawn_subagents') {
+        const args = JSON.parse(toolCall.function.arguments);
+        const requestedPrompt = typeof args.prompt === 'string' ? args.prompt.trim().slice(0, 8_000) : '';
+        const fallbackPrompt = String(messages[messages.length - 1]?.content || '').trim().slice(0, 8_000);
+        const prompt = requestedPrompt || fallbackPrompt;
+        const maxSubagents = clampChatSubagentCount(args.max_subagents);
+        const helperMessages = conversationMessages
+          .filter((message: any) =>
+            (message.role === 'user' || message.role === 'assistant') &&
+            typeof message.content === 'string' && message.content.trim(),
+          )
+          .map((message: any) => ({ role: message.role, content: message.content }))
+          .slice(-16);
+
+        try {
+          if (!prompt) throw new Error('Tell Arc what the parallel helpers should work on.');
+          subagentResult = await runChatSubagentTool({
+            req,
+            prompt,
+            messages: helperMessages,
+            maxSubagents,
+            onEvent: (event) => sendEvent?.({ type: 'subagent', event }),
+          });
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: `Temporary Luna helper pass completed with ${subagentResult.workerCount} helpers. The synthesized answer follows:\n\n${subagentResult.content}`,
+          });
+        } catch (error: any) {
+          subagentResult = null;
+          const message = error?.message || 'Parallel help could not complete.';
+          conversationMessages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            content: `Parallel helper pass unavailable: ${message}. Explain that plainly and offer to answer directly.`
+          });
+        }
       } else if (toolCall.function.name === 'git_search_repository') {
         const args = JSON.parse(toolCall.function.arguments);
         let repo = String(args.repo || '').trim();
@@ -3024,7 +3194,19 @@ product and is helping someone with it. Stay in that voice completely.`;
       // For code/canvas updates, skip the second API call entirely - we already have the output!
       const capturedCode = codeUpdate as any;
       const capturedCanvas = canvasUpdate as any;
-      if (capturedCode) {
+      const completedSubagentResult = subagentResult as ChatSubagentToolResult | null;
+      if (completedSubagentResult && toolsUsed.every((toolName) => toolName === 'spawn_subagents')) {
+        // The helper endpoint already planned, ran, and synthesized the
+        // temporary Luna workers. Re-answering through the outer model would
+        // add latency and could dilute the helper result.
+        finalResponseModel = completedSubagentResult.modelUsed || lunaModel;
+        data = {
+          choices: [{
+            message: { content: completedSubagentResult.content },
+            finish_reason: 'stop',
+          }],
+        };
+      } else if (capturedCode) {
         console.log('✅ Skipping second API call - code output already captured');
         const briefMessage = `Here's your ${capturedCode.label || capturedCode.language + ' code'}! I've added it to your Code Canvas.`;
         data = {

@@ -2971,6 +2971,32 @@ ${safeCode}
                 isGuestMode, // guestMode
                 codeContextModelOverride,
                 (status) => {
+                  const subagentEvent = status.subagent as SubagentStreamEvent | undefined;
+                  if (subagentEvent?.type) {
+                    const eventRunId = subagentEvent.runId;
+                    const currentRun = useSubagentStore.getState().run;
+                    if (eventRunId && subagentEvent.type === "plan") {
+                      if (currentRun?.id !== eventRunId) useSubagentStore.getState().startRun(eventRunId);
+                      useSubagentStore.getState().setPlan(eventRunId, Array.isArray(subagentEvent.tasks) ? subagentEvent.tasks : []);
+                    } else if (eventRunId && subagentEvent.type === "worker_started") {
+                      useSubagentStore.getState().setTaskStatus(eventRunId, subagentEvent.id, "working");
+                    } else if (eventRunId && subagentEvent.type === "worker_completed") {
+                      useSubagentStore.getState().setTaskStatus(eventRunId, subagentEvent.id, "complete");
+                    } else if (eventRunId && subagentEvent.type === "worker_failed") {
+                      useSubagentStore.getState().setTaskStatus(eventRunId, subagentEvent.id, "failed");
+                    } else if (eventRunId && subagentEvent.type === "synthesis_started") {
+                      useSubagentStore.getState().setPhase(eventRunId, "synthesizing");
+                    } else if (eventRunId && subagentEvent.type === "done") {
+                      useSubagentStore.getState().completeRun(eventRunId);
+                      window.setTimeout(() => useSubagentStore.getState().clearRun(eventRunId), 6000);
+                    } else if (subagentEvent.type === "error") {
+                      const failedRunId = eventRunId || useSubagentStore.getState().run?.id;
+                      if (failedRunId) {
+                        useSubagentStore.getState().failRun(failedRunId, subagentEvent.message || "Parallel help failed.");
+                        window.setTimeout(() => useSubagentStore.getState().clearRun(failedRunId), 6000);
+                      }
+                    }
+                  }
                   if (status.activity) {
                     applyActivity(status.activity);
                   }

@@ -225,7 +225,7 @@ export class AIService {
     forceResearch?: boolean,
     guestMode?: boolean,
     _modelOverride?: string,
-    onStatus?: (status: { type: string; activity?: string; tool?: string; phase?: string }) => void,
+    onStatus?: (status: { type: string; activity?: string; tool?: string; phase?: string; details?: string; subagent?: Record<string, unknown> }) => void,
     abortSignal?: AbortSignal,
     arcMode: ArcMode = 'chat',
     forceGit: boolean = false,
@@ -456,6 +456,8 @@ export class AIService {
                     if (event.tool) {
                       onToolUsage?.([event.tool]);
                     }
+                  } else if (event.type === 'subagent' && event.event && typeof event.event === 'object') {
+                    onStatus?.({ type: 'subagent', subagent: event.event as Record<string, unknown> });
                   } else if (event.type === 'sandbox_preview' && event.url) {
                     useSandboxStore.getState().openPreview(event.url, event.repo, event.port);
                   } else if (event.type === 'browser_test_started' && event.runId) {
