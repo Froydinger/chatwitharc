@@ -144,10 +144,13 @@ Deno.serve(async (req) => {
       .gte("last_seen_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
     if (userIds.length) desktopDeviceQuery = desktopDeviceQuery.in("user_id", userIds);
     const { data: desktopDevices, error: desktopDeviceError } = await desktopDeviceQuery;
+    const desktopUserIds = desktopDeviceError
+      ? []
+      : [...new Set((desktopDevices ?? []).map((device: any) => String(device.user_id)).filter(Boolean))];
+    let desktopQueuedUserIds: string[] = [];
     if (desktopDeviceError) {
       console.error("desktop notification device lookup failed", desktopDeviceError.message);
     } else {
-      const desktopUserIds = [...new Set((desktopDevices ?? []).map((device: any) => device.user_id))];
       if (desktopUserIds.length) {
         const { error: desktopQueueError } = await admin.from("desktop_notifications").insert(
           desktopUserIds.map((userId) => ({
@@ -160,6 +163,8 @@ Deno.serve(async (req) => {
         );
         if (desktopQueueError) {
           console.error("desktop notification queue failed", desktopQueueError.message);
+        } else {
+          desktopQueuedUserIds = desktopUserIds;
         }
       }
     }
@@ -177,7 +182,7 @@ Deno.serve(async (req) => {
         await admin.from("push_subscriptions")
           .update({ last_used_at: new Date().toISOString() })
           .eq("id", s.id);
-        return { id: s.id, ok: true };
+        return { id: s.id, userId: String(s.user_id), ok: true };
       } catch (err: any) {
         const msg = String(err?.message ?? err);
         // Gone / Not Found -> remove dead subscription
@@ -185,12 +190,40 @@ Deno.serve(async (req) => {
           await admin.from("push_subscriptions").delete().eq("id", s.id);
         }
         console.error("push send failed", s.id, msg);
-        return { id: s.id, ok: false, error: msg };
+        return { id: s.id, userId: String(s.user_id), ok: false, error: msg };
       }
     }));
 
     const sent = results.filter(r => r.status === "fulfilled" && (r as any).value.ok).length;
     const failed = results.length - sent;
+
+    // Keep one history row per user, not one row per device/subscription. Only
+    // record pushes accepted by Web Push or queued for an active desktop device
+    // so the dashboard bell reflects real delivery attempts, not stale targets.
+    const deliveredUserIds = [...new Set(
+      desktopQueuedUserIds.concat(
+        results
+          .filter((result) => result.status === "fulfilled" && (result as any).value.ok)
+          .map((result) => String((result as any).value.userId))
+          .filter(Boolean),
+      ),
+    )];
+    if (deliveredUserIds.length) {
+      const { error: historyError } = await admin.from("push_notification_history").insert(
+        deliveredUserIds.map((userId) => ({
+          user_id: userId,
+          title: String(payload.title),
+          body: String(payload.body ?? ""),
+          url: String(payload.url ?? "/dashboard"),
+          tag: payload.tag ? String(payload.tag) : null,
+        })),
+      );
+      if (historyError) {
+        // History is additive. A database hiccup must not change the delivery
+        // result that was already returned to the caller.
+        console.error("push notification history insert failed", historyError.message);
+      }
+    }
 
     return new Response(JSON.stringify({ sent, failed, total: results.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

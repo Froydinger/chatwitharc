@@ -77,12 +77,54 @@ const recentChats: DashboardChatPreview[] = [
   { id: "preview-landing", title: "Landing page directions", detail: "Arc Work · Tuesday", tone: "from-amber-500/28 via-orange-500/12 to-transparent" },
 ];
 
-type PreviewNotification = { title: string; detail: string; time: string; unread: boolean; chatId?: string };
+type PushNotificationHistoryRow = {
+  id: string;
+  title: string;
+  body: string;
+  url: string;
+  tag: string | null;
+  created_at: string;
+  read_at: string | null;
+};
+
+type PreviewNotification = {
+  id: string;
+  title: string;
+  detail: string;
+  time: string;
+  unread: boolean;
+  chatId?: string;
+  url?: string;
+};
 const previewNotifications: PreviewNotification[] = [
-  { title: "Cloud run complete", detail: "Restore Mac dashboard is ready.", time: "8 min ago", unread: true, chatId: "preview-restore" },
-  { title: "Reminder due soon", detail: "Review your latest image set.", time: "1 hr ago", unread: false },
-  { title: "Arc saved your chat", detail: "The good news digest is synced.", time: "Yesterday", unread: false, chatId: "preview-news" },
+  { id: "preview-cloud-run", title: "Cloud run complete", detail: "Restore Mac dashboard is ready.", time: "8 min ago", unread: true, chatId: "preview-restore" },
+  { id: "preview-reminder", title: "Reminder due soon", detail: "Review your latest image set.", time: "1 hr ago", unread: false },
+  { id: "preview-chat-saved", title: "Arc saved your chat", detail: "The good news digest is synced.", time: "Yesterday", unread: false, chatId: "preview-news" },
 ];
+
+function formatNotificationTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "recently";
+  const diff = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return date.toLocaleDateString();
+}
+
+function mapPushNotification(row: PushNotificationHistoryRow): PreviewNotification {
+  const chatMatch = row.url.match(/^\/chat\/([^/?#]+)/);
+  return {
+    id: row.id,
+    title: row.title,
+    detail: row.body || "Arc sent you a notification.",
+    time: formatNotificationTime(row.created_at),
+    unread: !row.read_at,
+    chatId: chatMatch?.[1] ? decodeURIComponent(chatMatch[1]) : undefined,
+    url: row.url,
+  };
+}
 
 // The "3 things Arc can keep moving" tile was removed pending a redesign.
 
@@ -385,7 +427,7 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
   );
 }
 
-function NotificationTray({ notifications, onClear, onOpen }: { notifications: PreviewNotification[]; onClear: () => void; onOpen: (notification: PreviewNotification) => void }) {
+function NotificationTray({ notifications, onClear, onOpen }: { notifications: PreviewNotification[]; onClear: () => void | Promise<void>; onOpen: (notification: PreviewNotification) => void }) {
   const unreadCount = notifications.filter((notification) => notification.unread).length;
 
   return (
@@ -409,7 +451,7 @@ function NotificationTray({ notifications, onClear, onOpen }: { notifications: P
       {notifications.length > 0 ? (
         <div className="space-y-1">
           {notifications.map((notification) => (
-            <button key={`${notification.title}-${notification.time}`} type="button" onClick={() => onOpen(notification)} className="dashboard-preview-notification-row flex w-full items-start gap-2.5 rounded-xl border px-2 py-2 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.06]">
+            <button key={notification.id} type="button" onClick={() => onOpen(notification)} className="dashboard-preview-notification-row flex w-full items-start gap-2.5 rounded-xl border px-2 py-2 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.06]">
               <span className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg", notification.unread ? "dashboard-preview-notification-unread-icon" : "bg-muted text-muted-foreground")}>
                 <Bell className="h-3 w-3" />
               </span>
@@ -546,6 +588,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   const notificationStorageKey = `arc_dashboard_notifications_cleared:${user?.id || "preview"}`;
   const notificationReady = !live || (!authLoading && Boolean(user));
   const [notifications, setNotifications] = useState<PreviewNotification[]>(() => {
+    if (live) return [];
     if (typeof window === "undefined") return previewNotifications;
     if (!notificationReady) return [];
     return window.localStorage.getItem(notificationStorageKey) === "1" ? [] : previewNotifications;
@@ -569,14 +612,73 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening";
 
   useEffect(() => {
-    if (typeof window === "undefined" || !notificationReady) return;
+    if (live || typeof window === "undefined" || !notificationReady) return;
     setNotifications(window.localStorage.getItem(notificationStorageKey) === "1" ? [] : previewNotifications);
-  }, [notificationReady, notificationStorageKey]);
+  }, [live, notificationReady, notificationStorageKey]);
 
-  const clearNotifications = useCallback(() => {
+  useEffect(() => {
+    if (!live || !notificationReady || !user?.id) {
+      if (live && !user?.id) setNotifications([]);
+      return;
+    }
+
+    let cancelled = false;
     setNotifications([]);
-    if (typeof window !== "undefined") window.localStorage.setItem(notificationStorageKey, "1");
-  }, [notificationStorageKey]);
+    const loadHistory = async () => {
+      const { data, error } = await supabase
+        .from("push_notification_history")
+        .select("id,title,body,url,tag,created_at,read_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (cancelled) return;
+      if (error) {
+        console.error("Failed to load push notification history:", error.message);
+        return;
+      }
+      const loadedNotifications = (data ?? []).map(mapPushNotification);
+      setNotifications((items) => {
+        const loadedIds = new Set(loadedNotifications.map((item) => item.id));
+        return [...items.filter((item) => !loadedIds.has(item.id)), ...loadedNotifications].slice(0, 20);
+      });
+    };
+
+    const channel = supabase
+      .channel(`push-notification-history-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "push_notification_history", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          if (cancelled) return;
+          const notification = mapPushNotification(payload.new as PushNotificationHistoryRow);
+          setNotifications((items) => [notification, ...items.filter((item) => item.id !== notification.id)].slice(0, 20));
+        },
+      )
+      .subscribe();
+
+    void loadHistory();
+
+    return () => {
+      cancelled = true;
+      void supabase.removeChannel(channel);
+    };
+  }, [live, notificationReady, user?.id]);
+
+  const clearNotifications = useCallback(async () => {
+    if (live && user?.id) {
+      const { error } = await supabase
+        .from("push_notification_history")
+        .delete()
+        .eq("user_id", user.id);
+      if (error) {
+        console.error("Failed to clear push notification history:", error.message);
+        return;
+      }
+    } else if (typeof window !== "undefined") {
+      window.localStorage.setItem(notificationStorageKey, "1");
+    }
+    setNotifications([]);
+  }, [live, notificationStorageKey, user?.id]);
 
   useEffect(() => {
     if (!live) return;
@@ -695,8 +797,22 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
     handleTabChange("chats");
   };
   const handleOpenNotification = (notification: PreviewNotification) => {
-    setNotifications((items) => items.map((item) => item.title === notification.title && item.time === notification.time ? { ...item, unread: false } : item));
+    setNotifications((items) => items.map((item) => item.id === notification.id ? { ...item, unread: false } : item));
+    if (live && user?.id && !notification.id.startsWith("preview-")) {
+      void supabase
+        .from("push_notification_history")
+        .update({ read_at: new Date().toISOString() })
+        .eq("id", notification.id)
+        .eq("user_id", user.id)
+        .then(({ error }) => {
+          if (error) console.error("Failed to mark push notification read:", error.message);
+        });
+    }
     setIsNotificationsOpen(false);
+    if (live && notification.url?.startsWith("/")) {
+      navigate(notification.url);
+      return;
+    }
     const chat = resolveNotificationChat(notification);
     if (chat) handleOpenChat(chat.id);
     else handleTabChange("chats");

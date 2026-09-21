@@ -753,6 +753,39 @@ export type Database = {
         }
         Relationships: []
       }
+      push_notification_history: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          read_at: string | null
+          tag: string | null
+          title: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          tag?: string | null
+          title: string
+          url?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          tag?: string | null
+          title?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_links: {
         Row: {
           created_at: string
