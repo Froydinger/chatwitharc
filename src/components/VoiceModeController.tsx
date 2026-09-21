@@ -225,13 +225,20 @@ async function buildVoiceSystemPrompt(
   continuationSummary = ''
 ): Promise<string> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    // Build the prompt only from a live session. A stale React user can exist
+    // for one render after expiry/sign-out; querying admin_settings in that
+    // window produces the same unauthenticated 401 seen in Supabase logs.
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const session = sessionData.session;
+    const hasLiveSession = !sessionError && !!session?.access_token && !!session.user;
     const [settingsResult, memorySummaryResult] = await Promise.all([
-      supabase
-        .from('admin_settings')
-        .select('key, value')
-        .in('key', ['system_prompt', 'global_context']),
-      user ? getMemorySummary() : Promise.resolve(null)
+      hasLiveSession
+        ? supabase
+            .from('admin_settings')
+            .select('key, value')
+            .in('key', ['system_prompt', 'global_context'])
+        : Promise.resolve({ data: null }),
+      hasLiveSession ? getMemorySummary() : Promise.resolve(null)
     ]);
 
     const settingsData = settingsResult.data;

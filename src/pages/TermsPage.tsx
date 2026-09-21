@@ -46,8 +46,8 @@ export default function TermsPage() {
                 <strong>Boost</strong> is an optional paid subscription that raises those allowances — unlimited Deep
                 Search and Ultra Deep Search, unlimited voice sessions up to 2 hours each, a higher daily image limit,
                 and higher chat and reasoning limits. Boost and administrators have unlimited voice sessions up to 2
-                hours each. It is
-                billed through Stripe on a monthly or annual term, renews automatically until cancelled, and can be
+                hours each. It is available with a 7-day free trial when a payment method is provided, then billed
+                through Stripe on a monthly or annual term. It renews automatically until cancelled and can be
                 cancelled at any time from your account settings; access continues to the end of the paid period.
               </p>
             </section>

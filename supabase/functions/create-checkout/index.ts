@@ -4,6 +4,7 @@ import { type StripeEnv, createStripeClient, getStripeErrorMessage } from "../_s
 import { sendBoostAdminEmail } from "../_shared/boost-admin-email.ts";
 
 const BOOST_PRICE_IDS = new Set(["arcai_boost_monthly", "arcai_boost_annual"]);
+const BOOST_TRIAL_PERIOD_DAYS = 7;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -180,6 +181,7 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      let subscriptionStatus = "active";
       if (targetUserId) {
         const supabase = supabaseAdmin;
 
@@ -193,6 +195,14 @@ Deno.serve(async (req) => {
           priceIdResolved = item?.price?.lookup_key || item?.price?.id || priceIdResolved;
         }
 
+        subscriptionStatus = subObject?.status === "trialing" ? "trialing" : "active";
+        const currentPeriodStart = subObject?.current_period_start
+          ? new Date(subObject.current_period_start * 1000).toISOString()
+          : null;
+        const currentPeriodEnd = subObject?.current_period_end
+          ? new Date(subObject.current_period_end * 1000).toISOString()
+          : null;
+
         const subscriptionIdResolved = typeof session.subscription === "string" ? session.subscription : (session.subscription?.id || `sub_chk_${session.id}`);
 
         const { error: subscriptionError } = await supabase.from("subscriptions").upsert({
@@ -201,7 +211,9 @@ Deno.serve(async (req) => {
           stripe_customer_id: typeof session.customer === "string" ? session.customer : (session.customer?.id || null),
           product_id: productIdResolved,
           price_id: priceIdResolved,
-          status: "active",
+          status: subscriptionStatus,
+          current_period_start: currentPeriodStart,
+          current_period_end: currentPeriodEnd,
           environment: environment,
           updated_at: new Date().toISOString(),
         }, { onConflict: "user_id" });
@@ -234,7 +246,11 @@ Deno.serve(async (req) => {
         console.log(`[create-checkout] Synchronously verified and upserted subscription for user: ${targetUserId}`);
       }
 
-      return new Response(JSON.stringify({ success: true, status: session.status }), {
+      return new Response(JSON.stringify({
+        success: true,
+        status: session.status,
+        subscriptionStatus,
+      }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -259,7 +275,7 @@ Deno.serve(async (req) => {
         stripePrice = await stripe.prices.retrieve(priceId);
       }
     } catch (e) {
-      throw new Error(`Price '${priceId}' not found. Stripe error: ${e.message}`);
+      throw new Error(`Price '${priceId}' not found. Stripe error: ${getStripeErrorMessage(e)}`);
     }
     const isRecurring = stripePrice.type === "recurring";
 
@@ -267,12 +283,53 @@ Deno.serve(async (req) => {
       ? await resolveOrCreateCustomer(stripe, { email: resolvedEmail, userId: resolvedUserId })
       : undefined;
 
+    // Give each account one Boost trial. The database check covers already
+    // recorded subscriptions; the Stripe check also covers a just-created
+    // subscription whose webhook or return-page verification has not landed.
+    let shouldApplyTrial = false;
+    if (isRecurring && BOOST_PRICE_IDS.has(priceId)) {
+      const { data: previousSubscription, error: previousSubscriptionError } = await supabaseAdmin
+        .from("subscriptions")
+        .select("id")
+        .eq("user_id", resolvedUserId)
+        .not("stripe_subscription_id", "is", null)
+        .maybeSingle();
+
+      if (previousSubscriptionError) {
+        throw new Error(`Failed to check Boost trial eligibility: ${previousSubscriptionError.message}`);
+      }
+
+      let hasPreviousStripeSubscription = Boolean(previousSubscription);
+      if (!hasPreviousStripeSubscription && customerId) {
+        try {
+          const previousStripeSubscriptions = await stripe.subscriptions.list({
+            customer: customerId,
+            status: "all",
+            limit: 100,
+          });
+          hasPreviousStripeSubscription = previousStripeSubscriptions.data.some((subscription) =>
+            subscription.metadata?.userId === resolvedUserId
+          );
+        } catch (error) {
+          // Keep checkout available if the historical lookup has a transient
+          // Stripe issue, but fail closed for the trial itself.
+          console.warn("[create-checkout] Could not verify prior Boost subscriptions; creating checkout without a trial", {
+            userId: resolvedUserId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          hasPreviousStripeSubscription = true;
+        }
+      }
+
+      shouldApplyTrial = !hasPreviousStripeSubscription;
+    }
+
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: 1 }],
       mode: isRecurring ? "subscription" : "payment",
       allow_promotion_codes: true,
       ...(uiMode === "embedded" ? {
-        ui_mode: "embedded",
+        ui_mode: "embedded" as const,
         return_url: returnUrl,
       } : {
         success_url: returnUrl,
@@ -281,9 +338,20 @@ Deno.serve(async (req) => {
       ...(customerId && { customer: customerId }),
       ...(resolvedUserId && {
         metadata: { userId: resolvedUserId },
-        ...(isRecurring && { subscription_data: { metadata: { userId: resolvedUserId } } }),
+        ...(isRecurring && {
+          subscription_data: {
+            metadata: { userId: resolvedUserId },
+            ...(shouldApplyTrial && {
+              trial_period_days: BOOST_TRIAL_PERIOD_DAYS,
+              trial_settings: {
+                end_behavior: { missing_payment_method: "cancel" },
+              },
+            }),
+          },
+        }),
       }),
-    });
+      ...(shouldApplyTrial && { payment_method_collection: "always" }),
+    } as any);
 
     if (uiMode === "embedded") {
       return new Response(JSON.stringify({ clientSecret: session.client_secret }), {

@@ -225,6 +225,22 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       return;
     }
     try {
+      // React auth state can briefly outlive the underlying Supabase session
+      // during sign-out, expiry, or a token refresh. Do not send a protected
+      // RPC with only the publishable key; PostgREST records that as a 401.
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const session = sessionData.session;
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      if (
+        sessionError ||
+        !session?.access_token ||
+        session.user.id !== user.id ||
+        (typeof session.expires_at === 'number' && session.expires_at <= nowSeconds)
+      ) {
+        setDailyVoiceSessionsUsed(0);
+        return;
+      }
+
       const { data, error } = await supabase.rpc('count_voice_sessions_today');
       if (!error && typeof data === 'number') setDailyVoiceSessionsUsed(data);
     } catch (err) {

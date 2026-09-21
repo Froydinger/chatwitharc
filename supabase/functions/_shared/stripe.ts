@@ -31,7 +31,7 @@ export function createStripeClient(env: StripeEnv): Stripe {
       const rewrittenUrl = url.replace("https://api.stripe.com/v1", "https://connector-gateway.lovable.dev/stripe/v1");
       return fetch(rewrittenUrl, fetchOptions);
     };
-    options.httpClient = Stripe.createFetchHttpClient(customFetch);
+    options.httpClient = Stripe.createFetchHttpClient(customFetch as any);
   } else {
     options.httpClient = Stripe.createFetchHttpClient();
   }

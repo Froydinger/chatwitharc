@@ -17,6 +17,7 @@ export default function CheckoutReturnPage() {
   
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState("");
+  const [isTrial, setIsTrial] = useState(false);
 
   useEffect(() => {
     if (!sessionId) {
@@ -49,16 +50,17 @@ export default function CheckoutReturnPage() {
           await checkSubscription();
           
           if (isMounted) {
+            setIsTrial(data?.subscriptionStatus === "trialing");
             setStatus("success");
           }
         } else {
           throw new Error(data?.error || "Payment session is incomplete or unpaid.");
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Checkout verification exception:", err);
         if (isMounted) {
           setStatus("error");
-          setErrorMessage(err?.message || String(err) || "Failed to verify subscription.");
+          setErrorMessage(err instanceof Error ? err.message : String(err) || "Failed to verify subscription.");
         }
       }
     }
@@ -92,7 +94,9 @@ export default function CheckoutReturnPage() {
             </div>
             <h2 className="text-2xl font-bold tracking-tight mb-2 text-emerald-500">Welcome to Boost!</h2>
             <p className="text-muted-foreground text-sm max-w-sm mb-5">
-              Your subscription is active. Here&apos;s what you just unlocked:
+              {isTrial
+                ? "Your 7-day Boost trial is active. Your saved payment method will be charged after the trial unless you cancel."
+                : "Your Boost subscription is active. Here&apos;s what you just unlocked:"}
             </p>
             <ul className="w-full max-w-sm text-left space-y-2.5 mb-7">
               {BOOST_PLAN_FEATURES.map((feature) => (

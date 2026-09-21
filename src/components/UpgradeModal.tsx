@@ -7,8 +7,17 @@ import { useRequireAuth } from "@/hooks/useRequireAuth";
 import { cn } from "@/lib/utils";
 import { 
   BOOST_PRICE_ID, 
+  BOOST_MONTHLY_PRICE_AMOUNT,
   BOOST_PRICE_DISPLAY, 
+  BOOST_TRIAL_DISPLAY,
+  BOOST_TRIAL_NOTE,
   BOOST_ANNUAL_PRICE_ID, 
+  BOOST_ANNUAL_PRICE_AMOUNT,
+  BOOST_ANNUAL_REGULAR_PRICE_AMOUNT,
+  BOOST_ANNUAL_REGULAR_PRICE_DISPLAY,
+  BOOST_ANNUAL_RENEWAL_DISPLAY,
+  BOOST_ANNUAL_SAVINGS_DISPLAY,
+  BOOST_ANNUAL_OFFER_BADGE,
   BOOST_ANNUAL_PRICE_DISPLAY, 
   paymentsAvailable,
   getStripeEnvironment,
@@ -69,10 +78,10 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
         throw new Error(error?.message || data?.error || "Failed to create checkout session");
       }
       setClientSecret(data.clientSecret);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Embedded checkout initiation failed:", err);
       setShowCheckout(false);
-      window.alert(err.message || "Could not start checkout");
+      window.alert(err instanceof Error ? err.message : "Could not start checkout");
     } finally {
       setLoadingCheckout(false);
     }
@@ -136,15 +145,16 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
                 >
                   Yearly
                   <span className="absolute -top-1.5 -right-2 bg-emerald-500 text-[8px] text-white px-1.5 py-0.5 rounded-full font-bold">
-                    Save 21%
+                    {BOOST_ANNUAL_OFFER_BADGE}
                   </span>
                 </button>
               </div>
             </div>
 
             <p className="text-sm text-muted-foreground mb-1">
-              {priceDisplay} paid upgrade
+              {priceDisplay} after a {BOOST_TRIAL_DISPLAY.toLowerCase()}
             </p>
+            <p className="text-[11px] text-muted-foreground mb-1">{BOOST_TRIAL_NOTE}</p>
             {isVoiceLimit && (
               <p className="text-sm text-foreground/80 mb-1">
                 {reason === 'voice_session_timeout'
@@ -154,9 +164,20 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
               </p>
             )}
             <div className="flex items-baseline justify-center gap-1 my-4">
-              <span className="text-4xl font-bold">{priceDisplay.split('/')[0]}</span>
+              {isAnnual && (
+                <span className="text-lg text-muted-foreground/70 line-through" aria-label={`Regular price ${BOOST_ANNUAL_REGULAR_PRICE_DISPLAY}`}>
+                  {BOOST_ANNUAL_REGULAR_PRICE_AMOUNT}
+                </span>
+              )}
+              <span className="text-4xl font-bold">{isAnnual ? BOOST_ANNUAL_PRICE_AMOUNT : BOOST_MONTHLY_PRICE_AMOUNT}</span>
               <span className="text-muted-foreground">/ {isAnnual ? "year" : "month"}</span>
             </div>
+            {isAnnual && (
+              <div className="-mt-2 mb-4 space-y-1">
+                <p className="text-xs text-primary font-semibold">{BOOST_ANNUAL_OFFER_BADGE} · {BOOST_ANNUAL_SAVINGS_DISPLAY} vs. {BOOST_ANNUAL_REGULAR_PRICE_DISPLAY}</p>
+                <p className="text-[11px] text-muted-foreground">{BOOST_ANNUAL_RENEWAL_DISPLAY}</p>
+              </div>
+            )}
 
             <ul className="text-left space-y-2.5 mb-6 max-w-sm mx-auto">
               {[...BOOST_PLAN_FEATURES, "Cancel anytime"].map((item) => (

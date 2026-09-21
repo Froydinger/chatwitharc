@@ -29,7 +29,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade for $10/month (or $95/year) that adds unlimited Ava, Maya, and River reasoning across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, unlimited Arc Imagix generation & editing, unlimited voice sessions up to 2 hours each, and the full App Builder with live web-app publishing.",
+    a: "Yes. We offer a Boost upgrade with a 7-day free trial (card required), then $10/month or a limited-time $95/year annual rate, normally $120/year. The annual rate renews at $95/year while you keep Boost and adds unlimited Ava, Maya, and River reasoning across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, unlimited Arc Imagix generation & editing, unlimited voice sessions up to 2 hours each, and the full App Builder with live web-app publishing.",
   },
   {
     q: "What is the App Builder in ArcAI?",
@@ -263,7 +263,7 @@ export function LandingPage() {
               Free is powerful. <span className="text-white/70">Boost is optional.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              Arc is built to be a safe, helpful hub for everyone. The free plan includes Arc Matrix™ reasoning, a living memory summary, 3 voice sessions per UTC day up to 10 minutes each, search, and coding out of the box. Upgrade to Boost for $10/month if you want higher quotas, unlimited voice sessions up to 2 hours each, or full App Builder publishing.
+              Arc is built to be a safe, helpful hub for everyone. The free plan includes Arc Matrix™ reasoning, a living memory summary, 3 voice sessions per UTC day up to 10 minutes each, search, and coding out of the box. Start Boost with a 7-day free trial (card required) for $10/month, or save 21% with the limited-time $95/year plan (normally $120/year, renewing at $95/year while subscribed), if you want higher quotas, unlimited voice sessions up to 2 hours each, or full App Builder publishing.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">

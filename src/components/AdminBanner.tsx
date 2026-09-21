@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Construction, AlertTriangle, PartyPopper, ChevronUp, ChevronDown } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface BannerSettings {
   enabled: boolean;
@@ -58,6 +59,9 @@ async function fetchSettingsOnce(force = false): Promise<void> {
 
   inFlight = (async () => {
     try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session?.access_token) return;
+
       const { data, error } = await supabase
         .from('admin_settings')
         .select('key, value')
@@ -103,14 +107,28 @@ if (typeof document !== 'undefined') {
 
 function useBannerSettings() {
   const [, force] = useState(0);
+  const { session } = useAuth();
+  const accessToken = session?.access_token ?? null;
+
   useEffect(() => {
     const cb = () => force((n) => n + 1);
     subscribers.add(cb);
-    fetchSettingsOnce();
+
+    if (accessToken) {
+      void fetchSettingsOnce();
+    } else {
+      // Do not retain an admin-only banner after the user signs out, and do
+      // not retry the protected query while the app is unauthenticated.
+      cachedSettings = EMPTY_SETTINGS;
+      cachedRawMessage = '';
+      lastFetchedAt = 0;
+      cb();
+    }
+
     return () => {
       subscribers.delete(cb);
     };
-  }, []);
+  }, [accessToken]);
   return cachedSettings;
 }
 

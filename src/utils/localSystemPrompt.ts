@@ -111,10 +111,14 @@ Never minimize, never lecture, never suggest 911 unless there is an immediate ph
   let adminPrompt = '';
   let globalContext = '';
   try {
-    const { data: settingsData } = await supabase
-      .from('admin_settings')
-      .select('key, value')
-      .in('key', ['system_prompt', 'global_context']);
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const session = sessionData.session;
+    const settingsData = !sessionError && session?.access_token
+      ? (await supabase
+          .from('admin_settings')
+          .select('key, value')
+          .in('key', ['system_prompt', 'global_context'])).data
+      : null;
     const settings = (settingsData || []).reduce((acc, s) => {
       acc[s.key] = s.value;
       return acc;

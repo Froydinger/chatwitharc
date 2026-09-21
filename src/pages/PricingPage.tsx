@@ -5,7 +5,19 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/hooks/useAuth";
-import { BOOST_PRICE_ID, BOOST_ANNUAL_PRICE_ID } from "@/lib/stripe";
+import {
+  BOOST_ANNUAL_PRICE_AMOUNT,
+  BOOST_ANNUAL_REGULAR_PRICE_AMOUNT,
+  BOOST_ANNUAL_REGULAR_PRICE_DISPLAY,
+  BOOST_ANNUAL_RENEWAL_DISPLAY,
+  BOOST_ANNUAL_SAVINGS_DISPLAY,
+  BOOST_ANNUAL_OFFER_BADGE,
+  BOOST_ANNUAL_PRICE_ID,
+  BOOST_MONTHLY_PRICE_AMOUNT,
+  BOOST_PRICE_ID,
+  BOOST_TRIAL_DISPLAY,
+  BOOST_TRIAL_NOTE,
+} from "@/lib/stripe";
 import { BOOST_PLAN_FEATURES, FREE_PLAN_FEATURES } from "@/lib/planCopy";
 
 export function PricingPage() {
@@ -75,25 +87,33 @@ export function PricingPage() {
                   <span className={`text-[11px] transition-colors duration-200 ${billingInterval === "annual" ? "text-foreground font-semibold" : "text-muted-foreground"} flex items-center gap-1`}>
                     Annual
                     <span className="text-[8px] bg-primary/20 text-primary font-bold px-1 py-0.2 rounded-full">
-                      -21%
+                      {BOOST_ANNUAL_SAVINGS_DISPLAY}
                     </span>
                   </span>
                 </div>
               </div>
               <div className="flex items-baseline gap-2 mb-1">
+                {billingInterval === "annual" && (
+                  <span className="text-lg text-muted-foreground/70 line-through" aria-label={`Regular price ${BOOST_ANNUAL_REGULAR_PRICE_DISPLAY}`}>
+                    {BOOST_ANNUAL_REGULAR_PRICE_AMOUNT}
+                  </span>
+                )}
                 <span className="text-5xl font-bold">
-                  {billingInterval === "monthly" ? "$10" : "$95"}
+                  {billingInterval === "monthly" ? BOOST_MONTHLY_PRICE_AMOUNT : BOOST_ANNUAL_PRICE_AMOUNT}
                 </span>
                 <span className="text-muted-foreground">
                   / {billingInterval === "monthly" ? "month" : "year"}
                 </span>
               </div>
-              {billingInterval === "annual" && (
-                <p className="text-xs text-primary font-semibold mb-5">Equal to just $7.92/month (Save 21%)</p>
-              )}
-              {billingInterval === "monthly" && (
-                <div className="h-4 mb-5" />
-              )}
+              <div className="mb-5 space-y-1">
+                <p className="text-xs text-primary font-semibold">{BOOST_TRIAL_DISPLAY} · {BOOST_TRIAL_NOTE}</p>
+                {billingInterval === "annual" && (
+                  <>
+                    <p className="text-xs text-primary font-semibold">{BOOST_ANNUAL_OFFER_BADGE} · Equal to just $7.92/month ({BOOST_ANNUAL_SAVINGS_DISPLAY} vs. {BOOST_ANNUAL_REGULAR_PRICE_DISPLAY})</p>
+                    <p className="text-[11px] text-muted-foreground">{BOOST_ANNUAL_RENEWAL_DISPLAY}</p>
+                  </>
+                )}
+              </div>
               <ul className="space-y-3 mb-8">
                     {BOOST_PLAN_FEATURES.map((feature) => (
                   <li key={feature} className="flex items-start gap-3 text-sm">
@@ -113,7 +133,7 @@ export function PricingPage() {
                 className="w-full bg-primary text-primary-foreground hover:bg-primary/95 font-semibold py-5 rounded-xl shadow-lg shadow-primary/15 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]" 
                 onClick={() => openCheckout(billingInterval === "monthly" ? BOOST_PRICE_ID : BOOST_ANNUAL_PRICE_ID)}
               >
-                Upgrade {billingInterval === "monthly" ? "Monthly" : "Annual"}
+                Start 7-day trial
               </GlassButton>
             )}
           </GlassCard>

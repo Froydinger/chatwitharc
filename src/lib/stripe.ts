@@ -36,7 +36,17 @@ export function getStripeEnvironment(): StripeEnv {
 }
 
 export const BOOST_PRICE_ID = "arcai_boost_monthly";
-export const BOOST_PRICE_DISPLAY = "$10/month";
+export const BOOST_MONTHLY_PRICE_AMOUNT = "$10";
+export const BOOST_PRICE_DISPLAY = `${BOOST_MONTHLY_PRICE_AMOUNT}/month`;
+export const BOOST_TRIAL_PERIOD_DAYS = 7;
+export const BOOST_TRIAL_DISPLAY = "7-day free trial";
+export const BOOST_TRIAL_NOTE = "Card required · cancel anytime";
 
 export const BOOST_ANNUAL_PRICE_ID = "arcai_boost_annual";
-export const BOOST_ANNUAL_PRICE_DISPLAY = "$95/year";
+export const BOOST_ANNUAL_PRICE_AMOUNT = "$95";
+export const BOOST_ANNUAL_REGULAR_PRICE_AMOUNT = "$120";
+export const BOOST_ANNUAL_PRICE_DISPLAY = `${BOOST_ANNUAL_PRICE_AMOUNT}/year`;
+export const BOOST_ANNUAL_REGULAR_PRICE_DISPLAY = `${BOOST_ANNUAL_REGULAR_PRICE_AMOUNT}/year`;
+export const BOOST_ANNUAL_SAVINGS_DISPLAY = "Save 21%";
+export const BOOST_ANNUAL_OFFER_BADGE = "Limited time";
+export const BOOST_ANNUAL_RENEWAL_DISPLAY = "Renews at $95/year while subscribed";

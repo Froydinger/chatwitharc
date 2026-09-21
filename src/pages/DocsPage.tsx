@@ -87,7 +87,7 @@ export function DocsPage() {
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li><strong className="text-foreground">Free Tier</strong>: Unlimited Ava, 10 Maya, and 3 River daily, plus 3 Arc Imagix creations and 3 voice sessions per UTC day, up to 10 minutes each.</li>
-            <li><strong className="text-foreground">Boost Plan ($10/mo or $95/yr)</strong>: Unlimited Ava, Maya, and River reasoning, unlimited Arc Imagix generation &amp; editing, full App Builder, offline local model support, and unlimited voice sessions up to 2 hours each.</li>
+            <li><strong className="text-foreground">Boost Plan ($10/mo or limited-time $95/yr, normally $120/yr)</strong>: Start with a 7-day free trial (card required). The annual rate renews at $95/yr while subscribed. Boost includes unlimited Ava, Maya, and River reasoning, unlimited Arc Imagix generation &amp; editing, full App Builder, offline local model support, and unlimited voice sessions up to 2 hours each.</li>
           </ul>
           <p>You can check your current daily usage and remaining limit at <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>
         </div>
