@@ -9,7 +9,8 @@
 /* Android PWAs do not need the iOS Dynamic Island inset. Keep the variable
    platform-scoped so every iOS/browser surface retains its existing spacing. */
 body.is-android-pwa {
-  --arcai-safe-area-top: 0px;
+  --arcai-safe-area-top: 0px !important;
+  --arcai-desktop-titlebar-safe-area: 0px !important;
 }
 
 /* Segmented Arc Chat / Arc Work control. The two equal slots let the active

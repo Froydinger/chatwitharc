@@ -12,12 +12,11 @@ export function isAndroidDevice(): boolean {
 }
 
 export function isAndroidPWA(): boolean {
-  if (typeof window === "undefined" || !isAndroidDevice()) return false;
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as Navigator & { standalone?: boolean }).standalone === true ||
-    (typeof document !== "undefined" && document.referrer.includes("android-app://"))
-  );
+  // Android Chromium can report the installed PWA with different display-mode
+  // values depending on how it was launched. The top iOS inset must never be
+  // applied on an Android surface, so the device check is the authoritative
+  // guard here. iOS remains on the existing safe-area path.
+  return isAndroidDevice();
 }
 
 export function isMobileLikeDevice(): boolean {
