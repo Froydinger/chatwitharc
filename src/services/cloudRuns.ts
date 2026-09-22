@@ -17,6 +17,8 @@ export type CloudTextRequest = {
   forceCanvas?: boolean;
   forceCode?: boolean;
   forceGit?: boolean;
+  /** Explicit App Builder intent from regular Chat or the builder composer. */
+  buildApp?: boolean;
   reasoningEffort?: 'low' | 'medium' | 'high';
   clientTimezone?: string;
 };

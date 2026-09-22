@@ -312,14 +312,14 @@ export interface ArcState {
    * thinking indicator can show a distinct animation for code vs prose. Set
    * once the stream mode is decided and cleared when loading ends.
    */
-  activeTask: 'code' | 'writing' | null;
+  activeTask: 'code' | 'writing' | 'building' | null;
   activeStatusDetails: string | null;
   setLoading: (loading: boolean) => void;
   setGeneratingImage: (generating: boolean) => void;
   setSearchingChats: (searching: boolean) => void;
   setAccessingMemory: (accessing: boolean) => void;
   setSearchingWeb: (searching: boolean) => void;
-  setActiveTask: (task: 'code' | 'writing' | null) => void;
+  setActiveTask: (task: 'code' | 'writing' | 'building' | null) => void;
   setActiveStatusDetails: (details: string | null) => void;
 
   // Quick Start

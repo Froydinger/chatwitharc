@@ -495,6 +495,7 @@ export function MobileChatApp() {
       messages: captured.messages, forceWebSearch: captured.forceWebSearch,
       forceCanvas: captured.forceCanvas, forceCode: captured.forceCode,
       forceGit: captured.forceGit,
+      ...(captured.buildApp ? { buildApp: true } : {}),
       ...(uploadedAttachments ? { attachments: uploadedAttachments } : {}),
       ...(workspaceContext ? { workspace_context: workspaceContext } : {}),
       reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, getQueryComplexity(message.content)),

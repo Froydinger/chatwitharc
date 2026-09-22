@@ -212,6 +212,7 @@ export function validateAction(value: unknown, bearer = ""): Action {
     "forceCanvas",
     "forceCode",
     "forceGit",
+    "buildApp",
     "forceResearch",
     "useProModel",
     "clientDateTime",
@@ -282,6 +283,7 @@ export function validateAction(value: unknown, bearer = ""): Action {
       "forceCanvas",
       "forceCode",
       "forceGit",
+      "buildApp",
       "forceResearch",
       "useProModel",
     ]

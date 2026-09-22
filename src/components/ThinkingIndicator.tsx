@@ -178,6 +178,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   if (!showThinking) return null;
 
   const getMessage = () => {
+    if (activeTask === "building") return "Building your app...";
     if (activeStatusDetails) return activeStatusDetails;
     if (isGeneratingImage) return "Creating your image";
     if (searchingWeb) return "Searching the web...";
@@ -198,7 +199,9 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
         ? orbConfig.chats
         : accessingMemory
           ? orbConfig.memory
-          : activeTask === "code"
+          : activeTask === "building"
+            ? orbConfig.thinking
+            : activeTask === "code"
             ? orbConfig.code
             : activeTask === "writing"
               ? orbConfig.writing

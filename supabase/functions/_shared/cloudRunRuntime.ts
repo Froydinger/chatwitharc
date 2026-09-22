@@ -107,15 +107,18 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
         run.mode === 'auto' && await authorizeAppBuilder(run);
       const request = run.request && typeof run.request === 'object' && !Array.isArray(run.request)
         ? run.request as Record<string, unknown> : {};
-      const requiresAppProject = isMultiPageBuildRequest(latestUserMessage(request));
+      const requiresAppProject = request.buildApp === true || isMultiPageBuildRequest(latestUserMessage(request));
       // Keep the requested deliverable consistent through every tool round,
-      // including after web research. A code canvas is not a multi-page app.
-      const canvasDefinitions = CLOUD_CANVAS_DEFINITIONS.filter(tool => !requiresAppProject || tool.name !== 'update_code');
+      // including after web research. A Canvas is not an App Builder project.
+      const canvasDefinitions = CLOUD_CANVAS_DEFINITIONS.filter(tool => !requiresAppProject);
       const canvasTools = cloudCanvasTools(authorizeOwner);
-      if (requiresAppProject) delete canvasTools.update_code;
+      if (requiresAppProject) {
+        delete canvasTools.update_code;
+        delete canvasTools.update_canvas;
+      }
       const appRoutingInstructions = requiresAppProject
         ? appBuilderAllowed
-          ? '\nThis request requires a saved App Builder project. Complete the research requested, then use build_app with all pages and source files. update_code is unavailable for this request. Do not claim completion without a successful build_app result.'
+          ? '\nThis request requires a saved App Builder project. Complete the research requested, then use build_app with all pages and source files. Canvas tools are unavailable for this request. Do not claim completion without a successful build_app result.'
           : '\nThis request requires App Builder, which is unavailable for this run/account. Explain the access limitation. Do not substitute a single-file code canvas or claim an app was built.'
         : '';
       const initialMessages = run.execution_messages ?? request.messages;

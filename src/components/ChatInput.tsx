@@ -299,6 +299,11 @@ function checkForCodingRequest(message: string): boolean {
 function checkForBuildRequest(message: string): boolean {
   if (!message) return false;
   const m = message.trim().toLowerCase();
+  const capabilityQuestion = /^(?:can\s+you\s+)?(?:explain|tell me about|how (?:do i|can i|to)|what is|should i|do you have|is there|where is|can i use|can you use|can you access)\b/i.test(m);
+  if (capabilityQuestion && /\bapp\s+builder\b/i.test(m)) return false;
+  if (/^\s*(?:app\s+builder|builder)\s*$/i.test(m)) return true;
+  if (/\bapp\s+builder\b/i.test(m)
+    && /\b(?:use|open|launch|start|build|create|make|turn|convert|try|want|need|asked|give|let(?:'s| us))\b/i.test(m)) return true;
   if (/^(build|app|apps)\//.test(m) || /^\/(build|app|apps)\b/.test(m)) return true;
   if (/^(?:can you\s+)?(?:explain|tell me about|how (?:do i|can i|to)|what is|should i)\b/i.test(m)) return false;
   if (/\b(list|directory|catalog|comparison)\s+of\s+(apps?|websites?|sites?)\b/i.test(m)) return false;
@@ -1745,11 +1750,22 @@ Feel free to send another message or test a prompt to see the animation again!`,
     let wasBuildMode = shouldShowBuildMode || checkForBuildRequest(finalMessage);
     let wasGitMode = shouldShowGitMode || checkForGitRequest(finalMessage);
 
+    // App Builder is a deliverable route, not a hint for the Canvas tools.
+    // Keep explicitly requested search available, but do not let code,
+    // writing, image, video, or Git routing steal an app-building turn.
+    if (wasBuildMode) {
+      wasCanvasMode = false;
+      wasCodingMode = false;
+      wasVideoMode = false;
+      wasImageMode = false;
+      wasGitMode = false;
+    }
+
     // Natural language image generation/search routing when no slash command and no UI toggles are active
     const isSlashOrOverride = finalMessage.trim().startsWith("/") ||
-                              shouldShowCanvasMode || shouldShowCodeMode || shouldShowBanana || shouldShowSearchMode || shouldShowBuildMode || shouldShowGitMode;
+                              shouldShowCanvasMode || shouldShowCodeMode || shouldShowBanana || shouldShowSearchMode || shouldShowBuildMode || wasBuildMode || shouldShowGitMode;
 
-    if (!isArcWorkMode && !isSlashOrOverride && !documents.length && !images.length) {
+    if (!isArcWorkMode && !isSlashOrOverride && !documents.length && !images.length && !wasBuildMode) {
       const intent = analyzeImageRequestIntent(finalMessage);
       if (intent === 'generate') {
         wasImageMode = true;
@@ -1820,7 +1836,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
     // Arc Work is intentionally a planner, not another set of composer
     // shortcuts. The worker receives the raw request and decides whether to
     // search, generate, write, code, build, or combine those tools.
-    if (isArcWorkMode) {
+    if (isArcWorkMode && !wasBuildMode) {
       wasCanvasMode = false;
       wasCodingMode = false;
       wasVideoMode = false;
@@ -1882,6 +1898,9 @@ Feel free to send another message or test a prompt to see the animation again!`,
       void markSessionAsGit(requestSessionId);
     }
     setLoading(true);
+    if (wasBuildMode) {
+      useArcStore.getState().setActiveTask("building");
+    }
 
     // Show the right animation NOW rather than after the response reports what
     // ran. For these inputs the server has already fixed its tool choice from
@@ -2310,7 +2329,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
 
 
         // Strip the code/ prefix if present
-        const isCodingRequest = !wasGitMode && wasCodingMode;
+        const isCodingRequest = !wasGitMode && !wasBuildMode && wasCodingMode;
 
         const canvasState = useCanvasStore.getState();
 
@@ -2322,7 +2341,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
         const hasCanvasReferenceIntent =
           !wasGitMode && (looksLikeCanvasEditRequest(finalMessage) || referencesCanvasSurface(finalMessage));
         const shouldRouteToCanvas =
-          !wasGitMode && (wasCanvasMode ||
+          !wasGitMode && !wasBuildMode && (wasCanvasMode ||
           (canvasState.isOpen &&
             canvasState.canvasType === "writing" &&
             (hasCanvasReferenceIntent || !isConversationalMessage(finalMessage))));
@@ -2331,7 +2350,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
         // Also auto-open the canvas from the last code message in chat if it isn't open yet,
         // so follow-up messages work without requiring the user to click the code card first.
         let isCodeCanvasOpen = !wasGitMode && canvasState.isOpen && canvasState.canvasType === "code";
-        const hasCodeReferenceIntent = !wasGitMode && (looksLikeCodeEditRequest(finalMessage) || referencesCodeSurface(finalMessage));
+        const hasCodeReferenceIntent = !wasGitMode && !wasBuildMode && (looksLikeCodeEditRequest(finalMessage) || referencesCodeSurface(finalMessage));
 
         if (!wasGitMode && !isCodeCanvasOpen && (isCodingRequest || hasCodeReferenceIntent)) {
           const recentMsgs = useArcStore.getState().messages;
@@ -2489,7 +2508,8 @@ ${safeCode}
         // Ordinary Chat stays direct. Explicit app requests can hand off to
         // the durable builder without changing the session mode; /code and
         // other ordinary messages retain their existing route.
-        const buildAppFromChat = wasBuildMode && !isArcWorkMode;
+        const buildAppRequested = wasBuildMode;
+        const buildAppFromChat = buildAppRequested && !isArcWorkMode;
         const durableCloudSubmit = onCloudTextSubmit && !isGuestMode && !corporateMode && !isLocalChatPreview()
           && (cloudExecutionMode === 'auto' || buildAppFromChat);
         const durableRoute = durableCloudSubmit ? 'cloud-chat' : (cloudExecutionMode === 'auto' ? 'cloud-chat' : routeRequest({
@@ -2508,8 +2528,8 @@ ${safeCode}
             // Durable text only: capture the actual current editor, including a
             // deliberately cleared live draft. The legacy augmented prose above
             // remains unchanged and is not used as cloud execution context.
-            const workspaceKind = !buildAppFromChat && !wasGitMode && (shouldUseCodeContext || (isCodingRequest && freshestCanvasContent))
-              ? 'code' : !buildAppFromChat && !wasGitMode && shouldRouteToCanvas && freshCanvasState.isOpen ? 'canvas' : undefined;
+            const workspaceKind = !buildAppRequested && !wasGitMode && (shouldUseCodeContext || (isCodingRequest && freshestCanvasContent))
+              ? 'code' : !buildAppRequested && !wasGitMode && shouldRouteToCanvas && freshCanvasState.isOpen ? 'canvas' : undefined;
             const currentWorkspaceContent = typeof window !== 'undefined'
               && typeof (window as any).__arcaiLiveCanvasContent === 'string'
               ? (window as any).__arcaiLiveCanvasContent : freshCanvasState.content;
@@ -2526,11 +2546,11 @@ ${safeCode}
               ...((images.length || documents.length) ? {attachments: [...images, ...documents]} : {}),
               ...(workspaceContext ? {workspaceContext} : {}),
               forceWebSearch: cloudExecutionMode === 'auto' ? false : wasSearchMode || shouldSearchForVideo,
-              forceCanvas: buildAppFromChat || cloudExecutionMode === 'auto' ? false : shouldForceCanvas,
-              forceCode: buildAppFromChat || cloudExecutionMode === 'auto' ? false : shouldForceCode,
+              forceCanvas: buildAppRequested || cloudExecutionMode === 'auto' ? false : shouldForceCanvas,
+              forceCode: buildAppRequested || cloudExecutionMode === 'auto' ? false : shouldForceCode,
               forceGit: wasGitMode,
-              buildApp: buildAppFromChat,
-              modelOverride: buildAppFromChat ? undefined : codeContextModelOverride,
+              buildApp: buildAppRequested,
+              modelOverride: buildAppRequested ? undefined : codeContextModelOverride,
             });
           } catch (error) {
             // An acknowledgement may be lost after acceptance. Do not fall back
