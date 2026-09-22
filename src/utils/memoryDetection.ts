@@ -82,7 +82,7 @@ What NEW personal facts should be remembered from this conversation?`;
     const { data, error } = await supabase.functions.invoke('chat', {
       body: {
         messages,
-        model: 'gpt-5.6-luna'
+        model: 'gpt-6-luna'
       }
     });
 

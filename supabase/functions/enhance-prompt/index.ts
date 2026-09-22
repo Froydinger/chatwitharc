@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MODEL = 'gpt-5.6-luna';
+const MODEL = 'gpt-6-luna';
 
 const SYSTEM_CHAT = `You are a PROMPT REWRITER. Your ONLY job is to rewrite the user's prompt into a clearer, more specific, more effective prompt for an AI assistant.
 

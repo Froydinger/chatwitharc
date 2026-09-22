@@ -406,11 +406,11 @@ Deno.test('cloud worker: unknown browser state is unnecessary for start, polling
   equal(completed.run.lease_token, 'synthetic-lease-2');
   deepStrictEqual(completed.result, {
     choices: [{ message: { role: 'assistant', content: 'Durable answer' } }],
-    model_used: 'gpt-5.6-luna', cloud_run_id: fake.run.id,
+    model_used: 'gpt-6-luna', cloud_run_id: fake.run.id,
   });
   deepStrictEqual(completed.message, {
     id: `cloud-${fake.run.id}`, role: 'assistant', content: 'Durable answer', timestamp: fake.run.created_at,
-    type: 'text', sourceModel: 'cloud-chat', modelUsed: 'gpt-5.6-luna',
+    type: 'text', sourceModel: 'cloud-chat', modelUsed: 'gpt-6-luna',
     metadata: { cloudRunId: fake.run.id, modelTurns: 1 },
   });
   deepStrictEqual(fake.run.checkpoint.unrelatedState, { preserved: true });

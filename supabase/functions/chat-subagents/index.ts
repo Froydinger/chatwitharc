@@ -11,7 +11,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-const LUNA_MODEL = "gpt-5.6-luna";
+const LUNA_MODEL = "gpt-6-luna";
 const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 const MAX_HISTORY_MESSAGES = 16;
 const MAX_PROMPT_CHARS = 8_000;

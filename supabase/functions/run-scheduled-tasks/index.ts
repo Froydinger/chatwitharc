@@ -115,10 +115,10 @@ async function runTool(name: string, args: any): Promise<string> {
   }
 }
 
-// gpt-5.6 / o1 / o3 are reasoning models: the API rejects function tools unless
+// GPT-6/GPT-5.6 / o1 / o3 are reasoning models: the API rejects function tools unless
 // reasoning_effort is explicitly 'none'. Mirrors the check in chat/index.ts.
 function isReasoningModel(model: string): boolean {
-  return model.includes("gpt-5.6") || model.startsWith("o1") || model.startsWith("o3");
+  return model.startsWith("gpt-6-") || model.startsWith("gpt-5.") || model.startsWith("o1") || model.startsWith("o3");
 }
 
 async function callAi(prompt: string, model: string, taskTitle: string): Promise<string> {
@@ -215,7 +215,7 @@ async function processTask(task: any): Promise<void> {
     .single();
 
   try {
-    const output = await callAi(task.prompt, "gpt-5.6-luna", task.title);
+    const output = await callAi(task.prompt, "gpt-6-luna", task.title);
 
     // Build messages payload for chat_sessions
     const now = new Date().toISOString();

@@ -4,7 +4,7 @@ import { cleanMemorySummary, type MemorySynthesis } from './cloudMemoryTool.ts';
  * checkpoint/recovery; this transport must never add a retry loop. */
 export function cloudMemorySynthesis(apiKey: string, fetcher: typeof fetch = fetch) {
   return async (request: MemorySynthesis): Promise<string> => {
-    if (!apiKey || request.model !== 'gpt-5.6-luna' || request.reasoningEffort !== 'low'
+    if (!apiKey || request.model !== 'gpt-6-luna' || request.reasoningEffort !== 'low'
       || request.maxOutputTokens !== 4000 || typeof request.input !== 'string'
       || typeof request.system !== 'string') throw new Error('Invalid memory synthesis configuration');
     const response = await fetcher('https://api.openai.com/v1/chat/completions', {

@@ -115,10 +115,10 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
         ? { ...message, type: 'text' }
         : message;
       return options.store.complete(run,
-        { choices: [{ message: { role: 'assistant', content: text } }], model_used: 'gpt-5.6-luna', cloud_run_id: id,
+        { choices: [{ message: { role: 'assistant', content: text } }], model_used: 'gpt-6-luna', cloud_run_id: id,
           ...presentation },
         { id: `cloud-${id}`, role: 'assistant', content: text, timestamp: run.created_at,
-          ...summary, modelUsed: 'gpt-5.6-luna',
+          ...summary, modelUsed: 'gpt-6-luna',
           sourceModel: (summary as { sourceModel?: string }).sourceModel ?? 'cloud-chat',
           metadata: { cloudRunId: id, modelTurns: state.turns } });
     },

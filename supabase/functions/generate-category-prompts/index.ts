@@ -161,7 +161,7 @@ CRITICAL: Every single label MUST have an emoji at the start! Use only regular q
       throw new Error('OPENAI_API_KEY not configured');
     }
 
-    const PROMPT_MODEL = 'gpt-5.6-luna';
+    const PROMPT_MODEL = 'gpt-6-luna';
     console.log('Using model for category prompts:', PROMPT_MODEL);
 
     const requestBody = {

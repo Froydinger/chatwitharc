@@ -1,7 +1,7 @@
 import { equal, deepStrictEqual, rejects } from 'node:assert/strict';
 import { cloudMemorySynthesis } from './cloudMemoryProvider.ts';
 import type { MemorySynthesis } from './cloudMemoryTool.ts';
-const request: MemorySynthesis = { system: 'memory instructions', input: 'user fact', model: 'gpt-5.6-luna', reasoningEffort: 'low', maxOutputTokens: 4000 };
+const request: MemorySynthesis = { system: 'memory instructions', input: 'user fact', model: 'gpt-6-luna', reasoningEffort: 'low', maxOutputTokens: 4000 };
 Deno.test('memory provider preserves Luna contract and confines credentials to headers', async () => {
   const synthesize = cloudMemorySynthesis('test-secret', (async (url, init) => {
     equal(url, 'https://api.openai.com/v1/chat/completions');

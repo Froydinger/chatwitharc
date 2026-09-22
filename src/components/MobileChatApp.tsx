@@ -636,7 +636,7 @@ export function MobileChatApp() {
     void markSessionAsWork(newSessionId);
     setCloudModeChoice({ ownerId: user.id, mode: 'auto' });
     setIsWorkHandoffOpen(false);
-    sessionStorage.setItem('arc_session_model', 'gpt-5.6-luna');
+    sessionStorage.setItem('arc_session_model', 'gpt-6-luna');
     navigate(`/chat/${newSessionId}`);
     // A 0ms timeout fired before the route and store settled on the new
     // session, so the handoff prompt was posted back into the chat the user
@@ -1180,7 +1180,7 @@ export function MobileChatApp() {
     navigate(`/chat/${newSessionId}`);
 
     // Luna remains the only cloud chat model for new sessions.
-    sessionStorage.setItem("arc_session_model", "gpt-5.6-luna");
+    sessionStorage.setItem("arc_session_model", "gpt-6-luna");
   };
 
 

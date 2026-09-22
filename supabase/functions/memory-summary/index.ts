@@ -1,7 +1,7 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const MODEL = 'gpt-5.6-luna';
+const MODEL = 'gpt-6-luna';
 const MAX_CHANGE_CHARS = 8_000;
 const MAX_SUMMARY_CHARS = 12_000;
 const LEGACY_CHUNK_CHARS = 14_000;

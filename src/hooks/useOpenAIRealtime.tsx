@@ -2550,7 +2550,7 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
     }
   }, []);
 
-  // Process speech turn via Whisper STT -> Luna (gpt-5.6-luna) -> OpenAI Neural TTS
+  // Process speech turn via Whisper STT -> Luna (gpt-6-luna) -> OpenAI Neural TTS
   const processWhisperSpeechTurn = useCallback(async (audioBlob: Blob) => {
     if (!audioBlob || audioBlob.size === 0) return;
 
@@ -2580,16 +2580,16 @@ export function useOpenAIRealtime(options: UseOpenAIRealtimeOptions = {}) {
       // Add user turn to store
       addConversationTurn({ role: 'user', transcript: userText, isFinal: true, timestamp: Date.now() });
 
-      // 2. Process text reasoning via Luna (gpt-5.6-luna) in chat edge function
+      // 2. Process text reasoning via Luna (gpt-6-luna) in chat edge function
       const { data: chatData, error: chatErr } = await supabase.functions.invoke('chat', {
         body: {
           message: userText,
-          model: 'gpt-5.6-luna',
+          model: 'gpt-6-luna',
         },
       });
 
       const aiText = chatData?.response || chatData?.message || chatData?.content || "Got it! How else can I help?";
-      console.log('🧠 Luna (gpt-5.6-luna) response:', aiText);
+      console.log('🧠 Luna (gpt-6-luna) response:', aiText);
 
       // Add AI assistant turn to store
       addConversationTurn({ role: 'assistant', transcript: aiText, isFinal: true, timestamp: Date.now() });

@@ -232,7 +232,7 @@ export interface Message {
     | 'cloud-image-edit-fallback'
     | 'cloud-video'
     | 'cloud-ide';
-  // Exact model id that produced this response (currently 'gpt-5.6-luna').
+  // Exact model id that produced this response (currently 'gpt-6-luna').
   // Stored at send time so the badge shows what actually ran, not the
   // picker's current selection.
   modelUsed?: string;
@@ -713,7 +713,7 @@ export const useArcStore = create<ArcState>()(
 
             const fallback = await supabase.functions.invoke('chat', {
               body: {
-                model: 'gpt-5.6-luna',
+                model: 'gpt-6-luna',
                 messages: [
                   {
                     role: 'user',

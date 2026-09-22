@@ -106,7 +106,7 @@ export function cloudResponseProvider(options: {
     async startModel(transcript: unknown[], requestKey: string, maxTokens: number): Promise<string> {
       const input = options.expandInput ? await options.expandInput(transcript) : responseInput(transcript);
       const response = await request('', {
-        model: 'gpt-5.6-luna', input,
+        model: 'gpt-6-luna', input,
         instructions: options.instructions,
         // Responses API spells Chat Completions reasoning_effort as reasoning.effort.
         // Ask only for the provider's safe high-level summary. Private chain of

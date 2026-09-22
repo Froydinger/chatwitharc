@@ -180,7 +180,7 @@ const DEFAULT_INDEX_HTML = (appName: string) => `<!DOCTYPE html>
 
 const DEFAULT_README = (appName: string) => `# ${appName}
 
-Created with **ArcAI App Builder** powered by Luna (\`gpt-5.6-luna\`).
+Created with **ArcAI App Builder** powered by Luna (\`gpt-6-luna\`).
 
 ## 🚀 Getting Started
 

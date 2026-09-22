@@ -138,7 +138,7 @@ export function cloudImageProvider(
           method: "POST",
           headers,
           body: JSON.stringify({
-            model: "gpt-5.6-luna",
+            model: "gpt-6-luna",
             reasoning: { effort: "low" },
             background: true,
             store: true,

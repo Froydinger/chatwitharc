@@ -11,6 +11,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const LUNA_MODEL = 'gpt-6-luna';
+const isOpenAIReasoningModel = (model: string): boolean =>
+  model.startsWith('gpt-6-') || model.startsWith('gpt-5.') || model.startsWith('o1') || model.startsWith('o3');
+
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -419,7 +423,7 @@ async function runChatSubagentTool({
     if (event.type === 'done') {
       result = {
         content: typeof event.content === 'string' ? event.content : '',
-        modelUsed: typeof event.modelUsed === 'string' ? event.modelUsed : 'gpt-5.6-luna',
+        modelUsed: typeof event.modelUsed === 'string' ? event.modelUsed : LUNA_MODEL,
         workerCount: typeof event.workerCount === 'number' ? event.workerCount : 0,
       };
     }
@@ -1089,7 +1093,7 @@ serve(async (req) => {
       : 'medium';
 
     console.log('📊 Request details:', {
-      model: model || 'gpt-5.6-luna (default)',
+      model: model || `${LUNA_MODEL} (default)`,
       reasoningEffort: selectedReasoningEffort,
       messageCount: messages?.length || 0,
       hasProfile: !!profile,
@@ -1174,7 +1178,7 @@ serve(async (req) => {
       && !!user?.email
       && FLASH_EMAILS.has(user.email.toLowerCase());
 
-    const validatedModel = (model === FLASH_MODEL && flashAllowed) ? FLASH_MODEL : 'gpt-5.6-luna';
+    const validatedModel = (model === FLASH_MODEL && flashAllowed) ? FLASH_MODEL : LUNA_MODEL;
     if (model === FLASH_MODEL && !flashAllowed) {
       console.log('Flash requested but not enabled for this account; using Luna');
     } else if (model && model !== validatedModel) {
@@ -1420,7 +1424,7 @@ product and is helping someone with it. Stay in that voice completely.`;
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-5.6-luna',
+            model: LUNA_MODEL,
             messages: conversationMessages,
             reasoning_effort: 'low',
             max_completion_tokens: 65536,
@@ -1453,7 +1457,7 @@ product and is helping someone with it. Stay in that voice completely.`;
     // circuit — they go through the full Arc flow with all tools enabled.
     if (isEnhanceMode) {
       const enhanceModel = validatedModel;
-      const enhanceIsReasoning = enhanceModel.includes('gpt-5.6') || enhanceModel.startsWith('o1') || enhanceModel.startsWith('o3');
+      const enhanceIsReasoning = isOpenAIReasoningModel(enhanceModel);
       const fastResponse = await fetchWithRetry(
         'https://api.openai.com/v1/chat/completions',
         {
@@ -1467,7 +1471,7 @@ product and is helping someone with it. Stay in that voice completely.`;
             messages: conversationMessages,
             temperature: enhanceIsReasoning ? undefined : 0.3,
             reasoning_effort: enhanceIsReasoning ? selectedReasoningEffort : undefined,
-            // gpt-5.6 rejects a budget this small outright — 1200 returned a flat
+            // OpenAI reasoning models reject a budget this small outright — 1200 returned a flat
             // 400 on every call, silently breaking every caller of this branch.
             // Ceiling only; a rewrite still spends what it spends.
             max_completion_tokens: enhanceIsReasoning ? 65536 : 1200,
@@ -1837,7 +1841,7 @@ product and is helping someone with it. Stay in that voice completely.`;
     // First AI call with tools - use fetchWithRetry for resilience
     const startTime = Date.now();
     let selectedModel = validatedModel;
-    const lunaModel = 'gpt-5.6-luna';
+    const lunaModel = LUNA_MODEL;
     const explicitMemoryIntent = /\b(remember (?:this|that|what|when|how|my)|save (?:this|that) (?:to|in) (?:memory|memories)|do you remember|can you remember|recall|past (?:chat|chats|conversation|conversations)|we (?:talked|spoke|discussed)|i (?:told|mentioned) you)\b/i.test(lastUserMessage);
 
     // Memory remains on Luna, like every other text/reasoning path.
@@ -1860,7 +1864,7 @@ product and is helping someone with it. Stay in that voice completely.`;
       const isCanvasOrCodeMode = wantsCode || wantsCanvas;
       console.log('🌊 Using streaming mode', isCanvasOrCodeMode ? 'for canvas/code' : 'for text');
       
-      const isReasoning = selectedModel.includes('gpt-5.6') || selectedModel.startsWith('o1') || selectedModel.startsWith('o3');
+      const isReasoning = isOpenAIReasoningModel(selectedModel);
       const streamResponse = await fetch(chatUrlFor(selectedModel), {
         method: 'POST',
         headers: {
@@ -1873,7 +1877,12 @@ product and is helping someone with it. Stay in that voice completely.`;
           tools: toolsToUse,
           tool_choice: toolChoice,
           temperature: isReasoning ? undefined : 0.6,
-          reasoning_effort: isReasoning ? (isCanvasOrCodeMode ? 'none' : selectedReasoningEffort) : undefined,
+          // GPT-6 Luna's Chat Completions function-calling path requires
+          // reasoning_effort=none. Reasoning selection is applied only after
+          // a tool-free synthesis call.
+          reasoning_effort: isReasoning
+            ? (isCanvasOrCodeMode || toolsToUse.length > 0 ? 'none' : selectedReasoningEffort)
+            : undefined,
           stream: true,
           ...tokenParam,
         }),
@@ -2231,7 +2240,7 @@ product and is helping someone with it. Stay in that voice completely.`;
       let lastSandboxPreviewPort: number | null = null;
     
     try {
-      const isReasoning = selectedModel.includes('gpt-5.6') || selectedModel.startsWith('o1') || selectedModel.startsWith('o3');
+      const isReasoning = isOpenAIReasoningModel(selectedModel);
       response = await fetchWithRetry(chatUrlFor(selectedModel), {
         method: 'POST',
         headers: {
@@ -2272,7 +2281,7 @@ product and is helping someone with it. Stay in that voice completely.`;
             messages: conversationMessages,
             tools: toolsToUse,
             tool_choice: toolChoice,
-            temperature: (actualFallback.includes('gpt-5.6') || actualFallback.startsWith('o1') || actualFallback.startsWith('o3')) ? undefined : 0.6,
+            temperature: isOpenAIReasoningModel(actualFallback) ? undefined : 0.6,
             reasoning_effort: 'none',
             ...fallbackTokenParam,
           }),
@@ -2313,7 +2322,7 @@ product and is helping someone with it. Stay in that voice completely.`;
       };
     }
 
-    // GPT-5.6 Chat Completions currently requires reasoning_effort=none on a
+    // GPT-6 Luna Chat Completions currently requires reasoning_effort=none on a
     // request that includes function tools. If no tool was selected, regenerate
     // the user-facing answer without tools so Quick/Balanced/Deep still maps to
     // low/medium/high reasoning without breaking function calling.
@@ -3157,7 +3166,7 @@ product and is helping someone with it. Stay in that voice completely.`;
         while (gitLoopTurns < MAX_GIT_TURNS && !gitChangesApplied) {
           gitLoopTurns++;
           console.log(`🤖 Git mode turn ${gitLoopTurns + 1}: requesting next step from Luna`);
-          const isReasoning = lunaModel.includes('gpt-5.6') || lunaModel.startsWith('o1') || lunaModel.startsWith('o3');
+          const isReasoning = isOpenAIReasoningModel(lunaModel);
           const nextResponse = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -3289,7 +3298,7 @@ product and is helping someone with it. Stay in that voice completely.`;
         const secondCallModel = (isFlashModel(selectedModel) && !usedMemoryTool) ? selectedModel : lunaModel;
         if (usedMemoryTool) finalResponseModel = lunaModel;
         const secondTokenParam = { max_completion_tokens: 65536 };
-        const isSecondCallReasoning = secondCallModel.includes('gpt-5.6') || secondCallModel.startsWith('o1') || secondCallModel.startsWith('o3');
+        const isSecondCallReasoning = isOpenAIReasoningModel(secondCallModel);
         response = await fetchWithRetry(chatUrlFor(secondCallModel), {
           method: 'POST',
           headers: {

@@ -5,7 +5,7 @@ export type ModelFamily = 'openai';
 export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-analysis' | 'image-edit' | 'file-gen';
 
 /** Luna is the default user-facing text/reasoning model. */
-export const LUNA_MODEL = 'gpt-5.6-luna';
+export const LUNA_MODEL = 'gpt-6-luna';
 /**
  * Flash is Arc's fast tier, reached through Google's OpenAI-compatible endpoint.
  *
@@ -33,8 +33,10 @@ export const LEGACY_MODEL_MAP: Record<string, ChatModel> = {
   'gpt-5.4-mini': LUNA_MODEL,
   'gpt-5.4': LUNA_MODEL,
   'gpt-5.5': LUNA_MODEL,
+  'gpt-5.6-luna': LUNA_MODEL,
   'gpt-5.6-terra': LUNA_MODEL,
   'gpt-5.6-sol': LUNA_MODEL,
+  'gpt-6-sol': LUNA_MODEL,
 };
 
 interface ModelStore {
@@ -88,7 +90,7 @@ export const useModelStore = create<ModelStore>()(
     }),
     {
       name: 'arc-model-family',
-      version: 4,
+      version: 5,
       migrate: (persisted: unknown) => {
         const state = (persisted ?? {}) as { reasoningEffort?: string };
         const reasoningEffort = VALID_REASONING_SELECTIONS.has(state.reasoningEffort as LunaReasoningSelection)

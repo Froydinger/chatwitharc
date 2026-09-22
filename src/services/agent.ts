@@ -70,7 +70,7 @@ export async function sendAgentMessage(
       body: JSON.stringify({
         messages,
         currentFiles,
-        model: 'gpt-5.6-luna',
+        model: 'gpt-6-luna',
         reasoningEffort: 'medium',
       }),
       signal: requestController.signal,

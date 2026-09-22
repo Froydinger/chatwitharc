@@ -32,7 +32,7 @@ Deno.test('background adapter preserves Luna, bounds output, never retries a fai
     fetcher: ((_url: unknown, init: RequestInit) => {
       calls++;
       const body = JSON.parse(init.body as string);
-      assert(body.model === 'gpt-5.6-luna');
+      assert(body.model === 'gpt-6-luna');
       assert(body.background === true && body.store === true);
       assert(body.max_output_tokens === 123);
       assert(body.reasoning?.summary === 'auto');

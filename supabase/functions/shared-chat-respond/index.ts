@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         messages: convo,
-        model: "gpt-5.6-luna",
+        model: "gpt-6-luna",
         clientDateTime: new Date().toString(),
         clientTimezone: "UTC",
         clientTimezoneOffsetMinutes: 0,

@@ -8,7 +8,7 @@
 // of that, so it gets its own tiny function with a flat, auditable failure mode.
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 
-const MODEL = 'gpt-5.6-luna';
+const MODEL = 'gpt-6-luna';
 
 const SYSTEM = `You name chat conversations.
 
@@ -90,10 +90,10 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: MODEL,
-        // Luna is a gpt-5.6 reasoning model: reasoning_effort, never temperature.
+        // Luna is an OpenAI reasoning model: reasoning_effort, never temperature.
         reasoning_effort: 'none',
         // This is a ceiling, not an allocation — a title spends ~10 tokens. It is
-        // set high because gpt-5.6 rejects a small budget outright: the old naming
+        // set high because OpenAI reasoning models reject a small budget outright: the old naming
         // path asked for 1200 and got a flat 400 on every single call, which is
         // what kept every chat named "New Chat". Matches the value the main chat
         // path has been using successfully.

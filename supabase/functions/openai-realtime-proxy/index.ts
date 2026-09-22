@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const LIVE_MODEL = 'gpt-live-1';
-const BACKEND_MODEL = 'gpt-5.6-luna';
+const BACKEND_MODEL = 'gpt-6-luna';
 const ALLOWED_VOICES = new Set(['cedar', 'marin', 'quartz', 'ripple']);
 
 type LiveSessionResponse = {

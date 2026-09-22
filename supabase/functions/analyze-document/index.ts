@@ -95,7 +95,7 @@ serve(async (req) => {
       ];
     }
 
-    const selectedModel = 'gpt-5.6-luna';
+    const selectedModel = 'gpt-6-luna';
     console.log('Using model:', selectedModel);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

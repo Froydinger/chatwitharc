@@ -78,7 +78,7 @@ export interface CloudMemoryStore {
 export type MemorySynthesis = {
   system: string;
   input: string;
-  model: "gpt-5.6-luna";
+  model: "gpt-6-luna";
   reasoningEffort: "low";
   maxOutputTokens: 4000;
 };
@@ -229,7 +229,7 @@ export function cloudMemoryTool(options: {
             await options.synthesize({
               system: MEMORY_SYSTEM_PROMPT,
               input,
-              model: "gpt-5.6-luna",
+              model: "gpt-6-luna",
               reasoningEffort: "low",
               maxOutputTokens: 4000,
             }),

@@ -972,7 +972,7 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const model = 'gpt-5.6-luna';
+      const model = 'gpt-6-luna';
 
       const historyForAgent = chatHistory
         .filter((m) => (m.content && m.content.trim()) || (m.images && m.images.length > 0))

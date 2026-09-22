@@ -229,7 +229,8 @@ Deno.test('shared capabilities accurately distinguish chat canvas and Boost Luna
   assert(!DEFAULT_CHAT_BEHAVIOR_PROMPT.includes('no app builder'));
   assert(!DEFAULT_RESPONSE_STYLE_PROMPT.includes('not supported at all'));
   for (const prompt of [DEFAULT_CHAT_BEHAVIOR_PROMPT, DEFAULT_RESPONSE_STYLE_PROMPT, ARC_CAPABILITIES_CONTEXT]) {
-    assert(prompt.includes('App Builder') && prompt.includes('Boost') && prompt.includes('gpt-5.6-luna'));
+    assert(prompt.includes('App Builder') && prompt.includes('Boost'));
   }
+  assert(DEFAULT_CHAT_BEHAVIOR_PROMPT.includes('gpt-6-luna'));
   assert(DEFAULT_RESPONSE_STYLE_PROMPT.includes('single self-contained HTML page'));
 });

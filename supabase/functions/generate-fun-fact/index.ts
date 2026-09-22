@@ -61,7 +61,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-5.6-luna",
+        model: "gpt-6-luna",
         reasoning_effort: "low",
         max_completion_tokens: 65536,
         messages: [

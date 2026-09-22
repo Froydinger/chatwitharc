@@ -253,7 +253,7 @@ Deno.test("cloud store: completion transports result and stable assistant append
   const run = fixture();
   const result = {
     choices: [{ message: { role: "assistant", content: "Saved answer" } }],
-    model_used: "gpt-5.6-luna",
+    model_used: "gpt-6-luna",
     cloud_run_id: run.id,
     p_run_id: "nested-result-must-not-replace-the-target",
   };
@@ -262,7 +262,7 @@ Deno.test("cloud store: completion transports result and stable assistant append
     role: "assistant",
     content: "Saved answer",
     timestamp: run.created_at,
-    metadata: { cloudRunId: run.id, model: "gpt-5.6-luna" },
+    metadata: { cloudRunId: run.id, model: "gpt-6-luna" },
   };
   const before = copy({ run, result, message });
   const mock = new RpcMock([success(true)]);

@@ -153,7 +153,7 @@ For ZIP files:
 CRITICAL: Output ONLY the raw file content (or JSON for DOCX/PPTX/ZIP). No explanations, no markdown code fences wrapping the output.`;
 
     // Luna is the only enabled text/reasoning model for now.
-    const selectedModel = 'gpt-5.6-luna';
+    const selectedModel = 'gpt-6-luna';
     console.log('Using model for file generation:', selectedModel);
 
     const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
