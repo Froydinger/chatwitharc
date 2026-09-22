@@ -198,26 +198,10 @@ spreads this map and overrides only the typography keys.
   deeper work. Free accounts receive 3 voice sessions per UTC day, up to 10 minutes each;
   Boost subscribers and administrators get unlimited voice sessions up to 2 hours each. The microphone stays
   active for natural interruptions; the assistant is always Arc.
-- **Flash (Gemini) is account-gated, not public.** Flash is Arc's fast tier,
-  backed by `gemini-3.5-flash-lite` through Google's OpenAI-compatible endpoint
-  (`https://generativelanguage.googleapis.com/v1beta/openai/`), so the existing
-  OpenAI-shaped request/tool/streaming plumbing is reused unchanged. It is
-  limited to the owner's own account (`FLASH_EMAILS`) (`src/store/useModelStore.ts` and the
-  `chat` edge function, which enforces it server-side); every other account
-  normalizes back to Luna. Do not widen that allowlist or market Flash without
-  the owner asking. Notes: the compat endpoint silently ignores unsupported
-  params, so `reasoning_effort` does nothing on Flash; Flash-Lite is chosen on
-  purpose over the newer full Flash line, because Gemini 3 models cannot disable
-  reasoning and `gemini-3.8-flash` spent ~423 hidden thinking tokens and 2.4s on
-  a trivial question versus 0 tokens and 0.8s for Lite — a "fast" tier that is
-  no faster than Luna is pointless; Arc Work never uses Flash (the `agent` edge
-  function hardcodes Luna and ignores any client model); Gemini's
-  `extra_content.thought_signature` is stripped off tool calls before any
-  OpenAI call replays them; code, canvas, file generation, image analysis and
-  memory wording stay on Luna; a Flash failure falls back to Luna. The key
-  lives in Supabase secrets as `GEMINI_API_KEY`. Billing is paid-tier only —
-  enabling billing replaces the free tier rather than stacking with it, which is
-  the point: paid means user content is not used to train Google's models.
+- **All ArcAI text chat uses GPT-6 Luna.** The Gemini Flash experiment has been
+  retired. Old saved `flash` reasoning preferences migrate to Ava (low), and
+  stale Gemini model IDs normalize to Luna in both the client and `chat` edge
+  function. Do not restore Gemini Flash routing or its API key.
 - **Chat vs Work is recorded on the session.** `chat_sessions.is_work` (mirroring
   `is_git`) marks a conversation that was handed to Arc Work, and dashboard
   history badges each chat accordingly. It used to live only in localStorage, so
