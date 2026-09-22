@@ -1265,12 +1265,7 @@ export function MobileChatApp() {
   const isDesktopCanvasMode = !isMobile && isCanvasOpen;
   
   return (
-    <div
-      className="h-screen flex relative overflow-hidden"
-      style={{
-        paddingTop: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
-      }}
-    >
+    <div className="h-screen flex relative overflow-hidden">
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10">
@@ -1597,8 +1592,14 @@ export function MobileChatApp() {
             className="absolute inset-x-0 bottom-0 top-0 overflow-y-auto"
             style={{ paddingBottom: `calc(${inputHeight}px + env(safe-area-inset-bottom, 0px) + 6rem)` }}
           >
-            {/* Spacer for header */}
-            <div style={{ paddingTop: "5rem" }} />
+            {/* Keep the page background continuous behind the cutout. Only the
+                scrollable content gets the top clearance; fixed controls use
+                the same inset independently. */}
+            <div
+              style={{
+                paddingTop: `calc(5rem + var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
+              }}
+            />
 
             {/* Voice calls get a dedicated live transcript. The saved chat
                 returns here automatically once the call ends. */}

@@ -1200,7 +1200,6 @@ useEffect(() => {
         : { duration: isSwipeEntry ? 0.22 : 0.32, ease: [0.22, 1, 0.36, 1] as const }}
       className={cn("min-h-screen overflow-y-auto overflow-x-hidden scrollbar-hide relative z-10 w-full max-w-full", embedded && "min-h-0 dashboard-preview-embedded")}
       style={{
-        paddingTop: embedded ? 0 : `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
         paddingBottom: embedded ? 0 : 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
         willChange: 'transform, opacity, filter',
       }}
@@ -1208,7 +1207,12 @@ useEffect(() => {
       <Helmet>
         <title>ArcAI • Dashboard</title>
       </Helmet>
-      <div className={cn("mx-auto w-full max-w-7xl px-4 sm:px-6 pt-3 sm:pt-5 pb-8 sm:pb-12 space-y-6 sm:space-y-8", embedded && "dashboard-preview-embedded-content")}>
+      <div
+        className={cn("mx-auto w-full max-w-7xl px-4 sm:px-6 pt-3 sm:pt-5 pb-8 sm:pb-12 space-y-6 sm:space-y-8", embedded && "dashboard-preview-embedded-content")}
+        style={embedded ? undefined : {
+          paddingTop: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 0.75rem)`,
+        }}
+      >
 
         {/* ═══ HEADER with ambient glow ═══ */}
         {!embedded && <div className="relative">
@@ -1236,27 +1240,6 @@ useEffect(() => {
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2">
-              <Button
-                onClick={() => {
-                  if (!hasBoost && !isAdmin) {
-                    openCheckout();
-                  } else {
-                    setActiveTab("apps");
-                  }
-                }}
-                className="h-8 w-8 p-0 sm:w-auto sm:h-9 sm:px-3 rounded-full bg-neon-500/10 hover:bg-neon-500/15 dark:bg-gradient-to-r dark:from-neon-500/20 dark:via-primary/20 dark:to-neon-500/20 dark:hover:from-neon-500/30 dark:hover:to-primary/30 border border-neon-500/30 text-neon-700 dark:text-neon-200 text-xs font-semibold gap-1.5 shadow-sm transition-all shrink-0"
-                title={!hasBoost && !isAdmin ? "Unlock App Builder with Boost" : "View All Apps"}
-              >
-                {!hasBoost && !isAdmin ? (
-                  <Crown className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-neon-600 dark:text-neon-400 shrink-0" />
-                ) : (
-                  <Smartphone className="h-4 w-4 sm:h-3.5 sm:w-3.5 text-neon-600 dark:text-neon-400 shrink-0" />
-                )}
-                <span className="hidden sm:inline">App Builder</span>
-                {!hasBoost && !isAdmin && (
-                  <span className="hidden sm:inline text-[9px] font-mono font-bold bg-neon-500/20 text-neon-700 dark:text-neon-300 border border-neon-500/30 px-1 py-0.2 rounded uppercase">Boost</span>
-                )}
-              </Button>
               <Button
                 variant="outline"
                 size="icon"
