@@ -12,6 +12,9 @@
    need the top content clearance. The desktop title-bar inset is unrelated and
    remains disabled on Android. */
 body.is-android-pwa {
+  /* Keep a small visual cushion, but let the controls sit about 10px closer
+     to the cutout than the full browser-reported safe rectangle. */
+  --arcai-safe-area-top: max(env(safe-area-inset-top, 0px) - 10px, 0px);
   --arcai-desktop-titlebar-safe-area: 0px !important;
 }
 
