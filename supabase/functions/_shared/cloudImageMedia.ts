@@ -5,7 +5,7 @@ import {
 import { cloudImageDigest, cloudImageMime } from "./cloudImageProvider.ts";
 import { type CloudImageMedia, CloudImagePending } from "./cloudImageTool.ts";
 /** Same R2 worker/auth as legacy, stable owner/job/slot path. Raw provider bytes
- * remain recoverable by response ID if crop/upload fails. No random object keys. */
+ * remain recoverable by response ID if upload fails. No random object keys. */
 export function cloudImageMedia(
   options: {
     workerUrl: string;
@@ -30,7 +30,9 @@ export function cloudImageMedia(
         !Number.isInteger(index) || index < 0 || index > 2
       ) throw new Error("Invalid image object identity");
       let bytes = raw;
-      if (args.aspectRatio === "16:9" && !args.transparent) {
+      // Preserve older in-flight 3:2 jobs; native 16:9 output is uploaded untouched.
+      if (args.aspectRatio === "16:9" && !args.transparent &&
+        width * 2 === height * 3) {
         if (options.crop16x9) bytes = await options.crop16x9(raw);
         else {
           const { decode, Image } = await import(

@@ -1,7 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { Image, decode } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import { uploadImageToR2 } from "../_shared/r2.ts";
 
 const corsHeaders = {
@@ -23,9 +22,9 @@ function pickImageModel(_requested?: unknown): string {
   return DEFAULT_IMAGE_MODEL;
 }
 
-// GPT-Image-2 only supports a fixed set of sizes. Map the user's aspect ratio
-// to the closest supported size.
+// GPT Image 2.5 accepts custom dimensions in multiples of 16.
 function aspectToSize(aspectRatio: string): string {
+  if (aspectRatio === "16:9") return "1536x864";
   const ratios: Record<string, "square" | "landscape" | "portrait"> = {
     "1:1": "square",
     "3:2": "landscape",
@@ -235,44 +234,10 @@ function extractImageUrls(parsed: any): string[] {
 }
 
 
-// Crop a 3:2 (1536x1024) image to true 16:9 (1536x864) by removing equal
-// horizontal slices from top and bottom. Accepts a data URL or http URL,
-// returns a data URL of the cropped PNG.
-async function cropTo16x9(imageUrl: string): Promise<string> {
-  let bytes: Uint8Array;
-  if (imageUrl.startsWith("data:")) {
-    const commaIdx = imageUrl.indexOf(",");
-    const b64 = imageUrl.slice(commaIdx + 1);
-    const bin = atob(b64);
-    bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  } else {
-    const res = await fetch(imageUrl);
-    bytes = new Uint8Array(await res.arrayBuffer());
-  }
-
-  const decoded = await decode(bytes);
-  const img = decoded as Image;
-  const w = img.width;
-  const h = img.height;
-  const targetH = Math.round((w * 9) / 16);
-  if (targetH >= h) return imageUrl; // already 16:9 or wider
-  const yOffset = Math.floor((h - targetH) / 2);
-  const cropped = img.crop(0, yOffset, w, targetH);
-  const out = await cropped.encode();
-  // Encode to base64
-  let binary = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < out.length; i += chunk) {
-    binary += String.fromCharCode(...out.subarray(i, i + chunk));
-  }
-  return `data:image/png;base64,${btoa(binary)}`;
-}
-
 /**
  * Runs the actual generation off the request path. The edge runtime kills a
  * request long before our 180s client timeout can fire, so anything slow —
- * n=3, medium quality, a 16:9 crop — used to die as an opaque non-2xx. This
+ * n=3, medium quality — used to die as an opaque non-2xx. This
  * mirrors the background-job pattern edit-image already uses: the handler
  * returns a jobId immediately and the client polls image-job-status.
  */
@@ -284,10 +249,9 @@ async function processGenerateJob(
   selectedModel: string,
   size: string,
   count: number,
-  isYouTube: boolean,
 ) {
   try {
-    console.log(`[job ${jobId}] generating ${count} image(s) with ${selectedModel} (${size}, medium${isYouTube ? ", 16:9 crop" : ""})`);
+    console.log(`[job ${jobId}] generating ${count} image(s) with ${selectedModel} (${size}, medium)`);
     const result = await callImageGateway(prompt, selectedModel, size, count);
     const finalModel = selectedModel;
 
@@ -308,19 +272,11 @@ async function processGenerateJob(
       return;
     }
 
-    let imageUrls = extractImageUrls(parsed);
+    const imageUrls = extractImageUrls(parsed);
     if (imageUrls.length === 0) {
       await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: "No image returned from model", error_type: "no_image_returned" });
       await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
       return;
-    }
-
-    if (isYouTube) {
-      imageUrls = await Promise.all(
-        imageUrls.map(async (u) => {
-          try { return await cropTo16x9(u); } catch (e) { console.error(`[job ${jobId}] 16:9 crop failed:`, e); return u; }
-        })
-      );
     }
 
     // A failed R2 upload must not lose the whole batch — keep whatever landed.
@@ -394,18 +350,12 @@ serve(async (req) => {
     const aspectRatio = normalizeAspectRatio(body?.aspectRatio);
     const selectedModel = pickImageModel(body?.preferredModel);
     const size = aspectToSize(aspectRatio);
-    const isYouTube = aspectRatio === "16:9";
-    const transparent = wantsTransparentBackground(rawPrompt);
     const requestedCount = Number(body?.count);
     const count = Number.isFinite(requestedCount)
       ? Math.max(1, Math.min(3, Math.floor(requestedCount)))
       : 1;
 
-    const prompt = transparent
-      ? addTransparentOutputInstruction(rawPrompt)
-      : isYouTube
-        ? `${rawPrompt}\n\nIMPORTANT COMPOSITION RULE: Render this as a 16:9 widescreen image. The full canvas is 1536x1024, but place ALL meaningful content within the centered 1536x864 region. Add solid pure black (#000000) letterbox bars exactly 80 pixels tall at the very top and very bottom of the image. The black bars must be uniformly solid black, edge-to-edge, with no gradients, textures, or content. Treat them as off-screen padding.`
-        : rawPrompt;
+    const prompt = addTransparentOutputInstruction(rawPrompt);
 
     if (!rawPrompt) {
       return jsonResponse({ success: false, error: "Prompt is required.", errorType: "invalid_request" });
@@ -466,7 +416,6 @@ serve(async (req) => {
       selectedModel,
       size,
       count,
-      isYouTube && !transparent,
     );
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
       EdgeRuntime.waitUntil(task);

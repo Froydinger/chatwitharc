@@ -295,7 +295,45 @@ Deno.test("background provider preserves Quick/Pro model, edits and binds recove
   assert(posts === 1);
 });
 
-Deno.test("cloud image generation defaults to Pro Sunburst", () => {
+Deno.test("16:9 image requests native dimensions and stores provider pixels unchanged", async () => {
+  let request: any;
+  const provider = cloudImageProvider({
+    apiKey: "server",
+    r2WorkerUrl: "https://r2.invalid",
+    supabaseUrl: "https://sb.invalid",
+    fetch: async (_url, init) => {
+      request = JSON.parse(String(init?.body));
+      return Response.json({ id: "resp_native" });
+    },
+  });
+  const args = { ...cloudImageArguments(call), aspectRatio: "16:9" as const };
+  await provider.start(args, owner, key, 0);
+  assert(request.tools[0].size === "1536x864");
+  assert(!/letterbox|black bars|cropp/i.test(request.input[0].content[0].text));
+
+  // Media checks the PNG header before storage; this fixture verifies that
+  // native 16:9 output bypasses the legacy crop and preserves its bytes.
+  const native = new Uint8Array(png);
+  new DataView(native.buffer).setUint32(16, 1536);
+  new DataView(native.buffer).setUint32(20, 864);
+  let uploaded: Uint8Array | undefined;
+  const media = cloudImageMedia({
+    workerUrl: "https://r2.invalid",
+    workerSecret: "server",
+    fetch: async (_url, init) => {
+      if (init?.method === "PUT") {
+        uploaded = new Uint8Array(init.body as Uint8Array);
+        return new Response(null, { status: 200 });
+      }
+      return new Response(null, { status: 404 });
+    },
+    crop16x9: async () => { throw new Error("native output must not be cropped"); },
+  });
+  await media.save(owner, job, 0, native, args);
+  assert(uploaded && await cloudImageDigest(uploaded) === await cloudImageDigest(native));
+});
+
+Deno.test("cloud image generation defaults to Flare", () => {
   const args = cloudImageArguments({
     id: "default-model",
     name: "generate_image",
@@ -307,7 +345,7 @@ Deno.test("cloud image generation defaults to Pro Sunburst", () => {
       transparent: false,
     }),
   });
-  assert(args.model === "gpt-image-2.5-sunburst");
+  assert(args.model === "gpt-image-2.5-flare");
 });
 
 Deno.test("transient image polling stays pending without burning run attempts", async () => {

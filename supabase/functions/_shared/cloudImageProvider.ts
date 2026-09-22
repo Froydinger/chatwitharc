@@ -87,8 +87,6 @@ export function cloudImageProvider(
         text: args.prompt +
           (args.transparent
             ? "\nReturn true transparent alpha, never a checkerboard or matte."
-            : args.aspectRatio === "16:9"
-            ? "\nPlace all meaningful content within the centered 1536x864 region of the 1536x1024 canvas. Put uniform black letterbox bars exactly 80 pixels high at top and bottom; these bars will be cropped."
             : ""),
       }];
       // Source failures happen before provider acceptance and are safe to refund.
@@ -130,6 +128,8 @@ export function cloudImageProvider(
         ? "1024x1536"
         : args.aspectRatio === "1:1"
         ? "1024x1024"
+        : args.aspectRatio === "16:9"
+        ? "1536x864"
         : "1536x1024";
       const r = await cloudImageRequest(
         fetcher,

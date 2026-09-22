@@ -47,6 +47,7 @@ function addTransparentOutputInstruction(prompt: string): string {
 }
 
 function aspectToSize(aspectRatio: string): string {
+  if (aspectRatio === '16:9') return '1536x864';
   const ratios: Record<string, 'square' | 'landscape' | 'portrait'> = {
     '1:1': 'square', '3:2': 'landscape', '4:3': 'landscape', '16:9': 'landscape', '21:9': 'landscape',
     '2:3': 'portrait', '3:4': 'portrait', '9:16': 'portrait',
@@ -68,6 +69,7 @@ function sizeFromDimensions(width: number, height: number): string {
   if (!width || !height) return '1024x1024';
   const ratio = width / height;
   // ~7% tolerance around square keeps near-square crops from tipping over.
+  if (Math.abs(ratio - 16 / 9) < 0.04) return '1536x864';
   if (ratio > 1.07) return '1536x1024';
   if (ratio < 0.93) return '1024x1536';
   return '1024x1024';
@@ -108,7 +110,7 @@ function classifyError(status: number, rawText: string) {
   return { errorType, errorMessage, debugDetail };
 }
 
-function buildEditPrompt(userPrompt: string, imageCount: number, isYouTube: boolean): string {
+function buildEditPrompt(userPrompt: string, imageCount: number): string {
   let finalPrompt = '';
   if (imageCount > 1) finalPrompt += "Combine or merge the provided images based on the instruction. ";
   const lower = userPrompt.toLowerCase();
@@ -117,9 +119,6 @@ function buildEditPrompt(userPrompt: string, imageCount: number, isYouTube: bool
   }
   finalPrompt += userPrompt;
   finalPrompt = addTransparentOutputInstruction(finalPrompt);
-  if (isYouTube) {
-    finalPrompt += `\n\nIMPORTANT COMPOSITION RULE: Render this as a 16:9 widescreen image. The full canvas is 1536x1024, but place ALL meaningful content within the centered 1536x864 region. Add solid pure black (#000000) letterbox bars exactly 80 pixels tall at the very top and very bottom of the image. The black bars must be uniformly solid black, edge-to-edge, with no gradients, textures, or content. Treat them as off-screen padding.`;
-  }
   return finalPrompt;
 }
 
@@ -272,31 +271,7 @@ async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob;
   }
 }
 
-// Crop a 3:2 (1536x1024) image to true 16:9 (1536x864) by removing equal
-// horizontal slices from top and bottom. Returns a data URL of the cropped PNG.
-async function cropTo16x9(imageUrl: string): Promise<string> {
-  let bytes: Uint8Array;
-  if (imageUrl.startsWith("data:")) {
-    const commaIdx = imageUrl.indexOf(",");
-    const b64 = imageUrl.slice(commaIdx + 1);
-    const bin = atob(b64);
-    bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  } else {
-    bytes = (await fetchPublicMedia(imageUrl)).bytes;
-  }
-  const decoded = await decode(bytes) as Image;
-  const w = decoded.width;
-  const h = decoded.height;
-  const targetH = Math.round((w * 9) / 16);
-  if (targetH >= h) return imageUrl;
-  const yOffset = Math.floor((h - targetH) / 2);
-  const cropped = decoded.crop(0, yOffset, w, targetH);
-  const out = await cropped.encode();
-  return `data:image/png;base64,${bytesToB64(out)}`;
-}
-
-async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, _size: string) {
+async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, size: string) {
   const endpoint = 'https://api.openai.com/v1/images/edits';
   const headers = { 'Authorization': `Bearer ${OPENAI_API_KEY}` };
   const modelName = toOpenAIModel(model);
@@ -307,8 +282,7 @@ async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filena
     const form = new FormData();
     form.append('model', modelName);
     form.append('prompt', prompt);
-    // /v1/images/edits only accepts 1024x1024, 512x512, 256x256. Do NOT pass quality parameter.
-    form.append('size', '1024x1024');
+    form.append('size', size);
     form.append('n', '1');
     if (wantsTransparentBackground(prompt)) {
       form.append('background', 'transparent');
@@ -374,7 +348,7 @@ function extractOpenAIImageUrls(parsed: any): string[] {
   return out;
 }
 
-async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], aspect: string, count: number, selectedModel: string, isYouTube: boolean) {
+async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], aspect: string, count: number, selectedModel: string) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   let successfulCount = 0;
   try {
@@ -389,7 +363,7 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
       console.log(`[job ${jobId}] matching source shape ${sources[0]?.width}x${sources[0]?.height} -> ${size}`);
     }
 
-    console.log(`[job ${jobId}] OpenAI edit attempt (${size}, n=${count}${isYouTube ? ', youtube' : ''})`);
+    console.log(`[job ${jobId}] OpenAI edit attempt (${size}, n=${count})`);
     const primary = await callOpenAIEdits(prompt, sources, selectedModel, size, count);
 
     let urls: string[] = [];
@@ -416,13 +390,6 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
       await updateJob(supabase, jobId, { status: 'failed', error_message: err.errorMessage, error_type: err.errorType });
       console.error(`[job ${jobId}] OpenAI image edit failed: ${err.debugDetail.slice(0, 240)}`);
       return;
-    }
-
-    // YouTube 16:9: crop every output (OpenAI or Gemini) before upload.
-    if (isYouTube) {
-      urls = await Promise.all(urls.map(async (u) => {
-        try { return await cropTo16x9(u); } catch (e) { console.error(`[job ${jobId}] 16:9 crop failed:`, e); return u; }
-      }));
     }
 
     const finalUrls = await Promise.all(
@@ -541,13 +508,11 @@ serve(async (req) => {
         quota,
       });
     }
-    const isYouTube = aspect === '16:9';
-    const transparent = wantsTransparentBackground(prompt);
-    const editPrompt = buildEditPrompt(prompt, imageArray.length, isYouTube && !transparent);
+    const editPrompt = buildEditPrompt(prompt, imageArray.length);
 
     // Kick off processing in background; respond immediately so we never get killed
     // by the platform's per-request wall timeout.
-    const task = processEditJob(jobId, user.id, editPrompt, imageArray, aspect, requestedCount, selectedModel, isYouTube && !transparent);
+    const task = processEditJob(jobId, user.id, editPrompt, imageArray, aspect, requestedCount, selectedModel);
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
       EdgeRuntime.waitUntil(task);
     } else {
