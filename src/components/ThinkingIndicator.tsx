@@ -296,18 +296,9 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
           <div className="absolute inset-1 -z-10 rounded-full bg-gradient-to-tr from-neon-500/25 to-primary/20 blur-xl" aria-hidden="true" />
         </div>
         <div className="relative flex items-center min-w-0">
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={getMessage()}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              transition={{ duration: 0.3 }}
-              className="text-sm font-medium text-foreground/80 whitespace-nowrap"
-            >
-              {getMessage()}
-            </motion.span>
-          </AnimatePresence>
+          <span className="text-sm font-medium text-foreground/80 whitespace-nowrap">
+            {getMessage()}
+          </span>
         </div>
       </div>
       

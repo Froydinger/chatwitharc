@@ -1651,7 +1651,7 @@ export function MobileChatApp() {
                       return (
                         <motion.div
                           key={message.id}
-                          initial={isSessionLoading ? false : { opacity: 0, y: 6 }}
+                          initial={isSessionLoading || isLastAssistantMessage ? false : { opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0 }}
                           transition={{
@@ -1688,7 +1688,9 @@ export function MobileChatApp() {
                       isLoading &&
                       !isGeneratingImage &&
                       messages.length > 0 &&
-                      messages[messages.length - 1]?.role === "user" && (
+                      (messages[messages.length - 1]?.role === "user" ||
+                        (messages[messages.length - 1]?.role === "assistant" &&
+                          !messages[messages.length - 1]?.content?.trim())) && (
                         <motion.div
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
