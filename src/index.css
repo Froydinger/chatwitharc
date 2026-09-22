@@ -6,10 +6,12 @@
   --arcai-safe-area-top: env(safe-area-inset-top, 0px);
 }
 
-/* Android PWAs do not need the iOS Dynamic Island inset. Keep the variable
-   platform-scoped so every iOS/browser surface retains its existing spacing. */
+/* Android Chromium exposes the same CSS safe-area contract for display cutouts
+   when an installed PWA is in its supported standalone mode. Do not replace
+   that value with 0px: Pixel punch-hole cameras and Android status bars still
+   need the top content clearance. The desktop title-bar inset is unrelated and
+   remains disabled on Android. */
 body.is-android-pwa {
-  --arcai-safe-area-top: 0px !important;
   --arcai-desktop-titlebar-safe-area: 0px !important;
 }
 
