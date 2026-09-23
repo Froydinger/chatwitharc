@@ -64,7 +64,7 @@ export function DocsPage() {
             You can change your active model using the <strong>Model Picker dropdown</strong> located at the
             <strong> top left of the chat window</strong> (above the chat input).
           </p>
-          <p><strong>Arc Matrix™ is ArcAI's intelligence engine, powered by GPT-6.</strong> It orchestrates model routing and Arc's tools; it is not a separately trained foundation model. Click the picker to choose the best option for your task:</p>
+          <p><strong>Arc Matrix™ is ArcAI's intelligence engine, powered by GPT-6.</strong> Arc Matrix brings together model routing, tools, and memory while GPT-6 powers the underlying text models. Click the picker to choose the best option for your task:</p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li><strong className="text-foreground">Auto</strong>: Routes between Ava and Maya for free accounts, and can use River with Boost.</li>
             <li><strong className="text-foreground">Ava</strong>: Lightning-fast everyday answers, brainstorming, and drafting.</li>
