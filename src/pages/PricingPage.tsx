@@ -39,7 +39,7 @@ export function PricingPage() {
           </div>
           <h1 className="text-5xl font-bold mb-4 text-foreground">Choose your reasoning tier.</h1>
           <p className="text-lg text-foreground/75 max-w-xl mx-auto">
-            Get started with our robust free tier or upgrade to Boost for unlimited research and elevated quotas.
+            Arc Matrix™ is ArcAI’s intelligence engine, powered by GPT-6. Start free with Ava and Maya, or get River with Boost.
           </p>
         </div>
 

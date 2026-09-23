@@ -45,6 +45,19 @@ Deno.test('background adapter preserves Luna, bounds output, never retries a fai
   assert(failed && calls === 1);
 });
 
+Deno.test('high Arc Work selects Sol with low provider reasoning', async () => {
+  const provider = cloudResponseProvider({
+    apiKey: 'test-only', instructions: 'test', reasoningEffort: 'high', tools: [],
+    fetcher: (async (_url, init) => {
+      const body = JSON.parse(String(init?.body));
+      assert(body.model === 'gpt-6-sol');
+      assert(body.reasoning?.effort === 'low');
+      return Response.json({ id: 'resp_test' });
+    }) as typeof fetch,
+  });
+  assert(await provider.startModel([], 'run:model:0', 100) === 'resp_test');
+});
+
 Deno.test('explicit search is forced only for the first durable model turn', async () => {
   const bodies: Record<string, unknown>[] = [];
   const provider = cloudResponseProvider({

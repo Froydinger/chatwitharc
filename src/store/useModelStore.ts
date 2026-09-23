@@ -6,6 +6,7 @@ export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-ana
 
 /** Luna is the default user-facing text/reasoning model. */
 export const LUNA_MODEL = 'gpt-6-luna';
+export const SOL_MODEL = 'gpt-6-sol';
 export type ChatModel = typeof LUNA_MODEL;
 export type LunaReasoningEffort = 'low' | 'medium' | 'high';
 export type LunaReasoningSelection = 'auto' | LunaReasoningEffort;
@@ -50,9 +51,10 @@ export function getModelDisplayName(selection: LunaReasoningSelection): string {
 export function resolveReasoningEffort(
   selection: LunaReasoningSelection,
   complexity: 0 | 1 | 2 | 3 = 0,
+  canUseRiver = useModelStore.getState().isBoost,
 ): LunaReasoningEffort {
   if (selection !== 'auto') return selection;
-  if (complexity >= 3) return 'high';
+  if (complexity >= 3) return canUseRiver ? 'high' : 'medium';
   if (complexity >= 2) return 'medium';
   return 'low';
 }

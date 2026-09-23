@@ -1254,6 +1254,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_arc_maya_usage_today: { Args: never; Returns: number }
+      reserve_arc_maya_turn: { Args: { target_user_id: string }; Returns: Json }
       count_user_images:
         | { Args: never; Returns: number }
         | { Args: { target_user_id: string }; Returns: number }

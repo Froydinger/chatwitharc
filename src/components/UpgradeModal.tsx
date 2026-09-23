@@ -118,7 +118,7 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-primary/15 mb-4">
               <Zap className="h-7 w-7 text-primary" />
             </div>
-            <h2 className="text-2xl font-bold mb-1">{isVoiceLimit ? 'Keep the conversation going' : 'ArcAI Boost'}</h2>
+            <h2 className="text-2xl font-bold mb-1">{isVoiceLimit ? 'Keep the conversation going' : reason === 'river_boost_required' ? 'Unlock River with Boost' : 'ArcAI Boost'}</h2>
             
             {/* Billing Cycle Selector Switch */}
             <div className="flex justify-center my-5">

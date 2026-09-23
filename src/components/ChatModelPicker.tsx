@@ -71,6 +71,11 @@ export function ChatModelPicker({
   }, [open]);
 
   const pick = (effort: LunaReasoningSelection) => {
+    if (effort === 'high' && !hasBoost && !isAdmin) {
+      setOpen(false);
+      openCheckout(undefined, 'river_boost_required');
+      return;
+    }
     setReasoningEffort(effort);
     setOpen(false);
   };
@@ -159,9 +164,9 @@ export function ChatModelPicker({
                   if (preset.effort === 'low') {
                     badge = 'Unlimited';
                   } else if (preset.effort === 'medium') {
-                    badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_BALANCED_LIMIT - dailyBalancedUsed)}/10 left`;
+                    badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_BALANCED_LIMIT - dailyBalancedUsed)}/${FREE_DAILY_BALANCED_LIMIT} left`;
                   } else if (preset.effort === 'high') {
-                    badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_DEEP_LIMIT - dailyDeepUsed)}/3 left`;
+                    badge = isAdmin || hasBoost ? 'Unlimited' : 'Boost only';
                   }
                   return (
                     <Row

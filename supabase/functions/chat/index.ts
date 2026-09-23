@@ -12,6 +12,7 @@ const corsHeaders = {
 };
 
 const LUNA_MODEL = 'gpt-6-luna';
+const SOL_MODEL = 'gpt-6-sol';
 const isOpenAIReasoningModel = (model: string): boolean =>
   model.startsWith('gpt-6-') || model.startsWith('gpt-5.') || model.startsWith('o1') || model.startsWith('o3');
 
@@ -1039,7 +1040,7 @@ serve(async (req) => {
       });
     }
 
-    const { messages, profile, model, reasoningEffort, sessionId, forceWebSearch, forceCanvas, forceCode, forceGit, stream, streamEvents, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes, livePreview } = body;
+    const { messages, profile, model, reasoningEffort, reasoningSelection, sessionId, forceWebSearch, forceCanvas, forceCode, forceGit, stream, streamEvents, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes, livePreview } = body;
 
     let isSessionGit = false;
     if (sessionId && user && !isGuestMode) {
@@ -1088,7 +1089,7 @@ serve(async (req) => {
     }
 
     const allowedReasoningEfforts = new Set(['low', 'medium', 'high']);
-    const selectedReasoningEffort = allowedReasoningEfforts.has(reasoningEffort)
+    let selectedReasoningEffort = allowedReasoningEfforts.has(reasoningEffort)
       ? reasoningEffort
       : 'medium';
 
@@ -1167,11 +1168,47 @@ serve(async (req) => {
       );
     }
 
-    // All chat requests, including those from stale clients with Gemini ids,
-    // normalize to GPT-6 Luna.
-    const validatedModel = LUNA_MODEL;
+    // Never trust the picker, a persisted preference, or a client-supplied model
+    // for Sol access. Admins and active Boost plans are checked on the server.
+    if (selectedReasoningEffort === 'high') {
+      if (!user || isGuestMode) {
+        return new Response(JSON.stringify({ error: 'River requires ArcAI Boost.' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const { data: riverEntitled, error: entitlementError } = await supabase.rpc('user_has_boost', { check_user_id: user.id });
+      if (entitlementError) {
+        return new Response(JSON.stringify({ error: 'Could not verify River access. Please try again.' }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (!riverEntitled) {
+        if (reasoningSelection === 'auto') selectedReasoningEffort = 'medium';
+        else return new Response(JSON.stringify({ error: 'River requires ArcAI Boost.' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    if (selectedReasoningEffort === 'medium' && user && !isGuestMode) {
+      const { data: mayaQuota, error: mayaQuotaError } = await supabase.rpc('reserve_arc_maya_turn', { target_user_id: user.id });
+      if (mayaQuotaError) {
+        return new Response(JSON.stringify({ error: 'Could not check Maya usage. Please try again.' }), {
+          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (!mayaQuota?.allowed) {
+        if (reasoningSelection === 'auto') selectedReasoningEffort = 'low';
+        else return new Response(JSON.stringify({ error: 'You have used your 20 free Maya chats today. Ava is still available, or upgrade to Boost for unlimited Maya.' }), {
+          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    const validatedModel = selectedReasoningEffort === 'high' ? SOL_MODEL : LUNA_MODEL;
+    const modelReasoningEffort = selectedReasoningEffort === 'high' ? 'low' : selectedReasoningEffort;
     if (model && model !== validatedModel) {
-      console.log('Normalizing legacy or unsupported chat model to GPT-6 Luna');
+      console.log('Normalizing client model to the authorized Arc Matrix tier');
     }
     
     const parsedClientOffset = (() => {
@@ -1450,7 +1487,7 @@ product and is helping someone with it. Stay in that voice completely.`;
             model: enhanceModel,
             messages: conversationMessages,
             temperature: enhanceIsReasoning ? undefined : 0.3,
-            reasoning_effort: enhanceIsReasoning ? selectedReasoningEffort : undefined,
+            reasoning_effort: enhanceIsReasoning ? modelReasoningEffort : undefined,
             // OpenAI reasoning models reject a budget this small outright — 1200 returned a flat
             // 400 on every call, silently breaking every caller of this branch.
             // Ceiling only; a rewrite still spends what it spends.
@@ -1824,7 +1861,7 @@ product and is helping someone with it. Stay in that voice completely.`;
     const lunaModel = LUNA_MODEL;
     const explicitMemoryIntent = /\b(remember (?:this|that|what|when|how|my)|save (?:this|that) (?:to|in) (?:memory|memories)|do you remember|can you remember|recall|past (?:chat|chats|conversation|conversations)|we (?:talked|spoke|discussed)|i (?:told|mentioned) you)\b/i.test(lastUserMessage);
 
-    // Memory remains on Luna, like every other text/reasoning path.
+    // Explicit memory-intent turns retain the Luna routing used by this tool path.
     if (toolChoice === "auto" && explicitMemoryIntent) {
       selectedModel = lunaModel;
       console.log('🧠 Explicit memory/recall intent: routing through Luna');
@@ -1861,7 +1898,7 @@ product and is helping someone with it. Stay in that voice completely.`;
           // reasoning_effort=none. Reasoning selection is applied only after
           // a tool-free synthesis call.
           reasoning_effort: isReasoning
-            ? (isCanvasOrCodeMode || toolsToUse.length > 0 ? 'none' : selectedReasoningEffort)
+            ? (isCanvasOrCodeMode || toolsToUse.length > 0 ? 'none' : modelReasoningEffort)
             : undefined,
           stream: true,
           ...tokenParam,
@@ -2302,9 +2339,9 @@ product and is helping someone with it. Stay in that voice completely.`;
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: lunaModel,
+            model: selectedModel,
             messages: conversationMessages,
-            reasoning_effort: selectedReasoningEffort,
+            reasoning_effort: modelReasoningEffort,
             max_completion_tokens: 65536,
           }),
         });
@@ -3248,8 +3285,8 @@ product and is helping someone with it. Stay in that voice completely.`;
         console.log(`📊 Second call context size: ${toolContextSize} chars, ${synthesisMessages.length} messages`);
         
         const usedMemoryTool = toolsUsed.some(name => memoryToolNames.has(name));
-        const secondCallModel = lunaModel;
-        if (usedMemoryTool) finalResponseModel = lunaModel;
+        const secondCallModel = selectedModel;
+        if (usedMemoryTool) finalResponseModel = secondCallModel;
         const secondTokenParam = { max_completion_tokens: 65536 };
         const isSecondCallReasoning = isOpenAIReasoningModel(secondCallModel);
         response = await fetchWithRetry(OPENAI_CHAT_URL, {
@@ -3262,7 +3299,7 @@ product and is helping someone with it. Stay in that voice completely.`;
             model: secondCallModel,
             messages: synthesisMessages,
             temperature: isSecondCallReasoning ? undefined : 0.6,
-            reasoning_effort: isSecondCallReasoning ? selectedReasoningEffort : undefined,
+            reasoning_effort: isSecondCallReasoning ? modelReasoningEffort : undefined,
             ...secondTokenParam,
           }),
         });

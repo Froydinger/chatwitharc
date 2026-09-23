@@ -22,7 +22,7 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
   const [tab, setTab] = useState<'model' | 'voice'>('model');
   const reasoningEffort = useModelStore((state) => state.reasoningEffort);
   const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
-  const { hasBoost, isAdmin, dailyBalancedUsed, dailyDeepUsed, FREE_DAILY_BALANCED_LIMIT, FREE_DAILY_DEEP_LIMIT } = useSubscription();
+  const { hasBoost, isAdmin, openCheckout, dailyBalancedUsed, FREE_DAILY_BALANCED_LIMIT } = useSubscription();
   const selectedPreset = PRESETS.find((preset) => preset.effort === reasoningEffort) ?? PRESETS[0];
 
   return (
@@ -103,15 +103,22 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
                 {PRESETS.map((preset) => {
                   let badge: string | undefined;
                   if (preset.effort === 'low') badge = 'Unlimited';
-                  if (preset.effort === 'medium') badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_BALANCED_LIMIT - dailyBalancedUsed)}/10 left`;
-                  if (preset.effort === 'high') badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_DEEP_LIMIT - dailyDeepUsed)}/3 left`;
+                  if (preset.effort === 'medium') badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_BALANCED_LIMIT - dailyBalancedUsed)}/${FREE_DAILY_BALANCED_LIMIT} left`;
+                  if (preset.effort === 'high') badge = isAdmin || hasBoost ? 'Unlimited' : 'Boost only';
                   const Icon = preset.icon;
                   const active = reasoningEffort === preset.effort;
                   return (
                     <button
                       type="button"
                       key={preset.effort}
-                      onClick={() => setReasoningEffort(preset.effort as LunaReasoningSelection)}
+                      onClick={() => {
+                        if (preset.effort === 'high' && !hasBoost && !isAdmin) {
+                          setOpen(false);
+                          openCheckout(undefined, 'river_boost_required');
+                          return;
+                        }
+                        setReasoningEffort(preset.effort as LunaReasoningSelection);
+                      }}
                       aria-pressed={active}
                       className={cn(
                         'flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left transition-colors',
@@ -127,7 +134,7 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
                     </button>
                   );
                 })}
-                {!hasBoost && !isAdmin && <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs text-muted-foreground"><Crown className="h-4 w-4 shrink-0 text-primary" /><span>Boost unlocks unlimited reasoning.</span></div>}
+                {!hasBoost && !isAdmin && <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs text-muted-foreground"><Crown className="h-4 w-4 shrink-0 text-primary" /><span>Boost unlocks River and unlimited Maya reasoning.</span></div>}
                 <div className="pt-1 text-center text-xs text-muted-foreground">Current: Arc · {selectedPreset.title}</div>
               </div>
             ) : (

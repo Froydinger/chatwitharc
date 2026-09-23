@@ -122,11 +122,9 @@ export function DashboardPageInner({ embedded = false, activeTabOverride }: { em
     hasBoost,
     openCheckout,
     dailyBalancedUsed,
-    dailyDeepUsed,
     dailyVoiceSessionsUsed,
     FREE_DAILY_VOICE_LIMIT,
     FREE_DAILY_BALANCED_LIMIT,
-    FREE_DAILY_DEEP_LIMIT,
   } = useSubscription();
 
   // Anonymous users are not allowed to view the dashboard at all.
@@ -1405,7 +1403,7 @@ useEffect(() => {
                         </div>
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
                           <span className="text-muted-foreground">Deep</span>
-                          <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : `${dailyDeepUsed}/${FREE_DAILY_DEEP_LIMIT}`}</span>
+                          <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : "Boost only"}</span>
                         </div>
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
                           <span className="text-muted-foreground">Images</span>

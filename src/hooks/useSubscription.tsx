@@ -8,8 +8,8 @@ export const FREE_IMAGE_LIMIT = 3;
 export const FREE_DAILY_IMAGE_LIMIT = 3; // Kept for backwards compatibility
 export const BOOST_DAILY_IMAGE_LIMIT = Infinity;
 export const FREE_DAILY_SMARTER_CHAT_LIMIT = 20;
-export const FREE_DAILY_BALANCED_LIMIT = 10;
-export const FREE_DAILY_DEEP_LIMIT = 3;
+export const FREE_DAILY_BALANCED_LIMIT = 20;
+export const FREE_DAILY_DEEP_LIMIT = 0;
 export const FREE_DAILY_VOICE_LIMIT = 3;
 
 // Legacy export kept for older call sites. Voice is now limited by sessions
@@ -112,7 +112,7 @@ interface SubscriptionState {
   remainingImages: number;
   imageLimit: number;
 
-  // Reasoning quota (daily: unlimited Quick, 10 Balanced, 3 Deep)
+  // Reasoning quota (daily: unlimited Ava, 20 Maya; River requires Boost)
   dailyBalancedUsed: number;
   dailyDeepUsed: number;
   balancedLimit: number;
@@ -193,10 +193,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const canGenerateImage = isAdmin || hasBoost || dailyImagesUsed < imageLimit;
   const remainingImages = isAdmin || hasBoost ? Infinity : Math.max(0, imageLimit - dailyImagesUsed);
 
-  // Reasoning quota logic (daily: unlimited Quick, 10 Balanced, 3 Deep)
+  // Reasoning quota logic (daily: unlimited Ava, 20 Maya; River requires Boost)
   // Admin: unlimited
   // Boost: unlimited
-  // Free: unlimited Quick, 10 Balanced, 3 Deep
+  // Free: unlimited Ava, 20 Maya, no River
   const balancedLimit = isAdmin || hasBoost ? Infinity : FREE_DAILY_BALANCED_LIMIT;
   const deepLimit = isAdmin || hasBoost ? Infinity : FREE_DAILY_DEEP_LIMIT;
   const remainingBalanced = isAdmin || hasBoost ? Infinity : Math.max(0, balancedLimit - dailyBalancedUsed);
@@ -254,16 +254,19 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setHasBoostSub(false);
       setCancelAtPeriodEnd(false);
       setCurrentPeriodEnd(null);
+      setDailyBalancedUsed(0);
       setLoading(false);
       return;
     }
     try {
-      const [{ data: adminData }, { data: boostData }] = await Promise.all([
+      const [{ data: adminData }, { data: boostData }, { data: mayaUsed }] = await Promise.all([
         supabase.rpc('is_admin_user'),
         supabase.rpc('user_has_boost', { check_user_id: user.id }),
+        supabase.rpc('get_arc_maya_usage_today'),
       ]);
       setIsAdmin(!!adminData);
       setHasBoostSub(!!boostData);
+      if (typeof mayaUsed === 'number') setDailyBalancedUsed(mayaUsed);
 
       // Fetch active subscription details
       const { data: subDetails } = await supabase
@@ -357,9 +360,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     const handleFocusAndQuotaChange = () => {
       setDailyImagesUsed(getDailyImageCount());
       setDailySmarterChatsUsed(getDailySmarterChatCount());
-      setDailyBalancedUsed(getDailyBalancedCount());
       setDailyDeepUsed(getDailyDeepCount());
-      refreshVoiceCount();
+      void checkSubscription();
     };
     window.addEventListener('focus', handleFocusAndQuotaChange);
     window.addEventListener('arc-reasoning-quota-changed', handleFocusAndQuotaChange);
@@ -369,7 +371,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       window.removeEventListener('arc-reasoning-quota-changed', handleFocusAndQuotaChange);
       window.removeEventListener('arc-voice-quota-changed', handleFocusAndQuotaChange);
     };
-  }, [refreshVoiceCount]);
+  }, [checkSubscription]);
 
   // Realtime: re-check Boost when a subscription row changes
   useEffect(() => {

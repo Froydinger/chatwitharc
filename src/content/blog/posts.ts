@@ -44,7 +44,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI free?",
-        a: "Yes. The free tier includes Arc Matrix™ chat (unlimited Ava, 10 Maya, 3 River daily), image generation with Arc Imagix, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost raises the rest: unlimited Deep Search and Ultra Deep Search, unlimited Arc Imagix generation and editing, the full App Builder, and unlimited voice sessions up to 2 hours each.",
+        a: "Yes. The free tier includes Arc Matrix™ chat (unlimited Ava and 20 Maya chats daily), image generation with Arc Imagix, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. River requires Boost, which also adds unlimited research, Arc Imagix generation and editing, the full App Builder, and unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "Can I build full web applications with ArcAI?",
@@ -97,7 +97,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Does the free tier have message limits?",
-        a: "ArcAI provides unlimited Ava, 10 Maya, and 3 River reasoning daily on the free plan. Boost unlocks unlimited for all models.",
+        a: "ArcAI provides unlimited Ava and 20 Maya chats daily on the free plan. River requires Boost, which also makes Maya unlimited.",
       },
       {
         q: "Can I use ArcAI without signing up?",
@@ -147,7 +147,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["GPT-4 alternative", "GPT-4 free", "free GPT", "AI app generator"],
     updated: UPDATED,
     intro:
-      "Access to advanced reasoning is restricted on many services. ArcAI gives free accounts Arc Matrix™ intelligence with Ava, Maya, and River, and offers unlimited usage through Boost.",
+      "Access to advanced reasoning is restricted on many services. ArcAI gives free accounts Arc Matrix™ intelligence with Ava and Maya; Boost unlocks River and unlimited Maya.",
     faq: [
       {
         q: "Is there a free version of advanced AI reasoning?",
@@ -209,7 +209,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "What is the best free AI assistant in 2026?",
-        a: "ArcAI. It offers unlimited chat, daily image quotas, cited web research, document analysis, long-term memory, and an App Builder on the free tier, with a Boost plan for unlimited research, full IDE deployment, and elevated quotas.",
+        a: "ArcAI. It offers unlimited Ava, 20 Maya chats daily, image creation, cited web research, document analysis, and long-term memory. Boost unlocks River, the full App Builder, and elevated quotas.",
       },
       {
         q: "What makes ArcAI different from other AI assistants in 2026?",
@@ -485,7 +485,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "what-is-arcai": {
     angle: "ArcAI is built around a simple idea: one assistant should handle the whole loop — thinking, searching, speaking, writing, coding, building web apps, creating images, and remembering the context that makes those tasks personal.",
     useCases: ["daily planning", "app building", "research with sources", "image generation", "voice brainstorming", "long-term bot memory"],
-    freeAccess: "Every ArcAI feature is accessible on the free plan with unlimited Quick reasoning, 10 Balanced, and 3 Deep daily, plus 3 voice sessions per UTC day, up to 10 minutes each. Boost unlocks unlimited research, unlimited reasoning, higher image quotas, the full App Builder, and unlimited voice sessions up to 2 hours each.",
+    freeAccess: "The free plan includes unlimited Ava and 20 Maya chats daily, plus 3 voice sessions per UTC day, up to 10 minutes each. Boost unlocks River, unlimited Maya, unlimited research, the full App Builder, and unlimited voice sessions up to 2 hours each.",
     proof: "That combination makes ArcAI feel less like a single chatbot tab and more like an operating workspace for creative work and app building.",
   },
   "free-chatgpt-alternative": {
@@ -503,7 +503,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-gpt-4-alternative": {
     angle: "Most people searching for a GPT-4 alternative want strong reasoning without turning every useful feature into a massive monthly bill. ArcAI focuses on GPT-class quality with practical tools, persistent memory, and an App Builder around it.",
     useCases: ["reasoning through hard questions", "building React web apps", "writing drafts", "debugging code", "generating images", "persistent bot memory"],
-    freeAccess: "Free accounts get Arc Matrix™ with unlimited Ava, 10 Maya, and 3 River reasoning daily; Boost adds unlimited reasoning, the App Builder, and premium tools.",
+    freeAccess: "Free accounts get Arc Matrix™ with unlimited Ava and 20 Maya chats daily; Boost adds River, unlimited Maya, the App Builder, and premium tools.",
     proof: "The result is GPT-style usefulness without needing to choose between chat, voice, images, memory, and app building in separate products.",
   },
   "free-claude-alternative": {

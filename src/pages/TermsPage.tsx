@@ -40,12 +40,12 @@ export default function TermsPage() {
               <p className="text-muted-foreground">
                 ArcAI is <strong>free to use</strong>. A free account includes chat, voice, memory, canvases, file
                 uploads, shared chats, 3 voice sessions per UTC day with each session up to 10 minutes, and a daily
-                allowance of image generations, plus 4 Deep Searches and 1 Ultra Deep Search each week.
+                allowance of image generations, unlimited Ava and 20 Maya chats per UTC day, plus 4 Deep Searches and 1 Ultra Deep Search each week. River is not included in the free tier.
               </p>
               <p className="text-muted-foreground mt-3">
                 <strong>Boost</strong> is an optional paid subscription that raises those allowances — unlimited Deep
                 Search and Ultra Deep Search, unlimited voice sessions up to 2 hours each, a higher daily image limit,
-                and higher chat and reasoning limits. Boost and administrators have unlimited voice sessions up to 2
+                unlimited Maya reasoning and access to River. Boost and administrators have unlimited voice sessions up to 2
                 hours each. It is available with a 7-day free trial when a payment method is provided, then billed
                 through Stripe on a monthly or annual term. It renews automatically until cancelled and can be
                 cancelled at any time from your account settings; access continues to the end of the paid period.

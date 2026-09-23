@@ -377,6 +377,7 @@ export class AIService {
                   profile: effectiveProfile,
                   model: selectedModel,
                   reasoningEffort,
+                  reasoningSelection: useModelStore.getState().reasoningEffort,
                   sessionId: sessionId,
                   forceWebSearch: forceWebSearch || false,
                   forceCanvas: forceCanvas || false,
@@ -413,13 +414,15 @@ export class AIService {
               serviceMessage = await response.text().catch(() => '');
             }
             if (serviceMessage.toLowerCase().includes('rate limit') || response.status === 429) {
-              throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+              throw new Error(serviceMessage || 'Rate limit exceeded. Please wait a moment and try again.');
             }
             if (response.status === 402) {
               throw new Error('Payment required. Please add credits.');
             }
             throw new Error(serviceMessage || `Chat service error: ${response.status}`);
           }
+
+          window.dispatchEvent(new Event('arc-reasoning-quota-changed'));
 
           let data: any = null;
           const contentType = response.headers.get('content-type') || '';
@@ -680,6 +683,7 @@ export class AIService {
         profile: enrichedProfile,
         model: selectedModel,
         reasoningEffort,
+        reasoningSelection: useModelStore.getState().reasoningEffort,
         forceCanvas,
         forceCode,
         forceWebSearch,
@@ -695,7 +699,8 @@ export class AIService {
 
     if (!response.ok) {
       if (response.status === 429) {
-        onError?.('Rate limit exceeded. Please try again later.');
+        const payload = await response.json().catch(() => null);
+        onError?.(payload?.error || 'Rate limit exceeded. Please try again later.');
         return;
       }
       if (response.status === 402) {
@@ -706,6 +711,7 @@ export class AIService {
       onError?.(`Request failed: ${text}`);
       return;
     }
+    window.dispatchEvent(new Event('arc-reasoning-quota-changed'));
 
     const reader = response.body?.getReader();
     if (!reader) {

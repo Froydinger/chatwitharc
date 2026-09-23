@@ -106,12 +106,12 @@ export function cloudResponseProvider(options: {
     async startModel(transcript: unknown[], requestKey: string, maxTokens: number): Promise<string> {
       const input = options.expandInput ? await options.expandInput(transcript) : responseInput(transcript);
       const response = await request('', {
-        model: 'gpt-6-luna', input,
+        model: options.reasoningEffort === 'high' ? 'gpt-6-sol' : 'gpt-6-luna', input,
         instructions: options.instructions,
         // Responses API spells Chat Completions reasoning_effort as reasoning.effort.
         // Ask only for the provider's safe high-level summary. Private chain of
         // thought is never requested or sent to the browser.
-        reasoning: { effort: options.reasoningEffort, summary: 'auto' },
+        reasoning: { effort: options.reasoningEffort === 'high' ? 'low' : options.reasoningEffort, summary: 'auto' },
         tools: options.tools, parallel_tool_calls: false,
         ...(options.firstTool && requestKey.endsWith(':model:0')
           ? { tool_choice: { type: 'function', name: options.firstTool } } : {}),

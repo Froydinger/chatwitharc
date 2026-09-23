@@ -25,7 +25,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes Arc Matrix™ chat (unlimited Ava, 10 Maya, 3 River daily), canvases, a living memory summary, 3 Arc Imagix creations, weekly research, and 3 voice sessions per UTC day up to 10 minutes each with Arc. Upgrade to Boost for unlimited research, unlimited Ava, Maya, and River reasoning, App Builder, unlimited Arc Imagix creation & editing, and unlimited voice sessions up to 2 hours each.",
+    a: "Yes. Our free tier includes Arc Matrix™ chat (unlimited Ava and 20 Maya chats daily), canvases, a living memory summary, 3 Arc Imagix creations, weekly research, and 3 voice sessions per UTC day up to 10 minutes each with Arc. River requires Boost, which also adds unlimited research, unlimited Maya, App Builder, unlimited Arc Imagix creation & editing, and unlimited voice sessions up to 2 hours each.",
   },
   {
     q: "Is there a paid tier?",
@@ -49,7 +49,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "ArcAI is powered by Arc Matrix™—our proprietary orchestration engine combining frontier language models, multimodal vision, and deep reasoning architectures. Chat and analysis are driven by Ava (fast & agile), Maya (everyday powerhouse), and River (deep logic & code); image creation and precision editing are powered by Arc Imagix and Arc Imagix Edit; natural voice conversations run on our Voxi voice pipeline; and live web research is powered by Deep Search.",
+    a: "Arc Matrix™ is ArcAI's intelligence engine, powered by GPT-6. Our proprietary orchestration connects GPT-6 Luna for Ava and Maya, GPT-6 Sol for Boost-only River, plus Arc's tools and memory. Image creation and editing use Arc Imagix; natural voice runs through Voxi; live research uses Deep Search.",
   },
   {
     q: "Is ArcAI private?",
@@ -217,7 +217,7 @@ export function LandingPage() {
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "Chat with Ava, Maya, and River across Arc Matrix™ for writing, code, logic, and analysis. Auto-mode starts fast and steps up when needed." },
+            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "ArcAI's intelligence engine, powered by GPT-6. Chat with Ava and Maya for free; Boost unlocks River. Auto chooses the best available tier for your plan." },
             { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
             { category: "Reflect", icon: Brain, title: "Living Cross-Session Memory", body: "Arc keeps one detailed, evolving summary of the preferences, goals, facts, and boundaries you want it to remember, then recalls it when relevant." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },
@@ -263,7 +263,7 @@ export function LandingPage() {
               Free is powerful. <span className="text-white/70">Boost is optional.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              Arc is built to be a safe, helpful hub for everyone. The free plan includes Arc Matrix™ reasoning, a living memory summary, 3 voice sessions per UTC day up to 10 minutes each, search, and coding out of the box. Start Boost with a 7-day free trial (card required) for $10/month, or save 21% with the limited-time $95/year plan (normally $120/year, renewing at $95/year while subscribed), if you want higher quotas, unlimited voice sessions up to 2 hours each, or full App Builder publishing.
+              Arc is built to be a safe, helpful hub for everyone. The free plan includes unlimited Ava, 20 Maya chats daily, a living memory summary, 3 voice sessions per UTC day up to 10 minutes each, search, and coding out of the box. Start Boost with a 7-day free trial (card required) for $10/month, or save 21% with the limited-time $95/year plan (normally $120/year, renewing at $95/year while subscribed), to unlock River, unlimited Maya, unlimited voice sessions up to 2 hours each, and full App Builder publishing.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">

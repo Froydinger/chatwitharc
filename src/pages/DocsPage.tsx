@@ -64,12 +64,12 @@ export function DocsPage() {
             You can change your active model using the <strong>Model Picker dropdown</strong> located at the
             <strong> top left of the chat window</strong> (above the chat input).
           </p>
-          <p>ArcAI is powered by <strong>Arc Matrix™</strong>. Click the picker to choose the best reasoning engine for your task:</p>
+          <p><strong>Arc Matrix™ is ArcAI's intelligence engine, powered by GPT-6.</strong> It orchestrates model routing and Arc's tools; it is not a separately trained foundation model. Click the picker to choose the best option for your task:</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Auto</strong>: Automatically routes between Ava, Maya, and River based on query complexity.</li>
+            <li><strong className="text-foreground">Auto</strong>: Routes between Ava and Maya for free accounts, and can use River with Boost.</li>
             <li><strong className="text-foreground">Ava</strong>: Lightning-fast everyday answers, brainstorming, and drafting.</li>
             <li><strong className="text-foreground">Maya</strong>: Everyday powerhouse intelligence with deep nuance and balanced reasoning.</li>
-            <li><strong className="text-foreground">River</strong>: Deep reasoning, complex code architecture, and heavy analytical problem solving.</li>
+            <li><strong className="text-foreground">River</strong>: Boost-only access to GPT-6 Sol for complex code architecture and heavy analytical problem solving.</li>
           </ul>
         </div>
       ),
@@ -86,7 +86,7 @@ export function DocsPage() {
             Usage quotas depend on your plan:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Free Tier</strong>: Unlimited Ava, 10 Maya, and 3 River daily, plus 3 Arc Imagix creations and 3 voice sessions per UTC day, up to 10 minutes each.</li>
+            <li><strong className="text-foreground">Free Tier</strong>: Unlimited Ava and 20 Maya chats daily; River requires Boost. Includes 3 Arc Imagix creations and 3 voice sessions per UTC day, up to 10 minutes each.</li>
             <li><strong className="text-foreground">Boost Plan ($10/mo or limited-time $95/yr, normally $120/yr)</strong>: Start with a 7-day free trial (card required). The annual rate renews at $95/yr while subscribed. Boost includes unlimited Ava, Maya, and River reasoning, unlimited Arc Imagix generation &amp; editing, full App Builder, offline local model support, and unlimited voice sessions up to 2 hours each.</li>
           </ul>
           <p>You can check your current daily usage and remaining limit at <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>

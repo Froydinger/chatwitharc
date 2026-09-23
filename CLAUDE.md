@@ -198,7 +198,7 @@ spreads this map and overrides only the typography keys.
   deeper work. Free accounts receive 3 voice sessions per UTC day, up to 10 minutes each;
   Boost subscribers and administrators get unlimited voice sessions up to 2 hours each. The microphone stays
   active for natural interruptions; the assistant is always Arc.
-- **All ArcAI text chat uses GPT-6 Luna.** The Gemini Flash experiment has been
+- **Ava and Maya use GPT-6 Luna; Boost-only River uses GPT-6 Sol.** The Gemini Flash experiment has been
   retired. Old saved `flash` reasoning preferences migrate to Ava (low), and
   stale Gemini model IDs normalize to Luna in both the client and `chat` edge
   function. Do not restore Gemini Flash routing or its API key.
@@ -208,8 +208,8 @@ spreads this map and overrides only the typography keys.
   it was device-local and invisible to the dashboard.
 - **Arc Matrix™ Models: Auto, Ava, Maya, River.** The picker exposes Auto, Ava
   (Fast & Agile), Maya (Balanced Intelligence), and River (Deep Reasoning). Ava,
-  Maya, and River map to `low`, `medium`, and `high` `reasoning_effort`; Auto
-  starts at Ava and steps up for clearly harder requests. Old Terra, Sol, GPT-5.4,
+  Maya, and River map to Luna low, Luna medium, and Sol low reasoning; Auto
+  starts at Ava and steps up for clearly harder requests, but free Auto never selects River. Free Maya is capped at 20 daily chats. Old Terra, Sol, GPT-5.4,
   and GPT-5.5 selections normalize smoothly on both client and server. Specialized
   image, realtime voice, video, and search provider models remain separate.
 - **Image setup: Arc Imagix for generation, Arc Imagix Edit for edits.**
