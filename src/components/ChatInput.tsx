@@ -3623,8 +3623,9 @@ ${safeCode}
                                 <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105", action.iconClass)}>
                                   <Icon className="h-4 w-4" />
                                 </span>
-                                <span className="min-w-0 flex-1 truncate font-medium">
-                                  {action.label}
+                                <span className="flex min-w-0 flex-1 items-center gap-2 font-medium">
+                                  <span className="truncate">{action.label}</span>
+                                  {action.id === "app" && <span className="shrink-0 rounded-full border border-violet-400/25 bg-violet-400/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">Beta</span>}
                                 </span>
                                 {action.badge && <span className="rounded-full bg-neon-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-neon-700 dark:text-neon-300">{action.badge}</span>}
                               </motion.button>

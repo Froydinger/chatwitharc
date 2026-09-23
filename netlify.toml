@@ -2,6 +2,11 @@
   command = "npm run build"
   publish = "dist"
 
+[context.production.environment]
+  VITE_CLOUD_RUNS_ENABLED = "true"
+  VITE_CLOUD_SESSION_OPERATIONS_ENABLED = "true"
+  VITE_CLOUD_APP_RUNS_ENABLED = "true"
+
 [[headers]]
   for = "/index.html"
   [headers.values]

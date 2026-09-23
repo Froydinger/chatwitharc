@@ -552,7 +552,7 @@ function DashboardOverview({ activeTab, onNavigate, canRunWork, onBoostRequired,
           <div className="pointer-events-none absolute -right-12 -top-16 h-36 w-36 rounded-full bg-violet-500/10 blur-2xl" />
           <div className="relative flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-primary/20 bg-primary/[0.1] text-primary">{canRunWork ? <Smartphone className="h-5 w-5" /> : <Crown className="h-5 w-5" />}</div>
-            <div className="min-w-0"><p className="text-xs font-semibold text-foreground">App Builder</p><p className="mt-1 truncate text-[11px] text-muted-foreground">Turn an idea into a working app with Arc.</p></div>
+            <div className="min-w-0"><p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">App Builder <span className="rounded-full border border-violet-400/25 bg-violet-400/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">Beta</span></p><p className="mt-1 truncate text-[11px] text-muted-foreground">Turn an idea into a working app with Arc.</p></div>
           </div>
           <div className="relative flex shrink-0 items-center gap-2 text-primary"><span className="hidden text-[11px] font-medium sm:inline">{canRunWork ? "Open builder" : "Unlock"}</span><ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" /></div>
         </button>
