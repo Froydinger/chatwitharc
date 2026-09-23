@@ -3198,22 +3198,22 @@ ${safeCode}
   };
 
   const createActions = [
-    { id: "attach", label: "Attach", description: "Add files or images", keywords: "upload file image document", icon: Paperclip, tileClass: "border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/10", iconClass: "bg-blue-500/15 text-blue-500 dark:text-blue-400", run: () => { fileInputRef.current?.click(); setShowMenu(false); } },
-    { id: "generate", label: "Generate", description: "Create or edit an image", keywords: "image draw picture art", icon: ImagePlus, tileClass: "border-rose-500/20 hover:border-rose-500/40 hover:bg-rose-500/10", iconClass: "bg-rose-500/15 text-rose-500 dark:text-rose-400", run: () => { setForceImageMode(true); setInputValue("image/ "); setShowMenu(false); textareaRef.current?.focus(); } },
-    { id: "write", label: "Write", description: "Open a live writing canvas", keywords: "canvas prose draft document", icon: PenLine, tileClass: "border-sky-500/20 hover:border-sky-500/40 hover:bg-sky-500/10", iconClass: "bg-sky-500/15 text-sky-600 dark:text-sky-400", run: () => { setForceCanvasMode(true); setInputValue("write/ "); setShowMenu(false); textareaRef.current?.focus(); } },
-    { id: "app", label: "App", description: "Build an interactive app", keywords: "builder project react application", icon: Smartphone, tileClass: "border-neon-500/20 hover:border-neon-500/40 hover:bg-neon-500/10", iconClass: "bg-neon-500/15 text-neon-500 dark:text-neon-400", badge: "Boost", run: () => { if (!hasBoost && !isAdmin) { setShowMenu(false); openCheckout(); toast({ title: "ArcAI Boost Required", description: "App Builder is exclusively available to Boost subscribers and admins." }); return; } setForceBuildMode(true); setInputValue("app/ "); setShowMenu(false); textareaRef.current?.focus(); } },
-    { id: "code", label: "Code", description: "Work in a code canvas", keywords: "programming developer code editor", icon: Code2, tileClass: "border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/10", iconClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400", run: () => { setForceCodingMode(true); setInputValue("code/ "); setShowMenu(false); textareaRef.current?.focus(); } },
-    { id: "git", label: "GitHub", description: "Update a remote repo via a pull request", keywords: "github git repository pull request branch", icon: GitHubMark, tileClass: "border-zinc-500/20 hover:border-zinc-500/40 hover:bg-zinc-500/10", iconClass: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-300", run: () => { setForceGitMode(true); setInputValue("git/ "); setShowMenu(false); textareaRef.current?.focus(); } },
-    { id: "search", label: "Search", description: "Search the web inline", keywords: "web browse lookup sources", icon: Globe, tileClass: "border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10", iconClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", run: () => { setForceSearchMode(true); setInputValue("search/ "); setShowMenu(false); textareaRef.current?.focus(); } },
-    { id: "deep-search", label: "Deep Search", description: "Run a deeper research pass", keywords: "research investigate browse sources", icon: Search, tileClass: "border-indigo-500/20 hover:border-indigo-500/40 hover:bg-indigo-500/10", iconClass: "bg-indigo-500/20 text-indigo-400", run: () => { setShowMenu(false); openSearchMode(); } },
-    { id: "prompts", label: "Prompts", description: "Browse saved prompt starters", keywords: "prompt library templates starters", icon: ListPlus, tileClass: "border-fuchsia-500/20 hover:border-fuchsia-500/40 hover:bg-fuchsia-500/10", iconClass: "bg-fuchsia-500/15 text-fuchsia-500 dark:text-fuchsia-400", run: () => { setShowPromptLibrary(true); setShowMenu(false); } },
+    { id: "app", label: "App Builder", description: "Build an interactive app", keywords: "builder project react application", icon: Smartphone, tileClass: "border-neon-500/20 hover:border-neon-500/40 hover:bg-neon-500/10", iconClass: "bg-neon-500/15 text-neon-500 dark:text-neon-400", badge: "Boost", run: () => { if (!hasBoost && !isAdmin) { setShowMenu(false); openCheckout(); toast({ title: "ArcAI Boost Required", description: "App Builder is exclusively available to Boost subscribers and admins." }); return; } setForceBuildMode(true); setInputValue("app/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "code", label: "Code Canvas", description: "Work in a code canvas", keywords: "programming developer code editor", icon: Code2, tileClass: "border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/10", iconClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400", run: () => { setForceCodingMode(true); setInputValue("code/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "git", label: "Github Mode", description: "Update a remote repo via a pull request", keywords: "github git repository pull request branch", icon: GitHubMark, tileClass: "border-zinc-500/20 hover:border-zinc-500/40 hover:bg-zinc-500/10", iconClass: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-300", run: () => { setForceGitMode(true); setInputValue("git/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "search", label: "Instant Web Search", description: "Search the web inline", keywords: "web browse lookup sources", icon: Globe, tileClass: "border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10", iconClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", run: () => { setForceSearchMode(true); setInputValue("search/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "deep-search", label: "Deep Search & Research", description: "Run a deeper research pass", keywords: "research investigate browse sources", icon: Search, tileClass: "border-indigo-500/20 hover:border-indigo-500/40 hover:bg-indigo-500/10", iconClass: "bg-indigo-500/20 text-indigo-400", run: () => { setShowMenu(false); openSearchMode(); } },
+    { id: "attach", label: "Attach File", description: "Add files or images", keywords: "upload file image document", icon: Paperclip, tileClass: "border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/10", iconClass: "bg-blue-500/15 text-blue-500 dark:text-blue-400", run: () => { fileInputRef.current?.click(); setShowMenu(false); } },
+    { id: "generate", label: "Create Image", description: "Create or edit an image", keywords: "image draw picture art", icon: ImagePlus, tileClass: "border-rose-500/20 hover:border-rose-500/40 hover:bg-rose-500/10", iconClass: "bg-rose-500/15 text-rose-500 dark:text-rose-400", run: () => { setForceImageMode(true); setInputValue("image/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "write", label: "Writing Canvas", description: "Open a live writing canvas", keywords: "canvas prose draft document", icon: PenLine, tileClass: "border-sky-500/20 hover:border-sky-500/40 hover:bg-sky-500/10", iconClass: "bg-sky-500/15 text-sky-600 dark:text-sky-400", run: () => { setForceCanvasMode(true); setInputValue("write/ "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "prompts", label: "Prompts & Ideas", description: "Browse saved prompt starters", keywords: "prompt library templates starters", icon: ListPlus, tileClass: "border-fuchsia-500/20 hover:border-fuchsia-500/40 hover:bg-fuchsia-500/10", iconClass: "bg-fuchsia-500/15 text-fuchsia-500 dark:text-fuchsia-400", run: () => { setShowPromptLibrary(true); setShowMenu(false); } },
   ];
   // Keep the Bencho Create treatment, but retain the complete Arc action set.
   // The panel caps its height and scrolls on short mobile viewports.
   const createMenuActions = createActions;
 
-  const menuPanelWidth = typeof window !== "undefined" ? Math.min(248, window.innerWidth - 24) : 248;
-  const menuPanelHeight = Math.min(520, 16 + createMenuActions.length * 44);
+  const menuPanelWidth = typeof window !== "undefined" ? Math.min(312, window.innerWidth - 24) : 312;
+  const menuPanelHeight = Math.min(520, 28 + createMenuActions.length * 44);
   const menuPosition = menuOrigin && typeof window !== "undefined"
     ? {
         left: `${Math.min(
@@ -3594,7 +3594,7 @@ ${safeCode}
                         transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
                         style={{
                           ...menuPosition,
-                          width: "min(248px, calc(100vw - 24px))",
+                          width: "min(312px, calc(100vw - 24px))",
                           maxWidth: "calc(100vw - 24px)",
                           maxHeight: "min(520px, calc(100vh - 32px))",
                           translate: "-50% -50%",
@@ -3609,8 +3609,9 @@ ${safeCode}
                           {createMenuActions.map((action, index) => {
                             const Icon = action.icon;
                             return (
+                              <React.Fragment key={action.id}>
+                              {action.id === "attach" && <div role="separator" className="mx-3 my-1.5 h-px bg-black/10 dark:bg-white/15" />}
                               <motion.button
-                                key={action.id}
                                 type="button"
                                 initial={{ opacity: 0, x: -6 }}
                                 animate={{ opacity: 1, x: 0 }}
@@ -3627,6 +3628,7 @@ ${safeCode}
                                 </span>
                                 {action.badge && <span className="rounded-full bg-neon-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-neon-700 dark:text-neon-300">{action.badge}</span>}
                               </motion.button>
+                              </React.Fragment>
                             );
                           })}
                         </div>
