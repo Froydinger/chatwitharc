@@ -1,0 +1,12 @@
+.gradle/
+**/build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.keystore
+*.jks
+app-release-signed.apk
+app-release-unsigned.apk
+app-release-bundle.aab
+app-release-bundle-signed.aab

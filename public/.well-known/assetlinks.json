@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "chat.askarc.android",
+      "sha256_cert_fingerprints": [
+        "42:93:17:20:FF:58:21:EE:A5:B9:C2:23:36:80:7C:BB:FD:58:04:78:17:73:48:84:A0:F2:7B:1F:4E:45:FD:6F"
+      ]
+    }
+  }
+]
