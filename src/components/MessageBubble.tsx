@@ -33,7 +33,7 @@ import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmb
 import { ModelSourceBadge } from "@/components/ModelSourceBadge";
 import { MessageMetadata } from "@/components/MessageMetadata";
 import { WeatherCard } from "@/components/WeatherCard";
-import { SearchResultsCard } from "@/components/SearchResultsCard";
+import { SourcesAccordion } from "@/components/SourcesAccordion";
 import { ScheduledTaskCard } from "@/components/ScheduledTaskCard";
 import { NotificationDispatchCard } from "@/components/NotificationDispatchCard";
 import { SvgArtifact } from "@/components/SvgArtifact";
@@ -214,17 +214,12 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
     const contentParts = !isUser && message.type === "text" ? parseCodeBlocks(message.content || "") : [];
 
-    // The search results card is its own modal-ish surface. On phones the
-    // shared 85% message column made it noticeably skinnier than the user
-    // bubble above it, so let that one card use the full width there.
-    const isWideSearchCard = !isUser && !!message.webSources && message.webSources.length > 0;
-
     return (
       <div
         ref={ref}
         className={`flex ${isUser ? "justify-end" : "justify-start"} group`}
       >
-        <div className={`flex flex-col gap-2 ${isWideSearchCard ? "max-w-full sm:max-w-[85%]" : "max-w-[85%]"} ${isUser ? "ml-auto items-end" : "mr-auto items-start"}`}>
+        <div className={`flex flex-col gap-2 max-w-[85%] ${isUser ? "ml-auto items-end" : "mr-auto items-start"}`}>
           {/* Message Bubble */}
           <div
             onClick={handleMessageClick}
@@ -279,24 +274,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   className="mb-3 relative z-10 flex justify-start"
                 >
                   <WeatherCard weather={message.weatherData} />
-                </motion.div>
-              )}
-
-              {/* Web search results stay in the conversation, like weather. */}
-              {!isUser && message.webSources && message.webSources.length > 0 && (
-                <motion.div
-                  key="card-web-results"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="mb-3 relative z-10 flex justify-start"
-                >
-                  <SearchResultsCard
-                    content={message.content || ""}
-                    sources={message.webSources}
-                    query={message.memoryAction?.type === "web_searched" ? message.memoryAction.query : undefined}
-                    images={message.searchImages}
-                  />
                 </motion.div>
               )}
 
@@ -546,7 +523,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   ) : (
                     // AI messages with code block support and markdown
                     (message.content || "").trim().length > 0 &&
-                    !message.webSources?.length &&
                     !["canvas", "code", "ide", "file"].includes(message.type) && (
                       <div
                         key="text-assistant"
@@ -591,6 +567,26 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     )
                   )
                 ))}
+
+              {!isUser && message.searchImages && message.searchImages.length > 0 && (
+                <div className="mt-3 flex max-w-full gap-2 overflow-x-auto" aria-label="Search images">
+                  {message.searchImages.slice(0, 4).map((url, index) => (
+                    <button
+                      key={`${url}-${index}`}
+                      type="button"
+                      onClick={() => handleOpenImage(url, true)}
+                      className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-border/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      aria-label={`Open search image ${index + 1}`}
+                    >
+                      <SmoothImage src={url} alt={`Search result ${index + 1}`} thumbnail className="h-full w-full" imageClassName="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!isUser && !!message.webSources?.length && (
+                <SourcesAccordion sources={message.webSources} messageContent={message.content} showMediaEmbeds={false} />
+              )}
 
 
             </div>
