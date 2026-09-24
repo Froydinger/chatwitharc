@@ -1,17 +1,11 @@
 import { useEffect, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemedLogo } from "@/components/ThemedLogo";
 
 async function recoverReturnedSession() {
-  // Supabase owns the OAuth callback URL and processes its implicit grant or
-  // PKCE code during client initialization. Re-exchanging the code or calling
-  // setSession here races that initialization (which can leave mobile Chrome
-  // stuck on the callback screen).
-  const { error: initializationError } = await supabase.auth.initialize();
-  if (initializationError) {
-    throw new Error("ArcAI couldn't verify the Google sign-in. Return to sign in and try again.");
-  }
-
+  // createClient initializes auth and parses OAuth returns automatically.
+  // Calling initialize() again here can race the app-wide AuthProvider.
   const { data, error } = await supabase.auth.getSession();
   if (error) {
     throw new Error("ArcAI couldn't restore the Google session. Return to sign in and try again.");
@@ -32,7 +26,7 @@ export function AuthCallbackPage() {
       ? requestedPath
       : "/";
 
-    const continueToArc = (session: Awaited<ReturnType<typeof recoverReturnedSession>>) => {
+    const continueToArc = (session: Session | null) => {
       if (!active || completed || !session) return;
       completed = true;
 
@@ -67,7 +61,9 @@ export function AuthCallbackPage() {
     // Listening here lets a slow mobile validation complete the redirect even
     // after we have shown the non-terminal “taking longer” message.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) continueToArc(session);
+      if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && session) {
+        continueToArc(session);
+      }
     });
 
     const finish = async () => {
