@@ -25,6 +25,9 @@ export async function signInWithGoogle(redirectTo = getAuthRedirectUrl("/auth/ca
     options: {
       redirectTo: usesLegacyDesktopAuthBridge() ? getDesktopAuthRedirectUrl() : redirectTo,
       queryParams: { prompt: "select_account" },
+      // This helper assigns the returned URL below. Prevent the Supabase SDK
+      // from also navigating, which otherwise starts the OAuth handoff twice.
+      skipBrowserRedirect: true,
     },
   });
   if (res.data?.url) {
