@@ -32,17 +32,11 @@ export function DashboardSettingsPage() {
 
   return (
     <div
-      className="relative z-10 min-h-screen overflow-y-auto bg-background text-foreground touch-pan-y"
+      className="relative z-10 min-h-screen overflow-y-auto bg-black text-foreground touch-pan-y"
       style={{
       paddingTop: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
       }}
     >
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-36 top-[-180px] h-[480px] w-[480px] rounded-full bg-primary/[0.09] blur-[120px]" />
-        <div className="absolute -right-40 bottom-[-220px] h-[560px] w-[560px] rounded-full bg-violet-500/[0.07] blur-[140px]" />
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.035] to-transparent" />
-      </div>
-
       <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-8 sm:px-7 lg:px-10">
         <motion.div
           initial={{ opacity: 0, y: -10 }}

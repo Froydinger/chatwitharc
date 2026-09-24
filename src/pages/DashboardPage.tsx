@@ -1203,7 +1203,7 @@ useEffect(() => {
       transition={isExiting
         ? { duration: 0.28, ease: [0.4, 0, 0.2, 1] as const }
         : { duration: isSwipeEntry ? 0.22 : 0.32, ease: [0.22, 1, 0.36, 1] as const }}
-      className={cn("min-h-screen overflow-y-auto overflow-x-hidden scrollbar-hide relative z-10 w-full max-w-full", embedded && "min-h-0 dashboard-preview-embedded")}
+      className={cn("min-h-screen overflow-y-auto overflow-x-hidden scrollbar-hide relative z-10 w-full max-w-full bg-black", embedded && "min-h-0 dashboard-preview-embedded")}
       style={{
         paddingBottom: embedded ? 0 : 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
         willChange: 'transform, opacity, filter',
@@ -1219,12 +1219,8 @@ useEffect(() => {
         }}
       >
 
-        {/* ═══ HEADER with ambient glow ═══ */}
+        {/* ═══ HEADER ═══ */}
         {!embedded && <div className="relative">
-          {/* Ambient glow behind greeting */}
-          <div className="absolute -top-12 left-1/4 w-48 h-48 rounded-full bg-primary/8 blur-[80px] pointer-events-none" />
-          <div className="absolute -top-8 right-1/3 w-32 h-32 rounded-full bg-neon-500/10 blur-[70px] pointer-events-none" />
-          
           <div className="relative flex items-center justify-between rounded-3xl border border-border/30 bg-background/35 px-3 py-3 sm:px-5 sm:py-4 backdrop-blur-xl">
             <div className="flex items-center gap-3">
               <Button
@@ -1315,8 +1311,7 @@ useEffect(() => {
               </div>
 
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(19rem,0.75fr)]">
-                <section className="relative overflow-hidden rounded-[2rem] border border-border/55 bg-gradient-to-br from-primary/[0.035] via-background/90 to-muted/20 p-4 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.32)] dark:border-primary/20 dark:from-primary/[0.10] dark:via-background/70 dark:to-background/35 dark:shadow-[0_24px_80px_-48px_hsl(var(--primary)/0.7)] sm:p-6">
-                  <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/[0.035] blur-3xl dark:bg-primary/10" />
+                <section className="relative overflow-hidden rounded-[2rem] border border-border/55 bg-black p-4 sm:border-border/35 sm:p-6">
                   <div className="relative mb-4 sm:mb-5 flex items-center justify-between gap-3">
                     <h2 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Recent chats</h2>
                     <div className="flex items-center gap-2">
