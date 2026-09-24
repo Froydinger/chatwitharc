@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, CheckCircle, Download } from "lucide-react";
+import { AlertCircle, CheckCircle, Download, Smartphone } from "lucide-react";
 import { GlassButton } from "@/components/ui/glass-button";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
 import { ThemedLogo } from "@/components/ThemedLogo";
@@ -8,6 +8,7 @@ import { AppleLogo } from "@/components/icons/AppleLogo";
 import { WindowsLogo } from "@/components/icons/WindowsLogo";
 import { Link } from "react-router-dom";
 import { useDownloadInfo } from "@/hooks/useDownloadInfo";
+import { ANDROID_APK_URL } from "@/lib/androidDownload";
 
 type Platform = "mac" | "windows" | null;
 
@@ -44,7 +45,7 @@ export function DownloadPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="w-full max-w-2xl space-y-8"
+          className="w-full max-w-4xl space-y-8"
         >
           <div className="flex flex-col items-center gap-6 text-center">
             <ThemedLogo className="h-24 w-24" />
@@ -66,7 +67,7 @@ export function DownloadPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
-                className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
               >
                 <button
                   onClick={() => handleSelectPlatform("mac")}
@@ -118,6 +119,28 @@ export function DownloadPage() {
                     </p>
                   </div>
                 </button>
+                <a
+                  href={ANDROID_APK_URL}
+                  download
+                  className="glass-panel group rounded-2xl border border-border/40 p-8 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 sm:col-span-2 lg:col-span-1"
+                >
+                  <div className="flex flex-col items-center gap-4 text-center">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 transition-colors group-hover:bg-primary/20">
+                      <Smartphone className="h-8 w-8 text-foreground" />
+                    </div>
+                    <div>
+                      <div className="mb-1 flex items-center justify-center gap-2">
+                        <h2 className="text-xl font-semibold">Android</h2>
+                        <span className="rounded-full border border-border/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">Beta</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">v1.0.0 • .apk</p>
+                    </div>
+                    <span className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+                      <Download className="h-4 w-4" /> Download for Android
+                    </span>
+                    <p className="text-[11px] text-muted-foreground">Play beta coming soon. Moving to Play may require reinstalling ArcAI.</p>
+                  </div>
+                </a>
               </motion.div>
             )}
 

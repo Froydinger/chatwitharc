@@ -50,8 +50,12 @@ declare global {
 
 // The Bubblewrap TWA launches with this marker. Preserve it across client-side
 // route changes so no Boost entry point can fall back to Stripe inside Play.
-if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('source') === 'android-play') {
-  try { window.sessionStorage.setItem(PLAY_TWA_MARKER, 'true'); } catch { /* storage may be disabled */ }
+if (typeof window !== 'undefined') {
+  const launchSource = new URLSearchParams(window.location.search).get('source');
+  try {
+    if (launchSource === 'android-play') window.sessionStorage.setItem(PLAY_TWA_MARKER, 'true');
+    if (launchSource === 'android-direct') window.sessionStorage.removeItem(PLAY_TWA_MARKER);
+  } catch { /* storage may be disabled */ }
 }
 
 export function isGooglePlayStoreTwa(): boolean {

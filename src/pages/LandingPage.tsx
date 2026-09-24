@@ -13,6 +13,7 @@ import {
   Code2,
   Brain,
   Crown,
+  Download,
   Search,
 } from "lucide-react";
 import { AppleLogo } from "@/components/icons/AppleLogo";
@@ -20,6 +21,7 @@ import { BLOG_POSTS } from "@/content/blog/posts";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ANDROID_APK_URL } from "@/lib/androidDownload";
 import {
   Dialog,
   DialogContent,
@@ -84,6 +86,10 @@ const LANDING_FAQ = [
 export function LandingPage() {
   const { user, isAnonymous } = useAuth();
   const navigate = useNavigate();
+  const isAndroidBrowser = typeof navigator !== "undefined"
+    && /Android/i.test(navigator.userAgent)
+    && !window.matchMedia("(display-mode: standalone)").matches
+    && !["android-play", "android-direct"].includes(new URLSearchParams(window.location.search).get("source") ?? "");
   const [sendDesktopOpen, setSendDesktopOpen] = useState(false);
   const [desktopEmail, setDesktopEmail] = useState("");
   const [desktopEmailBusy, setDesktopEmailBusy] = useState(false);
@@ -240,10 +246,15 @@ export function LandingPage() {
           <Link to="/support" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
             Help
           </Link>
-          <Link to="/downloads" className="hidden items-center gap-1.5 text-sm font-medium text-white/70 transition-colors hover:text-white sm:flex">
-            <AppleLogo className="h-3.5 w-3.5" />
-            Download for Mac
-          </Link>
+          {isAndroidBrowser ? (
+            <a href={ANDROID_APK_URL} download className="hidden items-center gap-1.5 text-sm font-medium text-white/70 transition-colors hover:text-white sm:flex">
+              <Download className="h-3.5 w-3.5" /> Download for Android
+            </a>
+          ) : (
+            <Link to="/downloads" className="hidden items-center gap-1.5 text-sm font-medium text-white/70 transition-colors hover:text-white sm:flex">
+              <AppleLogo className="h-3.5 w-3.5" /> Download for Mac
+            </Link>
+          )}
           <button
             onClick={handleTry}
             className="rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-black transition-transform hover:scale-[1.03] active:scale-[0.98]"
@@ -271,9 +282,22 @@ export function LandingPage() {
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "220ms", animationFillMode: "backwards" }}
         >
+          {isAndroidBrowser && (
+            <a
+              href={ANDROID_APK_URL}
+              download
+              className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-base font-medium text-black transition-transform hover:scale-[1.03] active:scale-[0.98]"
+            >
+              <Download className="h-4 w-4" /> Download for Android
+              <span className="rounded-full border border-black/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">Beta</span>
+            </a>
+          )}
           <button
             onClick={handleTry}
-            className="group inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-base font-medium text-black transition-transform hover:scale-[1.03] active:animate-jelly"
+            className={cn(
+              "group inline-flex items-center gap-2 rounded-full px-6 py-3 text-base font-medium transition-transform hover:scale-[1.03] active:animate-jelly",
+              isAndroidBrowser ? "border border-white/[0.15] bg-white/[0.03] text-white" : "bg-white text-black",
+            )}
           >
             Try Arc free
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -284,20 +308,28 @@ export function LandingPage() {
           >
             <Crown className="h-4 w-4 text-primary" /> Get Boost
           </button>
-          <Link
-            to="/downloads"
-            className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.03] px-6 py-3 text-base font-medium text-white/90 transition-colors hover:bg-white/[0.07]"
-          >
-            <AppleLogo className="h-4 w-4" /> Download for Mac
-          </Link>
+          {!isAndroidBrowser && (
+            <Link
+              to="/downloads"
+              className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.03] px-6 py-3 text-base font-medium text-white/90 transition-colors hover:bg-white/[0.07]"
+            >
+              <AppleLogo className="h-4 w-4" /> Download for Mac
+            </Link>
+          )}
           <button
             type="button"
             onClick={openSendDesktop}
-            className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.03] px-6 py-3 text-base font-medium text-white/90 transition-colors hover:bg-white/[0.07] sm:hidden"
+            className={cn(
+              "items-center gap-2 text-base font-medium text-white/90 sm:hidden",
+              isAndroidBrowser
+                ? "inline-flex px-3 py-2 text-sm underline underline-offset-4 hover:text-white"
+                : "inline-flex rounded-full border border-white/[0.15] bg-white/[0.03] px-6 py-3 transition-colors hover:bg-white/[0.07]",
+            )}
           >
             <Mail className="h-4 w-4" /> Send to desktop
           </button>
         </div>
+        {isAndroidBrowser && <p className="mt-4 text-xs text-white/50">Direct APK beta · Play beta coming soon</p>}
       </section>
 
       {/* Features */}
@@ -506,7 +538,11 @@ export function LandingPage() {
           <span>·</span>
           <Link to="/terms" className="hover:text-white">Terms</Link>
           <span>·</span>
-          <Link to="/downloads" className="hidden hover:text-white sm:inline">Download for Mac</Link>
+          {isAndroidBrowser ? (
+            <a href={ANDROID_APK_URL} download className="hidden hover:text-white sm:inline">Download for Android</a>
+          ) : (
+            <Link to="/downloads" className="hidden hover:text-white sm:inline">Download for Mac</Link>
+          )}
           <span className="hidden sm:inline">·</span>
           <button type="button" onClick={openSendDesktop} className="hover:text-white sm:hidden">Send to desktop</button>
         </div>

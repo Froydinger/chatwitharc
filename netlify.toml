@@ -17,6 +17,13 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+[[headers]]
+  for = "/downloads/ArcAI-Android-Beta.apk"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Content-Type = "application/vnd.android.package-archive"
+    Content-Disposition = "attachment; filename=\"ArcAI-Android-Beta.apk\""
+
 [[redirects]]
   from = "/status"
   to = "/index.html"

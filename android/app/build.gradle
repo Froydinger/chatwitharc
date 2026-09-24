@@ -37,10 +37,15 @@ if (gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
     throw new GradleException('Use ./build-release.sh to build a signed Android release.')
 }
 
+def androidDistribution = System.getenv('ARCAI_ANDROID_DISTRIBUTION') ?: 'play'
+if (!['play', 'direct'].contains(androidDistribution)) {
+    throw new GradleException('ARCAI_ANDROID_DISTRIBUTION must be play or direct.')
+}
+
 def twaManifest = [
     applicationId: 'chat.askarc.android',
     hostName: 'askarc.chat', // The domain being opened in the TWA.
-    launchUrl: '/?source=android-play', // Distinguish the Play TWA from the web-installed PWA.
+    launchUrl: androidDistribution == 'direct' ? '/?source=android-direct' : '/?source=android-play',
     name: 'ArcAI', // The application name.
     launcherName: 'ArcAI', // The name shown on the Android Launcher.
     themeColor: '#000000', // The color used for the status bar.
