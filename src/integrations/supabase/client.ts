@@ -22,5 +22,9 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(clientU
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
+    // PKCE returns a one-time authorization code to the HTTPS callback and
+    // exchanges it in this browser context. This works reliably when Android
+    // routes the verified askarc.chat link back into the installed TWA.
+    flowType: 'pkce',
   }
 });
