@@ -274,7 +274,7 @@ export function AdminSettingsPanel() {
             <CardHeader>
               <CardTitle>Chat Behavior & Tools Prompt</CardTitle>
               <CardDescription>
-                Hidden tool behavior for search, memory, reminders, YouTube embeds, and App Builder routing.
+                Hidden tool behavior for search, memory, reminders, and YouTube embeds.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

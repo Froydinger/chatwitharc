@@ -26,6 +26,16 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import { BOOST_PLAN_FEATURES, FREE_PLAN_SUMMARY } from "@/lib/planCopy";
+import { useSubscription } from "@/hooks/useSubscription";
+import {
+  buyGooglePlayBoost,
+  formatGooglePlayPrice,
+  getGooglePlayBoostDetails,
+  isGooglePlayStoreTwa,
+  restoreGooglePlayBoost,
+  type GooglePlayItemDetails,
+} from "@/services/googlePlayBilling";
+import { useToast } from "@/hooks/use-toast";
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -37,14 +47,24 @@ interface UpgradeModalProps {
 
 export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalProps) {
   const { user, isAnonymous } = useAuth();
+  const { checkSubscription } = useSubscription();
   const requireAuth = useRequireAuth();
+  const { toast } = useToast();
   const [selectedPriceId, setSelectedPriceId] = useState(priceId || BOOST_PRICE_ID);
   const [showCheckout, setShowCheckout] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loadingCheckout, setLoadingCheckout] = useState(false);
+  const [playDetails, setPlayDetails] = useState<GooglePlayItemDetails[]>([]);
+  const [loadingPlayDetails, setLoadingPlayDetails] = useState(false);
+  const [playBillingError, setPlayBillingError] = useState<string | null>(null);
 
   const isRealUser = !!user && !isAnonymous;
-  const canCheckout = paymentsAvailable() && isRealUser;
+  const isPlayCheckout = isGooglePlayStoreTwa();
+  const selectedPlayItem = playDetails.find(item => item.itemId === selectedPriceId);
+  const selectedPlayPrice = formatGooglePlayPrice(selectedPlayItem);
+  const canCheckout = isPlayCheckout
+    ? isRealUser && !!selectedPlayItem && !loadingPlayDetails
+    : paymentsAvailable() && isRealUser;
   const isVoiceLimit = reason === 'voice_daily_limit' || reason === 'voice_session_timeout';
 
   useEffect(() => {
@@ -55,11 +75,41 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
     }
   }, [isOpen, priceId]);
 
+  useEffect(() => {
+    if (!isOpen || !isPlayCheckout) return;
+    let active = true;
+    setLoadingPlayDetails(true);
+    setPlayBillingError(null);
+    void getGooglePlayBoostDetails()
+      .then(details => { if (active) setPlayDetails(details); })
+      .catch(error => {
+        if (active) setPlayBillingError(error instanceof Error ? error.message : 'Google Play prices could not be loaded.');
+      })
+      .finally(() => { if (active) setLoadingPlayDetails(false); });
+    return () => { active = false; };
+  }, [isOpen, isPlayCheckout]);
+
   if (!isOpen) return null;
 
   const handleInitiateCheckout = async () => {
     if (!user) return;
     setLoadingCheckout(true);
+    if (isPlayCheckout) {
+      try {
+        await buyGooglePlayBoost(selectedPriceId);
+        await checkSubscription();
+        toast({ title: 'ArcAI Boost is active', description: 'Your Google Play purchase is verified.' });
+        handleClose();
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Could not complete the Google Play purchase.';
+        if (message !== 'Purchase cancelled.') {
+          toast({ title: 'Google Play purchase not completed', description: message, variant: 'destructive' });
+        }
+      } finally {
+        setLoadingCheckout(false);
+      }
+      return;
+    }
     setShowCheckout(true);
     setClientSecret(null);
     try {
@@ -98,8 +148,36 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
     requireAuth("generic");
   };
 
+  const handleRestorePlayPurchases = async () => {
+    if (!user || !isRealUser) {
+      handleSignIn();
+      return;
+    }
+    setLoadingCheckout(true);
+    try {
+      const count = await restoreGooglePlayBoost(user.id, true);
+      await checkSubscription();
+      toast({
+        title: count ? 'Google Play purchases restored' : 'No Google Play purchase found',
+        description: count ? 'ArcAI checked your Play subscription receipts.' : 'Check that you are signed in with the Google Play account used to subscribe.',
+      });
+    } catch (err: unknown) {
+      toast({
+        title: 'Restore could not finish',
+        description: err instanceof Error ? err.message : 'Try again when Google Play is available.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingCheckout(false);
+    }
+  };
+
   const isAnnual = selectedPriceId === BOOST_ANNUAL_PRICE_ID;
-  const priceDisplay = isAnnual ? BOOST_ANNUAL_PRICE_DISPLAY : BOOST_PRICE_DISPLAY;
+  const priceDisplay = isPlayCheckout
+    ? selectedPlayPrice
+      ? `${selectedPlayPrice}${selectedPlayItem?.subscriptionPeriod ? ` / ${isAnnual ? 'year' : 'month'}` : ''}`
+      : loadingPlayDetails ? 'Loading Google Play price…' : 'Google Play price unavailable'
+    : isAnnual ? BOOST_ANNUAL_PRICE_DISPLAY : BOOST_PRICE_DISPLAY;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -152,9 +230,17 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
             </div>
 
             <p className="text-sm text-muted-foreground mb-1">
-              {priceDisplay} after a {BOOST_TRIAL_DISPLAY.toLowerCase()}
+              {isPlayCheckout ? priceDisplay : `${priceDisplay} after a ${BOOST_TRIAL_DISPLAY.toLowerCase()}`}
             </p>
-            <p className="text-[11px] text-muted-foreground mb-1">{BOOST_TRIAL_NOTE}</p>
+            <p className="text-[11px] text-muted-foreground mb-1">
+              {isPlayCheckout ? 'Renews automatically until canceled in Google Play.' : BOOST_TRIAL_NOTE}
+            </p>
+            {isPlayCheckout && playBillingError && (
+              <p role="status" className="text-xs text-amber-500 mb-3">{playBillingError}</p>
+            )}
+            {isPlayCheckout && !loadingPlayDetails && !playBillingError && !playDetails.length && (
+              <p role="status" className="text-xs text-muted-foreground mb-3">Google Play Boost products are not available yet.</p>
+            )}
             {isVoiceLimit && (
               <p className="text-sm text-foreground/80 mb-1">
                 {reason === 'voice_session_timeout'
@@ -163,7 +249,7 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
                 {' '}Boost unlocks unlimited live voice sessions up to 2 hours each.
               </p>
             )}
-            <div className="flex items-baseline justify-center gap-1 my-4">
+            {!isPlayCheckout && <div className="flex items-baseline justify-center gap-1 my-4">
               {isAnnual && (
                 <span className="text-lg text-muted-foreground/70 line-through" aria-label={`Regular price ${BOOST_ANNUAL_REGULAR_PRICE_DISPLAY}`}>
                   {BOOST_ANNUAL_REGULAR_PRICE_AMOUNT}
@@ -171,8 +257,8 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
               )}
               <span className="text-4xl font-bold">{isAnnual ? BOOST_ANNUAL_PRICE_AMOUNT : BOOST_MONTHLY_PRICE_AMOUNT}</span>
               <span className="text-muted-foreground">/ {isAnnual ? "year" : "month"}</span>
-            </div>
-            {isAnnual && (
+            </div>}
+            {!isPlayCheckout && isAnnual && (
               <div className="-mt-2 mb-4 space-y-1">
                 <p className="text-xs text-primary font-semibold">{BOOST_ANNUAL_OFFER_BADGE} · {BOOST_ANNUAL_SAVINGS_DISPLAY} vs. {BOOST_ANNUAL_REGULAR_PRICE_DISPLAY}</p>
                 <p className="text-[11px] text-muted-foreground">{BOOST_ANNUAL_RENEWAL_DISPLAY}</p>
@@ -208,7 +294,7 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
                     <span>Preparing checkout...</span>
                   </div>
                 ) : (
-                  "Upgrade to Boost"
+                  isPlayCheckout ? "Subscribe with Google Play" : "Upgrade to Boost"
                 )}
               </GlassButton>
             ) : (
@@ -222,6 +308,17 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
                   </p>
                 )}
               </>
+            )}
+
+            {isPlayCheckout && (
+              <button
+                type="button"
+                onClick={() => void handleRestorePlayPurchases()}
+                disabled={loadingCheckout || loadingPlayDetails}
+                className="mt-3 text-xs font-medium text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50"
+              >
+                Restore Google Play purchases
+              </button>
             )}
           </div>
         ) : (

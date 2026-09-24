@@ -560,6 +560,9 @@ export async function handleCloudRun(req: Request): Promise<Response> {
       invalid("Invalid JSON.");
     }
   const action = validateAction(raw, match[1]);
+    if (action.action === 'submit' && (action.kind === 'app' || action.request.buildApp === true)) {
+      throw new HttpError(410, 'Multi-file app creation is currently unavailable.');
+    }
     if (action.action === 'submit' && action.request.attachments !== undefined) {
       try {
         action.request.attachments = validateCloudMediaReferences(action.request.attachments, {
@@ -582,6 +585,7 @@ export async function handleCloudRun(req: Request): Promise<Response> {
         .eq("user_id", user.id).order("id", { ascending: true }).limit(
           action.limit + 1,
         );
+      query = query.eq("kind", "chat");
       if (action.sessionId) query = query.eq("session_id", action.sessionId);
       if (action.cursor) query = query.gt("id", action.cursor);
       if (!action.includeTerminal) {
@@ -609,6 +613,7 @@ export async function handleCloudRun(req: Request): Promise<Response> {
         action.id,
       ).eq("user_id", user.id).maybeSingle();
       if (error) throw new HttpError(500, "Could not read cloud run.");
+      if (data?.kind === 'app') return null;
       return data;
     };
     if (action.action === "submit") {

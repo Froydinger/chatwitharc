@@ -12,7 +12,7 @@
   "navigationDividerColorDark": "#000000",
   "backgroundColor": "#000000",
   "enableNotifications": true,
-  "startUrl": "/?source=pwa",
+  "startUrl": "/?source=android-play",
   "iconUrl": "https://askarc.chat/icons/arcai-pwa-icon-1024.png?v=8",
   "maskableIconUrl": "https://askarc.chat/icons/arcai-pwa-icon-512.png?v=8",
   "splashScreenFadeOutDuration": 300,
@@ -20,21 +20,25 @@
     "path": "../../.bubblewrap/arcai-upload.keystore",
     "alias": "android"
   },
-  "appVersionName": "1",
+  "appVersionName": "1.0.0",
   "appVersionCode": 1,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://askarc.chat/manifest.webmanifest?v=9",
   "fallbackType": "customtabs",
-  "features": {},
+  "features": {
+    "playBilling": {
+      "enabled": true
+    }
+  },
   "alphaDependencies": {
-    "enabled": false
+    "enabled": true
   },
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
   "fullScopeUrl": "https://askarc.chat/",
-  "minSdkVersion": 21,
+  "minSdkVersion": 23,
   "orientation": "portrait-primary",
   "fingerprints": [],
   "additionalTrustedOrigins": [],
@@ -43,5 +47,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "1"
+  "appVersion": "1.0.0"
 }

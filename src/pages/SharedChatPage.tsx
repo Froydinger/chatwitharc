@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Home, ArrowRight, MessageSquare } from "lucide-react";
+import { Home, ArrowRight, MessageSquare, Flag, Ban, ShieldOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { MessageBubble } from "@/components/MessageBubble";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { createUGCReport } from "@/lib/ugcReports";
 import type { Message } from "@/store/useArcStore";
 
 interface SharedSession {
@@ -20,10 +22,13 @@ export function SharedChatPage() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
 
   const [session, setSession] = useState<SharedSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [creatorBlocked, setCreatorBlocked] = useState(false);
+  const [moderationBusy, setModerationBusy] = useState(false);
 
   // Force dark theme on share pages
   useEffect(() => {
@@ -57,11 +62,14 @@ export function SharedChatPage() {
         setLoading(false);
         return;
       }
-      const raw = Array.isArray(data.messages) ? (data.messages as any[]) : [];
-      const messages: Message[] = raw.map((m) => ({
-        ...m,
-        timestamp: m?.timestamp ? new Date(m.timestamp) : new Date(),
-      }));
+      const raw: unknown[] = Array.isArray(data.messages) ? data.messages : [];
+      const messages: Message[] = raw.map((item) => {
+        const message = item && typeof item === "object" ? item as Record<string, unknown> : {};
+        return {
+          ...message,
+          timestamp: message.timestamp ? new Date(String(message.timestamp)) : new Date(),
+        } as unknown as Message;
+      });
       setSession({
         id: data.id,
         title: data.title || "Shared chat",
@@ -69,12 +77,29 @@ export function SharedChatPage() {
         is_public: data.is_public,
         messages,
       });
+      if (user && !user.is_anonymous && data.user_id !== user.id) {
+        const { data: block, error: blockError } = await supabase
+          .from("user_blocks")
+          .select("blocked_user_id")
+          .eq("blocker_user_id", user.id)
+          .eq("blocked_user_id", data.user_id)
+          .maybeSingle();
+        if (cancelled) return;
+        if (blockError) {
+          setError("Safety settings couldn't be loaded. Please reload this shared chat.");
+          setLoading(false);
+          return;
+        }
+        setCreatorBlocked(!!block);
+      } else {
+        setCreatorBlocked(false);
+      }
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [sessionId, user]);
 
   // Owner redirect → their normal editable chat view
   useEffect(() => {
@@ -82,6 +107,59 @@ export function SharedChatPage() {
       navigate(`/chat/${session.id}`, { replace: true });
     }
   }, [user, authLoading, session, navigate]);
+
+  const canModerate = !!user && !user.is_anonymous && !!session && session.user_id !== user.id;
+
+  async function reportMessage(message: Message, index: number) {
+    if (!user || !session || user.is_anonymous) {
+      toast({ title: "Sign in to report", description: "Sign in to your ArcAI account to report shared content." });
+      return;
+    }
+    setModerationBusy(true);
+    try {
+      await createUGCReport({
+        subject: `Public shared chat: ${session.title}`,
+        details: [
+          "User reported a message in a public shared chat.",
+          `Chat ID: ${session.id}`,
+          `Message index: ${index + 1}`,
+          `Message role: ${message.role}`,
+          `Chat creator user ID: ${session.user_id}`,
+          `Shared URL: ${window.location.href}`,
+          `Message excerpt: ${String(message.content ?? "").slice(0, 1800)}`,
+        ].join("\n"),
+      });
+      toast({ title: "Report sent", description: "Thanks. ArcAI support has received this content report." });
+    } catch {
+      toast({ title: "Report failed", description: "We couldn't send the report. Please try again.", variant: "destructive" });
+    } finally {
+      setModerationBusy(false);
+    }
+  }
+
+  async function toggleCreatorBlock() {
+    if (!user || !session || user.is_anonymous) {
+      toast({ title: "Sign in to block", description: "Sign in to your ArcAI account to block this creator." });
+      return;
+    }
+    setModerationBusy(true);
+    try {
+      const blocks = supabase.from("user_blocks");
+      const result = creatorBlocked
+        ? await blocks.delete().eq("blocker_user_id", user.id).eq("blocked_user_id", session.user_id)
+        : await blocks.insert({ blocker_user_id: user.id, blocked_user_id: session.user_id });
+      if (result.error) throw result.error;
+      setCreatorBlocked(!creatorBlocked);
+      toast({
+        title: creatorBlocked ? "Creator unblocked" : "Creator blocked",
+        description: creatorBlocked ? "You can view this shared chat again." : "This creator's shared chats are hidden from you.",
+      });
+    } catch {
+      toast({ title: "Couldn't update block", description: "Please try again.", variant: "destructive" });
+    } finally {
+      setModerationBusy(false);
+    }
+  }
 
   if (loading || authLoading) {
     return (
@@ -109,6 +187,21 @@ export function SharedChatPage() {
     );
   }
 
+  if (creatorBlocked) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-5 bg-background px-6 text-center">
+        <Ban className="h-10 w-10 text-muted-foreground" />
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">Shared chat hidden</h1>
+          <p className="mt-1 text-sm text-muted-foreground">You blocked this chat's creator, so their shared content is hidden.</p>
+        </div>
+        <Button onClick={toggleCreatorBlock} disabled={moderationBusy} variant="outline">
+          <ShieldOff className="mr-2 h-4 w-4" /> Unblock creator and view
+        </Button>
+      </div>
+    );
+  }
+
   const isSignedIn = !!user;
 
   return (
@@ -128,7 +221,13 @@ export function SharedChatPage() {
           <div className="text-xs uppercase tracking-wider text-muted-foreground">Shared chat</div>
           <h1 className="text-sm font-medium truncate">{session.title}</h1>
         </div>
-        <div className="w-[72px]" />
+        <div className="flex w-[72px] justify-end gap-1">
+          {canModerate && (
+            <Button variant="ghost" size="icon" onClick={toggleCreatorBlock} disabled={moderationBusy} aria-label="Block chat creator" title="Block chat creator">
+              <Ban className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </header>
 
       {/* Messages */}
@@ -150,6 +249,13 @@ export function SharedChatPage() {
                   shouldAnimateTypewriter={false}
                   isThinking={false}
                 />
+                {canModerate && (
+                  <div className="mt-1 flex justify-end px-2">
+                    <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs text-muted-foreground" onClick={() => reportMessage(message, idx)} disabled={moderationBusy}>
+                      <Flag className="h-3.5 w-3.5" /> Report
+                    </Button>
+                  </div>
+                )}
               </motion.div>
             ))
           )}

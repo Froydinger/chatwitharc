@@ -44,12 +44,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: msgs } = await admin
+    const { data: blockRows, error: blockError } = await admin
+      .from("user_blocks")
+      .select("blocked_user_id")
+      .eq("blocker_user_id", user.id);
+    if (blockError) {
+      return new Response(JSON.stringify({ error: "Safety settings are unavailable" }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const blockedUserIds = new Set((blockRows ?? []).map((row) => row.blocked_user_id));
+
+    const { data: allMessages, error: messagesError } = await admin
       .from("shared_chat_messages")
       .select("role, content, author_user_id, created_at")
       .eq("chat_id", chat_id)
       .order("created_at", { ascending: true })
       .limit(40);
+    if (messagesError) throw messagesError;
+    const msgs = (allMessages ?? []).filter((message) =>
+      !message.author_user_id || !blockedUserIds.has(message.author_user_id)
+    );
 
     // Map author display names
     const authorIds = Array.from(new Set((msgs ?? []).map((m) => m.author_user_id).filter(Boolean) as string[]));

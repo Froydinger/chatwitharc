@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, createContext, useContext } from 'rea
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { paymentsAvailable, getStripeEnvironment } from '@/lib/stripe';
+import { isGooglePlayStoreTwa, restoreGooglePlayBoost, syncGooglePlaySubscriptions } from '@/services/googlePlayBilling';
 
 // ArcAI limits
 export const FREE_IMAGE_LIMIT = 3;
@@ -259,6 +260,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       return;
     }
     try {
+      await syncGooglePlaySubscriptions(user.id).catch(() => {});
       const [{ data: adminData }, { data: boostData }, { data: mayaUsed }] = await Promise.all([
         supabase.rpc('is_admin_user'),
         supabase.rpc('user_has_boost', { check_user_id: user.id }),
@@ -291,6 +293,16 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
     await refreshVoiceCount();
   }, [user, refreshVoiceCount]);
+
+  // Play purchases may be made on another device or returned before the app
+  // could finish receipt verification. Reconcile them on TWA launch before
+  // refreshing the server-owned Boost entitlement.
+  useEffect(() => {
+    if (!user || !isGooglePlayStoreTwa()) return;
+    void restoreGooglePlayBoost(user.id).then(() => checkSubscription()).catch(() => {
+      // Keep sign-in usable while Play Store connectivity is unavailable.
+    });
+  }, [user?.id, checkSubscription]);
 
   const recordMessage = useCallback(() => { /* unlimited */ }, []);
   const recordVoiceSession = useCallback(() => { /* reserved server-side at session start */ }, []);
@@ -335,6 +347,10 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const openCustomerPortal = useCallback(async () => {
+    if (isGooglePlayStoreTwa()) {
+      window.location.href = 'https://play.google.com/store/account/subscriptions?package=chat.askarc.android';
+      return;
+    }
     if (!paymentsAvailable()) {
       window.alert('Billing portal is not configured yet.');
       return;

@@ -311,7 +311,6 @@ export function SettingsPanel() {
     user?.email === "jakefroydinger@gmail.com"
   );
 
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false);
@@ -357,8 +356,9 @@ export function SettingsPanel() {
   }, [profile?.context_info, personaPromptDirty]);
 
   const handleDataDeleted = () => {
-    createNewSession();
-    toast({ title: "Account Reset", description: "Starting fresh with a new session" });
+    clearAllSessions();
+    void signOutCurrentSession();
+    window.location.replace("/");
   };
 
   const handleSaveDisplayName = async () => {
@@ -457,24 +457,7 @@ export function SettingsPanel() {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    setIsDeleting(true);
-    try {
-      clearAllSessions();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
-      await supabase.from("profiles").delete().eq("user_id", user.id);
-      await supabase.from("chat_sessions").delete().eq("user_id", user.id);
-      toast({ title: "Account deleted", description: "Your account has been permanently deleted." });
-      await signOutCurrentSession();
-      window.location.replace("/");
-    } catch (error: any) {
-      console.error("Delete account error:", error);
-      toast({ title: "Deletion failed", description: "Failed to delete account.", variant: "destructive" });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+  const handleDeleteAccount = () => setShowDeleteModal(true);
 
   type SyncStatus = { icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; color: string; text: string };
   const getSyncStatus = (): SyncStatus => {
@@ -650,9 +633,9 @@ export function SettingsPanel() {
         right={
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <GlassButton variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={isDeleting}>
+              <GlassButton variant="ghost" size="sm" className="text-destructive hover:text-destructive">
                 <Trash2 className="h-4 w-4 mr-1" />
-                {isDeleting ? "Deleting..." : "Delete"}
+                Delete
               </GlassButton>
             </AlertDialogTrigger>
             <AlertDialogContent className="glass border-destructive/20">
@@ -669,9 +652,8 @@ export function SettingsPanel() {
                 <AlertDialogAction
                   onClick={handleDeleteAccount}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  disabled={isDeleting}
                 >
-                  {isDeleting ? "Deleting..." : "Delete Account"}
+                  Delete Account
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

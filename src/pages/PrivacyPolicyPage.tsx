@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight m-0">Privacy Notice</h1>
           </div>
-          <p className="text-sm text-muted-foreground mb-10">Last updated: September 11, 2026</p>
+          <p className="text-sm text-muted-foreground mb-10">Last updated: September 23, 2026</p>
 
           <div className="space-y-8 text-[15px] leading-relaxed text-foreground/90">
             <section>
@@ -38,8 +38,10 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">ArcAI is free for everyone</h2>
               <p className="text-muted-foreground">
-                ArcAI has a free tier and an optional Boost subscription. Boost billing is handled by Stripe. We do not
-                store full payment card numbers in ArcAI's application database.
+                ArcAI has a free tier and an optional Boost subscription. On the website, Boost checkout and recurring
+                billing are handled by Stripe. In the Android app, Boost checkout and recurring billing are handled by
+                Google Play. ArcAI does not store full payment card numbers. For Android purchases, ArcAI stores the
+                Google Play purchase token and subscription status needed to verify and provide Boost access.
               </p>
             </section>
 
@@ -56,6 +58,15 @@ export default function PrivacyPolicyPage() {
                 <li>
                   <strong>Support data:</strong> tickets and attachments you submit through the in-app support flow.
                 </li>
+                <li>
+                  <strong>Subscription data:</strong> purchase provider, product, purchase token, subscription status,
+                  and renewal or expiry information for Boost purchases.
+                </li>
+                <li>
+                  <strong>Desktop link requests:</strong> when you ask us to email a desktop download link, we send the
+                  address you enter to our email delivery provider. ArcAI keeps a keyed one-way hash and request time to
+                  limit repeat requests and abuse; we do not add that address to marketing lists.
+                </li>
               </ul>
             </section>
 
@@ -65,6 +76,7 @@ export default function PrivacyPolicyPage() {
                 <li>To provide, maintain, and improve the service.</li>
                 <li>To authenticate you and keep your account secure.</li>
                 <li>To respond to support requests and send service-related emails.</li>
+                <li>To send a desktop download link when you request one.</li>
                 <li>To detect and prevent fraud, abuse, and security incidents.</li>
                 <li>To comply with legal obligations.</li>
               </ul>
@@ -83,7 +95,8 @@ export default function PrivacyPolicyPage() {
                   <strong>AI model providers</strong> such as OpenAI — to generate responses to your prompts.
                 </li>
                 <li>
-                  <strong>Email delivery providers</strong> — for account, support, and system messages.
+                  <strong>Email delivery providers</strong> — for account, support, and system messages, including a
+                  desktop download link when you request one.
                 </li>
                 <li>
                   <strong>Web search and research providers</strong> — your query is sent to <strong>Perplexity</strong>
@@ -93,6 +106,10 @@ export default function PrivacyPolicyPage() {
                 <li>
                   <strong>Image and audio providers</strong> — only when you explicitly trigger image or audio
                   features.
+                </li>
+                <li>
+                  <strong>Stripe and Google Play</strong> — process subscription payments through their respective
+                  checkout systems. ArcAI receives the subscription information needed to verify your Boost access.
                 </li>
                 <li>Law enforcement or regulators when legally required.</li>
               </ul>
@@ -110,8 +127,11 @@ export default function PrivacyPolicyPage() {
               <h2 className="text-xl font-semibold mb-2">Retention &amp; deletion</h2>
               <p className="text-muted-foreground">
                 You can delete individual chats, memories, and uploads at any time. Deleting your account permanently
-                removes your data from our database within 30 days, except where retention is required by law. Deletions
-                cannot be reversed — we keep no shadow backups.
+                removes your data from our active systems within 30 days, except where retention is required by law. Deletions
+                cannot be reversed. You can request deletion at any time from the app or on our{" "}
+                <Link to="/delete-account" className="text-primary underline underline-offset-2">account deletion page</Link>.
+                Cancel any active Boost subscription through Google Play or Stripe before deleting your ArcAI account to
+                stop future billing; account deletion does not itself cancel a subscription.
               </p>
             </section>
 
@@ -138,8 +158,8 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">Security</h2>
               <p className="text-muted-foreground">
-                TLS in transit, encrypted at rest, row-level security on every table, and OAuth-only authentication. No
-                method of transmission is 100% secure, but we hold ourselves to a high bar.
+                We use TLS in transit and access controls, including row-level security on user data. Authentication is
+                handled by Supabase, which manages account passwords. No method of transmission is 100% secure.
               </p>
             </section>
 

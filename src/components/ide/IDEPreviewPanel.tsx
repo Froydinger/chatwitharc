@@ -319,17 +319,45 @@ html, body {
 `;
     }
 
-    // Ensure index.css and App.css fallbacks exist
+    // Compile utility classes in Sandpack itself. The old CDN-only setup could
+    // leave generated className styles unapplied inside the preview sandbox.
     if (!map['/src/index.css'] && !map['/index.css']) {
-      map['/src/index.css'] = `@import url('./styles.css');\n`;
-      map['/index.css'] = `@import url('./styles.css');\n`;
+      map['/src/index.css'] = `@import url('./styles.css');\n@tailwind base;\n@tailwind components;\n@tailwind utilities;\n`;
+      map['/index.css'] = `@import url('./styles.css');\n@tailwind base;\n@tailwind components;\n@tailwind utilities;\n`;
+    } else {
+      const cssPath = map['/src/index.css'] ? '/src/index.css' : '/index.css';
+      const css = map[cssPath];
+      if (!/@tailwind\s+(base|components|utilities)/.test(css)) {
+        const importLines = css.match(/^(?:\s*@import[^;]+;\s*)+/)?.[0] ?? '';
+        const remainder = css.slice(importLines.length);
+        map[cssPath] = `${importLines}@tailwind base;\n@tailwind components;\n@tailwind utilities;\n${remainder}`;
+      }
     }
     if (!map['/src/App.css'] && !map['/App.css']) {
       map['/src/App.css'] = '';
       map['/App.css'] = '';
     }
 
-    // Provide HTML shell with Tailwind CSS script + dark mode config
+    if (!map['/tailwind.config.cjs']) {
+      map['/tailwind.config.cjs'] = `module.exports = {
+  darkMode: 'class',
+  content: ['./src/**/*.{js,ts,jsx,tsx}', './*.{js,ts,jsx,tsx}', './public/index.html'],
+  theme: { extend: {
+    colors: {
+      border: 'rgba(255, 255, 255, 0.1)', background: '#090a0f', foreground: '#f8fafc',
+      primary: { DEFAULT: '#6366f1', foreground: '#ffffff' },
+      muted: { DEFAULT: '#1e293b', foreground: '#94a3b8' },
+      card: { DEFAULT: '#0f1117', foreground: '#f8fafc' },
+    },
+  } },
+};`;
+    }
+    if (!map['/postcss.config.cjs']) {
+      map['/postcss.config.cjs'] = `module.exports = { plugins: { tailwindcss: {}, autoprefixer: {} } };`;
+    }
+
+    // Provide a stable HTML shell; Tailwind classes are compiled by Sandpack's
+    // local PostCSS pipeline instead of being fetched from a CDN at runtime.
     const htmlContent = `<!DOCTYPE html>
 <html lang="en" class="dark">
   <head>
@@ -339,33 +367,6 @@ html, body {
       window.__ARC_APP_ID__ = '${targetAppId}';
       window.__ARC_PROJECT_ID__ = '${targetAppId}';
       window.__ARC_SUPABASE_URL__ = '${supabaseUrl}';
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              border: 'rgba(255, 255, 255, 0.1)',
-              background: '#090a0f',
-              foreground: '#f8fafc',
-              primary: {
-                DEFAULT: '#6366f1',
-                foreground: '#ffffff',
-              },
-              muted: {
-                DEFAULT: '#1e293b',
-                foreground: '#94a3b8',
-              },
-              card: {
-                DEFAULT: '#0f1117',
-                foreground: '#f8fafc',
-              }
-            }
-          }
-        }
-      }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -410,13 +411,15 @@ html, body {
           "framer-motion": "^11.11.9",
           "lucide-react": "^0.453.0",
           "react-icons": "^5.3.0",
-          "canvas-confetti": "^1.9.4"
+          "canvas-confetti": "^1.9.4",
+          "tailwindcss": "^3.4.17",
+          "postcss": "^8.5.6",
+          "autoprefixer": "^10.4.21"
         }
       }}
       files={sandpackFiles}
       options={{
         externalResources: [
-          "https://cdn.tailwindcss.com",
           "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap"
         ],
         visibleFiles: ["/src/App.tsx", "/App.tsx"],

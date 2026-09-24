@@ -20,7 +20,6 @@ import {
   Rocket,
   FileText,
   ListPlus,
-  Smartphone,
   Clapperboard,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -295,42 +294,6 @@ function checkForCodingRequest(message: string): boolean {
   return false;
 }
 
-// App Builder detection: /build, /app, /apps, build/, app/, apps/, or natural language
-function checkForBuildRequest(message: string): boolean {
-  if (!message) return false;
-  const m = message.trim().toLowerCase();
-  const capabilityQuestion = /^(?:can\s+you\s+)?(?:explain|tell me about|how (?:do i|can i|to)|what is|should i|do you have|is there|where is|can i use|can you use|can you access)\b/i.test(m);
-  if (capabilityQuestion && /\bapp\s+builder\b/i.test(m)) return false;
-  if (/^\s*(?:app\s+builder|builder)\s*$/i.test(m)) return true;
-  if (/\bapp\s+builder\b/i.test(m)
-    && /\b(?:use|open|launch|start|build|create|make|turn|convert|try|want|need|asked|give|let(?:'s| us))\b/i.test(m)) return true;
-  if (/^(build|app|apps)\//.test(m) || /^\/(build|app|apps)\b/.test(m)) return true;
-  if (/^(?:can you\s+)?(?:explain|tell me about|how (?:do i|can i|to)|what is|should i)\b/i.test(m)) return false;
-  if (/\b(list|directory|catalog|comparison)\s+of\s+(apps?|websites?|sites?)\b/i.test(m)) return false;
-  if (/^(can\s+you\s+)?(please\s+)?(turn|convert)\s+(this|that|it)\s+into\s+(an?\s+)?(app|apps|website|web\s+app)\b/i.test(m)
-    || /^(can\s+you\s+)?(please\s+)?make\s+(this|that|it)\s+(an?\s+)?(app|apps|website|web\s+app)\b/i.test(m)) return true;
-  // Natural app requests may put the app name between the verb and "app"
-  // ("build me a habit tracker app", "make a budgeting website"). Keep
-  // explanatory questions and ordinary coding requests on the chat path.
-  if (/^(can\s+you\s+)?(please\s+)?(build|create|code|make)\s+(me\s+)?(an?\s+)?(?:(?!(?:for|of|about|on|with)\b)[\w'&.-]+\s+){0,8}(app|apps|website|web\s+app)\b/i.test(m)) return true;
-  // Compound briefs often begin with research or design context before the
-  // actual build instruction ("research trends and make a full website").
-  // Multi-page/landing/site language means App Builder intent here, while
-  // explanatory questions, code snippets, and image-only mockups stay routed
-  // through their existing paths.
-  if (/\b(?:copy|policy|policies|article|guide|tutorial)\s+(?:for|of|about)\b/i.test(m)
-    && !/\b(?:and|then|also)\s+(?:build|create|make|develop)\b/i.test(m)) return false;
-  const hasSiteTarget = /\b(app|apps|website|web\s+app|site|landing\s*page|lander|multi[-\s]?page|multiple\s+pages|full\s+website|complete\s+website)\b/i.test(m);
-  const hasBuildVerb = /\b(build|create|make|design|develop|turn|convert)\b/i.test(m);
-  const explanatory = /^(how\s+(do\s+i|to)\b|what\s+is\b|why\s+use\b|explain\b|tell\s+me\s+about\b)/i.test(m);
-  const codeOnly = /^(write|code|implement)\b.*\b(function|component|script|snippet)\b/i.test(m);
-  const imageOnly = ( /\b(generate|draw|render|paint)\b[^.\n]{0,100}\b(image|picture|photo|illustration|mockup)\b/i.test(m)
-    || /^(make|create|design)\s+(me\s+)?(a|an)\s+(logo|icon|image|picture|illustration)\b/i.test(m) )
-    && !/\b(website|site|landing\s*page)\b[^.\n]{0,80}\b(build|create|make|design)\b/i.test(m);
-  if (hasSiteTarget && hasBuildVerb && !explanatory && !codeOnly && !imageOnly) return true;
-  return false;
-}
-
 // Prefix-based detection: write/, /write, /canvas
 function checkForCanvasRequest(message: string): boolean {
   if (!message) return false;
@@ -540,8 +503,8 @@ function referencesCodeSurface(message: string): boolean {
 // Extract the prompt after the prefix (strips prefix/ or /prefix)
 function extractPrefixPrompt(message: string): string {
   return message
-    .replace(/^(image|draw|create|code|write|search|git|build|app|apps)[\/:]\s*/i, "")
-    .replace(/^\/(image|draw|create|code|write|canvas|search|git|build|app|apps)[\/:\s-]\s*/i, "")
+    .replace(/^(image|draw|create|code|write|search|git)[\/:]\s*/i, "")
+    .replace(/^\/(image|draw|create|code|write|canvas|search|git)[\/:\s-]\s*/i, "")
     .trim();
 }
 
@@ -628,8 +591,6 @@ export interface CloudTextSubmitIntent {
   forceCanvas: boolean;
   forceCode: boolean;
   forceGit: boolean;
-  /** Explicit natural-language app request from regular Chat. */
-  buildApp?: boolean;
   modelOverride?: string;
 }
 
@@ -769,7 +730,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const [forceCodingMode, setForceCodingMode] = useState(false);
   const [forceCanvasMode, setForceCanvasMode] = useState(false);
   const [forceSearchMode, setForceSearchMode] = useState(false);
-  const [forceBuildMode, setForceBuildMode] = useState(false);
   const [forceGitMode, setForceGitMode] = useState(false);
   const isCurrentSessionGit = useMemo(() => {
     if (!currentSessionId) return false;
@@ -780,7 +740,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const shouldShowCodeMode = forceCodingMode || (!!inputValue && checkForCodingRequest(inputValue));
   const shouldShowCanvasMode = forceCanvasMode || (!!inputValue && checkForCanvasRequest(inputValue));
   const shouldShowSearchMode = forceSearchMode || (!!inputValue && checkForSearchRequest(inputValue));
-  const shouldShowBuildMode = forceBuildMode || (!!inputValue && checkForBuildRequest(inputValue));
   const shouldShowGitMode = isCurrentSessionGit || forceGitMode || (!!inputValue && checkForGitRequest(inputValue));
 
   // Persisted user-chosen image options (for /image, "draw…", etc.)
@@ -827,9 +786,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     if (val === "/deep" || val === "/research") {
       setInputValue("");
       openSearchMode();
-    } else if (val === "/build" || val === "/app" || val === "/apps") {
-      setForceBuildMode(true);
-      setInputValue("app/ ");
     } else if (val === "/git") {
       setForceGitMode(true);
       setInputValue("git/ ");
@@ -1639,7 +1595,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       setForceCodingMode(false);
       setForceCanvasMode(false);
       setForceSearchMode(false);
-      setForceBuildMode(false);
       setShowMenu(false);
       setLoading(true);
       await new Promise((resolve) => setTimeout(resolve, 700));
@@ -1747,25 +1702,13 @@ Feel free to send another message or test a prompt to see the animation again!`,
     let wasVideoMode = canGenerateVideo && checkForVideoRequest(finalMessage);
     let wasImageMode = !wasVideoMode && (shouldShowBanana || checkForImageRequest(finalMessage));
     let wasSearchMode = shouldShowSearchMode || checkForSearchRequest(finalMessage);
-    let wasBuildMode = shouldShowBuildMode || checkForBuildRequest(finalMessage);
     let wasGitMode = shouldShowGitMode || checkForGitRequest(finalMessage);
-
-    // App Builder is a deliverable route, not a hint for the Canvas tools.
-    // Keep explicitly requested search available, but do not let code,
-    // writing, image, video, or Git routing steal an app-building turn.
-    if (wasBuildMode) {
-      wasCanvasMode = false;
-      wasCodingMode = false;
-      wasVideoMode = false;
-      wasImageMode = false;
-      wasGitMode = false;
-    }
 
     // Natural language image generation/search routing when no slash command and no UI toggles are active
     const isSlashOrOverride = finalMessage.trim().startsWith("/") ||
-                              shouldShowCanvasMode || shouldShowCodeMode || shouldShowBanana || shouldShowSearchMode || shouldShowBuildMode || wasBuildMode || shouldShowGitMode;
+                              shouldShowCanvasMode || shouldShowCodeMode || shouldShowBanana || shouldShowSearchMode || shouldShowGitMode;
 
-    if (!isArcWorkMode && !isSlashOrOverride && !documents.length && !images.length && !wasBuildMode) {
+    if (!isArcWorkMode && !isSlashOrOverride && !documents.length && !images.length) {
       const intent = analyzeImageRequestIntent(finalMessage);
       if (intent === 'generate') {
         wasImageMode = true;
@@ -1812,7 +1755,6 @@ Feel free to send another message or test a prompt to see the animation again!`,
         wasVideoMode ||
         wasImageMode ||
         wasSearchMode ||
-        wasBuildMode ||
         wasGitMode;
 
       if (isUnsupportedSubagentMode) {
@@ -1836,13 +1778,12 @@ Feel free to send another message or test a prompt to see the animation again!`,
     // Arc Work is intentionally a planner, not another set of composer
     // shortcuts. The worker receives the raw request and decides whether to
     // search, generate, write, code, build, or combine those tools.
-    if (isArcWorkMode && !wasBuildMode) {
+    if (isArcWorkMode) {
       wasCanvasMode = false;
       wasCodingMode = false;
       wasVideoMode = false;
       wasImageMode = false;
       wasSearchMode = false;
-      wasBuildMode = false;
     }
 
     // Clear UI promptly
@@ -1853,7 +1794,6 @@ Feel free to send another message or test a prompt to see the animation again!`,
     setForceCodingMode(false);
     setForceCanvasMode(false);
     setForceSearchMode(false);
-    setForceBuildMode(false);
     setForceGitMode(false);
     setShowMenu(false);
 
@@ -1868,7 +1808,6 @@ Feel free to send another message or test a prompt to see the animation again!`,
         wasImageMode ||
         wasVideoMode ||
         wasSearchMode ||
-        wasBuildMode ||
         wasGitMode
       ) {
         toast({
@@ -1883,7 +1822,6 @@ Feel free to send another message or test a prompt to see the animation again!`,
       wasImageMode = false;
       wasVideoMode = false;
       wasSearchMode = false;
-      wasBuildMode = false;
       wasGitMode = false;
     }
 
@@ -1898,9 +1836,6 @@ Feel free to send another message or test a prompt to see the animation again!`,
       void markSessionAsGit(requestSessionId);
     }
     setLoading(true);
-    if (wasBuildMode) {
-      useArcStore.getState().setActiveTask("building");
-    }
 
     // Show the right animation NOW rather than after the response reports what
     // ran. For these inputs the server has already fixed its tool choice from
@@ -1926,41 +1861,18 @@ Feel free to send another message or test a prompt to see the animation again!`,
       // Guest mode restrictions: only basic text chat
       if (
         isGuestMode &&
-        (images.length > 0 || documents.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode || wasBuildMode || wasGitMode)
+        (images.length > 0 || documents.length > 0 || wasCanvasMode || wasCodingMode || wasImageMode || wasGitMode)
       ) {
         await addMessage({ content: finalMessage || "Sent message", role: "user", type: "text" });
         await addMessage({
           content:
-            "✨ App builder, image generation, canvas, code, and document analysis features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
+            "✨ Image generation, code canvas, and document analysis features are available when you create a free account! Sign up to unlock all of Arc's capabilities.",
           role: "assistant",
           type: "text",
           sourceModel: "cloud-chat",
         });
         setLoading(false);
         return;
-      }
-
-      // Explicit app requests from regular Chat use the durable Work builder
-      // when available. The user message is added below and the saved project
-      // link comes back beside the Work summary. Keep the old IDE launch as a
-      // fallback for accounts/environments without the cloud callback.
-      if (!isArcWorkMode && wasBuildMode) {
-        if (!hasBoost && !isAdmin) {
-          openCheckout();
-          toast({
-            title: "ArcAI Boost Required",
-            description: "App Builder is exclusively available to Boost subscribers and admins.",
-          });
-          setLoading(false);
-          return;
-        }
-        if (!onCloudTextSubmit) {
-          const cleanPrompt = extractPrefixPrompt(finalMessage);
-          useIDEStore.getState().openIDECanvas(cleanPrompt || "New App", undefined, !!cleanPrompt);
-          navigate('/build');
-          setLoading(false);
-          return;
-        }
       }
 
       // With Documents -> analyze
@@ -2329,7 +2241,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
 
 
         // Strip the code/ prefix if present
-        const isCodingRequest = !wasGitMode && !wasBuildMode && wasCodingMode;
+        const isCodingRequest = !wasGitMode && wasCodingMode;
 
         const canvasState = useCanvasStore.getState();
 
@@ -2341,7 +2253,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
         const hasCanvasReferenceIntent =
           !wasGitMode && (looksLikeCanvasEditRequest(finalMessage) || referencesCanvasSurface(finalMessage));
         const shouldRouteToCanvas =
-          !wasGitMode && !wasBuildMode && (wasCanvasMode ||
+          !wasGitMode && (wasCanvasMode ||
           (canvasState.isOpen &&
             canvasState.canvasType === "writing" &&
             (hasCanvasReferenceIntent || !isConversationalMessage(finalMessage))));
@@ -2350,7 +2262,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
         // Also auto-open the canvas from the last code message in chat if it isn't open yet,
         // so follow-up messages work without requiring the user to click the code card first.
         let isCodeCanvasOpen = !wasGitMode && canvasState.isOpen && canvasState.canvasType === "code";
-        const hasCodeReferenceIntent = !wasGitMode && !wasBuildMode && (looksLikeCodeEditRequest(finalMessage) || referencesCodeSurface(finalMessage));
+        const hasCodeReferenceIntent = !wasGitMode && (looksLikeCodeEditRequest(finalMessage) || referencesCodeSurface(finalMessage));
 
         if (!wasGitMode && !isCodeCanvasOpen && (isCodingRequest || hasCodeReferenceIntent)) {
           const recentMsgs = useArcStore.getState().messages;
@@ -2505,13 +2417,8 @@ ${safeCode}
           shouldSearchForVideo,
         });
 
-        // Ordinary Chat stays direct. Explicit app requests can hand off to
-        // the durable builder without changing the session mode; /code and
-        // other ordinary messages retain their existing route.
-        const buildAppRequested = wasBuildMode;
-        const buildAppFromChat = buildAppRequested && !isArcWorkMode;
         const durableCloudSubmit = onCloudTextSubmit && !isGuestMode && !corporateMode && !isLocalChatPreview()
-          && (cloudExecutionMode === 'auto' || buildAppFromChat);
+          && cloudExecutionMode === 'auto';
         const durableRoute = durableCloudSubmit ? 'cloud-chat' : (cloudExecutionMode === 'auto' ? 'cloud-chat' : routeRequest({
           forceWebSearch: wasSearchMode || shouldSearchForVideo,
           forceCanvas: shouldForceCanvas,
@@ -2528,8 +2435,8 @@ ${safeCode}
             // Durable text only: capture the actual current editor, including a
             // deliberately cleared live draft. The legacy augmented prose above
             // remains unchanged and is not used as cloud execution context.
-            const workspaceKind = !buildAppRequested && !wasGitMode && (shouldUseCodeContext || (isCodingRequest && freshestCanvasContent))
-              ? 'code' : !buildAppRequested && !wasGitMode && shouldRouteToCanvas && freshCanvasState.isOpen ? 'canvas' : undefined;
+            const workspaceKind = !wasGitMode && (shouldUseCodeContext || (isCodingRequest && freshestCanvasContent))
+              ? 'code' : !wasGitMode && shouldRouteToCanvas && freshCanvasState.isOpen ? 'canvas' : undefined;
             const currentWorkspaceContent = typeof window !== 'undefined'
               && typeof (window as any).__arcaiLiveCanvasContent === 'string'
               ? (window as any).__arcaiLiveCanvasContent : freshCanvasState.content;
@@ -2546,11 +2453,10 @@ ${safeCode}
               ...((images.length || documents.length) ? {attachments: [...images, ...documents]} : {}),
               ...(workspaceContext ? {workspaceContext} : {}),
               forceWebSearch: cloudExecutionMode === 'auto' ? false : wasSearchMode || shouldSearchForVideo,
-              forceCanvas: buildAppRequested || cloudExecutionMode === 'auto' ? false : shouldForceCanvas,
-              forceCode: buildAppRequested || cloudExecutionMode === 'auto' ? false : shouldForceCode,
+              forceCanvas: cloudExecutionMode === 'auto' ? false : shouldForceCanvas,
+              forceCode: cloudExecutionMode === 'auto' ? false : shouldForceCode,
               forceGit: wasGitMode,
-              buildApp: buildAppRequested,
-              modelOverride: buildAppRequested ? undefined : codeContextModelOverride,
+              modelOverride: codeContextModelOverride,
             });
           } catch (error) {
             // An acknowledgement may be lost after acceptance. Do not fall back
@@ -3202,7 +3108,6 @@ ${safeCode}
     { id: "generate", label: "Create Image", description: "Create or edit an image", keywords: "image draw picture art", icon: ImagePlus, tileClass: "border-rose-500/20 hover:border-rose-500/40 hover:bg-rose-500/10", iconClass: "bg-rose-500/15 text-rose-500 dark:text-rose-400", run: () => { setForceImageMode(true); setInputValue("image/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "write", label: "Writing Canvas", description: "Open a live writing canvas", keywords: "canvas prose draft document", icon: PenLine, tileClass: "border-sky-500/20 hover:border-sky-500/40 hover:bg-sky-500/10", iconClass: "bg-sky-500/15 text-sky-600 dark:text-sky-400", run: () => { setForceCanvasMode(true); setInputValue("write/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "prompts", label: "Prompts & Ideas", description: "Browse saved prompt starters", keywords: "prompt library templates starters", icon: ListPlus, tileClass: "border-fuchsia-500/20 hover:border-fuchsia-500/40 hover:bg-fuchsia-500/10", iconClass: "bg-fuchsia-500/15 text-fuchsia-500 dark:text-fuchsia-400", run: () => { setShowPromptLibrary(true); setShowMenu(false); } },
-    { id: "app", label: "App Builder", description: "Build an interactive app", keywords: "builder project react application", icon: Smartphone, tileClass: "border-neon-500/20 hover:border-neon-500/40 hover:bg-neon-500/10", iconClass: "bg-neon-500/15 text-neon-500 dark:text-neon-400", badge: "Boost", run: () => { if (!hasBoost && !isAdmin) { setShowMenu(false); openCheckout(); toast({ title: "ArcAI Boost Required", description: "App Builder is exclusively available to Boost subscribers and admins." }); return; } setForceBuildMode(true); setInputValue("app/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "code", label: "Code Canvas", description: "Work in a code canvas", keywords: "programming developer code editor", icon: Code2, tileClass: "border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/10", iconClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400", run: () => { setForceCodingMode(true); setInputValue("code/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "git", label: "Github Mode", description: "Update a remote repo via a pull request", keywords: "github git repository pull request branch", icon: GitHubMark, tileClass: "border-zinc-500/20 hover:border-zinc-500/40 hover:bg-zinc-500/10", iconClass: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-300", run: () => { setForceGitMode(true); setInputValue("git/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "search", label: "Instant Web Search", description: "Search the web inline", keywords: "web browse lookup sources", icon: Globe, tileClass: "border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10", iconClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", run: () => { setForceSearchMode(true); setInputValue("search/ "); setShowMenu(false); textareaRef.current?.focus(); } },
@@ -3526,7 +3431,7 @@ ${safeCode}
                   }}
                   className={cn(
                     "ci-menu-btn flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
-                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowBuildMode || shouldShowGitMode || showCanvasIndicator) && !showMenu && "text-primary"
+                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowGitMode || showCanvasIndicator) && !showMenu && "text-primary"
                   )}
                   aria-label="Add content"
                 >
@@ -3540,8 +3445,6 @@ ${safeCode}
                     <ImagePlus className="h-4 w-4 text-amber-500" />
                   ) : shouldShowCodeMode ? (
                     <Code2 className="h-4 w-4 text-emerald-500" />
-                  ) : shouldShowBuildMode ? (
-                    <Smartphone className="h-4 w-4 text-neon-400" />
                   ) : showCanvasIndicator ? (
                     <PenLine className="h-4 w-4 text-pink-400" />
                   ) : (
@@ -3550,7 +3453,7 @@ ${safeCode}
                 </button>
 
                 {/* Clear active tool badge (cannot clear if session is permanently Git) */}
-                {!showMenu && !isCurrentSessionGit && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode || shouldShowBuildMode || shouldShowGitMode) && (
+                {!showMenu && !isCurrentSessionGit && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode || shouldShowGitMode) && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -3559,10 +3462,9 @@ ${safeCode}
                       setForceSearchMode(false);
                       setForceCodingMode(false);
                       setForceCanvasMode(false);
-                      setForceBuildMode(false);
                       setForceGitMode(false);
                       setInputValue((v) =>
-                        v.replace(/^\s*(image|search|code|write|git|build|app|apps)\/\s*/i, "")
+                        v.replace(/^\s*(image|search|code|write|git)\/\s*/i, "")
                       );
                       textareaRef.current?.focus();
                     }}
@@ -3610,7 +3512,6 @@ ${safeCode}
                             const Icon = action.icon;
                             return (
                               <React.Fragment key={action.id}>
-                              {action.id === "app" && <div role="separator" className="mx-3 my-1.5 h-px bg-black/10 dark:bg-white/15" />}
                               <motion.button
                                 type="button"
                                 initial={{ opacity: 0, x: -6 }}
@@ -3625,7 +3526,6 @@ ${safeCode}
                                 </span>
                                 <span className="flex min-w-0 flex-1 items-center gap-2 font-medium">
                                   <span className="truncate">{action.label}</span>
-                                  {action.id === "app" && <span className="shrink-0 rounded-full border border-violet-400/25 bg-violet-400/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">Beta</span>}
                                 </span>
                                 {action.badge && <span className="rounded-full bg-neon-500/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-neon-700 dark:text-neon-300">{action.badge}</span>}
                               </motion.button>

@@ -9,11 +9,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   Dialog as InnerDialog, DialogContent as InnerDialogContent,
   DialogDescription as InnerDialogDescription, DialogFooter as InnerDialogFooter,
   DialogHeader as InnerDialogHeader, DialogTitle as InnerDialogTitle,
@@ -22,7 +17,7 @@ import {
 import {
   ExternalLink, Heart, Crown, MessageSquare, Brain, Image,
   Sparkles, RefreshCw, Calendar, Loader2, User, Mic,
-  Shield, Settings, LogOut, Trash2, AlertTriangle,
+  Shield, Settings, LogOut, Trash2,
   Mail, Key, Download, Cloud, CloudOff, WifiOff, Camera, Save, RotateCcw, Zap,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,6 +35,7 @@ import { VoiceSelector } from "@/components/VoiceSelector";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useNavigate } from "react-router-dom";
 import { uploadAvatar } from "@/lib/uploadAvatar";
+import { DeleteDataModal } from "@/components/DeleteDataModal";
 
 interface AccountHubProps {
   isOpen: boolean;
@@ -75,6 +71,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   } = useSubscription();
 
   const [activeTab, setActiveTab] = useState<HubTab>("overview");
+  const [showDeleteDataModal, setShowDeleteDataModal] = useState(false);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [funFact, setFunFact] = useState<string | null>(null);
@@ -86,7 +83,6 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   const [isUploading, setIsUploading] = useState(false);
 
   // Account management
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -189,24 +185,11 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!supabase) return;
-    setIsDeleting(true);
-    try {
-      clearAllSessions();
-      const { data: { user: u } } = await supabase.auth.getUser();
-      if (!u) throw new Error("No user found");
-      await supabase.from("profiles").delete().eq("user_id", u.id);
-      await supabase.from("chat_sessions").delete().eq("user_id", u.id);
-      toast({ title: "Account deleted" });
-      await signOutCurrentSession();
-      onClose();
-      window.location.replace("/");
-    } catch {
-      toast({ title: "Deletion failed", variant: "destructive" });
-    } finally {
-      setIsDeleting(false);
-    }
+  const handleAccountDeleted = () => {
+    clearAllSessions();
+    void signOutCurrentSession();
+    onClose();
+    window.location.replace("/");
   };
 
   const handleClearMessages = () => {
@@ -239,6 +222,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   ];
 
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg sm:max-w-xl md:max-w-2xl glass border-primary/20 max-h-[90vh] p-0 overflow-hidden">
         {/* Header */}
@@ -576,29 +560,13 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                      <Button variant="outline" className="w-full border-border bg-muted/40 hover:bg-muted/60" onClick={handleSignOut}>
                        <LogOut className="h-4 w-4 mr-2" /> Sign Out
                      </Button>
-                     <AlertDialog>
-                       <AlertDialogTrigger asChild>
-                         <Button variant="outline" className="w-full border-destructive/40 text-destructive bg-destructive/10 hover:bg-destructive/20" disabled={isDeleting}>
-                           <Trash2 className="h-4 w-4 mr-2" /> {isDeleting ? "Deleting..." : "Delete Account"}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="glass border-destructive/20">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-                            <AlertTriangle className="h-5 w-5" /> Are you absolutely sure?
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete your account and remove all data.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel className="glass border-glass-border">Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isDeleting}>
-                            {isDeleting ? "Deleting..." : "Delete Account"}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                     <Button
+                       variant="outline"
+                       className="w-full border-destructive/40 text-destructive bg-destructive/10 hover:bg-destructive/20"
+                       onClick={() => setShowDeleteDataModal(true)}
+                     >
+                       <Trash2 className="h-4 w-4 mr-2" /> Delete Account
+                     </Button>
                   </div>
                 </Section>
 
@@ -646,6 +614,12 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
         )}
       </DialogContent>
     </Dialog>
+    <DeleteDataModal
+      isOpen={showDeleteDataModal}
+      onClose={() => setShowDeleteDataModal(false)}
+      onDeleted={handleAccountDeleted}
+    />
+    </>
   );
 }
 

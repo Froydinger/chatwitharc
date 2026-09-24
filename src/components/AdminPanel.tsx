@@ -1549,7 +1549,7 @@ export function AdminPanel() {
               <Card className="border-border/60">
                 <CardHeader>
                   <CardTitle>Chat Behavior & Tools Prompt</CardTitle>
-                  <CardDescription>Controls hidden tool behavior for search, memory, reminders, YouTube embeds, and App Builder routing</CardDescription>
+                  <CardDescription>Controls hidden tool behavior for search, memory, reminders, and YouTube embeds</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">

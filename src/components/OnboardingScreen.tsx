@@ -79,22 +79,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
-      {/* Background Effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <motion.div
-          animate={{
-            background: [
-              "radial-gradient(circle at 20% 50%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%)",
-              "radial-gradient(circle at 80% 20%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%)",
-              "radial-gradient(circle at 40% 80%, hsl(var(--primary-glow) / 0.1) 0%, transparent 50%)"
-            ]
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-          className="w-full h-full"
-        />
-      </div>
-
-      <GlassCard variant="bubble" glow className="w-full max-w-md p-8 relative z-10">
+      <GlassCard variant="bubble" className="w-full max-w-md p-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

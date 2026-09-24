@@ -103,8 +103,8 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
       const gitAccess = await gitEnabledForUser(db, run.user_id);
       // Build requests are regular Arc Work runs. Resolve entitlement before
       // exposing the tool to Luna, then recheck it inside the tool/RPC.
-      const appBuilderAllowed = options.appBuilderEnabled === true &&
-        run.mode === 'auto' && await authorizeAppBuilder(run);
+      // Keep multi-file project generation hard-disabled in Chat and Work.
+      const appBuilderAllowed = false;
       const request = run.request && typeof run.request === 'object' && !Array.isArray(run.request)
         ? run.request as Record<string, unknown> : {};
       const requiresAppProject = request.buildApp === true || isMultiPageBuildRequest(latestUserMessage(request));

@@ -35,6 +35,7 @@ import { cloudAppProjectClient, CLOUD_APP_PROJECT_RELOADED } from '@/services/cl
 import { normalizeAppProjectSnapshot, type CloudAppProjectPersistence } from '@/services/cloudAppProjects';
 import { createCloudAppRuns } from '@/services/cloudAppRunClient';
 import type { CloudAppRuns, CloudAppRunView } from '@/services/cloudAppRuns';
+import { cloudAppTranscript, cloudAuditActions } from '@/services/cloudAppTranscript';
 
 const durableAppsEnabled = import.meta.env.VITE_CLOUD_APP_RUNS_ENABLED === 'true';
 
@@ -218,7 +219,10 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
   const [projectReloadVersion, setProjectReloadVersion] = useState(0);
   const localEditEpochRef = useRef(0);
   const appRunsRef = useRef<CloudAppRuns | null>(null);
+  const syncedCloudTranscriptStatesRef = useRef(new Set<string>());
   const [cloudRunView, setCloudRunView] = useState<CloudAppRunView>({ busy: false });
+  const cloudRunViewRef = useRef(cloudRunView);
+  cloudRunViewRef.current = cloudRunView;
   const [cloudRunMode, setCloudRunMode] = useState<'ask' | 'auto'>('ask');
   const [cloudReady, setCloudReady] = useState(false);
   const [projectLoaded, setProjectLoaded] = useState(false);
@@ -749,6 +753,64 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
     }
   }, [setIdeProjectId]);
 
+  // Durable App Builder runs write their canonical conversation into the
+  // run's owner-scoped chat session. Mirror that transcript into the project
+  // workspace so the IDE chat shows both the live build and Arc's final reply.
+  useEffect(() => {
+    const entry = cloudRunView.entry;
+    const run = entry?.run;
+    if (!durableAppsEnabled || !projectLoaded || !entry || !run || entry.kind !== 'app'
+      || entry.run?.projectId !== ideProjectId) return;
+    const stateKey = `${entry.id}:${run.status}`;
+    if (syncedCloudTranscriptStatesRef.current.has(stateKey)) return;
+    let active = true;
+    void (async () => {
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) return;
+        const { data, error } = await supabase.from('chat_sessions').select('messages')
+          .eq('id', entry.sessionId).eq('user_id', user.id).maybeSingle();
+        if (error || !data || !active || projectIdRef.current !== ideProjectId) return;
+        const result = run.result && typeof run.result === 'object' ? run.result as Record<string, unknown> : {};
+        const choices = Array.isArray(result.choices) ? result.choices : [];
+        const firstChoice = choices[0] && typeof choices[0] === 'object' ? choices[0] as Record<string, unknown> : {};
+        const assistant = firstChoice.message && typeof firstChoice.message === 'object'
+          ? firstChoice.message as Record<string, unknown> : {};
+        const summary = typeof assistant.content === 'string' ? assistant.content : undefined;
+        const timestamp = Date.parse(run.updatedAt ?? run.createdAt ?? '') || Date.now();
+        const transcript = cloudAppTranscript(data.messages, {
+          runId: entry.id,
+          status: run.status,
+          timestamp,
+          audit: run.checkpoint?.audit,
+          summary,
+        }) as ChatMessage[];
+        if (!active || projectIdRef.current !== ideProjectId) return;
+        localEditEpochRef.current++;
+        messagesRef.current = transcript;
+        setMessagesRaw(transcript);
+        useIDEStore.getState().setIdeMessages(transcript);
+        const currentlyBuilding = !['completed', 'failed', 'cancelled'].includes(run.status);
+        setGeneratingId(currentlyBuilding ? `cloud-${entry.id}` : null);
+        void saveProject();
+        syncedCloudTranscriptStatesRef.current.add(stateKey);
+      } catch (error) {
+        if (active) setProjectSaveError(error instanceof Error ? error.message : 'App chat could not be reloaded.');
+      }
+    })();
+    return () => { active = false; };
+  }, [cloudRunView.entry?.id, cloudRunView.entry?.run?.status, cloudRunView.entry?.sessionId,
+    ideProjectId, projectLoaded, saveProject]);
+
+  useEffect(() => {
+    const entry = cloudRunView.entry;
+    const run = entry?.run;
+    if (!entry || !run || entry.kind !== 'app') return;
+    const timestamp = Date.parse(run.updatedAt ?? run.createdAt ?? '') || Date.now();
+    const actions = cloudAuditActions(run.checkpoint?.audit, entry.id, timestamp);
+    if (actions.length) setLiveActions(actions);
+  }, [cloudRunView.entry?.id, cloudRunView.entry?.run?.updatedAt, cloudRunView.entry?.run?.checkpoint?.audit]);
+
   useEffect(() => { syncStatusRef.current = syncStatus; }, [syncStatus]);
 
   // Listen for real-time events from preview iframe (auth signup, signin, db changes)
@@ -1075,12 +1137,36 @@ export function IDECanvasPanel({ className, onClose, projectId: propProjectId }:
         setProjectSaveError('Wait for this saved app to finish loading before building.'); return false;
       }
       if (images?.length) { setProjectSaveError('Cloud app builds currently accept text only. Your images were not sent.'); return false; }
-      // No local user/assistant transcript append: submit atomically saves the user turn.
+      // Keep the composer responsive, then replace this optimistic pair with
+      // the server's canonical session transcript as soon as the run is seen.
+      const previousRunId = cloudRunViewRef.current.entry?.id;
+      const draftUserId = crypto.randomUUID();
+      const draftAssistantId = `draft-${crypto.randomUUID()}`;
+      const draftTimestamp = Date.now();
+      const priorTranscript = structuredClone(messagesRef.current);
+      setGeneratingId(draftAssistantId);
+      setMessages(prev => [...prev,
+        { id: draftUserId, role: 'user', content: message, timestamp: draftTimestamp },
+        { id: draftAssistantId, role: 'assistant', content: 'Arc is preparing your build…', timestamp: draftTimestamp },
+      ]);
       const scope = projectScopeRef.current;
-      return appRunsRef.current.start(message, cloudRunMode, { files: filesRef.current, messages: messagesRef.current })
+      const coordinator = appRunsRef.current;
+      return coordinator.start(message, cloudRunMode, { files: filesRef.current, messages: priorTranscript })
         .then(() => true)
         .catch(error => {
-          if (!scope.signal.aborted) setProjectSaveError(error instanceof Error ? error.message : 'Cloud app submission failed.');
+          if (!scope.signal.aborted) {
+            const currentEntry = cloudRunViewRef.current.entry;
+            const uncertain = !!currentEntry && currentEntry.id !== previousRunId && currentEntry.connection === 'uncertain';
+            if (uncertain) {
+              setMessages(prev => prev.map(item => item.id === draftAssistantId
+                ? { ...item, content: 'The build submission is uncertain. Reconnect and check its status before sending again.' }
+                : item));
+            } else {
+              setMessages(prev => prev.filter(item => item.id !== draftUserId && item.id !== draftAssistantId));
+            }
+            setGeneratingId(null);
+            setProjectSaveError(error instanceof Error ? error.message : 'Cloud app submission failed.');
+          }
           return false;
         });
     }

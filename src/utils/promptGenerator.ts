@@ -11,7 +11,7 @@ interface QuickPrompt {
 // search, weather, memory, past-chat search, reminders, file reading) instead.
 
 // ASK — everyday practical AI queries leveraging Arc's best features:
-// web search with citations, app builder (/build), reminders, document analysis,
+// web search with citations, reminders, document analysis,
 // weather, practical drafting, troubleshooting, and daily productivity.
 const askPromptPool: QuickPrompt[] = [
   { label: "🌐 Search The Web", prompt: "Search the web and give me a clear, up-to-date summary of the latest news on a topic with sources." },
@@ -21,7 +21,6 @@ const askPromptPool: QuickPrompt[] = [
   { label: "🍳 Quick Dinner Idea", prompt: "Here's what I have in my fridge and pantry — suggest two quick, delicious meal ideas I can make tonight." },
   { label: "⏰ Set A Reminder", prompt: "Schedule a reminder for me with a specific time and task so I don't forget to follow up." },
   { label: "⚖️ Compare Options", prompt: "I'm choosing between two products or approaches. Compare their pros, cons, and give me a clear recommendation." },
-  { label: "📱 Build An App", prompt: "/build Build me a clean, interactive mini web app or tool for this idea with a live preview." },
   { label: "🌦️ Weather & Outfit", prompt: "What's the weather forecast where I am today, and what should I wear or plan around it?" },
   { label: "🎙️ Practice Interview", prompt: "Act as an interviewer for a role I'm preparing for. Ask me one question at a time and give constructive feedback." },
   { label: "💡 Brainstorm Ideas", prompt: "Brainstorm 10 fresh, practical ideas for a project I'm starting, ranked from easiest to most ambitious." },

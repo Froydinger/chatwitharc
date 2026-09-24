@@ -83,11 +83,6 @@ const ROUTE_META: Record<string, RouteMeta> = {
     description:
       "View and collaborate in shared project workspaces and chat rooms.",
   },
-  "/build": {
-    title: "ArcAI • App Builder",
-    description:
-      "Build, preview, and deploy full React applications powered by Arc Matrix™.",
-  },
   "/docs": {
     title: "ArcAI • Docs",
     description:
@@ -124,9 +119,6 @@ export const RouteSEO = () => {
   }
   if (path.startsWith("/shared/")) {
     path = "/shared";
-  }
-  if (path.startsWith("/build")) {
-    path = "/build";
   }
   if (path.startsWith("/dashboard") && path !== "/dashboard/settings") {
     path = "/dashboard";

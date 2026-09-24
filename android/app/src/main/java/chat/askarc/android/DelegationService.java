@@ -1,5 +1,7 @@
 package chat.askarc.android;
 
+import com.google.androidbrowserhelper.playbilling.digitalgoods.DigitalGoodsRequestHandler;
+
 
 
 public class DelegationService extends
@@ -7,6 +9,7 @@ public class DelegationService extends
     @Override
     public void onCreate() {
         super.onCreate();
+        registerExtraCommandHandler(new DigitalGoodsRequestHandler(getApplicationContext()));
 
 
     }

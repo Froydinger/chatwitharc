@@ -9,8 +9,8 @@ export interface ContextBlock {
   id: string;
   content: string;
   source: 'manual' | 'memory';
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export function useContextBlocks() {
@@ -41,13 +41,13 @@ export function useContextBlocks() {
     setLoading(true);
     try {
       const data = await getMemorySummary();
-      const now = new Date().toISOString();
+      const createdAt = data.createdAt ?? data.updatedAt;
       setBlocks(data.summary.trim() ? [{
         id: `memory-summary:${activeUserId}`,
         content: data.summary,
         source: 'memory',
-        created_at: now,
-        updated_at: now,
+        created_at: createdAt,
+        updated_at: data.updatedAt,
       }] : []);
     } catch (err) {
       console.error('Error fetching living memory summary:', err);
@@ -89,13 +89,12 @@ export function useContextBlocks() {
 
     try {
       const data = await applyMemorySummary('save', content.trim());
-      const now = new Date().toISOString();
       const block: ContextBlock = {
         id: `memory-summary:${activeUserId}`,
         content: data.summary,
         source,
-        created_at: now,
-        updated_at: now,
+        created_at: data.createdAt ?? data.updatedAt,
+        updated_at: data.updatedAt,
       };
       setBlocks(data.summary.trim() ? [block] : []);
       window.dispatchEvent(new CustomEvent('memory-summary-updated'));
@@ -113,8 +112,13 @@ export function useContextBlocks() {
 
     try {
       const data = await applyMemorySummary('replace_summary', undefined, content.trim());
-      const now = new Date().toISOString();
-      setBlocks(data.summary.trim() ? [{ id, content: data.summary, source: 'memory', created_at: now, updated_at: now }] : []);
+      setBlocks(data.summary.trim() ? [{
+        id,
+        content: data.summary,
+        source: 'memory',
+        created_at: data.createdAt ?? data.updatedAt,
+        updated_at: data.updatedAt,
+      }] : []);
       window.dispatchEvent(new CustomEvent('memory-summary-updated'));
     } catch (err) {
       console.error('Error updating living memory:', err);

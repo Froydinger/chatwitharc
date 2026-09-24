@@ -49,6 +49,7 @@ const SupportPage = lazy(() => import("./pages/SupportPage").then((m) => ({ defa
 const DocsPage = lazy(() => import("./pages/DocsPage").then((m) => ({ default: m.DocsPage })));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
+const DeleteAccountPage = lazy(() => import("./pages/DeleteAccountPage"));
 const SharedChatPage = lazy(() => import("./pages/SharedChatPage").then((m) => ({ default: m.SharedChatPage })));
 const TasksPage = lazy(() => import("./pages/TasksPage").then((m) => ({ default: m.TasksPage })));
 const StatusPage = lazy(() => import("./pages/StatusPage").then((m) => ({ default: m.StatusPage })));
@@ -62,7 +63,6 @@ const BlogPostPage = lazy(() => import("./pages/BlogPostPage").then((m) => ({ de
 const DesktopAuthCallbackPage = lazy(() => import("./pages/DesktopAuthCallbackPage").then((m) => ({ default: m.DesktopAuthCallbackPage })));
 const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage").then((m) => ({ default: m.AuthCallbackPage })));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
-const AppBuilderPage = lazy(() => import("./pages/AppBuilderPage").then((m) => ({ default: m.AppBuilderPage })));
 const VoiceLabPage = lazy(() => import("./pages/VoiceLabPage").then((m) => ({ default: m.VoiceLabPage })));
 import { useAuth } from "@/hooks/useAuth";
 import { GUEST_CHAT_ENABLED } from "@/lib/features";
@@ -321,8 +321,11 @@ const App = () => {
                     <Route path="/dashboard" element={<DashboardShellGate />} />
                     <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
                     <Route path="/voice-lab" element={<VoiceLabPage />} />
-                    <Route path="/build" element={<AppBuilderPage />} />
-                    <Route path="/build/:projectId" element={<AppBuilderPage />} />
+                    <Route path="/build" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/build/:projectId" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/build/*" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/app/*" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/apps/*" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/unsubscribe" element={<UnsubscribePage />} />
                     <Route path="/support" element={<SupportPage />} />
@@ -338,6 +341,7 @@ const App = () => {
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                    <Route path="/delete-account" element={<DeleteAccountPage />} />
                     <Route path="/refund-policy" element={<Navigate to="/terms" replace />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

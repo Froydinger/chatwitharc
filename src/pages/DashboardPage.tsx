@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { useImageQuota } from "@/hooks/useImageQuota";
+import { UsageSnapshotWidget } from "@/components/dashboard/UsageSnapshotWidget";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useArcStore } from "@/store/useArcStore";
@@ -54,6 +55,7 @@ import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
 import { KineticDeleteButton } from "@/components/ui/rare-ui/kinetic-delete-button";
 import { DashboardPreviewPage } from "@/pages/DashboardPreviewPage";
+import { APP_BUILDER_ENABLED } from "@/lib/features";
 
 type DashboardTab = "overview" | "apps" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -115,7 +117,8 @@ function extractCodeBlocks(content: string): Array<{ code: string; language: str
 export function DashboardPageInner({ embedded = false, activeTabOverride }: { embedded?: boolean; activeTabOverride?: DashboardTab } = {}) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = activeTabOverride || (searchParams.get("tab") as DashboardTab) || "overview";
+  const requestedTab = activeTabOverride || (searchParams.get("tab") as DashboardTab) || "overview";
+  const initialTab = requestedTab === "apps" ? "overview" : requestedTab;
   const { user, loading: authLoading, isAnonymous } = useAuth();
   const { isAdmin, dailyImagesUsed, limit: imageLimit } = useImageQuota();
   const {
@@ -261,6 +264,10 @@ useEffect(() => {
   const openIDECanvas = useIDEStore((s) => s.openIDECanvas);
   const reopenIDECanvas = useIDEStore((s) => s.reopenIDECanvas);
   const closeIDE = useIDEStore((s) => s.closeIDE);
+
+  useEffect(() => {
+    if (!APP_BUILDER_ENABLED && isIDEOpen) closeIDE();
+  }, [closeIDE, isIDEOpen]);
 
   // The dashboard list no longer carries `files`/`messages`, so fetch just the
   // one project's payload at open time.
@@ -826,7 +833,7 @@ useEffect(() => {
   }, [activeTab, isBubbleDragging]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!APP_BUILDER_ENABLED || !user || activeTab !== "apps") return;
     (async () => {
       setLoadingApps(true);
       try {
@@ -1018,8 +1025,10 @@ useEffect(() => {
     return dbCanvases.filter(i => i.label?.toLowerCase().includes(q) || i.content.toLowerCase().includes(q));
   }, [dbCanvases, canvasSearch]);
 
-  const timeAgo = (date: Date | string) => {
+  const timeAgo = (date: Date | string | null | undefined) => {
+    if (!date) return "date unavailable";
     const d = typeof date === 'string' ? new Date(date) : date;
+    if (Number.isNaN(d.getTime())) return "date unavailable";
     const now = new Date();
     const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
     if (diff < 60) return "just now";
@@ -1054,7 +1063,6 @@ useEffect(() => {
     { key: "overview", label: "Dashboard", icon: LayoutDashboard },
     { key: "chats", label: "Chats", icon: MessageSquare },
     { key: "images", label: "Images", icon: Image },
-    { key: "apps", label: "Apps", icon: Smartphone },
     { key: "canvases", label: "Canvases", icon: Code2 },
     { key: "memories", label: "Memories", icon: Brain },
   ];
@@ -1065,7 +1073,6 @@ useEffect(() => {
   const stats = [
     { label: "Chats", tab: "chats" as DashboardTab, value: quickCounts.chats !== null ? quickCounts.chats : (allChats.length > 0 ? allChats.length : 0), icon: MessageSquare, color: "210 100% 66%", tw: "text-blue-400" },
     { label: "Images", tab: "images" as DashboardTab, value: totalImageCount, icon: Image, color: "270 80% 65%", tw: "text-neon-400" },
-    { label: "Apps", tab: "apps" as DashboardTab, value: recentApps.length, icon: Smartphone, color: "270 80% 65%", tw: "text-neon-400" },
     { label: "Canvases", tab: "canvases" as DashboardTab, value: canvasCount ?? "—", icon: Code2, color: "35 90% 60%", tw: "text-orange-400" },
     { label: "Living memory", tab: "memories" as DashboardTab, value: quickCounts.memories !== null ? quickCounts.memories : (contextBlocks.length > 0 ? 1 : 0), icon: Brain, color: "155 70% 50%", tw: "text-emerald-400" },
   ];
@@ -1425,36 +1432,7 @@ useEffect(() => {
                       )}
                     </motion.div>
                   </div>
-                  <button 
-                    onClick={() => {
-                      if (!hasBoost && !isAdmin) {
-                        openCheckout();
-                      } else {
-                        setActiveTab("apps");
-                      }
-                    }} 
-                    className="rounded-3xl border border-neon-500/25 bg-neon-500/10 p-4 text-left shadow-sm transition-all hover:border-neon-500/40 hover:bg-neon-500/15 dark:border-neon-500/30 dark:bg-neon-500/10 dark:hover:border-neon-500/50 dark:hover:bg-neon-500/15"
-                  >
-                    <div className="flex items-center justify-between">
-                      {!hasBoost && !isAdmin ? (
-                        <>
-                          <Crown className="h-5 w-5 text-neon-600 dark:text-neon-400" />
-                          <span className="text-[9px] font-mono font-bold bg-neon-500/15 text-neon-700 border border-neon-500/30 px-1.5 py-0.5 rounded uppercase dark:bg-neon-500/20 dark:text-neon-300 dark:border-neon-500/30">Boost</span>
-                        </>
-                      ) : (
-                        <>
-                          <Smartphone className="h-5 w-5 text-neon-600 dark:text-neon-400" />
-                          <span className="text-[9px] font-mono font-bold bg-neon-500/15 text-neon-700 border border-neon-500/30 px-1.5 py-0.5 rounded uppercase dark:bg-neon-500/20 dark:text-neon-300 dark:border-neon-500/30">App</span>
-                        </>
-                      )}
-                    </div>
-                    <p className="mt-3 text-sm font-semibold text-neon-900 dark:text-neon-200">
-                      {!hasBoost && !isAdmin ? "Upgrade to Boost" : "App Builder"}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-slate-600 dark:text-muted-foreground font-medium">
-                      {!hasBoost && !isAdmin ? "Unlock App Builder & Arc Matrix" : "Build full web apps"}
-                    </p>
-                  </button>
+                  <UsageSnapshotWidget onOpenPlan={() => navigate('/dashboard/settings?section=plan')} />
                   <div className="grid grid-cols-2 gap-3">
                     <button onClick={() => navigate('/tasks')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Clock className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Reminders</p><p className="mt-1 text-[11px] text-muted-foreground">Scheduled tasks</p></button>
                     <button onClick={() => navigate('/shared')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Users className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Shared</p><p className="mt-1 text-[11px] text-muted-foreground">Chats with people</p></button>
@@ -1813,7 +1791,7 @@ useEffect(() => {
           )}
 
           {/* ====== FULL APPS ====== */}
-          {activeTab === "apps" && (
+          {APP_BUILDER_ENABLED && activeTab === "apps" && (
             <motion.div key="apps" custom={tabDirection} variants={tabVariants} initial="initial" animate="animate" exit="exit" className={cn("space-y-4", embedded && "dashboard-preview-tab dashboard-preview-tab-apps")}>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
@@ -2591,7 +2569,7 @@ useEffect(() => {
       {/* IDE Canvas Panel — portaled directly to document.body to escape transformed parent bounds and constrain strictly to window */}
       {createPortal(
         <AnimatePresence>
-          {isIDEOpen && (
+          {APP_BUILDER_ENABLED && isIDEOpen && (
             <div className="fixed inset-0 z-[200] bg-background h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col">
               <IDECanvasPanel onClose={closeIDE} />
             </div>

@@ -15,7 +15,6 @@ const fallbackPrompts = {
     { label: "🍳 Quick Dinner Idea", prompt: "Here's what I have in my fridge and pantry — suggest two quick, delicious meal ideas I can make tonight." },
     { label: "⏰ Set A Reminder", prompt: "Schedule a reminder for me with a specific time and task so I don't forget to follow up." },
     { label: "⚖️ Compare Options", prompt: "I'm choosing between two products or approaches. Compare their pros, cons, and give me a clear recommendation." },
-    { label: "📱 Build An App", prompt: "/build Build me a clean, interactive mini web app or tool for this idea with a live preview." },
   ],
   reflect: [
     { label: "🌙 Rough Day", prompt: "I had a rough day. Help me talk through what happened without rushing me to a solution." },
@@ -86,7 +85,6 @@ serve(async (req) => {
 This is the practical, day-to-day tab — questions, planning, lookups, productivity, comparisons, and building.
 Lean heavily on Arc's best features:
 - Real-time live web search with citations
-- Interactive App Builder (/build)
 - File, document, and PDF analysis
 - Reminders and scheduled tasks
 - Weather and day planning
@@ -97,7 +95,6 @@ Examples of the RIGHT register:
 - "🧭 Plan My Day" → "Help me structure my tasks today into time blocks with realistic priorities."
 - "📧 Polish This Email" → "Help me write a concise, polite email that clearly communicates my point."
 - "🍳 Quick Dinner" → "Suggest a quick dinner recipe based on ingredients I already have."
-- "📱 Build An App" → "/build Build me an interactive calculator or tracker tool in real time."
 - "📄 Summarize Document" → "Break down the main takeaways and key action points from this document."
 
 STRICTLY STAY OUT of therapy, emotional reflection, rough days, journaling, or self-analysis — that belongs strictly in the Reflect tab. These must be practical, everyday AI prompts!`,

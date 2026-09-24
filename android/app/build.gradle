@@ -40,7 +40,7 @@ if (gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
 def twaManifest = [
     applicationId: 'chat.askarc.android',
     hostName: 'askarc.chat', // The domain being opened in the TWA.
-    launchUrl: '/?source=pwa', // The start path for the TWA. Must be relative to the domain.
+    launchUrl: '/?source=android-play', // Distinguish the Play TWA from the web-installed PWA.
     name: 'ArcAI', // The application name.
     launcherName: 'ArcAI', // The name shown on the Android Launcher.
     themeColor: '#000000', // The color used for the status bar.
@@ -82,10 +82,11 @@ android {
     }
     defaultConfig {
         applicationId "chat.askarc.android"
-        minSdkVersion 21
+        // The TWA Play Billing bridge requires API 23.
+        minSdkVersion 23
         targetSdkVersion 36
         versionCode 1
-        versionName "1"
+        versionName "1.0.0"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
@@ -236,6 +237,8 @@ repositories {
 dependencies {
     implementation fileTree(include: ['*.jar'], dir: 'libs')
 
-        implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2'
+        implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.2'
+        // Digital Goods API bridge for Google Play Billing in this TWA.
+        implementation 'com.google.androidbrowserhelper:billing:1.2.0'
 
 }

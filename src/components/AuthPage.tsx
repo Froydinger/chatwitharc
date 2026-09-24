@@ -155,21 +155,6 @@ export function AuthPage() {
 
   return (
     <div className="dark min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
-      {/* Background Effects - Always Blue */}
-      <div className="fixed inset-0 pointer-events-none">
-        <motion.div
-          animate={{
-            background: [
-              "radial-gradient(circle at 20% 50%, hsl(217 91% 60% / 0.1) 0%, transparent 50%)",
-              "radial-gradient(circle at 80% 20%, hsl(217 91% 60% / 0.1) 0%, transparent 50%)",
-              "radial-gradient(circle at 40% 80%, hsl(217 91% 60% / 0.1) 0%, transparent 50%)",
-            ],
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-          className="w-full h-full"
-        />
-      </div>
-
       {/* Solid Black Card - no glass effects */}
       <div className="w-full max-w-md p-8 relative z-10 bg-black border border-white/10 rounded-2xl shadow-2xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">

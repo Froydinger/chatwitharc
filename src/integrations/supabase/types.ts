@@ -1210,6 +1210,24 @@ export type Database = {
           },
         ]
       }
+      user_blocks: {
+        Row: {
+          blocker_user_id: string
+          blocked_user_id: string
+          created_at: string
+        }
+        Insert: {
+          blocker_user_id: string
+          blocked_user_id: string
+          created_at?: string
+        }
+        Update: {
+          blocker_user_id?: string
+          blocked_user_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       voice_diagnostics: {
         Row: {
           connection_state: string | null
@@ -1334,6 +1352,10 @@ export type Database = {
         }[]
       }
       user_has_pro_access: { Args: { check_user_id: string }; Returns: boolean }
+      create_ugc_report: {
+        Args: { report_details: string; report_subject: string }
+        Returns: string
+      }
       users_share_shared_chat: {
         Args: { _a: string; _b: string }
         Returns: boolean

@@ -60,3 +60,13 @@ project_id = "jpqtoixhjnfdubvqshwk"
   [functions.git-auth]
     # Handler verifies caller identity with auth.getUser directly.
     verify_jwt = false
+  [functions.verify-google-play-purchase]
+    # Handler verifies the user's JWT before validating a Play receipt server-side.
+    verify_jwt = false
+  [functions.sync-google-play-subscription]
+    # Handler verifies the user's JWT before refreshing server-held Play receipts.
+    verify_jwt = false
+  [functions.send-desktop-link]
+    # Public request form sends only a one-time desktop link; origin checks,
+    # address validation, suppression checks, and rate limits live in the handler.
+    verify_jwt = false

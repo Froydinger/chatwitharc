@@ -85,7 +85,7 @@ export function DeleteDataModal({ isOpen, onClose, onDeleted }: DeleteDataModalP
         }
       });
 
-      if (error) throw error;
+      if (error || !data?.success) throw error ?? new Error('Account deletion was not completed');
 
       toast({
         title: "Data Deleted Successfully",
@@ -143,6 +143,18 @@ export function DeleteDataModal({ isOpen, onClose, onDeleted }: DeleteDataModalP
                 <p className="font-semibold text-destructive mt-3">
                   This action CANNOT be undone.
                 </p>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Deleting your ArcAI account does not cancel a paid Boost subscription. Cancel it first in Google Play
+                  or ArcAI billing settings to stop renewal.
+                </p>
+                <a
+                  href="https://play.google.com/store/account/subscriptions?package=chat.askarc.android"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block text-xs text-primary underline underline-offset-2"
+                >
+                  Manage Google Play subscriptions
+                </a>
               </div>
             </div>
 

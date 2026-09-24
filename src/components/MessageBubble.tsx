@@ -27,7 +27,6 @@ import { CodeBlock } from "@/components/CodeBlock";
 import { FileAttachment } from "@/components/FileAttachment";
 import { CanvasAttachment } from "@/components/CanvasAttachment";
 import { CodeArtifactCard } from "@/components/CodeArtifactCard";
-import { IDEArtifactCard } from "@/components/IDEArtifactCard";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
@@ -504,25 +503,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     codeContent={message.codeContent}
                     codeLanguage={message.codeLanguage || 'typescript'}
                     codeLabel={message.codeLabel}
-                    className="max-w-md"
-                  />
-                </motion.div>
-              )}
-
-              {/* IDE App Builder Artifact */}
-              {message.idePrompt && message.ideProjectId && (
-                <motion.div
-                  key="card-ide"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.12 }}
-                  className="mb-2 relative z-10"
-                >
-                  <IDEArtifactCard
-                    prompt={message.idePrompt}
-                    fileCount={message.ideFileCount}
-                    projectId={message.ideProjectId}
-                    title={message.ideTitle}
                     className="max-w-md"
                   />
                 </motion.div>

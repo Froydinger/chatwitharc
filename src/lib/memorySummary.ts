@@ -6,6 +6,8 @@ export interface MemorySummaryResult {
   summary: string;
   revision: number;
   migrated: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 async function invokeMemorySummary(body: Record<string, unknown>): Promise<MemorySummaryResult> {
@@ -23,6 +25,8 @@ async function invokeMemorySummary(body: Record<string, unknown>): Promise<Memor
     summary: data.summary,
     revision: Number(data.revision) || 1,
     migrated: data.migrated !== false,
+    createdAt: typeof data.created_at === 'string' ? data.created_at : null,
+    updatedAt: typeof data.updated_at === 'string' ? data.updated_at : null,
   };
 }
 

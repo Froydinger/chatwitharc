@@ -304,6 +304,13 @@ function extractConversationalSummary(text: string): string {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const appBuilderIsPermanentlyDisabled = () => true;
+  if (appBuilderIsPermanentlyDisabled()) {
+    return new Response(JSON.stringify({ error: "Multi-file app creation is currently unavailable." }), {
+      status: 410,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const authHeader = req.headers.get("Authorization");

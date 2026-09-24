@@ -1,8 +1,11 @@
-import { useEffect } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   ArrowRight,
+  CheckCircle2,
+  Loader2,
+  Mail,
   Sparkles,
   MessageSquare,
   Mic,
@@ -15,25 +18,31 @@ import {
 import { AppleLogo } from "@/components/icons/AppleLogo";
 import { BLOG_POSTS } from "@/content/blog/posts";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const SITE = "https://askarc.chat";
 
 const LANDING_FAQ = [
   {
     q: "What is ArcAI?",
-    a: "ArcAI is a multimodal AI assistant founded and created by Win The Night™ Foundation, built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, natural voice conversations, image generation, a code canvas, full React App Builder, and living memory, all in your browser.",
+    a: "ArcAI is a multimodal AI assistant founded and created by Win The Night™ Foundation, built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, natural voice conversations, image generation, a code canvas, GitHub workflows, and living memory, all in your browser.",
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes Arc Matrix™ chat (unlimited Ava and 20 Maya chats daily), canvases, a living memory summary, 3 Arc Imagix creations, weekly research, and 3 voice sessions per UTC day up to 10 minutes each with Arc. River requires Boost, which also adds unlimited research, unlimited Maya, App Builder, unlimited Arc Imagix creation & editing, and unlimited voice sessions up to 2 hours each.",
+    a: "Yes. Our free tier includes Arc Matrix™ chat (unlimited Ava and 20 Maya chats daily), canvases, a living memory summary, 3 Arc Imagix creations, weekly research, and 3 voice sessions per UTC day up to 10 minutes each with Arc. River requires Boost, which also adds unlimited research, unlimited Maya, unlimited Arc Imagix creation & editing, and unlimited voice sessions up to 2 hours each.",
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade with a 7-day free trial (card required), then $10/month or a limited-time $95/year annual rate, normally $120/year. The annual rate renews at $95/year while you keep Boost and adds unlimited Ava, Maya, and River reasoning across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, unlimited Arc Imagix generation & editing, unlimited voice sessions up to 2 hours each, and the full App Builder with live web-app publishing.",
-  },
-  {
-    q: "What is the App Builder in ArcAI?",
-    a: "ArcAI's App Builder is an interactive in-browser IDE powered by Arc Matrix™ that turns your ideas into full-stack React web applications. It includes a Monaco code editor, live Sandpack preview, integrated Netlify database and user authentication, and one-click deployment to custom askarc.chat URLs or complete Git-ready Vite+React ZIP export.",
+    a: "Yes. We offer a Boost upgrade with a 7-day free trial (card required), then $10/month or a limited-time $95/year annual rate, normally $120/year. The annual rate renews at $95/year while you keep Boost and adds unlimited Ava, Maya, and River reasoning across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, unlimited Arc Imagix generation & editing, and unlimited voice sessions up to 2 hours each.",
   },
   {
     q: "How does Arc's memory work?",
@@ -68,14 +77,19 @@ const LANDING_FAQ = [
     a: "Yes. Voice mode provides low-latency, interruptible conversations with Arc using natural voices powered by our Voxi speech engine. Free accounts get 3 voice sessions per UTC day, up to 10 minutes each, while Boost includes unlimited voice sessions up to 2 hours each.",
   },
   {
-    q: "Can ArcAI write code and build apps?",
-    a: "Yes. For quick scripts and prototypes, the code canvas gives you single-file live previews. For complete applications, Boost subscribers can use the App Builder to construct, test, and publish full interactive multi-file React apps.",
+    q: "Can ArcAI help with code?",
+    a: "Yes. Code Canvas helps with quick scripts and prototypes, and GitHub Mode can prepare changes in a connected repository as a branch and pull request.",
   },
 ];
 
 export function LandingPage() {
   const { user, isAnonymous } = useAuth();
   const navigate = useNavigate();
+  const [sendDesktopOpen, setSendDesktopOpen] = useState(false);
+  const [desktopEmail, setDesktopEmail] = useState("");
+  const [desktopEmailBusy, setDesktopEmailBusy] = useState(false);
+  const [desktopEmailSent, setDesktopEmailSent] = useState(false);
+  const [desktopEmailError, setDesktopEmailError] = useState<string | null>(null);
 
   // Force pure-dark theme regardless of user preference on the lander.
   useEffect(() => {
@@ -120,6 +134,34 @@ export function LandingPage() {
           detail: { feature: "boost" },
         })
       );
+    }
+  };
+
+  const openSendDesktop = () => {
+    setDesktopEmail("");
+    setDesktopEmailSent(false);
+    setDesktopEmailError(null);
+    setSendDesktopOpen(true);
+  };
+
+  const handleSendDesktopLink = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (desktopEmailBusy) return;
+
+    const formData = new FormData(event.currentTarget);
+    const company = String(formData.get("company") ?? "");
+    setDesktopEmailBusy(true);
+    setDesktopEmailError(null);
+    try {
+      const { error } = await supabase.functions.invoke("send-desktop-link", {
+        body: { email: desktopEmail.trim(), company },
+      });
+      if (error) throw error;
+      setDesktopEmailSent(true);
+    } catch {
+      setDesktopEmailError("We couldn't send the link right now. Please try again in a bit.");
+    } finally {
+      setDesktopEmailBusy(false);
     }
   };
 
@@ -200,10 +242,17 @@ export function LandingPage() {
           </button>
           <Link
             to="/downloads"
-            className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.03] px-6 py-3 text-base font-medium text-white/90 transition-colors hover:bg-white/[0.07]"
+            className="hidden sm:inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.03] px-6 py-3 text-base font-medium text-white/90 transition-colors hover:bg-white/[0.07]"
           >
             <AppleLogo className="h-4 w-4" /> Download for Mac
           </Link>
+          <button
+            type="button"
+            onClick={openSendDesktop}
+            className="inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.03] px-6 py-3 text-base font-medium text-white/90 transition-colors hover:bg-white/[0.07] sm:hidden"
+          >
+            <Mail className="h-4 w-4" /> Send to desktop
+          </button>
         </div>
       </section>
 
@@ -221,7 +270,7 @@ export function LandingPage() {
             { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
             { category: "Reflect", icon: Brain, title: "Living Cross-Session Memory", body: "Arc keeps one detailed, evolving summary of the preferences, goals, facts, and boundaries you want it to remember, then recalls it when relevant." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },
-            { category: "Create", icon: Code2, title: "Code Canvas", body: "Turn thoughts into running web apps instantly, with a visual canvas to preview, build, and publish your creations." },
+            { category: "Create", icon: Code2, title: "Code Canvas", body: "Draft and preview quick code snippets in a visual workspace, then use GitHub Mode for changes to a connected repository." },
             { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create custom images and art with state-of-the-art vision models, bringing visual ideas to life in seconds." },
           ].map((f, i) => (
             <div
@@ -263,7 +312,7 @@ export function LandingPage() {
               Free is powerful. <span className="text-white/70">Boost is optional.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              Arc is built to be a safe, helpful hub for everyone. The free plan includes unlimited Ava, 20 Maya chats daily, a living memory summary, 3 voice sessions per UTC day up to 10 minutes each, search, and coding out of the box. Start Boost with a 7-day free trial (card required) for $10/month, or save 21% with the limited-time $95/year plan (normally $120/year, renewing at $95/year while subscribed), to unlock River, unlimited Maya, unlimited voice sessions up to 2 hours each, and full App Builder publishing.
+              Arc is built to be a safe, helpful hub for everyone. The free plan includes unlimited Ava, 20 Maya chats daily, a living memory summary, 3 voice sessions per UTC day up to 10 minutes each, search, and coding out of the box. Start Boost with a 7-day free trial (card required) for $10/month, or save 21% with the limited-time $95/year plan (normally $120/year, renewing at $95/year while subscribed), to unlock River, unlimited Maya, and unlimited voice sessions up to 2 hours each.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -271,7 +320,7 @@ export function LandingPage() {
                 { icon: ImageIcon, title: "3 free images to start", body: "Create up to 3 images for free with Arc Imagix, or upgrade to Boost for unlimited generation and editing." },
                 { icon: Mic, title: "Natural voice conversations", body: "Speak naturally with low-latency, interruptible audio. Free accounts get 3 voice sessions per UTC day, up to 10 minutes each, and Boost includes unlimited live voice sessions up to 2 hours each." },
                 { icon: Search, title: "Deep research, powered by Perplexity", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. 4 Deep and 1 Ultra a week free, unlimited on Boost." },
-                { icon: Code2, title: "App Builder & live publishing", body: "Build full interactive React web apps and share running creations with custom Arc links on Boost." },
+                { icon: Code2, title: "GitHub Mode", body: "Connect a repository and let Arc prepare changes on a branch for a pull request." },
               ].map((b) => (
                 <div
                   key={b.title}
@@ -413,10 +462,74 @@ export function LandingPage() {
           <span>·</span>
           <Link to="/terms" className="hover:text-white">Terms</Link>
           <span>·</span>
-          <Link to="/downloads" className="hover:text-white">Download for Mac</Link>
+          <Link to="/downloads" className="hidden hover:text-white sm:inline">Download for Mac</Link>
+          <span className="hidden sm:inline">·</span>
+          <button type="button" onClick={openSendDesktop} className="hover:text-white sm:hidden">Send to desktop</button>
         </div>
         <div className="mt-3 opacity-60">© {new Date().getFullYear()} ArcAI by Win The Night™ Foundation</div>
       </footer>
+
+      <Dialog open={sendDesktopOpen} onOpenChange={setSendDesktopOpen}>
+        <DialogContent className="glass-card max-w-md border border-white/10 bg-[#101012] text-white">
+          <DialogHeader>
+            <DialogTitle>Send ArcAI to your desktop</DialogTitle>
+            <DialogDescription className="text-white/60">
+              Enter an email you can open on your Mac or Windows computer. We’ll send a link to the desktop downloads.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSendDesktopLink} className="space-y-4">
+            <label htmlFor="desktop-link-email" className="block text-sm font-medium text-white/80">
+              Email address
+            </label>
+            <Input
+              id="desktop-link-email"
+              type="email"
+              name="email"
+              value={desktopEmail}
+              onChange={(event) => setDesktopEmail(event.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              maxLength={254}
+              required
+              disabled={desktopEmailBusy || desktopEmailSent}
+              className="border-white/15 bg-white/5 text-white placeholder:text-white/35"
+            />
+            <input
+              type="text"
+              name="company"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              className="pointer-events-none absolute h-px w-px overflow-hidden opacity-0"
+            />
+            <p className="text-xs leading-relaxed text-white/50">
+              By requesting this one-time link, you agree to our{" "}
+              <Link to="/terms" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-white">
+                Terms
+              </Link>{" "}
+              and acknowledge our{" "}
+              <Link to="/privacy" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-white">
+                Privacy Notice
+              </Link>. This won’t subscribe you to marketing email.
+            </p>
+            <Button
+              type="submit"
+              disabled={desktopEmailBusy || desktopEmailSent}
+              className="w-full rounded-full bg-white text-black hover:bg-white/90"
+            >
+              {desktopEmailBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+              {desktopEmailBusy ? "Sending…" : desktopEmailSent ? "Link requested" : "Send desktop link"}
+            </Button>
+            {desktopEmailSent && (
+              <p role="status" className="flex items-start gap-2 text-sm text-emerald-300">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                If that address can receive ArcAI email, the link is on its way. Check your inbox.
+              </p>
+            )}
+            {desktopEmailError && <p role="alert" className="text-sm text-red-300">{desktopEmailError}</p>}
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

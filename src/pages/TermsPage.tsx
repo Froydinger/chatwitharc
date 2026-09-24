@@ -20,7 +20,7 @@ export default function TermsPage() {
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight m-0">Terms of Service</h1>
           </div>
-          <p className="text-sm text-muted-foreground mb-10">Last updated: September 20, 2026</p>
+          <p className="text-sm text-muted-foreground mb-10">Last updated: September 23, 2026</p>
 
           <div className="space-y-8 text-[15px] leading-relaxed text-foreground/90">
             <section>
@@ -114,8 +114,8 @@ export default function TermsPage() {
               <h2 className="text-xl font-semibold mb-2">8. Emails we send</h2>
               <p className="text-muted-foreground">
                 Supabase may send essential account and security emails, such as verification and password-reset
-                messages. Optional service and notification emails are coming soon. We don't send marketing or
-                newsletter emails.
+                messages. If you request a desktop download link, ArcAI will send that one-time service email to the
+                address you enter. This does not subscribe you to marketing or newsletter emails.
               </p>
             </section>
 

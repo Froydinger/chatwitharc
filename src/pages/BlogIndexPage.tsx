@@ -253,9 +253,6 @@ export function BlogIndexPage() {
 
       {/* Hero Banner Section */}
       <section className="relative overflow-hidden px-6 pt-12 pb-10 md:px-10 md:pt-16 md:pb-14">
-        {/* Background glow graphics */}
-        <div className="pointer-events-none absolute left-1/2 top-0 -z-10 -translate-x-1/2 h-[350px] w-[800px] rounded-full bg-gradient-to-tr from-primary/20 via-neon-600/10 to-transparent blur-[120px] opacity-70" />
-
         <div className="mx-auto max-w-5xl text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3.5 py-1.5 text-xs font-medium text-primary-glow backdrop-blur-md">
             <Sparkles className="h-3.5 w-3.5 text-primary-glow animate-pulse" />

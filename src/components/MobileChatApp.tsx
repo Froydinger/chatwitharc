@@ -60,6 +60,7 @@ import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { LiveVoiceTranscript } from "@/components/LiveVoiceTranscript";
 import { VoiceModeController } from "@/components/VoiceModeController";
 import { BotTestViewer } from "@/components/BotTestViewer";
+import { APP_BUILDER_ENABLED } from "@/lib/features";
 import { useBotTestSessionReset } from "@/hooks/useBotTestSessionReset";
 import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
 import { MessageQueue } from "@/components/MessageQueue";
@@ -425,7 +426,7 @@ export function MobileChatApp() {
   // durable builder. Keep the coordinator alive for that one-shot handoff so
   // the first send does not race its startup, while ordinary Chat remains
   // direct and local to its existing path.
-  const cloudAppChatEnabled = cloudTextEnabled && (hasBoost || isAdmin);
+  const cloudAppChatEnabled = APP_BUILDER_ENABLED && cloudTextEnabled && (hasBoost || isAdmin);
   const cloudRunObserverEnabled = cloudWorkEnabled || cloudAppChatEnabled;
   useEffect(() => {
     if (!arcCloudAvailable && cloudModeChoice?.mode === 'auto') setCloudModeChoice(null);
@@ -435,7 +436,7 @@ export function MobileChatApp() {
     onTerminal: async (entry, context) => {
       try {
         context.signal.throwIfAborted();
-        if (entry.run?.status === 'completed' && entry.run.projectId) {
+        if (APP_BUILDER_ENABLED && entry.run?.status === 'completed' && entry.run.projectId) {
           const project = await reconcileCloudAppRun(context.ownerId, entry.run, context.signal);
           context.signal.throwIfAborted();
           if (project?.status !== 'reloaded') throw new Error('App changed during reload. Reconnect to load the finished project.');
@@ -479,9 +480,7 @@ export function MobileChatApp() {
     if (!activeCloudRuns.ready) {
       throw new Error('Cloud connection is still starting. Your message is retained; please try again in a moment.');
     }
-    // App Builder runs need Work's auto mode so the server exposes build_app.
-    // This does not change the chat session into Work or route other messages.
-    const mode = captured.buildApp ? 'auto' : cloudExecutionMode;
+    const mode = cloudExecutionMode;
     const store = useArcStore.getState();
     const localSession = store.chatSessions.find(s => s.id === captured.sessionId);
     let message = localSession
@@ -495,7 +494,6 @@ export function MobileChatApp() {
       messages: captured.messages, forceWebSearch: captured.forceWebSearch,
       forceCanvas: captured.forceCanvas, forceCode: captured.forceCode,
       forceGit: captured.forceGit,
-      ...(captured.buildApp ? { buildApp: true } : {}),
       ...(uploadedAttachments ? { attachments: uploadedAttachments } : {}),
       ...(workspaceContext ? { workspace_context: workspaceContext } : {}),
       reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, getQueryComplexity(message.content)),
@@ -676,6 +674,10 @@ export function MobileChatApp() {
   // App Builder (IDE) workspace state
   const isIDEOpen = useIDEStore((s) => s.isOpen);
   const closeIDE = useIDEStore((s) => s.closeIDE);
+
+  useEffect(() => {
+    if (!APP_BUILDER_ENABLED && isIDEOpen) closeIDE();
+  }, [closeIDE, isIDEOpen]);
 
   // Pre-generate prompts in background for instant access
   usePromptPreload();
@@ -1954,7 +1956,7 @@ export function MobileChatApp() {
       {/* IDE Workspace Modal (Arc App Builder) — portaled directly to document.body */}
       {createPortal(
         <AnimatePresence>
-          {isIDEOpen && (
+          {APP_BUILDER_ENABLED && isIDEOpen && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

@@ -200,8 +200,8 @@ All colors MUST be HSL for perfect glass effects.
 
 @layer base {
   :root {
-    /* App-like Dark Background - Dark Grey */
-    --background: 240 8% 1%;
+    /* Flat pure-black page canvas. */
+    --background: 0 0% 0%;
     --foreground: 240 5% 96%;
 
     /* Card & Surface Colors */
@@ -2287,7 +2287,7 @@ All colors MUST be HSL for perfect glass effects.
 
   .arc-ide-workspace,
   :root.light .arc-ide-workspace {
-    --background: 240 8% 1%;
+    --background: 0 0% 0%;
     --foreground: 240 5% 96%;
     --card: 240 8% 12%;
     --card-foreground: 240 5% 94%;
@@ -2695,4 +2695,21 @@ All colors MUST be HSL for perfect glass effects.
   z-index: 99999;
   -webkit-app-region: drag;
   pointer-events: auto;
+}
+
+/* Keep every app page canvas pure black in every theme. Individual cards and
+   controls retain their own surface colors. */
+:root,
+:root.light,
+:root.dark,
+:root.light[data-accent],
+:root.dark[data-accent] {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 96%;
+}
+
+html,
+body,
+#root {
+  background-color: #000000 !important;
 }

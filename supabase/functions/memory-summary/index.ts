@@ -121,7 +121,7 @@ async function loadLegacy(db: ReturnType<typeof createClient>, userId: string): 
 async function loadSummary(db: ReturnType<typeof createClient>, userId: string) {
   const { data, error } = await db
     .from('memory_summaries')
-    .select('summary, revision, migrated_from_legacy, legacy_item_count')
+    .select('summary, revision, migrated_from_legacy, legacy_item_count, created_at, updated_at')
     .eq('user_id', userId)
     .maybeSingle();
   if (error) throw error;
@@ -226,7 +226,7 @@ async function applyOperation(
       .from('memory_summaries')
       .update({ summary, revision: (current?.revision || 0) + 1, migrated_from_legacy: true })
       .eq('user_id', userId)
-      .select('summary, revision, migrated_from_legacy, legacy_item_count')
+      .select('summary, revision, migrated_from_legacy, legacy_item_count, created_at, updated_at')
       .single();
     if (error) throw error;
     return data;
@@ -253,7 +253,7 @@ async function applyOperation(
       .update({ summary: nextSummary, revision: (current?.revision || 0) + 1, migrated_from_legacy: true })
       .eq('user_id', userId)
       .eq('revision', current?.revision || 1)
-      .select('summary, revision, migrated_from_legacy, legacy_item_count')
+      .select('summary, revision, migrated_from_legacy, legacy_item_count, created_at, updated_at')
       .maybeSingle();
     if (error) throw error;
     if (data) return data;
@@ -311,7 +311,13 @@ Deno.serve(async (req) => {
     if (action === 'get') {
       if (!user) return json({ error: 'Unauthorized' }, 401);
       const summary = await migrateIfNeeded(db, user.id, apiKey);
-      return json({ summary: summary?.summary || '', revision: summary?.revision || 1, migrated: true });
+      return json({
+        summary: summary?.summary || '',
+        revision: summary?.revision || 1,
+        migrated: true,
+        created_at: summary?.created_at ?? null,
+        updated_at: summary?.updated_at ?? null,
+      });
     }
 
     if (action !== 'apply') return json({ error: 'Unknown memory action' }, 400);
@@ -334,7 +340,13 @@ Deno.serve(async (req) => {
     }
 
     const result = await applyOperation(db, user.id, apiKey, operation, change, directSummary, replaces);
-    return json({ summary: result?.summary || '', revision: result?.revision || 1, migrated: true });
+    return json({
+      summary: result?.summary || '',
+      revision: result?.revision || 1,
+      migrated: true,
+      created_at: result?.created_at ?? null,
+      updated_at: result?.updated_at ?? null,
+    });
   } catch (error) {
     console.error('[memory-summary] request failed:', error);
     return json({ error: error instanceof Error ? error.message : 'Memory operation failed' }, 500);

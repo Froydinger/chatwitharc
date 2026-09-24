@@ -13,3 +13,6 @@
  * back — this constant is the only switch.
  */
 export const GUEST_CHAT_ENABLED = false;
+
+/** Temporarily disables ArcAI App Builder while work stays focused on Git. */
+export const APP_BUILDER_ENABLED = false;

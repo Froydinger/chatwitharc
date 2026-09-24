@@ -87,7 +87,7 @@ export function DocsPage() {
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
             <li><strong className="text-foreground">Free Tier</strong>: Unlimited Ava and 20 Maya chats daily; River requires Boost. Includes 3 Arc Imagix creations and 3 voice sessions per UTC day, up to 10 minutes each.</li>
-            <li><strong className="text-foreground">Boost Plan ($10/mo or limited-time $95/yr, normally $120/yr)</strong>: Start with a 7-day free trial (card required). The annual rate renews at $95/yr while subscribed. Boost includes unlimited Ava, Maya, and River reasoning, unlimited Arc Imagix generation &amp; editing, full App Builder, offline local model support, and unlimited voice sessions up to 2 hours each.</li>
+            <li><strong className="text-foreground">Boost Plan ($10/mo or limited-time $95/yr, normally $120/yr)</strong>: Start with a 7-day free trial (card required). The annual rate renews at $95/yr while subscribed. Boost includes unlimited Ava, Maya, and River reasoning, unlimited Arc Imagix generation &amp; editing, offline local model support, and unlimited voice sessions up to 2 hours each.</li>
           </ul>
           <p>You can check your current daily usage and remaining limit at <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>
         </div>
@@ -234,30 +234,6 @@ export function DocsPage() {
         </div>
       ),
       keywords: ["deep search", "ultra deep search", "research", "perplexity", "citations", "sources", "web search"]
-    },
-    {
-      id: "app-builder",
-      category: "canvas",
-      title: "Building Web Apps with App Builder (IDE)",
-      question: "How do I build, preview, and deploy full web applications?",
-      answer: (
-        <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-          <p>
-            The <strong>App Builder</strong> is ArcAI's integrated IDE workspace powered by <strong>Arc Matrix™</strong>. It allows you to generate, edit, run, and deploy complete multi-file interactive React applications directly inside your browser.
-          </p>
-          <p>How to access and use the App Builder:</p>
-          <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Triggers</strong>: Tap the <strong className="text-foreground">+</strong> menu and select <strong className="text-foreground">App</strong>, type slash commands (<code className="text-xs bg-muted px-1.5 py-0.5 rounded">/build</code> or <code className="text-xs bg-muted px-1.5 py-0.5 rounded">/app</code>), or describe what you want to build in chat.</li>
-            <li><strong className="text-foreground">Interactive Workspace</strong>: Opens a dedicated split-view with a real-time Sandpack preview, Monaco code editor, and continuous AI chat refinement.</li>
-            <li><strong className="text-foreground">Built-in Database &amp; Auth</strong>: Ships with Netlify Database and Identity pre-wired for user logins, collections, and reactive data storage without external setup.</li>
-            <li><strong className="text-foreground">Instant Deploys &amp; Export</strong>: Deploy your live app with one click to custom <code className="text-xs bg-muted px-1.5 py-0.5 rounded">*.askarc.chat</code> links or export a complete Git-ready Vite + React TypeScript ZIP project.</li>
-          </ul>
-          <p>
-            App Builder is exclusively available to <strong>ArcAI Boost</strong> subscribers and administrators.
-          </p>
-        </div>
-      ),
-      keywords: ["app builder", "build app", "react app", "ide", "sandpack", "monaco", "deploy app", "export zip", "netlify db", "askarc.chat", "/build", "/app"]
     },
     {
       id: "memory-bank",

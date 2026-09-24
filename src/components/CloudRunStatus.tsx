@@ -77,7 +77,7 @@ function formatElapsed(milliseconds: number) {
 }
 
 type SummaryLink = { url: string; title: string; snippet?: string };
-type SummaryAsset = { kind: 'image' | 'file' | 'canvas' | 'code' | 'app'; label: string; url?: string; detail?: string; projectId?: string; prompt?: string; fileCount?: number };
+type SummaryAsset = { kind: 'image' | 'file' | 'canvas' | 'code'; label: string; url?: string; detail?: string };
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -120,21 +120,6 @@ function workSummary(run: CloudRun<unknown, CloudRunCheckpoint>) {
   if (Object.keys(canvas).length) assets.push({ kind: 'canvas', label: typeof canvas.label === 'string' && canvas.label.trim() ? canvas.label : 'Canvas update', detail: 'Canvas content created or updated' });
   const code = record(result.code_update);
   if (Object.keys(code).length) assets.push({ kind: 'code', label: typeof code.label === 'string' && code.label.trim() ? code.label : 'Code block', detail: typeof code.language === 'string' ? code.language : 'Code content created' });
-  const app = record(result.app_artifact ?? result.appArtifact);
-  const appProjectId = typeof app.projectId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(app.projectId)
-    ? app.projectId
-    : undefined;
-  if (appProjectId) {
-    assets.push({
-      kind: 'app',
-      projectId: appProjectId,
-      label: typeof app.title === 'string' && app.title.trim() ? app.title : 'App Builder project',
-      prompt: typeof app.prompt === 'string' ? app.prompt : undefined,
-      fileCount: typeof app.fileCount === 'number' ? app.fileCount : undefined,
-      url: `/build/${encodeURIComponent(appProjectId)}`,
-      detail: 'Open the saved app in App Builder',
-    });
-  }
   strings(result.search_images).slice(0, 8).forEach((url, index) => assets.push({ kind: 'image', label: `Search image ${index + 1}`, url }));
   return { response, links, assets };
 }
@@ -155,7 +140,7 @@ export function hasWorkCompletionSummary(run: CloudRun<unknown, CloudRunCheckpoi
 }
 
 function assetIcon(kind: SummaryAsset['kind']) {
-  return kind === 'image' ? 'Image' : kind === 'file' ? 'File' : kind === 'canvas' ? 'Canvas' : kind === 'app' ? 'App' : 'Code';
+  return kind === 'image' ? 'Image' : kind === 'file' ? 'File' : kind === 'canvas' ? 'Canvas' : kind === 'code' ? 'Code' : 'Created';
 }
 
 function WorkCompletionSummary({ run, onClose }: { run: CloudRun<unknown, CloudRunCheckpoint>; onClose: () => void }) {
@@ -195,8 +180,7 @@ function WorkCompletionSummary({ run, onClose }: { run: CloudRun<unknown, CloudR
             {asset.kind === 'image' && asset.url && <a href={asset.url} target="_blank" rel="noreferrer" className="mb-2 block overflow-hidden rounded-lg border border-border/50 bg-muted/30">
               <img src={asset.url} alt={asset.label} className="h-28 w-full object-cover" loading="lazy" />
             </a>}
-            {asset.kind === 'app' && asset.projectId ? <a href={`/build/${encodeURIComponent(asset.projectId)}`} className="block truncate text-sm font-medium text-primary underline-offset-4 hover:underline">{assetIcon(asset.kind)} · Open {asset.label}</a>
-              : asset.url ? <a href={asset.url} target="_blank" rel="noreferrer" className="block truncate text-sm font-medium text-primary underline-offset-4 hover:underline">{assetIcon(asset.kind)} · {asset.label}</a>
+            {asset.url ? <a href={asset.url} target="_blank" rel="noreferrer" className="block truncate text-sm font-medium text-primary underline-offset-4 hover:underline">{assetIcon(asset.kind)} · {asset.label}</a>
               : <p className="text-sm font-medium">{assetIcon(asset.kind)} · {asset.label}</p>}
             {asset.detail && <p className="mt-1 text-xs text-muted-foreground">{asset.detail}</p>}
           </div>)}

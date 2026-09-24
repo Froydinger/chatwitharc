@@ -36,7 +36,8 @@ Deno.serve(async (req) => {
     const { action, confirmationCode } = await req.json()
 
     if (action === 'get_warning') {
-      // Return warning message and confirmation code
+      // Require an explicit, short-lived confirmation so stale dialogs cannot
+      // be replayed after the user has left the deletion flow.
       const warningCode = `DELETE_${user.id.slice(0, 8)}_${Date.now()}`
       
       return new Response(
@@ -53,15 +54,17 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'confirm_delete') {
-      // Validate confirmation code format
-      if (!confirmationCode || !confirmationCode.startsWith(`DELETE_${user.id.slice(0, 8)}_`)) {
+      const codeMatch = typeof confirmationCode === 'string'
+        ? /^DELETE_([a-f0-9]{8})_(\d{13})$/.exec(confirmationCode)
+        : null
+      const issuedAt = codeMatch ? Number(codeMatch[2]) : 0
+      const isRecent = issuedAt > 0 && Date.now() - issuedAt >= 0 && Date.now() - issuedAt <= 10 * 60 * 1000
+      if (!codeMatch || codeMatch[1] !== user.id.slice(0, 8) || !isRecent) {
         return new Response(
-          JSON.stringify({ error: 'Invalid confirmation code' }),
+          JSON.stringify({ error: 'Invalid or expired confirmation code' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
-
-      console.log(`🗑️ Starting FULL account deletion for user: ${user.id} (${user.email})`)
 
       // Create admin client with service role for full deletion
       const supabaseAdmin = createClient(
@@ -75,9 +78,7 @@ Deno.serve(async (req) => {
         }
       )
 
-      // Delete user's data from all tables that store per-user data
       const deletionResults: Record<string, boolean> = {}
-
       const userTables: Array<{ table: string; column?: string }> = [
         { table: 'chat_sessions' },
         { table: 'search_sessions' },
@@ -89,10 +90,27 @@ Deno.serve(async (req) => {
         { table: 'image_generation_jobs' },
         { table: 'published_sites' },
         { table: 'daily_image_usage' },
+        { table: 'daily_video_usage' },
+        { table: 'video_generation_jobs' },
+        { table: 'research_usage' },
+        { table: 'voice_daily_usage' },
+        { table: 'voice_conversations' },
         { table: 'voice_diagnostics' },
+        { table: 'push_subscriptions' },
+        { table: 'chat_folders' },
+        { table: 'subscriptions' },
+        { table: 'google_play_subscriptions' },
+        { table: 'bug_reports' },
         { table: 'ticket_messages', column: 'sender_id' },
         { table: 'support_tickets' },
+        { table: 'user_blocks', column: 'blocker_user_id' },
+        { table: 'user_blocks', column: 'blocked_user_id' },
+        { table: 'admin_users' },
         { table: 'profiles' },
+        { table: 'shared_chat_messages', column: 'author_user_id' },
+        { table: 'shared_chat_members' },
+        { table: 'shared_chat_invites', column: 'invited_by' },
+        { table: 'shared_chats', column: 'owner_id' },
       ]
 
       for (const { table, column } of userTables) {
@@ -101,24 +119,87 @@ Deno.serve(async (req) => {
           .delete()
           .eq(column ?? 'user_id', user.id)
         deletionResults[table] = !error
-        if (error) console.error(`Error deleting ${table}:`, error)
+        if (error) {
+          console.error(`Account deletion stopped while removing ${table}:`, error.message)
+          return new Response(
+            JSON.stringify({ error: 'Account deletion stopped after a data cleanup step failed. Some account data may already have been removed. Please retry or contact ArcAI support.' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
       }
 
-      // 6. Delete the auth user account entirely
+      // Remove invitations sent to the account as well as invitations it sent.
+      if (user.email) {
+        const { error: inviteError } = await supabaseAdmin
+          .from('shared_chat_invites')
+          .delete()
+          .ilike('email', user.email)
+        deletionResults.receivedInvites = !inviteError
+        if (inviteError) {
+          console.error('Account deletion stopped while removing received invitations:', inviteError.message)
+          return new Response(
+            JSON.stringify({ error: 'Account deletion stopped after a data cleanup step failed. Some account data may already have been removed. Please retry or contact ArcAI support.' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        const { error: compedUserError } = await supabaseAdmin
+          .from('comped_users')
+          .delete()
+          .ilike('email', user.email)
+        deletionResults.compedAccess = !compedUserError
+        if (compedUserError) {
+          console.error('Account deletion stopped while removing email-based access:', compedUserError.message)
+          return new Response(
+            JSON.stringify({ error: 'Account deletion stopped after a data cleanup step failed. Some account data may already have been removed. Please retry or contact ArcAI support.' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      }
+
+      // User uploads are stored under the account ID in these buckets.
+      const removeUserFiles = async (bucket: string, prefix: string, depth = 0): Promise<void> => {
+        if (depth > 8) throw new Error(`Storage folder nesting exceeded for ${bucket}`)
+        const { data: entries, error } = await supabaseAdmin.storage.from(bucket).list(prefix, { limit: 1000 })
+        if (error) throw new Error(`${bucket}: ${error.message}`)
+        const objectPaths: string[] = []
+        for (const entry of entries ?? []) {
+          const path = `${prefix}/${entry.name}`
+          if (entry.id) objectPaths.push(path)
+          else await removeUserFiles(bucket, path, depth + 1)
+        }
+        for (let index = 0; index < objectPaths.length; index += 100) {
+          const { error: removeError } = await supabaseAdmin.storage.from(bucket).remove(objectPaths.slice(index, index + 100))
+          if (removeError) throw new Error(`${bucket}: ${removeError.message}`)
+        }
+      }
+
+      for (const bucket of ['avatars', 'generated-files', 'cloud-chat-inputs', 'ticket-attachments']) {
+        try {
+          await removeUserFiles(bucket, user.id)
+          deletionResults[`storage:${bucket}`] = true
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'storage deletion failed'
+          console.error(`Account deletion stopped while removing ${bucket} files:`, message)
+          return new Response(
+            JSON.stringify({ error: 'Account deletion stopped while removing account files. Some account data or files may already have been removed. Please retry or contact ArcAI support.' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      }
+
+      // Delete the auth user only after all owned rows and files were removed.
       const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
       deletionResults.authUser = !deleteUserError
       if (deleteUserError) {
-        console.error('Error deleting auth user:', deleteUserError)
+        console.error('Account deletion could not remove the authenticated account:', deleteUserError.message)
         return new Response(
-          JSON.stringify({ 
-            error: 'Failed to delete user account',
-            details: deleteUserError.message 
-          }),
+          JSON.stringify({ error: 'Failed to delete the ArcAI account.' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
 
-      console.log(`✅ Successfully deleted user account and all data for: ${user.id}`)
+      console.log('ArcAI account deletion completed successfully.')
 
       return new Response(
         JSON.stringify({

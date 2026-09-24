@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, UserPlus, Settings, Sparkles, Users, Plus, ImagePlus, X, Loader2, Trash2, Mail, Paperclip } from "lucide-react";
+import { ArrowLeft, ArrowRight, UserPlus, Settings, Sparkles, Users, Plus, ImagePlus, X, Loader2, Trash2, Mail, Paperclip, Flag, Ban, ShieldOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { MessageBubble } from "@/components/MessageBubble";
 import { cn } from "@/lib/utils";
+import { createUGCReport } from "@/lib/ugcReports";
 import type { Message } from "@/store/useArcStore";
 
 interface MsgAttachment { type: "image"; url: string }
@@ -66,6 +67,7 @@ export function SharedChatRoomPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [profilesMap, setProfilesMap] = useState<Map<string, ProfileInfo>>(new Map());
+  const [blockedUserIds, setBlockedUserIds] = useState<Set<string>>(new Set());
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
@@ -78,6 +80,47 @@ export function SharedChatRoomPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const blockedUserIdsRef = useRef<Set<string>>(new Set());
+
+  const loadAll = useCallback(async () => {
+    if (!chatId || !user) return;
+    const [{ data: c }, { data: msgs }, { data: mems }, { data: invs }] = await Promise.all([
+      supabase.from("shared_chats").select("id,title,owner_id").eq("id", chatId).maybeSingle(),
+      supabase.from("shared_chat_messages").select("*").eq("chat_id", chatId).order("created_at", { ascending: true }).limit(200),
+      supabase.from("shared_chat_members").select("user_id,role").eq("chat_id", chatId),
+      supabase.from("shared_chat_invites").select("id,email,accepted_at").eq("chat_id", chatId).is("accepted_at", null),
+    ]);
+    if (!c) { toast({ title: "Chat not found", variant: "destructive" }); navigate("/shared"); return; }
+    const { data: blocks, error: blocksError } = await supabase
+      .from("user_blocks")
+      .select("blocked_user_id")
+      .eq("blocker_user_id", user.id);
+    if (blocksError) {
+      toast({ title: "Safety settings unavailable", description: "Reload this shared chat in a moment.", variant: "destructive" });
+      return;
+    }
+    const blocked = new Set((blocks ?? []).map((row) => row.blocked_user_id));
+    blockedUserIdsRef.current = blocked;
+    setBlockedUserIds(blocked);
+    const visibleMessages = ((msgs as Msg[] | null) ?? []).filter((message) => !message.author_user_id || !blocked.has(message.author_user_id));
+    setChat(c);
+    setMessages(visibleMessages);
+    setPendingInvites((invs ?? []).map((invite) => ({ id: invite.id, email: invite.email })));
+    const userIds = Array.from(new Set([
+      ...(mems ?? []).map((member) => member.user_id),
+      ...visibleMessages.map((message) => message.author_user_id).filter((id): id is string => typeof id === "string"),
+    ]));
+    let map = new Map<string, ProfileInfo>();
+    if (userIds.length) {
+      const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
+      map = new Map<string, ProfileInfo>((profs ?? []).map((profile) => [profile.user_id, { display_name: profile.display_name?.trim() || "User", avatar_url: profile.avatar_url ?? null }]));
+    }
+    setProfilesMap(map);
+    setMembers((mems ?? []).map((member) => ({ ...member, display_name: map.get(member.user_id)?.display_name ?? "User", avatar_url: map.get(member.user_id)?.avatar_url ?? null })));
+    await supabase.from("shared_chat_members")
+      .update({ last_read_at: new Date().toISOString() })
+      .eq("chat_id", chatId).eq("user_id", user.id);
+  }, [chatId, navigate, toast, user]);
 
   useEffect(() => { if (!authLoading && !user) navigate("/"); }, [authLoading, user, navigate]);
 
@@ -87,15 +130,18 @@ export function SharedChatRoomPage() {
     const ch = supabase
       .channel(`shared-${chatId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "shared_chat_messages", filter: `chat_id=eq.${chatId}` }, (payload) => {
-        setMessages((prev) => prev.find((m) => m.id === (payload.new as any).id) ? prev : [...prev, payload.new as any]);
-        if ((payload.new as any).author_user_id === null) setAiThinking(false);
+        const incoming = payload.new as Msg;
+        if (incoming.author_user_id && blockedUserIdsRef.current.has(incoming.author_user_id)) return;
+        setMessages((prev) => prev.find((m) => m.id === incoming.id) ? prev : [...prev, incoming]);
+        if (incoming.author_user_id === null) setAiThinking(false);
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "shared_chat_messages", filter: `chat_id=eq.${chatId}` }, (payload) => {
-        setMessages((prev) => prev.filter((m) => m.id !== (payload.old as any).id));
+        const deleted = payload.old as { id?: string };
+        if (typeof deleted.id === "string") setMessages((prev) => prev.filter((m) => m.id !== deleted.id));
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user?.id, chatId]);
+  }, [loadAll, user, chatId]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -111,35 +157,6 @@ export function SharedChatRoomPage() {
     el.style.height = Math.min(el.scrollHeight, 24 * 6) + "px";
   }, [text]);
 
-  async function loadAll() {
-    if (!chatId || !user) return;
-    const [{ data: c }, { data: msgs }, { data: mems }, { data: invs }] = await Promise.all([
-      supabase.from("shared_chats").select("id,title,owner_id").eq("id", chatId).maybeSingle(),
-      supabase.from("shared_chat_messages").select("*").eq("chat_id", chatId).order("created_at", { ascending: true }).limit(200),
-      supabase.from("shared_chat_members").select("user_id,role").eq("chat_id", chatId),
-      supabase.from("shared_chat_invites").select("id,email,accepted_at").eq("chat_id", chatId).is("accepted_at", null),
-    ]);
-    if (!c) { toast({ title: "Chat not found", variant: "destructive" }); navigate("/shared"); return; }
-    setChat(c as any);
-    setMessages((msgs as any) ?? []);
-    setPendingInvites(((invs as any[]) ?? []).map((i) => ({ id: i.id, email: i.email })));
-    const userIds = Array.from(new Set([
-      ...((mems as any[]) ?? []).map((m) => m.user_id),
-      ...((msgs as any[]) ?? []).map((m) => m.author_user_id).filter(Boolean),
-    ]));
-    if (userIds.length) {
-      const { data: profs } = await supabase.from("profiles").select("user_id, display_name, avatar_url").in("user_id", userIds);
-      const map = new Map<string, ProfileInfo>((profs ?? []).map((p: any) => [p.user_id, { display_name: p.display_name?.trim() || "User", avatar_url: p.avatar_url ?? null }]));
-      setProfilesMap(map);
-      setMembers((mems as any[] ?? []).map((m) => ({ ...m, display_name: map.get(m.user_id)?.display_name ?? "User", avatar_url: map.get(m.user_id)?.avatar_url ?? null })));
-    } else {
-      setMembers((mems as any) ?? []);
-    }
-    await supabase.from("shared_chat_members")
-      .update({ last_read_at: new Date().toISOString() })
-      .eq("chat_id", chatId).eq("user_id", user.id);
-  }
-
   async function revokeInvite(id: string) {
     const { error } = await supabase.from("shared_chat_invites").delete().eq("id", id);
     if (error) { toast({ title: "Couldn't revoke", description: error.message, variant: "destructive" }); return; }
@@ -151,6 +168,55 @@ export function SharedChatRoomPage() {
     const { error } = await supabase.from("shared_chat_members").delete().eq("chat_id", chatId).eq("user_id", uid);
     if (error) { toast({ title: "Couldn't remove", description: error.message, variant: "destructive" }); return; }
     setMembers((m) => m.filter((x) => x.user_id !== uid));
+  }
+
+  async function toggleBlockMember(uid: string, displayName?: string) {
+    if (!user || uid === user.id) return;
+    const shouldBlock = !blockedUserIdsRef.current.has(uid);
+    if (shouldBlock && !window.confirm(`Block ${displayName || "this member"}? Their messages will be hidden from you in shared chats.`)) return;
+    const { error } = shouldBlock
+      ? await supabase.from("user_blocks").insert({ blocker_user_id: user.id, blocked_user_id: uid })
+      : await supabase.from("user_blocks").delete().eq("blocker_user_id", user.id).eq("blocked_user_id", uid);
+    if (error) {
+      toast({ title: "Couldn't update block", description: "Please try again.", variant: "destructive" });
+      return;
+    }
+    const next = new Set(blockedUserIdsRef.current);
+    if (shouldBlock) next.add(uid);
+    else next.delete(uid);
+    blockedUserIdsRef.current = next;
+    setBlockedUserIds(next);
+    if (shouldBlock) {
+      setMessages((current) => current.filter((message) => message.author_user_id !== uid));
+      toast({ title: "Member blocked", description: "Their messages are hidden from you in shared chats." });
+    } else {
+      toast({ title: "Member unblocked" });
+      void loadAll();
+    }
+  }
+
+  async function reportMessage(message: Msg) {
+    if (!user || user.is_anonymous) {
+      toast({ title: "Sign in to report", description: "Sign in to your ArcAI account to report shared content." });
+      return;
+    }
+    try {
+      await createUGCReport({
+        subject: `Shared chat: ${chat?.title || "Untitled"}`,
+        details: [
+          "User reported a message in a shared chat.",
+          `Chat ID: ${chatId}`,
+          `Message ID: ${message.id}`,
+          `Message author user ID: ${message.author_user_id ?? "ArcAI assistant"}`,
+          `Message role: ${message.role}`,
+          `Message excerpt: ${message.content.slice(0, 1800)}`,
+          `Attachments: ${(message.attachments ?? []).map((attachment) => attachment.url).join(", ") || "none"}`,
+        ].join("\n"),
+      });
+      toast({ title: "Report sent", description: "ArcAI support has received this content report." });
+    } catch {
+      toast({ title: "Report failed", description: "We couldn't send the report. Please try again.", variant: "destructive" });
+    }
   }
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -200,8 +266,8 @@ export function SharedChatRoomPage() {
         content: `🎨 ${prompt}`,
         attachments: [{ type: "image", url: imageUrl }],
       });
-    } catch (e: any) {
-      toast({ title: "Image generation failed", description: String(e?.message ?? e), variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Image generation failed", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
     } finally {
       setAiThinking(false);
     }
@@ -209,7 +275,7 @@ export function SharedChatRoomPage() {
 
   async function send() {
     if (!user || !chatId || (!text.trim() && selectedImages.length === 0) || sending) return;
-    let content = text.trim();
+    const content = text.trim();
     setText("");
     setSending(true);
     setUploadingImages(selectedImages.length > 0);
@@ -245,7 +311,7 @@ export function SharedChatRoomPage() {
         role: "user",
         content: content || (selectedImages.length > 0 ? "📸 Shared an image" : ""),
         mentions: mentionedIds,
-        attachments: attachments.length > 0 ? (attachments as any) : undefined,
+        attachments: attachments.length > 0 ? attachments : undefined,
       }]);
 
       if (error) {
@@ -283,16 +349,16 @@ export function SharedChatRoomPage() {
         supabase.functions.invoke("shared-chat-respond", { body: { chat_id: chatId } })
           .catch((e) => { setAiThinking(false); toast({ title: "Arc couldn't reply", description: String(e), variant: "destructive" }); });
       }
-    } catch (e: any) {
+    } catch (error: unknown) {
       setSending(false);
       setUploadingImages(false);
-      toast({ title: "Error", description: String(e?.message ?? e), variant: "destructive" });
+      toast({ title: "Error", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
     }
   }
 
   async function invite() {
     if (!chatId || !inviteEmail.trim()) return;
-    const { data, error } = await supabase.functions.invoke("invite-to-shared-chat", {
+    const { data, error } = await supabase.functions.invoke<{ status?: string }>("invite-to-shared-chat", {
       body: { chat_id: chatId, email: inviteEmail.trim() },
     });
     if (error) {
@@ -300,7 +366,7 @@ export function SharedChatRoomPage() {
       return;
     }
     setInviteEmail("");
-    if ((data as any)?.status === "added") {
+    if (data?.status === "added") {
       toast({ title: "Added", description: "They now have access." });
       void loadAll();
     } else {
@@ -364,6 +430,11 @@ export function SharedChatRoomPage() {
                     <span className="font-medium text-foreground/80">{name}{isArc && " · AI"}</span>
                     <span className="mx-1.5">·</span>
                     <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                    {!isMine && !user.is_anonymous && (
+                      <button onClick={() => void reportMessage(m)} className="ml-2 inline-flex items-center gap-1 rounded px-1 py-0.5 text-muted-foreground hover:text-foreground" aria-label="Report this message" title="Report this message">
+                        <Flag className="h-3 w-3" /><span>Report</span>
+                      </button>
+                    )}
                   </div>
                   <MessageBubble
                     message={arcMsg}
@@ -558,6 +629,16 @@ export function SharedChatRoomPage() {
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     ) : null}
+                    {m.user_id !== user.id && (
+                      <button
+                        onClick={() => void toggleBlockMember(m.user_id, m.display_name)}
+                        className="h-7 rounded-md px-2 flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground hover:bg-white/10 transition"
+                        aria-label={blockedUserIds.has(m.user_id) ? "Unblock member" : "Block member"}
+                      >
+                        {blockedUserIds.has(m.user_id) ? <ShieldOff className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+                        {blockedUserIds.has(m.user_id) ? "Unblock" : "Block"}
+                      </button>
+                    )}
                   </div>
                 ))}
                 {pendingInvites.map((inv) => (

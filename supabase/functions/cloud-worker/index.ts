@@ -55,7 +55,7 @@ if (import.meta.main) Deno.serve((req) => handleCloudWorker(req, {
     const apiKey = Deno.env.get('OPENAI_API_KEY');
     if (!url || !serviceKey || !apiKey) throw new Error('Worker configuration unavailable');
     const db = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
-    const appEnabled = Deno.env.get('CLOUD_APP_RUNS_ENABLED') === 'true';
+    const appEnabled = false;
     const imageConfig = cloudImageConfig((name) => Deno.env.get(name));
     const runs = await sweepCloudRuns({
       candidates: cloudRunCandidates(db),
@@ -75,9 +75,6 @@ if (import.meta.main) Deno.serve((req) => handleCloudWorker(req, {
           },
         }),
         chat: cloudRunAdvance(db, apiKey, { tavilyApiKey: Deno.env.get('TAVILY_API_KEY'), weatherLookup: cloudWeatherLookup(url, serviceKey),
-          // Ordinary Work app creation is independently available to Boost
-          // users; the separate durable app-run flag remains for IDE runs.
-          appBuilderEnabled: Deno.env.get('CLOUD_WORK_APP_BUILDER_ENABLED') !== 'false',
           mediaConfig: { supabaseUrl: url, serviceRoleKey: serviceKey },
           fileStore: cloudFileStore({ supabaseUrl: url, serviceRoleKey: serviceKey }),
           imageConfig: cloudImageConfig(name => Deno.env.get(name)),
