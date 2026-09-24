@@ -425,15 +425,11 @@ function NotificationTray({ notifications, onClear, onOpen }: { notifications: P
   const unreadCount = notifications.filter((notification) => notification.unread).length;
 
   return (
-    <motion.div
+    <div
       id="dashboard-preview-notification-tray"
       role="dialog"
       aria-label="Recent notifications"
-      initial={{ opacity: 0, y: -8, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -5, scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 360, damping: 28, mass: 0.55 }}
-      className="dashboard-preview-notification-tray absolute right-0 top-[calc(100%+0.75rem)] z-[60] w-[min(88vw,360px)] overflow-hidden rounded-[24px] border p-3 shadow-[0_24px_70px_rgba(0,0,0,0.35),0_0_32px_rgba(168,85,247,0.12)] backdrop-blur-2xl"
+      className="dashboard-preview-notification-tray absolute right-0 top-[calc(100%+0.75rem)] z-[60] w-[min(88vw,360px)] overflow-hidden rounded-[24px] border p-3 shadow-[0_24px_70px_rgba(0,0,0,0.35)]"
     >
       <div className="flex items-start justify-between gap-3 px-2 pb-2">
         <div>
@@ -466,7 +462,7 @@ function NotificationTray({ notifications, onClear, onOpen }: { notifications: P
       <button type="button" onClick={onClear} disabled={notifications.length === 0} className="mt-2 w-full rounded-xl border px-3 py-2 text-[10px] font-medium text-muted-foreground transition-colors hover:text-foreground disabled:cursor-default disabled:opacity-50">
         Clear notifications
       </button>
-    </motion.div>
+    </div>
   );
 }
 
@@ -820,12 +816,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   const returnToChat = () => { if (live) navigate("/"); else window.location.assign("/?preview=chat"); };
 
   return (
-    <div className="dashboard-preview-shell min-h-screen overflow-x-hidden bg-background text-foreground">
-      <div className="dashboard-preview-ambient pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-36 top-[-180px] h-[480px] w-[480px] rounded-full bg-primary/[0.09] blur-[120px]" />
-        <div className="absolute -right-40 bottom-[-220px] h-[560px] w-[560px] rounded-full bg-violet-500/[0.07] blur-[140px]" />
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-white/[0.035] to-transparent" />
-      </div>
+    <div className="dashboard-preview-shell min-h-screen overflow-x-hidden bg-black text-foreground">
 
       <header className="dashboard-preview-header relative z-50 flex w-full flex-row items-center justify-between gap-2 px-4 pb-5 sm:gap-4">
         <div className="flex min-w-0 items-center gap-2"><ArcMark iconOnly onClick={returnToChat} /><div className="min-w-0"><p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground">ArcAI</p><p className="truncate text-[11px] text-muted-foreground">Jake’s workspace</p></div>{!cleanPreview && <span className="hidden rounded-full border border-primary/20 bg-primary/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary sm:inline-flex">Dashboard preview</span>}</div>
@@ -845,7 +836,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
               )}
             </AnimatePresence>
           </div>
-          <AnimatePresence>{isNotificationsOpen && <NotificationTray notifications={notifications} onClear={clearNotifications} onOpen={handleOpenNotification} />}</AnimatePresence>
+          {isNotificationsOpen && <NotificationTray notifications={notifications} onClear={clearNotifications} onOpen={handleOpenNotification} />}
         </div>
       </header>
 

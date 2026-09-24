@@ -156,15 +156,9 @@ body.is-android-pwa {
     -webkit-backdrop-filter: none !important;
   }
 
-  /* WebKit can stall the first PWA paint when the fixed dashboard dock,
-     ambient blur, and transformed dock bubble are mounted together. Keep the
-     dashboard surfaces opaque on iPhone while preserving their borders,
+  /* Keep fixed dock surfaces stable on iPhone while preserving their borders,
      shadows, and navigation behavior. */
   @media (max-width: 767px) {
-    .dashboard-preview-ambient {
-      display: none;
-    }
-
     .dashboard-preview-dock,
     .dashboard-preview-dock-bubble,
     .dashboard-preview-dock-lens {
