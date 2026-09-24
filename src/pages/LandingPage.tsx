@@ -18,7 +18,6 @@ import {
 import { AppleLogo } from "@/components/icons/AppleLogo";
 import { BLOG_POSTS } from "@/content/blog/posts";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -90,6 +89,36 @@ export function LandingPage() {
   const [desktopEmailBusy, setDesktopEmailBusy] = useState(false);
   const [desktopEmailSent, setDesktopEmailSent] = useState(false);
   const [desktopEmailError, setDesktopEmailError] = useState<string | null>(null);
+  const [desktopDialogViewport, setDesktopDialogViewport] = useState<{ top: number; height: number } | null>(null);
+
+  useEffect(() => {
+    if (!sendDesktopOpen) {
+      setDesktopDialogViewport(null);
+      return;
+    }
+
+    const viewport = window.visualViewport;
+    const syncViewport = () => {
+      if (!window.matchMedia("(max-width: 639px)").matches) {
+        setDesktopDialogViewport(null);
+        return;
+      }
+
+      const top = Math.max(8, viewport?.offsetTop ?? 0) + 8;
+      const height = Math.max(180, (viewport?.height ?? window.innerHeight) - 16);
+      setDesktopDialogViewport((current) => current?.top === top && current.height === height ? current : { top, height });
+    };
+
+    syncViewport();
+    viewport?.addEventListener("resize", syncViewport);
+    viewport?.addEventListener("scroll", syncViewport);
+    window.addEventListener("resize", syncViewport);
+    return () => {
+      viewport?.removeEventListener("resize", syncViewport);
+      viewport?.removeEventListener("scroll", syncViewport);
+      window.removeEventListener("resize", syncViewport);
+    };
+  }, [sendDesktopOpen]);
 
   // Force pure-dark theme regardless of user preference on the lander.
   useEffect(() => {
@@ -152,15 +181,30 @@ export function LandingPage() {
     const company = String(formData.get("company") ?? "");
     setDesktopEmailBusy(true);
     setDesktopEmailError(null);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 20_000);
     try {
-      const { error } = await supabase.functions.invoke("send-desktop-link", {
-        body: { email: desktopEmail.trim(), company },
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/+$/, "");
+      const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      if (!supabaseUrl || !publishableKey) throw new Error("Email service is unavailable");
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-desktop-link`, {
+        method: "POST",
+        headers: {
+          apikey: publishableKey,
+          Authorization: `Bearer ${publishableKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: desktopEmail.trim(), company }),
+        signal: controller.signal,
       });
-      if (error) throw error;
+      const result = await response.json().catch(() => null) as { ok?: boolean } | null;
+      if (!response.ok || result?.ok !== true) throw new Error("Email request failed");
       setDesktopEmailSent(true);
     } catch {
       setDesktopEmailError("We couldn't send the link right now. Please try again in a bit.");
     } finally {
+      window.clearTimeout(timeout);
       setDesktopEmailBusy(false);
     }
   };
@@ -470,7 +514,15 @@ export function LandingPage() {
       </footer>
 
       <Dialog open={sendDesktopOpen} onOpenChange={setSendDesktopOpen}>
-        <DialogContent className="glass-card max-w-md border border-white/10 bg-[#101012] text-white">
+        <DialogContent
+          className="glass-card w-[calc(100vw-2rem)] max-w-md max-h-[calc(100dvh-1rem)] overflow-y-auto overscroll-contain border border-white/10 bg-[#101012] text-white"
+          style={desktopDialogViewport ? {
+            top: `${desktopDialogViewport.top}px`,
+            left: "50%",
+            transform: "translateX(-50%)",
+            maxHeight: `${desktopDialogViewport.height}px`,
+          } : undefined}
+        >
           <DialogHeader>
             <DialogTitle>Send ArcAI to your desktop</DialogTitle>
             <DialogDescription className="text-white/60">
