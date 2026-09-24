@@ -213,6 +213,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     };
 
     const contentParts = !isUser && message.type === "text" ? parseCodeBlocks(message.content || "") : [];
+    const webQuery = message.memoryAction?.type === "web_searched" ? message.memoryAction.query || "" : "";
+    const searchImages = message.searchImages || [];
+    const showSearchImages = searchImages.length > 0 &&
+      /\b(?:photos?|pictures?|images?|visuals?)\b|what\s+.{0,50}\s+looks?\s+like/i.test(webQuery);
 
     return (
       <div
@@ -568,9 +572,9 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   )
                 ))}
 
-              {!isUser && message.searchImages && message.searchImages.length > 0 && (
+              {!isUser && showSearchImages && (
                 <div className="mt-3 flex max-w-full gap-2 overflow-x-auto" aria-label="Search images">
-                  {message.searchImages.slice(0, 4).map((url, index) => (
+                  {searchImages.slice(0, 4).map((url, index) => (
                     <button
                       key={`${url}-${index}`}
                       type="button"
