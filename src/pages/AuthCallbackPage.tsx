@@ -3,22 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { ThemedLogo } from "@/components/ThemedLogo";
 
 async function recoverReturnedSession() {
-  const query = new URLSearchParams(window.location.search);
-  const code = query.get("code");
-  if (code) {
-    // Supabase may already have consumed the PKCE code during client startup.
-    // If so, this harmlessly fails and getSession below returns that session.
-    await supabase.auth.exchangeCodeForSession(code).catch(() => null);
+  // Supabase owns the OAuth callback URL and processes its implicit grant or
+  // PKCE code during client initialization. Re-exchanging the code or calling
+  // setSession here races that initialization (which can leave mobile Chrome
+  // stuck on the callback screen).
+  const { error: initializationError } = await supabase.auth.initialize();
+  if (initializationError) {
+    throw new Error("ArcAI couldn't verify the Google sign-in. Return to sign in and try again.");
   }
 
-  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-  const accessToken = hash.get("access_token");
-  const refreshToken = hash.get("refresh_token");
-  if (accessToken && refreshToken) {
-    await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    throw new Error("ArcAI couldn't restore the Google session. Return to sign in and try again.");
   }
-
-  return (await supabase.auth.getSession()).data.session;
+  return data.session;
 }
 
 export function AuthCallbackPage() {
@@ -26,9 +24,17 @@ export function AuthCallbackPage() {
 
   useEffect(() => {
     let active = true;
+    let timeoutId: number | undefined;
     const finish = async () => {
       try {
-        const session = await recoverReturnedSession();
+        const session = await Promise.race([
+          recoverReturnedSession(),
+          new Promise<never>((_, reject) => {
+            timeoutId = window.setTimeout(() => {
+              reject(new Error("Google sign-in is taking too long. Check your connection, then return to sign in and try again."));
+            }, 15000);
+          }),
+        ]);
         if (!active) return;
         if (!session) throw new Error("Google returned successfully, but no ArcAI session was created.");
 
@@ -51,16 +57,25 @@ export function AuthCallbackPage() {
           }
         }
 
+        const requestedPath = query.get("next");
+        const safePath = requestedPath?.startsWith("/") && !requestedPath.startsWith("//")
+          ? requestedPath
+          : "/";
         window.history.replaceState({}, document.title, "/auth/callback");
-        // Land in a new chat, not the dashboard — signing in means wanting to
-        // talk to Arc, and the dashboard is a detour on the way there.
-        window.location.replace("/");
+        // Keep an explicitly requested in-app destination after OAuth (such as
+        // the public account deletion page); otherwise land in a new chat.
+        window.location.replace(safePath);
       } catch (cause) {
         if (active) setError(cause instanceof Error ? cause.message : "Could not finish sign in.");
+      } finally {
+        if (timeoutId !== undefined) window.clearTimeout(timeoutId);
       }
     };
     void finish();
-    return () => { active = false; };
+    return () => {
+      active = false;
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
   }, []);
 
   return (
