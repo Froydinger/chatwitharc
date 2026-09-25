@@ -535,7 +535,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
               <Button size="icon" onClick={() => void handleSend()} disabled={!prompt.trim() || agentBusy || cloudActive || (!demo && !ownerId)} className="h-8 w-8 rounded-xl bg-white text-black hover:bg-white/90 disabled:bg-white/10 disabled:text-white/25"><ArrowUp className="h-4 w-4" /></Button>
             </div>
           </div>
-          <div className="mt-2 flex items-center justify-between px-1"><span className="text-[9px] text-white/25">Cloud build</span><span className="text-[9px] text-white/25">Luna · Medium</span></div>
+          <div className="mt-2 flex items-center justify-between px-1"><span className="text-[9px] text-white/25">Cloud build</span><span className="text-[9px] text-white/25">Luna · Low</span></div>
         </div>
       </div>
     </div>
