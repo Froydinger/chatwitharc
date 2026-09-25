@@ -14,7 +14,25 @@
 }
 
 .app-builder-publish-dialog {
-  max-height: calc(100dvh - var(--arcai-safe-area-top, env(safe-area-inset-top, 0px)) - env(safe-area-inset-bottom, 0px) - 28px);
+  max-height: calc(100dvh - var(--arcai-safe-area-top, env(safe-area-inset-top, 0px)) - env(safe-area-inset-bottom, 0px) - 24px);
+}
+
+/* Keep publish fields above the shared liquid-metal dialog overlay and give
+   focused controls enough scroll room on small screens and while the keyboard
+   is open. */
+.app-builder-publish-dialog > button {
+  z-index: 20;
+}
+
+.app-builder-publish-scroll {
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-block: 28px;
+  scrollbar-gutter: stable;
+}
+
+.app-builder-publish-field {
+  caret-color: #fff;
+  scroll-margin-block: 24px;
 }
 
 /* Android Chromium exposes the same CSS safe-area contract for display cutouts
@@ -2695,4 +2713,10 @@ body,
 
 :root.light .app-builder-publish-dialog :is(input::placeholder, textarea::placeholder) {
   color: rgba(255, 255, 255, 0.42) !important;
+}
+
+:root.light .app-builder-publish-dialog :is(input:not([type="checkbox"]), textarea):focus-visible {
+  border-color: rgba(255, 255, 255, 0.52) !important;
+  outline: 2px solid rgba(255, 255, 255, 0.18);
+  outline-offset: 1px;
 }

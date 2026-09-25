@@ -21,6 +21,7 @@ import { deployToNetlify, unpublishFromNetlify } from '@/lib/deploy';
 import { createCloudAppRuns } from '@/services/cloudAppRunClient';
 import type { CloudAppRuns, CloudAppRunView } from '@/services/cloudAppRuns';
 import { cloudAppTranscript, cloudAuditActions } from '@/services/cloudAppTranscript';
+import { CLOUD_APP_PROJECT_RELOADED } from '@/services/cloudAppProjectClient';
 import { loadAppBuilderProject, saveAppBuilderProject, ensureAppBuilderSystemFiles, type AppBuilderMessage, type AppBuilderProjectMetadata, type LoadedAppBuilderProject } from '@/services/appBuilderProject';
 import { DEFAULT_FILES, type AgentAction, type VirtualFileSystem } from '@/types/ide';
 
@@ -136,6 +137,11 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
   const [attachments, setAttachments] = useState<string[]>([]);
   const [agentBusy, setAgentBusy] = useState(false);
   const [runView, setRunView] = useState<CloudAppRunView>({ busy: false });
+  const [cloudProjectSynced, setCloudProjectSynced] = useState(false);
+  const runStatus = runView.entry?.run?.status ?? (runView.busy ? 'connecting' : 'ready');
+  const cloudRunMatchesProject = runView.entry?.run?.projectId === activeProjectId;
+  const cloudActive = runView.busy || Boolean(cloudRunMatchesProject && runView.entry?.run && !['completed', 'failed', 'cancelled'].includes(runView.entry.run.status));
+  const cloudProjectSyncing = Boolean(cloudRunMatchesProject && runView.entry?.run?.status === 'completed' && !cloudProjectSynced);
   const [previewError, setPreviewError] = useState('');
   const [gitDialog, setGitDialog] = useState(false);
   const [targetPlatform, setTargetPlatform] = useState('Netlify');
@@ -188,6 +194,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
     setLoadingProject(true);
     setSaveState('saved');
     setSaveError('');
+    setCloudProjectSynced(false);
     setRunView({ busy: false });
     setProjectMetadata({ title: 'Your new app', prompt: 'Arc App', favicon_label: 'Arc' });
     setDeployedUrl(null);
@@ -301,14 +308,17 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
   }, [activeProjectId, demo, ownerId, projectMetadata]);
 
   useEffect(() => {
-    if (demo || !projectLoaded || !ownerId) return;
+    if (demo || !projectLoaded || !ownerId || cloudActive || cloudProjectSyncing) {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+      return;
+    }
     setSaveState('unsaved');
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     saveTimerRef.current = window.setTimeout(() => {
       void persistSnapshot().catch(() => {});
     }, 1200);
     return () => { if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current); };
-  }, [files, messages, projectLoaded, ownerId, demo, persistSnapshot]);
+  }, [files, messages, projectLoaded, ownerId, demo, persistSnapshot, cloudActive, cloudProjectSyncing]);
 
   useEffect(() => {
     if (demo || !durableAppsEnabled || !ownerId || !projectLoaded) return;
@@ -333,6 +343,51 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
   }, [activeProjectId, demo, ownerId, projectLoaded]);
 
   useEffect(() => {
+    if (demo || !ownerId || !projectLoaded) return;
+    let alive = true;
+    const handleProjectReloaded = (event: Event) => {
+      const detail = (event as CustomEvent<{ ownerId: string; projectId: string }>).detail;
+      if (detail?.ownerId !== ownerId || detail.projectId !== activeProjectId) return;
+      void loadAppBuilderProject(detail.projectId).then(loaded => {
+        if (!alive || projectIdRef.current !== detail.projectId || userIdRef.current !== ownerId) return;
+        const versions = loaded.row?.versions && typeof loaded.row.versions === 'object'
+          ? loaded.row.versions as Record<string, unknown>
+          : {};
+        projectPersistenceRef.current = loaded.persistence;
+        updateFiles(loaded.files);
+        updateMessages(loaded.messages);
+        if (loaded.row) {
+          setProjectMetadata({
+            title: loaded.row.title || nameFromMessages(loaded.messages),
+            prompt: loaded.row.prompt || nameFromMessages(loaded.messages),
+            netlify_url: loaded.row.netlify_url,
+            netlify_site_id: loaded.row.netlify_site_id,
+            netlify_subdomain: loaded.row.netlify_subdomain,
+            favicon_label: loaded.row.favicon_label,
+            seo_description: typeof versions.seo_description === 'string' ? versions.seo_description : '',
+            hide_badge: versions.hide_badge === true,
+          });
+          setDeployedUrl(loaded.row.netlify_url || null);
+          setNetlifySiteId(loaded.row.netlify_site_id || null);
+          setNetlifySubdomain(loaded.row.netlify_subdomain || null);
+        }
+        setSaveState('saved');
+        setSaveError('');
+        setCloudProjectSynced(true);
+      }).catch(error => {
+        if (!alive) return;
+        setSaveState('error');
+        setSaveError(error instanceof Error ? error.message : 'The completed build could not be synced into the editor.');
+      });
+    };
+    window.addEventListener(CLOUD_APP_PROJECT_RELOADED, handleProjectReloaded);
+    return () => {
+      alive = false;
+      window.removeEventListener(CLOUD_APP_PROJECT_RELOADED, handleProjectReloaded);
+    };
+  }, [activeProjectId, demo, ownerId, projectLoaded, updateFiles, updateMessages]);
+
+  useEffect(() => {
     const entry = runView.entry;
     const run = entry?.run;
     if (!durableAppsEnabled || !entry || !run || entry.kind !== 'app' || run.projectId !== activeProjectId) return;
@@ -354,16 +409,14 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
       updateMessages(transcript);
       const finalActions = cloudAuditActions(run.checkpoint?.audit, entry.id, timestamp) as AgentAction[];
       if (finalActions.length) setRunView(previous => ({ ...previous, entry: previous.entry ? { ...previous.entry } : undefined }));
-      void persistSnapshot(filesRef.current, transcript).catch(() => {});
       syncedRunStatesRef.current.add(key);
     })();
     return () => { active = false; };
-  }, [activeProjectId, ownerId, persistSnapshot, runView.entry, updateMessages]);
+  }, [activeProjectId, ownerId, runView.entry, updateMessages]);
 
   const hasApp = demo || messages.some(message => message.role === 'user') || Object.keys(files).some(path => !Object.keys(DEFAULT_FILES).includes(path));
   const appName = projectMetadata.title && projectMetadata.title !== 'Your new app' ? projectMetadata.title : nameFromMessages(messages);
   const currentFileContent = files[selectedFile]?.content ?? '';
-  const cloudActive = runView.busy || Boolean(runView.entry?.run && !['completed', 'failed', 'cancelled'].includes(runView.entry.run.status));
   const buildStatusLabel = runStatus === 'queued'
     ? 'Waiting for Arc’s build worker'
     : runStatus === 'running'
@@ -400,6 +453,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
       if (!demo) {
         await persistSnapshot(filesRef.current, previousMessages);
         if (!appRunsRef.current) throw new Error('This app build service is still connecting. Try again in a moment.');
+        setCloudProjectSynced(false);
         await appRunsRef.current.start(trimmed, 'ask', { files: filesRef.current, messages: previousMessages });
         setAgentBusy(false);
         return;
@@ -506,7 +560,6 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
   };
 
   const handleEditorMessage = async (text: string) => handleSend(text, []);
-  const runStatus = runView.entry?.run?.status ?? (runView.busy ? 'connecting' : 'ready');
   const runActions = runView.entry?.run?.checkpoint?.audit;
   const liveAudit = Array.isArray(runActions) ? cloudAuditActions(runActions, runView.entry?.id || '', Date.now()) : [];
 
@@ -521,6 +574,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
           {messages.length === 0 ? <div className="flex h-full min-h-[260px] flex-col justify-end pb-2"><p className="mb-1 text-xs text-white/35">A good place to start</p><p className="max-w-[280px] text-lg font-medium leading-snug tracking-tight text-white/90">What do you want your app to do?</p><div className="mt-4 flex flex-wrap gap-2">{['A habit tracker', 'A simple shop', 'An event page'].map(chip => <button key={chip} onClick={() => setPrompt(`Build ${chip.toLowerCase()} `)} className="rounded-full border border-white/10 bg-white/[0.025] px-3 py-2 text-[10px] text-white/55 hover:bg-white/[0.06]">{chip}</button>)}</div></div> : messages.map(message => <MessageCard key={message.id} message={message} />)}
           {agentBusy && <p className="ml-1 flex items-center gap-2 pb-2 text-[10px] text-white/40"><LoaderCircle className="h-3 w-3 animate-spin" /> Arc is making changes</p>}
           {cloudActive && <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-[10px] text-white/55">{runStatus === 'awaiting_input' ? 'Arc needs your approval before continuing.' : `${buildStatusLabel}…`}</div>}
+          {cloudProjectSyncing && <div className="mb-3 flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-[10px] text-white/60"><LoaderCircle className="h-3 w-3 animate-spin" /> Syncing the finished app into your preview…</div>}
           {liveAudit.slice(-3).map(action => <p key={action.id} className="mb-2 text-[10px] text-white/40">{action.message}</p>)}
           {pendingApproval && <div className="mb-3 rounded-xl border border-amber-200/15 bg-amber-100/[0.04] p-3"><p className="text-xs font-medium text-amber-100/80">Approval needed</p><p className="mt-1 text-[10px] text-white/45">{pendingApproval.name}</p><div className="mt-3 flex gap-2"><Button size="sm" disabled={runView.busy} onClick={() => void appRunsRef.current?.decide('approve')} className="h-8 flex-1 bg-white text-black hover:bg-white/90">Approve</Button><Button size="sm" variant="outline" disabled={runView.busy} onClick={() => void appRunsRef.current?.decide('deny')} className="h-8 flex-1 border-white/10 text-white/60">Deny</Button></div></div>}
           {runView.error && <p role="alert" className="rounded-xl border border-red-300/15 bg-red-200/[0.04] px-3 py-2 text-[10px] text-red-100/70">{runView.error}</p>}
@@ -552,7 +606,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
       </div>
       <div className="flex min-h-0 flex-1">
         <div className="w-36 shrink-0 overflow-y-auto border-r border-white/[0.06] p-2 sm:w-44">{Object.keys(files).sort().map(path => <button key={path} onClick={() => setSelectedFile(path)} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[10px] ${selectedFile === path ? 'bg-white/[0.08] text-white/90' : 'text-white/40 hover:bg-white/[0.035]'}`}><FileCode2 className="h-3 w-3 shrink-0" /><span className="truncate">{path}</span></button>)}</div>
-        <div className="min-w-0 flex-1 p-2"><Textarea spellCheck={false} value={currentFileContent} onChange={event => updateCurrentFile(event.target.value)} className="h-full min-h-[280px] resize-none rounded-lg border-white/[0.07] bg-black/20 font-mono text-[11px] leading-relaxed text-white/75 focus-visible:ring-white/20" /></div>
+        <div className="min-w-0 flex-1 p-2"><Textarea spellCheck={false} disabled={cloudActive || cloudProjectSyncing} value={currentFileContent} onChange={event => updateCurrentFile(event.target.value)} className="h-full min-h-[280px] resize-none rounded-lg border-white/[0.07] bg-black/20 font-mono text-[11px] leading-relaxed text-white/75 focus-visible:ring-white/20 disabled:cursor-wait disabled:opacity-60" /></div>
       </div>
     </div>
   );
@@ -610,7 +664,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
             </div>
             <div className="pointer-events-none absolute bottom-4 left-1/2 z-0 hidden -translate-x-1/2 text-[9px] text-white/20 sm:block">Browser preview · code runs on this device</div>
           </div>}
-          {!isMobile && <div className="flex h-[42px] shrink-0 items-center justify-between border-t border-white/[0.06] px-5"><div className="flex items-center gap-2 text-[10px] text-white/35"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300/75" />{cloudActive ? `${buildStatusLabel}…` : hasApp ? 'Preview is up to date' : 'Ready when you are'}{!demo && saveError && <span className="text-amber-100/60">· {saveError}</span>}</div><div className="flex items-center gap-3 text-[9px] text-white/30"><span>Web app</span><span>·</span><span>Local preview</span></div></div>}
+          {!isMobile && <div className="flex h-[42px] shrink-0 items-center justify-between border-t border-white/[0.06] px-5"><div className="flex items-center gap-2 text-[10px] text-white/35"><span className={`h-1.5 w-1.5 rounded-full ${cloudActive || cloudProjectSyncing ? 'animate-pulse bg-white/70' : 'bg-emerald-300/75'}`} />{cloudActive ? `${buildStatusLabel}…` : cloudProjectSyncing ? 'Syncing finished app' : hasApp ? 'Preview is up to date' : 'Ready when you are'}{!demo && saveError && <span className="text-amber-100/60">· {saveError}</span>}</div><div className="flex items-center gap-3 text-[9px] text-white/30"><span>Web app</span><span>·</span><span>Local preview</span></div></div>}
         </main>
 
         {!isMobile && <aside className="w-[min(390px,36vw)] shrink-0 border-l border-white/[0.07]">{desktopPane === 'chat' ? chatPanel : codePanel}</aside>}
