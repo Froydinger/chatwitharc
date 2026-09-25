@@ -158,8 +158,9 @@ Deno.test('Agents API only returns final text after a confirmed completed turn',
       if (path.endsWith('/sessions/sess_test')) return Response.json({ status: 'idle', usage: { total_tokens: 22 } });
       if (path.endsWith('/turns?order=desc&limit=1')) return Response.json({ data: [{ id: 'turn_test', status: 'completed' }] });
       if (path.endsWith('/sessions/sess_test/items?order=desc&limit=100')) return Response.json({ data: [
-        { turn_id: 'turn_previous', type: 'assistant_message', role: 'assistant', phase: 'final_answer', content: [{ type: 'output_text', text: 'Stale answer must be ignored.' }] },
         { turn_id: 'turn_test', type: 'assistant_message', role: 'assistant', phase: 'final_answer', content: [{ type: 'output_text', text: 'The answer is 42.' }] },
+        { turn_id: 'turn_test', type: 'assistant_message', role: 'assistant', phase: 'commentary', content: [{ type: 'output_text', text: 'I will look it up first.' }] },
+        { turn_id: 'turn_previous', type: 'assistant_message', role: 'assistant', phase: 'final_answer', content: [{ type: 'output_text', text: 'Stale answer must be ignored.' }] },
       ] });
       if (path.endsWith('/turns/turn_test')) return Response.json({ usage: { total_tokens: 18 } });
       throw new Error('Unexpected provider request');

@@ -91,6 +91,7 @@ function parseActions(value: unknown): AgentCall[] {
 
 function assistantText(items: unknown[]): { text: string; summary?: string } {
   const answers: string[] = [];
+  const finalAnswers: string[] = [];
   const summaries: string[] = [];
   for (const raw of items) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue;
@@ -110,10 +111,15 @@ function assistantText(items: unknown[]): { text: string; summary?: string } {
       const part = rawPart as Json;
       return part.type === 'output_text' && typeof part.text === 'string' ? [part.text] : [];
     }).join('');
-    if (text.trim()) answers.push(text);
+    if (text.trim()) {
+      answers.push(text);
+      if (item.phase === 'final_answer') finalAnswers.push(text);
+    }
   }
   return {
-    text: answers.at(-1) ?? '',
+    // Items are fetched with order=desc, so the newest final answer is first.
+    // Prefer that over earlier assistant commentary such as “I’ll look it up.”
+    text: finalAnswers[0] ?? answers[0] ?? '',
     ...(summaries.length ? { summary: summaries.join('\n').slice(0, 4_000) } : {}),
   };
 }
