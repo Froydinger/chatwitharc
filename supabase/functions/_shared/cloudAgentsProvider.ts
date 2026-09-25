@@ -220,8 +220,13 @@ export function cloudAgentsProvider(options: {
       throw new Error('Agents API turn did not reach a confirmed terminal state');
     }
     const turnId = latest.id;
-    const itemsPage = await request(`/sessions/${sessionId}/turns/${encodeURIComponent(turnId)}/items?order=asc&limit=100`);
-    const items = Array.isArray(itemsPage.data) ? itemsPage.data : [];
+    // The Agents API lists root-agent items at the session level; each item
+    // carries turn_id. There is no root-turn /items route.
+    const itemsPage = await request(`/sessions/${sessionId}/items?order=desc&limit=100`);
+    const items = Array.isArray(itemsPage.data) ? itemsPage.data.filter(rawItem => {
+      if (!rawItem || typeof rawItem !== 'object' || Array.isArray(rawItem)) return false;
+      return stringValue((rawItem as Json).turn_id) === turnId;
+    }) : [];
     const output = assistantText(items);
     if (!output.text.trim()) throw new Error('Agents API completed without an assistant answer');
     const detail = await request(`/sessions/${sessionId}/turns/${encodeURIComponent(turnId)}`);
