@@ -1,4 +1,4 @@
-import { initialEngineState, tickCloudRun, type EngineProvider, type EngineState, type ToolCall } from './cloudRunEngine.ts';
+import { CLOUD_LIMITS, initialEngineState, tickCloudRun, type CloudRunLimits, type EngineProvider, type EngineState, type ToolCall } from './cloudRunEngine.ts';
 import { cloudMessagePresentation, cloudPresentation, type CloudToolOutput } from './cloudRunArtifacts.ts';
 
 export type ClaimedCloudRun = {
@@ -30,6 +30,7 @@ export type CloudWorkerContext = {
 export type CloudWorkerOptions = {
   store: CloudWorkerStore;
   now?: () => number;
+  limits?: CloudRunLimits;
 } & (CloudWorkerContext | {
   /** Resolve trusted instructions, tools and entitlements only AFTER the claim.
    * Context is ephemeral: never save credentials in the durable checkpoint. */
@@ -50,7 +51,7 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
   const context = 'prepare' in options ? await options.prepare(run) : options;
   const now = options.now ?? Date.now;
   const engine = run.checkpoint.engine ?? initialEngineState(
-    run.execution_messages ?? run.request.messages, Date.parse(run.started_at ?? run.created_at));
+    run.execution_messages ?? run.request.messages, Date.parse(run.started_at ?? run.created_at), options.limits ?? CLOUD_LIMITS);
   const authorized = new Set<string>();
   const hashes = new Map<string, string>();
   const approval = run.checkpoint.pendingApproval as { callId?: string; argumentsHash?: string } | undefined;
@@ -78,6 +79,7 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
   }
   await tickCloudRun(id, engine, {
     now,
+    limits: options.limits,
     save: (state, status, reason) => {
       const checkpoint: Record<string, unknown> = { ...run.checkpoint, engine: state };
       if (status === 'awaiting_input' && reason?.startsWith('Approval required:')) {

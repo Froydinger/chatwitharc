@@ -1,6 +1,7 @@
 import { deepStrictEqual, equal, ok, rejects } from 'node:assert/strict';
 import {
   CLOUD_LIMITS,
+  CLOUD_APP_LIMITS,
   CloudToolContinuation,
   type EnginePorts,
   type EngineState,
@@ -531,6 +532,21 @@ Deno.test('cloud engine: checkpoints active Agents usage and cancels at the toke
   equal(fake.agentCancellations[0].sessionId, 'sess_budget');
   equal(fake.agentCancellations[0].key, `${RUN}:agent-cancel`);
   equal(fake.completions.length, 0);
+});
+
+Deno.test('cloud engine: an App-sized Agents budget accepts usage above the shared 64k cap', async () => {
+  const fake = new FakePorts();
+  fake.durable.agentSessionId = 'sess_app_budget';
+  fake.durable.modelProvider = 'agents';
+  fake.ports.limits = CLOUD_APP_LIMITS;
+  fake.ports.pollAgentSession = async () => ({
+    calls: [], text: '', tokens: 100_000, progressOnly: true, providerActive: true,
+  });
+  await fake.tick();
+  equal(fake.status, 'queued');
+  equal(fake.durable.tokens, 100_000);
+  equal(fake.agentCancellations.length, 0);
+  equal(CLOUD_LIMITS.tokens, 64_000, 'shared Chat/Work budget remains unchanged');
 });
 
 Deno.test('cloud engine: Agents action at the exact token budget is cancelled before tools execute', async () => {

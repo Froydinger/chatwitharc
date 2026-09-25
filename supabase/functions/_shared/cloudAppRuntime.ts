@@ -13,6 +13,7 @@ import { loadCloudRunContext } from "./cloudRunContext.ts";
 import { cloudAgentsProvider } from "./cloudAgentsProvider.ts";
 import { cloudWorkerStore } from "./cloudRunStore.ts";
 import type { CloudPublisherConfig } from "./cloudAppPublisher.ts";
+import { CLOUD_APP_LIMITS } from "./cloudRunEngine.ts";
 import {
   type ClaimedCloudRun,
   type CloudWorkerStore,
@@ -88,6 +89,7 @@ export async function advanceCloudAppRun(
   try {
     return await processCloudRun(id, {
       store,
+      limits: CLOUD_APP_LIMITS,
       prepare: async (run) => {
         await guard(run);
         const workspace = await ports.app.open(run);
@@ -173,7 +175,7 @@ export function cloudAppAdvance(
         cloudAgentsProvider({
           apiKey,
           instructions,
-          reasoningEffort: "medium",
+          reasoningEffort: "low",
           tools: CLOUD_APP_DEFINITIONS,
           fetcher: options.fetcher,
         }),

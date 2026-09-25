@@ -65,6 +65,7 @@ export type EngineState = {
   reasoningSummary?: string;
 };
 export interface EnginePorts {
+  limits?: CloudRunLimits;
   now(): number;
   // Return false on cancellation or lost lease. Never silently accept a write.
   save(state: EngineState, status: 'running' | 'queued' | 'awaiting_input' | 'failed', reason?: string): Promise<boolean>;
@@ -83,14 +84,17 @@ export type EngineProvider = Pick<EnginePorts, 'startModel' | 'pollModel'> &
   Partial<Pick<EnginePorts, 'startAgentSession' | 'pollAgentSession' | 'submitAgentToolResults' | 'cancelAgentSession'>> & {
     cancelModel?(responseId: string): Promise<void>;
   };
-export const CLOUD_LIMITS = { turns: 16, tokens: 64000, outputPerTurn: 8000, durationMs: 20 * 60 * 1000 };
+export type CloudRunLimits = { turns: number; tokens: number; outputPerTurn: number; durationMs: number };
+export const CLOUD_LIMITS: CloudRunLimits = { turns: 16, tokens: 64000, outputPerTurn: 8000, durationMs: 20 * 60 * 1000 };
+export const CLOUD_APP_LIMITS: CloudRunLimits = { ...CLOUD_LIMITS, tokens: 512000 };
 
-export function initialEngineState(input: unknown[], now: number): EngineState {
+export function initialEngineState(input: unknown[], now: number, limits: CloudRunLimits = CLOUD_LIMITS): EngineState {
   return { version: 1, phase: 'model', turns: 0, tokens: 0,
-    deadline: now + CLOUD_LIMITS.durationMs, transcript: input, calls: [], receipts: {} };
+    deadline: now + limits.durationMs, transcript: input, calls: [], receipts: {} };
 }
 
 export async function tickCloudRun(runId: string, previous: EngineState, ports: EnginePorts): Promise<void> {
+  const limits = ports.limits ?? CLOUD_LIMITS;
   const state = structuredClone(previous);
   const failForLimit = async (reason: string) => {
     let cancellationUnconfirmed = false;
@@ -108,13 +112,13 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
     await ports.complete(state.finalText ?? '', state);
     return;
   }
-  if (ports.now() >= state.deadline || state.tokens >= CLOUD_LIMITS.tokens) {
+  if (ports.now() >= state.deadline || state.tokens >= limits.tokens) {
     await failForLimit('Run time or token limit reached');
     return;
   }
   if (state.phase === 'model') {
     if (!state.responseId && !state.agentSessionId) {
-      if (state.turns >= CLOUD_LIMITS.turns) {
+      if (state.turns >= limits.turns) {
         await ports.save(state, 'failed', 'Run step limit reached');
         return;
       }
@@ -126,7 +130,7 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
       }
       state.modelIntent = `${runId}:model:${state.turns}`;
       if (!await ports.save(state, 'running')) return;
-      const maxTokens = Math.min(CLOUD_LIMITS.outputPerTurn, CLOUD_LIMITS.tokens - state.tokens);
+      const maxTokens = Math.min(limits.outputPerTurn, limits.tokens - state.tokens);
       if (ports.startAgentSession) {
         state.modelProvider = 'agents';
         state.agentSessionId = await ports.startAgentSession(state.transcript, state.modelIntent, maxTokens);
@@ -160,9 +164,9 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
     if (!Number.isFinite(turn.tokens) || turn.tokens < 0) throw new Error('Invalid model usage');
     if (new Set(turn.calls.map(call => call.id)).size !== turn.calls.length) throw new Error('Duplicate tool call IDs');
     state.tokens += turn.tokens;
-    if (state.tokens > CLOUD_LIMITS.tokens || ports.now() >= state.deadline ||
-      (state.tokens >= CLOUD_LIMITS.tokens && (turn.providerActive || turn.progressOnly))) {
-      if (turn.providerActive || (turn.progressOnly && state.tokens >= CLOUD_LIMITS.tokens)) {
+    if (state.tokens > limits.tokens || ports.now() >= state.deadline ||
+      (state.tokens >= limits.tokens && (turn.providerActive || turn.progressOnly))) {
+      if (turn.providerActive || (turn.progressOnly && state.tokens >= limits.tokens)) {
         await failForLimit('Run time or token limit reached');
       } else {
         await ports.save(state, 'failed', 'Run time or token limit reached');
