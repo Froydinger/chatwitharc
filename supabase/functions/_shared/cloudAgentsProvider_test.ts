@@ -71,6 +71,30 @@ Deno.test('Agents API tool results use the durable idempotency key and verified 
   assert(new Headers(headers).get('Idempotency-Key') === 'run:agent-results:1');
 });
 
+Deno.test('Agents API rejection reports bounded endpoint diagnostics without echoing request data', async () => {
+  const provider = cloudAgentsProvider({
+    apiKey: 'do-not-return-this-key', instructions: 'test', reasoningEffort: 'low', tools: [],
+    fetcher: (async () => Response.json({ error: {
+      message: 'private input must not be echoed', type: 'invalid_request_error',
+      code: 'invalid_type', param: 'events[0].output',
+    } }, { status: 400 })) as typeof fetch,
+  });
+  let message = '';
+  try {
+    await provider.submitAgentToolResults!('sess_private-session-id', [{
+      callId: 'call_test', turnId: 'turn_test', success: true, output: 'private tool output',
+    }], 'run:agent-results:1');
+  } catch (error) {
+    message = error instanceof Error ? error.message : '';
+  }
+  assert(message.includes('Agents API HTTP 400'));
+  assert(message.includes('/sessions/{session_id}/events'));
+  assert(message.includes('invalid_type'));
+  assert(message.includes('param=events[0].output'));
+  assert(!message.includes('private-session-id') && !message.includes('private input'));
+  assert(!message.includes('private tool output') && !message.includes('do-not-return-this-key'));
+});
+
 Deno.test('Agents API only returns final text after a confirmed completed turn', async () => {
   const provider = cloudAgentsProvider({
     apiKey: 'test-only', instructions: 'test', reasoningEffort: 'low', tools: [],

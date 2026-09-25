@@ -140,7 +140,25 @@ export function cloudAgentsProvider(options: {
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(25_000),
     });
-    if (!response.ok) throw new Error(`Agents API HTTP ${response.status}`);
+    if (!response.ok) {
+      // Keep provider diagnostics useful without recording request bodies,
+      // user content, tool output, or credentials. The endpoint here is the
+      // fixed API path, and code/param are the provider's structured fields.
+      let code = '';
+      let param = '';
+      try {
+        const payload = record(await response.json());
+        const upstream = record(payload.error);
+        code = stringValue(upstream.code).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 80);
+        param = stringValue(upstream.param).replace(/[^a-zA-Z0-9_.\[\]-]/g, '').slice(0, 120);
+      } catch {
+        // Some gateway errors are not JSON. Status and endpoint remain useful.
+      }
+      const endpoint = `${method} /agents${path.replace(/\/sess_[a-zA-Z0-9_-]+/g, '/{session_id}')}`;
+      const details = [code, param ? `param=${param}` : ''].filter(Boolean).join(' ');
+      console.error('Agents API request rejected', { status: response.status, endpoint, code, param });
+      throw new Error(`Agents API HTTP ${response.status} on ${endpoint}${details ? ` (${details})` : ''}`);
+    }
     const text = await response.text();
     if (!text) return {};
     return record(JSON.parse(text));
