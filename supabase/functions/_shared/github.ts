@@ -146,37 +146,45 @@ export async function githubSearchFiles(token: string, repoInput: string, branch
 export async function githubCommitPullRequest(token: string, args: {
   repo: string; baseBranch: string; files: Array<{ path: string; content?: string; delete?: boolean }>;
   commitMessage: string; pullRequestTitle: string; pullRequestBody: string;
+  maxFiles?: number; draft?: boolean;
 }): Promise<{ branch: string; commitSha: string; pullRequestUrl: string }> {
   const repo = safeRepo(args.repo);
   const baseBranch = safeBranch(args.baseBranch);
-  if (!Array.isArray(args.files) || args.files.length < 1 || args.files.length > 20) throw new Error('Provide 1-20 changed files.');
+  const maxFiles = args.maxFiles ?? 20;
+  if (!Number.isInteger(maxFiles) || maxFiles < 1 || maxFiles > 120) throw new Error('Invalid changed-file limit.');
+  if (!Array.isArray(args.files) || args.files.length < 1 || args.files.length > maxFiles) throw new Error(`Provide 1-${maxFiles} changed files.`);
   const commitMessage = args.commitMessage.trim().slice(0, 200);
   const title = args.pullRequestTitle.trim().slice(0, 200);
   const body = args.pullRequestBody.trim().slice(0, 10_000);
   if (!commitMessage || !title) throw new Error('Commit message and pull request title are required.');
+  const seenPaths = new Set<string>();
   const ref = await githubRequest(token, `/repos/${repo}/git/ref/heads/${encodeURIComponent(baseBranch)}`);
   const baseSha = String(row(ref.object).sha || '');
   const commit = await githubRequest(token, `/repos/${repo}/git/commits/${baseSha}`);
   const baseTree = String(row(commit.tree).sha || '');
   const branch = `arc/${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 8)}`;
-  await githubRequest(token, `/repos/${repo}/git/refs`, { method: 'POST', body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha }) });
   const tree = [] as Array<Record<string, unknown>>;
+  let totalBytes = 0;
   for (const change of args.files) {
     const path = safePath(change.path);
+    if (seenPaths.has(path)) throw new Error(`Duplicate changed path: ${path}`);
+    seenPaths.add(path);
     if (change.delete === true) {
       tree.push({ path, mode: '100644', type: 'blob', sha: null });
       continue;
     }
     if (typeof change.content !== 'string' || change.content.length > 500_000) throw new Error(`Invalid content for ${path}.`);
-    const blob = await githubRequest(token, `/repos/${repo}/git/blobs`, { method: 'POST', body: JSON.stringify({ content: change.content, encoding: 'utf-8' }) });
-    tree.push({ path, mode: '100644', type: 'blob', sha: String(blob.sha || '') });
+    totalBytes += new TextEncoder().encode(change.content).byteLength;
+    if (totalBytes > 8_000_000) throw new Error('The changes are too large to send to GitHub in one handoff. Export the project ZIP instead.');
+    tree.push({ path, mode: '100644', type: 'blob', content: change.content });
   }
   const treeResult = await githubRequest(token, `/repos/${repo}/git/trees`, { method: 'POST', body: JSON.stringify({ base_tree: baseTree, tree }) });
   const treeSha = String(treeResult.sha || '');
   const commitResult = await githubRequest(token, `/repos/${repo}/git/commits`, { method: 'POST', body: JSON.stringify({ message: commitMessage, tree: treeSha, parents: [baseSha] }) });
   const commitSha = String(commitResult.sha || '');
-  await githubRequest(token, `/repos/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, { method: 'PATCH', body: JSON.stringify({ sha: commitSha, force: false }) });
-  const pull = await githubRequest(token, `/repos/${repo}/pulls`, { method: 'POST', body: JSON.stringify({ title, body, head: branch, base: baseBranch }) });
+  if (!/^[0-9a-f]{40}$/i.test(treeSha) || !/^[0-9a-f]{40}$/i.test(commitSha)) throw new Error('GitHub did not return valid commit data.');
+  await githubRequest(token, `/repos/${repo}/git/refs`, { method: 'POST', body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: commitSha }) });
+  const pull = await githubRequest(token, `/repos/${repo}/pulls`, { method: 'POST', body: JSON.stringify({ title, body, head: branch, base: baseBranch, ...(args.draft ? { draft: true } : {}) }) });
   const pullRequestUrl = typeof pull.html_url === 'string' ? pull.html_url : '';
   if (!commitSha || !pullRequestUrl) throw new Error('GitHub did not return a commit or pull request URL.');
   return { branch, commitSha, pullRequestUrl };

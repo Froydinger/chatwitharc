@@ -77,7 +77,8 @@ function formatElapsed(milliseconds: number) {
 }
 
 type SummaryLink = { url: string; title: string; snippet?: string };
-type SummaryAsset = { kind: 'image' | 'file' | 'canvas' | 'code'; label: string; url?: string; detail?: string };
+type SummaryAsset = { kind: 'image' | 'file' | 'canvas' | 'code'; label: string; url?: string; detail?: string }
+  | { kind: 'app'; label: string; projectId: string; detail?: string };
 
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -104,6 +105,11 @@ function workSummary(run: CloudRun<unknown, CloudRunCheckpoint>) {
     }).slice(0, 24)
     : [];
   const assets: SummaryAsset[] = [];
+  const app = record(result.app_artifact);
+  if (typeof app.projectId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(app.projectId)) {
+    const count = typeof app.fileCount === 'number' && Number.isFinite(app.fileCount) ? Math.max(0, Math.trunc(app.fileCount)) : 0;
+    assets.push({ kind: 'app', label: typeof app.title === 'string' && app.title.trim() ? app.title.trim().slice(0, 120) : 'Saved app', projectId: app.projectId, detail: `${count} project files · App Builder preview` });
+  }
   const image = record(result.generated_image);
   const imageUrls = [...strings(image.imageUrls), ...(typeof image.imageUrl === 'string' ? [image.imageUrl] : [])]
     .filter((url, index, all) => all.indexOf(url) === index).slice(0, 8);
@@ -140,7 +146,7 @@ export function hasWorkCompletionSummary(run: CloudRun<unknown, CloudRunCheckpoi
 }
 
 function assetIcon(kind: SummaryAsset['kind']) {
-  return kind === 'image' ? 'Image' : kind === 'file' ? 'File' : kind === 'canvas' ? 'Canvas' : kind === 'code' ? 'Code' : 'Created';
+  return kind === 'image' ? 'Image' : kind === 'file' ? 'File' : kind === 'canvas' ? 'Canvas' : kind === 'code' ? 'Code' : kind === 'app' ? 'App' : 'Created';
 }
 
 function WorkCompletionSummary({ run, onClose }: { run: CloudRun<unknown, CloudRunCheckpoint>; onClose: () => void }) {
@@ -180,6 +186,7 @@ function WorkCompletionSummary({ run, onClose }: { run: CloudRun<unknown, CloudR
             {asset.kind === 'image' && asset.url && <a href={asset.url} target="_blank" rel="noreferrer" className="mb-2 block overflow-hidden rounded-lg border border-border/50 bg-muted/30">
               <img src={asset.url} alt={asset.label} className="h-28 w-full object-cover" loading="lazy" />
             </a>}
+            {asset.kind === 'app' && <a href={`/build/${encodeURIComponent(asset.projectId)}`} className="mb-2 flex items-center justify-between rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-xs font-medium text-primary hover:bg-muted/60">Open app preview <span aria-hidden="true">↗</span></a>}
             {asset.url ? <a href={asset.url} target="_blank" rel="noreferrer" className="block truncate text-sm font-medium text-primary underline-offset-4 hover:underline">{assetIcon(asset.kind)} · {asset.label}</a>
               : <p className="text-sm font-medium">{assetIcon(asset.kind)} · {asset.label}</p>}
             {asset.detail && <p className="mt-1 text-xs text-muted-foreground">{asset.detail}</p>}
@@ -310,6 +317,16 @@ function CloudRunStatusCard({ run, mode = 'auto', connection = 'idle', observati
       {canDecide && approval && (
         <div className="mt-3 min-w-0 rounded-xl border border-border/60 bg-muted/40 p-3">
           <p className="break-words text-sm font-medium">{readableName(approval.name)}</p>
+          {approval.name === 'git_dispatch_actions_workflow' && (
+            <p role="note" className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-sm text-foreground">
+              Starting this workflow uses the repository owner&apos;s GitHub Actions quota. Review the repository, workflow, and branch below. Arc starts it only if you approve.
+            </p>
+          )}
+          {approval.name === 'git_apply_repository_changes' && (
+            <p role="note" className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-sm text-foreground">
+              Creating this branch and pull request may trigger workflows configured by the repository owner, which can use their GitHub Actions quota. Arc will ask separately before any manual workflow dispatch.
+            </p>
+          )}
           <p id={argsId} className="mt-2 text-xs text-muted-foreground">Action details</p>
           {/* React text children escape markup; never interpret arguments as HTML or permission. */}
           <pre aria-labelledby={argsId} tabIndex={0}

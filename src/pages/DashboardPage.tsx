@@ -50,7 +50,7 @@ import { useAccentStore } from "@/store/useAccentStore";
 import { useCorporateModeStore } from "@/store/useCorporateModeStore";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
 import { isMobileLocalDevice } from "@/utils/mobileLocal";
-import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
+import { AppBuilderWorkspace } from "@/components/app-builder/AppBuilderWorkspace";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
 import { KineticDeleteButton } from "@/components/ui/rare-ui/kinetic-delete-button";
@@ -2561,12 +2561,12 @@ useEffect(() => {
         onClose={() => setIsMusicPopupOpen(false)}
       />
 
-      {/* IDE Canvas Panel — portaled directly to document.body to escape transformed parent bounds and constrain strictly to window */}
+      {/* App Builder — portaled to document.body so the workspace fills the window */}
       {createPortal(
         <AnimatePresence>
           {APP_BUILDER_ENABLED && isIDEOpen && (
             <div className="fixed inset-0 z-[200] bg-background h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col">
-              <IDECanvasPanel onClose={closeIDE} />
+              <AppBuilderWorkspace onClose={closeIDE} />
             </div>
           )}
         </AnimatePresence>,

@@ -114,9 +114,11 @@ Deno.test('workspace reaches atomic submit RPC unchanged without augmenting visi
 
 Deno.test("discovery schema is closed and bounded", () => {
   assert(validateAction({ action: "list" }).action === "list");
+  assert(validateAction({ action: "list", kind: "app" }).action === "list");
   for (
     const input of [
       { action: "list", user_id: owner },
+      { action: "list", kind: "other" },
       { action: "list", limit: 101 },
       { action: "list", limit: 0 },
       { action: "list", limit: 1.5 },
@@ -254,6 +256,18 @@ Deno.test("app files allowlist and canonical equality", () => {
       canonical({ a: { c: 4, d: 3 }, b: 2 }),
   );
   assert(canonical(["a", "b"]) !== canonical(["b", "a"]));
+});
+
+Deno.test('Git Browserbase request context is closed, typed and UUID-bound', () => {
+  const browserbaseSessionHandle = '44444444-4444-4444-8444-444444444444';
+  const accepted = validateAction({
+    ...submit,
+    request: { ...submit.request, forceGit: true, browserbaseDevice: 'mobile', browserbaseSessionHandle },
+  });
+  assert(accepted.action === 'submit' && accepted.request.browserbaseDevice === 'mobile');
+  assert(accepted.action === 'submit' && accepted.request.browserbaseSessionHandle === browserbaseSessionHandle);
+  rejects({ ...submit, request: { ...submit.request, browserbaseDevice: 'tablet' } });
+  rejects({ ...submit, request: { ...submit.request, browserbaseSessionHandle: 'not-a-uuid' } });
 });
 
 Deno.test("client messages accept only user and assistant roles for chat and app", () => {

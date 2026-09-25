@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { RefreshCw, Unplug, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useGitStore } from '@/store/useGitStore';
-import { supabase } from '@/integrations/supabase/client';
-import { useSandboxStore } from '@/store/useSandboxStore';
 
 export function GitHubMark({ className }: { className?: string }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" className={className} fill="currentColor"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.33-1.76-1.33-1.76-1.09-.75.08-.74.08-.74 1.2.08 1.83 1.23 1.83 1.23 1.07 1.83 2.8 1.3 3.48.99.11-.77.42-1.3.76-1.6-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.23-3.22-.12-.3-.53-1.52.12-3.18 0 0 1-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.3-1.55 3.3-1.23 3.3-1.23.65 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.69.83.58A12 12 0 0 0 12 .5Z" /></svg>;
@@ -32,77 +30,6 @@ export function GitModeDock() {
       useGitStore.setState({ error: null });
     }
   }, [error, toast]);
-
-  const [activeSandbox, setActiveSandbox] = useState<{ id: string; expires_at: string; preview_url: string | null } | null>(null);
-  const [browserState, setBrowserState] = useState<'idle' | 'warming' | 'ready'>('idle');
-
-  useEffect(() => {
-    if (!connected || !selectedRepo) {
-      setActiveSandbox(null);
-      return;
-    }
-    const checkSandbox = async () => {
-      try {
-        const { data } = await supabase
-          .from('git_sandboxes' as any)
-          .select('id, expires_at, preview_url')
-          .eq('repo', selectedRepo)
-          .in('status', ['active', 'idle'])
-          .gt('expires_at', new Date().toISOString())
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        setActiveSandbox(data || null);
-      } catch {
-        setActiveSandbox(null);
-      }
-    };
-    void checkSandbox();
-    const interval = setInterval(checkSandbox, 15000);
-    return () => clearInterval(interval);
-  }, [connected, selectedRepo]);
-
-  // Terminate active sandbox when unmounting / leaving chat session to save compute
-  useEffect(() => {
-    const cleanupSandbox = () => {
-      if (selectedRepo) {
-        void supabase.functions.invoke('chat', {
-          body: { action: 'close_sandbox', repo: selectedRepo },
-        }).catch(() => undefined);
-      }
-    };
-
-    window.addEventListener('beforeunload', cleanupSandbox);
-    return () => {
-      window.removeEventListener('beforeunload', cleanupSandbox);
-      cleanupSandbox();
-    };
-  }, [selectedRepo]);
-
-  // Chromium takes 1-2 minutes to install in a cold sandbox. Git mode being
-  // active with a repo selected is a strong enough intent signal to start that
-  // early, so the first "test this" does not stall on the install.
-  // Note this does claim a sandbox slot and start its 20-minute window.
-  useEffect(() => {
-    if (!connected || !selectedRepo) {
-      setBrowserState('idle');
-      return;
-    }
-    let cancelled = false;
-    setBrowserState('warming');
-    void supabase.functions
-      .invoke('chat', {
-        body: { action: 'prewarm_browser', repo: selectedRepo, branch: selectedBranch || 'main' },
-      })
-      .then(({ data }) => {
-        if (cancelled) return;
-        setBrowserState(data?.status === 'prewarming' ? 'ready' : 'idle');
-      })
-      .catch(() => {
-        if (!cancelled) setBrowserState('idle');
-      });
-    return () => { cancelled = true; };
-  }, [connected, selectedRepo, selectedBranch]);
 
   const handleRepoChange = async (repo: string) => {
     if (repo === '__manage_settings__') {
@@ -174,35 +101,6 @@ export function GitModeDock() {
             </select>
           </div>
           <span className="hidden text-muted-foreground sm:inline font-mono text-[11px]">{selectedBranch || 'default'}</span>
-          {selectedRepo && (browserState !== 'idle' || activeSandbox?.preview_url) && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 rounded-full font-mono text-[10px] font-medium border shrink-0",
-                browserState === 'ready' || activeSandbox?.preview_url
-                  ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/25"
-                  : "bg-primary/10 text-primary border-primary/25"
-              )}
-              title={
-                browserState === 'ready' || activeSandbox?.preview_url
-                  ? "Cloud sandbox is warm. Ask Arc to test the app and watch it work."
-                  : "Warming the cloud sandbox and browser so the first test starts fast"
-              }
-            >
-              {browserState === 'warming' && !activeSandbox?.preview_url ? (
-                <>
-                  <RefreshCw className="h-2.5 w-2.5 animate-spin" />
-                  <span className="hidden sm:inline">Warming sandbox…</span>
-                  <span className="sm:hidden">Warming…</span>
-                </>
-              ) : (
-                <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="hidden sm:inline">Sandbox ready</span>
-                  <span className="sm:hidden">Ready</span>
-                </>
-              )}
-            </span>
-          )}
           <button type="button" onClick={() => void loadRepositories()} disabled={loading} className={cn('rounded-full p-1.5 hover:bg-muted/30 transition-colors', loading && 'animate-spin')} aria-label="Refresh repositories" title="Refresh repositories">
             <RefreshCw className="h-3.5 w-3.5" />
           </button>

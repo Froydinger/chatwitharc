@@ -19,6 +19,8 @@ export type CloudTextRequest = {
   forceGit?: boolean;
   reasoningEffort?: 'low' | 'medium' | 'high';
   clientTimezone?: string;
+  browserbaseDevice?: 'mobile' | 'desktop';
+  browserbaseSessionHandle?: string;
 };
 
 /** Closed, bounded snapshot. Empty content is meaningful (a cleared editor).
@@ -73,8 +75,18 @@ export type CloudRunCheckpoint = {
   audit?: CloudRunAuditItem[];
   reasoningSummary?: string;
   aiSummary?: string;
+  browserSession?: {
+    sessionHandle: string;
+    status: import('@/store/useBrowserbaseSessionStore').BrowserbaseSessionStatus;
+    expiresAt: string;
+    device: 'mobile' | 'desktop';
+    control: 'agent' | 'user' | 'view_only';
+    title: string;
+    taskKind: 'chat' | 'git';
+  };
+  browserSessionClosed?: string;
 };
-export type CloudRunListOptions = { sessionId?: string; cursor?: string; limit?: number; includeTerminal?: boolean };
+export type CloudRunListOptions = { sessionId?: string; kind?: CloudRunKind; cursor?: string; limit?: number; includeTerminal?: boolean };
 export type DiscoveredCloudRun = CloudRun<unknown, CloudRunCheckpoint> & { sessionId: string; kind: CloudRunKind; mode: CloudRunMode };
 export type CloudRunList = { runs: DiscoveredCloudRun[]; nextCursor: string | null };
 

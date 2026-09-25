@@ -33,6 +33,10 @@ function fixture() {
     { user_id: ALICE, summary: 'Alice current memory' },
     { user_id: BOB, summary: 'Bob private memory' },
   ];
+  const gitConnections: Row[] = [
+    { user_id: ALICE, provider: 'github', selected_repo: 'arcai/project', selected_branch: 'feature/arc' },
+    { user_id: BOB, provider: 'github', selected_repo: 'private/other', selected_branch: 'main' },
+  ];
   const settings: Row[] = [];
   const queries: { table: string; column: string; owner: string; columns: string }[] = [];
   let failure = '';
@@ -42,19 +46,20 @@ function fixture() {
     from(table: string) {
       return {
         select(columns: string) {
-          return {
-            eq(column: string, owner: string) {
+          const filters: Record<string, string> = {};
+          const query = {
+            eq(column: string, value: string) { filters[column] = value; return query; },
+            maybeSingle() {
               assert(table !== 'admin_settings');
-              queries.push({ table, column, owner, columns });
-              return {
-                maybeSingle() {
-                  const rows = table === 'profiles' ? profiles : memories;
-                  return Promise.resolve({
-                    data: failure === table ? null : rows.find(item => item[column] === (wrongOwner ? BOB : owner)) ?? null,
-                    error: failure === table ? { message: 'private database details' } : null,
-                  });
-                },
-              };
+              const owner = filters.user_id || '';
+              queries.push({ table, column: 'user_id', owner, columns });
+              const rows = table === 'profiles' ? profiles
+                : table === 'memory_summaries' ? memories : gitConnections;
+              return Promise.resolve({
+                data: failure === table ? null : rows.find(item => Object.entries(filters).every(([column, value]) =>
+                  item[column] === (wrongOwner && column === 'user_id' ? BOB : value))) ?? null,
+                error: failure === table ? { message: 'private database details' } : null,
+              });
             },
             in(column: string, keys: string[]) {
               assert(table === 'admin_settings' && column === 'key');
@@ -65,11 +70,12 @@ function fixture() {
               });
             },
           };
+          return query;
         },
       };
     },
   };
-  return { db: db as unknown as CloudContextDatabase, profiles, memories, settings, queries,
+  return { db: db as unknown as CloudContextDatabase, profiles, memories, gitConnections, settings, queries,
     fail(table: string) { failure = table; },
     mismatch() { wrongOwner = true; },
     throwAdmin() { adminThrows = true; },
@@ -176,6 +182,17 @@ Deno.test('focused-mode defaults supplement core personality instead of replacin
   }
 });
 
+Deno.test('Git context uses the server-stored selection and states Actions approval boundaries', async () => {
+  const f = fixture();
+  const result = await loadCloudRunContext(f.db, claim({ forceGit: true }), now);
+  assert(result.instructions.includes('"arcai/project"'));
+  assert(result.instructions.includes('"feature/arc"'));
+  assert(result.instructions.includes("server checks every requested repository against the owner's stored GitHub access settings"));
+  assert(result.instructions.includes("explicit approval card"));
+  assert(!result.instructions.includes('private/other'));
+  assert(f.queries.some(query => query.table === 'git_connections' && query.owner === ALICE));
+});
+
 Deno.test('client system/developer/tool roles are rejected before database access', async () => {
   for (const role of ['system', 'developer', 'tool', 'function', 'USER']) {
     const f = fixture();
@@ -231,6 +248,6 @@ Deno.test('shared capabilities accurately distinguish chat canvas and Boost Luna
   for (const prompt of [DEFAULT_CHAT_BEHAVIOR_PROMPT, DEFAULT_RESPONSE_STYLE_PROMPT, ARC_CAPABILITIES_CONTEXT]) {
     assert(prompt.includes('App Builder') && prompt.includes('Boost'));
   }
-  assert(DEFAULT_CHAT_BEHAVIOR_PROMPT.includes('gpt-6-luna'));
+  assert(DEFAULT_CHAT_BEHAVIOR_PROMPT.includes('Boost App Builder'));
   assert(DEFAULT_RESPONSE_STYLE_PROMPT.includes('single self-contained HTML page'));
 });

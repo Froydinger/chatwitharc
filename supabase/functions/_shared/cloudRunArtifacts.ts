@@ -25,12 +25,48 @@ export type CloudPresentation = {
   web_sources?: { url: string; title?: string; snippet?: string }[];
   search_images?: string[];
   search_provider?: 'perplexity' | 'tavily';
+  browser_session?: {
+    sessionHandle: string;
+    status: 'provisioning' | 'agent_running' | 'user_control' | 'handed_back' | 'release_requested' | 'closed' | 'expired' | 'failed';
+    expiresAt: string;
+    device: 'mobile' | 'desktop';
+    control: 'agent' | 'user' | 'view_only';
+    title: string;
+    taskKind: 'chat' | 'git';
+  };
+  browser_session_closed?: { sessionHandle: string };
 };
 export type CloudWeatherData = {
   location: string; temperature: number; feelsLike: number; condition: string;
   code: number; high: number; low: number; humidity: number; wind: number; isDay: boolean;
 };
 export type CloudToolOutput = string | { output: string; presentation: CloudPresentation };
+
+const BROWSERBASE_SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const BROWSERBASE_STATUSES = new Set(['provisioning', 'agent_running', 'user_control', 'handed_back', 'release_requested', 'closed', 'expired', 'failed']);
+
+function safeBrowserSession(value: unknown): CloudPresentation['browser_session'] | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const session = value as Record<string, unknown>;
+  if (typeof session.sessionHandle !== 'string' || !BROWSERBASE_SESSION_ID.test(session.sessionHandle)
+    || typeof session.status !== 'string' || !BROWSERBASE_STATUSES.has(session.status)
+    || typeof session.expiresAt !== 'string' || !Number.isFinite(Date.parse(session.expiresAt))
+    || (session.device !== 'mobile' && session.device !== 'desktop')
+    || (session.control !== 'agent' && session.control !== 'user' && session.control !== 'view_only')
+    || typeof session.title !== 'string' || session.title.length > 120
+    || (session.taskKind !== 'chat' && session.taskKind !== 'git')) return undefined;
+  // Rebuild from an explicit allowlist; provider debug/CDP URLs must never
+  // escape the server-only Browserbase backend into durable run receipts.
+  return {
+    sessionHandle: session.sessionHandle,
+    status: session.status as NonNullable<CloudPresentation['browser_session']>['status'],
+    expiresAt: session.expiresAt,
+    device: session.device,
+    control: session.control,
+    title: session.title,
+    taskKind: session.taskKind,
+  };
+}
 
 export function cloudPresentation(receipts: Record<string, { state: string; presentation?: CloudPresentation }>): CloudPresentation {
   const result: CloudPresentation = {};
@@ -45,6 +81,19 @@ export function cloudPresentation(receipts: Record<string, { state: string; pres
     if (value.web_sources) result.web_sources = value.web_sources;
     if (value.search_images) result.search_images = value.search_images;
     if (value.search_provider) result.search_provider = value.search_provider;
+    if (value.browser_session) {
+      const session = safeBrowserSession(value.browser_session);
+      if (session) result.browser_session = session;
+    }
+    if (value.browser_session_closed) {
+      const closedHandle = value.browser_session_closed.sessionHandle;
+      if (BROWSERBASE_SESSION_ID.test(closedHandle)) {
+        result.browser_session_closed = { sessionHandle: closedHandle };
+        if (result.browser_session?.sessionHandle === closedHandle) {
+          delete result.browser_session;
+        }
+      }
+    }
     if (value.weather_data) result.weather_data = value.weather_data;
     if (value.memory_saved) result.memory_saved = value.memory_saved;
     if (value.notification_dispatch) result.notification_dispatch = value.notification_dispatch;
@@ -81,5 +130,7 @@ export function cloudMessagePresentation(value: CloudPresentation) {
     ...(value.weather_data ? { weatherData: value.weather_data } : {}),
     ...(value.memory_saved ? { memoryAction: { type: 'context_saved', content: value.memory_saved.content } } : {}),
     ...(value.notification_dispatch ? { notificationDispatch: value.notification_dispatch } : {}),
+    ...(value.browser_session ? { browserSession: value.browser_session } : {}),
+    ...(value.browser_session_closed ? { browserSessionClosed: value.browser_session_closed.sessionHandle } : {}),
   };
 }

@@ -36,6 +36,8 @@ function nodeSource(path, predicate) {
 const declaration = name => node => ts.isVariableDeclaration(node) && node.name.getText() === name;
 const parentSubmit = nodeSource('src/components/MobileChatApp.tsx', declaration('submitCloudText'));
 const parentMode = nodeSource('src/components/MobileChatApp.tsx', declaration('cloudExecutionMode'));
+const parentGitCloudGate = nodeSource('src/components/MobileChatApp.tsx', declaration('cloudGitChatEnabled'));
+const composerCloudGate = nodeSource('src/components/ChatInput.tsx', declaration('durableCloudSubmit'));
 const executionMode = (cloudModeChoice, user) => evaluate(`const ${parentMode}; exports.mode = cloudExecutionMode;`, { cloudModeChoice, user }).mode;
 const parentTerminal = nodeSource('src/components/MobileChatApp.tsx', node => ts.isPropertyAssignment(node) && node.name.getText() === 'onTerminal');
 const composerSession = nodeSource('src/components/ChatInput.tsx', declaration('requestSessionId'));
@@ -50,6 +52,20 @@ const literal = value => value == null ? 'null' : typeof value === 'number' || t
 const ident = name => { assert.match(name, /^[a-z_]+$/); return `"${name}"`; };
 const tick = () => new Promise(resolve => setImmediate(resolve));
 async function until(check) { for (let i = 0; i < 150; i++) { if (await check()) return; await new Promise(r => setTimeout(r, 10)); } throw Error('Bounded integration wait expired'); }
+
+test('free Git mode uses durable approval-capable Chat when enabled without promoting ordinary Chat', () => {
+  const gate = inputs => evaluate(`const ${parentGitCloudGate}; exports.enabled = cloudGitChatEnabled;`, inputs).enabled;
+  assert.equal(gate({ cloudTextEnabled: true, gitConnected: true, gitSelectedRepo: 'owner/repo' }), true);
+  assert.equal(gate({ cloudTextEnabled: false, gitConnected: true, gitSelectedRepo: 'owner/repo' }), false);
+  assert.equal(gate({ cloudTextEnabled: true, gitConnected: false, gitSelectedRepo: 'owner/repo' }), false);
+  assert.equal(gate({ cloudTextEnabled: true, gitConnected: true, gitSelectedRepo: null }), false);
+
+  const composerGate = inputs => evaluate(`const ${composerCloudGate}; exports.enabled = durableCloudSubmit;`, inputs).enabled;
+  const shared = { onCloudTextSubmit: async () => {}, isGuestMode: false, corporateMode: false,
+    isLocalChatPreview: () => false };
+  assert.equal(composerGate({ ...shared, cloudExecutionMode: 'ask', wasGitMode: true }), true);
+  assert.equal(composerGate({ ...shared, cloudExecutionMode: 'ask', wasGitMode: false }), false);
+});
 
 test('real text submission and durable completion across detached frontend lifetimes', async t => {
   const directory = mkdtempSync('/tmp/arc-text-integration-');
@@ -77,19 +93,20 @@ test('real text submission and durable completion across detached frontend lifet
         if (name === 'user_has_boost') return { data: true, error: null };
         try {
         const call = `public.${ident(name)}(${Object.entries(args).map(([k, v]) => `${ident(k)} => ${literal(v)}`).join(',')})`;
-          const query = name === 'claim_cloud_run' ? `select coalesce(jsonb_agg(row), '[]') from ${call} row` : `select to_jsonb(${call})`;
+          const query = ['claim_cloud_run', 'list_chat_sessions_meta'].includes(name)
+            ? `select coalesce(jsonb_agg(row), '[]') from ${call} row` : `select to_jsonb(${call})`;
           return { data: jsonSQL(query, role), error: null };
         } catch (e) { return { data: null, error: { code: String(e.stderr).match(/ERROR:\s+(\w{5}):/)?.[1], message: String(e.stderr) } }; }
       },
       from(table) {
-        assert.ok(['chat_sessions', 'cloud_runs'].includes(table));
+        assert.ok(['chat_sessions', 'chat_folders', 'cloud_runs'].includes(table));
         const filters = []; let order = '', limit = '', selected = '*';
         const rows = async () => {
           try { return { data: jsonSQL(`select coalesce(jsonb_agg(row), '[]') from (select ${selected} from public.${table} ${filters.length ? `where ${filters.join(' and ')}` : ''} ${order} ${limit}) row`, role), error: null }; }
           catch (e) { return { data: null, error: { message: String(e.stderr) } }; }
         };
         const chain = {
-          select(fields = '*') { selected = fields === '*' ? '*' : fields.split(',').map(field =>
+          select(fields = '*') { selected = fields === '*' ? '*' : fields.split(',').map(field => field.trim()).map(field =>
             field === 'project_id:request->>projectId' ? `request->>'projectId' as project_id` : ident(field)).join(','); return chain; },
           eq(k, v) { filters.push(`${ident(k)}=${literal(v)}`); return chain; },
           gt(k, v) { filters.push(`${ident(k)}>${literal(v)}`); return chain; },
@@ -130,6 +147,8 @@ test('real text submission and durable completion across detached frontend lifet
     sql(read('supabase/migrations/20260703041304_restore_missing_migrated_tables.sql'));
     sql(read('supabase/migrations/20260703032634_create_personas_table.sql'));
     sql(read('supabase/migrations/20260703044916_restore_chat_persona_relation.sql'));
+    sql(read('supabase/migrations/20260914234500_session_is_git_irreversible.sql'));
+    sql(read('supabase/migrations/20260917060000_session_is_work.sql'));
     sql('create unique index chat_sessions_id_user_id_cloud_runs_key on public.chat_sessions(id,user_id)');
     sql(read('supabase/migrations/20260912085941_durable_cloud_runs.sql'));
     sql(`insert into auth.users(id,email) values(${quote(owner)},'fixture@example.invalid')`);
@@ -192,7 +211,7 @@ test('real text submission and durable completion across detached frontend lifet
     const lifecycle = evaluate(read('src/services/cloudRunLifecycle.ts'));
     const { CloudRunsBinding } = evaluate(read('src/hooks/useCloudRuns.ts'), {}, { react: require('react'), '@/services/cloudRunLifecycle': lifecycle });
     const storage = new Map();
-    async function page() {
+    async function page(hydrateSessionId) {
       const localStorage = { getItem: k => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v), removeItem: k => storage.delete(k) };
       const store = evaluate(read('src/store/useArcStore.ts').replace("import.meta.env.VITE_CLOUD_SESSION_OPERATIONS_ENABLED === 'true'", 'true'),
         { localStorage, navigator: { onLine: true }, console: quiet }, {
@@ -201,7 +220,16 @@ test('real text submission and durable completion across detached frontend lifet
           '@/utils/memoryDetection': {}, '@/store/useCanvasStore': { useCanvasStore: { getState: () => ({ hydrateFromSession() {} }) } },
           '@/services/cloudSessionPersistence': persistence, '@/services/cloudSessionChanges': changes,
         }).useArcStore;
+      // Match the real signed-in app mount, where useChatSync hydrates local
+      // chat state from the authenticated owner's saved sessions.
+      await store.getState().syncFromSupabase();
+      // Persist middleware is intentionally a no-op in this isolated harness;
+      // opening a saved chat therefore needs the same explicit hydration that
+      // selecting it in the real chat history triggers.
+      if (hydrateSessionId) await store.getState().hydrateSession(hydrateSessionId);
       const dependencies = { useArcStore: store, useModelStore: { getState: () => ({ reasoningEffort: 'low' }) },
+        useBrowserbaseSessionStore: { getState: () => ({ getSession: () => undefined }) },
+        APP_BUILDER_ENABLED: false,
         captureCloudWorkspaceContext:transport.captureCloudWorkspaceContext,
         resolveReasoningEffort: value => value, getQueryComplexity: () => 'simple' };
       const terminal = evaluate(`const options = { ${parentTerminal} }; exports.terminal = options.onTerminal;`, dependencies).terminal;
@@ -215,7 +243,7 @@ test('real text submission and durable completion across detached frontend lifet
       const api = { get ready() { return snapshot?.ready; }, prepare: input => binding.prepare(input), submit: id => binding.submit(id) };
       await binding.start();
       const state = () => store.getState();
-      async function send(mode, { switchAfterUser = false, waitForLegacySave = true, content = 'Fixture plain chat', workspace, mutateSnapshot } = {}) {
+      async function send(mode, { switchAfterUser = false, waitForLegacySave = false, forceLegacyPreparation = false, content = 'Fixture plain chat', workspace, mutateSnapshot } = {}) {
         const submit = evaluate(`const ${parentSubmit}; exports.submit = submitCloudText;`, { ...dependencies, cloudRuns: api,
           supabase: browser, prepareCloudMediaCapture: async () => { throw Error('Attachment fixture not expected'); },
           cloudMediaDigest: async () => '',
@@ -229,10 +257,13 @@ test('real text submission and durable completion across detached frontend lifet
           ...dependencies, createNewSession: state().createNewSession, addMessage: state().addMessage, finalMessage: content,
           afterUser: async (sid, mid) => {
             if (waitForLegacySave) await until(() => jsonSQL(`select messages from public.chat_sessions where id=${quote(sid)}`)?.some(m => m.id === mid));
+            if (forceLegacyPreparation) store.setState(current => ({
+              chatSessions: current.chatSessions.map(session => session.id === sid ? { ...session, legacySavePending: false } : session),
+            }));
             if (switchAfterUser) state().createNewSession();
           },
           onCloudTextSubmit: async intent=>{const pending=submit(intent);if(mutateSnapshot)mutateSnapshot(intent);await pending;},
-          isGuestMode: false, corporateMode: false, cloudExecutionMode: mode, durableRoute: 'cloud', durableCloudSubmit: true,
+          isGuestMode: false, corporateMode: false, cloudExecutionMode: mode, wasGitMode: false, durableRoute: 'cloud', durableCloudSubmit: true,
           shouldUseCodeContext:workspace?.kind==='code',isCodingRequest:false,shouldRouteToCanvas:workspace?.kind==='canvas',
           images: [], documents: [],
           freshCanvasState:{isOpen:!!workspace,content:'stale store draft',codeLanguage:workspace?.language},
@@ -253,7 +284,7 @@ test('real text submission and durable completion across detached frontend lifet
       assert.equal(submission.mode, mode); assert.notEqual(submission.sessionId, first.state().currentSessionId);
       assert.equal(typeof submission.userMessage.timestamp, 'string');
       first.close(); await finish(submission.id); assert.equal(modelPosts.length, before + 1);
-      const reopened = await page();
+      const reopened = await page(submission.sessionId);
       await until(() => reopened.state().chatSessions.some(s => s.id === submission.sessionId && s.messages.some(m => m.id === `cloud-${submission.id}`)));
       const session = reopened.state().chatSessions.find(s => s.id === submission.sessionId);
       assert.equal(session.messages.filter(m => m.id === submission.userMessage.id).length, 1);
@@ -303,7 +334,7 @@ test('real text submission and durable completion across detached frontend lifet
         return receipt;
       } });
       const before = traffic.filter(x => x.action === 'submit').length;
-      const sent = await p.send('auto');
+      const sent = await p.send('auto', { forceLegacyPreparation: true });
       assert.equal(sent.notices.length, 1);
       assert.match(sent.notices[0].description, /submitted message changed/);
       assert.equal(traffic.filter(x => x.action === 'submit').length, before);
@@ -314,7 +345,7 @@ test('real text submission and durable completion across detached frontend lifet
       const p = await page(); await p.send('ask'); const a = traffic.filter(x => x.action === 'submit').at(-1);
       p.state().createNewSession(); await p.send('auto'); const b = traffic.filter(x => x.action === 'submit').at(-1);
       assert.notEqual(a.sessionId, b.sessionId); p.close(); await Promise.all([finish(a.id), finish(b.id)]);
-      const restored = await page(); await until(() => restored.state().chatSessions.some(s => s.id === b.sessionId));
+      const restored = await page(b.sessionId); await until(() => restored.state().chatSessions.some(s => s.id === b.sessionId));
       for (const run of [a, b]) assert.equal(jsonSQL(`select messages from public.chat_sessions where id=${quote(run.sessionId)}`).filter(m => m.role === 'assistant').length, 1);
       restored.close();
     });
@@ -323,7 +354,7 @@ test('real text submission and durable completion across detached frontend lifet
       const sent = await p.send('auto'); assert.equal(sent.notices.length, 1);
       const run = traffic.filter(x => x.action === 'submit').at(-1); assert.ok(dropped.has(run.id));
       assert.equal(p.snapshot.entries.find(e => e.id === run.id).connection, 'uncertain');
-      p.close(); await finish(run.id); const restored = await page();
+      p.close(); await finish(run.id); const restored = await page(run.sessionId);
       await until(() => restored.state().chatSessions.some(s => s.id === run.sessionId));
       assert.equal(traffic.filter(x => x.action === 'submit').length, before + 1);
       assert.equal(jsonSQL(`select messages from public.chat_sessions where id=${quote(run.sessionId)}`).length, 2); restored.close();

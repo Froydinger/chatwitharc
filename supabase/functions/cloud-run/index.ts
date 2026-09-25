@@ -20,6 +20,7 @@ type Action =
   | {
     action: "list";
     sessionId?: string;
+    kind?: "chat" | "app";
     cursor?: string;
     limit: number;
     includeTerminal: boolean;
@@ -98,7 +99,7 @@ function rejectCredentials(value: unknown, bearer: string, depth = 0): void {
 export function validateAction(value: unknown, bearer = ""): Action {
   const body = object(value);
   if (body.action === "list") {
-    keys(body, ["action", "sessionId", "cursor", "limit", "includeTerminal"]);
+    keys(body, ["action", "sessionId", "kind", "cursor", "limit", "includeTerminal"]);
     const limit = body.limit ?? 25;
     if (
       typeof limit !== "number" || !Number.isInteger(limit) || limit < 1 ||
@@ -110,6 +111,9 @@ export function validateAction(value: unknown, bearer = ""): Action {
     ) invalid("Invalid terminal filter.");
     return {
       action: "list",
+      ...(body.kind === undefined ? {} : body.kind === "chat" || body.kind === "app"
+        ? { kind: body.kind }
+        : invalid("Invalid run kind.")),
       limit,
       includeTerminal: body.includeTerminal === true,
       ...(body.sessionId === undefined
@@ -222,6 +226,8 @@ export function validateAction(value: unknown, bearer = ""): Action {
     "projectId",
     "workspace_context",
     "attachments",
+    "browserbaseDevice",
+    "browserbaseSessionHandle",
   ]);
   if (
     !Array.isArray(input.messages) || !input.messages.length ||
@@ -305,6 +311,11 @@ export function validateAction(value: unknown, bearer = ""): Action {
     request.clientTimezoneOffsetMinutes = offset;
   }
   if (input.projectId !== undefined) request.projectId = uuid(input.projectId);
+  if (input.browserbaseDevice !== undefined) {
+    if (input.browserbaseDevice !== "mobile" && input.browserbaseDevice !== "desktop") invalid("Invalid browser device.");
+    request.browserbaseDevice = input.browserbaseDevice;
+  }
+  if (input.browserbaseSessionHandle !== undefined) request.browserbaseSessionHandle = uuid(input.browserbaseSessionHandle);
   if (input.currentFiles !== undefined) {
     if (body.kind !== "app") invalid("Files are only supported for app runs.");
     const files = object(input.currentFiles);
@@ -449,6 +460,36 @@ export function publicRun(row: Obj) {
   const aiSummary = row.status === 'completed' && typeof engine.finalText === 'string' && engine.finalText.trim()
     ? engine.finalText.slice(0, 8_000)
     : null;
+  let browserSession: Obj | undefined;
+  let browserSessionClosed: string | undefined;
+  for (const value of Object.values(asRecord(engine.receipts))) {
+    const receipt = asRecord(value);
+    const presentation = asRecord(receipt.presentation);
+    const session = asRecord(presentation.browser_session);
+    if (session && typeof session.sessionHandle === 'string' && UUID.test(session.sessionHandle)
+      && typeof session.status === 'string' && ['provisioning', 'agent_running', 'user_control', 'handed_back', 'release_requested', 'closed', 'expired', 'failed'].includes(session.status)
+      && typeof session.expiresAt === 'string' && Number.isFinite(Date.parse(session.expiresAt))
+      && ['mobile', 'desktop'].includes(String(session.device))
+      && ['agent', 'user', 'view_only'].includes(String(session.control))
+      && typeof session.title === 'string' && session.title.length <= 120
+      && (session.taskKind === 'chat' || session.taskKind === 'git')) {
+      browserSession = {
+        sessionHandle: session.sessionHandle,
+        status: session.status,
+        expiresAt: session.expiresAt,
+        device: session.device,
+        control: session.control,
+        title: session.title,
+        taskKind: session.taskKind,
+      };
+      browserSessionClosed = undefined;
+    }
+    const closed = asRecord(presentation.browser_session_closed);
+    if (closed && typeof closed.sessionHandle === 'string' && UUID.test(closed.sessionHandle)) {
+      if (browserSession?.sessionHandle === closed.sessionHandle) browserSession = undefined;
+      browserSessionClosed = closed.sessionHandle;
+    }
+  }
   return {
     id: row.id,
     ...(timestamp(row.created_at) ? { createdAt: timestamp(row.created_at) } : {}),
@@ -471,6 +512,8 @@ export function publicRun(row: Obj) {
       ...(typeof engine.reasoningSummary === 'string' && engine.reasoningSummary.trim()
         ? { reasoningSummary: engine.reasoningSummary.slice(0, 4_000) } : {}),
       ...(aiSummary ? { aiSummary } : {}),
+      ...(browserSession ? { browserSession } : {}),
+      ...(browserSessionClosed ? { browserSessionClosed } : {}),
     },
     error: row.error,
   };
@@ -560,9 +603,6 @@ export async function handleCloudRun(req: Request): Promise<Response> {
       invalid("Invalid JSON.");
     }
   const action = validateAction(raw, match[1]);
-    if (action.action === 'submit' && (action.kind === 'app' || action.request.buildApp === true)) {
-      throw new HttpError(410, 'Multi-file app creation is currently unavailable.');
-    }
     if (action.action === 'submit' && action.request.attachments !== undefined) {
       try {
         action.request.attachments = validateCloudMediaReferences(action.request.attachments, {
@@ -585,7 +625,7 @@ export async function handleCloudRun(req: Request): Promise<Response> {
         .eq("user_id", user.id).order("id", { ascending: true }).limit(
           action.limit + 1,
         );
-      query = query.eq("kind", "chat");
+      query = query.eq("kind", action.kind ?? "chat");
       if (action.sessionId) query = query.eq("session_id", action.sessionId);
       if (action.cursor) query = query.gt("id", action.cursor);
       if (!action.includeTerminal) {
@@ -613,7 +653,6 @@ export async function handleCloudRun(req: Request): Promise<Response> {
         action.id,
       ).eq("user_id", user.id).maybeSingle();
       if (error) throw new HttpError(500, "Could not read cloud run.");
-      if (data?.kind === 'app') return null;
       return data;
     };
     if (action.action === "submit") {

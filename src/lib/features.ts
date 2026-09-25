@@ -14,5 +14,5 @@
  */
 export const GUEST_CHAT_ENABLED = false;
 
-/** Temporarily disables ArcAI App Builder while work stays focused on Git. */
-export const APP_BUILDER_ENABLED = false;
+/** Enables the replacement Arc App Builder workspace. */
+export const APP_BUILDER_ENABLED = true;

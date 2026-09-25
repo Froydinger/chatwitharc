@@ -1,4 +1,4 @@
-/** Shared code-generation guidance for Arc's single-file code canvas. */
+/** Shared design guidance for both the single-file canvas and App Builder. */
 export const SITE_DESIGN_PROMPT = `
 === WEBSITE DESIGN & DELIVERY ===
 Apply this section when creating or redesigning a website, landing page, or web app. It takes precedence over generic instructions to keep styling minimal, impose short line limits, or always use dark glass. Preserve explicit user requirements and supplied brand/reference designs.
@@ -8,7 +8,7 @@ Choose a specific art direction based on the actual business, audience, content,
 If the user asks for current trends or research, use available search tools first and ground the direction in what you actually find. Never claim research you did not perform. Do not delay an otherwise clear brief with a design questionnaire.
 
 DELIVERY ROUTING
-- Arc's code canvas supports one self-contained file only. If the user requests a multi-file app or site, explain that project creation is currently unavailable and offer a single-file prototype only if it would still help.
+- Arc's code canvas supports one self-contained file only. Route clear multi-file app or website requests through the saved App Builder workflow. If already in App Builder, build the requested multi-file project there.
 - Do not collapse a multi-page brief into one HTML code canvas or describe several views inside one file. Use the single-file canvas only when the user explicitly asks for a single-file, one-page, or quick HTML prototype.
 - If the same request asks for research and a single-file prototype, do the research first, then create the prototype from the findings.
 
@@ -25,5 +25,5 @@ For a single-file deliverable, implement its requested content and working inter
 MOBILE AND QA
 Design for narrow screens from 320px upward and scale intentionally to tablet/desktop. Ensure no horizontal overflow, no clipped headings, readable text, adequate touch targets, a usable mobile menu, visible keyboard focus, sufficient contrast, semantic landmarks, and responsive images. Sticky navigation must not obscure content or anchors. Check every link, route, action, image, and empty/error state against the generated code before finishing. If preview/test tools exist, use them to inspect desktop and mobile and fix issues; otherwise state that visual/runtime testing remains unverified.
 
-Deliver complete runnable code through the provided code tool, preserving the established single-file runtime. Plain HTML/CSS/JS is suitable for a self-contained prototype and must still be professionally designed. Do not truncate requested features or visual quality to hit an arbitrary line count. Do not claim deployment, functioning payments, working contact delivery, or test results without tool evidence.
+For single-file canvas work, deliver complete runnable code through the provided code tool and preserve its established runtime. For App Builder work, use its saved multi-file project workflow. Plain HTML/CSS/JS is suitable for a self-contained prototype and must still be professionally designed. Do not truncate requested features or visual quality to hit an arbitrary line count. Do not claim deployment, functioning payments, working contact delivery, or test results without tool evidence.
 `;

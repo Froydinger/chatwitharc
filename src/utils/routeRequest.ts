@@ -29,7 +29,7 @@ export type RouteDestination =
   | 'cloud-image-edit'          // GPT-Image-2 — edit pass
   | 'cloud-image-edit-fallback' // Edit served by Gemini fallback when GPT-Image-2 failed
   | 'cloud-video'               // Video generation
-  | 'cloud-ide';                // Paused App Builder / IDE agent
+  | 'cloud-ide';                // App Builder agent
 
 
 export interface RouteContext {

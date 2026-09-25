@@ -71,7 +71,7 @@ export class CloudAppRuns {
   }
   async restore(cursor?: string) {
     const lifecycle = await this.init();
-    const page = await lifecycle.restore({ includeTerminal: true, limit: 100, ...(cursor ? { cursor } : {}) });
+    const page = await lifecycle.restore({ kind: 'app', includeTerminal: true, limit: 100, ...(cursor ? { cursor } : {}) });
     await this.guard();
     this.view.nextCursor = page.nextCursor; this.emit();
     return page;

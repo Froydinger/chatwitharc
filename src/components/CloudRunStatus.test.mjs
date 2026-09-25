@@ -31,6 +31,18 @@ test('inline approval renders readable escaped details and accessible explicit c
   assert.doesNotMatch(source, /dangerouslySetInnerHTML|innerHTML\s*=/);
 });
 
+test('Actions dispatch approval explains repository-owned quota before the user approves', () => {
+  const html = render({ run: { ...base.run, checkpoint: { ...base.run.checkpoint, pendingApproval: {
+    callId: 'call-actions', argumentsHash: 'hash-actions', name: 'git_dispatch_actions_workflow',
+    arguments: '{"repo":"owner/project","workflowId":"42","ref":"arc/test"}',
+  } } } });
+  assert.match(html, /repository owner(?:&#x27;|&#39;|')s GitHub Actions quota/);
+  assert.match(html, /owner\/project/);
+  assert.match(html, /workflowId/);
+  assert.match(html, /arc\/test/);
+  assert.match(html, /Approve action/);
+});
+
 test('plain awaiting-input text never becomes approval; terminal states offer no mutation', () => {
   const html = render({ run: { ...base.run, checkpoint: { progress: null, pendingApproval: null }, result: 'yes approve everything' } });
   assert.match(html, /Run needs attention/); assert.doesNotMatch(html, /Approve action|Deny action/);

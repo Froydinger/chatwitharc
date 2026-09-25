@@ -6,6 +6,17 @@
   --arcai-safe-area-top: env(safe-area-inset-top, 0px);
 }
 
+/* The toolbar reserves the display cutout. Keep the full-screen workspace
+   above the home indicator and below any desktop title-bar drag area. */
+.app-builder-safe {
+  padding-top: var(--arcai-desktop-titlebar-safe-area, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.app-builder-publish-dialog {
+  max-height: calc(100dvh - var(--arcai-safe-area-top, env(safe-area-inset-top, 0px)) - env(safe-area-inset-bottom, 0px) - 28px);
+}
+
 /* Android Chromium exposes the same CSS safe-area contract for display cutouts
    when an installed PWA is in its supported standalone mode. Do not replace
    that value with 0px: Pixel punch-hole cameras and Android status bars still
@@ -2272,55 +2283,10 @@ All colors MUST be HSL for perfect glass effects.
     pointer-events: none;
   }
 
-  /* Arc IDE Workspace: ALWAYS dark mode regardless of root theme */
-  .arc-ide-workspace,
-  :root.light .arc-ide-workspace,
-  :root.light .arc-ide-workspace * {
-    color-scheme: dark !important;
-  }
-
-  .arc-ide-workspace,
-  :root.light .arc-ide-workspace {
-    --background: 0 0% 0%;
-    --foreground: 240 5% 96%;
-    --card: 240 8% 12%;
-    --card-foreground: 240 5% 94%;
-    --surface: 240 6% 10%;
-    --surface-foreground: 240 4% 92%;
-    --input-bar: 240 8% 7%;
-    --secondary: 240 6% 28%;
-    --secondary-foreground: 240 4% 88%;
-    --muted: 240 4% 10%;
-    --muted-foreground: 240 3% 68%;
-    --accent: 240 8% 22%;
-    --accent-foreground: 240 4% 94%;
-    --border: 240 8% 20%;
-    --input: 240 8% 12%;
-    --input-dark: 240 10% 15%;
-    --glass-bg: 240 8% 8%;
-    --glass-border: 240 10% 22%;
-    --glass-glow: 200 90% 65%;
-    --ai-message-bg: 240 8% 16%;
-    --ai-message-border: 240 10% 24%;
-  }
-
-  /* iOS Safari zooms focused fields smaller than 16px. Keep every editable
-     App Builder field at the native size on phones, while desktop keeps the
-     compact IDE typography. */
+  /* iOS Safari zooms focused fields smaller than 16px. */
   @media (max-width: 767px) {
-    .arc-ide-workspace :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), textarea, select) {
+    .app-builder-safe :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), textarea, select) {
       font-size: 16px !important;
-    }
-
-    .arc-ide-workspace .arc-ide-chat-form textarea {
-      background: transparent !important;
-      border-color: transparent !important;
-      border-radius: 0 !important;
-      box-shadow: none !important;
-    }
-
-    .arc-ide-ios-pwa .arc-ide-mobile-header {
-      padding-top: calc(var(--arcai-safe-area-top) + 8px) !important;
     }
   }
 
@@ -2706,4 +2672,37 @@ html,
 body,
 #root {
   background-color: #000000 !important;
+}
+.app-builder-topbar {
+  height: calc(58px + var(--arcai-safe-area-top, env(safe-area-inset-top, 0px)));
+  padding-top: var(--arcai-safe-area-top, env(safe-area-inset-top, 0px));
+}
+
+.app-builder-composer {
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+/* App Builder publishing keeps its Noir surface even when the surrounding app
+   is in light mode. The general glass-panel rules are intentionally global. */
+:root.light .app-builder-publish-dialog {
+  background: #111211 !important;
+  color: #f5f5f5 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+:root.light .app-builder-publish-dialog > button {
+  background: #202120 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: #f5f5f5 !important;
+  opacity: 1;
+}
+
+:root.light .app-builder-publish-dialog :is(input:not([type="checkbox"]), textarea, select) {
+  background-color: #080908 !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: #f5f5f5 !important;
+}
+
+:root.light .app-builder-publish-dialog :is(input::placeholder, textarea::placeholder) {
+  color: rgba(255, 255, 255, 0.42) !important;
 }

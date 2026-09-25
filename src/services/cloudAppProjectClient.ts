@@ -31,7 +31,7 @@ export function cloudAppProjectClient(ownerId: string, projectId: string, revisi
   return client;
 }
 
-/** Completion/discovery callers can reconcile without a mounted/selected IDE.
+/** Completion/discovery callers can reconcile without a mounted Builder workspace.
  * Caller applies the returned project only if its own selection still matches.
  */
 export async function reloadCloudAppProject(ownerId: string, projectId: string, signal?: AbortSignal) {

@@ -2,16 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
-const panel = await readFile(new URL('../components/ide/IDECanvasPanel.tsx', import.meta.url), 'utf8');
+const workspace = await readFile(new URL('../components/app-builder/AppBuilderWorkspace.tsx', import.meta.url), 'utf8');
+const projectService = await readFile(new URL('./appBuilderProject.ts', import.meta.url), 'utf8');
 const clientSource = await readFile(new URL('./cloudAppProjectClient.ts', import.meta.url), 'utf8');
-test('panel contract: owner-scoped reads, abort cleanup, surfaced errors, no protected array update', () => {
-  assert.match(panel, /eq\('user_id', user.id\)/);
-  assert.match(panel, /return \(\) => scope.abort\(\)/);
-  assert.match(panel, /role="alert"/);
-  const protectedBranch = panel.slice(panel.indexOf('if (isProtected)'), panel.indexOf('const { data, error } = savedResult'));
-  assert.match(protectedBranch, /client.flush\(\)/);
-  assert.doesNotMatch(protectedBranch.split('} else {')[0], /files:|messages:|upsert/);
-  assert.match(panel, /detail\?\.projectId !== projectIdRef.current/);
+test('replacement builder keeps owner-scoped project reads and revision-safe persistence', () => {
+  assert.match(projectService, /eq\('id', projectId\)\.eq\('user_id', user\.id\)/);
+  assert.match(projectService, /eq\('id', projectId\)\.eq\('user_id', ownerId\)/);
+  assert.match(projectService, /cloudAppProjectClient\(user\.id, projectId, record\.cloud_revision\)/);
+  assert.match(projectService, /cloud_revision\)/);
+  assert.match(projectService, /saved\.status !== 'saved'/);
+  assert.doesNotMatch(projectService, /\.upsert\(/);
+  assert.match(workspace, /projectPersistenceRef\.current/);
+  assert.match(workspace, /role="alert"/);
+  assert.match(workspace, /createCloudAppRuns\(/);
+  assert.doesNotMatch(workspace, /IDECanvasPanel|components\/ide\//);
 });
 test('completion callback uses returned projectId, ignores noncompleted runs and aborted scope', async () => {
   const calls = [];

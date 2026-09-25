@@ -12,6 +12,8 @@ import { useCanvasStore } from "@/store/useCanvasStore";
 import { useVoiceModeStore } from "@/store/useVoiceModeStore";
 import { useSearchStore } from "@/store/useSearchStore";
 import { MessageBubble } from "@/components/MessageBubble";
+import { BrowserbaseLivePreview } from "@/components/BrowserbaseLivePreview";
+import { useBrowserbaseSessionStore } from "@/store/useBrowserbaseSessionStore";
 import { SubagentProgress } from "@/components/SubagentProgress";
 import { useSubagentStore } from "@/store/useSubagentStore";
 import { ChatInput, cancelCurrentRequest, inferPromptMode, type ChatInputRef, type CloudTextSubmitIntent } from "@/components/ChatInput";
@@ -32,7 +34,7 @@ import { CanvasPanel } from "@/components/CanvasPanel";
 
 import { SearchCanvas } from "@/components/SearchCanvas";
 import { useIDEStore } from "@/store/useIDEStore";
-import { IDECanvasPanel } from "@/components/ide/IDECanvasPanel";
+import { AppBuilderWorkspace } from "@/components/app-builder/AppBuilderWorkspace";
 // CanvasTile removed - canvas now renders inline as chat message artifacts
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -59,9 +61,7 @@ import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import { VoiceModeOverlay } from "@/components/VoiceModeOverlay";
 import { LiveVoiceTranscript } from "@/components/LiveVoiceTranscript";
 import { VoiceModeController } from "@/components/VoiceModeController";
-import { BotTestViewer } from "@/components/BotTestViewer";
 import { APP_BUILDER_ENABLED } from "@/lib/features";
-import { useBotTestSessionReset } from "@/hooks/useBotTestSessionReset";
 import { ContextBlocksPanel } from "@/components/ContextBlocksPanel";
 import { MessageQueue } from "@/components/MessageQueue";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
@@ -388,13 +388,17 @@ export function MobileChatApp() {
     if (index >= 0) setVisibleMessageCount(count => Math.max(count, messages.length - index));
   }, [currentSessionId, messages]);
   // Arc Chat is the safe default and stays on the normal conversational
-  // request path. Durable cloud execution belongs only to explicit Arc Work.
+  // request path. Git tasks use durable cloud execution when that capability
+  // is available so Actions dispatch can pause for an explicit approval.
   const { hasBoost, isAdmin, openCheckout } = useSubscription();
+  const gitConnected = useGitStore((s) => s.connected);
+  const gitSelectedRepo = useGitStore((s) => s.selectedRepo);
   const cloudTextEnabled = !authLoading
     && import.meta.env.VITE_CLOUD_RUNS_ENABLED === 'true'
     && import.meta.env.VITE_CLOUD_SESSION_OPERATIONS_ENABLED === 'true' && !!user && !isAnonymous;
   const [cloudModeChoice, setCloudModeChoice] = useState<{ ownerId: string; mode: CloudRunMode } | null>(null);
   const arcCloudAvailable = cloudTextEnabled && (hasBoost || isAdmin);
+  const cloudGitChatEnabled = cloudTextEnabled && gitConnected && !!gitSelectedRepo;
   // Work is an explicit per-session choice. Reopening an ordinary chat must
   // never infer Work merely because that session has an old cloud run.
   useEffect(() => {
@@ -427,7 +431,7 @@ export function MobileChatApp() {
   // the first send does not race its startup, while ordinary Chat remains
   // direct and local to its existing path.
   const cloudAppChatEnabled = APP_BUILDER_ENABLED && cloudTextEnabled && (hasBoost || isAdmin);
-  const cloudRunObserverEnabled = cloudWorkEnabled || cloudAppChatEnabled;
+  const cloudRunObserverEnabled = cloudWorkEnabled || cloudAppChatEnabled || cloudGitChatEnabled;
   useEffect(() => {
     if (!arcCloudAvailable && cloudModeChoice?.mode === 'auto') setCloudModeChoice(null);
   }, [arcCloudAvailable, cloudModeChoice]);
@@ -490,15 +494,26 @@ export function MobileChatApp() {
     }
     const userMessage = JSON.parse(JSON.stringify(message)) as CloudRunSubmission['userMessage'];
 
-    const buildRequest = (uploadedAttachments?: CloudMediaReference[]): CloudTextRequest => ({
-      messages: captured.messages, forceWebSearch: captured.forceWebSearch,
-      forceCanvas: captured.forceCanvas, forceCode: captured.forceCode,
-      forceGit: captured.forceGit,
-      ...(uploadedAttachments ? { attachments: uploadedAttachments } : {}),
-      ...(workspaceContext ? { workspace_context: workspaceContext } : {}),
-      reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, getQueryComplexity(message.content)),
-      clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    });
+    const buildRequest = (uploadedAttachments?: CloudMediaReference[]): CloudTextRequest => {
+      const storedBrowserSession = useBrowserbaseSessionStore.getState().getSession(captured.sessionId);
+      const historyMessages = useArcStore.getState().chatSessions.find(session => session.id === captured.sessionId)?.messages ?? [];
+      const historyBrowserSession = [...historyMessages].reverse().find(item => item.role === 'assistant' && item.browserSession)?.browserSession;
+      const browserbaseSessionHandle = storedBrowserSession
+        ? storedBrowserSession.status === 'closed' || storedBrowserSession.status === 'expired' ? undefined : storedBrowserSession.sessionHandle
+        : historyBrowserSession?.sessionHandle;
+      const browserbaseDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ? 'mobile' as const : 'desktop' as const;
+      return {
+        messages: captured.messages, forceWebSearch: captured.forceWebSearch,
+        forceCanvas: captured.forceCanvas, forceCode: captured.forceCode,
+        forceGit: captured.forceGit,
+        ...(captured.forceGit ? { browserbaseDevice, ...(browserbaseSessionHandle ? { browserbaseSessionHandle } : {}) } : {}),
+        ...(uploadedAttachments ? { attachments: uploadedAttachments } : {}),
+        ...(workspaceContext ? { workspace_context: workspaceContext } : {}),
+        reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, getQueryComplexity(message.content)),
+        clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
+    };
 
     // For a text-only turn whose local session already has a trustworthy
     // revision (or is a brand-new one-message session), submit immediately.
@@ -671,7 +686,7 @@ export function MobileChatApp() {
   // Search mode state
   const { isOpen: isSearchOpen, closeSearch } = useSearchStore();
 
-  // App Builder (IDE) workspace state
+  // App Builder workspace state
   const isIDEOpen = useIDEStore((s) => s.isOpen);
   const closeIDE = useIDEStore((s) => s.closeIDE);
 
@@ -841,10 +856,44 @@ export function MobileChatApp() {
   const [isCanvasResizing, setIsCanvasResizing] = useState(false);
   const canvasResizingRef = useRef(false);
   const snarkyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Closing a chat or starting a new one tears down its preview and bot test.
-  useBotTestSessionReset();
 
   const chatInputRef = useRef<ChatInputRef>(null);
+  const storedBrowserbaseSession = useBrowserbaseSessionStore((state) =>
+    currentSessionId ? state.byChat[currentSessionId] : undefined,
+  );
+  const browserbaseHistorySession = [...messages].reverse().find((message) =>
+    message.role === 'assistant' && message.browserSession,
+  )?.browserSession;
+  const browserbaseSession = storedBrowserbaseSession?.status === 'closed' || storedBrowserbaseSession?.status === 'expired'
+    ? undefined
+    : storedBrowserbaseSession ?? browserbaseHistorySession;
+  useEffect(() => {
+    if (!currentSessionId) return;
+    const latest = [...cloudRuns.entries]
+      .filter(entry => entry.kind === 'chat' && entry.sessionId === currentSessionId
+        && (entry.run?.checkpoint?.browserSession || entry.run?.checkpoint?.browserSessionClosed))
+      .sort((a, b) => Date.parse(a.run?.updatedAt ?? '') - Date.parse(b.run?.updatedAt ?? ''))
+      .at(-1);
+    const checkpoint = latest?.run?.checkpoint;
+    const closedHandle = checkpoint?.browserSessionClosed;
+    if (closedHandle) {
+      const session = useBrowserbaseSessionStore.getState().getSession(currentSessionId) ?? browserbaseHistorySession;
+      if (session?.sessionHandle === closedHandle) {
+        useBrowserbaseSessionStore.getState().setSession(currentSessionId, { ...session, status: 'closed', control: 'view_only' });
+      }
+    } else if (checkpoint?.browserSession) {
+      useBrowserbaseSessionStore.getState().setSession(currentSessionId, checkpoint.browserSession);
+    }
+  }, [browserbaseHistorySession, cloudRuns.entries, currentSessionId]);
+  const handleBrowserbaseClosed = useCallback((sessionHandle: string) => {
+    if (!currentSessionId || !browserbaseSession || browserbaseSession.sessionHandle !== sessionHandle) return;
+    const store = useBrowserbaseSessionStore.getState();
+    if (store.getSession(currentSessionId)?.sessionHandle === sessionHandle) {
+      store.updateSession(currentSessionId, sessionHandle, { status: 'closed', control: 'view_only' });
+    } else {
+      store.setSession(currentSessionId, { ...browserbaseSession, status: 'closed', control: 'view_only' });
+    }
+  }, [browserbaseSession, currentSessionId]);
   // Work is an explicit per-session choice, but it used to live only in memory,
   // so leaving a Work chat and coming back reopened it as ordinary Chat — and
   // pressing Work then offered a handoff that spawned a second empty chat.
@@ -1255,8 +1304,6 @@ export function MobileChatApp() {
   }, []);
 
   const currentSession = currentSessionId ? chatSessions.find(s => s.id === currentSessionId) : null;
-  const gitConnected = useGitStore((s) => s.connected);
-  const gitSelectedRepo = useGitStore((s) => s.selectedRepo);
   const isGitDockActive = Boolean((currentSession as any)?.git_mode || (gitConnected && gitSelectedRepo));
   const sessionCanvas = currentSession?.canvasContent ?? '';
   const hasCanvas = (canvasContent || sessionCanvas).trim().length > 0;
@@ -1566,7 +1613,6 @@ export function MobileChatApp() {
                   transition={{ duration: 0.2 }}
                   className="fixed bottom-6 left-16 right-4 z-[75]"
                 >
-                  <BotTestViewer />
                   <div className="mb-2 px-1">
                     <MessageQueue
                       onSendMessage={(content) => chatInputRef.current?.sendMessage(content)}
@@ -1682,6 +1728,18 @@ export function MobileChatApp() {
                       );
                     })}
                   </AnimatePresence>
+                  {browserbaseSession && browserbaseSession.status !== 'closed' && browserbaseSession.status !== 'expired' && !isVoiceActive && (
+                    <div className="mx-auto mb-3 w-full max-w-3xl px-1">
+                      <BrowserbaseLivePreview
+                        sessionHandle={browserbaseSession.sessionHandle}
+                        device={browserbaseSession.device}
+                        expiresAt={browserbaseSession.expiresAt}
+                        title={browserbaseSession.title}
+                        onHandoff={() => chatInputRef.current?.sendMessage("I'm done controlling the browser. Please check the current page and continue.")}
+                        onClosed={handleBrowserbaseClosed}
+                      />
+                    </div>
+                  )}
                 {(cloudWorkEnabled || (cloudRunObserverEnabled && cloudRuns.entries.some(entry => entry.sessionId === currentSessionId))) && !isVoiceActive && <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} enabled={cloudRunObserverEnabled} transcriptRunIds={messages.filter(message => message.role === 'assistant' && message.id.startsWith('cloud-')).map(message => message.id.slice(6))} />}
                   <SubagentProgress />
                   {/* Show thinking indicator when loading */}
@@ -1802,10 +1860,6 @@ export function MobileChatApp() {
                   and the metal ring still painting underneath VoiceModeOverlay's
                   bar, which sits at the same width and offset — so their edges
                   showed through as the voice bar grew and moved while listening. */}
-              {/* Live "watch the bot work" viewer, in the same slot the voice
-                  mode image float occupies above the bar. */}
-              <BotTestViewer />
-
               {!isVoiceActive && (
               /* Entrance animation lives on the OUTER wrapper so the element
                  MetalFx measures (the .glass-dock below) is never mid-transform.
@@ -1952,8 +2006,7 @@ export function MobileChatApp() {
         )}
       </AnimatePresence>
 
-      {/* App Builder IDE Workspace - Full Screen Takeover */}
-      {/* IDE Workspace Modal (Arc App Builder) — portaled directly to document.body */}
+      {/* App Builder workspace takeover — portaled directly to document.body */}
       {createPortal(
         <AnimatePresence>
           {APP_BUILDER_ENABLED && isIDEOpen && (
@@ -1964,7 +2017,7 @@ export function MobileChatApp() {
               transition={{ duration: 0.2, ease: "easeOut" }}
               className="fixed inset-0 z-[200] bg-background h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col"
             >
-              <IDECanvasPanel onClose={closeIDE} />
+              <AppBuilderWorkspace onClose={closeIDE} />
             </motion.div>
           )}
         </AnimatePresence>,

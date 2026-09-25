@@ -5,6 +5,7 @@ import { detectMemoryCommand, addToMemoryBank, formatMemoryConfirmation } from '
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { createCloudSessionPersistence, type SessionOutbox, type SessionPersistenceResult } from '@/services/cloudSessionPersistence';
 import { transcriptChanges, type TranscriptSnapshot } from '@/services/cloudSessionChanges';
+import type { BrowserbaseChatSession } from '@/store/useBrowserbaseSessionStore';
 
 // Release gate: enable only AFTER the session-operation migration is available.
 const cloudSessionOperationsEnabled = import.meta.env.VITE_CLOUD_SESSION_OPERATIONS_ENABLED === 'true';
@@ -202,10 +203,12 @@ export interface Message {
   codeContent?: string; // For code artifacts
   codeLanguage?: string; // Programming language
   codeLabel?: string; // AI-generated label for code
-  idePrompt?: string; // For IDE app builder artifacts
+  idePrompt?: string; // For App Builder artifacts
   ideFileCount?: number; // Number of files generated
   ideProjectId?: string; // Database project ID for cloud persistence
-  ideTitle?: string; // Display title for IDE app builder artifacts
+  ideTitle?: string; // Display title for App Builder artifacts
+  browserSession?: BrowserbaseChatSession; // Owner-scoped handle and display state only; never a provider live-view URL
+  browserSessionClosed?: string;
   memoryAction?: MemoryAction; // Track memory/search actions
   webSources?: Array<{ url: string; title?: string; snippet?: string }>; // Inline web citations
   weatherData?: import('@/components/WeatherCard').WeatherData; // Inline weather card

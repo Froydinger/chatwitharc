@@ -64,6 +64,7 @@ const DesktopAuthCallbackPage = lazy(() => import("./pages/DesktopAuthCallbackPa
 const AuthCallbackPage = lazy(() => import("./pages/AuthCallbackPage").then((m) => ({ default: m.AuthCallbackPage })));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then((m) => ({ default: m.ResetPasswordPage })));
 const VoiceLabPage = lazy(() => import("./pages/VoiceLabPage").then((m) => ({ default: m.VoiceLabPage })));
+const AppBuilderPage = lazy(() => import("./pages/AppBuilderPage").then((m) => ({ default: m.AppBuilderPage })));
 import { useAuth } from "@/hooks/useAuth";
 import { GUEST_CHAT_ENABLED } from "@/lib/features";
 import { ThemedLogo } from "@/components/ThemedLogo";
@@ -321,8 +322,8 @@ const App = () => {
                     <Route path="/dashboard" element={<DashboardShellGate />} />
                     <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
                     <Route path="/voice-lab" element={<VoiceLabPage />} />
-                    <Route path="/build" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/build/:projectId" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/build" element={<AppBuilderPage />} />
+                    <Route path="/build/:projectId" element={<AppBuilderPage />} />
                     <Route path="/build/*" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/app/*" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/apps/*" element={<Navigate to="/dashboard" replace />} />

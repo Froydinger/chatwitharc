@@ -78,7 +78,7 @@ Netlify officially recommends creating custom authentication screens that intera
   - Sign In: \`POST /.netlify/identity/token\` (with credentials)
   - Sign Out: \`POST /.netlify/identity/logout\`
   - Current User: \`GET /.netlify/identity/user\`
-• It has a built-in sandbox preview fallback, allowing accounts to work seamlessly both inside the IDE Sandpack preview and when deployed live to production domains!
+• The App Builder preview runs in the user's browser and uses the same saved project files as the published app.
 • Usage in code:
   - \`const user = netlifyDb.auth.currentUser()\` (returns signed-in user or null)
   - \`await netlifyDb.auth.signUp({ email, password, name, avatar })\`

@@ -27,6 +27,7 @@ import { CodeBlock } from "@/components/CodeBlock";
 import { FileAttachment } from "@/components/FileAttachment";
 import { CanvasAttachment } from "@/components/CanvasAttachment";
 import { CodeArtifactCard } from "@/components/CodeArtifactCard";
+import { AppBuilderArtifactCard } from "@/components/app-builder/AppBuilderArtifactCard";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
@@ -39,7 +40,6 @@ import { NotificationDispatchCard } from "@/components/NotificationDispatchCard"
 import { SvgArtifact } from "@/components/SvgArtifact";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
 import { InlineHumidityWheel, InlineProgressChart, type ProgressPoint } from "@/components/InlineDataVisual";
-import { useSandboxStore } from "@/store/useSandboxStore";
 import { richMarkdownComponents, renderInlineVisual } from "@/components/richMarkdown";
 
 
@@ -304,6 +304,23 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   className="mb-3 relative z-10 flex justify-start"
                 >
                   <NotificationDispatchCard dispatch={message.notificationDispatch} />
+                </motion.div>
+              )}
+
+              {!isUser && message.type === 'ide' && (
+                <motion.div
+                  key="card-app-builder-artifact"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="relative z-10 mb-2 w-full"
+                >
+                  <AppBuilderArtifactCard
+                    projectId={message.ideProjectId}
+                    title={message.ideTitle}
+                    prompt={message.idePrompt}
+                    fileCount={message.ideFileCount}
+                  />
                 </motion.div>
               )}
 

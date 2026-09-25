@@ -32,6 +32,10 @@ const ROUTE_META: Record<string, RouteMeta> = {
     description:
       "Manage your ArcAI account, theme, voice, memory and usage preferences.",
   },
+  "/build": {
+    title: "ArcAI • App Builder",
+    description: "Build, preview and publish your Arc apps from any device.",
+  },
   "/support": {
     title: "ArcAI • Support",
     description:
@@ -119,6 +123,9 @@ export const RouteSEO = () => {
   }
   if (path.startsWith("/shared/")) {
     path = "/shared";
+  }
+  if (path === "/build" || path.startsWith("/build/")) {
+    path = "/build";
   }
   if (path.startsWith("/dashboard") && path !== "/dashboard/settings") {
     path = "/dashboard";

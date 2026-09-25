@@ -2,8 +2,7 @@ import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask, resolveReasoningEffort, useModelStore, type LunaReasoningEffort } from "@/store/useModelStore";
 import { incrementDailyBalancedCount, incrementDailyDeepCount } from "@/hooks/useSubscription";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext, requestsCurrentLocation } from "@/lib/userLocation";
-import { useSandboxStore } from "@/store/useSandboxStore";
-import { useBotTestStore } from '@/store/useBotTestStore';
+import { useBrowserbaseSessionStore, type BrowserbaseChatSession } from "@/store/useBrowserbaseSessionStore";
 
 // Detect if a user message warrants upgrading to a more powerful model
 export function detectComplexQuery(message: string): boolean {
@@ -164,6 +163,7 @@ export interface CodeUpdate {
 
 export interface SendMessageResult {
   content: string;
+  browserSession?: BrowserbaseChatSession;
   webSources?: WebSource[];
   searchProvider?: 'perplexity' | 'tavily';
   searchImages?: string[];
@@ -177,8 +177,6 @@ export interface SendMessageResult {
   modelUsed?: string;
   /** Reasoning effort that actually ran, so a stored message can name the model that answered it. */
   reasoningEffortUsed?: LunaReasoningEffort;
-  sandbox_preview_url?: string;
-  sandbox_preview_port?: number;
 }
 
 export interface ImageTaskResult {
@@ -362,6 +360,14 @@ export class AIService {
 
           const { data: { session } } = await supabase.auth.getSession();
           const authToken = session?.access_token || supabaseKey;
+          let browserSession: BrowserbaseChatSession | undefined;
+          const activeBrowserSession = sessionId
+            ? useBrowserbaseSessionStore.getState().getSession(sessionId)
+            : undefined;
+          const browserbaseDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+            || window.matchMedia('(max-width: 768px)').matches
+            ? 'mobile'
+            : 'desktop';
 
           const response = await this.fetchWithTimeout(
             () =>
@@ -383,14 +389,10 @@ export class AIService {
                   forceCanvas: forceCanvas || false,
                   forceCode: forceCode || false,
                   forceGit,
-                  // Lets the server tell the model a dev server is already up, so it
-                  // tests against that URL instead of launching a second one.
-                  livePreview: (() => {
-                    const sb = useSandboxStore.getState();
-                    return sb.previewUrl
-                      ? { url: sb.previewUrl, port: sb.port, repo: sb.repo }
-                      : undefined;
-                  })(),
+                  browserbaseDevice,
+                  ...(activeBrowserSession && activeBrowserSession.status !== 'closed' && activeBrowserSession.status !== 'expired'
+                    ? { browserbaseSessionHandle: activeBrowserSession.sessionHandle }
+                    : {}),
                   useProModel: isComplex || false,
                   streamEvents: true,
                   clientDateTime: new Date().toString(),
@@ -459,17 +461,19 @@ export class AIService {
                     if (event.tool) {
                       onToolUsage?.([event.tool]);
                     }
+                  } else if (event.type === 'browser_session' && event.session && typeof event.session.sessionHandle === 'string') {
+                    browserSession = event.session as BrowserbaseChatSession;
+                    if (sessionId) useBrowserbaseSessionStore.getState().setSession(sessionId, browserSession);
+                  } else if (event.type === 'browser_session_closed' && typeof event.sessionHandle === 'string') {
+                    if (sessionId) {
+                      useBrowserbaseSessionStore.getState().updateSession(sessionId, event.sessionHandle, {
+                        status: 'closed',
+                        control: 'view_only',
+                      });
+                    }
+                    if (browserSession?.sessionHandle === event.sessionHandle) browserSession = undefined;
                   } else if (event.type === 'subagent' && event.event && typeof event.event === 'object') {
                     onStatus?.({ type: 'subagent', subagent: event.event as Record<string, unknown> });
-                  } else if (event.type === 'sandbox_preview' && event.url) {
-                    useSandboxStore.getState().openPreview(event.url, event.repo, event.port);
-                  } else if (event.type === 'browser_test_started' && event.runId) {
-                    useBotTestStore.getState().startRun({
-                      runId: event.runId,
-                      devices: Array.isArray(event.devices) && event.devices.length ? event.devices : ['desktop'],
-                      goal: event.goal,
-                      stepCount: (event.stepCount || 0) * (Array.isArray(event.devices) ? event.devices.length : 1),
-                    });
                   } else if (event.type === 'done') {
                     data = event.result;
                   } else if (event.type === 'error') {
@@ -523,6 +527,7 @@ export class AIService {
 
           return {
             content: data.choices[0]?.message?.content || 'Sorry, I could not generate a response.',
+            ...(browserSession ? { browserSession } : {}),
             webSources: data.web_sources,
             searchProvider: data.search_provider,
             searchImages: data.search_images,

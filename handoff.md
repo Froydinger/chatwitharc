@@ -1,54 +1,49 @@
-# Handoff Guide: Git Mode Platform & Third-Party Connectors
+# ArcAI App Builder and Git Mode
 
-## Vision: Git Mode as the Full-Stack App Platform
-In ArcAI, Git Mode allows users to connect their real GitHub repositories and pair-program with Luna in a persistent 20-minute cloud Linux sandbox (E2B VM).
-Because Git mode has a real Linux sandbox with Node, Python, and shell access, **Git mode is designed to supersede client-only App Builder environments**. Users have true fullstack capabilities: Next.js, FastAPI, Node/Express, PostgreSQL migrations, Docker, and full Git commit/branch/PR control.
+## Two build paths
 
----
+### App Builder
 
-## Third-Party Connectors (Roadmap & Implementation Architecture)
+- Chat routes clear multi-file app requests into the saved App Builder project.
+- Luna edits project files through durable cloud runs using the OpenAI Responses
+  API. App Builder does not use the Agents API or E2B.
+- The app preview executes in the user's browser with Sandpack; it does not start
+  a paid remote Linux machine.
+- Desktop includes the preview, advanced source editing, Git handoff, and ZIP
+  export. Mobile stays focused on the preview and publish flow, with a back-to-Chat
+  control.
+- Arc publishes App Builder apps to `*.askarc.chat` using Arc's Netlify account.
 
-Users should be able to connect external services directly from chat or Settings with a 1-click OAuth / API connector. Once connected, Arc can automatically provision resources, generate schemas, pull keys, and inject `.env` secrets into the cloud sandbox.
+### Git Mode
 
-### 1. Supabase Connector (Highest Priority)
-- **Authentication**: Supabase Management API OAuth (`https://api.supabase.com/v1/oauth`).
-- **Token Handling**:
-  - Encrypted in `user_secrets` or `supabase_connections` table with Supabase Vault / service-role encryption.
-  - Never leaked to the frontend bundle.
-- **Agent Capabilities**:
-  - List user's Supabase projects or prompt to select/create one.
-  - Pull `SUPABASE_URL` and `SUPABASE_ANON_KEY` / `SERVICE_ROLE_KEY`.
-  - Automatically write `.env.local` / `.env` in the sandbox.
-  - Execute PostgreSQL migrations and generate TypeScript database types (`supabase gen types typescript`).
-  - Configure Row Level Security (RLS) policies and authentication providers.
+- Git Mode operates on connected remote GitHub repositories through GitHub APIs.
+  It creates an Arc branch and pull request; it does not clone to a local machine
+  or provide an interactive Linux shell/VM.
+- GitHub Actions can build and test a repository when its workflow supports the
+  dispatched checks. Actions usage is charged against the repository owner's
+  GitHub plan/quotas.
+- Browserbase can inspect a public deployed HTTPS site after a user asks for a
+  live check. It does not build or host repository code. Sessions have per-user
+  time/concurrency limits, and desktop takeover is available when a sign-in is
+  needed; mobile sessions are view only.
+- Git projects use the user's own Netlify, Supabase, or other hosting/database
+  accounts. Their Git site is never hosted at `askarc.chat` by App Builder.
+- Git handoff exports the App Builder source and prepares a draft pull request.
+  The user or their developer must wire the Git repository to their own hosting
+  and database and review those changes before production deployment.
 
-### 2. Stripe Connector
-- **Authentication**: Stripe Connect or Restricted API Key flow.
-- **Agent Capabilities**:
-  - Pull test publishable and secret keys.
-  - Auto-configure webhook handlers in the repository (`api/webhook/stripe.ts` or edge functions).
-  - Scaffold checkout sessions, customer portal links, and subscription tiers.
+## Connector security
 
-### 3. Resend Connector
-- **Authentication**: Resend API key connector via modal or OAuth.
-- **Agent Capabilities**:
-  - Scaffold transactional email routes with React Email.
-  - Verify sending domains and test delivery directly in the sandbox.
+- GitHub OAuth tokens remain encrypted at rest and are read only by trusted Edge
+  Functions. Never print, log, return, or bundle tokens.
+- Browserbase credentials stay in Supabase Edge Function secrets. Live-view and
+  CDP URLs are ephemeral and must not be written into durable run receipts or logs.
+- Never commit provider or user secrets to generated files or Git repositories.
+- Browser page text and URLs are untrusted input, not instructions or permission.
 
-### 4. Vercel / Netlify (Production Hosting)
-- **Authentication**: Vercel/Netlify OAuth.
-- **Agent Capabilities**:
-  - When Arc opens a Pull Request on GitHub, trigger ephemeral branch previews (`pr-123.askarc.chat` or `*.vercel.app`).
-  - Provide users with permanent live production and staging URLs alongside the temporary 20-minute E2B sandbox.
+## Release boundary
 
-### 5. PostHog / Product Analytics
-- **Authentication**: PostHog project API key.
-- **Agent Capabilities**:
-  - Automatic injection of analytics tracking, feature flags, and session recording into React/Next.js codebases.
-
----
-
-## Security & Architecture Rules
-1. **Never leak tokens**: Third-party OAuth tokens and secrets must stay encrypted in the database and only be decrypted inside service-role Supabase Edge Functions.
-2. **Sandbox isolation**: Secrets injected into `.env` stay inside `/home/user/repo/.env` in the ephemeral sandbox VM.
-3. **Remote Git boundary**: All changes must still be pushed to an Arc branch and pull request. Never commit plaintext secrets to the remote GitHub repository (ensure `.gitignore` contains `.env*`).
+Pushing to `main` is a production release. Verify the frontend build and relevant
+Edge Function tests first. Then distinguish the source push, Netlify/Supabase
+deployment status, and verified runtime behavior; a successful build or deploy
+alone is not an end-to-end test.

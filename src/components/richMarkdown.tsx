@@ -4,7 +4,6 @@ import { CodeBlock } from "@/components/CodeBlock";
 import { SvgArtifact } from "@/components/SvgArtifact";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
 import { InlineHumidityWheel, InlineProgressChart, type ProgressPoint } from "@/components/InlineDataVisual";
-import { useSandboxStore } from "@/store/useSandboxStore";
 
 /**
  * The one markdown renderer for assistant prose.
@@ -97,23 +96,6 @@ export const richMarkdownComponents = {
         </div>
       );
     }
-    let targetUrl = href;
-    const isE2b = Boolean(href && (href.includes('.e2b.app') || href.includes('.e2b.dev')));
-    const isLocalhostPort = Boolean(href && /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0):(\d+)/.test(href));
-
-    if (isLocalhostPort && !isE2b) {
-      const currentPreview = useSandboxStore.getState().previewUrl;
-      if (currentPreview) {
-        const portMatch = href?.match(/:(\d+)/);
-        const portNum = portMatch ? portMatch[1] : null;
-        if (portNum) {
-          targetUrl = currentPreview.replace(/https?:\/\/\d+-/, `https://${portNum}-`);
-        } else {
-          targetUrl = currentPreview;
-        }
-      }
-    }
-
     return <a href={href} className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" {...props}>{children}</a>;
   },
   ul: ({node, ...props}: any) => <ul className="list-disc pl-5 mb-3 space-y-1 marker:text-primary/60" {...props} />,

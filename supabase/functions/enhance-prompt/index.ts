@@ -35,9 +35,9 @@ ABSOLUTE RULES:
 2. Structure the prompt to instruct Arc to:
    - Formulate a clear step-by-step engineering plan.
    - Inspect existing codebase files and directory structure first using git_read_repository / git_search_repository.
-   - Test in the cloud sandbox using git_run_in_sandbox (e.g. install dependencies, run test suites, check builds, or run dev servers).
+   - Inspect the repository's existing GitHub Actions workflows. If a suitable workflow exists, ask the user to approve a run on the Arc branch before starting it; workflow runs use the repository owner's Actions quota. If there is no suitable workflow, do not claim the changes were tested.
    - Apply clean, modular code modifications via git_apply_repository_changes to a new branch.
-   - Re-verify with sandbox tests and provide the pull request link.
+   - Report the Actions run result only after GitHub reports it, then provide the pull request link.
 3. Keep it as a direct instruction prompt to an AI coding assistant.
 4. Return ONLY the improved prompt text with no conversational preamble or explanation.`;
 

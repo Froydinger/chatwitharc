@@ -1,75 +1,61 @@
 # Durable App Builder contract
 
-## Implemented server boundary
+## Runtime boundary
 
-- `cloudAppAdvance(db, apiKey, { enabled: true })` returns the scheduler's
-  `advance(runId)` callback. The default is disabled. It claims through the shared
-  worker, uses Luna with medium reasoning, and reconstructs each continuation
-  from persisted engine state and app draft versions.
-- `advanceCloudAppRun` exposes injected ports for tests. Do not invoke either
-  function from inside an already-claimed worker's `prepare`: that would claim
-  twice. Dispatch app/chat before calling their respective advance functions.
+- App creation and edits use a separate durable `kind=app` Cloud Run. The worker
+  dispatches these runs to `cloudAppAdvance` before claiming them in the ordinary
+  Chat/Work runtime. The model uses the Responses API with Luna and medium
+  reasoning; this does not use the Agents API or E2B.
 - `inspect_app`, chunked `read_app_file`, `apply_app_files`, and `publish_app` are
-  the app-only tools. Writes in ask mode require an exact approved call/hash.
+  app-only tools. Writes in ask mode require an exact approved call/hash.
   Publishing is always approval-gated, writes a durable publication intent before
   calling Netlify, and reconciles the same address if the acknowledgement is lost.
-- Owner/session/project and current `user_has_boost` checks precede model work
-  and run again on continuation/tool attempts/publication. Existing SQL includes
-  admins. No browser auth token, `versions.app_users`, or `versions.app_db` is
-  copied into model context.
+- Owner/session/project and current `user_has_boost` checks precede model work and
+  run again on continuation, tool attempts, and publication. Browser auth tokens,
+  `versions.app_users`, and `versions.app_db` are not copied into model context.
 - Each write receipt creates an immutable `cloud_app_versions` snapshot. A lost
   acknowledgement replays the same run/turn/call receipt, not another version.
   Lost model submission acknowledgement pauses instead of making another POST.
-- Completion compares the project's `cloud_revision` against the initial draft
-  baseline, publishes files, appends IDE user/assistant history, and atomically
-  completes the cloud run and chat-session IDE artifact. Conflicts retain drafts
-  and pause for explicit reconciliation. They never silently overwrite/rebase.
+- Completion compares `cloud_revision` against the starting draft, publishes saved
+  files, appends user/assistant app history, and atomically completes the cloud run
+  and chat-session app artifact. Conflicts retain drafts and pause for reconciliation.
 
-## Ingress/runtime wiring
+## App Builder UI integration
 
-1. App Builder activation is separate from ordinary chat. The dispatcher chooses
-   `cloudAppAdvance` for `kind=app` **before claim**;
-   ordinary text keeps its existing worker. Never change legacy `agent`, `chat`,
-   `aiService.sendMessage`, or voice-controller paths as part of this cutover.
-2. Require an existing, saved, owned `ide_projects.id` as `request.projectId`.
-   Validate current Boost/admin and owned chat session/project before accepting
-   an app submission. The worker/RPC repeats these checks authoritatively.
-3. Do not send `request.currentFiles`; the new adapter rejects it. Save local
-   editor changes first, then use authoritative server files. Do not call
-   `addMessage` before atomic `submit_cloud_run` for the final user turn.
-4. Current ingress/adapter messages are `{role:'user'|'assistant',content:string}`.
-   Client system messages are rejected. Image/multimodal app submissions require
-   a separately validated ingress/provider contract; don't silently strip images.
-5. Completed `result.app_artifact` contains `{projectId,runId,version,published,
-   executed:false,tested:false,deployed}` where `published` reflects an explicit
-   successful `publish_app` call. The chat message is `type:'ide'`
-   with `ideProjectId`, `ideFileCount`, `sourceModel:'cloud-ide'`.
+- `AppBuilderWorkspace` is the replacement preview-first surface. Desktop users can
+  open source editing, Git handoff, and ZIP export. Mobile users get a preview, a
+  back-to-Chat control, and publishing.
+- Chat routes clear app creation/edit requests into a saved App Builder project.
+  The builder's run history is scoped to `kind=app`; ordinary Chat/Work history is
+  not mixed with app runs.
+- `appBuilderProject.ts` loads projects with owner filters and routes protected
+  file/history writes through `save_cloud_app_project`. Metadata and browser-local
+  Netlify Database preview state remain separate project fields.
+- Preview execution is browser-local with Sandpack. It is not a remote Linux
+  sandbox and does not run repository code in E2B.
+- Publishing is an explicit `publish_app` action that uses Arc's App Builder
+  Netlify account for `askarc.chat` links. Git handoff creates a draft for the
+  user's own repository and hosting account; it does not move that site to
+  `askarc.chat`.
+
+## Ingress and tool rules
+
+1. Require a saved, owned `ide_projects.id` as `request.projectId`. Verify current
+   Boost/admin entitlement and the owned Chat session/project before accepting an
+   app submission. The worker/RPC repeats these checks authoritatively.
+2. Do not send client `request.currentFiles`; save changes first, then use the
+   authoritative server project. Do not append a user turn before atomic
+   `submit_cloud_run` succeeds.
+3. Ingress messages are `{role:'user'|'assistant',content:string}`. Client system
+   messages are rejected. Image/multimodal app submissions require a separately
+   validated ingress/provider contract; do not silently strip images.
+4. Completed `result.app_artifact` contains `{projectId,runId,version,published,
+   executed:false,tested:false,deployed}`. The model-side run does not claim to
+   have executed or tested the generated app. The browser preview runs separately.
    Artifact version is run-local; `ide_projects.cloud_revision` is the project
-   CAS revision. They are different counters.
+   CAS revision.
 
-## Remaining IDECanvasPanel cutover (coordinate before editing)
-
-1. Create a UUID project with the existing DEFAULT_FILES/system SDK files, save
-   it, and load `id,user_id,files,messages,cloud_revision,cloud_managed` using an
-   explicit owner filter. User edits must be saved before app submission.
-2. For protected projects, replace the existing whole-project upsert of files
-   and messages with `save_cloud_app_project` (below). Legacy unprotected projects
-   remain compatible. Metadata/app database/deploy settings are separate writes.
-3. Keep one immutable pending save intent with an owner-scoped durable outbox:
-   `{operationId,projectId,expectedRevision,files,messages}`. Preserve it across
-   reloads and transport uncertainty. Serialize saves. Do not make a new UUID
-   to retry the same operation or silently reload over pending local editor edits.
-4. On completion, flush pending project saves, check the observation's abort
-   signal, and reload the specific project/owner. Reject an older revision or
-   apply-after-abort. Do not copy a background project's files into the selected
-   project's editor. Preserve DEFAULT_FILES, selected file, preview and local-only
-   behavior. No automatic deploy.
-5. Discovery/restoration uses the existing cloud run lifecycle, with project IDs
-   obtained from verified results or an owner-scoped project/run association.
-   The current generic discovery projection does not expose `request.projectId`;
-   add an explicit safe project-ID field for app runs if needed, not the request.
-
-### Protected manual save RPC
+## Protected manual save RPC
 
 `save_cloud_app_project(p_operation_id uuid, p_project_id uuid,
 p_expected_revision bigint, p_files jsonb, p_messages jsonb)` runs authenticated.
@@ -78,19 +64,18 @@ It returns `{operationId,revision,replayed}`. SQLSTATE `PT409` means an explicit
 revision conflict; `23505` means the UUID was reused for a different operation;
 `42501` means access/system-file denial; `22023` means invalid input. Transport
 failure or a malformed acknowledgement is uncertain: retain the same intent.
-Receipts are retained until project/account deletion. No refresh/signout cleanup.
+Receipts are retained until project/account deletion.
 
-## Verification and activation limits
+## Verification
 
-The new migration is `20260912100349_durable_cloud_app_versions.sql`, following
-the durable cloud-run migration and its concurrent-index prerequisite. New app
-tables use owner-read RLS and service-only writes; draft artifacts are append-only.
+The migration `20260912100349_durable_cloud_app_versions.sql` follows the durable
+cloud-run migration and its concurrent-index prerequisite. New app tables use
+owner-read RLS and service-only writes; draft artifacts are append-only.
 `cloud_managed` protection is permanent once an app worker opens a workspace.
-Deploying/activating without the IDE save cutover would reject old IDE autosaves.
 
 Run `deno test --no-lock supabase/functions/_shared/cloudApp_test.ts` and
 `node supabase/tests/cloud_apps_local.mjs`. The latter launches disposable local
-PostgreSQL with TCP disabled, applies real prerequisite/app migrations, tests
-the SQL, then stops the server. It does not use a deployed Supabase instance.
-No paid calls, generated-app runtime tests, browser-closed live E2E, or deployment
-have been performed. The adapter remains unwired pending the integrations above.
+PostgreSQL with TCP disabled, applies the prerequisite/app migrations, tests SQL,
+then stops the server. It does not use a deployed Supabase instance. These checks
+do not prove generated-app browser behavior, paid Luna calls, or a production
+publication; verify each separately before claiming it.

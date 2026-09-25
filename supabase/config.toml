@@ -60,6 +60,12 @@ project_id = "jpqtoixhjnfdubvqshwk"
   [functions.git-auth]
     # Handler verifies caller identity with auth.getUser directly.
     verify_jwt = false
+  [functions.app-builder-git-handoff]
+    # The handler verifies the caller, app ownership, Boost, Git rollout, and repository allowlist.
+    verify_jwt = false
+  [functions.browserbase-session]
+    # Auth and owner scope are checked in the handler; provider credentials remain server-only.
+    verify_jwt = false
   [functions.verify-google-play-purchase]
     # Handler verifies the user's JWT before validating a Play receipt server-side.
     verify_jwt = false

@@ -70,7 +70,7 @@ export function AppsPanel() {
       if (error) throw error;
       setProjects((data || []) as unknown as IDEProject[]);
     } catch (err) {
-      console.error('Failed to load IDE projects:', err);
+      console.error('Failed to load apps:', err);
     } finally {
       setIsLoading(false);
     }
