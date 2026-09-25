@@ -22,11 +22,13 @@ import {
   Trash2,
   Moon,
   Monitor,
+  Smartphone,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { useAccentStore } from "@/store/useAccentStore";
+import { useAccentColor } from "@/hooks/useAccentColor";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useChatSync } from "@/hooks/useChatSync";
@@ -36,14 +38,16 @@ import { UsageSnapshotWidget } from "@/components/dashboard/UsageSnapshotWidget"
 import { supabase } from "@/integrations/supabase/client";
 import { logDashboardNavPhase, type DashboardNavPhase } from "@/lib/dashboardNavTrace";
 import { isIOSPWA } from "@/utils/platform";
+import { APP_BUILDER_ENABLED } from "@/lib/features";
 const DashboardPageInner = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPageInner })));
 
-type DashboardTab = "overview" | "chats" | "images" | "canvases" | "memory";
+type DashboardTab = "overview" | "chats" | "images" | "apps" | "canvases" | "memory";
 
 const navItems: Array<{ id: DashboardTab; label: string; icon: typeof LayoutDashboard }> = [
   { id: "overview", label: "Dash", icon: LayoutDashboard },
   { id: "chats", label: "Chats", icon: MessageSquare },
   { id: "images", label: "Images", icon: ImageIcon },
+  ...(APP_BUILDER_ENABLED ? [{ id: "apps" as const, label: "Apps", icon: Smartphone }] : []),
   { id: "canvases", label: "Canvases", icon: Code2 },
   { id: "memory", label: "Memory", icon: Brain },
 ];
@@ -164,7 +168,8 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
   const navGap = 4;
   const itemWidth = Math.max(0, (trackSize.width - navGap * (navItems.length - 1)) / navItems.length);
   const bubbleWidth = Math.min(trackSize.width, itemWidth * (isCompact ? 1.04 : 1.12));
-  const ActiveIcon = navItems.find((item) => item.id === activeTab)?.icon ?? LayoutDashboard;
+  const bubbleItem = navItems[Math.max(0, isDragging ? hoverIndex : navItems.findIndex((item) => item.id === activeTab))] ?? navItems[0];
+  const ActiveIcon = bubbleItem.icon;
   const bubbleLeft = useTransform(bubbleCX, (cx) => cx - bubbleWidth / 2);
   const lensLeft = useTransform([lensFocusX, springLensScale] as const, ([focus, scale]) => bubbleWidth / 2 - (focus as number) * (scale as number));
   const lensTop = useTransform(springLensScale, (scale) => trackSize.height / 2 - (trackSize.height / 2) * (scale as number));
@@ -351,12 +356,14 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
           <nav className="flex h-full min-w-0 flex-1 items-center justify-between gap-1" aria-label="Bottom dock preview navigation">
             {navItems.map(({ id, label, icon: Icon }, index) => {
               const active = activeTab === id;
-              const hiddenUnderLens = isDragging ? hoverIndex === index : active;
+              const hiddenUnderLens = isDragging && hoverIndex === index;
               return (
                 <button
                   key={id}
                   type="button"
                   onClick={() => selectTab(id)}
+                  aria-label={label}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
                     "relative flex min-w-0 flex-1 items-center justify-center gap-2 rounded-[18px] px-2 py-3 text-[12px] font-medium transition-colors sm:px-3.5",
                     active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
@@ -382,12 +389,12 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
             >
               <motion.div
                 aria-hidden="true"
-                className="relative z-10 flex h-full items-center justify-center gap-2 text-primary"
-                animate={{ opacity: isDragging ? 0 : 1 }}
+                className="relative z-30 flex h-full items-center justify-center gap-2 text-primary"
+                animate={{ opacity: 1 }}
                 transition={{ duration: 0.1 }}
               >
                 <ActiveIcon className="h-[17px] w-[17px]" />
-                <span className="hidden text-[12px] font-medium sm:inline">{navItems.find((item) => item.id === activeTab)?.label}</span>
+                <span className="hidden text-[12px] font-medium sm:inline">{bubbleItem.label}</span>
               </motion.div>
               <motion.div animate={{ opacity: isDragging ? 1 : 0 }} transition={{ duration: 0.12 }} className="dashboard-preview-dock-lens pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-full bg-background/[0.88]">
                 <motion.div style={{ position: "absolute", left: lensLeft, top: lensTop, width: trackSize.width, height: trackSize.height, gap: navGap, scale: springLensScale, transformOrigin: "0 0", display: "flex" }}>
@@ -496,6 +503,7 @@ function DashboardOverview({ activeTab, onNavigate, onOpenUsage, chatItems = rec
             </div>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <button type="button" onClick={() => onNewChat ? onNewChat() : onNavigate("chats")} className="group flex w-fit items-center gap-2 rounded-full bg-foreground px-4 py-2.5 text-xs font-semibold text-background transition-transform hover:-translate-y-0.5"><Plus className="h-4 w-4" /> New chat <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></button>
+              {APP_BUILDER_ENABLED && <button type="button" onClick={() => onNavigate("apps")} className="flex w-fit items-center gap-2 rounded-full border border-border/70 bg-card/70 px-4 py-2.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"><Smartphone className="h-4 w-4" /> All apps <ChevronRight className="h-3.5 w-3.5" /></button>}
               <div className="flex items-center gap-2 text-[11px] text-muted-foreground"><span className="dashboard-preview-sync-badge rounded-full border px-2.5 py-1">Cloud synced</span><span>Just now</span></div>
             </div>
           </div>
@@ -545,6 +553,7 @@ function DashboardOverview({ activeTab, onNavigate, onOpenUsage, chatItems = rec
 }
 
 function DashboardPreviewContent({ live = false }: { live?: boolean }) {
+  useAccentColor();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, profile: authProfile, loading: authLoading } = useAuth();
@@ -816,7 +825,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   const returnToChat = () => { if (live) navigate("/"); else window.location.assign("/?preview=chat"); };
 
   return (
-    <div className="dashboard-preview-shell min-h-screen overflow-x-hidden bg-black text-foreground">
+    <div className="dashboard-preview-shell min-h-screen overflow-x-hidden bg-background text-foreground">
 
       <header className="dashboard-preview-header relative z-50 flex w-full flex-row items-center justify-between gap-2 px-4 pb-5 sm:gap-4">
         <div className="flex min-w-0 items-center gap-2"><ArcMark iconOnly onClick={returnToChat} /><div className="min-w-0"><p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground">ArcAI</p><p className="truncate text-[11px] text-muted-foreground">Jake’s workspace</p></div>{!cleanPreview && <span className="hidden rounded-full border border-primary/20 bg-primary/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary sm:inline-flex">Dashboard preview</span>}</div>

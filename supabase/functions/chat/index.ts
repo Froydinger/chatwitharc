@@ -1,11 +1,12 @@
 import { SITE_DESIGN_PROMPT } from "../_shared/siteDesignPrompt.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.89.0';
 import { decryptToken, githubCommitPullRequest, githubReadFiles, githubSearchFiles } from '../_shared/github.ts';
 import { gitEnabledForEmail, gitStaticTokenForUser } from '../_shared/gitFeature.ts';
 import { browserbaseChatTools, CHAT_BROWSERBASE_DEFINITIONS } from '../_shared/chatBrowserbaseTools.ts';
 import { browserbaseSessionStore } from '../_shared/browserbaseStore.ts';
 import { createBrowserbaseSessionBackend } from '../_shared/browserbaseSessions.ts';
+import { cloudAgentsProvider } from '../_shared/cloudAgentsProvider.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -2100,9 +2101,37 @@ product and is helping someone with it. Stay in that voice completely.`;
       }
     }
 
+    type ChatToolCallPayload = {
+      id: string;
+      type?: string;
+      turn_id?: string;
+      function: { name?: string; arguments?: string };
+    };
+    type ChatAssistantMessage = {
+      role?: string;
+      content?: string | null;
+      tool_calls?: ChatToolCallPayload[];
+    };
+    type ChatPipelineData = {
+      model?: string;
+      usage?: { total_tokens?: number };
+      choices: Array<{
+        message: ChatAssistantMessage;
+        finish_reason?: string;
+      }>;
+    };
     const runChatPipeline = async (sendEvent?: (event: any) => void) => {
+      const memoryToolNames = new Set(['search_past_chats', 'save_memory']);
       let response: Response;
       let usedFallback = false;
+      let agentProvider: ReturnType<typeof cloudAgentsProvider> | null = null;
+      let agentSessionId: string | null = null;
+      let agentTurnId: string | null = null;
+      let agentUsageTokens = 0;
+      const agentDeadline = Date.now() + 80_000;
+      let data: ChatPipelineData;
+      let assistantMessage: ChatAssistantMessage;
+      const useAgentsApi = !wantsCanvas && !wantsCode;
       let browserbaseTools: ReturnType<typeof browserbaseChatTools> | null = null;
       const getBrowserbaseTools = () => {
         if (!user || isGuestMode) return null;
@@ -2118,7 +2147,69 @@ product and is helping someone with it. Stay in that voice completely.`;
         });
         return browserbaseTools;
       };
-    
+
+      if (useAgentsApi) {
+        const agentTools = toolsToUse.map((tool) => ({
+          type: 'function' as const,
+          name: String(tool.function?.name || ''),
+          description: String(tool.function?.description || ''),
+          parameters: tool.function?.parameters && typeof tool.function.parameters === 'object'
+            ? tool.function.parameters : { type: 'object', properties: {}, additionalProperties: false },
+          // Chat tools include optional fields; keep the same permissive schema
+          // semantics instead of silently upgrading them to strict mode.
+          strict: false,
+        }));
+        const forcedAgentTool = toolChoice && typeof toolChoice === 'object'
+          ? String(toolChoice.function?.name || '') || undefined
+          : undefined;
+        const toolRequirement = toolChoice === 'required'
+          ? 'You must call at least one of the available functions before answering.'
+          : '';
+        agentProvider = cloudAgentsProvider({
+          apiKey: openaiApiKey,
+          instructions: `You are Arc, the assistant in ArcAI. Follow the trusted system instructions and use only the supplied functions for actions. Never claim an action succeeded unless its function result confirms it. ${toolRequirement}`,
+          reasoningEffort: selectedModel === SOL_MODEL ? 'high' : modelReasoningEffort,
+          tools: agentTools,
+          firstTool: forcedAgentTool,
+        });
+        const agentRequestKey = `chat:${sessionId || 'unsaved'}:${crypto.randomUUID()}`;
+        agentSessionId = await agentProvider.startAgentSession!(
+          conversationMessages,
+          agentRequestKey,
+          65_536,
+        );
+        let turn: Awaited<ReturnType<NonNullable<typeof agentProvider.pollAgentSession>>> = null;
+        while (!turn && Date.now() < agentDeadline) {
+          turn = await agentProvider.pollAgentSession!(agentSessionId, agentUsageTokens);
+          if (!turn) await new Promise(resolve => setTimeout(resolve, 650));
+        }
+        if (!turn) throw new Error('Arc is still working. Please retry in a moment.');
+        agentUsageTokens += turn.tokens;
+        if (toolChoice === 'required' && turn.calls.length === 0) {
+          throw new Error('Arc could not safely complete the required action. Please try again.');
+        }
+        if (forcedAgentTool && turn.calls[0]?.name !== forcedAgentTool) {
+          throw new Error('Arc could not safely start the requested action. Please try again.');
+        }
+        agentTurnId = turn.calls[0]?.turnId ?? null;
+        assistantMessage = turn.calls.length
+          ? {
+            role: 'assistant',
+            content: null,
+            tool_calls: turn.calls.map(call => ({
+              id: call.id,
+              type: 'function',
+              function: { name: call.name, arguments: call.arguments },
+              turn_id: call.turnId,
+            })),
+          }
+          : { role: 'assistant', content: turn.text };
+        data = {
+          model: selectedModel,
+          usage: { total_tokens: turn.tokens },
+          choices: [{ message: assistantMessage, finish_reason: turn.calls.length ? 'tool_calls' : 'stop' }],
+        };
+      } else {
     try {
       const isReasoning = isOpenAIReasoningModel(selectedModel);
       response = await fetchWithRetry(OPENAI_CHAT_URL, {
@@ -2186,14 +2277,14 @@ product and is helping someone with it. Stay in that voice completely.`;
       throw new Error(`OpenAI API error: ${response.status} ${errorData}`);
     }
 
-    let data = await response.json();
-    let assistantMessage = data.choices[0].message;
+    data = await response.json() as ChatPipelineData;
+    assistantMessage = data.choices[0].message;
 
     // GPT-6 Luna Chat Completions currently requires reasoning_effort=none on a
     // request that includes function tools. If no tool was selected, regenerate
     // the user-facing answer without tools so Quick/Balanced/Deep still maps to
     // low/medium/high reasoning without breaking function calling.
-    if (!(assistantMessage.tool_calls?.length > 0)) {
+      if (!(assistantMessage.tool_calls?.length ?? 0)) {
       try {
         const reasonedResponse = await fetchWithRetry('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
@@ -2229,7 +2320,6 @@ product and is helping someone with it. Stay in that voice completely.`;
     // have Luna regenerate that tool call before execution. This keeps the
     // selected model for ordinary conversation while ensuring the actual
     // recall query / saved-memory wording always comes from Luna.
-    const memoryToolNames = new Set(['search_past_chats', 'save_memory']);
     const requestedMemoryCalls = (assistantMessage.tool_calls || []).filter(
       (tc: any) => memoryToolNames.has(tc.function?.name),
     );
@@ -2274,12 +2364,13 @@ product and is helping someone with it. Stay in that voice completely.`;
       if (replacements.size > 0) {
         assistantMessage = {
           ...assistantMessage,
-          tool_calls: assistantMessage.tool_calls.map((tc: any) => replacements.get(tc.id) || tc),
+          tool_calls: (assistantMessage.tool_calls ?? []).map((tc: any) => replacements.get(tc.id) || tc),
         };
         finalResponseModel = lunaModel;
         console.log(`🧠 Delegated ${replacements.size} memory tool call(s) to Luna`);
       }
     }
+      }
 
     // Log if response was truncated due to token limit
     const finishReason = data.choices[0]?.finish_reason;
@@ -2834,9 +2925,82 @@ product and is helping someone with it. Stay in that voice completely.`;
         await executeTool(toolCall);
       }
 
+      if (agentSessionId && agentProvider) {
+        const MAX_AGENT_ACTION_ROUNDS = 8;
+        let actionRounds = 1;
+        let pendingCalls: ChatToolCallPayload[] | null | undefined = assistantMessage.tool_calls;
+
+        while (pendingCalls?.length) {
+          if (actionRounds > MAX_AGENT_ACTION_ROUNDS) {
+            throw new Error('Arc reached the safe limit for consecutive tool actions. Please ask it to continue.');
+          }
+
+          const results = pendingCalls.map((call) => {
+            const toolResult = [...conversationMessages].reverse().find((message) =>
+              message.role === 'tool' && message.tool_call_id === call.id
+            );
+            const turnId = call.turn_id || agentTurnId;
+            if (!turnId || !toolResult || typeof toolResult.content !== 'string') {
+              throw new Error('Arc could not confirm a tool result for the Agents API.');
+            }
+            return {
+              callId: call.id,
+              turnId,
+              success: true,
+              output: toolResult.content,
+            };
+          });
+
+          const turnId = results[0]?.turnId;
+          if (!turnId) throw new Error('Arc could not confirm the Agents API action turn.');
+          await agentProvider.submitAgentToolResults!(
+            agentSessionId,
+            results,
+            `arc-chat:${agentSessionId}:${turnId}:tool-results`,
+          );
+
+          let nextTurn: Awaited<ReturnType<NonNullable<typeof agentProvider.pollAgentSession>>> = null;
+          while (!nextTurn && Date.now() < agentDeadline) {
+            nextTurn = await agentProvider.pollAgentSession!(agentSessionId, agentUsageTokens);
+            if (!nextTurn) await new Promise(resolve => setTimeout(resolve, 650));
+          }
+          if (!nextTurn) throw new Error('Arc is still working. Please retry in a moment.');
+          agentUsageTokens += nextTurn.tokens;
+
+          if (!nextTurn.calls.length) {
+            assistantMessage = { role: 'assistant', content: nextTurn.text };
+            data = {
+              model: selectedModel,
+              usage: { total_tokens: agentUsageTokens },
+              choices: [{ message: assistantMessage, finish_reason: 'stop' }],
+            };
+            pendingCalls = null;
+            break;
+          }
+
+          actionRounds++;
+          agentTurnId = nextTurn.calls[0]?.turnId ?? null;
+          pendingCalls = nextTurn.calls.map((call) => ({
+            id: call.id,
+            type: 'function',
+            function: { name: call.name, arguments: call.arguments },
+            turn_id: call.turnId,
+          }));
+          conversationMessages.push({
+            role: 'assistant',
+            content: null,
+            tool_calls: pendingCalls,
+          });
+          for (const call of pendingCalls) {
+            if (call.function?.name) toolsUsed.push(call.function.name);
+            await executeTool(call);
+          }
+        }
+      }
+
       // If Git mode is active and changes haven't been applied yet,
       // run up to 5 loop turns so Luna can search -> read -> apply remote changes.
-      if (wantsGit) {
+      if (wantsGit && !agentSessionId) {
         let gitLoopTurns = 0;
         const MAX_GIT_TURNS = 5;
 
@@ -2920,6 +3084,8 @@ product and is helping someone with it. Stay in that voice completely.`;
             finish_reason: 'stop'
           }]
         };
+      } else if (agentSessionId) {
+        // The Agents API session has already synthesized its tool results.
       } else if (wantsGit && !gitChangesApplied && data?.choices?.[0]?.message?.content) {
         console.log('✅ Git query already answered with text by assistant in loop');
       } else {

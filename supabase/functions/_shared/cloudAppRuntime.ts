@@ -10,7 +10,7 @@ import {
 } from "./cloudAppCore.ts";
 import { CLOUD_APP_INSTRUCTIONS } from "./cloudAppPrompts.ts";
 import { loadCloudRunContext } from "./cloudRunContext.ts";
-import { cloudResponseProvider } from "./cloudRunProvider.ts";
+import { cloudAgentsProvider } from "./cloudAgentsProvider.ts";
 import { cloudWorkerStore } from "./cloudRunStore.ts";
 import type { CloudPublisherConfig } from "./cloudAppPublisher.ts";
 import {
@@ -20,7 +20,7 @@ import {
 } from "./cloudRunWorker.ts";
 
 class AppAccessDenied extends Error {}
-type Provider = ReturnType<typeof cloudResponseProvider>;
+type Provider = ReturnType<typeof cloudAgentsProvider>;
 export type CloudAppRuntimePorts = {
   store: CloudWorkerStore;
   app: CloudAppPorts & {
@@ -106,7 +106,24 @@ export async function advanceCloudAppRun(
               await guard(run);
               return provider.pollModel(responseId);
             },
-            cancelModel: (responseId) => provider.cancelModel(responseId),
+            ...(provider.startAgentSession ? {
+              startAgentSession: async (...args) => {
+                await guard(run);
+                return provider.startAgentSession!(...args);
+              },
+            } : {}),
+            ...(provider.pollAgentSession ? {
+              pollAgentSession: async (sessionId, previousUsageTokens) => {
+                await guard(run);
+                return provider.pollAgentSession!(sessionId, previousUsageTokens);
+              },
+            } : {}),
+            ...(provider.submitAgentToolResults ? {
+              submitAgentToolResults: async (...args) => {
+                await guard(run);
+                return provider.submitAgentToolResults!(...args);
+              },
+            } : {}),
           },
           tools: cloudAppTools(ports.app),
         };
@@ -148,7 +165,7 @@ export function cloudAppAdvance(
       app: cloudAppPersistence(db, { publisher: options.publisher }),
       context: (run) => loadCloudRunContext(db, run),
       provider: (instructions) =>
-        cloudResponseProvider({
+        cloudAgentsProvider({
           apiKey,
           instructions,
           reasoningEffort: "medium",

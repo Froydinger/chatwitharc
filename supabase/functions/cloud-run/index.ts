@@ -432,7 +432,8 @@ export function publicRun(row: Obj) {
   if (engine.phase === 'model' && !engine.finalText) {
     audit.push({
       kind: 'model',
-      label: typeof engine.responseId === 'string' ? 'Waiting for Luna' : 'Choosing the next step',
+      label: typeof engine.responseId === 'string' || typeof engine.agentSessionId === 'string'
+        ? 'Waiting for Luna' : 'Choosing the next step',
       status: 'working',
     });
   }

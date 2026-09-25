@@ -710,6 +710,7 @@ All colors MUST be HSL for perfect glass effects.
 :root.light .dashboard-preview-tile:hover {
   background: rgba(255, 255, 255, 0.94) !important;
   border-color: rgba(98, 104, 113, 0.34) !important;
+  color: hsl(var(--foreground)) !important;
 }
 
 :root.light .dashboard-preview-control {
@@ -2657,21 +2658,10 @@ All colors MUST be HSL for perfect glass effects.
   pointer-events: auto;
 }
 
-/* Keep every app page canvas pure black in every theme. Individual cards and
-   controls retain their own surface colors. */
-:root,
-:root.light,
-:root.dark,
-:root.light[data-accent],
-:root.dark[data-accent] {
-  --background: 0 0% 0%;
-  --foreground: 0 0% 96%;
-}
-
 html,
 body,
 #root {
-  background-color: #000000 !important;
+  background-color: hsl(var(--background)) !important;
 }
 .app-builder-topbar {
   height: calc(58px + var(--arcai-safe-area-top, env(safe-area-inset-top, 0px)));

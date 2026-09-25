@@ -1,5 +1,4 @@
-import { initialEngineState, tickCloudRun, type EngineState, type ToolCall } from './cloudRunEngine.ts';
-import type { cloudResponseProvider } from './cloudRunProvider.ts';
+import { initialEngineState, tickCloudRun, type EngineProvider, type EngineState, type ToolCall } from './cloudRunEngine.ts';
 import { cloudMessagePresentation, cloudPresentation, type CloudToolOutput } from './cloudRunArtifacts.ts';
 
 export type ClaimedCloudRun = {
@@ -25,7 +24,7 @@ export type RegisteredCloudTool = {
   execute(run: ClaimedCloudRun, call: ToolCall, receiptKey: string): Promise<CloudToolOutput>;
 };
 export type CloudWorkerContext = {
-  provider: ReturnType<typeof cloudResponseProvider>;
+  provider: EngineProvider;
   tools: Record<string, RegisteredCloudTool>;
 };
 export type CloudWorkerOptions = {
@@ -103,6 +102,9 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
     },
     startModel: context.provider.startModel,
     pollModel: context.provider.pollModel,
+    ...(context.provider.startAgentSession ? { startAgentSession: context.provider.startAgentSession } : {}),
+    ...(context.provider.pollAgentSession ? { pollAgentSession: context.provider.pollAgentSession } : {}),
+    ...(context.provider.submitAgentToolResults ? { submitAgentToolResults: context.provider.submitAgentToolResults } : {}),
     complete: (text, state) => {
       const presentation = cloudPresentation(state.receipts);
       const message = cloudMessagePresentation(presentation);

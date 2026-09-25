@@ -2,7 +2,7 @@
  * execution has no dependency on a browser connection or in-memory continuation.
  * The store must fence every write with the worker's current lease token. */
 import type { CloudPresentation, CloudToolOutput } from './cloudRunArtifacts.ts';
-export type ToolCall = { id: string; name: string; arguments: string };
+export type ToolCall = { id: string; name: string; arguments: string; turnId?: string };
 export type ModelTurn = {
   calls: ToolCall[];
   text: string;
@@ -10,6 +10,13 @@ export type ModelTurn = {
   outputItems?: unknown[];
   /** Safe high-level reasoning summary, never private chain-of-thought. */
   reasoningSummary?: string;
+};
+export type AgentToolResult = {
+  callId: string;
+  turnId: string;
+  success: boolean;
+  output?: string;
+  error?: string;
 };
 /** A confirmed terminal provider result is not a transport failure. Preserve
  * the response ID for diagnosis but stop polling rather than burning leases. */
@@ -45,6 +52,11 @@ export type EngineState = {
   }>;
   modelIntent?: string;
   responseId?: string;
+  /** Agents API session state is checkpointed with the rest of the run. */
+  modelProvider?: 'responses' | 'agents';
+  agentSessionId?: string;
+  agentTurnId?: string;
+  agentToolResultIntent?: string;
   finalText?: string;
   reasoningSummary?: string;
 };
@@ -54,11 +66,18 @@ export interface EnginePorts {
   save(state: EngineState, status: 'running' | 'queued' | 'awaiting_input' | 'failed', reason?: string): Promise<boolean>;
   startModel(transcript: unknown[], requestKey: string, maxTokens: number): Promise<string>;
   pollModel(responseId: string): Promise<ModelTurn | null>;
+  startAgentSession?(transcript: unknown[], requestKey: string, maxTokens: number): Promise<string>;
+  pollAgentSession?(sessionId: string, previousUsageTokens?: number): Promise<ModelTurn | null>;
+  submitAgentToolResults?(sessionId: string, results: AgentToolResult[], idempotencyKey: string): Promise<void>;
   complete(text: string, state: EngineState): Promise<boolean>;
   toolPolicy(call: ToolCall): { allowed: boolean; needsApproval: boolean; replaySafe: boolean };
   approved(call: ToolCall): boolean;
   executeTool(call: ToolCall, idempotencyKey: string): Promise<CloudToolOutput>;
 }
+export type EngineProvider = Pick<EnginePorts, 'startModel' | 'pollModel'> &
+  Partial<Pick<EnginePorts, 'startAgentSession' | 'pollAgentSession' | 'submitAgentToolResults'>> & {
+    cancelModel?(responseId: string): Promise<void>;
+  };
 export const CLOUD_LIMITS = { turns: 16, tokens: 64000, outputPerTurn: 8000, durationMs: 20 * 60 * 1000 };
 
 export function initialEngineState(input: unknown[], now: number): EngineState {
@@ -77,7 +96,7 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
     return;
   }
   if (state.phase === 'model') {
-    if (!state.responseId) {
+    if (!state.responseId && !state.agentSessionId) {
       if (state.turns >= CLOUD_LIMITS.turns) {
         await ports.save(state, 'failed', 'Run step limit reached');
         return;
@@ -90,14 +109,22 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
       }
       state.modelIntent = `${runId}:model:${state.turns}`;
       if (!await ports.save(state, 'running')) return;
-      state.responseId = await ports.startModel(state.transcript, state.modelIntent,
-        Math.min(CLOUD_LIMITS.outputPerTurn, CLOUD_LIMITS.tokens - state.tokens));
+      const maxTokens = Math.min(CLOUD_LIMITS.outputPerTurn, CLOUD_LIMITS.tokens - state.tokens);
+      if (ports.startAgentSession) {
+        state.modelProvider = 'agents';
+        state.agentSessionId = await ports.startAgentSession(state.transcript, state.modelIntent, maxTokens);
+      } else {
+        state.modelProvider = 'responses';
+        state.responseId = await ports.startModel(state.transcript, state.modelIntent, maxTokens);
+      }
       await ports.save(state, 'queued');
       return;
     }
     let turn: ModelTurn | null;
     try {
-      turn = await ports.pollModel(state.responseId);
+      turn = state.modelProvider === 'agents'
+        ? await ports.pollAgentSession?.(state.agentSessionId!, state.tokens) ?? null
+        : await ports.pollModel(state.responseId!);
     } catch (error) {
       if (!(error instanceof CloudModelTerminalError)) throw error;
       await ports.save(state, 'failed', error.status === 'incomplete'
@@ -126,8 +153,16 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
     if (!turn.calls.length) {
       state.phase = 'done';
       state.finalText = turn.text;
+      state.agentTurnId = undefined;
       if (await ports.save(state, 'running')) await ports.complete(turn.text, state);
       return;
+    }
+    if (state.modelProvider === 'agents') {
+      const turnIds = new Set(turn.calls.map(call => call.turnId).filter((id): id is string => !!id));
+      if (turnIds.size !== 1 || turn.calls.some(call => !call.turnId)) {
+        throw new Error('Agents API returned incomplete function actions');
+      }
+      state.agentTurnId = [...turnIds][0];
     }
     state.phase = 'tools';
     await ports.save(state, 'queued');
@@ -178,6 +213,36 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
         toolName: call.name,
         outcome: 'completed',
       };
+    await ports.save(state, 'queued');
+    return;
+  }
+  if (state.modelProvider === 'agents') {
+    if (!state.agentSessionId || !state.agentTurnId || !ports.submitAgentToolResults) {
+      throw new Error('Agents API tool-result adapter is unavailable');
+    }
+    // Persist the stable intent before posting to OpenAI. A retry uses the same
+    // idempotency key and the same receipt-backed outputs, so a lost worker
+    // cannot execute a side effect twice or submit a different result.
+    const intent = state.agentToolResultIntent ?? `${runId}:agent-results:${state.turns}`;
+    if (!state.agentToolResultIntent) {
+      state.agentToolResultIntent = intent;
+      if (!await ports.save(state, 'running')) return;
+    }
+    const results = state.calls.map(call => {
+      const key = `${runId}:turn:${state.turns}:tool:${call.id}`;
+      const receipt = state.receipts[key];
+      if (!receipt || receipt.state !== 'done' || !call.turnId) throw new Error('Missing durable tool receipt');
+      if (receipt.outcome === 'blocked' || receipt.outcome === 'denied') {
+        return { callId: call.id, turnId: call.turnId, success: false,
+          error: 'Arc did not run this action because it was not authorized or was declined.' };
+      }
+      return { callId: call.id, turnId: call.turnId, success: true, output: receipt.output ?? '' };
+    });
+    await ports.submitAgentToolResults(state.agentSessionId, results, intent);
+    state.agentToolResultIntent = undefined;
+    state.agentTurnId = undefined;
+    state.calls = [];
+    state.phase = 'model';
     await ports.save(state, 'queued');
     return;
   }

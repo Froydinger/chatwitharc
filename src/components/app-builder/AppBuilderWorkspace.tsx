@@ -532,10 +532,11 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
   const codePanel = (
     <div className="flex h-full min-h-0 flex-col bg-[#0b0c0b]">
       <div className="shrink-0 border-b border-white/[0.07] px-4 py-3.5">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
           <div className="min-w-0"><p className="text-[13px] font-semibold text-white">App source</p><p className="mt-0.5 text-[10px] text-white/35">Code stays attached to this app</p></div>
-          <div className="flex gap-1"><Button variant="ghost" size="sm" onClick={() => setGitDialog(true)} className="h-8 gap-1.5 text-[10px] text-white/55"><GitBranch className="h-3.5 w-3.5" />Git handoff</Button><Button variant="ghost" size="sm" onClick={() => void copyCode()} className="h-8 gap-1.5 text-[10px] text-white/55">{copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}{copied ? 'Copied' : 'Copy all'}</Button><Button variant="ghost" size="sm" onClick={() => void handleExport()} disabled={exporting} className="h-8 gap-1.5 text-[10px] text-white/55"><Upload className="h-3.5 w-3.5" />{exporting ? 'Packing…' : 'Export ZIP'}</Button></div>
+          <Button variant="ghost" size="sm" onClick={() => setDesktopPane('chat')} aria-label="Return to app preview and chat" className="h-8 shrink-0 gap-1.5 text-[10px] text-white/65"><PanelRightClose className="h-3.5 w-3.5" /><span>Back to chat</span></Button>
         </div>
+        <div className="mt-2 flex flex-wrap justify-end gap-1"><Button variant="ghost" size="sm" onClick={() => setGitDialog(true)} className="h-8 gap-1.5 text-[10px] text-white/55"><GitBranch className="h-3.5 w-3.5" />Git handoff</Button><Button variant="ghost" size="sm" onClick={() => void copyCode()} className="h-8 gap-1.5 text-[10px] text-white/55">{copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}{copied ? 'Copied' : 'Copy all'}</Button><Button variant="ghost" size="sm" onClick={() => void handleExport()} disabled={exporting} className="h-8 gap-1.5 text-[10px] text-white/55"><Upload className="h-3.5 w-3.5" />{exporting ? 'Packing…' : 'Export ZIP'}</Button></div>
       </div>
       <div className="flex min-h-0 flex-1">
         <div className="w-36 shrink-0 overflow-y-auto border-r border-white/[0.06] p-2 sm:w-44">{Object.keys(files).sort().map(path => <button key={path} onClick={() => setSelectedFile(path)} className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[10px] ${selectedFile === path ? 'bg-white/[0.08] text-white/90' : 'text-white/40 hover:bg-white/[0.035]'}`}><FileCode2 className="h-3 w-3 shrink-0" /><span className="truncate">{path}</span></button>)}</div>
@@ -553,7 +554,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-[0.16] [background-image:radial-gradient(rgba(255,255,255,.12)_0.65px,transparent_0.65px)] [background-size:7px_7px]" />
       <header className="app-builder-topbar relative z-10 flex h-[58px] shrink-0 items-center justify-between border-b border-white/[0.07] bg-[#0a0b0a]/90 px-3 backdrop-blur-xl sm:px-5">
         <div className="flex min-w-0 items-center gap-2.5">
-          <Button onClick={handleClose} variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full text-white/55 hover:bg-white/[0.07] hover:text-white"><ArrowLeft className="h-4 w-4" /></Button>
+          <Button onClick={handleClose} variant="ghost" size="icon" aria-label="Back to all apps" title="Back to all apps" className="h-9 w-9 shrink-0 rounded-full text-white/55 hover:bg-white/[0.07] hover:text-white"><ArrowLeft className="h-4 w-4" /></Button>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06]"><Code2 className="h-4 w-4 text-white/75" /></div>
           <div className="min-w-0"><p className="truncate text-[12px] font-medium text-white/90">{appName}</p><p className="flex items-center gap-1.5 text-[9px] text-white/35"><span className={`h-1.5 w-1.5 rounded-full ${saveState === 'saved' ? 'bg-emerald-300/80' : saveState === 'error' ? 'bg-amber-300/80' : 'bg-white/40'}`} />{demo ? 'Sample app' : saveState === 'saving' ? 'Saving…' : saveState === 'error' ? 'Saved locally · needs attention' : 'Saved'}</p></div>
         </div>

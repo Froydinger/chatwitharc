@@ -326,7 +326,7 @@ const App = () => {
                     <Route path="/build/:projectId" element={<AppBuilderPage />} />
                     <Route path="/build/*" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/app/*" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/apps/*" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="/apps/*" element={<Navigate to="/dashboard?tab=apps" replace />} />
                     <Route path="/admin" element={<AdminPage />} />
                     <Route path="/unsubscribe" element={<UnsubscribePage />} />
                     <Route path="/support" element={<SupportPage />} />

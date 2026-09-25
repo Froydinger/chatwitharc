@@ -118,7 +118,7 @@ export function DashboardPageInner({ embedded = false, activeTabOverride }: { em
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = activeTabOverride || (searchParams.get("tab") as DashboardTab) || "overview";
-  const initialTab = requestedTab === "apps" ? "overview" : requestedTab;
+  const initialTab = requestedTab;
   const { user, loading: authLoading, isAnonymous } = useAuth();
   const { isAdmin, dailyImagesUsed, limit: imageLimit } = useImageQuota();
   const {
@@ -572,8 +572,8 @@ useEffect(() => {
 
 
   useEffect(() => {
-    if (!authLoading && !user) navigate("/", { replace: true });
-  }, [authLoading, user, navigate]);
+    if (!embedded && !authLoading && !user) navigate("/", { replace: true });
+  }, [embedded, authLoading, user, navigate]);
 
   // Nothing on this page reads message bodies any more: chats and counts come
   // from the metadata RPC, images and canvases from their own targeted queries.
@@ -833,7 +833,12 @@ useEffect(() => {
   }, [activeTab, isBubbleDragging]);
 
   useEffect(() => {
-    if (!APP_BUILDER_ENABLED || !user || activeTab !== "apps") return;
+    if (!APP_BUILDER_ENABLED || activeTab !== "apps" || authLoading) return;
+    if (!user) {
+      setRecentApps([]);
+      setLoadingApps(false);
+      return;
+    }
     (async () => {
       setLoadingApps(true);
       try {
@@ -855,7 +860,7 @@ useEffect(() => {
         setLoadingApps(false);
       }
     })();
-  }, [user, activeTab]);
+  }, [user, activeTab, authLoading]);
 
   const [appUsersTrigger, setAppUsersTrigger] = useState(0);
 
@@ -1203,7 +1208,7 @@ useEffect(() => {
       transition={isExiting
         ? { duration: 0.28, ease: [0.4, 0, 0.2, 1] as const }
         : { duration: isSwipeEntry ? 0.22 : 0.32, ease: [0.22, 1, 0.36, 1] as const }}
-      className={cn("min-h-screen overflow-y-auto overflow-x-hidden scrollbar-hide relative z-10 w-full max-w-full bg-black", embedded && "min-h-0 dashboard-preview-embedded")}
+      className={cn("min-h-screen overflow-y-auto overflow-x-hidden scrollbar-hide relative z-10 w-full max-w-full bg-background text-foreground", embedded && "min-h-0 dashboard-preview-embedded")}
       style={{
         paddingBottom: embedded ? 0 : 'calc(80px + env(safe-area-inset-bottom, 0px) + 15px)',
         willChange: 'transform, opacity, filter',
@@ -1835,8 +1840,9 @@ useEffect(() => {
                       : "Build interactive full-stack React applications with instant preview, Netlify database, and live deploys."}
                   </p>
                   <Button
+                    variant="ghost"
                     onClick={() => handleLaunchAppBuilder()}
-                    className="mt-5 rounded-full bg-neon-600 hover:bg-neon-500 text-white font-medium px-4 text-xs gap-1.5 shadow-md"
+                    className="mt-5 rounded-full bg-foreground text-background hover:bg-foreground/90 font-medium px-4 text-xs gap-1.5 shadow-md"
                   >
                     <Plus className="h-3.5 w-3.5" />
                     Create Your First App

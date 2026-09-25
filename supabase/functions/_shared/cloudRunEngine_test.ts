@@ -424,6 +424,56 @@ Deno.test('cloud engine: a thrown model submission keeps durable intent for ambi
   equal(fake.starts.length, 1);
 });
 
+Deno.test('cloud engine: Agents API retries receipt-backed tool results with one idempotency key', async () => {
+  let durable = initialEngineState([{ role: 'user', content: 'Read a saved value.' }], START);
+  let polls = 0;
+  let executions = 0;
+  let submissions = 0;
+  const submittedKeys: string[] = [];
+  const toolCall: ToolCall = { id: 'agent-call', turnId: 'agent-turn', name: 'read_value', arguments: '{}' };
+  const ports: EnginePorts = {
+    now: () => START + 1,
+    save: async state => { durable = clone(state); return true; },
+    startModel: async () => { throw new Error('Responses API must not run on the Agents path'); },
+    pollModel: async () => { throw new Error('Responses API must not run on the Agents path'); },
+    startAgentSession: async () => 'sess_test',
+    pollAgentSession: async () => {
+      polls++;
+      return polls === 1 ? turn([toolCall], '', 0) : turn([], 'Saved value: 42', 4);
+    },
+    submitAgentToolResults: async (_sessionId, results, key) => {
+      submissions++;
+      submittedKeys.push(key);
+      equal(results[0].callId, toolCall.id);
+      equal(results[0].turnId, toolCall.turnId);
+      equal(results[0].output, 'output:agent-call');
+      if (submissions === 1) throw new Error('synthetic response lost after acceptance');
+    },
+    complete: async (_text, state) => { durable = clone(state); return true; },
+    toolPolicy: () => ({ allowed: true, needsApproval: false, replaySafe: false }),
+    approved: () => false,
+    executeTool: async call => { executions++; return `output:${call.id}`; },
+  };
+  await tickCloudRun(RUN, durable, ports);
+  equal(durable.agentSessionId, 'sess_test');
+  equal(durable.modelProvider, 'agents');
+  await tickCloudRun(RUN, durable, ports);
+  equal(durable.phase, 'tools');
+  await tickCloudRun(RUN, durable, ports);
+  equal(executions, 1);
+  await rejects(() => tickCloudRun(RUN, durable, ports), /response lost after acceptance/);
+  ok(durable.agentToolResultIntent);
+  await tickCloudRun(RUN, durable, ports);
+  equal(durable.phase, 'model');
+  equal(durable.agentToolResultIntent, undefined);
+  await tickCloudRun(RUN, durable, ports);
+  equal(durable.phase, 'done');
+  equal(durable.finalText, 'Saved value: 42');
+  equal(executions, 1);
+  equal(submissions, 2);
+  equal(submittedKeys[0], submittedKeys[1]);
+});
+
 for (const phase of ['model', 'tools'] as const) {
   for (const budget of ['time', 'tokens'] as const) {
     Deno.test(`cloud engine: exhausted ${budget} budget blocks ${phase} work`, async () => {

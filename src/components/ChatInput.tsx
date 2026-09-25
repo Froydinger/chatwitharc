@@ -54,6 +54,7 @@ import type { VoiceName } from "@/store/useVoiceModeStore";
 import { REALTIME_VOICES, VOICE_AVATARS } from "@/constants/voices";
 import { cn } from "@/lib/utils";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
+import { APP_BUILDER_ENABLED } from "@/lib/features";
 import { routeRequest } from "@/utils/routeRequest";
 import { streamLocalChat } from "@/services/localAI";
 import { buildLocalSystemPrompt } from "@/utils/localSystemPrompt";
@@ -732,6 +733,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const [forceCanvasMode, setForceCanvasMode] = useState(false);
   const [forceSearchMode, setForceSearchMode] = useState(false);
   const [forceGitMode, setForceGitMode] = useState(false);
+  const appProjectId = useIDEStore((state) => state.ideProjectId);
+  const appFiles = useIDEStore((state) => state.ideFiles);
   const isCurrentSessionGit = useMemo(() => {
     if (!currentSessionId) return false;
     const current = chatSessions.find((s) => s.id === currentSessionId);
@@ -742,6 +745,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const shouldShowCanvasMode = forceCanvasMode || (!!inputValue && checkForCanvasRequest(inputValue));
   const shouldShowSearchMode = forceSearchMode || (!!inputValue && checkForSearchRequest(inputValue));
   const shouldShowGitMode = isCurrentSessionGit || forceGitMode || (!!inputValue && checkForGitRequest(inputValue));
+  const shouldShowAppMode = APP_BUILDER_ENABLED && !!getAppBuilderIntent(inputValue, !!appProjectId && !!appFiles);
 
   // Persisted user-chosen image options (for /image, "draw…", etc.)
   const {
@@ -3463,9 +3467,9 @@ ${safeCode}
                   }}
                   className={cn(
                     "ci-menu-btn flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
-                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowGitMode || showCanvasIndicator) && !showMenu && "text-primary"
+                    (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowGitMode || shouldShowAppMode || showCanvasIndicator) && !showMenu && "text-primary"
                   )}
-                  aria-label="Add content"
+                  aria-label={shouldShowAppMode ? "Build an app mode" : "Add content"}
                 >
                   {showMenu ? (
                     <X className="h-4 w-4 transition-transform duration-300" />
@@ -3473,6 +3477,8 @@ ${safeCode}
                     <Globe className="h-4 w-4 text-indigo-400" />
                   ) : shouldShowGitMode ? (
                     <GitHubMark className="h-4 w-4 text-zinc-500 dark:text-zinc-300" />
+                  ) : shouldShowAppMode ? (
+                    <Smartphone className="h-4 w-4 text-primary" />
                   ) : shouldShowBanana ? (
                     <ImagePlus className="h-4 w-4 text-amber-500" />
                   ) : shouldShowCodeMode ? (
