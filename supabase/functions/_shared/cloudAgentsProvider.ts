@@ -18,8 +18,15 @@ function usageDelta(value: unknown, previousTokens: number): number {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return 0;
   const total = Number((value as Json).total_tokens);
   if (!Number.isFinite(total) || total < 0) return 0;
-  if (total < previousTokens) throw new Error('Agents API token usage moved backwards');
-  return total - previousTokens;
+  // Usage is explicitly best-effort and may be revised as accounting arrives.
+  // Keep a conservative high-water mark instead of failing a run on a correction.
+  return Math.max(0, total - previousTokens);
+}
+
+function totalTokens(value: unknown): number | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const total = Number((value as Json).total_tokens);
+  return Number.isFinite(total) && total >= 0 ? total : null;
 }
 
 function transcriptPrompt(transcript: unknown[]): { system: string[]; content: Json[] } {
@@ -165,6 +172,9 @@ export function cloudAgentsProvider(options: {
   }
 
   async function startAgentSession(transcript: unknown[], requestKey: string, _maxTokens: number): Promise<string> {
+    // Agents API session configuration has no max_output_tokens field. Keep the
+    // existing engine budget meaningful by checkpointing best-effort session
+    // usage as it appears and cancelling the session when that budget is crossed.
     const expanded = options.expandInput ? await options.expandInput(transcript) : transcript;
     const input = transcriptPrompt(expanded);
     const initialToolInstruction = options.firstTool
@@ -173,9 +183,11 @@ export function cloudAgentsProvider(options: {
     const system = [options.instructions, ...input.system, initialToolInstruction].filter(Boolean).join('\n\n');
     const response = await request('/sessions', 'POST', {
       agent: {
-        model: options.reasoningEffort === 'high' ? 'gpt-6-sol' : 'gpt-6-luna',
+        // Arc routes eligible Agents API work through Luna at every supported
+        // effort level. Keep the requested reasoning level; Luna supports high.
+        model: 'gpt-6-luna',
         instructions: system,
-        reasoning: { effort: options.reasoningEffort === 'high' ? 'low' : options.reasoningEffort, summary: 'concise' },
+        reasoning: { effort: options.reasoningEffort, summary: 'concise' },
         text: { verbosity: 'low' },
         tools: options.tools.map(tool => ({
           type: 'function', name: tool.name, description: tool.description,
@@ -202,9 +214,14 @@ export function cloudAgentsProvider(options: {
     if (session.status === 'requires_action') {
       const calls = parseActions(session.required_actions);
       if (!calls.length) throw new Error('Agents API requested unsupported environment input');
-      return { calls, text: '', tokens: usageDelta(session.usage, previousUsageTokens) };
+      return { calls, text: '', tokens: usageDelta(session.usage, previousUsageTokens), providerActive: true };
     }
-    if (session.status === 'in_progress') return null;
+    if (session.status === 'in_progress') {
+      return {
+        calls: [], text: '', tokens: usageDelta(session.usage, previousUsageTokens),
+        progressOnly: true, providerActive: true,
+      };
+    }
     if (session.status !== 'idle') throw new Error('Agents API returned an unknown session status');
 
     const page = await request(`/sessions/${sessionId}/turns?order=desc&limit=1`);
@@ -229,7 +246,12 @@ export function cloudAgentsProvider(options: {
     const output = assistantText(items);
     if (!output.text.trim()) throw new Error('Agents API completed without an assistant answer');
     const detail = await request(`/sessions/${sessionId}/turns/${encodeURIComponent(turnId)}`);
-    const tokens = usageDelta(detail.usage ?? session.usage, previousUsageTokens);
+    const sessionTotal = totalTokens(session.usage);
+    // Prefer the cumulative session count. If the session count is unavailable,
+    // count the completed turn's usage as a conservative incremental estimate.
+    const tokens = sessionTotal !== null
+      ? usageDelta(session.usage, previousUsageTokens)
+      : Math.max(totalTokens(detail.usage) ?? 0, usageDelta(detail.usage, previousUsageTokens));
     return {
       calls: [], text: output.text, tokens,
       ...(output.summary ? { reasoningSummary: output.summary } : {}),
@@ -250,6 +272,15 @@ export function cloudAgentsProvider(options: {
     await request(`/sessions/${sessionId}/events`, 'POST', { events }, idempotencyKey);
   }
 
+  async function cancelAgentSession(sessionId: string, idempotencyKey: string): Promise<void> {
+    if (!/^sess_[a-zA-Z0-9_-]+$/.test(sessionId) || !idempotencyKey || idempotencyKey.length > 256) {
+      throw new Error('Invalid Agents API cancellation request');
+    }
+    await request(`/sessions/${sessionId}/events`, 'POST', {
+      events: [{ type: 'agent.session.input.cancel' }],
+    }, idempotencyKey);
+  }
+
   return {
     // startModel/pollModel keep this provider structurally compatible with
     // existing cloud adapter consumers; the engine selects the session methods.
@@ -258,5 +289,6 @@ export function cloudAgentsProvider(options: {
     startAgentSession,
     pollAgentSession,
     submitAgentToolResults,
+    cancelAgentSession,
   };
 }

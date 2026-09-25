@@ -31,6 +31,7 @@ class FakePorts {
   reason?: string;
   cancelled = false;
   leaseLost = false;
+  agentCancellations: { sessionId: string; key: string }[] = [];
   rejectSave: (state: EngineState, status: Status) => boolean = () => false;
   policy: (call: ToolCall) => Policy = () => ({ allowed: true, needsApproval: false, replaySafe: true });
   approved: (call: ToolCall) => boolean = () => false;
@@ -79,6 +80,10 @@ class FakePorts {
         const plan = this.responses.get(id);
         if (!plan?.length) throw new Error(`Unexpected poll: ${id}`);
         return Promise.resolve(clone(plan.shift()!));
+      },
+      cancelAgentSession: (sessionId, key) => {
+        this.agentCancellations.push({ sessionId, key });
+        return Promise.resolve();
       },
       complete: (text, state) => {
         const accepted = !this.cancelled && !this.leaseLost && this.status !== 'completed';
@@ -504,6 +509,66 @@ Deno.test('cloud engine: output allowance is clamped to remaining token budget',
     await fake.tick();
     equal(fake.starts[0].maxTokens, Math.min(remaining, CLOUD_LIMITS.outputPerTurn));
   }
+});
+
+Deno.test('cloud engine: checkpoints active Agents usage and cancels at the token budget', async () => {
+  const fake = new FakePorts();
+  let polls = 0;
+  fake.ports.startAgentSession = async () => 'sess_budget';
+  fake.ports.pollAgentSession = async () => {
+    polls++;
+    return polls === 1
+      ? { calls: [], text: '', tokens: CLOUD_LIMITS.tokens - 1_000, progressOnly: true, providerActive: true }
+      : { calls: [], text: '', tokens: 2_000, progressOnly: true, providerActive: true };
+  };
+  await fake.tick();
+  await fake.tick();
+  equal(fake.durable.tokens, CLOUD_LIMITS.tokens - 1_000);
+  equal(fake.status, 'queued');
+  await fake.tick();
+  equal(fake.status, 'failed');
+  equal(fake.agentCancellations.length, 1);
+  equal(fake.agentCancellations[0].sessionId, 'sess_budget');
+  equal(fake.agentCancellations[0].key, `${RUN}:agent-cancel`);
+  equal(fake.completions.length, 0);
+});
+
+Deno.test('cloud engine: Agents action at the exact token budget is cancelled before tools execute', async () => {
+  const fake = new FakePorts();
+  fake.durable.tokens = CLOUD_LIMITS.tokens - 1_000;
+  fake.durable.agentSessionId = 'sess_action_budget';
+  fake.durable.modelProvider = 'agents';
+  fake.ports.pollAgentSession = async () => ({
+    calls: [tool()], text: '', tokens: 1_000, providerActive: true,
+  });
+  fake.policy = () => ({ allowed: true, needsApproval: false, replaySafe: true });
+  await fake.tick();
+  equal(fake.status, 'failed');
+  equal(fake.agentCancellations.length, 1);
+  equal(fake.executions.length, 0);
+});
+
+Deno.test('cloud engine: a timed-out active Agents session is cancelled before failure', async () => {
+  const fake = new FakePorts();
+  fake.durable.agentSessionId = 'sess_timed_out';
+  fake.durable.modelProvider = 'agents';
+  fake.clock = fake.durable.deadline;
+  await fake.tick();
+  equal(fake.status, 'failed');
+  equal(fake.agentCancellations.length, 1);
+  equal(fake.agentCancellations[0].sessionId, 'sess_timed_out');
+});
+
+Deno.test('cloud engine: failed cancellation still persists terminal failure honestly', async () => {
+  const fake = new FakePorts();
+  fake.durable.agentSessionId = 'sess_cancel_unconfirmed';
+  fake.durable.modelProvider = 'agents';
+  fake.clock = fake.durable.deadline;
+  fake.ports.cancelAgentSession = async () => { throw new Error('private provider response'); };
+  await fake.tick();
+  equal(fake.status, 'failed');
+  ok(fake.reason?.includes('provider cancellation was not confirmed'));
+  ok(!fake.reason?.includes('private provider response'));
 });
 
 for (const tokens of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {

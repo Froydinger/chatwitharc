@@ -7,6 +7,10 @@ export type ModelTurn = {
   calls: ToolCall[];
   text: string;
   tokens: number;
+  /** The provider is still working; this turn only checkpoints reported usage. */
+  progressOnly?: boolean;
+  /** True while an Agents session can still consume tokens or await our actions. */
+  providerActive?: boolean;
   outputItems?: unknown[];
   /** Safe high-level reasoning summary, never private chain-of-thought. */
   reasoningSummary?: string;
@@ -69,13 +73,14 @@ export interface EnginePorts {
   startAgentSession?(transcript: unknown[], requestKey: string, maxTokens: number): Promise<string>;
   pollAgentSession?(sessionId: string, previousUsageTokens?: number): Promise<ModelTurn | null>;
   submitAgentToolResults?(sessionId: string, results: AgentToolResult[], idempotencyKey: string): Promise<void>;
+  cancelAgentSession?(sessionId: string, idempotencyKey: string): Promise<void>;
   complete(text: string, state: EngineState): Promise<boolean>;
   toolPolicy(call: ToolCall): { allowed: boolean; needsApproval: boolean; replaySafe: boolean };
   approved(call: ToolCall): boolean;
   executeTool(call: ToolCall, idempotencyKey: string): Promise<CloudToolOutput>;
 }
 export type EngineProvider = Pick<EnginePorts, 'startModel' | 'pollModel'> &
-  Partial<Pick<EnginePorts, 'startAgentSession' | 'pollAgentSession' | 'submitAgentToolResults'>> & {
+  Partial<Pick<EnginePorts, 'startAgentSession' | 'pollAgentSession' | 'submitAgentToolResults' | 'cancelAgentSession'>> & {
     cancelModel?(responseId: string): Promise<void>;
   };
 export const CLOUD_LIMITS = { turns: 16, tokens: 64000, outputPerTurn: 8000, durationMs: 20 * 60 * 1000 };
@@ -87,12 +92,24 @@ export function initialEngineState(input: unknown[], now: number): EngineState {
 
 export async function tickCloudRun(runId: string, previous: EngineState, ports: EnginePorts): Promise<void> {
   const state = structuredClone(previous);
+  const failForLimit = async (reason: string) => {
+    let cancellationUnconfirmed = false;
+    if (state.agentSessionId && ports.cancelAgentSession) {
+      try {
+        await ports.cancelAgentSession(state.agentSessionId, `${runId}:agent-cancel`);
+      } catch {
+        cancellationUnconfirmed = true;
+        console.error('Agents API limit cancellation was not confirmed.');
+      }
+    }
+    await ports.save(state, 'failed', cancellationUnconfirmed ? `${reason}; provider cancellation was not confirmed` : reason);
+  };
   if (state.phase === 'done') {
     await ports.complete(state.finalText ?? '', state);
     return;
   }
   if (ports.now() >= state.deadline || state.tokens >= CLOUD_LIMITS.tokens) {
-    await ports.save(state, 'failed', 'Run time or token limit reached');
+    await failForLimit('Run time or token limit reached');
     return;
   }
   if (state.phase === 'model') {
@@ -133,14 +150,27 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
       return;
     }
     if (!turn) {
+      if (ports.now() >= state.deadline) {
+        await failForLimit('Run time or token limit reached');
+        return;
+      }
       await ports.save(state, 'queued');
       return;
     }
     if (!Number.isFinite(turn.tokens) || turn.tokens < 0) throw new Error('Invalid model usage');
     if (new Set(turn.calls.map(call => call.id)).size !== turn.calls.length) throw new Error('Duplicate tool call IDs');
     state.tokens += turn.tokens;
-    if (state.tokens > CLOUD_LIMITS.tokens || ports.now() >= state.deadline) {
-      await ports.save(state, 'failed', 'Run time or token limit reached');
+    if (state.tokens > CLOUD_LIMITS.tokens || ports.now() >= state.deadline ||
+      (state.tokens >= CLOUD_LIMITS.tokens && (turn.providerActive || turn.progressOnly))) {
+      if (turn.providerActive || (turn.progressOnly && state.tokens >= CLOUD_LIMITS.tokens)) {
+        await failForLimit('Run time or token limit reached');
+      } else {
+        await ports.save(state, 'failed', 'Run time or token limit reached');
+      }
+      return;
+    }
+    if (turn.progressOnly) {
+      await ports.save(state, 'queued');
       return;
     }
     state.turns += 1;

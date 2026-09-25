@@ -182,6 +182,22 @@ test('includeTerminal discovery restores missed completion without polling', asy
   assert.equal(calls.length, 1);
 });
 
+test('restoreRun rehydrates one owner-scoped run with its routing metadata', async () => {
+  const { lifecycle: c, calls } = harness({
+    status: async id => {
+      calls.push(['status', id]);
+      return run(id, 'queued', { sessionId: 'session-a', kind: 'app', mode: 'ask', projectId: 'project-a' });
+    },
+  });
+  const entry = await c.restoreRun('00000000-0000-4000-8000-000000000001');
+  assert.deepEqual(calls, [['status', '00000000-0000-4000-8000-000000000001']]);
+  assert.equal(entry.connection, 'detached');
+  assert.equal(entry.run.status, 'queued');
+  assert.equal(entry.sessionId, 'session-a');
+  assert.equal(entry.kind, 'app');
+  assert.equal(entry.mode, 'ask');
+});
+
 test('detaching one concurrent session leaves the other observation intact', async () => {
   let release, started;
   const ready = new Promise(resolve => { started = resolve; });

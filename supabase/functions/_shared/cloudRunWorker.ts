@@ -105,6 +105,7 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
     ...(context.provider.startAgentSession ? { startAgentSession: context.provider.startAgentSession } : {}),
     ...(context.provider.pollAgentSession ? { pollAgentSession: context.provider.pollAgentSession } : {}),
     ...(context.provider.submitAgentToolResults ? { submitAgentToolResults: context.provider.submitAgentToolResults } : {}),
+    ...(context.provider.cancelAgentSession ? { cancelAgentSession: context.provider.cancelAgentSession } : {}),
     complete: (text, state) => {
       const presentation = cloudPresentation(state.receipts);
       const message = cloudMessagePresentation(presentation);

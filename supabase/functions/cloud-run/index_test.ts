@@ -53,6 +53,17 @@ Deno.test('app discovery exposes only validated project association, not source 
   assert(!('projectId' in publicRun({...row(),kind:'app',project_id:'invalid'})));
 });
 
+Deno.test('run status includes only validated owner-scoped routing metadata', () => {
+  const projected = publicRun({
+    ...row('running'), kind: 'app', mode: 'auto', project_id: '00000000-0000-4000-8000-000000000004',
+  });
+  assert(projected.sessionId === sessionId);
+  assert(projected.kind === 'app' && projected.mode === 'auto');
+  assert(projected.projectId === '00000000-0000-4000-8000-000000000004');
+  const malformed = publicRun({ ...row(), session_id: 'bad', kind: 'other', mode: 'deep' });
+  assert(!('sessionId' in malformed) && !('kind' in malformed) && !('mode' in malformed));
+});
+
 Deno.test('live audit projection exposes safe progress without transcripts or tool arguments', () => {
   const projected = publicRun({ ...row('running'), checkpoint: {
     engine: {

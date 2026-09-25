@@ -83,7 +83,8 @@ test('saved project -> app submit -> close -> real worker versions -> reopen aut
       return query;
     } };
     let cancels = 0, submissions = 0, modelStarts = 0, reloaded, publishedRun, journal;
-    const publicRun = id => { const r = row('cloud_runs', id); return { id, projectId: r.request.projectId, status: r.status,
+    let remembered = {};
+    const publicRun = id => { const r = row('cloud_runs', id); return { id, sessionId: r.session_id, kind: r.kind, mode: r.mode, projectId: r.request.projectId, status: r.status,
       checkpoint: { pendingApproval: r.checkpoint.pendingApproval ?? null }, result: r.result }; };
     const persistence = () => new CloudAppProjectPersistence(owner, projectId, 0, {
       ownerId: async () => owner, persist: value => { journal = value; },
@@ -107,7 +108,7 @@ test('saved project -> app submit -> close -> real worker versions -> reopen aut
           publishedRun = input.id; return publicRun(input.id);
         },
         status: async id => publicRun(id),
-        list: async () => ({ runs: publishedRun ? [{ ...publicRun(publishedRun), sessionId, kind: 'app', mode: row('cloud_runs', publishedRun).mode }] : [], nextCursor: null }),
+        list: async () => ({ runs: publishedRun ? [publicRun(publishedRun)] : [], nextCursor: null }),
         cancel: async () => { cancels++; throw Error('Close must never cancel'); },
         respond: async (id, response) => {
           const r = row('cloud_runs', id);
@@ -130,7 +131,7 @@ test('saved project -> app submit -> close -> real worker versions -> reopen aut
         assert.equal(run.projectId, projectId);
         reloaded = await projectClient.reload(signal);
         return reloaded;
-      }, remember: () => {},
+      }, rememberedRun: () => remembered, remember: (runId, savedSessionId) => { remembered = { runId, sessionId: savedSessionId }; },
     }, () => {});
     let client = makeClient();
     await client.start('Build my app', 'ask', initial);
@@ -138,6 +139,12 @@ test('saved project -> app submit -> close -> real worker versions -> reopen aut
     client.close(); client = null; // Simulated closed browser: no client observation remains.
     assert.equal(cancels, 0); assert.equal(submissions, 1);
     assert.equal(row('chat_sessions', sessionId).messages.length, 1);
+    // Reopening while the worker has not claimed the job must display and resume
+    // the exact remembered queued run rather than retain an obsolete snapshot.
+    client = makeClient(); await client.restore();
+    assert.equal(client.snapshot().entry.run.status, 'queued');
+    assert.equal(client.snapshot().entry.run.projectId, projectId);
+    client.close(); client = null;
     const advance = () => advanceCloudAppRun(id, {
       store: cloudWorkerStore(db), app: cloudAppPersistence(db), context: async () => ({ instructions: 'Fixture Arc personality' }),
       provider: () => ({ startModel: async () => `model_${++modelStarts}`,

@@ -27,7 +27,7 @@ export function createCloudAppRuns(ownerId: string, projectId: string, enabled: 
         .eq('id', projectId).eq('user_id', ownerId).abortSignal(signal).maybeSingle();
       if (error) throw error;
       await guard(signal);
-      let revision = (row as unknown as { cloud_revision: number } | null)?.cloud_revision ?? 0;
+      const revision = (row as unknown as { cloud_revision: number } | null)?.cloud_revision ?? 0;
       if (!row) {
         const { error: insertError } = await supabase.from('ide_projects').insert({
           id: projectId, user_id: ownerId, title: 'Arc App', files: normalized.files as never,
@@ -76,6 +76,10 @@ export function createCloudAppRuns(ownerId: string, projectId: string, enabled: 
       if (result?.status !== 'reloaded') throw new Error('Cloud app finished; reconcile pending local edits before reloading.');
       return result;
     },
+    rememberedRun: () => ({
+      runId: localStorage.getItem(`arc-app-run-v1:${ownerId}:${projectId}`),
+      sessionId: localStorage.getItem(key),
+    }),
     remember: (runId, sessionId) => {
       localStorage.setItem(key, sessionId);
       localStorage.setItem(`arc-app-run-v1:${ownerId}:${projectId}`, runId);

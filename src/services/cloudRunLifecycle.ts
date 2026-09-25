@@ -205,6 +205,37 @@ export class CloudRunLifecycle {
     } finally { this.discovery.delete(controller); }
   }
 
+  /** Rehydrate one known run ID directly, without scanning unrelated history. */
+  async restoreRun(id: string): Promise<CloudRunLifecycleEntry> {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      throw new Error('Invalid cloud run ID.');
+    }
+    const controller = new AbortController();
+    this.discovery.add(controller);
+    try {
+      await this.assertOwner();
+      controller.signal.throwIfAborted();
+      const run = await this.ports.status(id, { signal: controller.signal, timeoutMs: this.options.requestTimeoutMs });
+      await this.assertOwner();
+      controller.signal.throwIfAborted();
+      if (run.id !== id || !run.sessionId || !run.kind || !run.mode) {
+        throw new Error('Cloud run status is incomplete.');
+      }
+      const entry: InternalEntry = {
+        id,
+        sessionId: run.sessionId,
+        kind: run.kind,
+        mode: run.mode,
+        connection: 'detached',
+        run,
+        attempted: true,
+      };
+      this.entries.set(id, entry);
+      this.emit(entry);
+      return this.get(id)!;
+    } finally { this.discovery.delete(controller); }
+  }
+
   detach(id: string) {
     const observation = this.observations.get(id);
     observation?.controller.abort();

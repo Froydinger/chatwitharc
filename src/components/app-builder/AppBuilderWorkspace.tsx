@@ -364,6 +364,13 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
   const appName = projectMetadata.title && projectMetadata.title !== 'Your new app' ? projectMetadata.title : nameFromMessages(messages);
   const currentFileContent = files[selectedFile]?.content ?? '';
   const cloudActive = runView.busy || Boolean(runView.entry?.run && !['completed', 'failed', 'cancelled'].includes(runView.entry.run.status));
+  const buildStatusLabel = runStatus === 'queued'
+    ? 'Waiting for Arc’s build worker'
+    : runStatus === 'running'
+    ? 'Arc is working on your app'
+    : runStatus === 'awaiting_input'
+    ? 'Arc needs your approval'
+    : runStatus;
   const pendingApproval = runView.entry?.run?.checkpoint?.pendingApproval;
   const handoffText = useMemo(() => `I want to continue an Arc App Builder project in my own Git repository.\n\nBefore making changes, inspect the exported project and preserve its existing behavior. Target platform: ${targetPlatform}. Data/auth: ${targetDatabase}.\n\nThe current published askarc.chat link belongs to Arc App Builder only and will not host the Git version. Help me wire the project to my own ${targetPlatform} account. Do not publish or change production until I explicitly approve. Identify any Arc-provided database or auth helpers that need to be replaced, explain each change, and give me a preview/build check before opening a pull request.`, [targetDatabase, targetPlatform]);
 
@@ -513,7 +520,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
         <div className="flex-1 overflow-y-auto px-4 py-4">
           {messages.length === 0 ? <div className="flex h-full min-h-[260px] flex-col justify-end pb-2"><p className="mb-1 text-xs text-white/35">A good place to start</p><p className="max-w-[280px] text-lg font-medium leading-snug tracking-tight text-white/90">What do you want your app to do?</p><div className="mt-4 flex flex-wrap gap-2">{['A habit tracker', 'A simple shop', 'An event page'].map(chip => <button key={chip} onClick={() => setPrompt(`Build ${chip.toLowerCase()} `)} className="rounded-full border border-white/10 bg-white/[0.025] px-3 py-2 text-[10px] text-white/55 hover:bg-white/[0.06]">{chip}</button>)}</div></div> : messages.map(message => <MessageCard key={message.id} message={message} />)}
           {agentBusy && <p className="ml-1 flex items-center gap-2 pb-2 text-[10px] text-white/40"><LoaderCircle className="h-3 w-3 animate-spin" /> Arc is making changes</p>}
-          {cloudActive && <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-[10px] text-white/55">{runStatus === 'awaiting_input' ? 'Arc needs your approval before continuing.' : `Build status: ${runStatus}`}</div>}
+          {cloudActive && <div className="mb-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-[10px] text-white/55">{runStatus === 'awaiting_input' ? 'Arc needs your approval before continuing.' : `${buildStatusLabel}…`}</div>}
           {liveAudit.slice(-3).map(action => <p key={action.id} className="mb-2 text-[10px] text-white/40">{action.message}</p>)}
           {pendingApproval && <div className="mb-3 rounded-xl border border-amber-200/15 bg-amber-100/[0.04] p-3"><p className="text-xs font-medium text-amber-100/80">Approval needed</p><p className="mt-1 text-[10px] text-white/45">{pendingApproval.name}</p><div className="mt-3 flex gap-2"><Button size="sm" disabled={runView.busy} onClick={() => void appRunsRef.current?.decide('approve')} className="h-8 flex-1 bg-white text-black hover:bg-white/90">Approve</Button><Button size="sm" variant="outline" disabled={runView.busy} onClick={() => void appRunsRef.current?.decide('deny')} className="h-8 flex-1 border-white/10 text-white/60">Deny</Button></div></div>}
           {runView.error && <p role="alert" className="rounded-xl border border-red-300/15 bg-red-200/[0.04] px-3 py-2 text-[10px] text-red-100/70">{runView.error}</p>}
@@ -580,7 +587,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
                   <button type="button" aria-pressed={mobilePane === 'preview'} onClick={() => setMobilePane('preview')} className={`flex h-8 items-center gap-1.5 rounded-full px-3 text-[10px] font-medium transition-colors ${mobilePane === 'preview' ? 'bg-white text-black' : 'text-white/55 hover:text-white/85'}`}><Smartphone className="h-3.5 w-3.5" />Preview</button>
                   <button type="button" aria-pressed={mobilePane === 'chat'} onClick={() => setMobilePane('chat')} className={`flex h-8 items-center gap-1.5 rounded-full px-3 text-[10px] font-medium transition-colors ${mobilePane === 'chat' ? 'bg-white text-black' : 'text-white/55 hover:text-white/85'}`}><MessageSquare className="h-3.5 w-3.5" />Chat</button>
                 </div>
-                {cloudActive && <span className="ml-2 min-w-0 truncate rounded-full border border-white/10 px-2 py-1 text-[9px] text-white/55">Building · {runStatus}</span>}
+                {cloudActive && <span className="ml-2 min-w-0 truncate rounded-full border border-white/10 px-2 py-1 text-[9px] text-white/55">{runStatus === 'queued' ? 'Starting build' : runStatus === 'running' ? 'Building' : buildStatusLabel}</span>}
               </>
             ) : (
               <>
@@ -603,7 +610,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
             </div>
             <div className="pointer-events-none absolute bottom-4 left-1/2 z-0 hidden -translate-x-1/2 text-[9px] text-white/20 sm:block">Browser preview · code runs on this device</div>
           </div>}
-          {!isMobile && <div className="flex h-[42px] shrink-0 items-center justify-between border-t border-white/[0.06] px-5"><div className="flex items-center gap-2 text-[10px] text-white/35"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300/75" />{cloudActive ? `Arc is building · ${runStatus}` : hasApp ? 'Preview is up to date' : 'Ready when you are'}{!demo && saveError && <span className="text-amber-100/60">· {saveError}</span>}</div><div className="flex items-center gap-3 text-[9px] text-white/30"><span>Web app</span><span>·</span><span>Local preview</span></div></div>}
+          {!isMobile && <div className="flex h-[42px] shrink-0 items-center justify-between border-t border-white/[0.06] px-5"><div className="flex items-center gap-2 text-[10px] text-white/35"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300/75" />{cloudActive ? `${buildStatusLabel}…` : hasApp ? 'Preview is up to date' : 'Ready when you are'}{!demo && saveError && <span className="text-amber-100/60">· {saveError}</span>}</div><div className="flex items-center gap-3 text-[9px] text-white/30"><span>Web app</span><span>·</span><span>Local preview</span></div></div>}
         </main>
 
         {!isMobile && <aside className="w-[min(390px,36vw)] shrink-0 border-l border-white/[0.07]">{desktopPane === 'chat' ? chatPanel : codePanel}</aside>}

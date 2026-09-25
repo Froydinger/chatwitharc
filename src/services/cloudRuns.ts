@@ -93,6 +93,10 @@ export type CloudRunList = { runs: DiscoveredCloudRun[]; nextCursor: string | nu
 /** Result and checkpoint shapes belong to the chat/app integration. */
 export type CloudRun<TResult = unknown, TCheckpoint = unknown> = {
   id: string;
+  /** Safe owner-scoped routing metadata returned by status/list endpoints. */
+  sessionId?: string;
+  kind?: CloudRunKind;
+  mode?: CloudRunMode;
   /** Server timestamps used for honest live elapsed-time display. */
   createdAt?: string;
   startedAt?: string;

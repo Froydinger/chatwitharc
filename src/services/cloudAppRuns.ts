@@ -9,6 +9,7 @@ export interface CloudAppRunPorts {
   prepareSession(snapshot: AppProjectSnapshot, signal: AbortSignal, sessionId?: string): Promise<{ id: string; revision: number }>;
   reconcile(run: CloudRun, signal: AbortSignal): Promise<unknown>;
   remember(runId: string, sessionId: string): void;
+  rememberedRun?(): { runId?: string | null; sessionId?: string | null };
   uuid?(): string;
 }
 export interface CloudAppRunView {
@@ -71,9 +72,40 @@ export class CloudAppRuns {
   }
   async restore(cursor?: string) {
     const lifecycle = await this.init();
-    const page = await lifecycle.restore({ kind: 'app', includeTerminal: true, limit: 100, ...(cursor ? { cursor } : {}) });
+    const remembered = cursor ? null : this.ports.rememberedRun?.() ?? null;
+    if (remembered?.runId) {
+      try {
+        const entry = await lifecycle.restoreRun(remembered.runId);
+        await this.guard();
+        if (entry.kind === 'app' && entry.run?.projectId === this.projectId &&
+          (!remembered.sessionId || entry.sessionId === remembered.sessionId)) {
+          this.sessionId = entry.sessionId;
+          this.view.entry = entry;
+          this.view.nextCursor = null;
+          this.emit();
+          this.observe(entry.id);
+          return {
+            runs: [{ ...entry.run, sessionId: entry.sessionId, kind: entry.kind, mode: entry.mode }],
+            nextCursor: null,
+          };
+        }
+      } catch {
+        // Fall back to owner-scoped app discovery when local run metadata is stale.
+      }
+    }
+    const page = await lifecycle.restore({
+      kind: 'app', includeTerminal: true, limit: 100,
+      ...(remembered?.sessionId ? { sessionId: remembered.sessionId } : {}),
+      ...(cursor ? { cursor } : {}),
+    });
     await this.guard();
     this.view.nextCursor = page.nextCursor; this.emit();
+    const active = page.runs.find(run => run.kind === 'app' && run.projectId === this.projectId &&
+      (run.status === 'queued' || run.status === 'running'));
+    if (active) {
+      this.sessionId = active.sessionId;
+      this.observe(active.id);
+    }
     return page;
   }
   async start(prompt: string, mode: CloudRunMode, snapshot: AppProjectSnapshot) {

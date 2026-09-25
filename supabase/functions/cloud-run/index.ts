@@ -493,6 +493,9 @@ export function publicRun(row: Obj) {
   }
   return {
     id: row.id,
+    ...(typeof row.session_id === 'string' && UUID.test(row.session_id) ? { sessionId: row.session_id } : {}),
+    ...(row.kind === 'chat' || row.kind === 'app' ? { kind: row.kind } : {}),
+    ...(row.mode === 'ask' || row.mode === 'auto' ? { mode: row.mode } : {}),
     ...(timestamp(row.created_at) ? { createdAt: timestamp(row.created_at) } : {}),
     ...(timestamp(row.started_at) ? { startedAt: timestamp(row.started_at) } : {}),
     ...(timestamp(row.updated_at) ? { updatedAt: timestamp(row.updated_at) } : {}),

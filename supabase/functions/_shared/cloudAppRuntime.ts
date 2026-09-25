@@ -124,6 +124,11 @@ export async function advanceCloudAppRun(
                 return provider.submitAgentToolResults!(...args);
               },
             } : {}),
+            ...(provider.cancelAgentSession ? {
+              // Budget/deadline cleanup must still be allowed if Boost access
+              // was revoked mid-run; the session ID came from this claimed run.
+              cancelAgentSession: (...args) => provider.cancelAgentSession!(...args),
+            } : {}),
           },
           tools: cloudAppTools(ports.app),
         };

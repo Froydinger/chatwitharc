@@ -40,6 +40,21 @@ Deno.test('Agents API provider opens a Luna session without an execution sandbox
   assert(headers.get('OpenAI-Beta') === 'agents=v1');
 });
 
+Deno.test('Agents API keeps Luna for high reasoning instead of routing to Sol', async () => {
+  let requestBody: Record<string, unknown> | undefined;
+  const provider = cloudAgentsProvider({
+    apiKey: 'test-only', instructions: 'Arc instructions', reasoningEffort: 'high', tools: [],
+    fetcher: (async (_url, init) => {
+      requestBody = JSON.parse(String(init?.body));
+      return Response.json({ id: 'sess_test' });
+    }) as typeof fetch,
+  });
+  await provider.startAgentSession!([{ role: 'user', content: 'Reason carefully.' }], 'run:model:high', 4000);
+  const agent = requestBody?.agent as Record<string, unknown>;
+  assert(agent.model === 'gpt-6-luna');
+  assert((agent.reasoning as Record<string, unknown>).effort === 'high');
+});
+
 Deno.test('Agents API required actions keep call and turn IDs for approval-safe execution', async () => {
   let call = 0;
   const provider = cloudAgentsProvider({
@@ -55,6 +70,17 @@ Deno.test('Agents API required actions keep call and turn IDs for approval-safe 
   assert(call === 1);
   assert(turn?.calls[0].id === 'call_test' && turn.calls[0].turnId === 'turn_test');
   assert(turn?.calls[0].arguments === '{"key":"a"}');
+  assert(turn?.providerActive === true);
+});
+
+Deno.test('Agents API reports usage while a session is in progress without presenting a final answer', async () => {
+  const provider = cloudAgentsProvider({
+    apiKey: 'test-only', instructions: 'test', reasoningEffort: 'low', tools: [],
+    fetcher: (async () => Response.json({ status: 'in_progress', usage: { total_tokens: 1_250 } })) as typeof fetch,
+  });
+  const turn = await provider.pollAgentSession!('sess_test', 1_000);
+  assert(turn?.progressOnly === true && turn.providerActive === true);
+  assert(turn.tokens === 250 && turn.text === '' && turn.calls.length === 0);
 });
 
 Deno.test('Agents API tool results use the durable idempotency key and verified action IDs', async () => {
@@ -76,6 +102,28 @@ Deno.test('Agents API tool results use the durable idempotency key and verified 
   assert(event.call_id === 'call_test' && event.turn_id === 'turn_test');
   assert(event.success === true && event.output === '{"value":42}');
   assert(new Headers(headers).get('Idempotency-Key') === 'run:agent-results:1');
+});
+
+Deno.test('Agents API cancellation posts the documented cancel event with an idempotency key', async () => {
+  let body: Record<string, unknown> | undefined;
+  let headers: HeadersInit | undefined;
+  let url = '';
+  let method = '';
+  const provider = cloudAgentsProvider({
+    apiKey: 'test-only', instructions: 'test', reasoningEffort: 'low', tools: [],
+    fetcher: (async (input, init) => {
+      url = String(input);
+      method = String(init?.method);
+      body = JSON.parse(String(init?.body));
+      headers = init?.headers;
+      return new Response(null, { status: 202 });
+    }) as typeof fetch,
+  });
+  await provider.cancelAgentSession!('sess_test', 'run:agent-cancel');
+  assert(url.endsWith('/sessions/sess_test/events'));
+  assert(method === 'POST');
+  assert((body?.events as Array<Record<string, unknown>>)[0].type === 'agent.session.input.cancel');
+  assert(new Headers(headers).get('Idempotency-Key') === 'run:agent-cancel');
 });
 
 Deno.test('Agents API rejection reports bounded endpoint diagnostics without echoing request data', async () => {
@@ -119,5 +167,5 @@ Deno.test('Agents API only returns final text after a confirmed completed turn',
   });
   const turn = await provider.pollAgentSession!('sess_test');
   assert(turn?.text === 'The answer is 42.');
-  assert(turn?.tokens === 18);
+  assert(turn?.tokens === 22, 'the cumulative session usage should be used consistently');
 });

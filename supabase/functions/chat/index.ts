@@ -15,6 +15,7 @@ const corsHeaders = {
 
 const LUNA_MODEL = 'gpt-6-luna';
 const SOL_MODEL = 'gpt-6-sol';
+const MAX_CHAT_AGENT_TOKENS = 65_536;
 const isOpenAIReasoningModel = (model: string): boolean =>
   model.startsWith('gpt-6-') || model.startsWith('gpt-5.') || model.startsWith('o1') || model.startsWith('o3');
 
@@ -2131,7 +2132,10 @@ product and is helping someone with it. Stay in that voice completely.`;
       const agentDeadline = Date.now() + 80_000;
       let data: ChatPipelineData;
       let assistantMessage: ChatAssistantMessage;
-      const useAgentsApi = !wantsCanvas && !wantsCode;
+      // Tool-driven Chat, including explicit Code and Canvas requests, uses the
+      // same Agents session path. Raw token-stream requests return through the
+      // established streaming handler before reaching this branch.
+      const useAgentsApi = !stream;
       let browserbaseTools: ReturnType<typeof browserbaseChatTools> | null = null;
       const getBrowserbaseTools = () => {
         if (!user || isGuestMode) return null;
@@ -2146,6 +2150,44 @@ product and is helping someone with it. Stay in that voice completely.`;
           onEvent: (event) => sendEvent?.(event),
         });
         return browserbaseTools;
+      };
+
+      const cancelAgentSession = async (reason: 'usage-limit' | 'deadline' | 'provider-error') => {
+        if (!agentProvider || !agentSessionId) return;
+        try {
+          await agentProvider.cancelAgentSession?.(
+            agentSessionId,
+            `arc-chat:${agentSessionId}:${reason}-cancel`,
+          );
+        } catch {
+          console.error(`Agents API ${reason} cancellation was not confirmed.`);
+        }
+      };
+
+      const waitForAgentResult = async () => {
+        if (!agentProvider || !agentSessionId) throw new Error('Arc could not start this request. Please try again.');
+        while (Date.now() < agentDeadline) {
+          let next: Awaited<ReturnType<NonNullable<typeof agentProvider.pollAgentSession>>>;
+          try {
+            next = await agentProvider.pollAgentSession!(agentSessionId, agentUsageTokens);
+          } catch (error) {
+            await cancelAgentSession('provider-error');
+            throw error;
+          }
+          if (next) {
+            agentUsageTokens += next.tokens;
+            if (agentUsageTokens > MAX_CHAT_AGENT_TOKENS ||
+              (agentUsageTokens === MAX_CHAT_AGENT_TOKENS && (next.progressOnly || next.calls.length > 0))) {
+              await cancelAgentSession('usage-limit');
+              throw new Error('Arc reached the safe usage limit for this request. Split it into a smaller request and try again.');
+            }
+            if (!next.progressOnly) return next;
+          }
+          if (Date.now() >= agentDeadline) break;
+          await new Promise(resolve => setTimeout(resolve, 650));
+        }
+        await cancelAgentSession('deadline');
+        throw new Error('Arc could not finish this request in time. Check the chat before retrying to avoid repeating an action.');
       };
 
       if (useAgentsApi) {
@@ -2169,19 +2211,14 @@ product and is helping someone with it. Stay in that voice completely.`;
           tools: agentTools,
           firstTool: forcedAgentTool,
         });
+        finalResponseModel = LUNA_MODEL;
         const agentRequestKey = `chat:${sessionId || 'unsaved'}:${crypto.randomUUID()}`;
         agentSessionId = await agentProvider.startAgentSession!(
           conversationMessages,
           agentRequestKey,
-          65_536,
+          MAX_CHAT_AGENT_TOKENS,
         );
-        let turn: Awaited<ReturnType<NonNullable<typeof agentProvider.pollAgentSession>>> = null;
-        while (!turn && Date.now() < agentDeadline) {
-          turn = await agentProvider.pollAgentSession!(agentSessionId, agentUsageTokens);
-          if (!turn) await new Promise(resolve => setTimeout(resolve, 650));
-        }
-        if (!turn) throw new Error('Arc is still working. Please retry in a moment.');
-        agentUsageTokens += turn.tokens;
+        const turn = await waitForAgentResult();
         if (toolChoice === 'required' && turn.calls.length === 0) {
           throw new Error('Arc could not safely complete the required action. Please try again.');
         }
@@ -2202,8 +2239,8 @@ product and is helping someone with it. Stay in that voice completely.`;
           }
           : { role: 'assistant', content: turn.text };
         data = {
-          model: selectedModel,
-          usage: { total_tokens: turn.tokens },
+          model: LUNA_MODEL,
+          usage: { total_tokens: agentUsageTokens },
           choices: [{ message: assistantMessage, finish_reason: turn.calls.length ? 'tool_calls' : 'stop' }],
         };
       } else {
@@ -2956,18 +2993,12 @@ product and is helping someone with it. Stay in that voice completely.`;
             `arc-chat:${agentSessionId}:${turnId}:tool-results`,
           );
 
-          let nextTurn: Awaited<ReturnType<NonNullable<typeof agentProvider.pollAgentSession>>> = null;
-          while (!nextTurn && Date.now() < agentDeadline) {
-            nextTurn = await agentProvider.pollAgentSession!(agentSessionId, agentUsageTokens);
-            if (!nextTurn) await new Promise(resolve => setTimeout(resolve, 650));
-          }
-          if (!nextTurn) throw new Error('Arc is still working. Please retry in a moment.');
-          agentUsageTokens += nextTurn.tokens;
+          const nextTurn = await waitForAgentResult();
 
           if (!nextTurn.calls.length) {
             assistantMessage = { role: 'assistant', content: nextTurn.text };
             data = {
-              model: selectedModel,
+              model: LUNA_MODEL,
               usage: { total_tokens: agentUsageTokens },
               choices: [{ message: assistantMessage, finish_reason: 'stop' }],
             };
