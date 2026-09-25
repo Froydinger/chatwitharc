@@ -3,7 +3,7 @@ import { CloudModelTerminalError, type ModelTurn } from './cloudRunEngine.ts';
 type Json = Record<string, unknown>;
 export type CloudToolDefinition = {
   type: 'function'; name: string; description: string;
-  parameters: Json; strict: boolean;
+  parameters: Json; strict?: boolean;
 };
 
 function record(value: unknown): Json {

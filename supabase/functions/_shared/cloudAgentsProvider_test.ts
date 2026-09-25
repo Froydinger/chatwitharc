@@ -9,7 +9,10 @@ Deno.test('Agents API provider opens a Luna session without an execution sandbox
   let requestHeaders: HeadersInit | undefined;
   const provider = cloudAgentsProvider({
     apiKey: 'test-only', instructions: 'Arc instructions', reasoningEffort: 'medium',
-    tools: [{ type: 'function', name: 'read_value', description: 'Read a value', parameters: { type: 'object' }, strict: true }],
+    tools: [
+      { type: 'function', name: 'read_value', description: 'Read a value', parameters: { type: 'object' }, strict: true },
+      { type: 'function', name: 'optional_value', description: 'Read optional input', parameters: { type: 'object' }, strict: false },
+    ],
     firstTool: 'read_value',
     fetcher: (async (_url, init) => {
       requestBody = JSON.parse(String(init?.body));
@@ -24,6 +27,9 @@ Deno.test('Agents API provider opens a Luna session without an execution sandbox
   assert(id === 'sess_test');
   const agent = requestBody?.agent as Record<string, unknown>;
   assert(agent.model === 'gpt-6-luna');
+  const tools = agent.tools as Array<Record<string, unknown>>;
+  assert(tools[0].strict === true);
+  assert(!Object.hasOwn(tools[1], 'strict'));
   assert((requestBody?.environment as Record<string, unknown>).type === 'none');
   assert((agent.reasoning as Record<string, unknown>).effort === 'medium');
   assert((agent.instructions as string).includes('Trusted system context'));

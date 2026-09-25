@@ -2155,9 +2155,6 @@ product and is helping someone with it. Stay in that voice completely.`;
           description: String(tool.function?.description || ''),
           parameters: tool.function?.parameters && typeof tool.function.parameters === 'object'
             ? tool.function.parameters : { type: 'object', properties: {}, additionalProperties: false },
-          // Chat tools include optional fields; keep the same permissive schema
-          // semantics instead of silently upgrading them to strict mode.
-          strict: false,
         }));
         const forcedAgentTool = toolChoice && typeof toolChoice === 'object'
           ? String(toolChoice.function?.name || '') || undefined

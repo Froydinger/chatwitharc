@@ -179,7 +179,11 @@ export function cloudAgentsProvider(options: {
         text: { verbosity: 'low' },
         tools: options.tools.map(tool => ({
           type: 'function', name: tool.name, description: tool.description,
-          parameters: tool.parameters, strict: tool.strict,
+          parameters: tool.parameters,
+          // The Agents API rejects explicit strict:false. Strict-compatible
+          // cloud tools keep the stronger constraint; permissive chat schemas
+          // omit the field and use the API's default behavior.
+          ...(tool.strict === true ? { strict: true } : {}),
         })),
       },
       environment: { type: 'none' },
