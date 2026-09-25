@@ -33,6 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { getFaviconByLabel } from "@/constants/faviconOptions";
 import { useAdminBanner } from "@/components/AdminBanner";

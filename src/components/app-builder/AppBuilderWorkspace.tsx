@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, CircleHelp, Code2,
-  Copy, ExternalLink, FileCode2, GitBranch, Globe, LoaderCircle, LockKeyhole,
+  Copy, ExternalLink, FileCode2, GitBranch, Globe, LoaderCircle, LockKeyhole, MessageSquare,
   Monitor, PanelRightClose, Rocket, Smartphone, Tablet,
   Upload, X,
 } from 'lucide-react';
@@ -130,6 +130,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
   const [copied, setCopied] = useState(false);
   const [previewSize, setPreviewSize] = useState<PreviewSize>(isMobile ? 'phone' : 'desktop');
   const [desktopPane, setDesktopPane] = useState<DesktopPane>('chat');
+  const [mobilePane, setMobilePane] = useState<'preview' | 'chat'>('preview');
   const [prompt, setPrompt] = useState('');
   const [selectedFile, setSelectedFile] = useState('src/App.tsx');
   const [attachments, setAttachments] = useState<string[]>([]);
@@ -165,6 +166,10 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
   useEffect(() => {
     setPreviewSize(isMobile ? 'phone' : 'desktop');
   }, [isMobile]);
+
+  useEffect(() => {
+    setMobilePane('preview');
+  }, [activeProjectId]);
 
   useEffect(() => {
     if (demo) return;
@@ -569,13 +574,26 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
       <div className={`relative z-[1] flex min-h-0 flex-1 ${isMobile ? 'flex-col' : ''}`}>
         <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
           <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/[0.06] px-3 sm:px-5">
-            <div className="flex min-w-0 items-center gap-2 text-[10px] text-white/45"><LockKeyhole className="h-3 w-3 text-emerald-200/55" /><span className="truncate font-mono">{deployedUrl ? deployedUrl.replace(/^https?:\/\//, '') : `${activeProjectId.slice(0, 8)}.preview.arc`}</span><span className="hidden rounded-full border border-white/[0.07] px-1.5 py-0.5 text-[8px] text-white/30 sm:inline">LOCAL PREVIEW</span></div>
-            {isMobile && cloudActive && <span className="ml-2 shrink-0 rounded-full border border-white/10 px-2 py-1 text-[9px] text-white/55">Building · {runStatus}</span>}
-            {!isMobile && <div className="flex items-center gap-1 rounded-full border border-white/[0.07] bg-white/[0.025] p-1">{([
+            {isMobile ? (
+              <>
+                <div role="group" aria-label="App Builder view" className="flex shrink-0 items-center gap-0.5 rounded-full border border-white/[0.08] bg-white/[0.025] p-0.5">
+                  <button type="button" aria-pressed={mobilePane === 'preview'} onClick={() => setMobilePane('preview')} className={`flex h-8 items-center gap-1.5 rounded-full px-3 text-[10px] font-medium transition-colors ${mobilePane === 'preview' ? 'bg-white text-black' : 'text-white/55 hover:text-white/85'}`}><Smartphone className="h-3.5 w-3.5" />Preview</button>
+                  <button type="button" aria-pressed={mobilePane === 'chat'} onClick={() => setMobilePane('chat')} className={`flex h-8 items-center gap-1.5 rounded-full px-3 text-[10px] font-medium transition-colors ${mobilePane === 'chat' ? 'bg-white text-black' : 'text-white/55 hover:text-white/85'}`}><MessageSquare className="h-3.5 w-3.5" />Chat</button>
+                </div>
+                {cloudActive && <span className="ml-2 min-w-0 truncate rounded-full border border-white/10 px-2 py-1 text-[9px] text-white/55">Building · {runStatus}</span>}
+              </>
+            ) : (
+              <>
+                <div className="flex min-w-0 items-center gap-2 text-[10px] text-white/45"><LockKeyhole className="h-3 w-3 text-emerald-200/55" /><span className="truncate font-mono">{deployedUrl ? deployedUrl.replace(/^https?:\/\//, '') : `${activeProjectId.slice(0, 8)}.preview.arc`}</span><span className="hidden rounded-full border border-white/[0.07] px-1.5 py-0.5 text-[8px] text-white/30 sm:inline">LOCAL PREVIEW</span></div>
+                <div className="flex items-center gap-1 rounded-full border border-white/[0.07] bg-white/[0.025] p-1">{([
               ['phone', Smartphone], ['tablet', Tablet], ['desktop', Monitor],
-            ] as const).map(([size, Icon]) => <button key={size} title={`${size} preview`} onClick={() => setPreviewSize(size)} className={`flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[9px] capitalize ${previewSize === size ? 'bg-white text-black' : 'text-white/40 hover:text-white/80'}`}><Icon className="h-3 w-3" /><span>{size}</span></button>)}</div>}
+                ] as const).map(([size, Icon]) => <button key={size} title={`${size} preview`} onClick={() => setPreviewSize(size)} className={`flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[9px] capitalize ${previewSize === size ? 'bg-white text-black' : 'text-white/40 hover:text-white/80'}`}><Icon className="h-3 w-3" /><span>{size}</span></button>)}</div>
+              </>
+            )}
           </div>
-          <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#080908] p-0 sm:p-5">
+          {isMobile && mobilePane === 'chat' ? (
+            <div className="min-h-0 flex-1 overflow-hidden" data-testid="app-builder-mobile-chat">{chatPanel}</div>
+          ) : <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#080908] p-0 sm:p-5" data-testid="app-builder-preview-pane">
             <div className={`relative z-[1] h-full min-h-0 overflow-hidden border-white/[0.08] bg-[#090a0f] shadow-[0_22px_90px_rgba(0,0,0,.55)] ${isMobile ? 'w-full rounded-none border-0' : previewSize === 'phone' ? 'h-[min(100%,760px)] w-[min(100%,390px)] rounded-[34px] border p-2' : previewSize === 'tablet' ? 'h-[min(100%,690px)] w-[min(100%,850px)] rounded-[26px] border p-2' : 'h-full w-full rounded-xl border'}`}>
               {!isMobile && previewSize === 'phone' && <div className="pointer-events-none absolute left-1/2 top-3 z-10 h-5 w-24 -translate-x-1/2 rounded-full bg-black shadow-inner" />}
               <div className={`h-full w-full overflow-hidden bg-[#090a0f] ${isMobile ? '' : previewSize === 'phone' ? 'rounded-[27px]' : previewSize === 'tablet' ? 'rounded-[19px]' : 'rounded-lg'}`}>
@@ -584,7 +602,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
               {(previewError || (isMobile && saveError)) && <div role="alert" className="absolute bottom-3 left-3 right-3 z-20 flex items-center gap-2 rounded-xl border border-amber-200/15 bg-[#16130d]/90 px-3 py-2 text-[10px] text-amber-100/75 backdrop-blur"><CircleHelp className="h-3.5 w-3.5 shrink-0" />{previewError ? `Preview issue: ${previewError}` : saveError}</div>}
             </div>
             <div className="pointer-events-none absolute bottom-4 left-1/2 z-0 hidden -translate-x-1/2 text-[9px] text-white/20 sm:block">Browser preview · code runs on this device</div>
-          </div>
+          </div>}
           {!isMobile && <div className="flex h-[42px] shrink-0 items-center justify-between border-t border-white/[0.06] px-5"><div className="flex items-center gap-2 text-[10px] text-white/35"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300/75" />{cloudActive ? `Arc is building · ${runStatus}` : hasApp ? 'Preview is up to date' : 'Ready when you are'}{!demo && saveError && <span className="text-amber-100/60">· {saveError}</span>}</div><div className="flex items-center gap-3 text-[9px] text-white/30"><span>Web app</span><span>·</span><span>Local preview</span></div></div>}
         </main>
 
