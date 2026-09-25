@@ -28,7 +28,8 @@ Deno.test('Agents API provider opens a Luna session without an execution sandbox
   const agent = requestBody?.agent as Record<string, unknown>;
   assert(agent.model === 'gpt-6-luna');
   const tools = agent.tools as Array<Record<string, unknown>>;
-  assert(tools[0].strict === true);
+  // Agents API schemas currently reject the Responses-style strict property.
+  assert(!Object.hasOwn(tools[0], 'strict'));
   assert(!Object.hasOwn(tools[1], 'strict'));
   assert((requestBody?.environment as Record<string, unknown>).type === 'none');
   assert((agent.reasoning as Record<string, unknown>).effort === 'medium');
