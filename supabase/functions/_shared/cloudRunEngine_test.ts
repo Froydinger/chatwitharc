@@ -139,6 +139,16 @@ Deno.test('cloud engine: initial state establishes durable budgets', () => {
   deepStrictEqual(state.receipts, {});
 });
 
+Deno.test('cloud engine: current task budgets stay bounded while approval waits are excluded', () => {
+  equal(CLOUD_LIMITS.turns, 16);
+  equal(CLOUD_LIMITS.tokens, 64_000);
+  equal(CLOUD_LIMITS.outputPerTurn, 8_000);
+  equal(CLOUD_LIMITS.durationMs, 20 * 60 * 1000);
+  equal(CLOUD_APP_LIMITS.turns, 16);
+  equal(CLOUD_APP_LIMITS.tokens, 512_000);
+  equal(CLOUD_APP_LIMITS.durationMs, 20 * 60 * 1000);
+});
+
 Deno.test('cloud engine: pending continuation requeues with started receipt and stable key', async () => {
   const fake = new FakePorts(); fake.tools();
   fake.output = async () => { throw new CloudToolContinuation('pending'); };
@@ -546,7 +556,7 @@ Deno.test('cloud engine: an App-sized Agents budget accepts usage above the shar
   equal(fake.status, 'queued');
   equal(fake.durable.tokens, 100_000);
   equal(fake.agentCancellations.length, 0);
-  equal(CLOUD_LIMITS.tokens, 64_000, 'shared Chat/Work budget remains unchanged');
+  equal(CLOUD_LIMITS.tokens, 64_000, 'shared Chat/Work budget remains bounded');
 });
 
 Deno.test('cloud engine: Agents action at the exact token budget is cancelled before tools execute', async () => {

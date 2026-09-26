@@ -131,7 +131,10 @@ class WorkerFixture {
   }
   async decision(call: ToolCall, decision = 'approve'): Promise<void> {
     const argumentsHash = await cloudCallHash(call);
-    this.run.checkpoint.pendingApproval = { callId: call.id, argumentsHash, name: call.name, arguments: call.arguments };
+    const current = this.run.checkpoint.pendingApproval as { callId?: string; argumentsHash?: string; createdAt?: number } | null | undefined;
+    this.run.checkpoint.pendingApproval = current?.callId === call.id && current.argumentsHash === argumentsHash
+      ? current
+      : { callId: call.id, argumentsHash, name: call.name, arguments: call.arguments, createdAt: this.clock };
     this.run.checkpoint.inputResponse = { callId: call.id, argumentsHash, decision };
     this.status = 'queued'; // The endpoint/DB resume step is outside this test.
   }
@@ -197,6 +200,7 @@ Deno.test('cloud worker: Ask pause records exact action and clears untrusted pri
   equal(fake.status, 'awaiting_input');
   deepStrictEqual(fake.run.checkpoint.pendingApproval, {
     callId: action().id, name: action().name, arguments: action().arguments, argumentsHash: await cloudCallHash(action()),
+    createdAt: NOW,
   });
   equal(fake.run.checkpoint.inputResponse, null);
   deepStrictEqual(fake.run.checkpoint.unrelatedState, { preserved: true });
@@ -221,6 +225,28 @@ Deno.test('cloud worker: exact approved action executes once, then consumes appr
   await fake.tick();
   equal(fake.executions.length, 1, 'a later worker uses the saved receipt');
   equal(fake.engine.phase, 'model');
+});
+
+Deno.test('cloud worker: approval wait does not consume the run deadline or extend it twice', async () => {
+  const fake = new WorkerFixture();
+  fake.register();
+  fake.seedTools();
+  const originalDeadline = NOW + 30_000;
+  fake.engine.deadline = originalDeadline;
+  await fake.tick();
+  equal(fake.status, 'awaiting_input');
+  const pending = fake.run.checkpoint.pendingApproval as { createdAt: number };
+  equal(pending.createdAt, NOW);
+
+  fake.clock = NOW + 45 * 60 * 1000;
+  await fake.decision(action());
+  await fake.tick();
+  equal(fake.executions.length, 1);
+  equal(fake.engine.deadline, originalDeadline + (fake.clock - pending.createdAt));
+
+  const adjustedDeadline = fake.engine.deadline;
+  await fake.tick();
+  equal(fake.engine.deadline, adjustedDeadline, 'a retried worker must not apply the same approval wait twice');
 });
 
 const staleCases: { name: string; change: (fake: WorkerFixture) => void }[] = [
@@ -249,6 +275,7 @@ for (const scenario of staleCases) {
     const current = fake.engine.calls[0];
     deepStrictEqual(fake.run.checkpoint.pendingApproval, {
       callId: current.id, name: current.name, arguments: current.arguments, argumentsHash: await cloudCallHash(current),
+      createdAt: fake.clock,
     });
     equal(fake.run.checkpoint.inputResponse, null);
   });

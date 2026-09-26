@@ -45,6 +45,8 @@ export type EngineState = {
   turns: number;
   tokens: number;
   deadline: number;
+  /** Approval waits are user time, not agent runtime. Prevent extending twice on worker retries. */
+  approvalWaitApplied?: string;
   transcript: unknown[];
   calls: ToolCall[];
   receipts: Record<string, {

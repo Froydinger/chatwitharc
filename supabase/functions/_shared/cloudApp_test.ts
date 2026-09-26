@@ -111,7 +111,7 @@ Deno.test("invalid tool arguments produce repairable errors with no persistence 
   equal(typeof output, "string");
   equal(JSON.parse(output as string).performed, false);
   equal(touched, 0);
-  equal(tools.apply_app_files.approval, "ask-mode");
+  equal(tools.apply_app_files.approval, "never");
   equal(tools.apply_app_files.replaySafe, true);
 });
 

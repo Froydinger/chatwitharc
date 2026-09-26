@@ -104,21 +104,28 @@ is not the thing deploying edge functions or migrations.
 - `supabase/functions/chat/index.ts` — main chat edge function (tools,
   scheduling, notifications)
 
-## App Builder (IDE)
+## App Builder
 
-The App Builder allows users to create full interactive React web applications
-powered by Arc Matrix™ with medium reasoning.
+The App Builder is a point-and-shoot way to create and publish full React web
+apps through Arc Matrix™. App builds run as durable cloud runs; the interactive
+preview runs in the user's browser and does not provision E2B or an OpenAI
+computer.
 - **Entitlement**: Exclusively available to ArcAI Boost subscribers and admins
   (enforced both client-side and in the `agent` edge function via `user_has_boost`).
 - **Triggers**: Accessible via the `+` Tools & Actions menu ("App" tool card),
   slash commands (`/build`, `/app`, `build/`, `app/`), or natural language app requests.
-- **Icon**: Phone icon (`Smartphone`, `text-purple-400`) swaps onto the `+` button
+- **Icon**: Builder icon swaps onto the composer `+` button
   when build mode is detected.
-- **Workspace**: Launching build mode opens the IDE Canvas workspace
-  (`IDECanvasPanel`) with real-time Sandpack preview, Monaco editor, chat, and Netlify deploys.
-- **Dashboard**: Integrated into the "Code & Apps" tab alongside code and writing
-  canvases, tagged with an "App" badge. Clicking an app card reopens it in the IDE.
+- **Workspace**: Chat-first app editing with a live Sandpack preview. Desktop has
+  optional advanced code viewing/editing and phone, tablet, and desktop preview
+  sizes. Mobile switches between chat and preview; account for safe areas and
+  never strand the user in code view.
+- **Dashboard**: Completed and draft apps live under the dashboard's Apps tab,
+  with a shortcut to the all-apps page. App cards reopen the selected project.
 - **Database, Auth & Export**: Baked-in Netlify Database and Netlify Identity SDK (`netlifyDb.ts`) with custom auth screens and endpoints via `NetlifyAuthModal.tsx`. (As recommended by Netlify, never use the legacy `netlify-identity-widget`; always use custom UI calling Identity REST endpoints). Supports collections, key-value records, reactive subscriptions, and accounts. Projects can be exported as a full Git-ready Vite+React TypeScript ZIP (`exportZip.ts`) or deployed directly to `*.askarc.chat`.
+- **Hosting boundary**: `*.askarc.chat` is only for App Builder projects. Git exports
+  are for users' own repositories and hosting accounts; explain that they must
+  configure their own Netlify/database hosting when handing a project to Git.
 
 ## Video generation (disabled)
 

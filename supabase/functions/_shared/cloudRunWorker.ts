@@ -54,7 +54,7 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
     run.execution_messages ?? run.request.messages, Date.parse(run.started_at ?? run.created_at), options.limits ?? CLOUD_LIMITS);
   const authorized = new Set<string>();
   const hashes = new Map<string, string>();
-  const approval = run.checkpoint.pendingApproval as { callId?: string; argumentsHash?: string } | undefined;
+  const approval = run.checkpoint.pendingApproval as { callId?: string; argumentsHash?: string; createdAt?: number } | undefined;
   const response = run.checkpoint.inputResponse as { decision?: string; callId?: string; argumentsHash?: string } | undefined;
   const approvedCalls = new Set<string>();
   // Model names are untrusted. Inherited Object members are not registered tools.
@@ -77,6 +77,15 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
       }
     }
   }
+  const exactDecision = !!approval?.callId && !!approval.argumentsHash &&
+    approval.callId === response?.callId && approval.argumentsHash === response.argumentsHash &&
+    hashes.get(approval.callId) === approval.argumentsHash &&
+    (response.decision === 'approve' || response.decision === 'deny');
+  const approvalKey = exactDecision ? `${approval!.callId}:${approval!.argumentsHash}` : undefined;
+  if (approvalKey && engine.approvalWaitApplied !== approvalKey && Number.isFinite(approval?.createdAt)) {
+    engine.deadline += Math.max(0, now() - approval!.createdAt!);
+    engine.approvalWaitApplied = approvalKey;
+  }
   await tickCloudRun(id, engine, {
     now,
     limits: options.limits,
@@ -91,6 +100,7 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
         });
         checkpoint.pendingApproval = call ? {
           callId: call.id, argumentsHash: hashes.get(call.id), name: call.name, arguments: call.arguments,
+          createdAt: now(),
         } : null;
         checkpoint.inputResponse = null;
       }

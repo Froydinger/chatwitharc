@@ -214,9 +214,7 @@ export function cloudAppTools(
   ports: CloudAppPorts,
 ): Record<string, RegisteredCloudTool> {
   const tool = (name: string): RegisteredCloudTool => ({
-    approval: name === "apply_app_files"
-      ? "ask-mode"
-      : name === "publish_app"
+    approval: name === "publish_app"
       ? "always"
       : "never",
     // Publication has a durable plan + reconciliation path, so retrying the

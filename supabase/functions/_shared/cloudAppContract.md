@@ -9,9 +9,10 @@
   Supabase worker; the request uses `environment: none` and does not provision
   an OpenAI-hosted computer or E2B sandbox.
 - `inspect_app`, chunked `read_app_file`, `apply_app_files`, and `publish_app` are
-  app-only tools. Writes in ask mode require an exact approved call/hash.
-  Publishing is always approval-gated, writes a durable publication intent before
-  calling Netlify, and reconciles the same address if the acknowledgement is lost.
+  app-only tools. Authorized draft file edits run in the user's requested build
+  without a separate approval click. Publishing is always approval-gated, writes
+  a durable publication intent before calling Netlify, and reconciles the same
+  address if the acknowledgement is lost.
 - Owner/session/project and current `user_has_boost` checks precede model work and
   run again on continuation, tool attempts, and publication. Browser auth tokens,
   `versions.app_users`, and `versions.app_db` are not copied into model context.
