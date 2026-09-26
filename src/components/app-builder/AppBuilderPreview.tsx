@@ -85,7 +85,11 @@ export function AppBuilderPreview({ files, projectId, size, isMobile, hasApp, de
         'framer-motion': '^11.11.9', 'lucide-react': '^0.453.0', 'react-icons': '^5.3.0',
         'canvas-confetti': '^1.9.4', tailwindcss: '^3.4.17', postcss: '^8.5.6', autoprefixer: '^10.4.21',
       } }}
-      options={{ externalResources: ['https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap'], showNavigator: false }}
+      options={{ externalResources: [
+        // Sandpack detects script resources by the `.js` suffix; the CDN ignores this query string.
+        'https://cdn.tailwindcss.com/3.4.17?shim.js',
+        'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap',
+      ], showNavigator: false }}
       className="h-full w-full overflow-hidden bg-[#090a0f]"
     >
       <PreviewError onError={onError} />
