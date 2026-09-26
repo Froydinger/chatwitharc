@@ -18,6 +18,8 @@ test('replacement builder keeps owner-scoped project reads and revision-safe per
   assert.match(workspace, /cloudActive \|\| cloudProjectSyncing/);
   assert.match(workspace, /CLOUD_APP_PROJECT_RELOADED/);
   assert.doesNotMatch(workspace, /persistSnapshot\(filesRef\.current,\s*transcript\)/);
+  assert.match(workspace, /cloudRunSubmissionAttempted = true;\s*await appRunsRef\.current\.start/);
+  assert.match(workspace, /if \(!demo && !cloudRunSubmissionAttempted\) void persistSnapshot\(\)\.catch\(\(\) => \{\}\);/);
   assert.doesNotMatch(workspace, /IDECanvasPanel|components\/ide\//);
 });
 test('completion callback uses returned projectId, ignores noncompleted runs and aborted scope', async () => {

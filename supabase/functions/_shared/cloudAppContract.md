@@ -4,8 +4,10 @@
 
 - App creation and edits use a separate durable `kind=app` Cloud Run. The worker
   dispatches these runs to `cloudAppAdvance` before claiming them in the ordinary
-  Chat/Work runtime. The model uses the Responses API with Luna and medium
-  reasoning; this does not use the Agents API or E2B.
+  Chat/Work runtime. The model uses the Agents API with `gpt-6-luna` at low
+  reasoning effort. Its function tools run through Arc's existing trusted
+  Supabase worker; the request uses `environment: none` and does not provision
+  an OpenAI-hosted computer or E2B sandbox.
 - `inspect_app`, chunked `read_app_file`, `apply_app_files`, and `publish_app` are
   app-only tools. Writes in ask mode require an exact approved call/hash.
   Publishing is always approval-gated, writes a durable publication intent before

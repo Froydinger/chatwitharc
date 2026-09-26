@@ -445,6 +445,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
     const assistantMessage: AppBuilderMessage = { id: crypto.randomUUID(), role: 'assistant', content: '', timestamp: Date.now() };
     const previousMessages = messagesRef.current;
     const nextMessages = [...previousMessages, userMessage, assistantMessage];
+    let cloudRunSubmissionAttempted = false;
     updateMessages(nextMessages);
     setPrompt('');
     setAttachments([]);
@@ -454,6 +455,10 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
         await persistSnapshot(filesRef.current, previousMessages);
         if (!appRunsRef.current) throw new Error('This app build service is still connecting. Try again in a moment.');
         setCloudProjectSynced(false);
+        // Once submission is attempted, the worker owns the project snapshot.
+        // A save in finally can advance cloud_revision after the worker opens
+        // its workspace and make an otherwise successful build fail at commit.
+        cloudRunSubmissionAttempted = true;
         await appRunsRef.current.start(trimmed, 'ask', { files: filesRef.current, messages: previousMessages });
         setAgentBusy(false);
         return;
@@ -474,7 +479,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
       setSaveError(reason);
     } finally {
       setAgentBusy(false);
-      if (!demo) void persistSnapshot().catch(() => {});
+      if (!demo && !cloudRunSubmissionAttempted) void persistSnapshot().catch(() => {});
     }
   };
 
