@@ -6,6 +6,37 @@ type SweepPorts = {
   advance(id: string): Promise<boolean>;
 };
 
+/** Restrict production diagnostics to stable identifiers and allowlisted fields.
+ * Error messages may contain provider responses, user content, or secrets. */
+export function cloudFailureLogFields(error: unknown) {
+  const value = error && typeof error === "object"
+    ? error as Record<string, unknown>
+    : {};
+  const errorName = typeof value.name === "string" &&
+      /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(value.name)
+    ? value.name
+    : "Error";
+  const safeCode = typeof value.safeCode === "string" &&
+      /^[A-Z0-9_]{1,16}$/.test(value.safeCode)
+    ? value.safeCode
+    : undefined;
+  const safeAction = typeof value.safeAction === "string" && [
+    "open",
+    "apply",
+    "complete",
+    "publish_start",
+    "publish_commit",
+    "publish_abort",
+  ].includes(value.safeAction)
+    ? value.safeAction
+    : undefined;
+  return {
+    errorName,
+    ...(safeCode ? { dbCode: safeCode } : {}),
+    ...(safeAction ? { action: safeAction } : {}),
+  };
+}
+
 /** Scheduler-owned wakeup, independent of any browser. Candidate selection is
  * advisory; each advance MUST atomically claim a fenced lease before working.
  * One bounded parallel batch keeps a stalled run from starving the whole queue.
@@ -16,6 +47,14 @@ export async function sweepCloudRuns(ports: SweepPorts, now = new Date()) {
   ]
     .slice(0, CLOUD_SWEEP_LIMIT);
   const results = await Promise.allSettled(ids.map((id) => ports.advance(id)));
+  results.forEach((result, index) => {
+    if (result.status === "rejected") {
+      console.error("Cloud run advance failed", {
+        runId: ids[index],
+        ...cloudFailureLogFields(result.reason),
+      });
+    }
+  });
   return {
     examined: ids.length,
     advanced:

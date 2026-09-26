@@ -1,5 +1,9 @@
 import { deepStrictEqual, equal, rejects } from "node:assert/strict";
-import { cloudRunCandidates, sweepCloudRuns } from "./cloudRunScheduler.ts";
+import {
+  cloudFailureLogFields,
+  cloudRunCandidates,
+  sweepCloudRuns,
+} from "./cloudRunScheduler.ts";
 
 Deno.test("cloud sweep: empty queue does not execute or call a provider", async () => {
   const result = await sweepCloudRuns({
@@ -25,6 +29,26 @@ Deno.test("cloud sweep: bounded unique parallel work isolates failures and lost 
   });
   deepStrictEqual(calls, ["a", "b", "c", "d"]);
   deepStrictEqual(result, { examined: 4, advanced: 2, skipped: 1, failed: 1 });
+});
+
+Deno.test("cloud sweep diagnostics: expose safe persistence metadata only", () => {
+  deepStrictEqual(
+    cloudFailureLogFields(Object.assign(new Error("secret user/provider text"), {
+      name: "CloudAppPersistenceError",
+      safeCode: "23505",
+      safeAction: "complete",
+      token: "never log this",
+    })),
+    { errorName: "CloudAppPersistenceError", dbCode: "23505", action: "complete" },
+  );
+  deepStrictEqual(
+    cloudFailureLogFields(Object.assign(new Error("sensitive details"), {
+      name: "Bad Error!",
+      safeCode: "secret/token",
+      safeAction: "user-input",
+    })),
+    { errorName: "Error" },
+  );
 });
 
 Deno.test("cloud sweep: failed candidate query launches no work", async () => {

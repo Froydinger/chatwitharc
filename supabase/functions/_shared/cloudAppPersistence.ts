@@ -71,8 +71,25 @@ export function cloudAppPersistence(
         ["apply", "publish_start", "publish_commit"].includes(action) &&
         ["22023", "23505", "PT409", "40001"].includes(error.code)
       ) return { status: error.code === "22023" ? "invalid" : "conflict" };
-      throw new Error(
-        "App persistence unavailable; same receipt required for recovery.",
+      const safeCode = typeof error.code === "string" &&
+          /^[A-Z0-9_]{1,16}$/.test(error.code)
+        ? error.code
+        : "UNKNOWN";
+      const safeAction = [
+        "open",
+        "apply",
+        "complete",
+        "publish_start",
+        "publish_commit",
+        "publish_abort",
+      ].includes(action)
+        ? action
+        : "unknown";
+      throw Object.assign(
+        new Error(
+          "App persistence unavailable; same receipt required for recovery.",
+        ),
+        { name: "CloudAppPersistenceError", safeCode, safeAction },
       );
     }
     if (
