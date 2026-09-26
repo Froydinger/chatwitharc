@@ -18,6 +18,11 @@
     Cache-Control = "public, max-age=31536000, immutable"
 
 [[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+
+[[headers]]
   for = "/downloads/ArcAI-Android-Beta.apk"
   [headers.values]
     Cache-Control = "no-cache"
