@@ -25,7 +25,7 @@ function moduleURL(url) {
 }
 const load = path => import(moduleURL(new URL(path, import.meta.url)));
 
-test('saved project -> app submit -> close -> real worker versions -> reopen authoritative reload; Ask approval', async () => {
+test('saved project -> app submit -> close -> authorized draft write -> completion -> reopen authoritative reload', async () => {
   const { CloudAppRuns } = await load('./cloudAppRuns.ts');
   const { CloudRunLifecycle } = await load('./cloudRunLifecycle.ts');
   const { CloudAppProjectPersistence } = await load('./cloudAppProjects.ts');
@@ -62,12 +62,18 @@ test('saved project -> app submit -> close -> real worker versions -> reopen aut
     sql(`create table public.admin_users(user_id uuid primary key);
       create table public.subscriptions(user_id uuid, price_id text,status text,stripe_subscription_id text,current_period_end timestamptz);
       create unique index chat_sessions_id_user_id_cloud_runs_key on public.chat_sessions(id,user_id);`);
-    for (const name of ['20260828213000_expire_admin_boost_grants.sql', '20260912085941_durable_cloud_runs.sql', '20260912100349_durable_cloud_app_versions.sql']) migration(name);
+    for (const name of ['20260828213000_expire_admin_boost_grants.sql', '20260912085941_durable_cloud_runs.sql',
+      '20260912100349_durable_cloud_app_versions.sql', '20260912123859_correct_cloud_app_publish_artifact.sql',
+      '20260912124500_durable_cloud_app_publishing.sql', '20260919190000_cloud_app_artifact_link.sql',
+      '20260926031500_fix_cloud_app_worker_permissions.sql']) migration(name);
     const owner = '00000000-0000-4000-8000-000000000001', projectId = '00000000-0000-4000-8000-000000000002', sessionId = '00000000-0000-4000-8000-000000000003';
     const initial = { files: { 'src/App.tsx': { content: 'initial', language: 'tsx' } }, messages: [] };
     sql(`insert into auth.users(id,email) values (${quote(owner)},'fixture@example.invalid'); insert into public.admin_users values (${quote(owner)});`);
     const authenticated = query => sql(`set role authenticated; set request.jwt.claim.sub=${quote(owner)}; ${query}`);
     const service = query => sql(`set role service_role; set request.jwt.claim.role='service_role'; ${query}`);
+    assert.equal(service(`select (has_table_privilege('service_role','public.cloud_app_publications','select')
+      and has_table_privilege('service_role','public.cloud_app_publications','insert')
+      and has_table_privilege('service_role','public.cloud_app_publications','update'))`), 't');
     const row = (table, id) => JSON.parse(service(`select to_jsonb(t) from public.${table} t where id=${quote(id)}`) || 'null');
     const rpc = async (name, args) => {
       const values = Object.entries(args).map(([key, value]) => `${key} => ${value === null ? 'null' : typeof value === 'object' ? json(value) : typeof value === 'number' ? value : quote(value)}`).join(',');
@@ -154,16 +160,10 @@ test('saved project -> app submit -> close -> real worker versions -> reopen aut
         cancelModel: async () => { throw Error('Unexpected provider cancellation'); },
       }),
     });
-    for (let i = 0; i < 12 && row('cloud_runs', id).status !== 'awaiting_input'; i++) await advance();
-    assert.equal(row('cloud_runs', id).status, 'awaiting_input');
-    assert.equal(row('ide_projects', projectId).files['src/App.tsx'].content, 'initial');
-    // Reopen, discover exact pending call, approve, then close again.
-    client = makeClient(); await client.restore();
-    assert.equal(client.snapshot().entry.run.projectId, projectId);
-    await client.decide('approve'); client.close(); client = null;
     for (let i = 0; i < 15 && row('cloud_runs', id).status !== 'completed'; i++) await advance();
     assert.equal(row('cloud_runs', id).status, 'completed');
     assert.equal(service(`select count(*) from public.cloud_app_versions where run_id=${quote(id)}`), '2');
+    assert.equal(row('ide_projects', projectId).files['src/App.tsx'].content, 'worker published');
     assert.equal(row('ide_projects', projectId).versions.app_db.keep, true);
     projectClient = persistence(); // Reconstruct owner-scoped journal after refresh.
     client = makeClient(); await client.restore();
