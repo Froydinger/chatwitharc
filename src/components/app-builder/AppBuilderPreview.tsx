@@ -85,6 +85,7 @@ export function AppBuilderPreview({ files, projectId, size, isMobile, hasApp, de
         'framer-motion': '^11.11.9', 'lucide-react': '^0.453.0', 'react-icons': '^5.3.0',
         'canvas-confetti': '^1.9.4', tailwindcss: '^3.4.17', postcss: '^8.5.6', autoprefixer: '^10.4.21',
       } }}
+      style={{ height: '100%', minHeight: 0, width: '100%' }}
       options={{ externalResources: [
         // Sandpack detects script resources by the `.js` suffix; the CDN ignores this query string.
         'https://cdn.tailwindcss.com/3.4.17?shim.js',
