@@ -28,6 +28,7 @@ import { FileAttachment } from "@/components/FileAttachment";
 import { CanvasAttachment } from "@/components/CanvasAttachment";
 import { CodeArtifactCard } from "@/components/CodeArtifactCard";
 import { AppBuilderArtifactCard } from "@/components/app-builder/AppBuilderArtifactCard";
+import { AppBuilderAppChoiceCard } from "@/components/app-builder/AppBuilderAppChoiceCard";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
@@ -307,7 +308,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </motion.div>
               )}
 
-              {!isUser && message.type === 'ide' && (
+              {!isUser && message.ideProjectId && (
                 <motion.div
                   key="card-app-builder-artifact"
                   initial={{ opacity: 0, y: 8 }}
@@ -320,6 +321,21 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     title={message.ideTitle}
                     prompt={message.idePrompt}
                     fileCount={message.ideFileCount}
+                  />
+                </motion.div>
+              )}
+
+              {!isUser && message.appChoices && message.appChoices.length > 0 && (
+                <motion.div
+                  key="card-app-builder-choices"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="relative z-10 mb-2 w-full"
+                >
+                  <AppBuilderAppChoiceCard
+                    projects={message.appChoices}
+                    editPrompt={message.appChoicePrompt || ''}
                   />
                 </motion.div>
               )}

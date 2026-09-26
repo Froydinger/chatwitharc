@@ -634,7 +634,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
           {deployedUrl && <a href={deployedUrl} target="_blank" rel="noreferrer" className="hidden items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1.5 text-[10px] text-white/55 hover:text-white sm:flex"><Globe className="h-3 w-3" /><span>Live</span><ExternalLink className="h-2.5 w-2.5" /></a>}
           {!isMobile && <Button variant="ghost" onClick={() => setDesktopPane(pane => pane === 'code' ? 'chat' : 'code')} className={`h-8 rounded-full px-3 text-[10px] ${desktopPane === 'code' ? 'bg-white text-black hover:bg-white/90' : 'text-white/55 hover:bg-white/[0.06] hover:text-white'}`}><Code2 className="mr-1.5 h-3.5 w-3.5" />{desktopPane === 'code' ? 'Close code' : 'Advanced'}</Button>}
           {deployedUrl && <button onClick={() => setShowUnpublish(true)} className="hidden text-[9px] text-white/30 hover:text-white/60 md:block">Unpublish</button>}
-          <Button onClick={() => setShowPublish(true)} disabled={publishing || loadingProject || !projectLoaded} className="h-9 rounded-full bg-white px-3.5 text-[10px] font-semibold text-black hover:bg-white/90 sm:px-4 sm:text-[11px]"><Rocket className="mr-1.5 h-3.5 w-3.5" />{deployedUrl ? 'Publish update' : 'Publish'}</Button>
+          <Button onClick={() => setShowPublish(true)} disabled={publishing || loadingProject || !projectLoaded} className="h-9 rounded-full border border-white/15 bg-white/[0.09] px-3.5 text-[10px] font-semibold text-white hover:bg-white/[0.15] disabled:bg-white/[0.04] disabled:text-white/35 sm:px-4 sm:text-[11px]"><Rocket className="mr-1.5 h-3.5 w-3.5" />{deployedUrl ? 'Publish update' : 'Publish'}</Button>
         </div>
       </header>
 

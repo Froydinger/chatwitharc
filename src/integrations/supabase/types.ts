@@ -758,6 +758,8 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          channel: string
+          notification_key: string | null
           read_at: string | null
           tag: string | null
           title: string
@@ -766,8 +768,10 @@ export type Database = {
         }
         Insert: {
           body?: string
+          channel?: string
           created_at?: string
           id?: string
+          notification_key?: string | null
           read_at?: string | null
           tag?: string | null
           title: string
@@ -776,8 +780,10 @@ export type Database = {
         }
         Update: {
           body?: string
+          channel?: string
           created_at?: string
           id?: string
+          notification_key?: string | null
           read_at?: string | null
           tag?: string | null
           title?: string

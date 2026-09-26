@@ -74,7 +74,8 @@ import { detectsLocationIntent, getCachedLocation, getUserLocation, requestsCurr
 import { GitHubMark, GitModeDock } from "@/components/GitModeDock";
 import { parseSubagentDirective, runChatSubagents, type SubagentDirective, type SubagentStreamEvent } from "@/services/subagents";
 import { useSubagentStore } from "@/store/useSubagentStore";
-import { getAppBuilderIntent } from "@/utils/appBuilderIntent";
+import { getAppBuilderIntent, resolveAppBuilderProject } from "@/utils/appBuilderIntent";
+import { listOwnedAppBuilderProjects, reopenOwnedAppBuilderProject } from "@/services/openAppBuilderProject";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -1672,20 +1673,77 @@ Feel free to send another message or test a prompt to see the animation again!`,
         return;
       }
       const initialPrompt = appIntent.prompt;
-      if (appIntent.action === 'edit' && hasExistingApp && builderStore.ideProjectId && builderStore.ideFiles) {
-        builderStore.reopenIDECanvas(builderStore.ideProjectId, builderStore.ideFiles, builderStore.ideMessages, initialPrompt);
+      const clearAppBuilderComposer = () => {
+        setInputValue("");
+        setSelectedImages([]);
+        setSelectedDocuments([]);
+        setForceImageMode(false);
+        setForceCodingMode(false);
+        setForceCanvasMode(false);
+        setForceSearchMode(false);
+        setForceGitMode(false);
+        setShowMenu(false);
+      };
+
+      if (appIntent.action === 'edit') {
+        setLoading(true);
+        let userMessageRecorded = false;
+        try {
+          // Chat sees only the signed-in user's app labels and descriptions.
+          // Source files are loaded only after a single app has been selected.
+          const projects = await listOwnedAppBuilderProjects();
+          const resolution = resolveAppBuilderProject(initialPrompt, projects);
+          await addMessage({ content: userMessage, role: "user", type: "text" });
+          userMessageRecorded = true;
+
+          if (resolution.kind === 'choose') {
+            await addMessage({
+              content: "I found a few saved apps that could match. Which one should I edit?",
+              role: "assistant",
+              type: "text",
+              appChoices: resolution.projects,
+              appChoicePrompt: initialPrompt,
+            });
+          } else if (resolution.kind === 'not-found') {
+            await addMessage({
+              content: "I couldn't find a saved app that matches that request. Open your Apps page to choose an existing app, or tell me to build a new one.",
+              role: "assistant",
+              type: "text",
+            });
+          } else {
+            const project = await reopenOwnedAppBuilderProject(resolution.project.id, initialPrompt);
+            await addMessage({
+              content: `I found one clear match: **${project.title || resolution.project.title}**. I’m opening that saved app and applying your request.`,
+              role: "assistant",
+              type: "ide",
+              ideProjectId: project.id,
+              ideTitle: project.title,
+              idePrompt: project.prompt,
+              ideFileCount: Object.keys(project.files || {}).length,
+            });
+            navigate(`/build/${encodeURIComponent(project.id)}`);
+          }
+          clearAppBuilderComposer();
+        } catch (error) {
+          const description = error instanceof Error ? error.message : "Try again from your Apps page.";
+          if (userMessageRecorded) {
+            await addMessage({
+              content: `I couldn't safely open an app, so I made no changes. ${description}`,
+              role: "assistant",
+              type: "text",
+            });
+            clearAppBuilderComposer();
+          } else {
+            toast({ title: "Couldn't check your saved apps", description });
+          }
+        } finally {
+          setLoading(false);
+        }
+        return;
       } else {
         builderStore.openIDECanvas(initialPrompt, undefined, !!initialPrompt);
       }
-      setInputValue("");
-      setSelectedImages([]);
-      setSelectedDocuments([]);
-      setForceImageMode(false);
-      setForceCodingMode(false);
-      setForceCanvasMode(false);
-      setForceSearchMode(false);
-      setForceGitMode(false);
-      setShowMenu(false);
+      clearAppBuilderComposer();
       setLoading(false);
       return;
     }

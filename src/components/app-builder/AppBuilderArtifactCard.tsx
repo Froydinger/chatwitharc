@@ -1,6 +1,9 @@
-import { ArrowUpRight, FileCode2, Smartphone } from 'lucide-react';
+import { ArrowUpRight, FileCode2, LoaderCircle, Smartphone } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { reopenOwnedAppBuilderProject } from '@/services/openAppBuilderProject';
 
 interface AppBuilderArtifactCardProps {
   projectId?: string;
@@ -14,8 +17,24 @@ const PROJECT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 
 export function AppBuilderArtifactCard({ projectId, title, prompt, fileCount, className }: AppBuilderArtifactCardProps) {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [opening, setOpening] = useState(false);
   const canOpen = typeof projectId === 'string' && PROJECT_ID.test(projectId);
-  const open = () => { if (canOpen) navigate(`/build/${encodeURIComponent(projectId!)}`); };
+  const open = async () => {
+    if (!canOpen || opening) return;
+    setOpening(true);
+    try {
+      await reopenOwnedAppBuilderProject(projectId!);
+      navigate(`/build/${encodeURIComponent(projectId!)}`);
+    } catch (error) {
+      toast({
+        title: 'Could not open that saved app',
+        description: error instanceof Error ? error.message : 'Try opening it again from your Apps page.',
+      });
+    } finally {
+      setOpening(false);
+    }
+  };
 
   return (
     <section className={`my-2 w-full max-w-md overflow-hidden rounded-2xl border border-white/[0.09] bg-[#111211] text-white shadow-[0_18px_50px_rgba(0,0,0,.2)] ${className ?? ''}`}>
@@ -31,9 +50,9 @@ export function AppBuilderArtifactCard({ projectId, title, prompt, fileCount, cl
       </div>
       {prompt?.trim() && <p className="px-4 py-3 text-xs leading-relaxed text-white/55 line-clamp-2">{prompt}</p>}
       <div className="px-4 pb-4">
-        <Button type="button" disabled={!canOpen} onClick={open} className="h-9 w-full justify-between rounded-xl bg-white text-xs font-semibold text-black hover:bg-white/90 disabled:bg-white/15 disabled:text-white/35">
-          {canOpen ? 'Open app preview' : 'Project link unavailable'}
-          {canOpen && <ArrowUpRight className="h-3.5 w-3.5" />}
+        <Button type="button" disabled={!canOpen || opening} onClick={() => void open()} className="h-9 w-full justify-between rounded-xl bg-white text-xs font-semibold text-black hover:bg-white/90 disabled:bg-white/15 disabled:text-white/35">
+          {opening ? 'Opening app…' : canOpen ? 'Open and edit app' : 'Project link unavailable'}
+          {opening ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : canOpen && <ArrowUpRight className="h-3.5 w-3.5" />}
         </Button>
       </div>
     </section>

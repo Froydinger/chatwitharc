@@ -6,6 +6,7 @@ import { useCanvasStore } from '@/store/useCanvasStore';
 import { createCloudSessionPersistence, type SessionOutbox, type SessionPersistenceResult } from '@/services/cloudSessionPersistence';
 import { transcriptChanges, type TranscriptSnapshot } from '@/services/cloudSessionChanges';
 import type { BrowserbaseChatSession } from '@/store/useBrowserbaseSessionStore';
+import type { AppBuilderProjectSummary } from '@/utils/appBuilderIntent';
 
 // Release gate: enable only AFTER the session-operation migration is available.
 const cloudSessionOperationsEnabled = import.meta.env.VITE_CLOUD_SESSION_OPERATIONS_ENABLED === 'true';
@@ -207,6 +208,8 @@ export interface Message {
   ideFileCount?: number; // Number of files generated
   ideProjectId?: string; // Database project ID for cloud persistence
   ideTitle?: string; // Display title for App Builder artifacts
+  appChoices?: AppBuilderProjectSummary[]; // Private metadata choices for an ambiguous app edit request
+  appChoicePrompt?: string; // Original edit request applied after the user chooses an app
   browserSession?: BrowserbaseChatSession; // Owner-scoped handle and display state only; never a provider live-view URL
   browserSessionClosed?: string;
   memoryAction?: MemoryAction; // Track memory/search actions

@@ -13,6 +13,7 @@ import {
   FileText,
   Image as ImageIcon,
   LayoutDashboard,
+  Mail,
   MessageSquare,
   Plus,
   Search,
@@ -81,6 +82,7 @@ type PushNotificationHistoryRow = {
   body: string;
   url: string;
   tag: string | null;
+  channel: 'push' | 'email';
   created_at: string;
   read_at: string | null;
 };
@@ -91,13 +93,14 @@ type PreviewNotification = {
   detail: string;
   time: string;
   unread: boolean;
+  channel: 'push' | 'email';
   chatId?: string;
   url?: string;
 };
 const previewNotifications: PreviewNotification[] = [
-  { id: "preview-cloud-run", title: "Cloud run complete", detail: "Restore Mac dashboard is ready.", time: "8 min ago", unread: true, chatId: "preview-restore" },
-  { id: "preview-reminder", title: "Reminder due soon", detail: "Review your latest image set.", time: "1 hr ago", unread: false },
-  { id: "preview-chat-saved", title: "Arc saved your chat", detail: "The good news digest is synced.", time: "Yesterday", unread: false, chatId: "preview-news" },
+  { id: "preview-cloud-run", title: "Cloud run complete", detail: "Restore Mac dashboard is ready.", time: "8 min ago", unread: true, channel: 'push', chatId: "preview-restore" },
+  { id: "preview-reminder", title: "Reminder due soon", detail: "Review your latest image set.", time: "1 hr ago", unread: false, channel: 'push' },
+  { id: "preview-chat-saved", title: "Arc saved your chat", detail: "The good news digest is synced.", time: "Yesterday", unread: false, channel: 'push', chatId: "preview-news" },
 ];
 
 function formatNotificationTime(value: string) {
@@ -119,6 +122,7 @@ function mapPushNotification(row: PushNotificationHistoryRow): PreviewNotificati
     detail: row.body || "Arc sent you a notification.",
     time: formatNotificationTime(row.created_at),
     unread: !row.read_at,
+    channel: row.channel === 'email' ? 'email' : 'push',
     chatId: chatMatch?.[1] ? decodeURIComponent(chatMatch[1]) : undefined,
     url: row.url,
   };
@@ -441,7 +445,7 @@ function NotificationTray({ notifications, onClear, onOpen }: { notifications: P
       <div className="flex items-start justify-between gap-3 px-2 pb-2">
         <div>
           <p className="text-sm font-semibold">Recent notifications</p>
-          <p className="mt-0.5 text-[10px] text-muted-foreground">Pushes Arc sent you.</p>
+          <p className="mt-0.5 text-[10px] text-muted-foreground">Push and email updates from Arc.</p>
         </div>
         {unreadCount > 0 && <span className="dashboard-preview-notification-count rounded-full px-2 py-1 text-[10px] font-medium">{unreadCount} new</span>}
       </div>
@@ -450,11 +454,12 @@ function NotificationTray({ notifications, onClear, onOpen }: { notifications: P
           {notifications.map((notification) => (
             <button key={notification.id} type="button" onClick={() => onOpen(notification)} className="dashboard-preview-notification-row flex w-full items-start gap-2.5 rounded-xl border px-2 py-2 text-left transition-colors hover:border-primary/30 hover:bg-primary/[0.06]">
               <span className={cn("mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg", notification.unread ? "dashboard-preview-notification-unread-icon" : "bg-muted text-muted-foreground")}>
-                <Bell className="h-3 w-3" />
+                {notification.channel === 'email' ? <Mail className="h-3 w-3" /> : <Bell className="h-3 w-3" />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
                   <span className="truncate text-[10px] font-medium">{notification.title}</span>
+                  <span className="shrink-0 text-[8px] text-muted-foreground/70">{notification.channel === 'email' ? 'Email' : 'Push'}</span>
                   {notification.unread && <span className="dashboard-preview-notification-unread-dot h-1.5 w-1.5 shrink-0 rounded-full" />}
                 </span>
                 <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{notification.detail}</span>
@@ -615,7 +620,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
     const loadHistory = async () => {
       const { data, error } = await supabase
         .from("push_notification_history")
-        .select("id,title,body,url,tag,created_at,read_at")
+        .select("id,title,body,url,tag,channel,created_at,read_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20);
