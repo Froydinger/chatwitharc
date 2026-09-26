@@ -32,22 +32,38 @@ export function createAppPreviewFiles(
   }
 
   const hasSourceApp = Boolean(files['/src/App.tsx'] || files['/src/App.jsx'] || files['/src/App.js']);
-  const appImport = hasSourceApp ? './src/App' : './App';
   const safeProjectId = JSON.stringify(projectId);
   const safeSupabaseUrl = JSON.stringify(supabaseUrl);
   const systemGlobals = `window.__ARC_APP_ID__ = ${safeProjectId};\nwindow.__ARC_PROJECT_ID__ = ${safeProjectId};\nwindow.__ARC_SUPABASE_URL__ = ${safeSupabaseUrl};`;
+  const cssPath = files['/src/index.css'] ? '/src/index.css' : files['/index.css'] ? '/index.css' : '/src/index.css';
+  const previewCssImport = cssPath === '/src/index.css' ? './index.css' : '../index.css';
 
-  if (!files['/index.tsx'] && !files['/index.js'] && !files['/src/index.tsx'] && !files['/src/index.js']) {
-    files['/index.tsx'] = `import React from 'react';
+  // Sandpack's react-ts template boots from /src/index.tsx. A root /index.tsx
+  // can sit beside the template entry without ever being executed, leaving
+  // Tailwind unimported and the preview looking like unstyled browser HTML.
+  if (!files['/src/index.tsx'] && !files['/src/index.js']) {
+    if (files['/src/main.tsx'] || files['/src/main.jsx'] || files['/src/main.js']) {
+      files['/src/index.tsx'] = `import '${previewCssImport}';
+import './main';
+`;
+    } else if (files['/index.tsx'] || files['/index.jsx'] || files['/index.js']) {
+      const rootEntryPath = files['/index.tsx'] ? '../index' : files['/index.jsx'] ? '../index' : '../index.js';
+      files['/src/index.tsx'] = `import '${previewCssImport}';
+import '${rootEntryPath}';
+`;
+    } else {
+      const srcAppImport = hasSourceApp ? './App' : '../App';
+      files['/src/index.tsx'] = `import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './styles.css';
+import '${previewCssImport}';
 
 if (typeof window !== 'undefined') { ${systemGlobals} }
-import App from '${appImport}';
+import App from '${srcAppImport}';
 
 const rootEl = document.getElementById('root');
 if (rootEl) ReactDOM.createRoot(rootEl).render(<React.StrictMode><App /></React.StrictMode>);
 `;
+    }
   }
 
   if (files['/src/main.tsx'] && !files['/src/main.tsx'].includes('__ARC_APP_ID__')) {
@@ -63,11 +79,16 @@ html, body { margin: 0; min-height: 100%; background: #090a0f; color: #f8fafc; f
 `;
   }
 
-  const cssPath = files['/src/index.css'] ? '/src/index.css' : files['/index.css'] ? '/index.css' : '/src/index.css';
-  if (!files[cssPath]) files[cssPath] = `@import url('./styles.css');\n@tailwind base;\n@tailwind components;\n@tailwind utilities;\n`;
+  const baseStylesImport = cssPath === '/src/index.css' ? '../styles.css' : './styles.css';
+  if (!files[cssPath]) files[cssPath] = `@import url('${baseStylesImport}');\n@tailwind base;\n@tailwind components;\n@tailwind utilities;\n`;
   else if (!/@tailwind\s+(base|components|utilities)/.test(files[cssPath])) {
     const imports = files[cssPath].match(/^(?:\s*@import[^;]+;\s*)+/)?.[0] ?? '';
     files[cssPath] = `${imports}@tailwind base;\n@tailwind components;\n@tailwind utilities;\n${files[cssPath].slice(imports.length)}`;
+  }
+  const previewEntryPath = ['/src/index.tsx', '/src/index.js']
+    .find(path => files[path]);
+  if (previewEntryPath && !files[previewEntryPath].includes(previewCssImport)) {
+    files[previewEntryPath] = `import '${previewCssImport}';\n${files[previewEntryPath]}`;
   }
   if (!files['/src/App.css'] && !files['/App.css']) files['/src/App.css'] = '';
   if (!files['/tailwind.config.cjs']) files['/tailwind.config.cjs'] = `module.exports = {
