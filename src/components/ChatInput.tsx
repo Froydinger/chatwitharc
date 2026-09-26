@@ -733,6 +733,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const [forceCanvasMode, setForceCanvasMode] = useState(false);
   const [forceSearchMode, setForceSearchMode] = useState(false);
   const [forceGitMode, setForceGitMode] = useState(false);
+  const [forceRegularChatMode, setForceRegularChatMode] = useState(false);
   const appProjectId = useIDEStore((state) => state.ideProjectId);
   const appFiles = useIDEStore((state) => state.ideFiles);
   const isCurrentSessionGit = useMemo(() => {
@@ -745,7 +746,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const shouldShowCanvasMode = forceCanvasMode || (!!inputValue && checkForCanvasRequest(inputValue));
   const shouldShowSearchMode = forceSearchMode || (!!inputValue && checkForSearchRequest(inputValue));
   const shouldShowGitMode = isCurrentSessionGit || forceGitMode || (!!inputValue && checkForGitRequest(inputValue));
-  const shouldShowAppMode = APP_BUILDER_ENABLED && !!getAppBuilderIntent(inputValue, !!appProjectId && !!appFiles);
+  const shouldShowAppMode = APP_BUILDER_ENABLED && !forceRegularChatMode && !!getAppBuilderIntent(inputValue, !!appProjectId && !!appFiles);
 
   // Persisted user-chosen image options (for /image, "draw…", etc.)
   const {
@@ -1656,7 +1657,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
     const userMessage = messageToSend.trim();
     const builderStore = useIDEStore.getState();
     const hasExistingApp = !!builderStore.ideProjectId && !!builderStore.ideFiles;
-    const appIntent = !shouldShowGitMode && !checkForGitRequest(userMessage)
+    const appIntent = !forceRegularChatMode && !shouldShowGitMode && !checkForGitRequest(userMessage)
       ? getAppBuilderIntent(userMessage, hasExistingApp)
       : null;
     if (appIntent) {
@@ -3143,7 +3144,7 @@ ${safeCode}
     { id: "generate", label: "Create Image", description: "Create or edit an image", keywords: "image draw picture art", icon: ImagePlus, tileClass: "border-rose-500/20 hover:border-rose-500/40 hover:bg-rose-500/10", iconClass: "bg-rose-500/15 text-rose-500 dark:text-rose-400", run: () => { setForceImageMode(true); setInputValue("image/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "write", label: "Writing Canvas", description: "Open a live writing canvas", keywords: "canvas prose draft document", icon: PenLine, tileClass: "border-sky-500/20 hover:border-sky-500/40 hover:bg-sky-500/10", iconClass: "bg-sky-500/15 text-sky-600 dark:text-sky-400", run: () => { setForceCanvasMode(true); setInputValue("write/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "prompts", label: "Prompts & Ideas", description: "Browse saved prompt starters", keywords: "prompt library templates starters", icon: ListPlus, tileClass: "border-fuchsia-500/20 hover:border-fuchsia-500/40 hover:bg-fuchsia-500/10", iconClass: "bg-fuchsia-500/15 text-fuchsia-500 dark:text-fuchsia-400", run: () => { setShowPromptLibrary(true); setShowMenu(false); } },
-    { id: "app", label: "Build an app", description: "Create or edit a web app with Arc", keywords: "app builder website web app", icon: Smartphone, tileClass: "border-white/15 hover:border-white/25 hover:bg-white/10", iconClass: "bg-white/10 text-white/75", run: () => { setInputValue("/app "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "app", label: "Build an app", description: "Create or edit a web app with Arc", keywords: "app builder website web app", icon: Smartphone, tileClass: "border-white/15 hover:border-white/25 hover:bg-white/10", iconClass: "bg-white/10 text-white/75", run: () => { setForceRegularChatMode(false); setInputValue("/app "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "code", label: "Code Canvas", description: "Work in a code canvas", keywords: "programming developer code editor", icon: Code2, tileClass: "border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/10", iconClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400", run: () => { setForceCodingMode(true); setInputValue("code/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "git", label: "Github Mode", description: "Update a remote repo via a pull request", keywords: "github git repository pull request branch", icon: GitHubMark, tileClass: "border-zinc-500/20 hover:border-zinc-500/40 hover:bg-zinc-500/10", iconClass: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-300", run: () => { setForceGitMode(true); setInputValue("git/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "search", label: "Instant Web Search", description: "Search the web inline", keywords: "web browse lookup sources", icon: Globe, tileClass: "border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10", iconClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", run: () => { setForceSearchMode(true); setInputValue("search/ "); setShowMenu(false); textareaRef.current?.focus(); } },
@@ -3491,7 +3492,7 @@ ${safeCode}
                 </button>
 
                 {/* Clear active tool badge (cannot clear if session is permanently Git) */}
-                {!showMenu && !isCurrentSessionGit && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode || shouldShowGitMode) && (
+                {!showMenu && !isCurrentSessionGit && (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowCanvasMode || shouldShowGitMode || shouldShowAppMode) && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -3501,8 +3502,10 @@ ${safeCode}
                       setForceCodingMode(false);
                       setForceCanvasMode(false);
                       setForceGitMode(false);
+                      if (shouldShowAppMode) setForceRegularChatMode(true);
                       setInputValue((v) =>
                         v.replace(/^\s*(image|search|code|write|git)\/\s*/i, "")
+                          .replace(/^\s*(?:\/(?:app|build)\b|(?:app|build)\/)\s*/i, "")
                       );
                       textareaRef.current?.focus();
                     }}
@@ -3602,6 +3605,7 @@ ${safeCode}
                 value={inputValue}
                 onChange={(e) => {
                   if (isVoiceActive) return;
+                  setForceRegularChatMode(false);
                   setInputValue(e.target.value);
                 }}
                 onKeyDown={handleKeyPress}
