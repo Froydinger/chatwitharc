@@ -214,6 +214,8 @@ export interface Message {
   browserSessionClosed?: string;
   memoryAction?: MemoryAction; // Track memory/search actions
   webSources?: Array<{ url: string; title?: string; snippet?: string }>; // Inline web citations
+  /** Voice search results use the rich result card; ordinary chat stays inline. */
+  voiceSearchResult?: boolean;
   weatherData?: import('@/components/WeatherCard').WeatherData; // Inline weather card
   scheduledTask?: import('@/components/ScheduledTaskCard').ScheduledTaskData;
   notificationDispatch?: import('@/components/NotificationDispatchCard').NotificationDispatchData;

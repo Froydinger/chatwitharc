@@ -35,6 +35,7 @@ import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmb
 import { ModelSourceBadge } from "@/components/ModelSourceBadge";
 import { MessageMetadata } from "@/components/MessageMetadata";
 import { WeatherCard } from "@/components/WeatherCard";
+import { SearchResultsCard } from "@/components/SearchResultsCard";
 import { SourcesAccordion } from "@/components/SourcesAccordion";
 import { ScheduledTaskCard } from "@/components/ScheduledTaskCard";
 import { NotificationDispatchCard } from "@/components/NotificationDispatchCard";
@@ -214,9 +215,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     };
 
     const contentParts = !isUser && message.type === "text" ? parseCodeBlocks(message.content || "") : [];
+    const hasVoiceSearchCard = !isUser && message.voiceSearchResult === true;
     const webQuery = message.memoryAction?.type === "web_searched" ? message.memoryAction.query || "" : "";
     const searchImages = message.searchImages || [];
-    const showSearchImages = searchImages.length > 0 &&
+    const showSearchImages = !hasVoiceSearchCard && searchImages.length > 0 &&
       /\b(?:photos?|pictures?|images?|visuals?)\b|what\s+.{0,50}\s+looks?\s+like/i.test(webQuery);
 
     return (
@@ -224,7 +226,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
         ref={ref}
         className={`flex ${isUser ? "justify-end" : "justify-start"} group`}
       >
-        <div className={`flex flex-col gap-2 max-w-[85%] ${isUser ? "ml-auto items-end" : "mr-auto items-start"}`}>
+        <div className={`flex flex-col gap-2 ${hasVoiceSearchCard ? "max-w-full sm:max-w-[85%]" : "max-w-[85%]"} ${isUser ? "ml-auto items-end" : "mr-auto items-start"}`}>
           {/* Message Bubble */}
           <div
             onClick={handleMessageClick}
@@ -279,6 +281,24 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   className="mb-3 relative z-10 flex justify-start"
                 >
                   <WeatherCard weather={message.weatherData} />
+                </motion.div>
+              )}
+
+              {hasVoiceSearchCard && (
+                <motion.div
+                  key="card-voice-search-results"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="relative z-10 mb-3 flex w-full justify-start"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <SearchResultsCard
+                    content={message.content || ""}
+                    sources={message.webSources || []}
+                    query={message.memoryAction?.type === "web_searched" ? message.memoryAction.query : undefined}
+                    images={message.searchImages}
+                  />
                 </motion.div>
               )}
 
@@ -560,6 +580,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   ) : (
                     // AI messages with code block support and markdown
                     (message.content || "").trim().length > 0 &&
+                    !hasVoiceSearchCard &&
                     !["canvas", "code", "ide", "file"].includes(message.type) && (
                       <div
                         key="text-assistant"
@@ -621,7 +642,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </div>
               )}
 
-              {!isUser && !!message.webSources?.length && (
+              {!isUser && !hasVoiceSearchCard && !!message.webSources?.length && (
                 <SourcesAccordion sources={message.webSources} messageContent={message.content} showMediaEmbeds={false} />
               )}
 

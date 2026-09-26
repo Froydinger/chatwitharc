@@ -702,6 +702,7 @@ export function VoiceModeController() {
         content: response,
         role: 'assistant',
         type: 'text',
+        voiceSearchResult: true,
         webSources: sources,
         searchImages,
         memoryAction: {
