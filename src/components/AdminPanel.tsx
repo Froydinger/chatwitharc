@@ -125,15 +125,24 @@ export function AdminPanel() {
     }
   };
 
-  const fetchUsers = useCallback(async (perPage = 100) => {
+  const fetchUsers = useCallback(async (previewLimit?: number) => {
     if (!supabase) return;
     setUsersLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("admin-users", {
-        body: { action: "list", perPage },
-      });
-      if (error) throw error;
-      setUsers(data.users || []);
+      const loaded = [];
+      let page = 1;
+      let hasMore = true;
+      while (hasMore) {
+        const { data, error } = await supabase.functions.invoke("admin-users", {
+          body: { action: "list", page, perPage: 100 },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        loaded.push(...(data.users || []));
+        hasMore = data.hasMore === true && (!previewLimit || loaded.length < previewLimit);
+        page += 1;
+      }
+      setUsers(previewLimit ? loaded.slice(0, previewLimit) : loaded);
     } catch (err: any) {
       console.error("Failed to fetch users:", err);
       let description = err?.message || "Failed to load users";
@@ -293,7 +302,7 @@ export function AdminPanel() {
       } else if (activeSection === "stats") {
         fetchStats();
       } else if (activeSection === "users") {
-        fetchUsers(100);
+        fetchUsers();
       } else if (activeSection === "bugs") {
         fetchBugs();
       } else if (activeSection === "tickets") {

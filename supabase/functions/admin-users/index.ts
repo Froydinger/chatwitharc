@@ -120,11 +120,9 @@ serve(async (req) => {
     logStep("Action requested", { action, callerUserId });
 
     if (action === "list") {
-      // List all users with profiles
-      const { data: { users }, error } = await supabase.auth.admin.listUsers({
-        page: params.page || 1,
-        perPage: params.perPage || 100, // retrieve more
-      });
+      const page = Number.isSafeInteger(params.page) && params.page > 0 ? params.page : 1;
+      const perPage = Number.isSafeInteger(params.perPage) ? Math.max(1, Math.min(100, params.perPage)) : 100;
+      const { data: { users }, error } = await supabase.auth.admin.listUsers({ page, perPage });
 
       if (error) throw error;
 
@@ -174,7 +172,7 @@ serve(async (req) => {
         };
       });
 
-      return new Response(JSON.stringify({ users: enrichedUsers, total: enrichedUsers.length }), {
+      return new Response(JSON.stringify({ users: enrichedUsers, total: enrichedUsers.length, hasMore: users.length === perPage }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -355,11 +353,14 @@ serve(async (req) => {
     }
 
     if (action === "stats") {
-      // 1. Total users (fetch with perPage: 1000 to get full user count)
-      const { data: { users }, error: usersErr } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-      if (usersErr) throw usersErr;
-      const registeredUsers = (users || []).filter(u => u.email && u.email.trim() !== "" && !u.is_anonymous);
-      const totalUsers = registeredUsers.length;
+      // Count every Auth page, using the same registered-account filter as the list.
+      let totalUsers = 0;
+      for (let page = 1; ; page += 1) {
+        const { data: { users }, error } = await supabase.auth.admin.listUsers({ page, perPage: 1000 });
+        if (error) throw error;
+        totalUsers += users.filter(u => u.email && u.email.trim() !== "" && !u.is_anonymous).length;
+        if (users.length < 1000) break;
+      }
 
       // 2. Active subscriptions
       const { data: subs, error: subsErr } = await supabase
