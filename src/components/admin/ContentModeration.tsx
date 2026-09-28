@@ -10,9 +10,10 @@ export function ContentModeration() {
   const [flags, setFlags] = useState<Flag[]>([]), [run, setRun] = useState<Run | null>(null);
   const [reviewed, setReviewed] = useState(false), [offset, setOffset] = useState(0), [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<string | null>(null), [detail, setDetail] = useState<Detail | null>(null);
+  const [translation, setTranslation] = useState<string | null>(null);
   const [note, setNote] = useState(""), [error, setError] = useState(""), [busy, setBusy] = useState(false);
   const load = useCallback(async () => {
-    setBusy(true); setError(""); setSelected(null); setDetail(null);
+    setBusy(true); setError(""); setSelected(null); setDetail(null); setTranslation(null);
     try {
       const result = await invokeEdgeFunction<{ flags: Flag[]; total: number; run: Run | null }>("content-review", { action: "list", reviewed, offset });
       setFlags(result.flags); setTotal(result.total); setRun(result.run);
@@ -21,9 +22,17 @@ export function ContentModeration() {
   }, [reviewed, offset]);
   useEffect(() => { void load(); }, [load]);
   const open = async (id: string) => {
-    setBusy(true); setError(""); setSelected(id); setDetail(null); setNote("");
+    setBusy(true); setError(""); setSelected(id); setDetail(null); setTranslation(null); setNote("");
     try { const value = await invokeEdgeFunction<Detail>("content-review", { action: "detail", id }); setDetail(value); setNote(value.note ?? ""); }
     catch (e) { setError(e instanceof Error ? e.message : "Unable to open item"); }
+    finally { setBusy(false); }
+  };
+  const translate = async () => {
+    setBusy(true); setError("");
+    try {
+      const result = await invokeEdgeFunction<{ translation: string }>("content-review", { action: "translate", id: selected });
+      setTranslation(result.translation);
+    } catch (e) { setError(e instanceof Error ? e.message : "Unable to translate this message"); }
     finally { setBusy(false); }
   };
   const markReviewed = async () => {
@@ -53,6 +62,8 @@ export function ContentModeration() {
       {selected === flag.id && detail && <div className="space-y-3">
         {detail.unavailable && <p>Original content is no longer available.</p>}
         {detail.text !== null && <pre className="whitespace-pre-wrap break-words text-sm max-h-96 overflow-auto">{detail.text}</pre>}
+        {detail.text !== null && <Button variant="outline" disabled={busy || translation !== null} onClick={() => void translate()}>Translate to English</Button>}
+        {translation !== null && <div className="rounded-xl border border-border/50 p-3 space-y-2"><p className="text-xs text-muted-foreground">AI translation · Check against the original before making a decision.</p><pre className="whitespace-pre-wrap break-words text-sm max-h-96 overflow-auto">{translation}</pre></div>}
         {detail.imageUrl && <img src={detail.imageUrl} referrerPolicy="no-referrer" alt="Flagged content for human review" className="max-h-96 max-w-full rounded-xl object-contain" />}
         {!reviewed && <><Textarea value={note} onChange={e => setNote(e.target.value)} maxLength={2000} placeholder="Optional review note" aria-label="Review note" />
           <Button disabled={busy} onClick={() => void markReviewed()}>Mark reviewed</Button><p className="text-xs text-muted-foreground">Saves your review only. No content removal, account action, or report is sent.</p></>}
