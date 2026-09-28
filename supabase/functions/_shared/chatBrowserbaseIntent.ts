@@ -9,5 +9,5 @@ export function browserPreflightIntent(text: string, activeHandle?: string):
   if (!matches || matches.length !== 1) return null;
   const raw = matches[0].replace(/[.,!?;:)]+$/, '');
   if (!raw.startsWith('https://') && text.includes('http://')) return null;
-  return { name: 'browserbase_open_live_site', arguments: JSON.stringify({ targetUrl: raw.startsWith('https://') ? raw : `https://${raw}` }) };
+  return { name: 'browserbase_open_live_site', arguments: JSON.stringify({ targetUrl: raw.startsWith('https://') ? raw : `https://${raw}`, ...(/\b(?:one|1)[ -]minute\b|\b60[ -]seconds?\b/i.test(text) ? { durationSeconds: 60 } : {}) }) };
 }

@@ -9,7 +9,7 @@ import {
 
 export const BROWSERBASE_SESSION_MAX_SECONDS = 600;
 export const BROWSERBASE_SESSION_MIN_SECONDS = 60;
-export const BROWSERBASE_MONTHLY_BUDGET_MINUTES = 45;
+export const BROWSERBASE_MONTHLY_BUDGET_MINUTES = 55;
 export const BROWSERBASE_MAX_CONCURRENT_SESSIONS = 3;
 const BROWSERBASE_API = 'https://api.browserbase.com/v1';
 const SESSION_HANDLE_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
