@@ -72,7 +72,7 @@ export const CHAT_BROWSERBASE_DEFINITIONS = [
     type: 'function',
     function: {
       name: 'browserbase_close_session',
-      description: 'End the currently active owner-scoped Browserbase session when the user is done checking the live site.',
+      description: 'End the active owner-scoped browser only when the user explicitly asks to close it or a different site requires a new session. Do not close just because your answer is finished: leave it open for follow-ups; the server closes it after five idle minutes, with a ten-minute hard limit.',
       parameters: {
         type: 'object',
         properties: { sessionHandle: { type: 'string', maxLength: 64 } },

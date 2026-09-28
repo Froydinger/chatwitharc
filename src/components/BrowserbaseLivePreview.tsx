@@ -195,7 +195,7 @@ export function BrowserbaseLivePreview({
               {title}
             </DialogTitle>
             <DialogDescription>
-              {statusText(status, device)} · closes automatically at {new Date(expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+              {statusText(status, device)} · closes after 5 idle minutes (while Arc controls it); maximum until {new Date(expiresAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
             </DialogDescription>
           </DialogHeader>
 

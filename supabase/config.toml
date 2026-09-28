@@ -88,3 +88,6 @@ verify_jwt = false
 
 [functions.account-lifecycle-worker]
 verify_jwt = false
+
+[functions.browserbase-cleanup]
+verify_jwt = false

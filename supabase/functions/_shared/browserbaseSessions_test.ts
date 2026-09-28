@@ -34,6 +34,7 @@ function makeStore(options: { reservation?: 'ok' | 'quota_exhausted' | 'concurre
   let record = options.record ?? makeRecord({ status: 'provisioning', providerSessionId: null });
   let reserveCount = 0;
   const store: BrowserbaseSessionStore = {
+    async touch() { return true; },
     async reserve(input) {
       reserveCount += 1;
       if (options.reservation === 'quota_exhausted' || options.reservation === 'concurrency_limit') {

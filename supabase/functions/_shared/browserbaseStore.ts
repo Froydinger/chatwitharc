@@ -40,6 +40,10 @@ function mapRecord(value: unknown): BrowserbaseSessionRecord | null {
 
 export function browserbaseSessionStore(db: SupabaseClient): BrowserbaseSessionStore {
   return {
+    async touch(sessionHandle, userId) {
+      const { data, error } = await db.rpc('touch_browserbase_session', { p_session_handle: sessionHandle, p_user_id: userId });
+      return !error && data === true;
+    },
     async reserve(input) {
       const { data, error } = await db.rpc('reserve_browserbase_session', {
         p_session_handle: input.sessionHandle,

@@ -52,6 +52,7 @@ export type BrowserbaseReserveResult =
   | { ok: false; reason: 'quota_exhausted' | 'concurrency_limit' };
 
 export interface BrowserbaseSessionStore {
+  touch(sessionHandle: string, userId: string): Promise<boolean>;
   reserve(input: {
     sessionHandle: string;
     userId: string;
@@ -431,7 +432,7 @@ export function createBrowserbaseSessionBackend(
     }
     const device: BrowserbaseDevice = input.device === 'mobile' ? 'mobile' : 'desktop';
     const taskKind: BrowserbaseTaskKind = input.taskKind === 'git' ? 'git' : 'chat';
-    const durationSeconds = input.durationSeconds ?? 300;
+    const durationSeconds = input.durationSeconds ?? 600;
     if (!Number.isSafeInteger(durationSeconds) || durationSeconds < BROWSERBASE_SESSION_MIN_SECONDS ||
       durationSeconds > BROWSERBASE_SESSION_MAX_SECONDS) return unavailable('session_unavailable');
 
@@ -557,6 +558,7 @@ export function createBrowserbaseSessionBackend(
     if (!record || !record.providerSessionId || !activeRecord(record, now())) return unavailable('session_unavailable');
     if (takeover && record.device === 'mobile') return unavailable('session_unavailable');
 
+    if (!await options.store.touch(sessionHandle, userId)) return unavailable('session_unavailable');
     let liveViewUrl: string;
     try { liveViewUrl = await getLiveViewUrl(record.providerSessionId); }
     catch { return unavailable('session_unavailable'); }
@@ -595,6 +597,7 @@ export function createBrowserbaseSessionBackend(
     const record = await options.store.getOwned(sessionHandle, userId).catch(() => null);
     if (!record || !record.providerSessionId || !activeRecord(record, now())) return unavailable('session_unavailable');
     if (record.device === 'mobile' && action !== 'resume') return unavailable('session_unavailable');
+    if (!await options.store.touch(sessionHandle, userId)) return unavailable('session_unavailable');
     const transition: { ok: boolean; reason?: string; status?: BrowserbaseSessionStatus } =
       await options.store.setControl(sessionHandle, userId, action).catch(() => ({ ok: false }));
     if (!transition.ok) return unavailable('session_unavailable');
@@ -688,6 +691,7 @@ export function createBrowserbaseSessionBackend(
       }
     } catch { return unavailable('invalid_target'); }
 
+    if (!await options.store.touch(sessionHandle, userId)) return unavailable('session_unavailable');
     const providerSession = await getProviderSession(record.providerSessionId).catch(() => null);
     if (!providerSession) return unavailable('session_unavailable');
     let connectUrl: string;
