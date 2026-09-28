@@ -40,8 +40,8 @@ export function ContentModeration() {
       {run && <p className="text-muted-foreground">Started {new Date(run.started_at).toLocaleString()}. New scans start seven days apart; large scans finish in batches.</p>}
       <p className="text-muted-foreground">Coverage: server-stored chat text and supported images in Arc storage, including legacy generated images. Local-only content and external image links are not scanned. Image signals cannot establish age or legality.</p>
     </div>
-    <div className="flex flex-wrap gap-2"><Button variant={reviewed ? "outline" : "default"} disabled={busy} onClick={() => { setReviewed(false); setOffset(0); }}>Needs review</Button>
-      <Button variant={reviewed ? "default" : "outline"} disabled={busy} onClick={() => { setReviewed(true); setOffset(0); }}>Reviewed</Button>
+    <div className="flex flex-wrap gap-2"><Button aria-pressed={!reviewed} variant={reviewed ? "outline" : "default"} disabled={busy} onClick={() => { setReviewed(false); setOffset(0); }}>Needs review</Button>
+      <Button aria-pressed={reviewed} variant={reviewed ? "default" : "outline"} disabled={busy} onClick={() => { setReviewed(true); setOffset(0); }}>Reviewed</Button>
       <Button variant="outline" disabled={busy} onClick={() => void load()}>Refresh</Button></div>
     {error && <p role="alert" className="text-destructive">{error}</p>}
     {busy && <p role="status" className="text-sm text-muted-foreground">Loading…</p>}

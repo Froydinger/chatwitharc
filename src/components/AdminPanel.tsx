@@ -498,6 +498,7 @@ export function AdminPanel() {
             {([7, 30, "lifetime"] as BoostDuration[]).map((duration) => (
               <Button
                 key={duration}
+                aria-pressed={duration === 30}
                 variant={duration === 30 ? "default" : "outline"}
                 disabled={grantingBoost || !boostGrantTarget}
                 onClick={() => boostGrantTarget && handleGrantBoost(boostGrantTarget, duration)}
@@ -1372,7 +1373,7 @@ export function AdminPanel() {
                         <Label className="font-semibold">{service.name}</Label>
                         <div className="flex gap-2">
                           {[{ value: "auto", label: "Auto" }, { value: "operational", label: "Live" }, { value: "outage", label: "Down" }].map((option) => (
-                            <Button key={option.value} type="button" size="sm" variant={value === option.value ? "default" : "outline"} onClick={() => handleValueChange(`status_${service.id}`, option.value)}>
+                            <Button key={option.value} type="button" size="sm" aria-pressed={value === option.value} variant={value === option.value ? "default" : "outline"} onClick={() => handleValueChange(`status_${service.id}`, option.value)}>
                               {option.label}
                             </Button>
                           ))}

@@ -2720,3 +2720,14 @@ body,
   outline: 2px solid rgba(255, 255, 255, 0.18);
   outline-offset: 1px;
 }
+
+/* A consistent selection cue for segmented tabs and multi-choice toggles.
+   Explicit blue is intentional; the app's overall Noir accent stays unchanged. */
+button[role="tab"][data-state="active"],
+button[aria-pressed="true"],
+button[role="radio"][data-state="on"] {
+  border-color: rgb(96 165 250 / 0.8) !important;
+  box-shadow: inset 0 0 0 1px rgb(96 165 250 / 0.55),
+    0 0 14px rgb(59 130 246 / 0.32) !important;
+  background-color: rgb(59 130 246 / 0.14) !important;
+}
