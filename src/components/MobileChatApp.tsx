@@ -1762,7 +1762,13 @@ export function MobileChatApp() {
                         device={browserbaseSession.device}
                         expiresAt={browserbaseSession.expiresAt}
                         title={browserbaseSession.title}
-                        onHandoff={() => chatInputRef.current?.sendMessage("I'm done controlling the browser. Please check the current page and continue.")}
+                        onHandoff={(event) => {
+                          if (!currentSessionId || event.sessionHandle !== browserbaseSession.sessionHandle) return;
+                          useBrowserbaseSessionStore.getState().setSession(currentSessionId, {
+                            ...browserbaseSession, status: 'handed_back', control: 'agent',
+                          });
+                          chatInputRef.current?.sendMessage("I'm done controlling the browser. Please check the current page and continue.");
+                        }}
                         onClosed={handleBrowserbaseClosed}
                       />
                     </div>

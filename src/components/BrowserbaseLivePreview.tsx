@@ -61,6 +61,7 @@ export function BrowserbaseLivePreview({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const isViewOnly = device === 'mobile';
+  const frameRatio = isViewOnly ? '360 / 840' : '1365 / 808';
   const userHasControl = !isViewOnly && status === 'user_control';
 
   const refreshView = useCallback(async () => {
@@ -181,7 +182,7 @@ export function BrowserbaseLivePreview({
             <ArrowUpRight className="h-3.5 w-3.5 opacity-60 group-hover:opacity-100" />
           </span>
         </div>
-        <div className="relative h-48 overflow-hidden border-t border-border/40 bg-black">
+        <div className="relative overflow-hidden border-t border-border/40 bg-black" style={{ aspectRatio: frameRatio }}>
           {!open ? renderFrame('h-full w-full') : <div className="h-full w-full bg-black" />}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-black/45 to-transparent" />
         </div>
@@ -199,8 +200,10 @@ export function BrowserbaseLivePreview({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-border/50 bg-black">
-            {open ? renderFrame('h-full w-full') : null}
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-xl border border-border/50 bg-black">
+            <div className="max-h-full" style={{ aspectRatio: frameRatio, width: `min(100%, calc((min(88dvh, 900px) - 180px) * ${isViewOnly ? '360 / 840' : '1365 / 808'}))` }}>
+              {open ? renderFrame('h-full w-full') : null}
+            </div>
           </div>
 
           {error ? <p role="status" className="px-1 text-sm text-muted-foreground">{error}</p> : null}

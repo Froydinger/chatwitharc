@@ -1,3 +1,4 @@
+import { browserPreflightIntent } from '../_shared/chatBrowserbaseIntent.ts';
 import { SITE_DESIGN_PROMPT } from "../_shared/siteDesignPrompt.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.89.0';
@@ -2083,8 +2084,11 @@ product and is helping someone with it. Stay in that voice completely.`;
     }
     
     // ========== NON-STREAMING / EVENT-STREAMING MODE ==========
-    function mapToolToActivity(toolName?: string): 'web' | 'chats' | 'memory' | 'code' | 'writing' | 'thinking' {
+    function mapToolToActivity(toolName?: string): 'web' | 'chats' | 'memory' | 'code' | 'writing' | 'thinking' | 'browser' {
       switch (toolName) {
+        case 'browserbase_open_live_site':
+        case 'browserbase_act':
+          return 'browser';
         case 'web_search':
         case 'get_weather':
           return 'web';
@@ -2153,6 +2157,37 @@ product and is helping someone with it. Stay in that voice completely.`;
         });
         return browserbaseTools;
       };
+
+      const preflightToolsUsed: string[] = [];
+      // Open an explicitly requested public site, or read a handed-back browser,
+      // before model reasoning. The normal backend still enforces owner/URL/quota gates.
+      const latestUserText = messages[messages.length - 1]?.content;
+      const browserIntent = !wantsCode && !wantsCanvas && !wantsGit && toolChoice === 'auto'
+        && typeof latestUserText === 'string'
+        ? browserPreflightIntent(latestUserText, browserbaseSessionHandle) : null;
+      if (browserIntent) {
+        const browserTools = getBrowserbaseTools();
+        if (browserTools) {
+          sendEvent?.({ type: 'status', activity: 'browser' });
+          const output = await browserTools.execute(browserIntent.name, browserIntent.arguments);
+          const callId = `browser_preflight_${crypto.randomUUID()}`;
+          conversationMessages.push({ role: 'assistant', content: null, tool_calls: [
+            { id: callId, type: 'function', function: browserIntent },
+          ] });
+          conversationMessages.push({ role: 'tool', tool_call_id: callId, content: output });
+          preflightToolsUsed.push(browserIntent.name);
+          sendEvent?.({ type: 'status', activity: 'thinking' });
+        }
+      }
+      // Chat history stores display artifacts, not tool transcripts. Restore only
+      // the owner-validated opaque handle; never send provider bearer URLs to a model.
+      if (browserbaseSessionHandle && user) {
+        const owned = await browserbaseSessionStore(supabase).getOwned(browserbaseSessionHandle, user.id).catch(() => null);
+        if (owned && ['agent_running', 'handed_back', 'user_control'].includes(owned.status)
+          && Date.parse(owned.expiresAt) > Date.now()) {
+          conversationMessages[0].content += `\nCurrent owner-validated browser session: ${owned.sessionHandle}; state: ${owned.status}. Use browserbase_act with this exact sessionHandle to inspect the current page. Do not ask the user to reopen it or provide a handle. If user_control, wait for handoff before acting. Keep the browser open for follow-ups unless asked to close.`;
+        }
+      }
 
       const cancelAgentSession = async (reason: 'usage-limit' | 'deadline' | 'provider-error') => {
         if (!agentProvider || !agentSessionId) return;
@@ -2416,7 +2451,7 @@ product and is helping someone with it. Stay in that voice completely.`;
     console.log('📊 Response finish_reason:', finishReason);
 
     // Track which tools were used and web sources
-    const toolsUsed: string[] = [];
+    const toolsUsed: string[] = [...preflightToolsUsed];
     let webSources: WebSearchResult[] = [];
     let searchProvider: 'perplexity' | 'tavily' | undefined;
     let searchImages: string[] | undefined = undefined;

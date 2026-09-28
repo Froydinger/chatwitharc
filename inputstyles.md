@@ -185,3 +185,7 @@ Use existing glass utilities, Noir theme and shared spacing. Keep domain state o
 | 2026-09-28 | Inspected ChatInput responsibilities, public interface, busy/queue behavior and Work boundary; wrote this plan | Documentation only; no composer implementation changes |
 
 After approval and each phase, add changed files, preserved behavior, intentional behavior changes, checks actually run, release revision and rollback commit. Never mark an unchecked acceptance row as passed.
+
+### Narrow browser fixes after the plan (not the composer refactor)
+
+The browser handoff now restores its displayed owner-scoped session into the request store before submitting the follow-up. Explicit site-open requests use a bounded server preflight, and hand-back reads the current browser page before model reasoning. Browser/thinking status transitions clear stale memory/search labels in the existing indicator. These are targeted fixes; the phased composer extraction above remains unimplemented.

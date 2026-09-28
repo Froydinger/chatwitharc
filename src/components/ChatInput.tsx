@@ -1145,6 +1145,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         const { currentSessionId } = useArcStore.getState();
 
         const applyActivity = (activity: string) => {
+          useArcStore.getState().setActiveStatusDetails(activity === "browser" ? "Opening or checking the browser..." : null);
+          if (activity === "browser" || activity === "thinking") {
+            setAccessingMemory(false);
+            setSearchingChats(false);
+            setSearchingWeb(false);
+          }
           if (activity === "web") {
             setSearchingWeb(true);
             setSearchingChats(false);
@@ -2955,6 +2961,12 @@ ${safeCode}
               currentAbortController = new AbortController();
 
               const applyActivity = (activity: string) => {
+          useArcStore.getState().setActiveStatusDetails(activity === "browser" ? "Opening or checking the browser..." : null);
+          if (activity === "browser" || activity === "thinking") {
+            setAccessingMemory(false);
+            setSearchingChats(false);
+            setSearchingWeb(false);
+          }
                 if (activity === "web") {
                   didSearchWeb = true;
                   setSearchingWeb(true);
