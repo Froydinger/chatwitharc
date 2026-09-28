@@ -195,7 +195,7 @@ Deno.test('create reserves first, limits the provider payload, navigates with CD
   const createCall = provider.calls.find(call => call.method === 'POST' && call.url.endsWith('/sessions'));
   ok(createCall?.body);
   equal(createCall.body.timeout, 300);
-  equal(createCall.body.keepAlive, false);
+  equal(createCall.body.keepAlive, true);
   const settings = createCall.body.browserSettings as Record<string, unknown>;
   equal(settings.recordSession, false);
   equal(settings.logSession, false);
@@ -300,3 +300,38 @@ async function assertRejects(promise: () => Promise<unknown>) {
   try { await promise(); } catch { rejected = true; }
   ok(rejected, 'Expected validation to reject the value');
 }
+
+Deno.test('browser survives per-action CDP disconnects until explicit release', async () => {
+  const store = makeStore();
+  const provider = providerMocks();
+  const cdp = fakeCdp();
+  let keepAlive = false;
+  let running = false;
+  const fetcher: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (url.endsWith('/sessions') && init?.method === 'POST') {
+      keepAlive = JSON.parse(String(init.body)).keepAlive === true;
+      running = true;
+    } else if (init?.method === 'POST') {
+      running = false;
+    } else if (!running) {
+      return Response.json({ error: 'session ended after disconnect' }, { status: 410 });
+    }
+    return provider.fetcher(input, init);
+  };
+  const backend = createBrowserbaseSessionBackend({ enabled: true, apiKey: 'test' }, {
+    store: store.store, fetcher, dnsLookup: dns(), now: () => NOW,
+    cdpConnector: async url => {
+      ok(running);
+      const connection = await cdp.connector(url);
+      return { ...connection, close() { if (!keepAlive) running = false; } };
+    },
+  });
+  const created = await backend.create(USER_ID, { targetUrl: 'https://example.com' });
+  ok(created.available);
+  if (!created.available) return;
+  ok((await backend.act(USER_ID, created.sessionHandle, { type: 'read_snapshot' })).available);
+  ok((await backend.view(USER_ID, created.sessionHandle)).available);
+  await backend.close(USER_ID, created.sessionHandle);
+  equal(running, false);
+});

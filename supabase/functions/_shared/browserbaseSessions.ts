@@ -467,7 +467,9 @@ export function createBrowserbaseSessionBackend(
         body: JSON.stringify({
           ...(config.projectId ? { projectId: config.projectId } : {}),
           timeout: durationSeconds,
-          keepAlive: false,
+          // Each Edge request detaches CDP; subsequent tools/live view reuse this browser.
+          // The provider timeout and reserved-minute cap still bound its lifetime.
+          keepAlive: true,
           browserSettings: {
             viewport,
             allowedDomains,
@@ -478,6 +480,7 @@ export function createBrowserbaseSessionBackend(
         }),
       });
     } catch (error) {
+      console.warn('[browserbase] create_failed', { status: error instanceof BrowserbaseHttpError ? error.status : null });
       // A 4xx is a confirmed rejection. A timeout, network error, or 5xx could
       // have created a session, so keep the reservation until its hard expiry.
       if (error instanceof BrowserbaseHttpError && error.status >= 400 && error.status < 500) {
@@ -514,6 +517,7 @@ export function createBrowserbaseSessionBackend(
       pageSnapshot = await navigateBrowserbasePage(connectUrl, validated.url.toString(), cdpConnector);
       pageSnapshot = await sanitizePageSnapshot(pageSnapshot, allowedDomains, dnsLookup);
     } catch {
+      console.warn('[browserbase] navigation_or_snapshot_failed');
       await requestRelease(providerSessionId).catch(() => {});
       const status = await getProviderSession(providerSessionId).catch(() => null);
       if (status) await markReleasedWhenConfirmed({
@@ -528,6 +532,7 @@ export function createBrowserbaseSessionBackend(
     let liveViewUrl: string;
     try { liveViewUrl = await getLiveViewUrl(providerSessionId); }
     catch {
+      console.warn('[browserbase] live_view_failed');
       await requestRelease(providerSessionId).catch(() => {});
       await options.store.markReleaseRequested(sessionHandle, userId).catch(() => {});
       return unavailable('session_unavailable');
