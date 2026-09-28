@@ -16,8 +16,14 @@ function objectKey(url: URL): string | null {
   const prefix = "/objects/";
   if (!url.pathname.startsWith(prefix)) return null;
   const key = url.pathname.slice(prefix.length);
-  if (!key || key.includes("..")) return null;
-  return key.split("/").map(decodeURIComponent).join("/");
+  if (!key) return null;
+  try {
+    const parts = key.split("/").map(decodeURIComponent);
+    if (parts.some((part) => !part || part === "." || part === ".." || part.includes("/") || part.includes("\\"))) return null;
+    return parts.join("/");
+  } catch {
+    return null;
+  }
 }
 
 export default {
@@ -25,6 +31,27 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/health") {
       return Response.json({ ok: true, storage: "r2" }, { headers: PUBLIC_HEADERS });
+    }
+
+    if (url.pathname === "/admin/list") {
+      if (!isAuthorized(request, env)) return new Response("Unauthorized", { status: 401, headers: PUBLIC_HEADERS });
+      if (request.method !== "GET") {
+        return new Response("Method not allowed", { status: 405, headers: { ...PUBLIC_HEADERS, "Allow": "GET" } });
+      }
+      const requestedLimit = Number(url.searchParams.get("limit") ?? 1000);
+      const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(1000, Math.floor(requestedLimit))) : 1000;
+      const cursor = url.searchParams.get("cursor") ?? undefined;
+      const result = await env.IMAGES.list({ limit, cursor, include: ["httpMetadata"] });
+      return Response.json({
+        objects: result.objects.map((object) => ({
+          key: object.key,
+          size: object.size,
+          uploaded: object.uploaded.toISOString(),
+          contentType: object.httpMetadata?.contentType ?? null,
+        })),
+        truncated: result.truncated,
+        cursor: result.truncated ? result.cursor : null,
+      }, { headers: PUBLIC_HEADERS });
     }
 
     const key = objectKey(url);

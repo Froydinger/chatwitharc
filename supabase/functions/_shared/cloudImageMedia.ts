@@ -4,12 +4,13 @@ import {
 } from "./cloudImageHttp.ts";
 import { cloudImageDigest, cloudImageMime } from "./cloudImageProvider.ts";
 import { type CloudImageMedia, CloudImagePending } from "./cloudImageTool.ts";
+import { makePrivateImageReference } from "./privateImageStorage.ts";
 /** Same R2 worker/auth as legacy, stable owner/job/slot path. Raw provider bytes
  * remain recoverable by response ID if upload fails. No random object keys. */
 export function cloudImageMedia(
   options: {
-    workerUrl: string;
-    workerSecret: string;
+    supabaseUrl: string;
+    serviceRoleKey: string;
     fetch?: typeof fetch;
     crop16x9?: (bytes: Uint8Array) => Promise<Uint8Array>;
   },
@@ -57,12 +58,15 @@ export function cloudImageMedia(
       if (
         bytes.length > 16000000 || cloudImageMime(bytes) !== "image/png"
       ) throw new Error("Invalid image output");
-      const url = `${
-        options.workerUrl.replace(/\/$/, "")
-      }/objects/${owner}/cloud-${job}-${index}.png`;
+      const path = `${owner}/cloud-${job}-${index}.png`;
+      const url = `${options.supabaseUrl.replace(/\/$/, "")}/storage/v1/object/${PRIVATE_BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`;
+      const storageHeaders = {
+        Authorization: `Bearer ${options.serviceRoleKey}`,
+        apikey: options.serviceRoleKey,
+      };
       let existing;
       try {
-        existing = await cloudImageRequest(fetcher, url, {}, 16000000);
+        existing = await cloudImageRequest(fetcher, url, { headers: storageHeaders }, 16000000);
       } catch {
         throw new CloudImagePending(job);
       }
@@ -82,12 +86,13 @@ export function cloudImageMedia(
         const uploaded = await cloudImageRequest(fetcher, url, {
           method: "PUT",
           headers: {
-            Authorization: `Bearer ${options.workerSecret}`,
+            ...storageHeaders,
             "Content-Type": "image/png",
+            "x-upsert": "false",
           },
           body: new Uint8Array(bytes),
         }, 1000000);
-        if (uploaded.ok) return url;
+        if (uploaded.ok) return makePrivateImageReference(path);
         uploadUncertain = isCloudImageTransientStatus(uploaded.status);
       } catch {
         // Reconcile unknown storage acceptance without a duplicate upload.
@@ -95,7 +100,7 @@ export function cloudImageMedia(
       }
       let saved;
       try {
-        saved = await cloudImageRequest(fetcher, url, {}, 16000000);
+        saved = await cloudImageRequest(fetcher, url, { headers: storageHeaders }, 16000000);
       } catch {
         throw new CloudImagePending(job);
       }
@@ -113,7 +118,9 @@ export function cloudImageMedia(
         }
         throw new Error("Image upload incomplete");
       }
-      return url;
+      return makePrivateImageReference(path);
     },
   };
 }
+
+const PRIVATE_BUCKET = "private-user-images";

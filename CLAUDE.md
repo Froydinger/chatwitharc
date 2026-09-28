@@ -89,9 +89,14 @@ is not the thing deploying edge functions or migrations.
 - **MemoryIndicator** / **ToolsUsedModal** — tool-usage badge and details
 - Modals: shadcn `Dialog` with `className="glass-card max-w-md"` on
   `DialogContent`
-- Image uploads: Supabase `storage.from("avatars")`, unique paths like
-  `${userId}/team-chat-${chatId}-${timestamp}-${random}.ext`, public URLs via
-  `getPublicUrl()`, stored as `{ type: "image", url }` attachments
+- Chat image uploads and generation use the private `private-user-images` bucket,
+  with account-prefixed paths and durable `private-image://` references. Resolve
+  short-lived signed URLs only for display or provider input. Shared-chat paths
+  use `<userId>/team/<chatId>/...` with member access. The public `avatars` bucket
+  remains for profile images, existing links, and copies explicitly shared by users.
+- Content Moderation is an owner-only queue of automated weekly safety flags.
+  The scanner excludes primary-admin content and never removes content, changes
+  accounts, or reports anyone. Human reviewers make all enforcement decisions.
 - @mentions: match `/@([\w-]+)/g` and check against profile `display_name`
 
 ## Key files

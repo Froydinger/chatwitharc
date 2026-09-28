@@ -76,6 +76,7 @@ import { parseSubagentDirective, runChatSubagents, type SubagentDirective, type 
 import { useSubagentStore } from "@/store/useSubagentStore";
 import { getAppBuilderIntent, resolveAppBuilderProject } from "@/utils/appBuilderIntent";
 import { listOwnedAppBuilderProjects, reopenOwnedAppBuilderProject } from "@/services/openAppBuilderProject";
+import { makePrivateImageReference } from "@/lib/privateImages";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
@@ -579,6 +580,8 @@ type Props = {
   /** Text-only durable submission. Parent owns observation across composer mounts.
    * Omitted until the cloud rollout is enabled; never used by voice delegation. */
   onCloudTextSubmit?: (submission: CloudTextSubmitIntent) => Promise<void>;
+  /** Claim a newly created Work session before the route can remount its owner. */
+  onWorkSessionCreated?: (sessionId: string) => void;
 };
 
 export interface CloudTextSubmitIntent {
@@ -606,7 +609,7 @@ export interface ChatInputRef {
 }
 
 export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
-  { onImagesChange, rightPanelOpen = false, inline = false, cloudExecutionMode = 'ask', onCloudTextSubmit },
+  { onImagesChange, rightPanelOpen = false, inline = false, cloudExecutionMode = 'ask', onCloudTextSubmit, onWorkSessionCreated },
   ref,
 ) {
   const portalRoot = useSafePortalRoot();
@@ -1491,14 +1494,12 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       if (!currentUser) throw new Error("Not signed in");
       const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
       const name = `${currentUser.id}/animate-source-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from("avatars").upload(name, file, {
+      const { error } = await supabase.storage.from("private-user-images").upload(name, file, {
         contentType: file.type || "image/png",
         upsert: false,
       });
       if (error) throw error;
-      const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-      if (!pub?.publicUrl) throw new Error("No public URL returned");
-      sourceUrl = pub.publicUrl;
+      sourceUrl = makePrivateImageReference(name);
     } catch (err) {
       console.error("Animate attachment upload failed:", err);
       toast({
@@ -1930,7 +1931,9 @@ Feel free to send another message or test a prompt to see the animation again!`,
 
     // Reset cancellation flag
     cancelRequested = false;
-    const requestSessionId = useArcStore.getState().currentSessionId || createNewSession();
+    const existingSessionId = useArcStore.getState().currentSessionId;
+    const requestSessionId = existingSessionId || createNewSession();
+    if (!existingSessionId && isArcWorkMode) onWorkSessionCreated?.(requestSessionId);
     if (wasGitMode && requestSessionId) {
       void markSessionAsGit(requestSessionId);
     }
@@ -1954,6 +1957,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
       window.dispatchEvent(new CustomEvent("arcai:guestMessageSent"));
     }
 
+    let handedOffToCloudRun = false;
     try {
       const ai = new AIService();
 
@@ -2032,13 +2036,12 @@ Feel free to send another message or test a prompt to see the animation again!`,
           if (!user) throw new Error("Not authenticated");
           const uploadPromises = images.map(async (file) => {
             const name = `${user.id}/user-upload-${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split(".").pop()}`;
-            const { error } = await supabase.storage.from("avatars").upload(name, file, {
+            const { error } = await supabase.storage.from("private-user-images").upload(name, file, {
               contentType: file.type,
               upsert: false,
             });
             if (error) throw error;
-            const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-            return pub.publicUrl;
+            return makePrivateImageReference(name);
           });
           imageUrls = await Promise.all(uploadPromises);
         } catch {
@@ -2322,7 +2325,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
         content: finalMessage,
         role: "user",
         type: "text",
-      });
+      }, { deferCloudPersistence: !!onCloudTextSubmit && (isArcWorkMode || wasGitMode) && !subagentDirective.requested });
 
       if (subagentDirective.requested) {
         await runSubagentChat(subagentDirective, requestSessionId);
@@ -2557,6 +2560,10 @@ ${safeCode}
               forceGit: wasGitMode,
               modelOverride: codeContextModelOverride,
             });
+            // The accepted run is still working after this acknowledgement.
+            // Keep the existing ThinkingIndicator and composer stop state until
+            // the cloud observer loads its terminal result.
+            handedOffToCloudRun = true;
           } catch (error) {
             // An acknowledgement may be lost after acceptance. Do not fall back
             // to /chat or manufacture an assistant failure message in that case.
@@ -3130,7 +3137,7 @@ ${safeCode}
         });
       }
     } finally {
-      if (!cancelRequested) {
+      if (!cancelRequested && !handedOffToCloudRun) {
         setLoading(false);
       }
       // The predicted activity is set before the request and there is no other

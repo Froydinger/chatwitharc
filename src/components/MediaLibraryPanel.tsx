@@ -1,16 +1,17 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Image, X, Download, Search, MessageCircle, Trash2 } from "lucide-react";
+import { Image, X, Download, Search, MessageCircle, Trash2, Share2 } from "lucide-react";
 import { useArcStore } from "@/store/useArcStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { SmoothImage } from "@/components/ui/smooth-image";
+import { PrivateImage } from "@/components/PrivateImage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { isPrivateImageReference, parsePrivateImageReference, resolvePrivateImageReference, sharePrivateImage } from "@/lib/privateImages";
 
 interface GeneratedImage {
   url: string;
@@ -146,7 +147,7 @@ export function MediaLibraryPanel() {
 
   const downloadImage = async (image: GeneratedImage) => {
     try {
-      const response = await fetch(image.url);
+      const response = await fetch(await resolvePrivateImageReference(image.url));
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -174,21 +175,24 @@ export function MediaLibraryPanel() {
         return;
       }
 
-      // Delete new generated/edited objects from R2. Legacy Supabase-hosted
-      // images still fall through to the storage cleanup below.
-      const { error: r2DeleteError } = await supabase.functions.invoke('delete-r2-image', {
-        body: { url: image.url },
-      });
-      if (r2DeleteError) throw r2DeleteError;
+      const privateRef = parsePrivateImageReference(image.url);
+      const fileName = privateRef?.path.split('/').at(-1) || image.url.split('/').at(-1) || "";
+      if (privateRef) {
+        if (privateRef.ownerId !== user.id) throw new Error("You can only delete your own images");
+        const { error } = await supabase.storage.from(privateRef.bucket).remove([privateRef.path]);
+        if (error) throw error;
+      } else {
+        // Delete legacy generated objects from R2; leave other legacy storage
+        // buckets untouched if their path cannot be associated with this user.
+        const { error: r2DeleteError } = await supabase.functions.invoke('delete-r2-image', {
+          body: { url: image.url },
+        });
+        if (r2DeleteError) throw r2DeleteError;
 
-      // Extract filename from URL
-      const urlParts = image.url.split('/');
-      const fileName = urlParts[urlParts.length - 1];
-      const fullPath = `${user.id}/${fileName}`;
-
-      // Delete from storage
-      await supabase.storage.from('generated-files').remove([fullPath]);
-      await supabase.storage.from('avatars').remove([fullPath]);
+        const fullPath = `${user.id}/${fileName}`;
+        await supabase.storage.from('generated-files').remove([fullPath]);
+        await supabase.storage.from('avatars').remove([fullPath]);
+      }
 
       // Delete from database
       await supabase
@@ -216,6 +220,20 @@ export function MediaLibraryPanel() {
     } catch (error) {
       console.error("Failed to delete image:", error);
       toast({ title: "Failed to delete image", variant: "destructive" });
+    }
+  };
+
+  const shareImage = async (image: GeneratedImage) => {
+    try {
+      const url = await sharePrivateImage(image.url);
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Public share link copied", description: "Anyone with this link can view the image." });
+    } catch (error) {
+      toast({
+        title: "Couldn't share this image",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -310,7 +328,7 @@ export function MediaLibraryPanel() {
                 className="aspect-square relative cursor-pointer group hover:scale-[1.02] transition-transform"
                 onClick={() => setSelectedImage(image)}
               >
-                <SmoothImage
+                <PrivateImage
                   src={image.url}
                   alt={image.prompt}
                   className="w-full h-full object-cover rounded-lg"
@@ -346,7 +364,7 @@ export function MediaLibraryPanel() {
               </button>
 
               <div className="aspect-auto max-h-[80vh] overflow-hidden rounded-lg">
-                <SmoothImage
+                <PrivateImage
                   src={selectedImage.url}
                   alt={selectedImage.prompt}
                   className="w-full h-full object-contain"
@@ -378,6 +396,16 @@ export function MediaLibraryPanel() {
                       <Download className="h-4 w-4 mr-2" />
                       Save
                     </Button>
+
+                    {isPrivateImageReference(selectedImage.url) && (
+                      <Button
+                        onClick={() => void shareImage(selectedImage)}
+                        className="bg-black text-white hover:bg-black/80"
+                      >
+                        <Share2 className="h-4 w-4 mr-2" />
+                        Share publicly
+                      </Button>
+                    )}
 
                     <Button
                       onClick={() => deleteImage(selectedImage)}

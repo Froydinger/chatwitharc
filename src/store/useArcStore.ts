@@ -256,6 +256,7 @@ export interface ArcState {
   sessionSaveErrors: Record<string, string>;
   prepareCloudSession: (sessionId: string) => Promise<{ revision: number }>;
   flushCloudSession: (sessionId: string) => Promise<SessionPersistenceResult>;
+  hasPendingCloudSessionEdits: (sessionId: string, ownerId: string) => boolean;
   reloadCloudSession: (sessionId: string, minRevision?: number, signal?: AbortSignal) => Promise<{ status: 'reloaded' | 'pending' | 'stale'; revision?: number }>;
   // State Management
 
@@ -293,7 +294,7 @@ export interface ArcState {
 
   // Current Chat State
   messages: Message[];
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }) => Promise<string>;
+  addMessage: (message: Omit<Message, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }, options?: { deferCloudPersistence?: boolean }) => Promise<string>;
   replaceMessage: (messageId: string, message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   replaceLastMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => void;
@@ -491,6 +492,8 @@ export const useArcStore = create<ArcState>()(
           throw error;
         }
       },
+      hasPendingCloudSessionEdits: (sessionId, ownerId) =>
+        sessionAdapter(ownerId, sessionId).snapshot().pending.length > 0,
       reloadCloudSession: async (sessionId, minRevision = 0, signal) => {
         signal?.throwIfAborted();
         if (!Number.isSafeInteger(minRevision) || minRevision < 0) throw new Error('Invalid minimum revision.');
@@ -1717,7 +1720,7 @@ export const useArcStore = create<ArcState>()(
       // Current Chat
       messages: [],
       
-      addMessage: async (message) => {
+      addMessage: async (message, options) => {
         const messageId = message.id || crypto.randomUUID();
         const newMessage = {
           ...message,
@@ -1798,10 +1801,15 @@ export const useArcStore = create<ArcState>()(
           }
           
           // Save to Supabase asynchronously with error handling
-          get().saveChatToSupabase(sessionToSave).catch(error => {
-            console.error('❌ Failed to save message to Supabase:', error);
-            // Message is still in local state, will retry on next sync
-          });
+          // The durable cloud submission appends this exact user turn in the
+          // same transaction as its run. A concurrent session save would race
+          // that transaction and leave a conflicting local outbox behind.
+          if (!options?.deferCloudPersistence) {
+            get().saveChatToSupabase(sessionToSave).catch(error => {
+              console.error('❌ Failed to save message to Supabase:', error);
+              // Message is still in local state, will retry on next sync
+            });
+          }
           
           return {
             messages: updatedMessages,

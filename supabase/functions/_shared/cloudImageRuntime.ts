@@ -37,8 +37,8 @@ export function cloudImageRuntime(
     apiKey: options.openaiApiKey,
   });
   const media = cloudImageMedia({
-    workerUrl: options.r2WorkerUrl,
-    workerSecret: options.r2WorkerSecret,
+    supabaseUrl: options.supabaseUrl,
+    serviceRoleKey: options.serviceRoleKey,
     fetch: options.fetch,
   });
   const tool = cloudImageTool({

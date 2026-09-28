@@ -18,7 +18,7 @@ import { SubagentProgress } from "@/components/SubagentProgress";
 import { useSubagentStore } from "@/store/useSubagentStore";
 import { ChatInput, cancelCurrentRequest, inferPromptMode, type ChatInputRef, type CloudTextSubmitIntent } from "@/components/ChatInput";
 import { CloudRunList } from "@/components/CloudRunList";
-import { useCloudRuns, type CloudRunsApi } from "@/hooks/useCloudRuns";
+import { useCloudRuns, type CloudRunsApi, type TextCloudRunSubmission } from "@/hooks/useCloudRuns";
 import { reconcileCloudAppRun } from '@/services/cloudAppProjectClient';
 import { captureCloudWorkspaceContext, type CloudRunMode, type CloudRunSubmission, type CloudTextRequest } from "@/services/cloudRuns";
 import { prepareCloudMediaCapture, cloudMediaDigest, type CloudMediaReference } from "@/services/cloudMediaCapture";
@@ -453,8 +453,10 @@ export function MobileChatApp() {
         if (result.status !== 'reloaded') throw new Error('Chat changed during reload. Reconnect to load the finished reply.');
       } finally {
         // A terminal run must release the shared composer lock even if reload
-        // needs user attention, so later sends are not trapped in the browser queue.
-        useArcStore.getState().setLoading(false);
+        // needs user attention. A restored run from another session must not
+        // unlock a newer request in the currently open chat.
+        const current = useArcStore.getState();
+        if (current.currentSessionId === context.sessionId) current.setLoading(false);
       }
     },
   });
@@ -475,15 +477,24 @@ export function MobileChatApp() {
       : captureCloudWorkspaceContext(captured.workspaceContext);
     const currentCloudRuns = () =>
       typeof cloudRunsRef !== 'undefined' && cloudRunsRef.current ? cloudRunsRef.current : cloudRuns;
-    let activeCloudRuns = currentCloudRuns();
-    const readyDeadline = Date.now() + 10_000;
-    while (!activeCloudRuns.ready && Date.now() < readyDeadline) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      activeCloudRuns = currentCloudRuns();
-    }
-    if (!activeCloudRuns.ready) {
+    // The first Work send can create its session while the owner-bound run
+    // coordinator is changing renders. `ready` from the previous render alone
+    // does not prove its binding can accept a new run yet. Preparing is local,
+    // so retry only that step before any server submission is attempted.
+    const prepareCloudRun = async (input: TextCloudRunSubmission) => {
+      const deadline = Date.now() + 10_000;
+      while (Date.now() < deadline) {
+        const cloud = currentCloudRuns();
+        if (cloud.ready) {
+          try { return { cloud, entry: cloud.prepare(input) }; }
+          catch (error) {
+            if (!(error instanceof Error && error.message === 'Cloud runs are not enabled and ready.')) throw error;
+          }
+        }
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
       throw new Error('Cloud connection is still starting. Your message is retained; please try again in a moment.');
-    }
+    };
     const mode = cloudExecutionMode;
     const store = useArcStore.getState();
     const localSession = store.chatSessions.find(s => s.id === captured.sessionId);
@@ -523,16 +534,20 @@ export function MobileChatApp() {
     const sessionRevision = localSession?.revision;
     const isNewLocalSession = !!localSession && localSession.messages.length === 1
       && localSession.messages[0]?.id === captured.userMessageId;
+    // A protected session may already have queued the new user message for a
+    // versioned save. Reconcile that exact intent before atomic run submission;
+    // otherwise the two writes race and strand a conflicting local outbox.
     const canSubmitBeforeReconciliation = !captured.attachments?.length && !!localSession
+      && !store.hasPendingCloudSessionEdits(captured.sessionId, user.id)
       && (Number.isSafeInteger(sessionRevision)
-        || (isNewLocalSession && localSession.legacySavePending === true));
+        || (isNewLocalSession && localSession.persistenceVersion !== 1));
     if (canSubmitBeforeReconciliation) {
-      const entry = activeCloudRuns.prepare({
+      const { cloud, entry } = await prepareCloudRun({
         sessionId: captured.sessionId, mode,
         expectedRevision: Number.isSafeInteger(sessionRevision) ? sessionRevision : 0,
         userMessage, request: buildRequest(),
       });
-      const accepted = await activeCloudRuns.submit(entry.id);
+      const accepted = await cloud.submit(entry.id);
       const acknowledgedRevision = accepted?.run?.sessionRevision;
       const acknowledgedOwner = localSession?.persistenceOwnerId
         ?? (await supabase.auth.getUser()).data.user?.id;
@@ -590,11 +605,11 @@ export function MobileChatApp() {
         }
       }
     }
-    const entry = activeCloudRuns.prepare({
+    const { cloud, entry } = await prepareCloudRun({
       sessionId: captured.sessionId, mode, expectedRevision: prepared.revision, userMessage,
       request: buildRequest(attachments),
     });
-    await activeCloudRuns.submit(entry.id);
+    await cloud.submit(entry.id);
   };
 
   const requestWorkMode = useCallback((mode: CloudRunMode) => {
@@ -621,6 +636,14 @@ export function MobileChatApp() {
     }
     setIsWorkHandoffOpen(true);
   }, [currentSessionId, markSessionAsWork, messages.length, user]);
+
+  const claimNewWorkSession = useCallback((sessionId: string) => {
+    if (!user || !pendingWorkModeRef.current) return;
+    pendingWorkModeRef.current = false;
+    workSessionIdsRef.current.add(sessionId);
+    writeWorkSessions(user.id, workSessionIdsRef.current);
+    void markSessionAsWork(sessionId);
+  }, [markSessionAsWork, user]);
 
   const confirmWorkHandoff = useCallback(() => {
     if (!user) return;
@@ -1005,12 +1028,15 @@ export function MobileChatApp() {
   // "Loading messages…" stuck state. Navigation only happens on user action
   // (new chat, load session from history).
   useEffect(() => {
-    if (currentSessionId && messages.length > 0 && window.location.pathname === "/") {
+    // Keep the submitting composer and its owner-bound cloud coordinator mounted
+    // through the first turn. Routing from / to /chat during submission remounts
+    // both, discarding the accepted run handoff before it can finish.
+    if (currentSessionId && messages.length > 0 && !isLoading && window.location.pathname === "/") {
       const previewSuffix = isLocalChatPreview() ? "?preview=chat" : "";
       navigate(`/chat/${currentSessionId}${previewSuffix}`, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSessionId, messages.length]);
+  }, [currentSessionId, messages.length, isLoading]);
 
   // Hydration timeout: if loading messages takes >5s, give up and show welcome screen
   const [hydrationTimedOut, setHydrationTimedOut] = useState(false);
@@ -1623,6 +1649,7 @@ export function MobileChatApp() {
                     <div className="glass-dock" data-arc-working={isArcWorking}>
                       <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
                         cloudExecutionMode={cloudExecutionMode}
+                        onWorkSessionCreated={claimNewWorkSession}
                         onCloudTextSubmit={cloudRunObserverEnabled ? submitCloudText : undefined} />
                     </div>
                   </ArcInputEffects>
@@ -1886,6 +1913,7 @@ export function MobileChatApp() {
                   >
                     <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
                       cloudExecutionMode={cloudExecutionMode}
+                      onWorkSessionCreated={claimNewWorkSession}
                       onCloudTextSubmit={cloudRunObserverEnabled ? submitCloudText : undefined} />
                   </div>
                 </ArcInputEffects>

@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { Image, decode } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
-import { uploadImageToR2 } from "../_shared/r2.ts";
+import { uploadPrivateImage, downloadPrivateImage } from "../_shared/privateImageStorage.ts";
 import { fetchPublicMedia } from "../_shared/safeRemoteMedia.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
@@ -203,7 +203,7 @@ function bytesToB64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob; filename: string; b64: string; mime: string; width: number; height: number }> {
+async function fetchImageAsBlob(url: string, idx: number, supabaseAdmin: any, ownerId: string): Promise<{ blob: Blob; filename: string; b64: string; mime: string; width: number; height: number }> {
   let bytes: Uint8Array;
   if (url.startsWith('data:')) {
     const commaIdx = url.indexOf(',');
@@ -212,6 +212,11 @@ async function fetchImageAsBlob(url: string, idx: number): Promise<{ blob: Blob;
     const bin = atob(b64);
     bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  } else if (url.startsWith('private-image:')) {
+    const privateBlob = await downloadPrivateImage(supabaseAdmin, url, ownerId);
+    if (!privateBlob) throw new Error('Invalid private image reference');
+    if (privateBlob.size > 20 * 1024 * 1024) throw new Error('Source image is too large');
+    bytes = new Uint8Array(await privateBlob.arrayBuffer());
   } else {
     bytes = (await fetchPublicMedia(url)).bytes;
   }
@@ -352,7 +357,7 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   let successfulCount = 0;
   try {
-    const sources = await Promise.all(imageArray.map((url, i) => fetchImageAsBlob(url, i)));
+    const sources = await Promise.all(imageArray.map((url, i) => fetchImageAsBlob(url, i, supabase, userId)));
 
     // "source" resolves against the first image's real dimensions, so an edit
     // keeps the shape it started with. An explicit pick always wins.
@@ -393,10 +398,9 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
     }
 
     const finalUrls = await Promise.all(
-      urls.map((url, index) => uploadImageToR2(url, {
+      urls.map((url) => uploadPrivateImage(supabase, url, {
         userId,
         kind: 'edited',
-        index,
       })),
     );
     await updateJob(supabase, jobId, {

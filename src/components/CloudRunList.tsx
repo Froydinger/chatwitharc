@@ -16,13 +16,14 @@ export function CloudRunList({ sessionId, cloud, enabled = false, runId, transcr
     finally { restorePending.current = false; setRestoring(false); }
   };
   const entries = cloud.entries.filter(entry => entry.sessionId === sessionId && (runId ? entry.id === runId : !transcriptRunIds.includes(entry.id)));
+  const errorForSession = cloud.error && (!cloud.errorSessionId || cloud.errorSessionId === sessionId) ? cloud.error : null;
   const visibleEntries = entries.filter(entry => {
     if (entry.run?.status !== 'completed') return true;
     if (entry.mode === 'ask') return false;
     return hasWorkCompletionSummary(entry.run);
   });
 
-  const loading = !runId && enabled && !cloud.error && (!cloud.ready || cloud.restoring);
+  const loading = !runId && enabled && !errorForSession && (!cloud.ready || cloud.restoring);
   if (loading) return <section aria-label="Loading cloud tasks" aria-busy="true" role="status"
     className="glass-card w-full max-w-xl rounded-2xl border border-border/60 bg-background/70 p-4 text-sm text-muted-foreground">
     <div className="flex items-center gap-3">
@@ -31,10 +32,10 @@ export function CloudRunList({ sessionId, cloud, enabled = false, runId, transcr
     </div>
     <div aria-hidden="true" className="mt-3 h-2 w-2/3 animate-pulse rounded-full bg-muted/60" />
   </section>;
-  if (!visibleEntries.length && !cloud.error && !cloud.activeCursor && !cloud.historyCursor) return null;
+  if (!visibleEntries.length && !errorForSession && !cloud.activeCursor && !cloud.historyCursor) return null;
   return <section aria-label="Cloud chat requests" className="space-y-3">
-    {!runId && cloud.error && <div className="glass-card rounded-2xl p-4 text-sm">
-      <p role="alert" className="text-muted-foreground">{cloud.error}</p>
+    {!runId && errorForSession && <div className="glass-card rounded-2xl p-4 text-sm">
+      <p role="alert" className="text-muted-foreground">{errorForSession}</p>
       <button type="button" disabled={restoring || cloud.restoring}
         className="mt-2 rounded-full border border-border px-3 py-1.5 disabled:opacity-50"
         onClick={() => { void restore(); }}>{restoring || cloud.restoring ? 'Checking…' : 'Reconnect and reload replies'}</button>

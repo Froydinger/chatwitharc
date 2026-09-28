@@ -268,14 +268,46 @@ export function cloudAgentsProvider(options: {
     if (!/^sess_[a-zA-Z0-9_-]+$/.test(sessionId) || !results.length || idempotencyKey.length > 256) {
       throw new Error('Invalid Agents API tool result');
     }
-    const events = results.map(result => ({
+    const pendingResults = async (session: Json) => {
+      const actions = Array.isArray(session.required_actions) ? session.required_actions : [];
+      return results.filter(result => actions.some(rawAction => {
+        if (!rawAction || typeof rawAction !== 'object' || Array.isArray(rawAction)) return false;
+        const action = rawAction as Json;
+        return action.type === 'function_call' && action.call_id === result.callId && action.turn_id === result.turnId;
+      }));
+    };
+
+    // A tool may take long enough for a retry or another worker to advance the
+    // session. `required_actions` is the source of truth for whether these
+    // results are still pending; do not post an event that the session has
+    // already consumed.
+    const currentSession = await request(`/sessions/${sessionId}`);
+    let stillPending = await pendingResults(currentSession);
+    if (!stillPending.length && ['in_progress', 'idle', 'requires_action'].includes(stringValue(currentSession.status))) {
+      return;
+    }
+    if (!stillPending.length) throw new Error('Agents API has no matching pending function calls');
+
+    const makeEvents = (pending: AgentToolResult[]) => pending.map(result => ({
       type: 'agent.session.input.tool_result',
       turn_id: result.turnId,
       call_id: result.callId,
       success: result.success,
       ...(result.success ? { output: result.output ?? '' } : { error: result.error ?? 'Tool action failed.' }),
     }));
-    await request(`/sessions/${sessionId}/events`, 'POST', { events }, idempotencyKey);
+    try {
+      await request(`/sessions/${sessionId}/events`, 'POST', { events: makeEvents(stillPending) }, idempotencyKey);
+    } catch (error) {
+      // Resolve a concurrent submit or an accepted event whose response was
+      // lost before reporting a conflict to the caller. Never re-run tools here.
+      if (!(error instanceof Error) || !/Agents API HTTP 409\b/.test(error.message)) throw error;
+      const latestSession = await request(`/sessions/${sessionId}`);
+      stillPending = await pendingResults(latestSession);
+      if (!stillPending.length && ['in_progress', 'idle', 'requires_action'].includes(stringValue(latestSession.status))) {
+        return;
+      }
+      throw error;
+    }
   }
 
   async function cancelAgentSession(sessionId: string, idempotencyKey: string): Promise<void> {

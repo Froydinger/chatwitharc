@@ -172,13 +172,12 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
   const navGap = 4;
   const itemWidth = Math.max(0, (trackSize.width - navGap * (navItems.length - 1)) / navItems.length);
   const bubbleWidth = Math.min(trackSize.width, itemWidth * (isCompact ? 1.04 : 1.12));
-  const bubbleItem = navItems[Math.max(0, isDragging ? hoverIndex : navItems.findIndex((item) => item.id === activeTab))] ?? navItems[0];
-  const ActiveIcon = bubbleItem.icon;
   const bubbleLeft = useTransform(bubbleCX, (cx) => cx - bubbleWidth / 2);
   const lensLeft = useTransform([lensFocusX, springLensScale] as const, ([focus, scale]) => bubbleWidth / 2 - (focus as number) * (scale as number));
   const lensTop = useTransform(springLensScale, (scale) => trackSize.height / 2 - (trackSize.height / 2) * (scale as number));
   const dragRef = useRef({ pointerX: 0, startCX: 0, lastX: 0, lastTime: 0 });
   const slideLockRef = useRef(false);
+  const dragPointerRef = useRef<number | null>(null);
   const animationRunRef = useRef(0);
 
   const stopNavAnimations = useCallback(() => {
@@ -276,6 +275,7 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
     if (!itemWidth || event.button !== 0 || slideLockRef.current) return;
     stopNavAnimations();
     animationRunRef.current += 1;
+    dragPointerRef.current = event.pointerId;
     event.currentTarget.setPointerCapture(event.pointerId);
     setIsDragging(true);
     const startCenter = bubbleCX.get() < 0 ? centerForIndex(Math.max(0, navItems.findIndex((item) => item.id === activeTab))) : bubbleCX.get();
@@ -289,7 +289,7 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
   };
 
   const moveDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (!isDragging || !navRef.current) return;
+    if (dragPointerRef.current !== event.pointerId || !navRef.current) return;
     const nextCenter = clampCenter(dragRef.current.startCX + event.clientX - dragRef.current.pointerX);
     bubbleCX.set(nextCenter);
     const nextIndex = indexForCenter(nextCenter);
@@ -308,10 +308,11 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
   };
 
   const endDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
-    if (!isDragging || !itemWidth) return;
+    if (dragPointerRef.current !== event.pointerId || !itemWidth) return;
+    dragPointerRef.current = null;
     stopNavAnimations();
     const animationRun = ++animationRunRef.current;
-    const releaseCenter = clampCenter(dragRef.current.startCX + event.clientX - dragRef.current.pointerX);
+    const releaseCenter = clampCenter(bubbleCX.get());
     bubbleCX.set(releaseCenter);
     const targetIndex = indexForCenter(releaseCenter);
     const target = navItems[targetIndex];
@@ -385,21 +386,12 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
               type="button"
               aria-label={`Drag dashboard navigation, currently ${navItems.find((item) => item.id === activeTab)?.label ?? "Dashboard"}`}
               className="dashboard-preview-dock-bubble absolute top-1/2 touch-none select-none overflow-hidden rounded-[18px] border border-primary/75 bg-white/[0.11] shadow-[0_0_0_1px_rgba(168,85,247,0.3),0_0_22px_rgba(168,85,247,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
-              style={{ left: bubbleLeft, width: bubbleWidth, height: trackSize.height, translateY: "-50%", scaleX: bubbleScaleX, scaleY: bubbleScaleY, transformOrigin: "center", borderRadius: trackSize.height / 2, background: "hsl(var(--background) / 0.78)", backdropFilter: "blur(10px) saturate(140%)", WebkitBackdropFilter: "blur(10px) saturate(140%)", zIndex: 20, cursor: isDragging ? "grabbing" : "grab" }}
+              style={{ left: bubbleLeft, width: bubbleWidth, height: trackSize.height, translateY: "-50%", scaleX: bubbleScaleX, scaleY: bubbleScaleY, transformOrigin: "center", borderRadius: trackSize.height / 2, background: isDragging ? "hsl(var(--background) / 0.78)" : "transparent", backdropFilter: isDragging ? "blur(10px) saturate(140%)" : "none", WebkitBackdropFilter: isDragging ? "blur(10px) saturate(140%)" : "none", zIndex: 20, cursor: isDragging ? "grabbing" : "grab" }}
               onPointerDown={startDrag}
               onPointerMove={moveDrag}
               onPointerUp={endDrag}
               onPointerCancel={endDrag}
             >
-              <motion.div
-                aria-hidden="true"
-                className="relative z-30 flex h-full items-center justify-center gap-2 text-primary"
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.1 }}
-              >
-                <ActiveIcon className="h-[17px] w-[17px]" />
-                <span className="hidden text-[12px] font-medium sm:inline">{bubbleItem.label}</span>
-              </motion.div>
               <motion.div animate={{ opacity: isDragging ? 1 : 0 }} transition={{ duration: 0.12 }} className="dashboard-preview-dock-lens pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-full bg-background/[0.88]">
                 <motion.div style={{ position: "absolute", left: lensLeft, top: lensTop, width: trackSize.width, height: trackSize.height, gap: navGap, scale: springLensScale, transformOrigin: "0 0", display: "flex" }}>
                   {navItems.map(({ label, icon: Icon }) => (

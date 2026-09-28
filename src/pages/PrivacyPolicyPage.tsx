@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight m-0">Privacy Notice</h1>
           </div>
-          <p className="text-sm text-muted-foreground mb-10">Last updated: September 23, 2026</p>
+          <p className="text-sm text-muted-foreground mb-10">Last updated: September 28, 2026</p>
 
           <div className="space-y-8 text-[15px] leading-relaxed text-foreground/90">
             <section>
@@ -71,6 +71,16 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section>
+              <h2 className="text-xl font-semibold mb-2">Image privacy and sharing</h2>
+              <p className="text-muted-foreground">
+                New images you upload or generate in private chats are stored in private, account-scoped storage.
+                New images sent to a shared chat are readable by that chat's current members. If you choose “Share
+                publicly,” ArcAI creates a public copy and gives you a link anyone can open. Profile photos and images
+                shared before this change remain in the existing public storage location, and their current links continue to work.
+              </p>
+            </section>
+
+            <section>
               <h2 className="text-xl font-semibold mb-2">How we use it</h2>
               <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                 <li>To provide, maintain, and improve the service.</li>
@@ -78,6 +88,13 @@ export default function PrivacyPolicyPage() {
                 <li>To respond to support requests and send service-related emails.</li>
                 <li>To send a desktop download link when you request one.</li>
                 <li>To detect and prevent fraud, abuse, and security incidents.</li>
+                <li>
+                  Automated weekly safety checks review stored chats and uploaded or generated images for possible
+                  policy violations. Flagged items are reviewed by ArcAI’s owner. AI does not make enforcement
+                  decisions or automatically report anyone. Confirmed illegal content may be reported to the
+                  appropriate authorities. The safety system stores references and review signals, rather than
+                  copies of your conversations or images, and does not build behavioral profiles.
+                </li>
                 <li>To comply with legal obligations.</li>
               </ul>
             </section>
@@ -90,6 +107,9 @@ export default function PrivacyPolicyPage() {
               <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
                 <li>
                   <strong>Supabase</strong> — database, authentication, server-side functions, and file storage.
+                </li>
+                <li>
+                  <strong>Cloudflare</strong> — delivery and object storage for existing image links.
                 </li>
                 <li>
                   <strong>AI model providers</strong> such as OpenAI — to generate responses to your prompts.

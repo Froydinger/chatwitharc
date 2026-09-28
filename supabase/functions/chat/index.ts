@@ -2934,6 +2934,135 @@ product and is helping someone with it. Stay in that voice completely.`;
       }
     };
 
+    const continueWithChatTools = async () => {
+      const MAX_RECOVERY_TOOL_ROUNDS = 8;
+      const canonicalizeToolArguments = (value: unknown): unknown => {
+        if (Array.isArray(value)) return value.map(canonicalizeToolArguments);
+        if (value && typeof value === 'object') {
+          return Object.fromEntries(
+            Object.entries(value as Record<string, unknown>)
+              .sort(([left], [right]) => left.localeCompare(right))
+              .map(([key, nested]) => [key, canonicalizeToolArguments(nested)]),
+          );
+        }
+        return value;
+      };
+      const toolSignature = (call: ChatToolCallPayload) => {
+        const name = String(call.function?.name || '');
+        const rawArguments = call.function?.arguments || '{}';
+        let parsedArguments: unknown;
+        try {
+          parsedArguments = JSON.parse(rawArguments);
+        } catch {
+          parsedArguments = rawArguments;
+        }
+        return `${name}:${JSON.stringify(canonicalizeToolArguments(parsedArguments))}`;
+      };
+      const executedToolResults = new Map<string, string>();
+      for (const call of assistantMessage.tool_calls ?? []) {
+        const result = [...conversationMessages].reverse().find((message: any) =>
+          message?.role === 'tool' && message.tool_call_id === call.id
+        );
+        if (typeof result?.content === 'string') executedToolResults.set(toolSignature(call), result.content);
+      }
+
+      for (let round = 0; round < MAX_RECOVERY_TOOL_ROUNDS; round += 1) {
+        // Agents function calls carry a turn_id field that Chat Completions
+        // does not accept. The call IDs and tool results remain unchanged.
+        const fallbackMessages = conversationMessages.map((message: any) =>
+          message?.role === 'assistant' && Array.isArray(message.tool_calls)
+            ? {
+              ...message,
+              tool_calls: message.tool_calls.map((call: any) => ({
+                id: call.id,
+                type: 'function',
+                function: call.function,
+              })),
+            }
+            : message
+        );
+        const fallbackResponse = await fetchWithRetry(OPENAI_CHAT_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: LUNA_MODEL,
+            messages: [
+              {
+                role: 'system',
+                content: 'The function calls immediately before this recovery were already executed once. Use their tool results and do not repeat them.',
+              },
+              ...fallbackMessages,
+            ],
+            tools: toolsToUse,
+            tool_choice: 'auto',
+            reasoning_effort: 'none',
+            max_completion_tokens: 65536,
+          }),
+        });
+
+        if (!fallbackResponse.ok) {
+          const errorText = await fallbackResponse.text();
+          console.error('Agents API tool recovery failed in Chat Completions:', fallbackResponse.status, errorText);
+          throw new Error(`OpenAI tool recovery failed: ${fallbackResponse.status}`);
+        }
+
+        const fallbackData = await fallbackResponse.json() as ChatPipelineData;
+        const fallbackMessage = fallbackData.choices?.[0]?.message;
+        if (!fallbackMessage) throw new Error('OpenAI tool recovery returned no assistant message');
+        data = fallbackData;
+        assistantMessage = fallbackMessage;
+        finalResponseModel = LUNA_MODEL;
+
+        const nextCalls = fallbackMessage.tool_calls ?? [];
+        if (!nextCalls.length) return;
+
+        conversationMessages.push(fallbackMessage);
+        for (const call of nextCalls) {
+          const signature = toolSignature(call);
+          if (executedToolResults.has(signature)) {
+            conversationMessages.push({
+              role: 'tool',
+              tool_call_id: call.id,
+              content: 'This exact tool action was already executed earlier in this request. Use its existing result and do not repeat the action.',
+            });
+            continue;
+          }
+
+          const toolName = call.function?.name;
+          if (toolName) {
+            toolsUsed.push(toolName);
+            sendEvent?.({ type: 'status', activity: mapToolToActivity(toolName), tool: toolName });
+          }
+          await executeTool(call);
+          const result = [...conversationMessages].reverse().find((message: any) =>
+            message?.role === 'tool' && message.tool_call_id === call.id
+          );
+          if (typeof result?.content === 'string') executedToolResults.set(signature, result.content);
+        }
+      }
+
+      // Each action already ran and its confirmation card is carried in the
+      // response. If the fallback model keeps chaining, stop before risking
+      // another duplicate side effect.
+      data = {
+        model: LUNA_MODEL,
+        choices: [{
+          message: {
+            role: 'assistant',
+            content: scheduledTask
+              ? 'Your scheduled task was saved. Its confirmation card is below.'
+              : 'I completed the available actions. Check the result shown here before asking me to repeat them.',
+          },
+          finish_reason: 'stop',
+        }],
+      };
+      assistantMessage = data.choices[0].message;
+      finalResponseModel = LUNA_MODEL;
+    };
+
     if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
       assistantMessage.tool_calls.forEach((tc: any) => {
         if (tc.function?.name) {
@@ -2987,11 +3116,39 @@ product and is helping someone with it. Stay in that voice completely.`;
 
           const turnId = results[0]?.turnId;
           if (!turnId) throw new Error('Arc could not confirm the Agents API action turn.');
-          await agentProvider.submitAgentToolResults!(
-            agentSessionId,
-            results,
-            `arc-chat:${agentSessionId}:${turnId}:tool-results`,
-          );
+          try {
+            await agentProvider.submitAgentToolResults!(
+              agentSessionId,
+              results,
+              `arc-chat:${agentSessionId}:${turnId}:tool-results`,
+            );
+          } catch (error) {
+            if (!(error instanceof Error) || !/Agents API HTTP 409\b/.test(error.message)) throw error;
+            console.warn('Agents API rejected a tool-result event with 409; recovering this turn through the existing chat tool loop.', {
+              toolCount: results.length,
+            });
+            // Tool results and side effects are already recorded locally. Stop
+            // depending on the conflicting session and continue from those
+            // results without re-running the completed tools.
+            await cancelAgentSession('provider-error');
+            try {
+              await continueWithChatTools();
+            } catch (recoveryError) {
+              if (!scheduledTask) throw recoveryError;
+              console.warn('Scheduled task is saved; using its confirmation card after tool-response recovery failed.');
+              assistantMessage = {
+                role: 'assistant',
+                content: 'Your scheduled task was saved successfully. Its confirmation card is below.',
+              };
+              data = {
+                model: LUNA_MODEL,
+                choices: [{ message: assistantMessage, finish_reason: 'stop' }],
+              };
+              finalResponseModel = LUNA_MODEL;
+            }
+            pendingCalls = null;
+            break;
+          }
 
           const nextTurn = await waitForAgentResult();
 

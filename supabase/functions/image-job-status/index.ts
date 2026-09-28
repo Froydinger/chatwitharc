@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { parsePrivateImageReference } from '../_shared/privateImageStorage.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,13 +52,26 @@ serve(async (req) => {
   if (error || !data) return json({ error: 'Job not found' }, 404);
   if (data.user_id !== user.id) return json({ error: 'Forbidden' }, 403);
 
+  const imageRefs: string[] = Array.isArray(data.result_image_urls) && data.result_image_urls.length > 0
+    ? data.result_image_urls
+    : (data.result_image_url ? [data.result_image_url] : []);
+  const imageUrls = await Promise.all(imageRefs.map(async (reference) => {
+    const privateImage = parsePrivateImageReference(reference);
+    if (!privateImage) return reference;
+    if (privateImage.ownerId !== user.id) throw new Error('Image job returned media owned by another account');
+    const { data: signed, error: signError } = await supabase.storage
+      .from('private-user-images')
+      .createSignedUrl(privateImage.path, 900);
+    if (signError || !signed?.signedUrl) throw new Error('Unable to prepare generated image preview');
+    return signed.signedUrl;
+  }));
+
   return json({
     jobId: data.id,
     status: data.status,
-    imageUrl: data.result_image_url,
-    imageUrls: Array.isArray(data.result_image_urls) && data.result_image_urls.length > 0
-      ? data.result_image_urls
-      : (data.result_image_url ? [data.result_image_url] : []),
+    imageUrl: imageUrls[0] ?? null,
+    imageUrls,
+    imageRefs,
     errorMessage: data.error_message,
     errorType: data.error_type,
     fallbackModel: data.fallback_model,

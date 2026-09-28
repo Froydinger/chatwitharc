@@ -3,6 +3,7 @@ import { getModelForTask, resolveReasoningEffort, useModelStore, type LunaReason
 import { incrementDailyBalancedCount, incrementDailyDeepCount } from "@/hooks/useSubscription";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext, requestsCurrentLocation } from "@/lib/userLocation";
 import { useBrowserbaseSessionStore, type BrowserbaseChatSession } from "@/store/useBrowserbaseSessionStore";
+import { resolvePrivateImageReference } from "@/lib/privateImages";
 
 // Detect if a user message warrants upgrading to a more powerful model
 export function detectComplexQuery(message: string): boolean {
@@ -937,7 +938,7 @@ export class AIService {
         }
         window.dispatchEvent(new Event('arc-image-quota-changed'));
         return {
-          imageUrls: result.imageUrls,
+          imageUrls: result.imageRefs?.length ? result.imageRefs : result.imageUrls,
           modelUsed: result.modelUsed || result.fallbackModel || modelToUse,
           fallbackModel: result.fallbackModel,
         };
@@ -1000,7 +1001,7 @@ export class AIService {
         }
         window.dispatchEvent(new Event('arc-image-quota-changed'));
         return {
-          imageUrls: result.imageUrls,
+          imageUrls: result.imageRefs?.length ? result.imageRefs : result.imageUrls,
           modelUsed: result.modelUsed || result.fallbackModel || modelToUse,
           fallbackModel: result.fallbackModel,
         };
@@ -1046,11 +1047,14 @@ export class AIService {
 
     try {
       const { invokeEdgeFunction } = await import('@/lib/invokeEdgeFunction');
+      const sourceImageUrl = opts.sourceImageUrl
+        ? await resolvePrivateImageReference(opts.sourceImageUrl, 900)
+        : undefined;
       const data: any = await invokeEdgeFunction('generate-video', {
         prompt,
         seconds: opts.seconds,
         orientation: opts.orientation,
-        sourceImageUrl: opts.sourceImageUrl,
+        sourceImageUrl,
       });
 
       if (!data?.jobId) {

@@ -15,13 +15,14 @@ import { cn } from "@/lib/utils";
 import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { AdminDownloadManager } from "./AdminDownloadManager";
 import { ThinkingOrbSettings } from "./admin/ThinkingOrbSettings";
+import { ContentModeration } from "./admin/ContentModeration";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useNavigate } from "react-router-dom";
 import {
   Shield, Settings, Users, MessageSquare, Trash2, Crown, Search, RefreshCw,
   Megaphone, Download, Construction, AlertTriangle, PartyPopper, LayoutDashboard,
   Globe, Sparkles, ChevronRight, Menu, X, ArrowLeft, DollarSign, Calendar,
-  Activity, CheckCircle, PenTool, Check, Clock, Laptop, ArrowUpRight, Loader
+  Activity, CheckCircle, PenTool, Check, Clock, Laptop, ArrowUpRight, Loader,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -464,6 +465,7 @@ export function AdminPanel() {
     { id: "stats",       label: "Stats",           icon: Activity,        subtitle: "Sources & Anonymous Traffic" },
     { id: "users",       label: "Users",           icon: Users,           subtitle: "Manage Accounts" },
     { id: "tickets",     label: "Support Desk",    icon: MessageSquare,   subtitle: "Customer Ticketing" },
+    { id: "content-moderation", label: "Content Moderation", icon: Shield, subtitle: "Flagged items for human review" },
     { id: "bugs",        label: "Bug Logs",        icon: AlertTriangle,   subtitle: "Exception Trace logs" },
     { id: "status",      label: "Public Status",   icon: Activity,        subtitle: "Live Service Controls" },
     { id: "banner",      label: "Announcements",   icon: Megaphone,       subtitle: "Banner Settings" },
@@ -1784,6 +1786,7 @@ export function AdminPanel() {
               <AdminDownloadManager />
             </div>
           )}
+          {activeSection === "content-moderation" && <ContentModeration />}
         </main>
       </div>
     </div>

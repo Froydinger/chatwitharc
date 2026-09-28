@@ -14,8 +14,9 @@ export interface CloudRunsSnapshot {
   activeCursor: string | null;
   historyCursor: string | null;
   error: string | null;
+  errorSessionId: string | null;
 }
-const empty = (): CloudRunsSnapshot => ({ ready: false, restoring: false, entries: [], activeCursor: null, historyCursor: null, error: null });
+const empty = (): CloudRunsSnapshot => ({ ready: false, restoring: false, entries: [], activeCursor: null, historyCursor: null, error: null, errorSessionId: null });
 const terminal = (entry: CloudRunLifecycleEntry) => ['completed', 'failed', 'cancelled'].includes(entry.run?.status ?? '');
 
 export interface UseCloudRunsOptions {
@@ -59,9 +60,10 @@ export class CloudRunsBinding {
   private publish() {
     if (this.active()) this.options.onChange(structuredClone({ ...this.state, entries: [...this.entries.values()] }));
   }
-  private fail(error: unknown) {
+  private fail(error: unknown, sessionId: string | null = null) {
     if (!this.active()) return;
     this.state.error = error instanceof Error ? error.message : 'Cloud run observation failed.';
+    this.state.errorSessionId = sessionId;
     this.publish();
   }
   private client() {
@@ -83,7 +85,7 @@ export class CloudRunsBinding {
       return this.options.onTerminal(structuredClone(entry), {
         ownerId: this.owner, sessionId: entry.sessionId, signal: this.scope.signal,
       });
-    }).catch(error => { this.terminalFailures.add(entry.id); this.fail(error); });
+    }).catch(error => { this.terminalFailures.add(entry.id); this.fail(error, entry.sessionId); });
   }
 
   async start(target?: EventTarget) {
@@ -110,6 +112,7 @@ export class CloudRunsBinding {
     const client = this.client();
     this.state.restoring = true;
     this.state.error = null;
+    this.state.errorSessionId = null;
     for (const id of this.terminalFailures) this.terminalAttempts.delete(id);
     this.terminalFailures.clear();
     this.publish();

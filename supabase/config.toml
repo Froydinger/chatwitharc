@@ -76,3 +76,9 @@ project_id = "jpqtoixhjnfdubvqshwk"
     # Public request form sends only a one-time desktop link; origin checks,
     # address validation, suppression checks, and rate limits live in the handler.
     verify_jwt = false
+
+[functions.content-review-worker]
+verify_jwt = false
+
+[functions.content-review]
+verify_jwt = false

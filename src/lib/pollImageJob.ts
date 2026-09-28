@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type ImageJobResult = {
   imageUrls: string[];
+  imageRefs?: string[];
   fallbackModel?: string | null;
   modelUsed?: string | null;
   jobType?: 'generate' | 'edit' | null;
@@ -49,6 +50,7 @@ export async function pollImageJob(jobId: string, opts: PollOptions = {}): Promi
       }
       return {
         imageUrls: urls,
+        imageRefs: Array.isArray(data.imageRefs) ? data.imageRefs.filter((value: unknown): value is string => typeof value === "string") : undefined,
         fallbackModel: data.fallbackModel ?? null,
         modelUsed: data.fallbackModel || data.preferredModel || null,
         jobType: data.jobType ?? null,

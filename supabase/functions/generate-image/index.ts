@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { uploadImageToR2 } from "../_shared/r2.ts";
+import { uploadPrivateImage } from "../_shared/privateImageStorage.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -279,15 +279,15 @@ async function processGenerateJob(
       return;
     }
 
-    // A failed R2 upload must not lose the whole batch — keep whatever landed.
+    // A failed upload must not lose the whole batch — keep whatever landed.
     const uploads = await Promise.allSettled(
-      imageUrls.map((url, index) => uploadImageToR2(url, { userId, kind: "generated", index })),
+      imageUrls.map((url) => uploadPrivateImage(supabaseAdmin, url, { userId, kind: "generated" })),
     );
     const persistedImageUrls = uploads
       .filter((u): u is PromiseFulfilledResult<string> => u.status === "fulfilled")
       .map((u) => u.value);
     const failedUploads = uploads.length - persistedImageUrls.length;
-    if (failedUploads > 0) console.error(`[job ${jobId}] ${failedUploads} R2 upload(s) failed`);
+    if (failedUploads > 0) console.error(`[job ${jobId}] ${failedUploads} private image upload(s) failed`);
 
     if (persistedImageUrls.length === 0) {
       await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: "Generated image could not be stored. Please try again.", error_type: "storage_error" });

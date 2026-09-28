@@ -30,7 +30,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SmoothImage } from "@/components/ui/smooth-image";
+import { PrivateImage } from "@/components/PrivateImage";
+import { resolvePrivateImageReference } from "@/lib/privateImages";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -1177,7 +1178,7 @@ useEffect(() => {
 
   const downloadImage = async (image: GeneratedImage) => {
     try {
-      const response = await fetch(image.url);
+      const response = await fetch(await resolvePrivateImageReference(image.url));
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1682,7 +1683,7 @@ useEffect(() => {
 
                     <div className="rounded-2xl overflow-hidden border border-border/30 bg-muted/10">
                       <div className="relative flex items-center justify-center bg-black/20 min-h-[300px] sm:min-h-[400px] max-h-[70vh] group">
-                        <SmoothImage src={currentImage.url} alt={currentImage.prompt} className="w-full h-full max-h-[70vh] object-contain" />
+                        <PrivateImage src={currentImage.url} alt={currentImage.prompt} className="w-full h-full max-h-[70vh] object-contain" />
                         {viewingImageIndex > 0 && (
                           <button onClick={() => setViewingImageIndex(viewingImageIndex - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 flex items-center justify-center text-white transition-all opacity-0 group-hover:opacity-100">
                             <ChevronLeft className="h-5 w-5" />
@@ -1721,7 +1722,7 @@ useEffect(() => {
                             i === viewingImageIndex ? "border-primary ring-1 ring-primary/40 scale-105" : "border-transparent opacity-50 hover:opacity-100"
                           )}
                         >
-                          <SmoothImage src={img.url} alt="" className="w-full h-full object-cover" thumbnail />
+                          <PrivateImage src={img.url} alt="" className="w-full h-full object-cover" thumbnail />
                         </button>
                       ))}
                     </div>
@@ -2672,7 +2673,7 @@ function ImageCard({ img, onClick }: { img: GeneratedImage; onClick: () => void;
       }}
       onClick={onClick}
     >
-      <SmoothImage src={img.url} alt={img.prompt} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" thumbnail />
+      <PrivateImage src={img.url} alt={img.prompt} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" thumbnail />
       {/* Shimmer overlay on hover */}
       <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">

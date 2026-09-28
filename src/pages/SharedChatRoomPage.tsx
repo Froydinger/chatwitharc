@@ -14,6 +14,7 @@ import { MessageBubble } from "@/components/MessageBubble";
 import { cn } from "@/lib/utils";
 import { createUGCReport } from "@/lib/ugcReports";
 import type { Message } from "@/store/useArcStore";
+import { makePrivateImageReference, parsePrivateImageReference } from "@/lib/privateImages";
 
 interface MsgAttachment { type: "image"; url: string }
 interface Msg {
@@ -235,14 +236,13 @@ export function SharedChatRoomPage() {
       if (!authUser) throw new Error("Not authenticated");
 
       const uploadPromises = files.map(async (file) => {
-        const name = `${authUser.id}/team-chat-${chatId}-${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split(".").pop()}`;
-        const { error } = await supabase.storage.from("avatars").upload(name, file, {
+        const name = `${authUser.id}/team/${chatId}/team-chat-${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split(".").pop()}`;
+        const { error } = await supabase.storage.from("private-user-images").upload(name, file, {
           contentType: file.type,
           upsert: false,
         });
         if (error) throw error;
-        const { data: pub } = await supabase.storage.from("avatars").getPublicUrl(name);
-        return pub.publicUrl;
+        return makePrivateImageReference(name);
       });
       return await Promise.all(uploadPromises);
     } catch (e) {
@@ -257,14 +257,33 @@ export function SharedChatRoomPage() {
       const ai = new AIService();
       const result = await ai.generateImage(prompt);
       const urls = result.imageUrls;
-      const imageUrl = urls[0];
-      if (!imageUrl) throw new Error("No image was generated");
+      const imageRef = urls[0];
+      if (!imageRef) throw new Error("No image was generated");
+      const { data: { user: owner } } = await supabase.auth.getUser();
+      if (!owner) throw new Error("Not authenticated");
+      const privateRef = parsePrivateImageReference(imageRef);
+      let teamImageRef = imageRef;
+      if (privateRef) {
+        if (privateRef.ownerId !== owner.id) throw new Error("Generated image ownership could not be verified");
+        const { data: generatedFile, error: downloadError } = await supabase.storage
+          .from(privateRef.bucket)
+          .download(privateRef.path);
+        if (downloadError || !generatedFile) throw new Error(downloadError?.message || "Generated image could not be shared to this chat");
+        const extension = privateRef.path.split("/").pop()?.split(".").pop() || "png";
+        const teamPath = `${owner.id}/team/${chatId}/team-generated-${Date.now()}-${crypto.randomUUID()}.${extension}`;
+        const { error: teamUploadError } = await supabase.storage.from("private-user-images").upload(teamPath, generatedFile, {
+          contentType: generatedFile.type || "image/png",
+          upsert: false,
+        });
+        if (teamUploadError) throw teamUploadError;
+        teamImageRef = makePrivateImageReference(teamPath);
+      }
       await supabase.from("shared_chat_messages").insert({
         chat_id: chatId,
         author_user_id: null,
         role: "assistant",
         content: `🎨 ${prompt}`,
-        attachments: [{ type: "image", url: imageUrl }],
+        attachments: [{ type: "image", url: teamImageRef }],
       });
     } catch (error: unknown) {
       toast({ title: "Image generation failed", description: error instanceof Error ? error.message : String(error), variant: "destructive" });

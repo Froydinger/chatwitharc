@@ -1,6 +1,6 @@
-import { Fragment, forwardRef, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Copy, Edit2, Check, MapPin, Volume2, Square, Loader2 } from "lucide-react";
+import { Copy, Edit2, Check, MapPin, Volume2, Square, Loader2, Share2 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -43,6 +43,7 @@ import { SvgArtifact } from "@/components/SvgArtifact";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
 import { InlineHumidityWheel, InlineProgressChart, type ProgressPoint } from "@/components/InlineDataVisual";
 import { richMarkdownComponents, renderInlineVisual } from "@/components/richMarkdown";
+import { isPrivateImageReference, isTeamSharedImageReference, sharePrivateImage, useResolvedImageUrls } from "@/lib/privateImages";
 
 
 interface MessageBubbleProps {
@@ -67,6 +68,11 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     const [selectedImageSourceUrl, setSelectedImageSourceUrl] = useState<string | null>(null);
     const [editImageUrls, setEditImageUrls] = useState<string[] | null>(null);
     const [hasCopied, setHasCopied] = useState(false);
+    const privateImageValues = useMemo(
+      () => [...(message.imageUrls ?? []), message.imageUrl, message.videoSourceImageUrl].filter((value): value is string => !!value),
+      [message.imageUrl, message.imageUrls, message.videoSourceImageUrl],
+    );
+    const resolvedImageUrls = useResolvedImageUrls(privateImageValues);
     const isUser = message.role === "user";
     const isPlayingSpeech = useReadAloudStore((s) => s.playingMessageId === message.id);
     const isLoadingSpeech = useReadAloudStore((s) => s.loadingMessageId === message.id);
@@ -108,6 +114,23 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
       }
       setSelectedImageSourceUrl(foundSourceUrl);
     };
+
+    const handleShareImage = async (imageRef: string) => {
+      try {
+        const publicUrl = await sharePrivateImage(imageRef);
+        await navigator.clipboard.writeText(publicUrl);
+        toast({ title: "Public share link copied", description: "Anyone with this link can view the image." });
+      } catch (error) {
+        toast({
+          title: "Couldn't share this image",
+          description: error instanceof Error ? error.message : "Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    const displayImageUrl = (imageRef: string) =>
+      resolvedImageUrls[imageRef] || (isPrivateImageReference(imageRef) ? "" : imageRef);
 
 
     // One-shot logo handoff pulse for the latest assistant message
@@ -421,27 +444,44 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                           <div key={index} className="flex flex-col items-center gap-2">
                             <div
                               className="rounded-2xl border border-white/10 bg-white/10 overflow-hidden cursor-pointer hover:border-white/20 transition-colors max-w-sm mx-auto"
-                              onClick={() => handleOpenImage(url)}
+                              onClick={() => displayImageUrl(url) && handleOpenImage(displayImageUrl(url))}
                             >
-                              <SmoothImage
-                                src={url}
-                                alt={`Image ${index + 1}`}
-                                className="w-full h-auto object-contain rounded-2xl"
-                                loadingClassName="w-full h-48"
-                              />
+                              {displayImageUrl(url) ? (
+                                <SmoothImage
+                                  src={displayImageUrl(url)}
+                                  alt={`Image ${index + 1}`}
+                                  className="w-full h-auto object-contain rounded-2xl"
+                                  loadingClassName="w-full h-48"
+                                />
+                              ) : (
+                                <div className="h-48 w-64 flex items-center justify-center text-xs text-muted-foreground">Loading private image…</div>
+                              )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shadow-sm h-8 px-4"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditImageUrls([url]);
-                                }}
-                              >
-                                Edit Image
-                              </Button>
+                              {!isTeamSharedImageReference(url) && (
+                                <Button
+                                  size="sm"
+                                  className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shadow-sm h-8 px-4"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditImageUrls([url]);
+                                  }}
+                                >
+                                  Edit Image
+                                </Button>
+                              )}
                               <AnimateImageButton imageUrl={url} />
+                              {isPrivateImageReference(url) && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="rounded-full h-8 px-3"
+                                  onClick={(e) => { e.stopPropagation(); void handleShareImage(url); }}
+                                >
+                                  <Share2 className="h-3.5 w-3.5 mr-1.5" />
+                                  Share publicly
+                                </Button>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -451,29 +491,46 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                         <div className="flex flex-col items-center space-y-2">
                           <div 
                             className="rounded-2xl border border-white/10 bg-white/10 overflow-hidden cursor-pointer hover:border-white/20 transition-colors max-w-sm mx-auto"
-                            onClick={() => handleOpenImage(message.imageUrl!)}
+                            onClick={() => displayImageUrl(message.imageUrl!) && handleOpenImage(displayImageUrl(message.imageUrl!))}
                           >
-                            <SmoothImage
-                              src={message.imageUrl}
-                              alt="Generated image"
-                              className="w-full h-auto object-contain rounded-2xl"
-                              loadingClassName="w-full h-48"
-                            />
+                            {displayImageUrl(message.imageUrl) ? (
+                              <SmoothImage
+                                src={displayImageUrl(message.imageUrl)}
+                                alt="Generated image"
+                                className="w-full h-auto object-contain rounded-2xl"
+                                loadingClassName="w-full h-48"
+                              />
+                            ) : (
+                              <div className="h-48 w-64 flex items-center justify-center text-xs text-muted-foreground">Loading private image…</div>
+                            )}
                           </div>
                           
                           {/* Edit button below image for AI-generated images */}
                           <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shadow-sm h-8 px-4"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditImageUrls([message.imageUrl!]);
-                              }}
-                            >
-                              Edit Image
-                            </Button>
+                            {!isTeamSharedImageReference(message.imageUrl) && (
+                              <Button
+                                size="sm"
+                                className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/30 shadow-sm h-8 px-4"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditImageUrls([message.imageUrl!]);
+                                }}
+                              >
+                                Edit Image
+                              </Button>
+                            )}
                             <AnimateImageButton imageUrl={message.imageUrl!} />
+                            {isPrivateImageReference(message.imageUrl) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full h-8 px-3"
+                                onClick={(e) => { e.stopPropagation(); void handleShareImage(message.imageUrl!); }}
+                              >
+                                <Share2 className="h-3.5 w-3.5 mr-1.5" />
+                                Share publicly
+                              </Button>
+                            )}
                           </div>
                         </div>
                       )

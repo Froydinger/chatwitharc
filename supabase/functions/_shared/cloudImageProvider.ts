@@ -7,6 +7,7 @@ import {
   CloudImageRecoveryRequired,
   CloudImageRejected,
 } from "./cloudImageTool.ts";
+import { parsePrivateImageReference } from "./privateImageStorage.ts";
 export async function cloudImageDigest(value: string | Uint8Array) {
   return [
     ...new Uint8Array(
@@ -72,6 +73,7 @@ export function cloudImageProvider(
     apiKey: string;
     r2WorkerUrl: string;
     supabaseUrl: string;
+    serviceRoleKey: string;
     fetch?: typeof fetch;
   },
 ): CloudImageProvider {
@@ -93,13 +95,28 @@ export function cloudImageProvider(
       try {
         let total = 0;
         for (const raw of args.sourceUrls) {
-          const url = cloudImageSourceUrl(
-            raw,
-            owner,
-            options.r2WorkerUrl,
-            options.supabaseUrl,
-          );
-          const r = await cloudImageRequest(fetcher, url, {}, 16000000);
+          const privateRef = parsePrivateImageReference(raw);
+          let r;
+          if (raw.startsWith("private-image:")) {
+            if (!privateRef || privateRef.ownerId !== owner) {
+              throw new CloudImageRejected("Image source is not owner media");
+            }
+            const path = privateRef.path.split("/").map(encodeURIComponent).join("/");
+            r = await cloudImageRequest(
+              fetcher,
+              `${options.supabaseUrl.replace(/\/$/, "")}/storage/v1/object/private-user-images/${path}`,
+              { headers: { Authorization: `Bearer ${options.serviceRoleKey}`, apikey: options.serviceRoleKey } },
+              16000000,
+            );
+          } else {
+            const url = cloudImageSourceUrl(
+              raw,
+              owner,
+              options.r2WorkerUrl,
+              options.supabaseUrl,
+            );
+            r = await cloudImageRequest(fetcher, url, {}, 16000000);
+          }
           if (!r.ok) throw new Error("Source unavailable");
           total += r.bytes.length;
           if (total > 16000000) {
