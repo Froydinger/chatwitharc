@@ -84,7 +84,8 @@ Deno.serve(async req => {
       return reply({ translation });
     }
     console.info("content-review opened", { reviewer: auth.user.id, flag: flag.id });
-    return reply({ text, imageUrl, unavailable: text === null && imageUrl === null, note: flag.review_note });
+    const { data: account } = await db.auth.admin.getUserById(flag.owner_id);
+    return reply({ accountEmail: account?.user?.email ?? null, text, imageUrl, unavailable: text === null && imageUrl === null, note: flag.review_note });
   } catch {
     return reply({ error: "Content review is temporarily unavailable." }, 503);
   }

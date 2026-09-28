@@ -25,9 +25,9 @@ type Moderation = {
 };
 const TEXT_SIGNALS = new Set([
   "sexual", "sexual/minors", "violence/graphic", "illicit/violent",
-  "self-harm/instructions", "hate/threatening", "harassment/threatening",
+  "hate/threatening", "harassment/threatening",
 ]);
-const IMAGE_SIGNALS = new Set(["sexual", "violence/graphic", "self-harm/instructions"]);
+const IMAGE_SIGNALS = new Set(["sexual", "violence/graphic"]);
 
 function authorized(req: Request): boolean {
   const received = req.headers.get("x-cron-secret") ?? "";

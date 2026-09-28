@@ -3,10 +3,13 @@ import { invokeEdgeFunction } from "@/lib/invokeEdgeFunction";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
+import { AccountActions, BanAccount } from "./AccountActions";
+
 type Flag = { id: string; source_type: string; signals: string[]; created_at: string; reviewed_at: string | null };
 type Run = { status: string; started_at: string; completed_at: string | null; scanned_count: number; flagged_count: number; failed_count: number };
-type Detail = { text: string | null; imageUrl: string | null; unavailable: boolean; note: string | null };
+type Detail = { accountEmail: string | null; text: string | null; imageUrl: string | null; unavailable: boolean; note: string | null };
 export function ContentModeration() {
+  const [revision, setRevision] = useState(0);
   const [flags, setFlags] = useState<Flag[]>([]), [run, setRun] = useState<Run | null>(null);
   const [reviewed, setReviewed] = useState(false), [offset, setOffset] = useState(0), [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<string | null>(null), [detail, setDetail] = useState<Detail | null>(null);
@@ -52,6 +55,7 @@ export function ContentModeration() {
     <div className="flex flex-wrap gap-2"><Button aria-pressed={!reviewed} variant={reviewed ? "outline" : "default"} disabled={busy} onClick={() => { setReviewed(false); setOffset(0); }}>Needs review</Button>
       <Button aria-pressed={reviewed} variant={reviewed ? "default" : "outline"} disabled={busy} onClick={() => { setReviewed(true); setOffset(0); }}>Reviewed</Button>
       <Button variant="outline" disabled={busy} onClick={() => void load()}>Refresh</Button></div>
+    <AccountActions revision={revision} />
     {error && <p role="alert" className="text-destructive">{error}</p>}
     {busy && <p role="status" className="text-sm text-muted-foreground">Loading…</p>}
     {!busy && !error && flags.length === 0 && <p className="text-muted-foreground">No {reviewed ? "reviewed" : "pending"} items.</p>}
@@ -67,6 +71,7 @@ export function ContentModeration() {
         {detail.imageUrl && <img src={detail.imageUrl} referrerPolicy="no-referrer" alt="Flagged content for human review" className="max-h-96 max-w-full rounded-xl object-contain" />}
         {!reviewed && <><Textarea value={note} onChange={e => setNote(e.target.value)} maxLength={2000} placeholder="Optional review note" aria-label="Review note" />
           <Button disabled={busy} onClick={() => void markReviewed()}>Mark reviewed</Button><p className="text-xs text-muted-foreground">Saves your review only. No content removal, account action, or report is sent.</p></>}
+        {detail.accountEmail && <BanAccount flagId={flag.id} email={detail.accountEmail} onDone={() => setRevision(value => value + 1)} />}
         {reviewed && detail.note && <p className="text-sm">Your note: {detail.note}</p>}
       </div>}
     </div>)}

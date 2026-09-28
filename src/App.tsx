@@ -49,6 +49,7 @@ const SupportPage = lazy(() => import("./pages/SupportPage").then((m) => ({ defa
 const DocsPage = lazy(() => import("./pages/DocsPage").then((m) => ({ default: m.DocsPage })));
 const TermsPage = lazy(() => import("./pages/TermsPage"));
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
+const AccountAppealPage = lazy(() => import("./pages/AccountAppealPage"));
 const DeleteAccountPage = lazy(() => import("./pages/DeleteAccountPage"));
 const SharedChatPage = lazy(() => import("./pages/SharedChatPage").then((m) => ({ default: m.SharedChatPage })));
 const TasksPage = lazy(() => import("./pages/TasksPage").then((m) => ({ default: m.TasksPage })));
@@ -342,6 +343,7 @@ const App = () => {
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                    <Route path="/account-appeal" element={<AccountAppealPage />} />
                     <Route path="/delete-account" element={<DeleteAccountPage />} />
                     <Route path="/refund-policy" element={<Navigate to="/terms" replace />} />
                     <Route path="*" element={<NotFound />} />

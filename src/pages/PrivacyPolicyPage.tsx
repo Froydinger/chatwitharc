@@ -150,8 +150,12 @@ export default function PrivacyPolicyPage() {
                 removes your data from our active systems within 30 days, except where retention is required by law. Deletions
                 cannot be reversed. You can request deletion at any time from the app or on our{" "}
                 <Link to="/delete-account" className="text-primary underline underline-offset-2">account deletion page</Link>.
-                Cancel any active Boost subscription through Google Play or Stripe before deleting your ArcAI account to
-                stop future billing; account deletion does not itself cancel a subscription.
+                Stripe renewals are cancelled during account cleanup. Cancel Google Play subscriptions in Google Play.
+                If a human reviewer suspends an account, the account holder has 30 days to appeal using their private
+                account-control link. An appeal pauses deletion for human review. Without an appeal, deletion is scheduled
+                automatically. A finalized ban retains only a keyed account-identity fingerprint to prevent re-registration,
+                not chats, images, or appeal text. Account holders may request deletion during an appeal.
+                Copies already downloaded or shared by others, and payment-provider records, are outside ArcAI’s direct control.
               </p>
             </section>
 

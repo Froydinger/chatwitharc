@@ -66,15 +66,13 @@ export default function DeleteAccountPage() {
           </div>
 
           <p className="text-sm leading-6 text-muted-foreground">
-            Sign in to the ArcAI account you want removed. We’ll ask you to confirm, then permanently delete the account
-            and associated ArcAI data.
+            Sign in to the ArcAI account you want removed. We’ll ask you to confirm, then queue permanent deletion of the account and associated ArcAI data. A private status link shows when cleanup is complete.
           </p>
 
           <div className="mt-5 rounded-2xl border border-destructive/20 bg-destructive/5 p-4 text-sm">
             <p className="font-medium text-foreground">Before you delete</p>
             <p className="mt-1 text-muted-foreground">
-              Account deletion does not cancel a paid Boost subscription. Cancel it first in Google Play or ArcAI billing
-              settings to stop renewal.
+              Stripe subscriptions are cancelled during deletion. Google Play subscriptions must be cancelled in Google Play to stop renewal.
             </p>
             <a
               href="https://play.google.com/store/account/subscriptions?package=chat.askarc.android"

@@ -78,140 +78,25 @@ Deno.serve(async (req) => {
         }
       )
 
-      const deletionResults: Record<string, boolean> = {}
-      const userTables: Array<{ table: string; column?: string }> = [
-        { table: 'chat_sessions' },
-        { table: 'search_sessions' },
-        { table: 'saved_links' },
-        { table: 'generated_files' },
-        { table: 'context_blocks' },
-        { table: 'memory_summaries' },
-        { table: 'ide_projects' },
-        { table: 'image_generation_jobs' },
-        { table: 'published_sites' },
-        { table: 'daily_image_usage' },
-        { table: 'daily_video_usage' },
-        { table: 'video_generation_jobs' },
-        { table: 'research_usage' },
-        { table: 'voice_daily_usage' },
-        { table: 'voice_conversations' },
-        { table: 'voice_diagnostics' },
-        { table: 'push_subscriptions' },
-        { table: 'chat_folders' },
-        { table: 'subscriptions' },
-        { table: 'google_play_subscriptions' },
-        { table: 'bug_reports' },
-        { table: 'ticket_messages', column: 'sender_id' },
-        { table: 'support_tickets' },
-        { table: 'user_blocks', column: 'blocker_user_id' },
-        { table: 'user_blocks', column: 'blocked_user_id' },
-        { table: 'admin_users' },
-        { table: 'profiles' },
-        { table: 'shared_chat_messages', column: 'author_user_id' },
-        { table: 'shared_chat_members' },
-        { table: 'shared_chat_invites', column: 'invited_by' },
-        { table: 'shared_chats', column: 'owner_id' },
-      ]
-
-      for (const { table, column } of userTables) {
-        const { error } = await supabaseAdmin
-          .from(table)
-          .delete()
-          .eq(column ?? 'user_id', user.id)
-        deletionResults[table] = !error
-        if (error) {
-          console.error(`Account deletion stopped while removing ${table}:`, error.message)
-          return new Response(
-            JSON.stringify({ error: 'Account deletion stopped after a data cleanup step failed. Some account data may already have been removed. Please retry or contact ArcAI support.' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-      }
-
-      // Remove invitations sent to the account as well as invitations it sent.
-      if (user.email) {
-        const { error: inviteError } = await supabaseAdmin
-          .from('shared_chat_invites')
-          .delete()
-          .ilike('email', user.email)
-        deletionResults.receivedInvites = !inviteError
-        if (inviteError) {
-          console.error('Account deletion stopped while removing received invitations:', inviteError.message)
-          return new Response(
-            JSON.stringify({ error: 'Account deletion stopped after a data cleanup step failed. Some account data may already have been removed. Please retry or contact ArcAI support.' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-
-        const { error: compedUserError } = await supabaseAdmin
-          .from('comped_users')
-          .delete()
-          .ilike('email', user.email)
-        deletionResults.compedAccess = !compedUserError
-        if (compedUserError) {
-          console.error('Account deletion stopped while removing email-based access:', compedUserError.message)
-          return new Response(
-            JSON.stringify({ error: 'Account deletion stopped after a data cleanup step failed. Some account data may already have been removed. Please retry or contact ArcAI support.' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-      }
-
-      // User uploads are stored under the account ID in these buckets.
-      const removeUserFiles = async (bucket: string, prefix: string, depth = 0): Promise<void> => {
-        if (depth > 8) throw new Error(`Storage folder nesting exceeded for ${bucket}`)
-        const { data: entries, error } = await supabaseAdmin.storage.from(bucket).list(prefix, { limit: 1000 })
-        if (error) throw new Error(`${bucket}: ${error.message}`)
-        const objectPaths: string[] = []
-        for (const entry of entries ?? []) {
-          const path = `${prefix}/${entry.name}`
-          if (entry.id) objectPaths.push(path)
-          else await removeUserFiles(bucket, path, depth + 1)
-        }
-        for (let index = 0; index < objectPaths.length; index += 100) {
-          const { error: removeError } = await supabaseAdmin.storage.from(bucket).remove(objectPaths.slice(index, index + 100))
-          if (removeError) throw new Error(`${bucket}: ${removeError.message}`)
-        }
-      }
-
-      for (const bucket of ['avatars', 'generated-files', 'cloud-chat-inputs', 'ticket-attachments']) {
-        try {
-          await removeUserFiles(bucket, user.id)
-          deletionResults[`storage:${bucket}`] = true
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'storage deletion failed'
-          console.error(`Account deletion stopped while removing ${bucket} files:`, message)
-          return new Response(
-            JSON.stringify({ error: 'Account deletion stopped while removing account files. Some account data or files may already have been removed. Please retry or contact ArcAI support.' }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
-      }
-
-      // Delete the auth user only after all owned rows and files were removed.
-      const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
-      deletionResults.authUser = !deleteUserError
-      if (deleteUserError) {
-        console.error('Account deletion could not remove the authenticated account:', deleteUserError.message)
-        return new Response(
-          JSON.stringify({ error: 'Failed to delete the ArcAI account.' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
-      console.log('ArcAI account deletion completed successfully.')
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'Your account and all data have been permanently deleted.',
-          deleted: deletionResults
-        }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+      const { data: owner, error: ownerError } = await supabaseAdmin.from('admin_users').select('is_primary_admin').eq('user_id',user.id).maybeSingle();
+      if (ownerError) throw ownerError;
+      if (owner?.is_primary_admin) return new Response(JSON.stringify({error:'Transfer ownership to another administrator before deleting an owner account.'}),{status:400,headers:{...corsHeaders,'Content-Type':'application/json'}});
+      const access = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(n=>n.toString(16).padStart(2,'0')).join('');
+      const tokenHash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(access)))).map(n=>n.toString(16).padStart(2,'0')).join('');
+      const {data:emailHash,error:hashError}=await supabaseAdmin.rpc('account_email_hash',{p_email:user.email??''});
+      if(hashError)throw hashError;
+      const {data:existing,error:existingError}=await supabaseAdmin.from('account_lifecycle').select('id,kind').eq('user_id',user.id).maybeSingle();
+      if(existingError)throw existingError;
+      const payload={state:'deleting',token_hash:tokenHash,delete_after:new Date().toISOString(),lease_until:null,email:user.email??'',updated_at:new Date().toISOString()};
+      const queued=existing
+        ? await supabaseAdmin.from('account_lifecycle').update(payload).eq('id',existing.id)
+        : await supabaseAdmin.from('account_lifecycle').insert({...payload,user_id:user.id,email_hash:emailHash,kind:'self_delete'});
+      if(queued.error)throw queued.error;
+      const {error:banError}=await supabaseAdmin.auth.admin.updateUserById(user.id,{ban_duration:'876000h'});
+      if(banError)throw banError;
+      const {error:freezeError}=await supabaseAdmin.rpc('freeze_account_work',{p_user:user.id});
+      if(freezeError)throw freezeError;
+      return new Response(JSON.stringify({success:true,pending:true,statusToken:access,message:'Deletion requested. Cleanup will run automatically; this link shows completion.'}),{headers:{...corsHeaders,'Content-Type':'application/json'}});
     }
 
     return new Response(

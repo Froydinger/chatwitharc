@@ -12,6 +12,9 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 
+import { useArcStore } from "@/store/useArcStore";
+import { signOutCurrentSession } from "@/integrations/auth";
+
 interface DeleteDataModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -87,6 +90,12 @@ export function DeleteDataModal({ isOpen, onClose, onDeleted }: DeleteDataModalP
 
       if (error || !data?.success) throw error ?? new Error('Account deletion was not completed');
 
+      if (data.pending && data.statusToken) {
+        useArcStore.setState({ chatSessions: [], currentSessionId: null, messages: [] });
+        await signOutCurrentSession();
+        window.location.assign(`/account-appeal#${data.statusToken}`);
+        return;
+      }
       toast({
         title: "Data Deleted Successfully",
         description: "All your data has been permanently deleted from our servers",

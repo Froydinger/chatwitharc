@@ -82,3 +82,9 @@ verify_jwt = false
 
 [functions.content-review]
 verify_jwt = false
+
+[functions.account-lifecycle]
+verify_jwt = false
+
+[functions.account-lifecycle-worker]
+verify_jwt = false
