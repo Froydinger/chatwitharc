@@ -51,7 +51,7 @@ def api():
         sb = None
         try:
             sb = await modal.Sandbox.create.aio(
-                'bash','-c','test -f /opt/arc/session.py || { echo browser_image_missing; exit 1; }; exec python -m uvicorn session:app --app-dir /opt/arc --host 0.0.0.0 --port 8080 --no-access-log',
+                'bash','-c','test -f /opt/arc/session.py || { echo browser_image_missing; exit 1; }; exec python -m uvicorn session:app --app-dir /opt/arc --host 0.0.0.0 --port 8080 --no-access-log --log-level warning',
                 app=app, image=browser_image, workdir='/opt/arc', timeout=duration,
                 cpu=(0.5,1.0), memory=(1024,2048), encrypted_ports=[8080],
                 env={'SESSION_SECRET':secret,'VIEW_SECRET':viewer,'ALLOWED_DOMAINS':json.dumps(domains),
