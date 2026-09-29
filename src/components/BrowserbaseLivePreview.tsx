@@ -125,6 +125,8 @@ export function BrowserbaseLivePreview({
     }
     setStatus(response.status);
     setIsViewOnly(response.control === 'view_only');
+    // Return to chat as soon as handoff succeeds; keep the inline session preview.
+    setOpen(false);
     onHandoff?.(response.handoffEvent);
     await refreshView();
     setBusy(false);
