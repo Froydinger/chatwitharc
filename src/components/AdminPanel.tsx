@@ -726,7 +726,7 @@ export function AdminPanel() {
                 <Card className="border-border/60 bg-muted/5 hover:bg-muted/10 transition-all">
                   <CardHeader className="p-4 flex flex-row items-center justify-between space-y-0">
                     <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Images Output</span>
-                    <div className="h-7 w-7 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-500"><Sparkles className="h-4 w-4" /></div>
+                    <div className="h-7 w-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500"><Sparkles className="h-4 w-4" /></div>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     {statsLoading && !stats ? (

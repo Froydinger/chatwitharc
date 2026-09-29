@@ -947,13 +947,13 @@ export function VoiceLabPage() {
               variant="outline"
               size="icon"
               onClick={() => navigate('/dashboard/settings')}
-              className="h-9 w-9 shrink-0 rounded-full border-white/[0.09] bg-white/[0.04] hover:bg-primary/10 hover:text-primary shadow-[0_0_18px_rgba(168,85,247,0.08)]"
+              className="h-9 w-9 shrink-0 rounded-full border-white/[0.09] bg-white/[0.04] hover:bg-primary/10 hover:text-primary shadow-[0_0_18px_rgba(59,130,246,0.08)]"
               aria-label="Back to settings"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.055] shadow-[0_0_28px_rgba(168,85,247,0.16)]">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.055] shadow-[0_0_28px_rgba(59,130,246,0.16)]">
                 <ThemedLogo className="h-5 w-5" />
               </div>
               <div className="min-w-0">
@@ -1190,7 +1190,7 @@ export function VoiceLabPage() {
             {/* Center Orb */}
             <div className={`relative z-10 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full border shadow-2xl transition-all duration-300 ${
               isPlayingAudio
-                ? 'border-primary/80 bg-primary/20 shadow-[0_0_40px_rgba(168,85,247,0.5)]'
+                ? 'border-primary/80 bg-primary/20 shadow-[0_0_40px_rgba(59,130,246,0.5)]'
                 : isRecording
                 ? 'border-rose-500/80 bg-rose-500/20 shadow-[0_0_40px_rgba(244,63,94,0.5)] animate-pulse'
                 : isTranscribing

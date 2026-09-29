@@ -1453,8 +1453,8 @@ export function SearchCanvas() {
                     className={cn(
                       "w-full py-2.5 px-2 rounded-2xl border text-center text-[13px] sm:text-sm font-semibold tracking-wide transition-all duration-200",
                       !ultraMode
-                        ? "border-indigo-500/40 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300"
-                        : "border-indigo-500/15 bg-indigo-500/5 text-muted-foreground hover:bg-indigo-500/10"
+                        ? "border-blue-500/40 bg-blue-500/15 text-blue-600 dark:text-blue-300"
+                        : "border-blue-500/15 bg-blue-500/5 text-muted-foreground hover:bg-blue-500/10"
                     )}
                   >
                     Deep Search
@@ -1464,8 +1464,8 @@ export function SearchCanvas() {
                     className={cn(
                       "w-full py-2.5 px-2 rounded-2xl border text-center text-[13px] sm:text-sm font-semibold tracking-wide transition-all duration-200",
                       ultraMode
-                        ? "border-fuchsia-500/40 bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-300"
-                        : "border-fuchsia-500/15 bg-fuchsia-500/5 text-muted-foreground hover:bg-fuchsia-500/10"
+                        ? "border-sky-500/40 bg-sky-500/15 text-sky-600 dark:text-sky-300"
+                        : "border-sky-500/15 bg-sky-500/5 text-muted-foreground hover:bg-sky-500/10"
                     )}
                   >
                     Ultra Deep Search

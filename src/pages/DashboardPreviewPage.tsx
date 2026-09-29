@@ -57,7 +57,7 @@ type DashboardStat = { label: string; value: string | number | null; detail: str
 
 const statCards: DashboardStat[] = [
   { label: "Chats", value: "24", detail: "+6 this month", icon: MessageSquare, tint: "text-blue-300", glow: "from-blue-500/18" },
-  { label: "Images", value: "136", detail: "+18 this week", icon: ImageIcon, tint: "text-fuchsia-300", glow: "from-fuchsia-500/18" },
+  { label: "Images", value: "136", detail: "+18 this week", icon: ImageIcon, tint: "text-sky-300", glow: "from-sky-500/18" },
   { label: "Reminders", value: "03", detail: "Next in 2 hours", icon: CalendarClock, tint: "text-amber-200", glow: "from-amber-500/16" },
 ];
 
@@ -71,7 +71,7 @@ function traceDashboardRequest<T>(phase: DashboardNavPhase, request: PromiseLike
 }
 
 const recentChats: DashboardChatPreview[] = [
-  { id: "preview-restore", title: "Restore Mac dashboard", detail: "Arc Work · 8 minutes ago", tone: "from-violet-500/35 via-indigo-500/15 to-transparent" },
+  { id: "preview-restore", title: "Restore Mac dashboard", detail: "Arc Work · 8 minutes ago", tone: "from-blue-500/35 via-blue-500/15 to-transparent" },
   { id: "preview-news", title: "The good news digest", detail: "Arc Chat · Yesterday", tone: "from-emerald-500/30 via-cyan-500/12 to-transparent" },
   { id: "preview-landing", title: "Landing page directions", detail: "Arc Work · Tuesday", tone: "from-amber-500/28 via-orange-500/12 to-transparent" },
 ];
@@ -133,7 +133,7 @@ function mapPushNotification(row: PushNotificationHistoryRow): PreviewNotificati
 function ArcMark({ compact = false, iconOnly = false, onClick }: { compact?: boolean; iconOnly?: boolean; onClick?: () => void }) {
   const mark = (
     <div className={cn(
-      "flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-white/[0.055] shadow-[0_0_28px_rgba(168,85,247,0.16)]",
+      "flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-white/[0.055] shadow-[0_0_28px_rgba(59,130,246,0.16)]",
       compact ? "h-9 w-9 rounded-2xl" : iconOnly ? "h-10 w-10 rounded-full" : "h-11 w-11 rounded-2xl",
     )}>
       <span className={cn("flex h-full w-full items-center justify-center", iconOnly && "scale-[1.18]")}>
@@ -354,7 +354,7 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[10px] sm:px-6">
-      <div className="dashboard-preview-dock pointer-events-auto flex w-full max-w-[850px] items-center gap-2 rounded-full border border-white/[0.12] bg-[#111113]/92 p-2 shadow-[0_20px_70px_rgba(0,0,0,0.55),0_0_38px_rgba(168,85,247,0.08)] backdrop-blur-2xl sm:rounded-[26px]">
+      <div className="dashboard-preview-dock pointer-events-auto flex w-full max-w-[850px] items-center gap-2 rounded-full border border-white/[0.12] bg-[#111113]/92 p-2 shadow-[0_20px_70px_rgba(0,0,0,0.55),0_0_38px_rgba(59,130,246,0.08)] backdrop-blur-2xl sm:rounded-[26px]">
         <div className="hidden shrink-0 items-center pl-2 pr-3 sm:flex"><ArcMark compact /></div>
         <div className="hidden h-8 w-px bg-white/[0.09] sm:block" />
         <div ref={navRef} className="relative flex min-w-0 flex-1 items-center" style={{ touchAction: "none" }}>
@@ -375,7 +375,7 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
                   )}
                   style={{ opacity: hiddenUnderLens ? 0 : 1 }}
                 >
-                  <Icon className={cn("relative z-10 h-[17px] w-[17px] shrink-0", active ? "text-primary drop-shadow-[0_0_10px_rgba(168,85,247,0.55)]" : "")} />
+                  <Icon className={cn("relative z-10 h-[17px] w-[17px] shrink-0", active ? "text-primary drop-shadow-[0_0_10px_rgba(59,130,246,0.55)]" : "")} />
                   <span className="relative z-10 hidden sm:inline">{label}</span>
                 </button>
               );
@@ -385,7 +385,7 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
             <motion.button
               type="button"
               aria-label={`Drag dashboard navigation, currently ${navItems.find((item) => item.id === activeTab)?.label ?? "Dashboard"}`}
-              className="dashboard-preview-dock-bubble absolute top-1/2 touch-none select-none overflow-hidden rounded-[18px] border border-primary/75 bg-white/[0.11] shadow-[0_0_0_1px_rgba(168,85,247,0.3),0_0_22px_rgba(168,85,247,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
+              className="dashboard-preview-dock-bubble absolute top-1/2 touch-none select-none overflow-hidden rounded-[18px] border border-primary/75 bg-white/[0.11] shadow-[0_0_0_1px_rgba(59,130,246,0.3),0_0_22px_rgba(59,130,246,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
               style={{ left: bubbleLeft, width: bubbleWidth, height: trackSize.height, translateY: "-50%", scaleX: bubbleScaleX, scaleY: bubbleScaleY, transformOrigin: "center", borderRadius: trackSize.height / 2, background: isDragging ? "hsl(var(--background) / 0.78)" : "transparent", backdropFilter: isDragging ? "blur(10px) saturate(140%)" : "none", WebkitBackdropFilter: isDragging ? "blur(10px) saturate(140%)" : "none", zIndex: 20, cursor: isDragging ? "grabbing" : "grab" }}
               onPointerDown={startDrag}
               onPointerMove={moveDrag}
@@ -396,7 +396,7 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
                 <motion.div style={{ position: "absolute", left: lensLeft, top: lensTop, width: trackSize.width, height: trackSize.height, gap: navGap, scale: springLensScale, transformOrigin: "0 0", display: "flex" }}>
                   {navItems.map(({ label, icon: Icon }) => (
                     <div key={label} className="flex shrink-0 items-center justify-center gap-2 px-2 text-[12px] font-medium text-primary" style={{ width: itemWidth, height: trackSize.height }}>
-                      <Icon className="h-[17px] w-[17px] shrink-0 drop-shadow-[0_0_10px_rgba(168,85,247,0.7)]" />
+                      <Icon className="h-[17px] w-[17px] shrink-0 drop-shadow-[0_0_10px_rgba(59,130,246,0.7)]" />
                       <span className="hidden sm:inline">{label}</span>
                     </div>
                   ))}
@@ -408,8 +408,8 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
                 animate={{ opacity: isDragging ? 1 : 0.72 }}
                 transition={{ duration: 0.16 }}
                 style={{
-                  background: "linear-gradient(90deg, rgba(168,85,247,0.28) 0%, rgba(255,255,255,0.12) 8%, transparent 18%, transparent 82%, rgba(255,255,255,0.12) 92%, rgba(168,85,247,0.28) 100%)",
-                  boxShadow: "inset 8px 0 12px -10px rgba(168,85,247,0.95), inset -8px 0 12px -10px rgba(168,85,247,0.95), inset 0 1px 0 rgba(255,255,255,0.34)",
+                  background: "linear-gradient(90deg, rgba(59,130,246,0.28) 0%, rgba(255,255,255,0.12) 8%, transparent 18%, transparent 82%, rgba(255,255,255,0.12) 92%, rgba(59,130,246,0.28) 100%)",
+                  boxShadow: "inset 8px 0 12px -10px rgba(59,130,246,0.95), inset -8px 0 12px -10px rgba(59,130,246,0.95), inset 0 1px 0 rgba(255,255,255,0.34)",
                   mixBlendMode: "screen",
                 }}
               />
@@ -479,7 +479,7 @@ function DashboardOverview({ activeTab, onNavigate, onOpenUsage, chatItems = rec
     const item = navItems.find((nav) => nav.id === activeTab) ?? navItems[0];
     return (
       <motion.div initial={immediateEntry ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex min-h-[520px] flex-col items-center justify-center rounded-[32px] border border-white/[0.08] bg-white/[0.025] px-6 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-primary/20 bg-primary/[0.08] shadow-[0_0_32px_rgba(168,85,247,0.14)]"><item.icon className="h-7 w-7 text-primary" /></div>
+        <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-primary/20 bg-primary/[0.08] shadow-[0_0_32px_rgba(59,130,246,0.14)]"><item.icon className="h-7 w-7 text-primary" /></div>
         <h2 className="mt-5 text-2xl font-semibold tracking-tight">{item.label}</h2>
         <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">This is a working nav state in the dashboard preview. The selected bubble stays locked to whichever layout you choose above.</p>
         <button type="button" onClick={() => onNavigate("overview")} className="mt-6 rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-medium transition-colors hover:bg-white/[0.1]">Back to dashboard</button>
@@ -719,12 +719,12 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
     id: session.id,
     title: session.title || "Untitled chat",
     detail: `Arc Chat · ${formatTimeAgo(session.lastMessageAt || session.createdAt)}`,
-    tone: ["from-violet-500/35 via-indigo-500/15 to-transparent", "from-emerald-500/30 via-cyan-500/12 to-transparent", "from-amber-500/28 via-orange-500/12 to-transparent"][index % 3],
+    tone: ["from-blue-500/35 via-blue-500/15 to-transparent", "from-emerald-500/30 via-cyan-500/12 to-transparent", "from-amber-500/28 via-orange-500/12 to-transparent"][index % 3],
   })), [chatSessions]);
 
   const liveStats: DashboardStat[] = useMemo(() => [
     { label: "Chats", value: chatSessions?.length ?? 0, detail: "Saved to your account", icon: MessageSquare, tint: "text-blue-300", glow: "from-blue-500/18" },
-    { label: "Images", value: liveCounts.images, detail: "Generated with Arc", icon: ImageIcon, tint: "text-fuchsia-300", glow: "from-fuchsia-500/18" },
+    { label: "Images", value: liveCounts.images, detail: "Generated with Arc", icon: ImageIcon, tint: "text-sky-300", glow: "from-sky-500/18" },
     { label: "Reminders", value: liveCounts.reminders, detail: "Active scheduled tasks", icon: CalendarClock, tint: "text-amber-200", glow: "from-amber-500/16" },
   ], [chatSessions, liveCounts]);
   const displayLiveStats = useMemo(() => liveStats.map((stat) => {
@@ -830,7 +830,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
           <button type="button" onClick={cycleThemeMode} className="dashboard-preview-control flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground" aria-label={`Theme: ${themeLabel}`} title={`Theme: ${themeLabel}`}><motion.span key={themeMode} initial={{ rotate: -90, opacity: 0, scale: 0.7 }} animate={{ rotate: 0, opacity: 1, scale: 1 }} transition={{ type: "spring", damping: 14, stiffness: 320 }} className="inline-flex"><ThemeIcon className="h-4 w-4" /></motion.span></button>
           <button type="button" onClick={() => { setIsNotificationsOpen((open) => !open); setIsAccountOpen(false); }} className="dashboard-preview-control relative flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.09] bg-white/[0.04] text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground" aria-label="Recent push notifications" aria-expanded={isNotificationsOpen} aria-controls="dashboard-preview-notification-tray"><Bell className="h-4 w-4" />{unreadNotificationCount > 0 && <span className="dashboard-preview-notification-unread-dot absolute right-1 top-1 h-1.5 w-1.5 rounded-full" />}</button>
           <div className="relative" data-account-menu>
-            <button type="button" onClick={() => { setIsAccountOpen((open) => !open); setIsNotificationsOpen(false); }} className="dashboard-preview-control flex items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.04] py-1.5 pl-1.5 pr-3 text-xs transition-colors hover:bg-white/[0.08]" aria-label="Account menu" aria-expanded={isAccountOpen} aria-haspopup="menu"><div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-300 to-fuchsia-500 text-[10px] font-bold text-black">{avatarUrl && !avatarFailed ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} /> : accountInitials}</div><span className="hidden sm:inline">{accountName}</span><ChevronRight className="h-3.5 w-3.5 rotate-90 text-muted-foreground" /></button>
+            <button type="button" onClick={() => { setIsAccountOpen((open) => !open); setIsNotificationsOpen(false); }} className="dashboard-preview-control flex items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.04] py-1.5 pl-1.5 pr-3 text-xs transition-colors hover:bg-white/[0.08]" aria-label="Account menu" aria-expanded={isAccountOpen} aria-haspopup="menu"><div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-300 to-sky-500 text-[10px] font-bold text-black">{avatarUrl && !avatarFailed ? <img src={avatarUrl} alt="" className="h-full w-full object-cover" onError={() => setAvatarFailed(true)} /> : accountInitials}</div><span className="hidden sm:inline">{accountName}</span><ChevronRight className="h-3.5 w-3.5 rotate-90 text-muted-foreground" /></button>
             <AnimatePresence>
               {isAccountOpen && (
                 <motion.div initial={{ opacity: 0, y: -5, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, scale: 0.98 }} className="dashboard-preview-account-menu absolute right-0 top-[calc(100%+0.75rem)] z-[65] w-52 overflow-hidden rounded-[20px] border p-2 shadow-[0_24px_70px_rgba(0,0,0,0.35)]" role="menu">

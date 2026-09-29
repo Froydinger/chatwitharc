@@ -2421,8 +2421,8 @@ useEffect(() => {
               overflow: 'hidden',
               background: isBubbleDragging ? 'hsl(var(--background) / 0.9)' : 'transparent',
               boxShadow: isBubbleDragging
-                ? '0 0 14px 3px rgba(168, 85, 247, 0.7), 0 0 32px 6px rgba(168, 85, 247, 0.35), inset 0 0 16px 2px rgba(168, 85, 247, 0.2)'
-                : '0 0 10px 2px rgba(168, 85, 247, 0.55), 0 0 24px 5px rgba(168, 85, 247, 0.28), inset 0 0 10px 1px rgba(168, 85, 247, 0.12)',
+                ? '0 0 14px 3px rgba(59, 130, 246, 0.7), 0 0 32px 6px rgba(59, 130, 246, 0.35), inset 0 0 16px 2px rgba(59, 130, 246, 0.2)'
+                : '0 0 10px 2px rgba(59, 130, 246, 0.55), 0 0 24px 5px rgba(59, 130, 246, 0.28), inset 0 0 10px 1px rgba(59, 130, 246, 0.12)',
               pointerEvents: 'auto',
             }}
             onPointerDown={onBubblePtrDown}
@@ -2460,7 +2460,7 @@ useEffect(() => {
                   transition={{ duration: 0.45, ease: "easeOut" }}
                   style={{
                     zIndex: 45,
-                    background: 'radial-gradient(circle, rgba(216, 180, 254, 0.85) 0%, rgba(168, 85, 247, 0.25) 35%, transparent 65%)',
+                    background: 'radial-gradient(circle, rgba(147, 197, 253, 0.85) 0%, rgba(59, 130, 246, 0.25) 35%, transparent 65%)',
                     mixBlendMode: 'screen',
                   }}
                 />
@@ -2490,9 +2490,9 @@ useEffect(() => {
                         width: 20,
                         height: 20,
                         color: bubbleHoverIdx === i
-                          ? 'rgb(168 85 247)'
+                          ? 'rgb(59 130 246)'
                           : 'hsl(var(--muted-foreground))',
-                        filter: bubbleHoverIdx === i ? 'drop-shadow(0 0 12px rgba(168, 85, 247, 0.7))' : 'none',
+                        filter: bubbleHoverIdx === i ? 'drop-shadow(0 0 12px rgba(59, 130, 246, 0.7))' : 'none',
                         opacity: 1,
                       }}
                     />
@@ -2524,10 +2524,10 @@ useEffect(() => {
                 className="px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap border"
                 style={{
                   background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%), rgba(20, 20, 25, 0.65)',
-                  border: '1px solid rgba(168, 85, 247, 0.3)',
-                  color: 'rgb(192 132 252)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  color: 'rgb(96 165 250)',
                   backdropFilter: 'blur(16px)',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.3), 0 0 12px rgba(168, 85, 247, 0.25)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.3), 0 0 12px rgba(59, 130, 246, 0.25)',
                 }}
               >
                 {tabs[bubbleHoverIdx].label}
@@ -2552,7 +2552,7 @@ useEffect(() => {
                 >
                   <Icon className={cn(
                     "h-5 w-5 transition-all duration-300",
-                    isActive && "drop-shadow-[0_0_12px_rgba(168,85,247,0.55)]"
+                    isActive && "drop-shadow-[0_0_12px_rgba(59,130,246,0.55)]"
                   )} />
                 </button>
               );

@@ -44,11 +44,11 @@ export function DashboardSettingsPage() {
           className="flex items-center justify-between gap-4 pb-6 pt-5 sm:pt-8"
         >
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" onClick={() => navigate("/dashboard")} className="h-9 w-9 rounded-full border-white/[0.09] bg-white/[0.04] shadow-[0_0_18px_rgba(168,85,247,0.08)] hover:bg-primary/10 hover:text-primary" aria-label="Back to dashboard">
+            <Button variant="outline" size="icon" onClick={() => navigate("/dashboard")} className="h-9 w-9 rounded-full border-white/[0.09] bg-white/[0.04] shadow-[0_0_18px_rgba(59,130,246,0.08)] hover:bg-primary/10 hover:text-primary" aria-label="Back to dashboard">
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.055] shadow-[0_0_28px_rgba(168,85,247,0.16)]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.055] shadow-[0_0_28px_rgba(59,130,246,0.16)]">
                 <ThemedLogo className="h-5 w-5" />
               </div>
               <div>

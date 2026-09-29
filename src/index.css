@@ -610,18 +610,18 @@ All colors MUST be HSL for perfect glass effects.
 }
 
 .dashboard-preview-notification-count {
-  background: rgba(168, 85, 247, 0.16);
-  color: rgb(216, 180, 254);
+  background: rgba(59, 130, 246, 0.16);
+  color: rgb(147, 197, 253);
 }
 
 .dashboard-preview-notification-unread-icon {
-  background: rgba(168, 85, 247, 0.18);
-  color: rgb(216, 180, 254);
+  background: rgba(59, 130, 246, 0.18);
+  color: rgb(147, 197, 253);
 }
 
 .dashboard-preview-notification-unread-dot {
-  background: rgb(168, 85, 247);
-  box-shadow: 0 0 9px rgba(168, 85, 247, 0.95);
+  background: rgb(59, 130, 246);
+  box-shadow: 0 0 9px rgba(59, 130, 246, 0.95);
 }
 
 .dashboard-preview-notification-empty {
@@ -642,7 +642,7 @@ All colors MUST be HSL for perfect glass effects.
 :root.light .dashboard-preview-notification-tray {
   background: rgb(255, 255, 255);
   border-color: rgba(98, 104, 113, 0.22);
-  box-shadow: 0 24px 70px rgba(30, 35, 42, 0.18), 0 0 32px rgba(168, 85, 247, 0.12);
+  box-shadow: 0 24px 70px rgba(30, 35, 42, 0.18), 0 0 32px rgba(59, 130, 246, 0.12);
 }
 
 :root.light .dashboard-preview-notification-row {
@@ -656,12 +656,12 @@ All colors MUST be HSL for perfect glass effects.
 }
 
 :root.light .dashboard-preview-notification-count {
-  background: rgba(168, 85, 247, 0.12);
+  background: rgba(59, 130, 246, 0.12);
   color: rgb(126, 34, 206);
 }
 
 :root.light .dashboard-preview-notification-unread-icon {
-  background: rgba(168, 85, 247, 0.12);
+  background: rgba(59, 130, 246, 0.12);
   color: rgb(126, 34, 206);
 }
 
@@ -745,7 +745,7 @@ All colors MUST be HSL for perfect glass effects.
 :root.light .dashboard-preview-dock {
   background: rgba(255, 255, 255, 0.9) !important;
   border-color: rgba(98, 104, 113, 0.22) !important;
-  box-shadow: 0 18px 50px rgba(30, 35, 42, 0.13), 0 0 28px rgba(168, 85, 247, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18px 50px rgba(30, 35, 42, 0.13), 0 0 28px rgba(59, 130, 246, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 /* Embedded dashboard tabs share the overview's language without changing
@@ -789,7 +789,7 @@ All colors MUST be HSL for perfect glass effects.
   padding: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 24px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025) 58%, rgba(168, 85, 247, 0.07));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025) 58%, rgba(59, 130, 246, 0.07));
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
@@ -802,8 +802,8 @@ All colors MUST be HSL for perfect glass effects.
 
 .dashboard-preview-tab input:focus,
 .dashboard-preview-tab textarea:focus {
-  border-color: rgba(168, 85, 247, 0.55) !important;
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.55) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
 }
 
 .dashboard-preview-tab [class*="rounded-xl"][class*="border"],
@@ -817,7 +817,7 @@ All colors MUST be HSL for perfect glass effects.
 .dashboard-preview-tab [class*="rounded-xl"][class*="border"]:hover,
 .dashboard-preview-tab [class*="rounded-2xl"][class*="border"]:hover,
 .dashboard-preview-tab [class*="rounded-3xl"][class*="border"]:hover {
-  border-color: rgba(168, 85, 247, 0.32) !important;
+  border-color: rgba(59, 130, 246, 0.32) !important;
   background: rgba(255, 255, 255, 0.075) !important;
 }
 
@@ -826,12 +826,12 @@ All colors MUST be HSL for perfect glass effects.
 .dashboard-preview-tab-apps,
 .dashboard-preview-tab-canvases,
 .dashboard-preview-tab-memories {
-  --dashboard-tab-accent: 168, 85, 247;
+  --dashboard-tab-accent: 59, 130, 246;
 }
 
 :root.light .dashboard-preview-tab {
   border-color: rgba(98, 104, 113, 0.2);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 249, 251, 0.88) 58%, rgba(237, 233, 254, 0.7));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 249, 251, 0.88) 58%, rgba(219, 234, 254, 0.7));
   box-shadow: 0 18px 50px rgba(30, 35, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
