@@ -11,7 +11,7 @@ import { cloudScheduledConfig, cloudScheduledSweep } from '../_shared/cloudSched
 import { cloudRunCompletionEmailSweep } from '../_shared/cloudRunEmail.ts';
 import { cloudRunCompletionPushSweep } from '../_shared/cloudRunPush.ts';
 import { browserbaseSessionStore } from '../_shared/browserbaseStore.ts';
-import { createBrowserbaseSessionBackend } from '../_shared/browserbaseSessions.ts';
+import { createBrowserProvider, liveBrowserEnabled as isLiveBrowserEnabled } from '../_shared/browserProvider.ts';
 
 type WorkerOptions = {
   enabled: boolean;
@@ -58,14 +58,7 @@ if (import.meta.main) Deno.serve((req) => handleCloudWorker(req, {
     if (!url || !serviceKey || !apiKey) throw new Error('Worker configuration unavailable');
     const db = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
     const appEnabled = Deno.env.get('CLOUD_APP_RUNS_ENABLED') === 'true';
-    const browserbaseBackend = createBrowserbaseSessionBackend({
-      enabled: Deno.env.get('BROWSERBASE_ENABLED'),
-      apiKey: Deno.env.get('BROWSERBASE_API_KEY'),
-      projectId: Deno.env.get('BROWSERBASE_PROJECT_ID'),
-    }, {
-      store: browserbaseSessionStore(db),
-      dnsLookup: (hostname, recordType) => Deno.resolveDns(hostname, recordType),
-    });
+    const browserbaseBackend = createBrowserProvider(db);
     const imageConfig = cloudImageConfig((name) => Deno.env.get(name));
     const runs = await sweepCloudRuns({
       candidates: cloudRunCandidates(db),
@@ -90,7 +83,7 @@ if (import.meta.main) Deno.serve((req) => handleCloudWorker(req, {
           imageConfig: cloudImageConfig(name => Deno.env.get(name)),
           notificationDispatch: cloudNotificationDispatch(url, serviceKey),
           browserbase: {
-            enabled: Deno.env.get('BROWSERBASE_ENABLED') === 'true' && !!Deno.env.get('BROWSERBASE_API_KEY'),
+            enabled: isLiveBrowserEnabled(),
             backend: browserbaseBackend,
           } }),
       }),

@@ -21,6 +21,7 @@ function mapRecord(value: unknown): BrowserbaseSessionRecord | null {
     typeof row.duration_seconds !== 'number' || typeof row.reserved_minutes !== 'number' ||
     typeof row.created_at !== 'string' || typeof row.expires_at !== 'string') return null;
   return {
+    provider: row.provider === 'modal' ? 'modal' : 'browserbase',
     sessionHandle: row.session_handle,
     userId: row.user_id,
     providerSessionId: typeof row.provider_session_id === 'string' ? row.provider_session_id : null,
@@ -38,14 +39,14 @@ function mapRecord(value: unknown): BrowserbaseSessionRecord | null {
   };
 }
 
-export function browserbaseSessionStore(db: SupabaseClient): BrowserbaseSessionStore {
+export function browserbaseSessionStore(db: SupabaseClient, provider: 'browserbase' | 'modal' = 'browserbase'): BrowserbaseSessionStore {
   return {
     async touch(sessionHandle, userId) {
       const { data, error } = await db.rpc('touch_browserbase_session', { p_session_handle: sessionHandle, p_user_id: userId });
       return !error && data === true;
     },
     async reserve(input) {
-      const { data, error } = await db.rpc('reserve_browserbase_session', {
+      const { data, error } = await db.rpc(provider === 'modal' ? 'reserve_modal_browser_session' : 'reserve_browserbase_session', {
         p_session_handle: input.sessionHandle,
         p_user_id: input.userId,
         p_target_origin: input.targetOrigin,
@@ -70,7 +71,7 @@ export function browserbaseSessionStore(db: SupabaseClient): BrowserbaseSessionS
 
     async getOwned(sessionHandle, userId) {
       const { data, error } = await db.from('browserbase_sessions')
-        .select('session_handle,user_id,provider_session_id,target_origin,allowed_domains,task_kind,device,status,duration_seconds,reserved_minutes,created_at,expires_at')
+        .select('provider,session_handle,user_id,provider_session_id,target_origin,allowed_domains,task_kind,device,status,duration_seconds,reserved_minutes,created_at,expires_at')
         .eq('session_handle', sessionHandle)
         .eq('user_id', userId)
         .maybeSingle();

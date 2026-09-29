@@ -31,7 +31,7 @@ interface BrowserbaseLivePreviewProps {
 }
 
 function statusText(status: BrowserbaseSessionStatus, device: BrowserbaseDevice): string {
-  if (device === 'mobile') return 'View only';
+
   if (status === 'user_control') return 'You have control';
   if (status === 'handed_back') return 'Ready for Arc';
   if (status === 'release_requested' || status === 'closed' || status === 'expired') return 'Session ended';
@@ -60,8 +60,8 @@ export function BrowserbaseLivePreview({
   const [status, setStatus] = useState<BrowserbaseSessionStatus>('agent_running');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const isViewOnly = device === 'mobile';
-  const frameRatio = isViewOnly ? '360 / 840' : '1365 / 808';
+  const [isViewOnly, setIsViewOnly] = useState(device === 'mobile');
+  const frameRatio = device === 'mobile' ? '360 / 840' : '1365 / 808';
   const userHasControl = !isViewOnly && status === 'user_control';
 
   const refreshView = useCallback(async () => {
@@ -73,6 +73,7 @@ export function BrowserbaseLivePreview({
       return false;
     }
     setStatus(response.status);
+    setIsViewOnly(response.control === 'view_only');
     setLiveViewUrl(response.liveViewUrl ?? null);
     setError(response.liveViewUrl ? '' : 'A live view is not available.');
     return !!response.liveViewUrl;
@@ -89,6 +90,7 @@ export function BrowserbaseLivePreview({
         return;
       }
       setStatus(response.status);
+    setIsViewOnly(response.control === 'view_only');
       setLiveViewUrl(response.liveViewUrl ?? null);
       setError(response.liveViewUrl ? '' : 'A live view is not available.');
     });
@@ -102,6 +104,7 @@ export function BrowserbaseLivePreview({
     const response = await browserbaseSessionRequest({ action: 'takeover', sessionHandle });
     if (response.available) {
       setStatus(response.status);
+    setIsViewOnly(response.control === 'view_only');
       setLiveViewUrl(response.liveViewUrl ?? null);
       if (!response.liveViewUrl) setError('The live view could not be refreshed.');
     } else {
@@ -121,6 +124,7 @@ export function BrowserbaseLivePreview({
       return;
     }
     setStatus(response.status);
+    setIsViewOnly(response.control === 'view_only');
     onHandoff?.(response.handoffEvent);
     await refreshView();
     setBusy(false);
@@ -132,6 +136,7 @@ export function BrowserbaseLivePreview({
     const response = await browserbaseSessionRequest({ action: 'close', sessionHandle });
     if (response.available) {
       setStatus(response.status);
+    setIsViewOnly(response.control === 'view_only');
       setLiveViewUrl(null);
       setError('');
       onClosed?.(sessionHandle);
@@ -201,7 +206,7 @@ export function BrowserbaseLivePreview({
           </DialogHeader>
 
           <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-xl border border-border/50 bg-black">
-            <div className="max-h-full" style={{ aspectRatio: frameRatio, width: `min(100%, calc((min(88dvh, 900px) - 180px) * ${isViewOnly ? '360 / 840' : '1365 / 808'}))` }}>
+            <div className="max-h-full" style={{ aspectRatio: frameRatio, width: `min(100%, calc((min(88dvh, 900px) - 180px) * ${device === 'mobile' ? '360 / 840' : '1365 / 808'}))` }}>
               {open ? renderFrame('h-full w-full') : null}
             </div>
           </div>

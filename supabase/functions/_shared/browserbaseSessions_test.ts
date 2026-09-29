@@ -336,3 +336,28 @@ Deno.test('browser survives per-action CDP disconnects until explicit release', 
   await backend.close(USER_ID, created.sessionHandle);
   equal(running, false);
 });
+
+Deno.test('Modal keeps mobile takeover, handback and public cross-site browsing on the same owner session', async () => {
+  const storage = makeStore({ record: makeRecord({ provider: 'modal', device: 'mobile', status: 'agent_running' }) });
+  const controls: string[] = [];
+  const fetcher: typeof fetch = async (url, init) => {
+    if (String(url).endsWith('/control')) {
+      controls.push(JSON.parse(String(init?.body)).control);
+      return Response.json({ ok: true });
+    }
+    if (String(url).endsWith('/debug')) return Response.json({ debuggerFullscreenUrl: 'https://sandbox.modal.host/view?token=viewer' });
+    return Response.json({ connectUrl: 'wss://sandbox.modal.host/cdp?token=server', status: 'RUNNING' });
+  };
+  const backend = createBrowserbaseSessionBackend({ enabled: true, provider: 'modal', apiBase: 'https://arc-test.modal.run/v1', apiKey: 'test' }, {
+    store: storage.store, fetcher, now: () => NOW, dnsLookup: dns(), cdpConnector: fakeCdp('https://other.example.org/').connector,
+  });
+  equal((await backend.takeover(OTHER_USER_ID, SESSION_HANDLE)).available, false);
+  const takeover = await backend.takeover(USER_ID, SESSION_HANDLE);
+  ok(takeover.available); equal(takeover.control, 'user');
+  equal((await backend.act(USER_ID, SESSION_HANDLE, { type: 'read_snapshot' })).available, false);
+  const handoff = await backend.control(USER_ID, SESSION_HANDLE, 'handoff');
+  ok(handoff.available); equal(handoff.control, 'agent');
+  const snapshot = await backend.act(USER_ID, SESSION_HANDLE, { type: 'read_snapshot' });
+  ok(snapshot.available); equal(snapshot.pageSnapshot?.url, 'https://other.example.org/');
+  deepStrictEqual(controls, ['user', 'agent']);
+});

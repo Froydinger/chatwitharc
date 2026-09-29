@@ -8,7 +8,7 @@ export type BrowserbaseCdpConnector = (connectUrl: string) => Promise<Browserbas
 
 function isBrowserbaseHost(hostname: string): boolean {
   const normalized = hostname.toLowerCase();
-  return normalized === 'browserbase.com' || normalized.endsWith('.browserbase.com');
+  return normalized === 'browserbase.com' || normalized.endsWith('.browserbase.com') || normalized.endsWith('.modal.host');
 }
 
 type CdpMessage = {

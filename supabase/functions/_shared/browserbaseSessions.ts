@@ -36,6 +36,7 @@ export interface BrowserbaseSessionRecord {
   sessionHandle: string;
   userId: string;
   providerSessionId: string | null;
+  provider?: 'browserbase' | 'modal';
   targetOrigin: string;
   allowedDomains: string[];
   taskKind: BrowserbaseTaskKind;
@@ -79,6 +80,8 @@ export interface BrowserbaseSessionConfig {
   enabled: string | boolean | undefined;
   apiKey?: string;
   projectId?: string;
+  provider?: 'browserbase' | 'modal';
+  apiBase?: string;
 }
 
 export type BrowserbaseDnsLookup = (hostname: string, recordType: 'A' | 'AAAA') => Promise<string[]>;
@@ -280,12 +283,13 @@ async function sanitizePageSnapshot(
   snapshot: BrowserbasePageSnapshot,
   allowedDomains: string[],
   dnsLookup: BrowserbaseDnsLookup,
+  publicBrowsing = false,
 ): Promise<BrowserbasePageSnapshot> {
   let url: URL;
   try { url = new URL(snapshot.url); } catch { throw new BrowserbaseTargetError(); }
   if (url.protocol !== 'https:' || url.username || url.password) throw new BrowserbaseTargetError();
   const hostname = await ensurePublicHostname(url.hostname, dnsLookup);
-  if (!allowedDomains.includes(hostname)) throw new BrowserbaseTargetError();
+  if (!publicBrowsing && !allowedDomains.includes(hostname)) throw new BrowserbaseTargetError();
   for (const key of [...url.searchParams.keys()]) {
     if (isSensitiveQueryKey(key)) url.searchParams.delete(key);
   }
@@ -364,6 +368,16 @@ export function createBrowserbaseSessionBackend(
   config: BrowserbaseSessionConfig,
   options: BrowserbaseBackendOptions,
 ) {
+  const modal = config.provider === 'modal';
+  const apiBase = modal ? config.apiBase?.replace(/\/$/, '') : BROWSERBASE_API;
+  if (modal && (!apiBase || !/^https:\/\/[a-z0-9-]+\.modal\.run\/v1$/.test(apiBase))) throw new Error('Invalid Modal browser endpoint');
+  const validateConnection = (raw: unknown, protocol: 'https:' | 'wss:') => {
+    if (!modal) return validateProviderUrl(raw, protocol);
+    if (typeof raw !== 'string') throw new Error('Invalid provider URL');
+    const url = new URL(raw);
+    if (url.protocol !== protocol || url.username || url.password || !url.hostname.endsWith('.modal.host')) throw new Error('Invalid provider URL');
+    return url.toString();
+  };
   const fetcher = options.fetcher ?? fetch;
   const now = options.now ?? Date.now;
   const dnsLookup = options.dnsLookup ?? (async () => { throw new Error('DNS lookup unavailable'); });
@@ -375,7 +389,7 @@ export function createBrowserbaseSessionBackend(
       const response = await fetcher(url, {
         ...init,
         headers: { 'X-BB-API-Key': apiKey, ...(init.headers as Record<string, string> | undefined) },
-        signal: init.signal ?? AbortSignal.timeout(12_000),
+        signal: init.signal ?? AbortSignal.timeout(modal ? 55_000 : 12_000),
         redirect: 'error',
       });
       return await readJson(response);
@@ -386,16 +400,16 @@ export function createBrowserbaseSessionBackend(
   };
 
   const getProviderSession = async (providerSessionId: string) => requestJson(
-    `${BROWSERBASE_API}/sessions/${encodeURIComponent(providerSessionId)}`,
+    `${apiBase}/sessions/${encodeURIComponent(providerSessionId)}`,
   );
 
   const getLiveViewUrl = async (providerSessionId: string): Promise<string> => {
-    const response = await requestJson(`${BROWSERBASE_API}/sessions/${encodeURIComponent(providerSessionId)}/debug`);
-    return validateProviderUrl(response.debuggerFullscreenUrl, 'https:');
+    const response = await requestJson(`${apiBase}/sessions/${encodeURIComponent(providerSessionId)}/debug`);
+    return validateConnection(response.debuggerFullscreenUrl, 'https:');
   };
 
   const requestRelease = async (providerSessionId: string) => requestJson(
-    `${BROWSERBASE_API}/sessions/${encodeURIComponent(providerSessionId)}`,
+    `${apiBase}/sessions/${encodeURIComponent(providerSessionId)}`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'REQUEST_RELEASE' }) },
   );
 
@@ -462,7 +476,7 @@ export function createBrowserbaseSessionBackend(
       : { width: 1365, height: 768 };
     let created: Record<string, unknown>;
     try {
-      created = await requestJson(`${BROWSERBASE_API}/sessions`, {
+      created = await requestJson(`${apiBase}/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -495,7 +509,7 @@ export function createBrowserbaseSessionBackend(
 
     const providerSessionId = typeof created.id === 'string' ? created.id : '';
     let connectUrl: string;
-    try { connectUrl = validateProviderUrl(created.connectUrl, 'wss:'); }
+    try { connectUrl = validateConnection(created.connectUrl, 'wss:'); }
     catch {
       if (providerSessionId) {
         await requestRelease(providerSessionId).catch(() => {});
@@ -516,7 +530,7 @@ export function createBrowserbaseSessionBackend(
     let pageSnapshot: BrowserbasePageSnapshot;
     try {
       pageSnapshot = await navigateBrowserbasePage(connectUrl, validated.url.toString(), cdpConnector);
-      pageSnapshot = await sanitizePageSnapshot(pageSnapshot, allowedDomains, dnsLookup);
+      pageSnapshot = await sanitizePageSnapshot(pageSnapshot, allowedDomains, dnsLookup, modal);
     } catch {
       console.warn('[browserbase] navigation_or_snapshot_failed');
       await requestRelease(providerSessionId).catch(() => {});
@@ -546,7 +560,7 @@ export function createBrowserbaseSessionBackend(
       expiresAt: new Date(now() + durationSeconds * 1000).toISOString(),
       liveViewUrl,
       device,
-      control: device === 'mobile' ? 'view_only' : 'agent',
+      control: device === 'mobile' && !modal ? 'view_only' : 'agent',
       pageSnapshot,
     };
   }
@@ -556,7 +570,7 @@ export function createBrowserbaseSessionBackend(
     if (!SESSION_HANDLE_RE.test(sessionHandle)) return unavailable('session_unavailable');
     const record = await options.store.getOwned(sessionHandle, userId).catch(() => null);
     if (!record || !record.providerSessionId || !activeRecord(record, now())) return unavailable('session_unavailable');
-    if (takeover && record.device === 'mobile') return unavailable('session_unavailable');
+    if (takeover && record.device === 'mobile' && !modal) return unavailable('session_unavailable');
 
     if (!await options.store.touch(sessionHandle, userId)) return unavailable('session_unavailable');
     let liveViewUrl: string;
@@ -564,8 +578,12 @@ export function createBrowserbaseSessionBackend(
     catch { return unavailable('session_unavailable'); }
 
     if (takeover) {
+      if (modal) await requestJson(`${apiBase}/sessions/${encodeURIComponent(record.providerSessionId)}/control`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ control: 'user' }) });
       const transition = await options.store.setControl(sessionHandle, userId, 'takeover').catch(() => ({ ok: false }));
-      if (!transition.ok) return unavailable('session_unavailable');
+      if (!transition.ok) {
+        if (modal) await requestJson(`${apiBase}/sessions/${encodeURIComponent(record.providerSessionId)}/control`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ control: record.status === 'user_control' ? 'user' : 'agent' }) }).catch(() => {});
+        return unavailable('session_unavailable');
+      }
       return {
         available: true,
         sessionHandle,
@@ -583,7 +601,7 @@ export function createBrowserbaseSessionBackend(
       expiresAt: record.expiresAt,
       liveViewUrl,
       device: record.device,
-      control: record.device === 'mobile' ? 'view_only' : record.status === 'user_control' ? 'user' : 'agent',
+      control: record.device === 'mobile' && !modal ? 'view_only' : record.status === 'user_control' ? 'user' : 'agent',
     };
   }
 
@@ -596,11 +614,15 @@ export function createBrowserbaseSessionBackend(
     if (!SESSION_HANDLE_RE.test(sessionHandle)) return unavailable('session_unavailable');
     const record = await options.store.getOwned(sessionHandle, userId).catch(() => null);
     if (!record || !record.providerSessionId || !activeRecord(record, now())) return unavailable('session_unavailable');
-    if (record.device === 'mobile' && action !== 'resume') return unavailable('session_unavailable');
+    if (record.device === 'mobile' && !modal && action !== 'resume') return unavailable('session_unavailable');
     if (!await options.store.touch(sessionHandle, userId)) return unavailable('session_unavailable');
+    if (modal) await requestJson(`${apiBase}/sessions/${encodeURIComponent(record.providerSessionId)}/control`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ control: action === 'takeover' ? 'user' : 'agent' }) });
     const transition: { ok: boolean; reason?: string; status?: BrowserbaseSessionStatus } =
       await options.store.setControl(sessionHandle, userId, action).catch(() => ({ ok: false }));
-    if (!transition.ok) return unavailable('session_unavailable');
+    if (!transition.ok) {
+        if (modal) await requestJson(`${apiBase}/sessions/${encodeURIComponent(record.providerSessionId)}/control`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ control: record.status === 'user_control' ? 'user' : 'agent' }) }).catch(() => {});
+        return unavailable('session_unavailable');
+      }
     return {
       available: true,
       sessionHandle,
@@ -650,7 +672,7 @@ export function createBrowserbaseSessionBackend(
       switch (action?.type) {
         case 'goto': {
           const target = await validateBrowserbaseTargetUrl(action.url, dnsLookup);
-          if (!record.allowedDomains.includes(target.hostname)) throw new BrowserbaseTargetError();
+          if (!modal && !record.allowedDomains.includes(target.hostname)) throw new BrowserbaseTargetError();
           normalizedAction = { type: 'goto', url: target.url.toString() };
           break;
         }
@@ -695,11 +717,11 @@ export function createBrowserbaseSessionBackend(
     const providerSession = await getProviderSession(record.providerSessionId).catch(() => null);
     if (!providerSession) return unavailable('session_unavailable');
     let connectUrl: string;
-    try { connectUrl = validateProviderUrl(providerSession.connectUrl, 'wss:'); }
+    try { connectUrl = validateConnection(providerSession.connectUrl, 'wss:'); }
     catch { return unavailable('session_unavailable'); }
     try {
       const result = await actBrowserbasePage(connectUrl, normalizedAction, cdpConnector);
-      const snapshot = await sanitizePageSnapshot(result.snapshot, record.allowedDomains, dnsLookup);
+      const snapshot = await sanitizePageSnapshot(result.snapshot, record.allowedDomains, dnsLookup, modal);
       return {
         available: true,
         sessionHandle,
@@ -721,7 +743,7 @@ export function createBrowserbaseSessionBackend(
     if (!record || !record.providerSessionId || !['agent_running', 'handed_back'].includes(record.status) || !activeRecord(record, now())) return null;
     const providerSession = await getProviderSession(record.providerSessionId).catch(() => null);
     if (!providerSession) return null;
-    try { return validateProviderUrl(providerSession.connectUrl, 'wss:'); }
+    try { return validateConnection(providerSession.connectUrl, 'wss:'); }
     catch { return null; }
   }
 

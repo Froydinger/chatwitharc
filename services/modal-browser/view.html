@@ -1,0 +1,27 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><title>Arc Browser</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#080808;color:#eee;font:14px system-ui}body{display:flex;flex-direction:column}header{display:flex;align-items:center;gap:5px;padding:5px;height:40px;flex-shrink:0;background:#151515}button,input{font:inherit;color:inherit;background:#252525;border:1px solid #444;border-radius:8px;min-height:30px}button{min-width:32px;cursor:pointer}input{width:100%;min-width:0;padding:4px 8px}#url{flex:1}#stage{flex:1;min-height:0;display:flex;justify-content:center;align-items:center;overflow:hidden}#screen{display:block;max-width:100%;max-height:100%;object-fit:contain;touch-action:none;outline:none}#status{position:absolute;bottom:8px;left:8px;border-radius:8px;background:#111c;padding:4px 8px;font-size:12px;pointer-events:none}#typing{display:none;padding:6px;gap:6px;background:#151515}#typing.open{display:flex}button:disabled{opacity:.4}
+</style>
+<header><button id="back" aria-label="Back">‹</button><button id="forward" aria-label="Forward">›</button><button id="reload" aria-label="Reload">↻</button><input id="url" aria-label="Website address" inputmode="url" autocomplete="off"><button id="keyboard" aria-label="Type into page">⌨</button></header>
+<div id="stage"><img id="screen" tabindex="0" aria-label="Live browser page" draggable="false"></div><div id="typing"><input id="text" aria-label="Text to enter into selected page field" placeholder="Tap a field in the page, then type here" autocomplete="off"><button id="send">Type</button><button id="enter">↵</button></div><div id="status">Connecting…</div>
+<script>
+const $=id=>document.getElementById(id),screen=$('screen');let ws,owned=false,width=1365,height=768,blobUrl,closed=false,retries=0;
+const query=new URLSearchParams(location.search);const token=query.get('token');
+// Remove the bearer from visible history after capturing it in memory.
+history.replaceState(null,'',location.pathname);
+function send(message){if(owned&&ws?.readyState===1)ws.send(JSON.stringify(message))}
+function connect(){const url=new URL('/screen',location.href);url.protocol='wss:';url.searchParams.set('token',token);ws=new WebSocket(url);ws.binaryType='blob';ws.onmessage=e=>{retries=0;if(typeof e.data==='string'){const s=JSON.parse(e.data);owned=s.control==='user';width=s.width;height=s.height;if(document.activeElement!==$('url'))$('url').value=s.url;$('status').textContent=owned?'You have control':'Arc is browsing';document.querySelectorAll('header button,header input,#typing button,#typing input').forEach(el=>el.disabled=!owned)}else{if(blobUrl)URL.revokeObjectURL(blobUrl);blobUrl=URL.createObjectURL(e.data);screen.src=blobUrl}};ws.onclose=()=>{owned=false;$('status').textContent='Browser disconnected';if(!closed&&retries++<3)setTimeout(connect,1500)};ws.onerror=()=>ws.close()}
+connect();window.addEventListener('pagehide',()=>{closed=true;ws?.close();if(blobUrl)URL.revokeObjectURL(blobUrl)});
+for(const type of ['back','forward','reload'])$(type).onclick=()=>send({type});
+$('url').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();send({type:'goto',url:$('url').value.startsWith('https://')?$('url').value:'https://'+$('url').value);screen.focus()}};
+$('keyboard').onclick=()=>{$('typing').classList.toggle('open');if($('typing').classList.contains('open'))$('text').focus()};
+$('send').onclick=()=>{send({type:'text',text:$('text').value});$('text').value=''};$('enter').onclick=()=>{if($('text').value)$('send').click();send({type:'key',key:'Enter'})};
+$('text').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('enter').click()}};
+let pointer;
+screen.onpointerdown=e=>{if(!owned)return;screen.focus();pointer={x:e.clientX,y:e.clientY,lastX:e.clientX,lastY:e.clientY,moved:false};screen.setPointerCapture(e.pointerId)};
+screen.onpointermove=e=>{if(!pointer)return;const dy=pointer.lastY-e.clientY,dx=pointer.lastX-e.clientX;if(Math.abs(e.clientY-pointer.y)+Math.abs(e.clientX-pointer.x)>8)pointer.moved=true;if(pointer.moved&&e.pointerType!=='mouse')send({type:'scroll',x:dx*2,y:dy*2});pointer.lastX=e.clientX;pointer.lastY=e.clientY};
+screen.onpointerup=e=>{if(pointer&&!pointer.moved){const r=screen.getBoundingClientRect();send({type:'click',x:(e.clientX-r.left)*width/r.width,y:(e.clientY-r.top)*height/r.height})}pointer=null};screen.onpointercancel=()=>pointer=null;
+screen.onwheel=e=>{if(owned){e.preventDefault();send({type:'scroll',x:e.deltaX,y:e.deltaY})}};
+screen.onkeydown=e=>{if(!owned)return;e.preventDefault();if(e.key.length===1&&!e.ctrlKey&&!e.metaKey)send({type:'text',text:e.key});else send({type:'key',key:(e.ctrlKey?'Control+':e.metaKey?'Meta+':'')+e.key})};
+screen.onpaste=e=>{e.preventDefault();send({type:'text',text:e.clipboardData.getData('text')})};
+</script></html>

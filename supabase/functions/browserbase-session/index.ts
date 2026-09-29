@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.89.0';
 import { browserbaseSessionHandler } from '../_shared/browserbaseSessionHandler.ts';
 import { browserbaseSessionStore } from '../_shared/browserbaseStore.ts';
-import { createBrowserbaseSessionBackend } from '../_shared/browserbaseSessions.ts';
+import { createBrowserProvider, liveBrowserEnabled as isLiveBrowserEnabled } from '../_shared/browserProvider.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? Deno.env.get('SUPABASE_PUBLISHABLE_KEY') ?? '';
@@ -14,14 +14,7 @@ const adminClient = supabaseUrl && serviceRoleKey ? createClient(supabaseUrl, se
   auth: { persistSession: false, autoRefreshToken: false },
 }) : null;
 
-const backend = adminClient ? createBrowserbaseSessionBackend({
-  enabled: Deno.env.get('BROWSERBASE_ENABLED'),
-  apiKey: Deno.env.get('BROWSERBASE_API_KEY'),
-  projectId: Deno.env.get('BROWSERBASE_PROJECT_ID'),
-}, {
-  store: browserbaseSessionStore(adminClient),
-  dnsLookup: (hostname, recordType) => Deno.resolveDns(hostname, recordType),
-}) : null;
+const backend = adminClient ? createBrowserProvider(adminClient) : null;
 
 Deno.serve(browserbaseSessionHandler({
   authenticate: async (authorization) => {
