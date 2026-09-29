@@ -116,7 +116,7 @@ export function AppBuilderPublishDialog({ open, demo = false, onOpenChange, curr
                 <div className="flex items-center gap-2.5 text-sm font-medium text-emerald-200"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-200/10"><Check className="h-4 w-4" /></span>Published and ready to share</div>
                 <a className="mt-4 flex min-h-12 items-center justify-between gap-3 rounded-xl border border-white/[0.09] bg-black/35 px-3.5 py-3 text-[13px] text-white/90 transition hover:border-white/20 hover:bg-black/50" href={successUrl} target="_blank" rel="noreferrer"><span className="truncate">{successUrl}</span><ExternalLink className="h-4 w-4 shrink-0 text-white/55" /></a>
               </div>
-              <Button onClick={() => onOpenChange(false)} className="mt-5 h-12 w-full rounded-xl bg-white text-black hover:bg-white/90">Done</Button>
+              <Button onClick={() => onOpenChange(false)} className="app-builder-action mt-5 h-12 w-full rounded-xl bg-white text-black hover:bg-white/90">Done</Button>
             </div>
           ) : (
             <>
@@ -145,7 +145,7 @@ export function AppBuilderPublishDialog({ open, demo = false, onOpenChange, curr
                 <div className="flex items-start gap-3 rounded-xl border border-white/[0.09] bg-black/20 px-3.5 py-3"><Globe className="mt-0.5 h-4 w-4 shrink-0 text-white/60" /><p className="text-[11px] leading-relaxed text-white/60">App Builder publishes to an Arc-hosted <span className="font-medium text-white/80">askarc.chat</span> link. Git exports use your own hosting account.</p></div>
               </div>
               <div className="shrink-0 border-t border-white/[0.09] bg-[#101110] px-5 pb-[max(16px,env(safe-area-inset-bottom))] pt-4 sm:px-7">
-                <Button onClick={() => void submit()} disabled={demo || publishing || checking || !title.trim() || cleanedSubdomain.length < 3 || available === false} className="h-12 w-full rounded-xl bg-white text-[13px] font-semibold text-black shadow-[0_3px_18px_rgba(255,255,255,.08)] hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#101110] disabled:bg-white/15 disabled:text-white/40 disabled:shadow-none">{demo ? 'Preview only' : publishing ? <><LoaderCircle className="h-4 w-4 animate-spin" /> Publishing…</> : <><Rocket className="h-4 w-4" /> {isUpdate ? 'Publish update' : 'Publish app'}</>}</Button>
+                <Button onClick={() => void submit()} disabled={demo || publishing || checking || !title.trim() || cleanedSubdomain.length < 3 || available === false} className="app-builder-action h-12 w-full rounded-xl bg-white text-[13px] font-semibold text-black shadow-[0_3px_18px_rgba(255,255,255,.08)] hover:bg-white/90 focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#101110] disabled:bg-white/15 disabled:text-white/40 disabled:shadow-none">{demo ? 'Preview only' : publishing ? <><LoaderCircle className="h-4 w-4 animate-spin" /> Publishing…</> : <><Rocket className="h-4 w-4" /> {isUpdate ? 'Publish update' : 'Publish app'}</>}</Button>
                 {!demo && <p className="mt-2 text-center text-[10px] text-white/45">{isUpdate ? 'This replaces the current live version at your link.' : 'You can change these details or publish an update later.'}</p>}
               </div>
             </>

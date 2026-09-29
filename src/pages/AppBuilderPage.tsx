@@ -48,7 +48,7 @@ export function AppBuilderPage() {
         <div className="max-w-sm">
           <p className="text-lg font-semibold">Sign in to open App Builder</p>
           <p className="mt-2 text-sm text-white/45">Your apps are private to your account.</p>
-          <Button onClick={() => navigate("/")} className="mt-5 rounded-full bg-white px-5 text-black hover:bg-white/90">Go to Arc</Button>
+          <Button onClick={() => navigate("/")} className="app-builder-action mt-5 rounded-full bg-white px-5 text-black hover:bg-white/90">Go to Arc</Button>
         </div>
       </div>
     );
@@ -60,7 +60,7 @@ export function AppBuilderPage() {
         <div className="max-w-sm">
           <p className="text-lg font-semibold">App Builder is part of Boost</p>
           <p className="mt-2 text-sm text-white/45">Upgrade to build, edit, and publish private Arc apps.</p>
-          <Button onClick={() => openCheckout()} className="mt-5 rounded-full bg-white px-5 text-black hover:bg-white/90">Explore Boost</Button>
+          <Button onClick={() => openCheckout()} className="app-builder-action mt-5 rounded-full bg-white px-5 text-black hover:bg-white/90">Explore Boost</Button>
         </div>
       </div>
     );

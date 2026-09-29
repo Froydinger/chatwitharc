@@ -202,7 +202,7 @@ export function AppBuilderGitHandoff({
           ) : !connection.connected ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div><p className="text-xs text-white/75">GitHub is not connected</p><p className="mt-1 text-[10px] text-white/35">Arc uses your existing encrypted GitHub connection.</p></div>
-              <Button onClick={() => void connectGitHub()} disabled={connecting} className="h-9 rounded-full bg-white px-3.5 text-[10px] text-black hover:bg-white/90">
+              <Button onClick={() => void connectGitHub()} disabled={connecting} className="app-builder-action h-9 rounded-full bg-white px-3.5 text-[10px] text-black hover:bg-white/90">
                 {connecting ? <LoaderCircle className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <GitBranch className="mr-1.5 h-3.5 w-3.5" />}
                 {connecting ? 'Connecting…' : 'Connect GitHub'}
               </Button>
@@ -223,7 +223,7 @@ export function AppBuilderGitHandoff({
                   </label>
                   {selectedRepository && <p className="text-[10px] text-white/35">Draft branch will target the repository default branch: <span className="font-mono text-white/55">{selectedRepository.default_branch}</span></p>}
                   <p className="text-[10px] leading-relaxed text-white/40">Arc opens a draft PR from a new branch and never writes directly to the base branch or deploys this Git version. Files at matching paths in the selected repository may be replaced in that branch, so review overlaps before merging.</p>
-                  <Button onClick={() => void createDraft()} disabled={creating || !selectedRepository} className="h-10 w-full rounded-xl bg-white text-xs font-semibold text-black hover:bg-white/90">
+                  <Button onClick={() => void createDraft()} disabled={creating || !selectedRepository} className="app-builder-action h-10 w-full rounded-xl bg-white text-xs font-semibold text-black hover:bg-white/90">
                     {creating ? <LoaderCircle className="mr-2 h-3.5 w-3.5 animate-spin" /> : <GitBranch className="mr-2 h-3.5 w-3.5" />}
                     {creating ? 'Saving app and opening draft…' : 'Create draft pull request'}
                   </Button>
@@ -252,7 +252,7 @@ export function AppBuilderGitHandoff({
         <Textarea readOnly value={handoffText} rows={5} className="mt-4 resize-none border-white/10 bg-black/25 font-mono text-[10px] leading-relaxed text-white/55" />
         <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
           <Button variant="ghost" onClick={onExport} disabled={exporting} className="text-white/55">{exporting ? 'Preparing ZIP…' : 'Download code ZIP'}</Button>
-          <Button onClick={() => void copyPrompt()} className="bg-white text-black hover:bg-white/90">{copied ? <Check className="mr-2 h-4 w-4" /> : null}{copied ? 'Prompt copied' : 'Copy handoff prompt'}</Button>
+          <Button onClick={() => void copyPrompt()} className="app-builder-action bg-white text-black hover:bg-white/90">{copied ? <Check className="mr-2 h-4 w-4" /> : null}{copied ? 'Prompt copied' : 'Copy handoff prompt'}</Button>
         </div>
       </div>
     </div>

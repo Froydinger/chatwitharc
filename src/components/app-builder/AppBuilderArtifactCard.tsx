@@ -44,13 +44,13 @@ export function AppBuilderArtifactCard({ projectId, title, prompt, fileCount, cl
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{title?.trim() || 'Your new app'}</p>
-          <p className="mt-0.5 text-[10px] text-white/40">Saved in App Builder</p>
+          <p className="mt-0.5 text-[10px] text-white/70">Saved in App Builder</p>
         </div>
-        {Number.isFinite(fileCount) && <span className="flex shrink-0 items-center gap-1 text-[10px] text-white/40"><FileCode2 className="h-3 w-3" />{fileCount} files</span>}
+        {Number.isFinite(fileCount) && <span className="flex shrink-0 items-center gap-1 text-[10px] text-white/70"><FileCode2 className="h-3 w-3" />{fileCount} files</span>}
       </div>
-      {prompt?.trim() && <p className="px-4 py-3 text-xs leading-relaxed text-white/55 line-clamp-2">{prompt}</p>}
+      {prompt?.trim() && <p className="px-4 py-3 text-xs leading-relaxed text-white/75 line-clamp-2">{prompt}</p>}
       <div className="px-4 pb-4">
-        <Button type="button" disabled={!canOpen || opening} onClick={() => void open()} className="h-9 w-full justify-between rounded-xl bg-white text-xs font-semibold text-black hover:bg-white/90 disabled:bg-white/15 disabled:text-white/35">
+        <Button type="button" disabled={!canOpen || opening} onClick={() => void open()} className="app-builder-action h-9 w-full justify-between rounded-xl bg-white text-xs font-semibold text-black hover:bg-white/90 disabled:bg-white/15 disabled:text-white/35">
           {opening ? 'Opening app…' : canOpen ? 'Open and edit app' : 'Project link unavailable'}
           {opening ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : canOpen && <ArrowUpRight className="h-3.5 w-3.5" />}
         </Button>
