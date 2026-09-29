@@ -72,7 +72,7 @@ def api():
             await sessions.put.aio(sb.object_id,record)
             return {'id':sb.object_id,'connectUrl':tunnel.replace('https:','wss:')+'/cdp?token='+secret}
         except Exception:
-            if sb: await sb.terminate.aio()
+            if sb: await sb.terminate.aio(wait=True)
             raise HTTPException(503,'Browser startup unavailable')
 
     @service.get('/v1/sessions/{id}')
@@ -102,7 +102,7 @@ def api():
     async def close(id: str):
         record = await get_record(id)
         sb = await modal.Sandbox.from_id.aio(record['sandbox'])
-        await sb.terminate.aio()
+        await sb.terminate.aio(wait=True)
         # Retain only enough to confirm termination; erase access tokens immediately.
         await sessions.put.aio(id, {'sandbox':record['sandbox'],'url':'','admin':'','viewer':'','expires':0,'created':record['created']})
         return {'status':'COMPLETED'}
