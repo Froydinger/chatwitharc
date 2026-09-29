@@ -2735,17 +2735,23 @@ button[role="radio"][data-state="on"] {
 
 /* App Builder uses a fixed dark surface in both themes. Keep each control's
    text paired with its actual background, beyond the global glass/tab rules. */
+:root.light[data-accent] button.app-builder-action,
+:root.dark[data-accent] button.app-builder-action,
 button.app-builder-action {
   background: #f5f5f5 !important;
   color: #101110 !important;
   border-color: rgba(255, 255, 255, 0.7) !important;
 }
 
+:root.light[data-accent] button.app-builder-action:hover:not(:disabled),
+:root.dark[data-accent] button.app-builder-action:hover:not(:disabled),
 button.app-builder-action:hover:not(:disabled) {
   background: #e5e5e5 !important;
   color: #101110 !important;
 }
 
+:root.light[data-accent] button.app-builder-action:disabled,
+:root.dark[data-accent] button.app-builder-action:disabled,
 button.app-builder-action:disabled {
   background: #303130 !important;
   color: #d4d4d4 !important;
