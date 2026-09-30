@@ -1,6 +1,8 @@
 import { Transition } from "@/components/transitions/Transition";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AccordionPanel } from "@/components/transitions/AccordionPanel";
+import { SequencedTransition } from "@/components/transitions/SequencedTransition";
+import "./search-canvas-motion.css";
 import { ThinkingOrb } from "thinking-orbs";
 import { useResolvedOrbTheme } from "@/components/ThinkingIndicator";
 import { normalizedOrbSpeed, useThinkingOrbConfig, useMotionConfig } from "@/hooks/useThinkingOrbConfig";
@@ -454,12 +456,8 @@ export function SearchCanvas() {
       </div>
 
       {/* Selection Actions Bar */}
-      <AnimatePresence>
-        {isSelectMode && selectedLinks.size > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+      <div className="t-acc" data-open={!!(isSelectMode && selectedLinks.size > 0)}><AccordionPanel open={!!(isSelectMode && selectedLinks.size > 0)}>
+          <div
             className="px-3 py-2 border-b border-border/20 bg-primary/5"
           >
             <div className="flex items-center justify-between">
@@ -479,9 +477,8 @@ export function SearchCanvas() {
                 </Button>
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </AccordionPanel></div>
 
       {/* Links List - Only default list */}
       <div className="flex-1 overflow-auto">
@@ -632,6 +629,7 @@ export function SearchCanvas() {
             <Button
               variant="ghost"
               size="sm"
+              aria-label="Saved links"
               onClick={() => setShowSavedLinks(!showSavedLinks)}
               className={cn("h-9 gap-2 text-sm", showSavedLinks && "bg-muted")}
             >
@@ -667,10 +665,9 @@ export function SearchCanvas() {
       {!showHistory && sessions.length > 0 && !activeSessionId && (
         <div className="border-b border-border/30 bg-card/50">
           <div className="max-w-3xl mx-auto px-4 py-3">
-            <motion.button
+            <button
               onClick={() => setShowHistory(true)}
-              className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-3"
-              whileHover={{ x: 4 }}
+              className="arc-search-history w-full text-left px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-3"
             >
               <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <div className="flex-1 min-w-0">
@@ -680,18 +677,14 @@ export function SearchCanvas() {
                 </p>
               </div>
               <span className="text-xs text-muted-foreground flex-shrink-0">{sessions.length} total</span>
-            </motion.button>
+            </button>
           </div>
         </div>
       )}
 
       {/* Full History Dropdown */}
-      <AnimatePresence>
-        {showHistory && sessions.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+      <div className="t-acc" data-open={!!(showHistory && sessions.length > 0)}><AccordionPanel open={!!(showHistory && sessions.length > 0)}>
+          <div
             className="border-b border-border/30 bg-card/50 overflow-hidden"
           >
             <div className="max-w-3xl mx-auto px-4 py-4">
@@ -725,18 +718,17 @@ export function SearchCanvas() {
                   {sessions
                     .slice(historyPage * HISTORY_PAGE_SIZE, (historyPage + 1) * HISTORY_PAGE_SIZE)
                     .map((session) => (
-                      <motion.button
+                      <button
                         key={session.id}
                         onClick={() => {
                           setActiveSession(session.id);
                           setShowHistory(false);
                         }}
                         className={cn(
-                          "w-full text-left px-3 py-2.5 rounded-lg transition-colors",
+                          "arc-search-history w-full text-left px-3 py-2.5 rounded-lg transition-colors",
                           "hover:bg-muted/50",
                           session.id === activeSessionId && "bg-primary/10 text-primary",
                         )}
-                        whileHover={{ x: 4 }}
                       >
                         <p className="text-sm font-medium line-clamp-1">{session.query}</p>
                         <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
@@ -750,7 +742,7 @@ export function SearchCanvas() {
                             </>
                           )}
                         </div>
-                      </motion.button>
+                      </button>
                     ))}
                 </div>
 
@@ -785,9 +777,8 @@ export function SearchCanvas() {
                 )}
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </AccordionPanel></div>
 
       {/* Fixed Search Input Bar - Hide on mobile when in active session */}
       {!(isMobile && activeSession) && (
@@ -857,18 +848,13 @@ export function SearchCanvas() {
         <div ref={scrollContainerRef} className="flex-1 overflow-auto">
           {/* Mobile: Saved Links Panel (collapsible at top) */}
           {isMobile && (
-            <AnimatePresence>
-              {showSavedLinks && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 300 }}
-                  exit={{ opacity: 0, height: 0 }}
+            <div className="t-acc" data-open={!!(showSavedLinks)}><AccordionPanel open={!!(showSavedLinks)}>
+                <div
                   className="border-b border-border/30 bg-card/50 overflow-hidden"
                 >
-                  <SavedLinksSidebar />
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <div className="h-[300px]"><SavedLinksSidebar /></div>
+                </div>
+              </AccordionPanel></div>
           )}
 
           <div className="max-w-3xl mx-auto px-4 py-6 sm:py-10">
@@ -908,12 +894,8 @@ export function SearchCanvas() {
                       {showSources ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </button>
 
-                    <AnimatePresence>
-                      {showSources && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
+                    <div className="t-acc" data-open={!!(showSources)}><AccordionPanel open={!!(showSources)}>
+                        <div
                           className="overflow-hidden"
                         >
                           <div className="flex flex-wrap gap-2">
@@ -971,9 +953,8 @@ export function SearchCanvas() {
                               );
                             })}
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                        </div>
+                      </AccordionPanel></div>
 
                     {/* Collapsed preview */}
                     {!showSources && (
@@ -1321,12 +1302,9 @@ export function SearchCanvas() {
                             {/* Loading state for pending response */}
                             {!response && (
                               <div className="flex items-center gap-3 text-muted-foreground">
-                                <motion.div
-                                  animate={{ rotate: 360 }}
-                                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                >
+                                <div className="arc-search-spinner">
                                   <Globe className="w-5 h-5 text-primary" />
-                                </motion.div>
+                                </div>
                                 <span>Searching...</span>
                               </div>
                             )}
@@ -1382,11 +1360,8 @@ export function SearchCanvas() {
               </div>
             ) : isSearching ? (
               /* Searching State - Replaces Empty State */
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="text-center py-12"
+              <div
+                className="arc-search-enter text-center py-12"
               >
                 <div className="relative w-20 h-20 mx-auto mb-6">
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
@@ -1412,7 +1387,7 @@ export function SearchCanvas() {
 
                 {/* Ultra browses before it answers, so there is a real wait to fill. */}
                 {ultraMode && <ResearchDashGame className="mt-8" />}
-              </motion.div>
+              </div>
             ) : (
               /* Empty State */
               <Transition preset="panel"><div className="text-center py-12">
@@ -1458,45 +1433,36 @@ export function SearchCanvas() {
                 </div>
 
                 {/* Smart Suggestion Cards */}
-                <AnimatePresence mode="wait">
-                  {isLoadingSuggestions ? (
-                    <motion.div
+                <SequencedTransition preset="fade" contentKey={isLoadingSuggestions ? 'loading' : 'suggestions'}>{isLoadingSuggestions ? (
+                    <div
                       key="loading"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
                       className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto"
                     >
                       {[1, 2, 3, 4].map((i) => (
                         <div key={i} className="h-12 w-36 rounded-full bg-muted/30 animate-pulse" />
                       ))}
-                    </motion.div>
+                    </div>
                   ) : (
                     <Transition preset="panel" key="suggestions"><div
                       className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto"
                     >
                       {(smartSuggestions.length > 0 ? smartSuggestions : defaultSuggestions).map(
                         (suggestion, index) => (
-                          <motion.button
+                          <button
                             key={suggestion.label}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: index * 0.05 }}
                             onClick={() => {
                               setSearchQuery(suggestion.prompt);
                               handleSearch(suggestion.prompt);
                             }}
-                            className="px-4 py-2.5 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-primary/40 transition-all group"
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
+                            style={{ animationDelay: `${index * 50}ms` }}
+                            className="arc-search-suggestion px-4 py-2.5 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-primary/40 transition-all group"
                           >
                             <span className="text-sm font-medium text-foreground">{suggestion.label}</span>
-                          </motion.button>
+                          </button>
                         ),
                       )}
                     </div></Transition>
-                  )}
-                </AnimatePresence>
+                  )}</SequencedTransition>
               </div></Transition>
             )}
           </div>

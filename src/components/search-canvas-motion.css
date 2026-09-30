@@ -1,0 +1,11 @@
+.arc-search-history.arc-search-history { transition: translate var(--duration-quick) var(--ease-smooth-out), background-color var(--duration-quick); }
+@media (hover:hover) { .arc-search-history:hover { translate: 4px 0; } .arc-search-suggestion:hover { scale: 1.02; } }
+.arc-search-suggestion:active { scale: .98; }
+.arc-search-enter, .arc-search-suggestion { animation: arc-search-reveal var(--duration-medium) var(--ease-smooth-out) both; }
+.arc-search-spinner { animation: arc-search-spin 1s linear infinite; }
+@keyframes arc-search-spin { to { rotate: 360deg; } }
+@keyframes arc-search-reveal { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion:reduce) {
+ .arc-search-enter, .arc-search-suggestion, .arc-search-spinner { animation: none; }
+ .arc-search-history.arc-search-history, .arc-search-suggestion.arc-search-suggestion { translate: none; scale: 1; transition: none; }
+}
