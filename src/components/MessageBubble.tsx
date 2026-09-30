@@ -31,6 +31,7 @@ import { CodeArtifactCard } from "@/components/CodeArtifactCard";
 import { AppBuilderArtifactCard } from "@/components/app-builder/AppBuilderArtifactCard";
 import { AppBuilderAppChoiceCard } from "@/components/app-builder/AppBuilderAppChoiceCard";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
+import { useReplyActions } from "@/components/ReplyActionsProvider";
 import { MessageMetadata } from "@/components/MessageMetadata";
 import { WeatherCard } from "@/components/WeatherCard";
 import { SearchResultsCard } from "@/components/SearchResultsCard";
@@ -53,7 +54,9 @@ interface MessageBubbleProps {
 }
 
 export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
-  ({ message, onEdit, shouldAnimateTypewriter, shouldAnimateReveal }, ref) => {
+  ({ message, onEdit, isLatestAssistant = false, shouldAnimateTypewriter, shouldAnimateReveal }, ref) => {
+    const replyActions = useReplyActions();
+    const showReplyActions = replyActions ? replyActions.activeReplyId === message.id : isLatestAssistant;
     const shouldAnimate = shouldAnimateReveal ?? shouldAnimateTypewriter ?? false;
     const { editMessage, currentSessionId, chatSessions } = useArcStore();
     const { profile } = useProfile();
@@ -175,8 +178,15 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     };
 
 
-    const handleMessageClick = () => {
-      if (!isEditing) setShowActions((s) => !s);
+    const handleMessageClick = (event: React.MouseEvent<HTMLDivElement>) => {
+      if (isUser) {
+        if (!isEditing) setShowActions((s) => !s);
+        return;
+      }
+      // Links, embedded controls and text selection retain their usual behavior.
+      if ((event.target as Element).closest('button, a, input, textarea, select, summary, video, audio, [role="button"], [contenteditable="true"]')) return;
+      if (window.getSelection()?.toString()) return;
+      replyActions?.selectReply(message.id);
     };
 
     // Parse code blocks from message content
@@ -231,7 +241,16 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
         <div className={`flex flex-col gap-2 ${hasVoiceSearchCard ? "max-w-full sm:max-w-[85%]" : "max-w-[85%]"} ${isUser ? "ml-auto items-end" : "mr-auto items-start"}`}>
           {/* Message Bubble */}
           <div
-            onClick={handleMessageClick}
+            onClick={isUser ? handleMessageClick : undefined}
+            onClickCapture={!isUser ? handleMessageClick : undefined}
+            tabIndex={!isUser && replyActions ? 0 : undefined}
+            aria-label={!isUser && replyActions ? "Reply; press Enter to show controls" : undefined}
+            onKeyDown={(event) => {
+              if (!isUser && event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+                event.preventDefault();
+                replyActions?.selectReply(message.id);
+              }
+            }}
             className={[
               // Only apply bubble styling to user messages
               isUser ? [
@@ -712,15 +731,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             )}
           </div>
           
-          {/* Reply actions remain visible on both touch and desktop. */}
-          {!isUser && message.type !== 'image-generating' && message.type !== 'video-generating' && (
-            <motion.div
-              className="w-full"
-              layout="position"
-              transition={{ layout: { duration: 0.18, ease: [0.22, 1, 0.36, 1] } }}
-            >
-              {message.type !== 'image-generating' && message.type !== 'video-generating' && (
-                <div className="flex items-center gap-1 mt-1">
+          {/* Controls follow the latest reply or the older reply selected by the user. */}
+          {showReplyActions && !isUser && message.type !== 'image-generating' && message.type !== 'video-generating' && (
+            <Transition preset="fade"><div className="w-full">
+                <div className="flex items-center gap-1 mt-1" data-reply-actions={message.id}>
                   <MessageMetadata message={message} />
                   {message.content && (
                     <button
@@ -752,9 +766,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     </button>
                   )}
                 </div>
-              )}
-
-            </motion.div>
+            </div></Transition>
           )}
 
 

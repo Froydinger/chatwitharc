@@ -1,3 +1,4 @@
+import { ReplyActionsProvider } from "@/components/ReplyActionsProvider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, UserPlus, Settings, Sparkles, Users, Plus, ImagePlus, X, Loader2, Trash2, Mail, Paperclip, Flag, Ban, ShieldOff } from "lucide-react";
@@ -400,6 +401,7 @@ export function SharedChatRoomPage() {
   if (authLoading || !user) return null;
 
   return (
+    <ReplyActionsProvider scopeKey={chatId ?? "shared-chat"} replyIds={messages.filter(message => message.author_user_id === null).map(message => message.id)}>
     <div className="min-h-screen w-full text-foreground flex flex-col" style={{ paddingTop: "calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 30px))" }}>
       <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-4 flex-1 flex flex-col min-h-0">
         {/* Header */}
@@ -706,5 +708,6 @@ export function SharedChatRoomPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ReplyActionsProvider>
   );
 }

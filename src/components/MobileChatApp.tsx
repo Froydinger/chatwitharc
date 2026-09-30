@@ -1,3 +1,4 @@
+import { ReplyActionsProvider, canShowReplyActions } from "@/components/ReplyActionsProvider";
 import { Transition } from "@/components/transitions/Transition";
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -345,6 +346,7 @@ export function MobileChatApp() {
   } = useArcStore();
   const isArcWorking = isLoading || isGeneratingImage || isSearchingChats || isAccessingMemory || isSearchingWeb;
   const hasLiveAnswer = useLiveAnswerStore(state => Boolean(state.answer?.sessionId === currentSessionId && state.answer.content));
+  const liveReplyId = useLiveAnswerStore(state => state.answer?.sessionId === currentSessionId && state.answer.content ? `live-${state.answer.requestId}` : null);
   const hasSubagentRun = useSubagentStore((state) => Boolean(state.run));
   const isVoiceActive = useVoiceModeStore((s) => s.isActive);
   const liveCaptionEntries = useVoiceModeStore((s) => s.liveCaptionEntries);
@@ -1344,7 +1346,10 @@ export function MobileChatApp() {
   // Main chat interface - Desktop with canvas uses PanelGroup for resizable layout
   const isDesktopCanvasMode = !isMobile && isCanvasOpen;
   
+  const actionReplyIds = allDisplayedMessages.filter(canShowReplyActions).map(message => message.id);
+  if (isLoading && !isVoiceActive && !isGeneratingImage && liveReplyId) actionReplyIds.push(liveReplyId);
   return (
+    <ReplyActionsProvider scopeKey={currentSessionId ?? "new-chat"} replyIds={actionReplyIds}>
     <div className="h-screen flex relative overflow-hidden">
 
       {/* Main Content */}
@@ -2342,5 +2347,6 @@ export function MobileChatApp() {
         onOpenChange={setIsShareDialogOpen}
       />
     </div>
+    </ReplyActionsProvider>
   );
 }

@@ -1,3 +1,4 @@
+import { ReplyActionsProvider, canShowReplyActions } from "@/components/ReplyActionsProvider";
 import { Transition } from "@/components/transitions/Transition";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -205,6 +206,7 @@ export function SharedChatPage() {
   const isSignedIn = !!user;
 
   return (
+    <ReplyActionsProvider scopeKey={session.id} replyIds={session.messages.filter(canShowReplyActions).map(message => message.id)}>
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       {/* Top bar */}
       <header
@@ -283,6 +285,7 @@ export function SharedChatPage() {
         </div>
       </div>
     </div>
+    </ReplyActionsProvider>
   );
 }
 
