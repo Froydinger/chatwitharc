@@ -27,7 +27,9 @@ import {
   Clapperboard,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Textarea } from "@/components/ui/textarea";
+import { ComposerTextarea } from "@/components/chat-input/ComposerTextarea";
+import { useComposerViewport } from "@/hooks/chat-input/useComposerViewport";
+import { useAttachmentPreviews } from "@/hooks/chat-input/useAttachmentPreviews";
 import { useArcStore, type Message } from "@/store/useArcStore";
 import { useIDEStore } from "@/store/useIDEStore";
 import { captureCloudWorkspaceContext, type CloudWorkspaceContext } from "@/services/cloudRuns";
@@ -233,7 +235,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const [inputValue, setInputValue] = useState("");
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [animateAttachmentOpen, setAnimateAttachmentOpen] = useState(false);
-  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+  const imagePreviewUrls = useAttachmentPreviews(selectedImages);
   const [allImagesEditMode, setAllImagesEditMode] = useState(false);
   const [showLimitsModal, setShowLimitsModal] = useState(false);
   const { dailyImagesUsed, remainingImages, limit } = useImageQuota();
@@ -260,40 +262,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const inputBarRef = useRef<HTMLDivElement>(null);
   const modelLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Tick to force re-render when the input bar's screen position can change
-  // (window resize, scroll, soft keyboard open/close via visualViewport).
-  // Used to anchor floating menus (ImageOptionsDock, UsageMeter) just above
-  // the input bar rather than glued to the viewport bottom.
-  const [, setViewportTick] = useState(0);
-  useEffect(() => {
-    const bump = () => setViewportTick((t) => (t + 1) % 1000000);
-    window.addEventListener("resize", bump);
-    window.addEventListener("scroll", bump, true);
-    window.visualViewport?.addEventListener("resize", bump);
-    window.visualViewport?.addEventListener("scroll", bump);
-    return () => {
-      window.removeEventListener("resize", bump);
-      window.removeEventListener("scroll", bump, true);
-      window.visualViewport?.removeEventListener("resize", bump);
-      window.visualViewport?.removeEventListener("scroll", bump);
-    };
-  }, []);
-
-  // Re-render anchored previews when the input bar itself moves/resizes
-  // (welcome screen re-centers when image previews appear, etc.)
-  useEffect(() => {
-    const el = inputBarRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const bump = () => setViewportTick((t) => (t + 1) % 1000000);
-    const ro = new ResizeObserver(bump);
-    ro.observe(el);
-    const bodyRo = new ResizeObserver(bump);
-    bodyRo.observe(document.body);
-    return () => {
-      ro.disconnect();
-      bodyRo.disconnect();
-    };
-  }, []);
+  useComposerViewport(inputBarRef);
 
   // Prompt library
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
@@ -413,7 +382,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         textareaRef.current?.focus();
       },
     }),
-    [toast],
   );
 
   useEffect(() => {
@@ -447,21 +415,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       }
     }, 300);
   }, []);
-
-  // Create and cleanup object URLs for image previews
-  useEffect(() => {
-    // Revoke old URLs
-    imagePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
-
-    // Create new URLs
-    const newUrls = selectedImages.map((file) => URL.createObjectURL(file));
-    setImagePreviewUrls(newUrls);
-
-    // Cleanup on unmount or when images change
-    return () => {
-      newUrls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [selectedImages]);
 
   // Notify parent about images
   useEffect(() => {
@@ -2773,6 +2726,8 @@ ${safeCode}
   }, [isLoading]);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Enter confirms an IME candidate; it must not submit that unfinished draft.
+    if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if ((e.ctrlKey || e.metaKey) && !canSubmitCloudTextWhileBusy(inputValue)) {
@@ -3248,8 +3203,11 @@ ${safeCode}
                   read as too low. The 8px vertical total is what matters: it
                   keeps scrollHeight, the autosize height and the pill's height
                   unchanged no matter how the 8px is split. */}
-              <Textarea
+              <ComposerTextarea
                 ref={textareaRef}
+                voiceActive={isVoiceActive}
+                loading={isLoading}
+                liveAnswer={hasLiveAnswer}
                 data-arc-composer="true"
                 value={inputValue}
                 onChange={(e) => {
@@ -3260,10 +3218,6 @@ ${safeCode}
                 onKeyDown={handleKeyPress}
                 onPaste={handlePaste}
                 onFocus={handleInputFocus}
-                disabled={isVoiceActive}
-                placeholder={isVoiceActive ? "Voice mode is listening..." : isLoading ? hasLiveAnswer ? "Finishing..." : "Thinking..." : "Type or talk..."}
-                className="flex-1 min-h-[28px] max-h-[200px] border-0 bg-transparent pt-[4px] pb-[4px] pr-4 focus-visible:ring-0 resize-none text-base placeholder:text-muted-foreground/60 scrollbar-hide"
-                rows={1}
               />
             </div>
           </div>

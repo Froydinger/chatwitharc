@@ -1,6 +1,6 @@
 # Arc input bar: structure, compatibility, and refactor plan
 
-Status: **incremental implementation in progress**, September 29, 2026. Pure intent helpers are extracted; submission ownership and queue policy remain unchanged. The ledger records completed work separately from the proposed phases.
+Status: **incremental implementation in progress**, September 29, 2026. Pure intent helpers, the controlled textarea, attachment-preview ownership, and viewport subscriptions are extracted; submission ownership and queue policy remain unchanged pending their separate release. The ledger records completed work separately from the proposed phases.
 
 ## Recommendation
 
@@ -133,6 +133,13 @@ Replace this proposed map with actual files and responsibilities. Record per-pha
 | Upload previews leak/break | Object URL revocation too early or never | One attachment lifecycle owner and cleanup coverage |
 | Access/provider regression | UI routing also touches auth, limits and mode selection | Keep server boundaries and existing services; test allowed/denied paths |
 
+## Confirmed decisions — September 29
+
+- Queued requests keep their original chat and capture selected attachments. Never dispatch them into whichever chat happens to be open later. Hold requests when their original chat is not active; background dispatch is not introduced.
+- Stop cancels foreground work and pauses pending requests; Clear remains separate.
+- Failed requests remain recoverable for an explicit manual retry without replacing a newer draft.
+- Preserve current typing, mode precedence, concurrency and temporary drafts. Validate/authenticate/capture before accepted-work progress; use the existing chat-level indicator before awaited preparation, without adding another spinner.
+
 ## Decisions for Jake before submission-state work
 
 These are product decisions, not blockers for the unrelated browser fix or early pure extraction. The first four affect request ownership and should be answered before Phase 4; the rest can follow before the relevant behavior changes. Proposed defaults are recommendations only, not approved scope.
@@ -182,6 +189,7 @@ Use existing glass utilities, Noir theme and shared spacing. Keep domain state o
 
 | Date | Work | Status / evidence |
 | --- | --- | --- |
+| 2026-09-29 | Phase 2 first component + Phase 3: `ComposerTextarea`, `useAttachmentPreviews`, `useComposerViewport`; prevent IME Enter submission and refresh imperative callbacks with current render state | Desktop/412px browser checks pass for IME, newline, sizing/selection, File retention, exact preview revocation and subscription/observer teardown. Geometry and public ref methods preserved. Real Android keyboard/file-picker checks are not claimed; owner took Pixel and requested Mac testing. |
 | 2026-09-29 | Phase 1: moved 24 pure classifiers/context helpers to `src/lib/chat-input/intent.ts`, preserving `ChatInput` exports and branch order | 504 old/new comparisons matched; 25 permanent command/near-miss cases pass; helper lint and production build pass. Full typecheck is blocked by existing JSX errors in unchanged `AdminSettingsPanel.tsx`. Queue/submission behavior unchanged. |
 | 2026-09-28 | Inspected ChatInput responsibilities, public interface, busy/queue behavior and Work boundary; wrote this plan | Documentation only; no composer implementation changes |
 
