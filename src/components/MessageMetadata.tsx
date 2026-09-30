@@ -1,7 +1,6 @@
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SourcesAccordion } from "@/components/SourcesAccordion";
-import { getModelDisplayName } from "@/store/useModelStore";
 import type { Message, MemoryActionType } from "@/store/useArcStore";
 
 const toolNames: Record<MemoryActionType, string> = {
@@ -12,15 +11,12 @@ const toolNames: Record<MemoryActionType, string> = {
 /** Reply details use recorded values, never today's model picker or local model. */
 export function MessageMetadata({ message }: { message: Message }) {
   const source = message.sourceModel;
-  const model = message.modelUsed;
-  const effort = message.reasoningEffortUsed;
   const isLocal = source === "local";
   const isImage = source?.startsWith("cloud-image");
   const name = isLocal ? "Local AI"
     : source === "cloud-voice" ? "Voxi"
     : isImage ? source?.includes("edit") ? "Arc Imagix Edit" : "Arc Imagix"
-    : model === "gpt-6-sol" ? "River"
-    : model === "gpt-6-luna" && effort ? getModelDisplayName(effort) : "Arc Matrix";
+    : "Arc Matrix";
   const sources = message.webSources?.length ? message.webSources : message.memoryAction?.sources;
 
   return (
@@ -37,7 +33,7 @@ export function MessageMetadata({ message }: { message: Message }) {
       <DialogContent className="glass-card max-w-md w-[calc(100%-2rem)] max-h-[80dvh] overflow-y-auto">
         <DialogHeader className="text-left">
           <DialogTitle>About this reply</DialogTitle>
-          <DialogDescription>The model and tools recorded for this response.</DialogDescription>
+          <DialogDescription>The model behind this reply and any tools used.</DialogDescription>
         </DialogHeader>
         <div className="rounded-2xl border border-border/40 bg-muted/20 p-4">
           <div className="flex items-center gap-3">
@@ -50,14 +46,8 @@ export function MessageMetadata({ message }: { message: Message }) {
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Model</dt>
-              <dd className="text-right break-all">{model || "Not recorded"}</dd>
+              <dd className="text-right break-all">{isLocal ? "On-device model" : isImage ? name : source === "cloud-voice" ? "Voxi" : "GPT 6"}</dd>
             </div>
-            {!isImage && source !== "cloud-voice" && !isLocal && (
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Reasoning</dt>
-                <dd>{effort ? effort[0].toUpperCase() + effort.slice(1) : "Not recorded"}</dd>
-              </div>
-            )}
             {message.memoryAction && (
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Tool</dt>
