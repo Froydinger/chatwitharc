@@ -34,7 +34,7 @@ try {
     assert.equal(await evaluate('document.querySelectorAll("#arc-response-handoff-qa [data-arc-thinking-indicator]").length'),1);
     assert.equal(await evaluate('document.querySelector("#arc-response-handoff-qa textarea").placeholder'),'Thinking...');
     await evaluate('window.__arcHandoffQA.render("partial")'); await wait(60);
-    assert.equal(await evaluate('document.querySelectorAll("#arc-response-handoff-qa [data-arc-thinking-indicator]").length'),1,'Partial text keeps the same activity indicator');
+    assert.equal(await evaluate('document.querySelectorAll("#arc-response-handoff-qa [data-arc-thinking-indicator]").length'),0,'First visible answer removes the waiting card');
     assert.equal(await evaluate('!!document.querySelector("#arc-response-handoff-qa [data-testid=live-chat-answer]")'),true);
     assert.equal(await evaluate('/finishing/i.test(document.querySelector("#arc-response-handoff-qa").textContent)'),false);
     assert.equal(await evaluate('document.querySelector("#arc-response-handoff-qa textarea").placeholder'),'Thinking...');
@@ -57,7 +57,7 @@ try {
   await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
   await evaluate('window.__arcHandoffQA.render("waiting");window.__arcHandoffQA.render("done")');
   assert.equal(await evaluate('getComputedStyle(document.querySelector("#arc-response-handoff-qa .arc-response-reveal")).animationName'),'none');
-  console.log('Response handoff browser checks passed: one indicator through partial text, no finishing labels, immediate completion/cancel/error cleanup, no stream replay, one 180ms fade and reduced motion at 412/1280px.');
+  console.log('Response handoff browser checks passed: indicator removed at first visible text, no finishing labels, immediate completion/cancel/error cleanup, no stream replay, one 180ms fade and reduced motion at 412/1280px.');
 } finally {
   await call('Emulation.setEmulatedMedia',{features:[]});
   await evaluate('window.__arcHandoffQA?.dispose(); true');

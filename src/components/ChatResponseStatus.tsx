@@ -1,7 +1,8 @@
+import { useLiveAnswerStore } from "@/store/useLiveAnswerStore";
 import { LiveChatAnswer } from "@/components/LiveChatAnswer";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 
-/** One activity indicator; a completed reply replaces it without a retained exit. */
+/** First visible answer text replaces the waiting card without a retained exit. */
 export function ChatResponseStatus({ sessionId, showThinking, showLiveAnswer, isLoading,
   searchingChats, accessingMemory, searchingWeb }: {
   sessionId: string | null;
@@ -12,8 +13,9 @@ export function ChatResponseStatus({ sessionId, showThinking, showLiveAnswer, is
   accessingMemory?: boolean;
   searchingWeb?: boolean;
 }) {
+  const hasVisibleAnswer = useLiveAnswerStore(state => !!(showLiveAnswer && state.answer?.sessionId === sessionId && state.answer.content.trim()));
   return <>
-    {showThinking && <ThinkingIndicator isLoading={isLoading} isGeneratingImage={false}
+    {showThinking && !hasVisibleAnswer && <ThinkingIndicator isLoading={isLoading} isGeneratingImage={false}
       searchingChats={searchingChats} accessingMemory={accessingMemory} searchingWeb={searchingWeb} />}
     <LiveChatAnswer sessionId={sessionId} visible={showLiveAnswer} />
   </>;
