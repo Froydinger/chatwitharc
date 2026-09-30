@@ -15,3 +15,8 @@ Requested end state; implementation is in progress. This is not a claim that the
 - Keep the dashboard navigation bar unchanged. Continue the input-bar extraction and native CSS animation migration, with recordings and browser/emulator checks. The owner took the physical Pixel away and explicitly replaced remaining device testing with Mac browser/emulator testing.
 
 Release gates: verify official provider IDs, transport/tool compatibility, authenticated server gates, atomic quota enforcement, captured queued selection, Stop/error recovery, private media persistence, representative browser layout/interaction, build and deployment provenance. Do not release partially wired selectable models or replace an unavailable selected model silently.
+
+## Verification ledger
+
+- Shared catalog/context helpers: saved selection migration, free/Boost policy, two-mode names, actual provider availability, mixed image credit costs and private/public usage wording tested locally. Not wired into released quota/provider paths yet.
+- Flash database admission: isolated real Postgres checks passed for concurrent duplicate submissions (one charge), 20-message cap under concurrency, account isolation, Boost bypass, private percentage RPC, grants and UTC rollover. Migration is additive; chat integration and production application are still pending.

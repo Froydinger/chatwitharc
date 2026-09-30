@@ -1,0 +1,50 @@
+// Real, disposable local Postgres; no production database, credentials or providers.
+import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
+import { spawnSync, spawn } from 'node:child_process';
+const dir=mkdtempSync(join(tmpdir(),'arc-flash-quota-'));
+const data=join(dir,'data');
+const run=(cmd,args)=>{const result=spawnSync(cmd,args,{encoding:'utf8'});if(result.status)throw Error(result.stderr || result.stdout);return result.stdout;};
+const args=['-h',dir,'-p','54389','-d','postgres','-X','-v','ON_ERROR_STOP=1','-At'];
+const sql=query=>run('psql',[...args,'-c',query]);
+const queryAsync=query=>new Promise((resolve,reject)=>{const p=spawn('psql',[...args,'-c',query]);let out='',err='';p.stdout.on('data',v=>out+=v);p.stderr.on('data',v=>err+=v);p.on('error',reject);p.on('close',status=>status?reject(Error(err)):resolve(out));});
+const parse=out=>JSON.parse(out.trim().split('\n').at(-1));
+const free=randomUUID(),other=randomUUID(),boost=randomUUID();
+const reserve=(id,key)=>`SET ROLE service_role; SET request.jwt.claim.role='service_role'; SELECT public.reserve_arc_flash_message('${id}','${key}');`;
+let started=false;
+try {
+ run('initdb',['-D',data,'--auth=trust','--no-locale']);
+ run('pg_ctl',['-D',data,'-l',join(dir,'postgres.log'),'-o',`-k ${dir} -h '' -p 54389`,'-w','start']); started=true;
+ sql(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
+ CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY, boost boolean NOT NULL DEFAULT false);
+ CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql AS $$ SELECT current_setting('request.jwt.claim.role',true) $$;
+ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+ GRANT USAGE ON SCHEMA auth TO authenticated,service_role;
+ CREATE FUNCTION public.user_has_boost(check_user_id uuid) RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$ SELECT boost FROM auth.users WHERE id=check_user_id $$;
+ INSERT INTO auth.users VALUES('${free}',false),('${other}',false),('${boost}',true);`);
+ sql(readFileSync('supabase/migrations/20260930070000_arc_flash_daily_message_quota.sql','utf8'));
+ const key=randomUUID();
+ const duplicates=await Promise.all(Array.from({length:12},()=>queryAsync(reserve(free,key))));
+ assert.ok(duplicates.every(out=>parse(out).allowed));
+ assert.equal(Number(sql(`SELECT used FROM arc_flash_daily_usage WHERE user_id='${free}';`).trim()),1,'Same submission is charged once across concurrent requests');
+ const results=await Promise.all(Array.from({length:35},()=>queryAsync(reserve(free,randomUUID()))));
+ assert.equal(results.filter(out=>parse(out).allowed).length,19,'Only remaining free messages admitted');
+ assert.equal(Number(sql(`SELECT used FROM arc_flash_daily_usage WHERE user_id='${free}';`).trim()),20);
+ assert.equal(parse(sql(reserve(free,key))).replayed,true,'An admitted replay still does not double-charge at the limit');
+ assert.equal(parse(sql(reserve(other,key))).usage_percent,5,'Request ownership is account scoped');
+ assert.equal(parse(sql(reserve(boost,randomUUID()))).unlimited,true);
+ assert.equal(Number(sql(`SELECT count(*) FROM arc_flash_daily_usage WHERE user_id='${boost}';`).trim()),0,'Boost does not consume a free reservation');
+ assert.equal(parse(sql(`SET ROLE authenticated; SET request.jwt.claim.sub='${other}'; SELECT get_arc_flash_usage_today();`)).usage_percent,5,'Meter sees only caller usage');
+ assert.throws(()=>sql(`SET ROLE authenticated; SELECT * FROM arc_flash_daily_usage;`),/permission denied/);
+ assert.throws(()=>sql(`SET ROLE authenticated; SELECT reserve_arc_flash_message('${other}','${randomUUID()}');`),/permission denied/);
+ assert.throws(()=>sql(`SET ROLE anon; SELECT get_arc_flash_usage_today();`),/permission denied/);
+ sql(`UPDATE arc_flash_daily_usage SET usage_date=usage_date-1 WHERE user_id='${free}';`);
+ assert.equal(parse(sql(reserve(free,randomUUID()))).usage_percent,5,'A new UTC day gets a new allowance');
+ console.log('Real Postgres Flash quota passed: concurrent duplicates, exact cap, owner isolation, Boost bypass, private percentages, grants and UTC rollover.');
+} finally {
+ if(started)run('pg_ctl',['-D',data,'-m','immediate','-w','stop']);
+ rmSync(dir,{recursive:true,force:true});
+}
