@@ -58,6 +58,8 @@ import { useVoiceModeStore, prewarmMicrophone } from "@/store/useVoiceModeStore"
 import type { VoiceName } from "@/store/useVoiceModeStore";
 import { REALTIME_VOICES, VOICE_AVATARS } from "@/constants/voices";
 import { cn } from "@/lib/utils";
+import { ownsComposerRequest, snapshotComposerRequest, type ComposerRequestSnapshot } from "@/lib/chat-input/types";
+import { useComposerQueue } from "@/hooks/chat-input/useComposerQueue";
 import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { APP_BUILDER_ENABLED } from "@/lib/features";
 import { routeRequest } from "@/utils/routeRequest";
@@ -86,12 +88,14 @@ import { makePrivateImageReference } from "@/lib/privateImages";
 
 // Global cancellation flag and AbortController
 let cancelRequested = false;
+let activeForegroundRequestId: string | null = null;
 let currentAbortController: AbortController | null = null;
 
 export const cancelCurrentRequest = () => {
   // Pause before clearing loading: becoming idle otherwise drains the queue.
   useMessageQueueStore.getState().pause();
   cancelRequested = true;
+  activeForegroundRequestId = null;
   // Abort any ongoing fetch request FIRST to prevent more data arriving
   if (currentAbortController) {
     currentAbortController.abort();
@@ -175,6 +179,8 @@ export interface ChatInputRef {
   handleImageUploadFiles: (files: File[]) => void;
   focusInput: () => void;
   sendMessage: (content: string) => void;
+  sendQueuedRequest: (request: ComposerRequestSnapshot) => void;
+  retryRequest: (request: ComposerRequestSnapshot) => void;
   /** Drop text into the composer without sending, so the user can edit it. */
   prefillInput: (content: string) => void;
 }
@@ -232,6 +238,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
 
   // Subscribe to canvas store reactively for auto-mode indicator when canvas is open
   // Use individual selectors for reliable re-renders when canvas open state changes
+  const corporateModeEnabled = useCorporateModeStore(state => state.enabled);
   const isWriteCanvasOpen = useCanvasStore((s) => s.isOpen && s.canvasType === "writing");
 
   const [inputValue, setInputValue] = useState("");
@@ -379,6 +386,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       sendMessage: (content: string) => {
         handleSend(content);
       },
+      sendQueuedRequest: (request) => {
+        sendQueuedRequest(request);
+      },
+      retryRequest: (request) => { retryRequest(request); },
       prefillInput: (content: string) => {
         setInputValue(content);
         textareaRef.current?.focus();
@@ -631,7 +642,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       if (!newContent.trim()) return;
       // If loading, queue the edited message instead of blocking
       if (isLoading) {
-        useMessageQueueStore.getState().addToQueue(newContent.trim());
+        enqueueComposerRequest(newContent, false, true);
         return;
       }
 
@@ -1115,24 +1126,135 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     }
   };
 
-  const handleSend = async (messageOverride?: string) => {
-    const messageToSend = messageOverride ?? inputValue;
-    if (!messageToSend.trim() && selectedImages.length === 0 && selectedDocuments.length === 0) return;
+  function clearComposer() {
+    setInputValue("");
+    setSelectedImages([]);
+    setSelectedDocuments([]);
+    setForceImageMode(false);
+    setForceCodingMode(false);
+    setForceCanvasMode(false);
+    setForceSearchMode(false);
+    setForceGitMode(false);
+    setShowMenu(false);
+  }
+
+  function captureComposerRequest(content: string, editedTextOnly = false, originalSessionId?: string): ComposerRequestSnapshot | null {
+    if (!user || isAnonymous) return null;
+    const images = editedTextOnly ? [] : selectedImages;
+    const documents = editedTextOnly ? [] : selectedDocuments;
+    if (!content.trim() && !images.length && !documents.length) return null;
+    const sessionId = originalSessionId || useArcStore.getState().currentSessionId || createNewSession();
+    return snapshotComposerRequest({
+      content: content.trim(), ownerId: user.id, sessionId, executionMode: cloudExecutionMode,
+      images, documents,
+      modes: {
+        image: !editedTextOnly && (forceImageMode || checkForImageRequest(content)),
+        code: !editedTextOnly && (forceCodingMode || checkForCodingRequest(content)),
+        canvas: !editedTextOnly && (forceCanvasMode || checkForCanvasRequest(content)),
+        search: !editedTextOnly && (forceSearchMode || checkForSearchRequest(content)),
+        git: isCurrentSessionGit || (!editedTextOnly && forceGitMode) || checkForGitRequest(content),
+        regularChat: forceRegularChatMode, editImages: !editedTextOnly && allImagesEditMode,
+      },
+      corporateMode: useCorporateModeStore.getState().enabled,
+      appIntent: !forceRegularChatMode && !isCurrentSessionGit && !forceGitMode && !checkForGitRequest(content)
+        ? getAppBuilderIntent(content, !!useIDEStore.getState().ideProjectId && !!useIDEStore.getState().ideFiles) : null,
+      workspace: (() => {
+        const canvas = useCanvasStore.getState();
+        const live = typeof (window as any).__arcaiLiveCanvasContent === 'string' ? (window as any).__arcaiLiveCanvasContent : '';
+        return { isOpen: canvas.isOpen, canvasType: canvas.canvasType,
+          content: live.trim() ? live : canvas.content, codeLanguage: canvas.codeLanguage };
+      })(),
+      reasoningSelection: useModelStore.getState().reasoningEffort,
+      imageOptions: { aspect: imageGenAspect, editAspect: imageEditAspect, count: imageGenCount },
+    });
+  }
+
+  function enqueueComposerRequest(content: string, clearDraft: boolean, editedTextOnly = false) {
+    if (!user || isAnonymous) { requireAuth("generic"); return; }
+    const request = captureComposerRequest(content, editedTextOnly);
+    if (!request) return;
+    useMessageQueueStore.getState().addToQueue(request);
+    if (clearDraft) clearComposer();
+  }
+
+  const executeRequest = async (messageOverride?: string, captured?: ComposerRequestSnapshot): Promise<false | void> => {
+    const messageToSend = captured?.content ?? messageOverride ?? inputValue;
+    const requestImages = captured?.images ?? selectedImages;
+    const requestDocuments = captured?.documents ?? selectedDocuments;
+    const requestModes = captured?.modes;
+    const requestImageMode = requestModes?.image ?? shouldShowBanana;
+    const requestCodeMode = requestModes?.code ?? shouldShowCodeMode;
+    const requestCanvasMode = requestModes?.canvas ?? shouldShowCanvasMode;
+    const requestSearchMode = requestModes?.search ?? shouldShowSearchMode;
+    const requestGitMode = requestModes?.git ?? shouldShowGitMode;
+    const requestRegularChatMode = requestModes?.regularChat ?? forceRegularChatMode;
+    const requestEditImages = requestModes?.editImages ?? allImagesEditMode;
+    const requestImageAspect = captured?.imageOptions.aspect ?? imageGenAspect;
+    const requestEditAspect = captured?.imageOptions.editAspect ?? imageEditAspect;
+    const requestImageCount = captured?.imageOptions.count ?? imageGenCount;
+    const attemptId = crypto.randomUUID();
+    let requestStarted = false;
+    let workAccepted = false;
+    let handedOffToCloudRun = false;
+    const requestIsCancelled = () => requestStarted ? activeForegroundRequestId !== attemptId : cancelRequested;
+    const ownsActivity = () => isArcWorkMode || !requestStarted || activeForegroundRequestId === attemptId;
+    const beginRequest = () => {
+      if (isArcWorkMode) { workAccepted = true; cancelRequested = false; return; }
+      if (requestStarted) return;
+      requestStarted = true;
+      activeForegroundRequestId = attemptId;
+      cancelRequested = false;
+    };
+    const setLoading = (value: boolean) => {
+      if (value) beginRequest();
+      if (ownsActivity()) useArcStore.getState().setLoading(value);
+    };
+    const setGeneratingImage = (value: boolean) => { if (ownsActivity()) useArcStore.getState().setGeneratingImage(value); };
+    const setSearchingChats = (value: boolean) => { if (ownsActivity()) useArcStore.getState().setSearchingChats(value); };
+    const setAccessingMemory = (value: boolean) => { if (ownsActivity()) useArcStore.getState().setAccessingMemory(value); };
+    const setSearchingWeb = (value: boolean) => { if (ownsActivity()) useArcStore.getState().setSearchingWeb(value); };
+    let acceptedRequest = captured;
+    const retainFailedRequest = (error: unknown) => {
+      if (requestIsCancelled() || isArcWorkMode || wasCloudHandoff || !user || user.id !== dispatchScopeRef.current.ownerId) return;
+      acceptedRequest ||= captureComposerRequest(messageToSend, false, owningSessionId) || undefined;
+      if (acceptedRequest) useMessageQueueStore.getState().retainFailure(acceptedRequest,
+        error instanceof Error ? error.message : typeof error === 'string' ? error : 'Request failed.');
+    };
+    let wasCloudHandoff = false;
+    const clearSubmittedComposer = () => {
+      beginRequest();
+      // A queued request/retry owns its snapshot, not the newer visible draft.
+      if (captured) return;
+      acceptedRequest ||= captureComposerRequest(messageToSend, false, owningSessionId) || undefined;
+      if (acceptedRequest) owningSessionId = acceptedRequest.sessionId;
+      clearComposer();
+    };
+    if (captured && (!ownsComposerRequest(captured, dispatchScopeRef.current)
+      || captured.corporateMode !== useCorporateModeStore.getState().enabled)) return false;
+    let owningSessionId = captured?.sessionId ?? useArcStore.getState().currentSessionId;
+    const originalOwnerId = captured?.ownerId ?? user?.id;
+    const addMessage: ReturnType<typeof useArcStore.getState>['addMessage'] = (message, options) => {
+      if ((requestStarted && requestIsCancelled()) || (originalOwnerId && originalOwnerId !== dispatchScopeRef.current.ownerId)) return Promise.resolve("");
+      owningSessionId ||= createNewSession();
+      return useArcStore.getState().addMessage(message, { ...options, sessionId: owningSessionId });
+    };
+    const canShowWorkspace = () => !requestIsCancelled() && owningSessionId === useArcStore.getState().currentSessionId;
+    const replaceLastMessage: ReturnType<typeof useArcStore.getState>['replaceLastMessage'] = (message) => requestIsCancelled()
+      ? Promise.resolve() : useArcStore.getState().replaceLastMessage(message, { sessionId: owningSessionId });
+    const upsertCanvasMessage: ReturnType<typeof useArcStore.getState>['upsertCanvasMessage'] = (content, label, memoryAction) => requestIsCancelled()
+      ? Promise.resolve('') : useArcStore.getState().upsertCanvasMessage(content, label, memoryAction, { sessionId: owningSessionId });
+    const upsertCodeMessage: ReturnType<typeof useArcStore.getState>['upsertCodeMessage'] = (content, language, label, memoryAction) => requestIsCancelled()
+      ? Promise.resolve('') : useArcStore.getState().upsertCodeMessage(content, language, label, memoryAction, { sessionId: owningSessionId });
+    try {
+    if (!messageToSend.trim() && requestImages.length === 0 && requestDocuments.length === 0) return false;
 
     // Local preview mode deliberately stays offline: send a normal-looking
     // turn, then attach representative search data so the chat layout and
     // image carousel can be inspected without provider credentials.
     if (isLocalChatPreview() && messageToSend.trim()) {
-      await addMessage({ content: messageToSend.trim(), role: "user", type: "text" });
-      setInputValue("");
-      setSelectedImages([]);
-      setSelectedDocuments([]);
-      setForceImageMode(false);
-      setForceCodingMode(false);
-      setForceCanvasMode(false);
-      setForceSearchMode(false);
-      setShowMenu(false);
+      clearSubmittedComposer();
       setLoading(true);
+      await addMessage({ content: messageToSend.trim(), role: "user", type: "text" });
       await new Promise((resolve) => setTimeout(resolve, 700));
       await addMessage({
         content: `Arc is now using a smooth staggered reveal animation to present responses without teleprompting or typing.
@@ -1158,7 +1280,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
         sessionStorage.setItem("pending-prompt", messageToSend.trim());
       }
       requireAuth("generic");
-      return;
+      return false;
     }
 
     // If Arc is currently thinking, queue the message instead of blocking
@@ -1166,9 +1288,9 @@ Feel free to send another message or test a prompt to see the animation again!`,
     const storeIsLoading = useArcStore.getState().isLoading;
     const storeIsGenerating = useArcStore.getState().isGeneratingImage;
     if ((isLoading || storeIsLoading || storeIsGenerating) && !canSubmitCloudTextWhileBusy(messageToSend)) {
-      if (messageToSend.trim()) {
-        useMessageQueueStore.getState().addToQueue(messageToSend.trim());
-        if (!messageOverride) setInputValue("");
+      if (messageToSend.trim() || requestImages.length || requestDocuments.length) {
+        if (captured) return false;
+        enqueueComposerRequest(messageToSend, !messageOverride);
       }
       return;
     }
@@ -1186,34 +1308,27 @@ Feel free to send another message or test a prompt to see the animation again!`,
     const userMessage = messageToSend.trim();
     const builderStore = useIDEStore.getState();
     const hasExistingApp = !!builderStore.ideProjectId && !!builderStore.ideFiles;
-    const appIntent = !forceRegularChatMode && !shouldShowGitMode && !checkForGitRequest(userMessage)
+    const appIntent = captured ? captured.appIntent : !requestRegularChatMode && !requestGitMode && !checkForGitRequest(userMessage)
       ? getAppBuilderIntent(userMessage, hasExistingApp)
       : null;
     if (appIntent) {
-      if (subscriptionLoading) return;
+      if (subscriptionLoading) return false;
       if (!hasBoost && !isAdmin) {
         openCheckout();
         toast({ title: "ArcAI Boost required", description: "App Builder is available to Boost subscribers and admins." });
-        return;
+        return false;
       }
-      if (selectedImages.length || selectedDocuments.length) {
+      if (requestImages.length || requestDocuments.length) {
         toast({ title: "Text prompts only for now", description: "Remove attachments, then ask Arc to build or edit the app." });
-        return;
+        return false;
       }
       const initialPrompt = appIntent.prompt;
       const clearAppBuilderComposer = () => {
-        setInputValue("");
-        setSelectedImages([]);
-        setSelectedDocuments([]);
-        setForceImageMode(false);
-        setForceCodingMode(false);
-        setForceCanvasMode(false);
-        setForceSearchMode(false);
-        setForceGitMode(false);
-        setShowMenu(false);
+        clearSubmittedComposer();
       };
 
       if (appIntent.action === 'edit') {
+        clearAppBuilderComposer();
         setLoading(true);
         let userMessageRecorded = false;
         try {
@@ -1251,8 +1366,8 @@ Feel free to send another message or test a prompt to see the animation again!`,
             });
             navigate(`/build/${encodeURIComponent(project.id)}`);
           }
-          clearAppBuilderComposer();
         } catch (error) {
+          retainFailedRequest(error);
           const description = error instanceof Error ? error.message : "Try again from your Apps page.";
           if (userMessageRecorded) {
             await addMessage({
@@ -1260,7 +1375,6 @@ Feel free to send another message or test a prompt to see the animation again!`,
               role: "assistant",
               type: "text",
             });
-            clearAppBuilderComposer();
           } else {
             toast({ title: "Couldn't check your saved apps", description });
           }
@@ -1283,8 +1397,8 @@ Feel free to send another message or test a prompt to see the animation again!`,
     if (requestsCurrentLocation(userMessage) && !getCachedLocation()) {
       void getUserLocation();
     }
-    let images = [...selectedImages];
-    let documents = [...selectedDocuments];
+    let images = [...requestImages];
+    let documents = [...requestDocuments];
 
     // Check if the user is asking to change models in chat
     const lowerMsg = userMessage.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()?]/g, "").trim();
@@ -1296,6 +1410,8 @@ Feel free to send another message or test a prompt to see the animation again!`,
       lowerMsg === "switch models" || lowerMsg === "upgrade model" || lowerMsg === "change model" || lowerMsg === "change models" || lowerMsg === "switch model";
 
     if (isModelSwitchQuery) {
+      clearSubmittedComposer();
+      setLoading(true);
       // Add user message to UI
       await addMessage({ content: userMessage, role: "user", type: "text" });
       
@@ -1311,7 +1427,6 @@ Feel free to send another message or test a prompt to see the animation again!`,
         modelUsed: currentModel,
       });
 
-      setInputValue("");
       setLoading(false);
       return;
     }
@@ -1319,21 +1434,21 @@ Feel free to send another message or test a prompt to see the animation again!`,
     let finalMessage = userMessage;
 
     // Capture mode states BEFORE clearing UI (they're needed in handleSendMessage)
-    let wasCanvasMode = shouldShowCanvasMode || checkForCanvasRequest(finalMessage);
-    let wasCodingMode = shouldShowCodeMode || checkForCodingRequest(finalMessage);
+    let wasCanvasMode = requestCanvasMode || checkForCanvasRequest(finalMessage);
+    let wasCodingMode = requestCodeMode || checkForCodingRequest(finalMessage);
     // Video is checked before image so "make a video of a cat" doesn't get
     // claimed by the (much broader) image matcher. Gated on access up front so
     // the feature is genuinely invisible to everyone else — a video request
     // from another account falls through to normal chat rather than getting
     // told about a feature it can't use.
     let wasVideoMode = canGenerateVideo && checkForVideoRequest(finalMessage);
-    let wasImageMode = !wasVideoMode && (shouldShowBanana || checkForImageRequest(finalMessage));
-    let wasSearchMode = shouldShowSearchMode || checkForSearchRequest(finalMessage);
-    let wasGitMode = shouldShowGitMode || checkForGitRequest(finalMessage);
+    let wasImageMode = !wasVideoMode && (requestImageMode || checkForImageRequest(finalMessage));
+    let wasSearchMode = requestSearchMode || checkForSearchRequest(finalMessage);
+    let wasGitMode = requestGitMode || checkForGitRequest(finalMessage);
 
     // Natural language image generation/search routing when no slash command and no UI toggles are active
     const isSlashOrOverride = finalMessage.trim().startsWith("/") ||
-                              shouldShowCanvasMode || shouldShowCodeMode || shouldShowBanana || shouldShowSearchMode || shouldShowGitMode;
+                              requestCanvasMode || requestCodeMode || requestImageMode || requestSearchMode || requestGitMode;
 
     if (!isArcWorkMode && !isSlashOrOverride && !documents.length && !images.length) {
       const intent = analyzeImageRequestIntent(finalMessage);
@@ -1342,6 +1457,8 @@ Feel free to send another message or test a prompt to see the animation again!`,
       } else if (intent === 'search') {
         wasSearchMode = true;
       } else if (intent === 'ask') {
+        clearSubmittedComposer();
+        setLoading(true);
         const subject = extractSubjectForImageRequest(finalMessage);
         
         // Add user message to UI
@@ -1355,16 +1472,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
           imageChoiceSubject: subject,
         });
         
-        // Reset state & exit handleSend
-        setInputValue("");
-        setSelectedImages([]);
-        setSelectedDocuments([]);
-        setForceImageMode(false);
-        setForceCodingMode(false);
-        setForceCanvasMode(false);
-        setForceSearchMode(false);
-        setForceGitMode(false);
-        setShowMenu(false);
+        // Settle without replacing a draft typed during persistence.
         setLoading(false);
         return;
       }
@@ -1389,7 +1497,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
           title: "Parallel help is Chat-only for now",
           description: "Switch back to a plain Chat request without tools or attachments, then try again.",
         });
-        return;
+        return false;
       }
 
       if (!hasBoost && !isAdmin) {
@@ -1398,7 +1506,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
           title: "ArcAI Boost required",
           description: "Parallel Chat help is available to Boost subscribers and admins for now.",
         });
-        return;
+        return false;
       }
     }
 
@@ -1413,16 +1521,16 @@ Feel free to send another message or test a prompt to see the animation again!`,
       wasSearchMode = false;
     }
 
+    // Reject before clearing or uploading; keep the draft/files on entitlement failure.
+    if (!isArcWorkMode && images.length > 0 && !hasBoost
+      && (requestEditImages || isImageEditRequest(finalMessage) || images.length > 1)) {
+      toast({ title: "Boost Premium Feature", description: "Image editing and combining is only available on the Boost tier. Please upgrade to unlock editing!", variant: "destructive" });
+      openCheckout();
+      return false;
+    }
+
     // Clear UI promptly
-    setInputValue("");
-    setSelectedImages([]);
-    setSelectedDocuments([]);
-    setForceImageMode(false);
-    setForceCodingMode(false);
-    setForceCanvasMode(false);
-    setForceSearchMode(false);
-    setForceGitMode(false);
-    setShowMenu(false);
+    clearSubmittedComposer();
 
     // === CORPORATE MODE: hard-strip every cloud tool from this turn ===
     const corporateMode = useCorporateModeStore.getState().enabled;
@@ -1456,10 +1564,11 @@ Feel free to send another message or test a prompt to see the animation again!`,
     // Deep Search Mode is opened separately via the button
     // We set forceWebSearch flag so the chat API always does a web search
 
-    // Reset cancellation flag
-    cancelRequested = false;
-    const existingSessionId = useArcStore.getState().currentSessionId;
+    // Accepted foreground ownership already began before any preparation.
+    beginRequest();
+    const existingSessionId = owningSessionId;
     const requestSessionId = existingSessionId || createNewSession();
+    owningSessionId = requestSessionId;
     if (!existingSessionId && isArcWorkMode) onWorkSessionCreated?.(requestSessionId);
     if (wasGitMode && requestSessionId) {
       void markSessionAsGit(requestSessionId);
@@ -1484,9 +1593,8 @@ Feel free to send another message or test a prompt to see the animation again!`,
       window.dispatchEvent(new CustomEvent("arcai:guestMessageSent"));
     }
 
-    let handedOffToCloudRun = false;
     try {
-      const ai = new AIService();
+      const ai = new AIService(acceptedRequest?.reasoningSelection);
 
       // Guest mode restrictions: only basic text chat
       if (
@@ -1517,6 +1625,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
 
         try {
           for (const doc of documents) {
+            if (requestIsCancelled()) return;
             const fileData = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
               reader.onload = () => resolve(reader.result as string);
@@ -1540,6 +1649,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
             });
           }
         } catch (err: any) {
+          retainFailedRequest(err);
           toast({ title: "Error", description: err?.message || "Failed to analyze document", variant: "destructive" });
           await addMessage({
             content: "Sorry, I couldn't analyze the document. Please try again.",
@@ -1593,7 +1703,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
         // attached (combine/merge intent). This matches the prior Gemini UX
         // where pasting + asking to change something Just Worked.
         const isEditMode =
-          allImagesEditMode ||
+          requestEditImages ||
           (finalMessage && isImageEditRequest(finalMessage)) ||
           images.length > 1;
 
@@ -1620,7 +1730,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
           setGeneratingImage(true);
 
           try {
-            const editResult = await ai.editImage(finalMessage, imageUrls, imageEditModel, imageEditAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
+            const editResult = await ai.editImage(finalMessage, imageUrls, imageEditModel, requestEditAspect, Math.max(1, Math.min(3, requestImageCount || 1)));
             const finalUrls = editResult.imageUrls;
             const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
             await replaceLastMessage({
@@ -1633,6 +1743,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
               modelUsed: editResult.modelUsed,
             });
           } catch (err: any) {
+            retainFailedRequest(err);
             const errMsg = err?.message || "Image editing failed. Please try again.";
             await replaceLastMessage({
               content: errMsg,
@@ -1682,6 +1793,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
             modelUsed: LUNA_MODEL,
           });
         } catch {
+          retainFailedRequest('Failed to analyze images');
           toast({ title: "Error", description: "Failed to analyze images", variant: "destructive" });
           await addMessage({
             content: "Sorry, I couldn't analyze these images. Please try again.",
@@ -1742,8 +1854,8 @@ Feel free to send another message or test a prompt to see the animation again!`,
 
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
-          const requestedCount = Math.max(1, Math.min(3, imageGenCount || 1));
-          const generationResult = await ai.generateImage(apiPrompt, imageGenModel, imageGenAspect, requestedCount);
+          const requestedCount = Math.max(1, Math.min(3, requestImageCount || 1));
+          const generationResult = await ai.generateImage(apiPrompt, imageGenModel, requestImageAspect, requestedCount);
           const genUrls = generationResult.imageUrls;
 
           // Replace placeholder with a single message containing all generated images
@@ -1760,6 +1872,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
             modelUsed: generationResult.modelUsed,
           });
         } catch (err: any) {
+          retainFailedRequest(err);
           const errMsg = err?.message || "Image generation failed. Please try again.";
           await replaceLastMessage({
             content: errMsg,
@@ -1817,7 +1930,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
           setGeneratingImage(true);
 
           try {
-            const editResult = await ai.editImage(finalMessage, sourceImageUrls, imageEditModel, imageEditAspect, Math.max(1, Math.min(3, imageGenCount || 1)));
+            const editResult = await ai.editImage(finalMessage, sourceImageUrls, imageEditModel, requestEditAspect, Math.max(1, Math.min(3, requestImageCount || 1)));
             const finalUrls = editResult.imageUrls;
             const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
             await replaceLastMessage({
@@ -1830,6 +1943,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
               modelUsed: editResult.modelUsed,
             });
           } catch (err: any) {
+            retainFailedRequest(err);
             const errMsg = err?.message || "Image editing failed. Please try again.";
             await replaceLastMessage({
               content: errMsg,
@@ -1872,7 +1986,8 @@ Feel free to send another message or test a prompt to see the animation again!`,
         // Strip the code/ prefix if present
         const isCodingRequest = !wasGitMode && wasCodingMode;
 
-        const canvasState = useCanvasStore.getState();
+        let queuedWorkspace = acceptedRequest?.workspace;
+        const canvasState = queuedWorkspace ?? useCanvasStore.getState();
 
         // CODE MODE: /code produces inline code blocks via the normal AI flow.
         // The isCodingRequest flag flows through to forceCode below
@@ -1900,7 +2015,8 @@ Feel free to send another message or test a prompt to see the animation again!`,
           if (lastCodeMsg) {
             const codeContent = (lastCodeMsg as any).codeContent || "";
             const codeLang = (lastCodeMsg as any).codeLanguage || "html";
-            useCanvasStore.getState().openWithContent(codeContent, "code", codeLang);
+            if (canShowWorkspace()) useCanvasStore.getState().openWithContent(codeContent, "code", codeLang);
+            if (acceptedRequest) queuedWorkspace = { isOpen: true, canvasType: "code", content: codeContent, codeLanguage: codeLang };
             isCodeCanvasOpen = true;
           } else {
             // Fallback: scan recent assistant text messages for fenced code blocks
@@ -1914,7 +2030,8 @@ Feel free to send another message or test a prompt to see the animation again!`,
                 const codeLang = match[1] || "html";
                 const codeContent = match[2] || "";
                 if (codeContent.trim().length > 50) {
-                  useCanvasStore.getState().openWithContent(codeContent, "code", codeLang);
+                  if (canShowWorkspace()) useCanvasStore.getState().openWithContent(codeContent, "code", codeLang);
+                  if (acceptedRequest) queuedWorkspace = { isOpen: true, canvasType: "code", content: codeContent, codeLanguage: codeLang };
                   isCodeCanvasOpen = true;
                   break;
                 }
@@ -1925,8 +2042,8 @@ Feel free to send another message or test a prompt to see the animation again!`,
         const shouldUseCodeContext = !wasGitMode && isCodeCanvasOpen;
 
         // Re-read canvas state after potential openWithContent call above
-        const freshCanvasState = useCanvasStore.getState();
-        const liveCanvasContent =
+        const freshCanvasState = queuedWorkspace ?? useCanvasStore.getState();
+        const liveCanvasContent = acceptedRequest ? queuedWorkspace?.content || "" :
           typeof window !== "undefined" && typeof (window as any).__arcaiLiveCanvasContent === "string"
             ? (window as any).__arcaiLiveCanvasContent
             : "";
@@ -2020,7 +2137,7 @@ ${safeCode}
         aiMessages.push({ role: "user", content: messageToSend });
 
         // Check if cancelled before making the call
-        if (cancelRequested) {
+        if (requestIsCancelled()) {
           return;
         }
 
@@ -2073,6 +2190,7 @@ ${safeCode}
               kind: workspaceKind, content: currentWorkspaceContent,
               ...(workspaceKind === 'code' ? {language: freshCanvasState.codeLanguage || 'html'} : {}),
             }) : undefined;
+            wasCloudHandoff = true;
             await onCloudTextSubmit({
               sessionId: requestSessionId,
               userMessageId,
@@ -2118,6 +2236,7 @@ ${safeCode}
           await streamWithContinuation({
             messages: aiMessages,
             profile,
+            reasoningSelection: acceptedRequest?.reasoningSelection,
             forceCanvas: shouldForceCanvas,
             forceCode: shouldForceCode,
             sessionId: requestSessionId || undefined,
@@ -2133,7 +2252,7 @@ ${safeCode}
 
             // onDelta - accumulate content but DON'T stream to canvas (user wants no streaming)
             onDelta: (delta) => {
-              if (cancelRequested || abortSignal.aborted) return; // Stop accumulating if cancelled
+              if (requestIsCancelled() || abortSignal.aborted) return; // Stop accumulating if cancelled
               streamedContent += delta;
             },
 
@@ -2149,7 +2268,7 @@ ${safeCode}
             // onDone - finalize (result includes wasContinued flag)
             onDone: async (result) => {
               // CRITICAL: If cancelled, do NOT add any messages or open canvas
-              if (cancelRequested || abortSignal.aborted) return;
+              if (requestIsCancelled() || abortSignal.aborted) return;
               const streamWebSources = result.webSources || [];
 
               // Determine memory action
@@ -2193,7 +2312,7 @@ ${safeCode}
 
                 // Open canvas with verified content from saved message
                 const { openWithContent } = useCanvasStore.getState();
-                openWithContent(verifiedContent, "code", verifiedLang);
+                if (canShowWorkspace()) openWithContent(verifiedContent, "code", verifiedLang);
 
                 if (result.wasContinued) {
                   toast({
@@ -2220,7 +2339,7 @@ ${safeCode}
 
                 // Open canvas with verified content
                 const { openWithContent } = useCanvasStore.getState();
-                openWithContent(verifiedContent, "writing");
+                if (canShowWorkspace()) openWithContent(verifiedContent, "writing");
               }
 
               // Persist to session for canvas/code (use streamedContent, not result.content)
@@ -2229,13 +2348,14 @@ ${safeCode}
                 await updateSessionCanvasContent(requestSessionId, streamedContent || result.content);
                 const session = chatSessions.find((s) => s.id === requestSessionId);
                 if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
-                  await generateChatTitle(requestSessionId);
+                  void generateChatTitle(requestSessionId);
                 }
               }
             },
 
             // onError - just show toast, canvas isn't open yet
             onError: (errorMsg) => {
+              retainFailedRequest(errorMsg);
               if (!abortSignal.aborted) {
                 toast({ title: "Error", description: errorMsg, variant: "destructive" });
               }
@@ -2307,7 +2427,7 @@ ${safeCode}
                 const MAX_TOOL_TURNS = 3;
 
                 for (let turn = 0; turn < MAX_TOOL_TURNS + 1; turn++) {
-                  if (cancelRequested || currentAbortController?.signal.aborted) break;
+                  if (requestIsCancelled() || currentAbortController?.signal.aborted) break;
 
                   let streamed = "";
                   let pending = "";
@@ -2449,12 +2569,12 @@ ${safeCode}
                   }
                 }
 
-                if (cancelRequested) return;
+                if (requestIsCancelled()) return;
               } catch (localErr: any) {
                 console.warn("Local model failed, falling back to cloud:", localErr);
                 toast({ title: "Local model error", description: "Falling back to cloud.", variant: "default" });
                 // Fall through to cloud path below
-                const ai = new AIService();
+                const ai = new AIService(acceptedRequest?.reasoningSelection);
                 const result = await ai.sendMessage(
                   aiMessages,
                   profile,
@@ -2467,7 +2587,7 @@ ${safeCode}
                   isGuestMode,
                   codeContextModelOverride,
                 );
-                if (cancelRequested) return;
+                if (requestIsCancelled()) return;
                 await addMessage({
                   content: result.content,
                   role: "assistant",
@@ -2478,10 +2598,11 @@ ${safeCode}
               }
             } else {
               // === CLOUD PATH ===
-              const ai = new AIService();
+              const ai = new AIService(acceptedRequest?.reasoningSelection);
               currentAbortController = new AbortController();
 
               const applyActivity = (activity: string) => {
+                if (requestIsCancelled()) return;
           useArcStore.getState().setActiveStatusDetails(activity === "browser" ? "Opening or checking the browser..." : null);
           if (activity === "browser" || activity === "thinking") {
             setAccessingMemory(false);
@@ -2536,6 +2657,7 @@ ${safeCode}
                 isGuestMode, // guestMode
                 codeContextModelOverride,
                 (status) => {
+                  if (requestIsCancelled()) return;
                   const subagentEvent = status.subagent as SubagentStreamEvent | undefined;
                   if (subagentEvent?.type) {
                     const eventRunId = subagentEvent.runId;
@@ -2575,7 +2697,7 @@ ${safeCode}
               );
 
               // CRITICAL: If cancelled while waiting for response, discard everything
-              if (cancelRequested) return;
+              if (requestIsCancelled()) return;
 
               // Determine memory action
               let memoryAction: any = undefined;
@@ -2628,7 +2750,7 @@ ${safeCode}
               // Handle canvas/code updates if the AI decided to use those tools
               if (result.codeUpdate) {
                 const { openCodeCanvas } = useCanvasStore.getState();
-                openCodeCanvas(result.codeUpdate.code, result.codeUpdate.language || "html", result.codeUpdate.label);
+                if (canShowWorkspace()) openCodeCanvas(result.codeUpdate.code, result.codeUpdate.language || "html", result.codeUpdate.label);
                 const codeMsgId = await upsertCodeMessage(
                   result.codeUpdate.code,
                   result.codeUpdate.language || "html",
@@ -2643,7 +2765,7 @@ ${safeCode}
                 });
               } else if (result.canvasUpdate) {
                 const { openCanvas } = useCanvasStore.getState();
-                openCanvas(result.canvasUpdate.content);
+                if (canShowWorkspace()) openCanvas(result.canvasUpdate.content);
                 const canvasMsgId = await upsertCanvasMessage(result.canvasUpdate.content, result.canvasUpdate.label);
                 useArcStore.setState((state) => {
                   const idx = state.messages.findIndex((m) => m.id === canvasMsgId);
@@ -2660,9 +2782,10 @@ ${safeCode}
         }
       } catch (err: any) {
         // Check if request was cancelled
-        if (cancelRequested) {
+        if (requestIsCancelled()) {
           return;
         }
+        retainFailedRequest(err);
         const errorMsg = err?.message || "Failed to get AI response";
         toast({ title: "Error", description: errorMsg, variant: "destructive" });
         await addMessage({
@@ -2673,57 +2796,55 @@ ${safeCode}
         });
       }
     } finally {
-      if (!cancelRequested && !handedOffToCloudRun) {
-        setLoading(false);
+      // Terminal cleanup is owned by the common request lifetime below.
+    }
+    } catch (error) {
+      if (!requestIsCancelled()) {
+        retainFailedRequest(error);
+        toast({ title: 'Request failed', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
       }
-      // The predicted activity is set before the request and there is no other
-      // clear on this path, so it must be released here or a memory/web query
-      // would leave its indicator latched on for the rest of the session.
-      setSearchingChats(false);
-      setAccessingMemory(false);
-      setSearchingWeb(false);
-      useArcStore.getState().setActiveTask(null);
-      useArcStore.getState().setActiveStatusDetails(null);
-      currentAbortController = null;
+    } finally {
+      // Stop or a later request may have taken ownership; stale completions
+      // cannot clear its indicator/controller. Work keeps its durable projection.
+      if (ownsActivity() && (requestStarted || workAccepted)) {
+        if (!requestIsCancelled() && !handedOffToCloudRun) setLoading(false);
+        setSearchingChats(false);
+        setAccessingMemory(false);
+        setSearchingWeb(false);
+        useArcStore.getState().setActiveTask(null);
+        useArcStore.getState().setActiveStatusDetails(null);
+        currentAbortController = null;
+        if (activeForegroundRequestId === attemptId) activeForegroundRequestId = null;
+      }
     }
   };
 
-  // Auto-send next queued message when loading finishes
-  const prevLoadingRef = useRef(isLoading);
-  const queueDrainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const foregroundSubmissionRef = useRef(false);
+  const foregroundOwnerRef = useRef<string | null>(null);
   useEffect(() => {
-    if (prevLoadingRef.current && !isLoading) {
-      // Loading just finished — wait for state to settle, then poll until truly idle
-      // before dispatching the next queued message. Polling avoids the race where
-      // isLoading flickers false->true and the queued send gets re-queued silently.
-      let attempts = 0;
-      const tryDrain = () => {
-        attempts++;
-        const storeLoading = useArcStore.getState().isLoading;
-        const storeGenerating = useArcStore.getState().isGeneratingImage;
-        if (storeLoading || storeGenerating) {
-          if (attempts < 20) {
-            queueDrainTimerRef.current = setTimeout(tryDrain, 250);
-          }
-          return;
-        }
-        const { queue, isPaused, popNext } = useMessageQueueStore.getState();
-        if (queue.length > 0 && !isPaused) {
-          const next = popNext();
-          if (next) {
-            // Slight defer so React has flushed the previous turn's renders
-            // (user/assistant bubbles) before we kick off the next handleSend.
-            queueDrainTimerRef.current = setTimeout(() => handleSend(next.content), 50);
-          }
-        }
-      };
-      queueDrainTimerRef.current = setTimeout(tryDrain, 600);
-      return () => {
-        if (queueDrainTimerRef.current) clearTimeout(queueDrainTimerRef.current);
-      };
+    if (foregroundSubmissionRef.current && foregroundOwnerRef.current !== (user?.id ?? null)) cancelCurrentRequest();
+  }, [user?.id]);
+  const handleSend = async (messageOverride?: string, captured?: ComposerRequestSnapshot): Promise<false | void> => {
+    const content = captured?.content ?? messageOverride ?? inputValue;
+    const workBypass = canSubmitCloudTextWhileBusy(content);
+    if (foregroundSubmissionRef.current && !workBypass) {
+      if (!captured) enqueueComposerRequest(content, !messageOverride);
+      return;
     }
-    prevLoadingRef.current = isLoading;
-  }, [isLoading]);
+    if (!workBypass) { foregroundSubmissionRef.current = true; foregroundOwnerRef.current = user?.id ?? null; }
+    try { return await executeRequest(messageOverride, captured); }
+    finally { if (!workBypass) foregroundSubmissionRef.current = false; }
+  };
+
+  const dispatchScopeRef = useRef({ ownerId: user?.id ?? null, sessionId: currentSessionId, executionMode: cloudExecutionMode });
+  dispatchScopeRef.current = { ownerId: user?.id ?? null, sessionId: currentSessionId, executionMode: cloudExecutionMode };
+  const { sendQueuedRequest, retryRequest } = useComposerQueue({
+    scope: dispatchScopeRef.current,
+    corporateMode: corporateModeEnabled,
+    busy: isLoading || isGeneratingImage,
+    isBusy: () => foregroundSubmissionRef.current || useArcStore.getState().isLoading || useArcStore.getState().isGeneratingImage,
+    dispatch: request => handleSend(undefined, request),
+  });
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Enter confirms an IME candidate; it must not submit that unfinished draft.
@@ -2732,10 +2853,7 @@ ${safeCode}
       e.preventDefault();
       if ((e.ctrlKey || e.metaKey) && !canSubmitCloudTextWhileBusy(inputValue)) {
         // Ctrl/Cmd+Enter = always explicitly add to queue
-        if (inputValue.trim()) {
-          useMessageQueueStore.getState().addToQueue(inputValue.trim());
-          setInputValue("");
-        }
+        enqueueComposerRequest(inputValue, true);
       } else {
         // Enter = send (or auto-queue if Arc is thinking)
         handleSend();

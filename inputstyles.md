@@ -1,6 +1,6 @@
 # Arc input bar: structure, compatibility, and refactor plan
 
-Status: **incremental implementation in progress**, September 29, 2026. Pure intent helpers, the controlled textarea, attachment-preview ownership, and viewport subscriptions are extracted; submission ownership and queue policy remain unchanged pending their separate release. The ledger records completed work separately from the proposed phases.
+Status: **incremental implementation in progress**, September 29, 2026. Pure intent helpers, the controlled textarea, attachment-preview ownership, and viewport subscriptions are extracted; the queue now captures request ownership/files/context, and submission attempts guard terminal cleanup and retain explicit recovery. The remaining presentation/orchestration extraction is still in progress. The ledger records completed work separately from the proposed phases.
 
 ## Recommendation
 
@@ -10,7 +10,7 @@ Keeping everything unchanged is the lowest immediate release risk, and is sensib
 
 There is no honest zero-regression guarantee. Compatibility comes from recording current behavior, keeping changes small, testing the same inputs and outputs, and reverting a failed phase. Each phase must be useful and independently reversible.
 
-## What exists today
+## Baseline and current adapters
 
 | Location | Current responsibility | Preserve |
 | --- | --- | --- |
@@ -18,7 +18,7 @@ There is no honest zero-regression guarantee. Compatibility comes from recording
 | `src/store/useArcStore.ts` | Session/messages, loading and image-generation state, search/memory activity | Existing persistent schema and session ownership |
 | `src/services/ai.ts` | Chat transport, streaming and browser session events | Request/response contract |
 | `src/services/cloudRuns.ts` | Durable Work requests | Explicit Chat/Work boundary |
-| `src/store/useMessageQueueStore.ts` | Global in-memory queue of `{id, content, createdAt}` text entries; it has no session, mode, or attachment fields | Keep the current queue as a compatibility adapter until queue policy is decided |
+| `src/store/useMessageQueueStore.ts` | In-memory immutable request snapshots plus manual failure recovery; atomic scoped claims, pause and account cleanup | Files remain File objects, no persistence migration or automatic retry |
 | `src/services/messageQueue.ts` | Separate `localStorage` recovery queue with session IDs, status, retries, and arbitrary message payloads | Do not assume it backs the visible composer queue; trace any adoption separately |
 | `src/components/MobileChatApp.tsx` and `src/components/ThinkingIndicator.tsx` | Own/render the existing chat progress indicator, including empty-chat placement and in-thread assistant thinking UI | Reuse this indicator; do not add a second composer spinner |
 | Existing voice, image, Canvas, IDE, Git, model and search hooks/stores | Feature-specific state and services | Entitlements, provider routing, cancellation and persistence |
@@ -189,12 +189,13 @@ Use existing glass utilities, Noir theme and shared spacing. Keep domain state o
 
 | Date | Work | Status / evidence |
 | --- | --- | --- |
+| 2026-09-29 | Phase 4 request ownership/recovery stage: typed immutable snapshots, `useComposerQueue`, scoped `addMessage`, attempt-owned cleanup and foreground admission guard | Node tests cover FIFO/chat/account/mode, File retention, original-session persistence, stale completion, cancellation, document failure, denied image-edit access and uncertain Work acknowledgement. Actual React hook + queue view browser checks cover hold, failure/manual retry, newer draft, rapid clicks, Stop/resume, owner change and unmount. Queue/recovery is in-memory; reload recovery and background dispatch are not introduced. |
 | 2026-09-29 | Phase 2 first component + Phase 3: `ComposerTextarea`, `useAttachmentPreviews`, `useComposerViewport`; prevent IME Enter submission and refresh imperative callbacks with current render state | Desktop/412px browser checks pass for IME, newline, sizing/selection, File retention, exact preview revocation and subscription/observer teardown. Geometry and public ref methods preserved. Real Android keyboard/file-picker checks are not claimed; owner took Pixel and requested Mac testing. |
 | 2026-09-29 | Phase 1: moved 24 pure classifiers/context helpers to `src/lib/chat-input/intent.ts`, preserving `ChatInput` exports and branch order | 504 old/new comparisons matched; 25 permanent command/near-miss cases pass; helper lint and production build pass. Full typecheck is blocked by existing JSX errors in unchanged `AdminSettingsPanel.tsx`. Queue/submission behavior unchanged. |
 | 2026-09-28 | Inspected ChatInput responsibilities, public interface, busy/queue behavior and Work boundary; wrote this plan | Documentation only; no composer implementation changes |
 
 After approval and each phase, add changed files, preserved behavior, intentional behavior changes, checks actually run, release revision and rollback commit. Never mark an unchecked acceptance row as passed.
 
-### Narrow browser fixes after the plan (not the composer refactor)
+### Narrow browser fixes after the plan
 
-The browser handoff now restores its displayed owner-scoped session into the request store before submitting the follow-up. Explicit site-open requests use a bounded server preflight, and hand-back reads the current browser page before model reasoning. Browser/thinking status transitions clear stale memory/search labels in the existing indicator. These are targeted fixes; the phased composer extraction above remains unimplemented.
+The browser handoff now restores its displayed owner-scoped session into the request store before submitting the follow-up. Explicit site-open requests use a bounded server preflight, and hand-back reads the current browser page before model reasoning. Browser/thinking status transitions clear stale memory/search labels in the existing indicator. These were targeted fixes. The ledger above records the subsequent incremental composer implementation.

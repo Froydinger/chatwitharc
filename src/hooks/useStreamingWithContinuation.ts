@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react';
+import type { LunaReasoningSelection, LunaReasoningEffort } from '@/store/useModelStore';
 import { AIService } from '@/services/ai';
 import { useCanvasStore } from '@/store/useCanvasStore';
 import { useArcStore } from '@/store/useArcStore';
@@ -15,6 +16,7 @@ interface StreamingOptions {
   forceCanvas: boolean;
   forceCode: boolean;
   sessionId?: string;
+  reasoningSelection?: LunaReasoningSelection;
   forceWebSearch?: boolean;
   onStart?: (mode: 'canvas' | 'code' | 'text') => void;
   onDelta?: (delta: string) => void;
@@ -26,7 +28,8 @@ interface StreamingOptions {
     webSources?: any[];
     wasContinued?: boolean;
     modelUsed?: string;
-  }) => void;
+    reasoningEffortUsed?: LunaReasoningEffort;
+  }) => void | Promise<void>;
   onError?: (error: string) => void;
   onContinuing?: () => void; // Called when auto-continuation starts
   abortSignal?: AbortSignal;
@@ -58,11 +61,12 @@ export function useStreamingWithContinuation() {
       maxContinuations = 3
     } = options;
     
-    const aiService = new AIService();
+    const aiService = new AIService(options.reasoningSelection);
     let accumulatedContent = '';
     let finalMode: 'canvas' | 'code' | 'text' = 'text';
     let finalLabel = '';
     let finalLanguage = 'html';
+    let finalReasoningEffort: LunaReasoningEffort | undefined;
     let finalWebSources: any[] = [];
     let finalModelUsed: string | undefined;
     let isFirstChunk = true;
@@ -100,6 +104,7 @@ export function useStreamingWithContinuation() {
           },
           // onDone
           async (result) => {
+            finalReasoningEffort = result.reasoningEffortUsed;
             // If aborted, do NOT call onDone - discard everything
             if (abortSignal?.aborted) {
               resolve(false);
@@ -157,33 +162,45 @@ export function useStreamingWithContinuation() {
                 console.log(`📏 Final content length: ${contentToUse.length} chars`);
               }
 
-              onDone?.({
+              try {
+              await onDone?.({
                 mode: finalMode,
                 content: contentToUse,
                 label: finalLabel,
                 language: finalLanguage,
                 webSources: finalWebSources,
                 wasContinued: continuationCount > 0,
-                modelUsed: finalModelUsed
+                modelUsed: finalModelUsed,
+                reasoningEffortUsed: finalReasoningEffort
               });
               resolve(true);
+              } catch (error) {
+                if (!abortSignal?.aborted) onError?.(error instanceof Error ? error.message : 'Could not finish saving the response.');
+                resolve(false);
+              }
             }
           },
           // onError
-          (error) => {
+          async (error) => {
             // On error during continuation, still try to use what we have
             if (isContinuation && accumulatedContent.length > 100) {
               console.warn('⚠️ Error during continuation, using accumulated content');
-              onDone?.({
+              try {
+              await onDone?.({
                 mode: finalMode,
                 content: accumulatedContent,
                 label: finalLabel,
                 language: finalLanguage,
                 webSources: finalWebSources,
                 wasContinued: continuationCount > 0,
-                modelUsed: finalModelUsed
+                modelUsed: finalModelUsed,
+                reasoningEffortUsed: finalReasoningEffort
               });
               resolve(true);
+              } catch (error) {
+                if (!abortSignal?.aborted) onError?.(error instanceof Error ? error.message : 'Could not finish saving the response.');
+                resolve(false);
+              }
             } else {
               // Don't call onError for aborted requests (user cancelled)
               if (!abortSignal?.aborted) {

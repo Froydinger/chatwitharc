@@ -297,13 +297,13 @@ export interface ArcState {
 
   // Current Chat State
   messages: Message[];
-  addMessage: (message: Omit<Message, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }, options?: { deferCloudPersistence?: boolean }) => Promise<string>;
+  addMessage: (message: Omit<Message, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }, options?: { deferCloudPersistence?: boolean; sessionId?: string }) => Promise<string>;
   replaceMessage: (messageId: string, message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
-  replaceLastMessage: (message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
+  replaceLastMessage: (message: Omit<Message, 'id' | 'timestamp'>, options?: { sessionId?: string }) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => void;
   updateMessageMemoryAction: (messageId: string, memoryAction: MemoryAction) => void;
-  upsertCanvasMessage: (canvasContent: string, label?: string, memoryAction?: MemoryAction) => Promise<string>;
-  upsertCodeMessage: (codeContent: string, language: string, label?: string, memoryAction?: MemoryAction) => Promise<string>;
+  upsertCanvasMessage: (canvasContent: string, label?: string, memoryAction?: MemoryAction, options?: { sessionId?: string }) => Promise<string>;
+  upsertCodeMessage: (codeContent: string, language: string, label?: string, memoryAction?: MemoryAction, options?: { sessionId?: string }) => Promise<string>;
   clearCurrentMessages: () => void;
 
   // UI State
@@ -1735,17 +1735,23 @@ export const useArcStore = create<ArcState>()(
         
         // Normal message handling if not a memory command
         set((state) => {
-          const activePersonaId = state.currentSessionId
-            ? state.chatSessions.find(s => s.id === state.currentSessionId)?.personaId
+          const targetSessionId = options?.sessionId || state.currentSessionId;
+          // Session-scoped completion must never append into a different open chat.
+          if (options?.sessionId && !state.chatSessions.some(s => s.id === options.sessionId)) return state;
+          const isActiveSession = !targetSessionId || targetSessionId === state.currentSessionId;
+          const activePersonaId = targetSessionId
+            ? state.chatSessions.find(s => s.id === targetSessionId)?.personaId
             : undefined;
           const messageForSession = activePersonaId && !newMessage.personaId
             ? { ...newMessage, personaId: activePersonaId }
             : newMessage;
-          const updatedMessages = [...state.messages, messageForSession];
+          const previousMessages = isActiveSession ? state.messages
+            : state.chatSessions.find(s => s.id === targetSessionId)?.messages || [];
+          const updatedMessages = [...previousMessages, messageForSession];
           
           // Update current session
           let updatedSessions = state.chatSessions;
-          let currentSessionId = state.currentSessionId;
+          let currentSessionId = targetSessionId;
           let sessionToSave: ChatSession;
           
           if (!currentSessionId) {
@@ -1815,9 +1821,9 @@ export const useArcStore = create<ArcState>()(
           }
           
           return {
-            messages: updatedMessages,
+            messages: isActiveSession ? updatedMessages : state.messages,
             chatSessions: updatedSessions,
-            currentSessionId
+            currentSessionId: isActiveSession ? currentSessionId : state.currentSessionId
           };
         });
         
@@ -1878,7 +1884,7 @@ export const useArcStore = create<ArcState>()(
         });
       },
       
-      replaceLastMessage: async (message) => {
+      replaceLastMessage: async (message, options) => {
         const newMessage = {
           ...message,
           id: Math.random().toString(36).substring(7),
@@ -1886,21 +1892,25 @@ export const useArcStore = create<ArcState>()(
         };
         
         set((state) => {
-          if (state.messages.length === 0) {
+          const targetSessionId = options?.sessionId || state.currentSessionId;
+          if (options?.sessionId && !state.chatSessions.some(s => s.id === options.sessionId)) return state;
+          const isActiveSession = !targetSessionId || targetSessionId === state.currentSessionId;
+          const previousMessages = isActiveSession ? state.messages : state.chatSessions.find(s => s.id === targetSessionId)?.messages || [];
+          if (previousMessages.length === 0) {
             // If no messages, just add it
             return {
               ...state,
-              messages: [newMessage]
+              messages: isActiveSession ? [newMessage] : state.messages
             };
           }
           
           // Replace the last message
-          const updatedMessages = [...state.messages];
+          const updatedMessages = [...previousMessages];
           updatedMessages[updatedMessages.length - 1] = newMessage;
           
           // Update current session
           let updatedSessions = state.chatSessions;
-          let currentSessionId = state.currentSessionId;
+          let currentSessionId = targetSessionId;
           let sessionToSave: ChatSession;
           
           if (currentSessionId) {
@@ -1923,18 +1933,19 @@ export const useArcStore = create<ArcState>()(
           
           return {
             ...state,
-            messages: updatedMessages,
+            messages: isActiveSession ? updatedMessages : state.messages,
             chatSessions: updatedSessions,
-            currentSessionId
+            currentSessionId: isActiveSession ? currentSessionId : state.currentSessionId
           };
         });
       },
       
       clearCurrentMessages: () => set({ messages: [] }),
 
-      upsertCanvasMessage: async (canvasContent, label, memoryAction) => {
+      upsertCanvasMessage: async (canvasContent, label, memoryAction, options) => {
         const state = get();
-        const sessionId = state.currentSessionId;
+        const sessionId = options?.sessionId || state.currentSessionId;
+        if (options?.sessionId && !state.chatSessions.some(s => s.id === options.sessionId)) return '';
 
         // Generate a fallback label from content if none provided
         const displayLabel = label || extractCanvasTitle(canvasContent) || 'Canvas Draft';
@@ -1975,7 +1986,8 @@ export const useArcStore = create<ArcState>()(
             timestamp: new Date(),
           };
 
-          const updatedMessages = [...s.messages, newCanvasMessage];
+          const previousMessages = s.currentSessionId === sessionId ? s.messages : s.chatSessions.find(cs => cs.id === sessionId)?.messages || [];
+          const updatedMessages = [...previousMessages, newCanvasMessage];
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
           sessionToSave = {
@@ -1992,7 +2004,7 @@ export const useArcStore = create<ArcState>()(
 
           return {
             ...s,
-            messages: updatedMessages,
+            messages: s.currentSessionId === sessionId ? updatedMessages : s.messages,
             chatSessions: updatedSessions,
           };
         });
@@ -2007,9 +2019,10 @@ export const useArcStore = create<ArcState>()(
         return uniqueCanvasId;
       },
 
-      upsertCodeMessage: async (codeContent, language, label, memoryAction) => {
+      upsertCodeMessage: async (codeContent, language, label, memoryAction, options) => {
         const state = get();
-        const sessionId = state.currentSessionId;
+        const sessionId = options?.sessionId || state.currentSessionId;
+        if (options?.sessionId && !state.chatSessions.some(s => s.id === options.sessionId)) return '';
         const displayLabel = label || `${language.toUpperCase()} Code`;
 
         // Generate unique ID based on timestamp to preserve multiple code versions
@@ -2048,7 +2061,8 @@ export const useArcStore = create<ArcState>()(
             timestamp: new Date(),
           };
 
-          const updatedMessages = [...s.messages, newCodeMessage];
+          const previousMessages = s.currentSessionId === sessionId ? s.messages : s.chatSessions.find(cs => cs.id === sessionId)?.messages || [];
+          const updatedMessages = [...previousMessages, newCodeMessage];
 
           const existingSession = s.chatSessions.find((cs) => cs.id === sessionId);
           sessionToSave = {
@@ -2065,7 +2079,7 @@ export const useArcStore = create<ArcState>()(
 
           return {
             ...s,
-            messages: updatedMessages,
+            messages: s.currentSessionId === sessionId ? updatedMessages : s.messages,
             chatSessions: updatedSessions,
           };
         });

@@ -1644,7 +1644,9 @@ export function MobileChatApp() {
                 >
                   <div className="mb-2 px-1">
                     <MessageQueue
-                      onSendMessage={(content) => chatInputRef.current?.sendMessage(content)}
+                  executionMode={cloudExecutionMode}
+                      onSendMessage={(request) => chatInputRef.current?.sendQueuedRequest(request)}
+                  onRetryRequest={(request) => chatInputRef.current?.retryRequest(request)}
                       isLoading={isLoading}
                     />
                   </div>
@@ -1852,7 +1854,9 @@ export function MobileChatApp() {
               {/* Message Queue - at top if it has messages */}
               <div className="pointer-events-auto mb-2 px-1">
                 <MessageQueue
-                  onSendMessage={(content) => chatInputRef.current?.sendMessage(content)}
+                  executionMode={cloudExecutionMode}
+                  onSendMessage={(request) => chatInputRef.current?.sendQueuedRequest(request)}
+                  onRetryRequest={(request) => chatInputRef.current?.retryRequest(request)}
                   isLoading={isLoading}
                 />
               </div>

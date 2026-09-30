@@ -1,6 +1,6 @@
 import { useLiveAnswerStore } from '@/store/useLiveAnswerStore';
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { getModelForTask, resolveReasoningEffort, useModelStore, type LunaReasoningEffort } from "@/store/useModelStore";
+import { getModelForTask, resolveReasoningEffort, useModelStore, type LunaReasoningEffort, type LunaReasoningSelection } from "@/store/useModelStore";
 import { incrementDailyBalancedCount, incrementDailyDeepCount } from "@/hooks/useSubscription";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext, requestsCurrentLocation } from "@/lib/userLocation";
 import { useBrowserbaseSessionStore, type BrowserbaseChatSession } from "@/store/useBrowserbaseSessionStore";
@@ -194,7 +194,7 @@ export class AIService {
   private defaultTimeoutMs = 120000; // 120 second timeout for regular requests
   private canvasTimeoutMs = 180000; // 180 second timeout for canvas/code generation
 
-  constructor() {
+  constructor(private readonly capturedReasoningSelection?: LunaReasoningSelection) {
     // API keys stay server-side in the configured Supabase Edge Functions.
   }
 
@@ -320,7 +320,7 @@ export class AIService {
             : isComplex
               ? getModelForTask('deep-chat', complexity)
               : getModelForTask('chat', complexity);
-      const reasoningEffort = resolveReasoningEffort(useModelStore.getState().reasoningEffort, complexity);
+      const reasoningEffort = resolveReasoningEffort((this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort), complexity);
 
       // Use longer timeout for canvas/code generation or complex queries (especially with 3.1 Pro)
       const timeoutMs = (isCanvasOrCode || isComplex) ? this.canvasTimeoutMs : this.defaultTimeoutMs;
@@ -373,7 +373,7 @@ export class AIService {
                   profile: effectiveProfile,
                   model: selectedModel,
                   reasoningEffort,
-                  reasoningSelection: useModelStore.getState().reasoningEffort,
+                  reasoningSelection: (this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort),
                   sessionId: sessionId,
                   forceWebSearch: forceWebSearch || false,
                   forceCanvas: forceCanvas || false,
@@ -649,7 +649,7 @@ export class AIService {
           : isComplex
             ? getModelForTask('deep-chat', complexity)
             : getModelForTask('chat', complexity);
-    const reasoningEffort = resolveReasoningEffort(useModelStore.getState().reasoningEffort, complexity);
+    const reasoningEffort = resolveReasoningEffort((this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort), complexity);
 
     // Enrich profile with the canonical living memory (same as sendMessage).
     let enrichedProfile = profile || {};
@@ -691,7 +691,7 @@ export class AIService {
         profile: enrichedProfile,
         model: selectedModel,
         reasoningEffort,
-        reasoningSelection: useModelStore.getState().reasoningEffort,
+        reasoningSelection: (this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort),
         forceCanvas,
         forceCode,
         forceWebSearch,
@@ -846,7 +846,7 @@ export class AIService {
 
     try {
       const { data, error } = await supabase.functions.invoke('analyze-document', {
-        body: { messages, fileBase64, fileName, mimeType, reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, 2) }
+        body: { messages, fileBase64, fileName, mimeType, reasoningEffort: resolveReasoningEffort((this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort), 2) }
       });
 
       if (error) {
@@ -885,7 +885,7 @@ export class AIService {
           messages,
           images: images,
           model: selectedModel,
-          reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, 2),
+          reasoningEffort: resolveReasoningEffort((this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort), 2),
         }
       });
 
@@ -1088,7 +1088,7 @@ export class AIService {
       const selectedModel = getModelForTask('file-gen');
       
       const { data, error } = await supabase.functions.invoke('generate-file', {
-        body: { fileType, prompt, model: selectedModel, reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, 2) },
+        body: { fileType, prompt, model: selectedModel, reasoningEffort: resolveReasoningEffort((this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort), 2) },
         headers: session?.access_token ? {
           Authorization: `Bearer ${session.access_token}`
         } : undefined
