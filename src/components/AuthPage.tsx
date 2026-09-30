@@ -1,6 +1,5 @@
 import { Transition } from "@/components/transitions/Transition";
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -173,13 +172,9 @@ export function AuthPage() {
 
           {/* Logo */}
           <div className="text-center">
-            <motion.div
-              animate={{ rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="flex justify-center mb-4"
-            >
-              <img src="/arc-logo-ui.png" alt="ArcAI" className="h-16 w-16" />
-            </motion.div>
+            <div className="flex justify-center mb-4">
+              <img src="/arc-logo-ui.png" alt="ArcAI" className="arc-auth-logo h-16 w-16" />
+            </div>
             <h1 className="text-2xl font-bold text-white mb-2">{getTitle()}</h1>
             <p className="text-gray-400">{getSubtitle()}</p>
           </div>

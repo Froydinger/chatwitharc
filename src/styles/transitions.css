@@ -18,6 +18,20 @@
 @media (hover: hover) { .arc-suggestion-chip:hover { scale: 1.05; } }
 .arc-suggestion-chip:active { scale: .98; }
 .arc-image-placeholder-glow { animation: arc-image-placeholder-pulse 1.5s ease-in-out .4s infinite; }
+.arc-auth-logo { animation: arc-auth-logo-rotate 4s ease-in-out infinite; }
+.arc-info-logo { animation: arc-info-logo-rotate 4s ease-in-out infinite, arc-info-logo-scale 4s ease-in-out infinite; }
+.arc-lost-compass { animation: arc-lost-float 4s ease-in-out infinite, arc-info-logo-rotate 4s ease-in-out infinite; }
+.arc-info-tech { transition: scale var(--arc-motion-fast) var(--arc-motion-ease); }
+@media (hover: hover) { .arc-info-tech:hover { scale: 1.05; } }
+@keyframes arc-auth-logo-rotate { 0%, 100% { rotate: 0deg; } 33.333% { rotate: 5deg; } 66.667% { rotate: -5deg; } }
+@keyframes arc-info-logo-rotate { 0%, 100% { rotate: 0deg; } 33.333% { rotate: 10deg; } 66.667% { rotate: -10deg; } }
+@keyframes arc-info-logo-scale { 0%, 100% { scale: 1; } 50% { scale: 1.1; } }
+@keyframes arc-lost-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -12px; } }
+@media (prefers-reduced-motion: reduce) {
+  .arc-auth-logo, .arc-info-logo, .arc-lost-compass { animation: none !important; }
+  .arc-info-tech { transition: none !important; }
+  .arc-info-tech:hover { scale: 1; }
+}
 @keyframes arc-image-placeholder-pulse { 0%, 100% { scale: .8; opacity: .3; } 50% { scale: 1.2; opacity: .6; } }
 @media (prefers-reduced-motion: reduce) {
   .arc-suggestion-chip.arc-transition { transition: none !important; }

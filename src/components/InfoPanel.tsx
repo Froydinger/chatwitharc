@@ -1,6 +1,6 @@
+import { GitHubMark } from "@/components/GitModeDock";
 import { Transition } from "@/components/transitions/Transition";
-import { motion } from "framer-motion";
-import { Mic2, MessageSquare, Zap, Shield, Github, ImagePlus } from "lucide-react";
+import { MessageSquare, Zap, Shield, ImagePlus } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { ThemedLogo } from "@/components/ThemedLogo";
@@ -15,12 +15,12 @@ export function InfoPanel() {
     {
       icon: MessageSquare,
       title: "Smart Text Chat",
-      description: "Powered by GPT-5.6 Luna with adjustable reasoning"
+      description: "Arc Think, powered by GPT 6 & 6.1, and Arc Flash, powered by Gemini Flash"
     },
     {
       icon: ImagePlus,
       title: "AI Image Generation",
-      description: "Generate stunning images using Google's advanced image generation model"
+      description: "Create and edit with Arc Image, or choose Arc Image Flash for faster images"
     },
     // Voice feature temporarily hidden
     // {
@@ -56,20 +56,9 @@ export function InfoPanel() {
       <Transition preset="panel"><div
         className="text-center space-y-4"
       >
-        <motion.div
-          animate={{
-            rotate: [0, 10, -10, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="flex justify-center mb-4"
-        >
-          <ThemedLogo className="h-16 w-16" alt="ArcAI" />
-        </motion.div>
+        <div className="flex justify-center mb-4">
+          <ThemedLogo className="arc-info-logo h-16 w-16" alt="ArcAI" />
+        </div>
         
         <h1 className="text-4xl font-bold text-foreground mb-2">
           Welcome to ArcAI
@@ -79,7 +68,7 @@ export function InfoPanel() {
           and magical interactions.
         </p>
         <p className="text-sm text-muted-foreground/70">
-          Built by <a href="https://winthenight.org" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-foreground transition-colors underline">Win The Night™ Foundation</a> • Powered by OpenAI
+          Built by <a href="https://winthenight.org" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-foreground transition-colors underline">Win The Night™ Foundation</a> • Powered by GPT & Gemini
         </p>
       </div></Transition>
 
@@ -157,14 +146,13 @@ export function InfoPanel() {
             </h3>
             
             <div className="flex flex-wrap justify-center gap-3">
-              {["React", "TypeScript", "Framer Motion", "Tailwind CSS", "Supabase", "OpenAI", "Zustand"].map((tech) => (
-                <motion.div
+              {["React", "TypeScript", "CSS transitions", "Tailwind CSS", "Supabase", "OpenAI", "Gemini", "Zustand"].map((tech) => (
+                <div
                   key={tech}
-                  whileHover={{ scale: 1.05 }}
-                  className="glass rounded-full px-4 py-2 text-sm text-foreground"
+                  className="arc-info-tech glass rounded-full px-4 py-2 text-sm text-foreground"
                 >
                   {tech}
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
@@ -181,7 +169,7 @@ export function InfoPanel() {
           className="animate-glow-pulse"
           onClick={() => window.open("https://github.com", "_blank")}
         >
-          <Github className="h-5 w-5 mr-2" />
+          <GitHubMark className="h-5 w-5 mr-2" />
           View on GitHub
         </GlassButton>
       </div></Transition>

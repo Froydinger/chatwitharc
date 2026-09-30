@@ -1,7 +1,6 @@
 import { Transition } from "@/components/transitions/Transition";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { motion } from "framer-motion";
 import { Compass, Home, ArrowLeft } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -27,20 +26,9 @@ const NotFound = () => {
         <GlassCard className="p-8 text-center border-glass-border space-y-6 flex flex-col items-center">
           
           {/* Floating animated compass icon */}
-          <motion.div
-            animate={{ 
-              y: [0, -12, 0],
-              rotate: [0, 10, -10, 0]
-            }}
-            transition={{ 
-              duration: 4, 
-              repeat: Infinity,
-              ease: "easeInOut" 
-            }}
-            className="p-4 rounded-2xl bg-primary/10 border border-primary/20 text-primary-glow shadow-[0_0_30px_rgba(var(--primary-rgb),0.15)]"
-          >
+          <div className="arc-lost-compass p-4 rounded-2xl bg-primary/10 border border-primary/20 text-primary-glow shadow-[0_0_30px_rgba(var(--primary-rgb),0.15)]">
             <Compass className="h-12 w-12" />
-          </motion.div>
+          </div>
 
           <div className="space-y-2">
             <Transition preset="modal"><h1
