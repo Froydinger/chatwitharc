@@ -6,5 +6,5 @@ export function LiveChatAnswer({ sessionId, visible }: { sessionId: string | nul
   return <div aria-live="off" data-testid="live-chat-answer"><MessageBubble
     message={{ id: `live-${answer.requestId}`, role: 'assistant', type: 'text', content: answer.content, timestamp: answer.timestamp, sourceModel: 'cloud-chat' }}
     isLatestAssistant shouldAnimateTypewriter={false} shouldAnimateReveal={false}
-  /><p className="px-4 text-xs text-muted-foreground" role="status">Finishing response...</p></div>;
+  /></div>;
 }

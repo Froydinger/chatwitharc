@@ -620,7 +620,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                           return (
                             <div
                               key={idx}
-                              className={`text-foreground break-words arc-wrap-anywhere ${shouldAnimate && hasAssistantContent ? "arc-response-stagger" : ""}`}
+                              className={`text-foreground break-words arc-wrap-anywhere ${shouldAnimate && hasAssistantContent ? "arc-response-reveal" : ""}`}
                             >
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: false }]]}

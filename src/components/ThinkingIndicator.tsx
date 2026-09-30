@@ -267,13 +267,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   }
 
   return (
-    <motion.div
-      className="flex flex-col items-start gap-2"
-      initial={{ opacity: 0, y: 14, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.97 }}
-      transition={{ type: "spring", stiffness: 320, damping: 15, mass: 0.6 }}
-    >
+    <Transition preset="fade"><div className="flex flex-col items-start gap-2" data-arc-thinking-indicator="true">
       <div 
         className="inline-flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-muted/50 border border-border/40 backdrop-blur-sm"
         aria-live="polite"
@@ -320,6 +314,6 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
           </span>
         )}</ConditionalTransition>
       </AnimatePresence>
-    </motion.div>
+    </div></Transition>
   );
 }

@@ -28,7 +28,7 @@ import { prepareCloudMediaCapture, cloudMediaDigest, type CloudMediaReference } 
 import { resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
 import { getQueryComplexity } from "@/services/ai";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
-import { LiveChatAnswer } from "@/components/LiveChatAnswer";
+import { ChatResponseStatus } from "@/components/ChatResponseStatus";
 import { useLiveAnswerStore } from "@/store/useLiveAnswerStore";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
@@ -346,7 +346,6 @@ export function MobileChatApp() {
     markSessionAsWork,
   } = useArcStore();
   const isArcWorking = isLoading || isGeneratingImage || isSearchingChats || isAccessingMemory || isSearchingWeb;
-  const hasLiveAnswer = useLiveAnswerStore(state => Boolean(state.answer?.sessionId === currentSessionId && state.answer.content));
   const liveReplyId = useLiveAnswerStore(state => state.answer?.sessionId === currentSessionId && state.answer.content ? `live-${state.answer.requestId}` : null);
   const hasSubagentRun = useSubagentStore((state) => Boolean(state.run));
   const isVoiceActive = useVoiceModeStore((s) => s.isActive);
@@ -1776,28 +1775,17 @@ export function MobileChatApp() {
                   )}
                 {(cloudWorkEnabled || (cloudRunObserverEnabled && cloudRuns.entries.some(entry => entry.sessionId === currentSessionId))) && !isVoiceActive && <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} enabled={cloudRunObserverEnabled} transcriptRunIds={messages.filter(message => message.role === 'assistant' && message.id.startsWith('cloud-')).map(message => message.id.slice(6))} />}
                   <SubagentProgress />
-                  {/* Show thinking indicator when loading */}
-                  <AnimatePresence>
-                    <ConditionalTransition preset="panel">{!hasSubagentRun && !hasLiveAnswer &&
-                      isLoading &&
-                      !isGeneratingImage &&
-                      messages.length > 0 &&
+                  <ChatResponseStatus
+                    sessionId={currentSessionId}
+                    isLoading={isLoading}
+                    showThinking={!hasSubagentRun && isLoading && !isGeneratingImage && messages.length > 0 &&
                       (messages[messages.length - 1]?.role === "user" ||
-                        (messages[messages.length - 1]?.role === "assistant" &&
-                          !messages[messages.length - 1]?.content?.trim())) && (
-                        <div
-                        >
-                          <ThinkingIndicator
-                            isLoading={isLoading}
-                            isGeneratingImage={false}
-                            searchingChats={isSearchingChats}
-                            accessingMemory={isAccessingMemory}
-                            searchingWeb={isSearchingWeb}
-                          />
-                        </div>
-                      )}</ConditionalTransition>
-                  </AnimatePresence>
-                  <LiveChatAnswer sessionId={currentSessionId} visible={isLoading && !isVoiceActive && !isGeneratingImage} />
+                        (messages[messages.length - 1]?.role === "assistant" && !messages[messages.length - 1]?.content?.trim()))}
+                    showLiveAnswer={isLoading && !isVoiceActive && !isGeneratingImage}
+                    searchingChats={isSearchingChats}
+                    accessingMemory={isAccessingMemory}
+                    searchingWeb={isSearchingWeb}
+                  />
                 </div>
               </div>
             )}

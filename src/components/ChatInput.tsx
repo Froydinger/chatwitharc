@@ -66,7 +66,6 @@ import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { APP_BUILDER_ENABLED } from "@/lib/features";
 import { routeRequest } from "@/utils/routeRequest";
 import { streamLocalChat } from "@/services/localAI";
-import { useLiveAnswerStore } from "@/store/useLiveAnswerStore";
 import { buildLocalSystemPrompt } from "@/utils/localSystemPrompt";
 import { findFirstToolCall, executeLocalToolCall, stripToolTags, hasPartialOpenTag } from "@/utils/localToolProtocol";
 import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptionsDock";
@@ -223,7 +222,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     currentSessionId,
     chatSessions,
   } = useArcStore();
-  const hasLiveAnswer = useLiveAnswerStore(state => Boolean(state.answer?.sessionId === currentSessionId && state.answer.content));
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
   const { openSearchMode } = useSearchStore();
@@ -3267,7 +3265,6 @@ ${safeCode}
                 ref={textareaRef}
                 voiceActive={isVoiceActive}
                 loading={isLoading}
-                liveAnswer={hasLiveAnswer}
                 data-arc-composer="true"
                 value={inputValue}
                 onChange={(e) => {
