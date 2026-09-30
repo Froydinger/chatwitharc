@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConditionalTransition } from '@/components/transitions/ConditionalTransition';
-import { RefreshCcwDot, Fish, Check, ChevronDown, Crown } from 'lucide-react';
+import { Brain, Zap, Check, ChevronDown, Crown } from 'lucide-react';
 import { canSelectFlynn, useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -20,8 +20,8 @@ interface Props {
 }
 
 export const PRESETS = [
-  { effort: 'auto', title: 'Arc Think', subtitle: 'Powered by GPT 6 & 6.1', icon: RefreshCcwDot },
-  { effort: 'flynn', title: 'Arc Flash', subtitle: 'Powered by Gemini Flash', icon: Fish },
+  { effort: 'auto', title: 'Arc Think', subtitle: 'Powered by GPT 6 & 6.1', icon: Brain },
+  { effort: 'flynn', title: 'Arc Flash', subtitle: 'Powered by Gemini Flash', icon: Zap },
 ] as const;
 
 export function ChatModelPicker({
