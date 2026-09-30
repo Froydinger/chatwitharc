@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { SequencedTransition } from "@/components/transitions/SequencedTransition";
 import {
   Trash2,
   User,
@@ -57,7 +57,6 @@ import { useToast } from "@/hooks/use-toast";
 import { uploadAvatar } from "@/lib/uploadAvatar";
 
 import { useAdminSettings } from "@/hooks/useAdminSettings";
-import { staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
 import { VoiceSelector } from "@/components/VoiceSelector";
 
 import {
@@ -1178,18 +1177,9 @@ export function SettingsPanel() {
 
         {/* Content */}
         <main>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={section}
-              variants={staggerContainerVariants}
-              initial="hidden"
-              animate="visible"
-              exit={{ opacity: 0, y: 4 }}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-            >
-              {renderSection()}
-            </motion.div>
-          </AnimatePresence>
+          <SequencedTransition contentKey={section} className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {renderSection()}
+          </SequencedTransition>
 
           <div className="lg:hidden mt-8">{Footer}</div>
         </main>

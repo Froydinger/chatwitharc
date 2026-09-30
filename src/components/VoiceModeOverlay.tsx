@@ -1,6 +1,5 @@
 import { TransitionPart } from "@/components/transitions/TransitionPart";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
-import { AnimatePresence } from "framer-motion";
 import { X, Mic, MicOff, Loader2, Camera, CameraOff, Paperclip, SwitchCamera, Check, RotateCw, Search } from "lucide-react";
 import { WeatherCard } from "@/components/WeatherCard";
 import { useVoiceModeStore, VoiceName } from "@/store/useVoiceModeStore";
@@ -341,7 +340,6 @@ export function VoiceModeOverlay() {
     : null;
 
   return (
-    <AnimatePresence>
       <ConditionalTransition preset="modal">{isActive && (
         <div
           className="fixed inset-x-0 bottom-0 z-[100] pointer-events-none px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]"
@@ -358,7 +356,6 @@ export function VoiceModeOverlay() {
             {/* Floating previews & rich cards above voice bar */}
             <div className="w-full mb-2 flex flex-col items-center gap-2">
               {/* Camera Preview */}
-              <AnimatePresence>
                 <ConditionalTransition preset="modal">{isCameraActive && (
                   <div
                     className="flex justify-end w-full max-w-xs"
@@ -387,10 +384,8 @@ export function VoiceModeOverlay() {
                     </div>
                   </div>
                 )}</ConditionalTransition>
-              </AnimatePresence>
 
               {/* Attached Image Preview */}
-              <AnimatePresence>
                 <ConditionalTransition preset="modal">{attachedImagePreview && !isCameraActive && (
                   <div
                     className="flex justify-end w-full max-w-xs"
@@ -407,11 +402,9 @@ export function VoiceModeOverlay() {
                     </div>
                   </div>
                 )}</ConditionalTransition>
-              </AnimatePresence>
 
               {/* Keep completed voice-search results visible in the voice
                   overlay instead of leaving them only as transcript text. */}
-              <AnimatePresence>
                 <ConditionalTransition preset="modal">{(isSearching || searchSummary) && !generatedImage && !isGeneratingImage && !weatherData && !isFetchingWeather && (
                   <div
                     className="w-full max-w-[420px]"
@@ -458,10 +451,8 @@ export function VoiceModeOverlay() {
                     </div>
                   </div>
                 )}</ConditionalTransition>
-              </AnimatePresence>
 
               {/* Weather Card */}
-              <AnimatePresence>
                 <ConditionalTransition preset="modal">{(isFetchingWeather || weatherData) && !generatedImage && !isGeneratingImage && (
                   <div
                     className="w-full max-w-[320px]"
@@ -476,10 +467,8 @@ export function VoiceModeOverlay() {
                     )}
                   </div>
                 )}</ConditionalTransition>
-              </AnimatePresence>
 
               {/* Generated Image Display */}
-              <AnimatePresence>
                 <ConditionalTransition preset="modal">{(generatedImage || isGeneratingImage) && (
                   <div
                     className="w-full max-w-[220px]"
@@ -503,7 +492,6 @@ export function VoiceModeOverlay() {
                     ) : null}
                   </div>
                 )}</ConditionalTransition>
-              </AnimatePresence>
             </div>
 
             {/* Hero Orb-Focused Voice Bar Pill */}
@@ -641,6 +629,5 @@ export function VoiceModeOverlay() {
           </div>
         </div>
       )}</ConditionalTransition>
-    </AnimatePresence>
   );
 }
