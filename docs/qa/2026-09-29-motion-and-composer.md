@@ -36,3 +36,7 @@ Each main commit is independently releasable. If a production regression is repr
 ## Stop queue regression (2026-09-29)
 
 Stop now idempotently pauses the queue before loading becomes idle, preventing the existing idle-drain effect from dispatching another request. Pending entries remain available for explicit Resume. `node scripts/test-message-queue.mjs` checks repeated Stop pause semantics, FIFO retention and explicit resume; production SSE/cancellation tests and production build pass. This stage does not yet fix original-chat ownership, file snapshots or recoverable failed requests.
+
+### Attachment dismissal correction
+
+A targeted typecheck exposed two stale calls to the removed `setImagePreviewUrls` setter, in Clear All and the voice image-dismiss event. Removed them; the preview hook already clears/revokes URLs when files change. Expanded the actual local ChatInput browser test to attach a File, dismiss through both paths, assert the tray disappears and capture uncaught errors. Both pass, along with the existing lifecycle checks and production build. Published separately before queue work.

@@ -39,6 +39,20 @@ try {
     assert.equal(await evaluate(`document.querySelector('textarea[data-arc-composer]').selectionStart`), 3, 'Viewport changes preserve selection');
   }
   await setDraft('');
+  await evaluate(`(()=>{window.__arcDismissErrors=[];window.__arcDismissListener=e=>window.__arcDismissErrors.push(e.message);window.addEventListener('error',window.__arcDismissListener)})()`);
+  await evaluate(`window.dispatchEvent(new Event('arc-close-image-preview'))`);
+  await wait(100);
+  for (const method of ['voice', 'clear']) {
+    await evaluate(`(()=>{const f=document.querySelector('input[type="file"][multiple]');if(!f)throw Error('Missing composer file input');const files=new DataTransfer();files.items.add(new File(['fixture'],'dismiss.png',{type:'image/png'}));f.files=files.files;f.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    await wait(100);
+    assert.equal(await evaluate(`document.body.textContent.includes('Selected Images (1/6)')`), true);
+    if (method === 'voice') await evaluate(`window.dispatchEvent(new Event('arc-close-image-preview'))`);
+    else await evaluate(`(()=>{const button=[...document.querySelectorAll('button')].find(b=>b.textContent.trim().toLowerCase()==='clear all');if(!button)throw Error('Missing Clear all');button.click()})()`);
+    await wait(100);
+    assert.equal(await evaluate(`document.body.textContent.includes('Selected Images (1/6)')`), false);
+  }
+  assert.deepEqual(await evaluate('window.__arcDismissErrors'), []);
+  await evaluate(`window.removeEventListener('error',window.__arcDismissListener)`);
   await evaluate(`(()=>{
     const stats={created:0,revoked:0,listeners:new Set(),observers:new Set()};
     const original={create:URL.createObjectURL,revoke:URL.revokeObjectURL,add:window.addEventListener,remove:window.removeEventListener,observer:window.ResizeObserver};
@@ -65,7 +79,7 @@ try {
   assert.equal(await evaluate('window.__arcLifecycleStats.revoked'), 2, 'Unmount revokes remaining previews');
   assert.equal(await evaluate('window.__arcLifecycleStats.listeners.size'), 0, 'Window subscriptions cleaned up');
   assert.equal(await evaluate('window.__arcLifecycleStats.observers.size'), 0, 'Both resize observers cleaned up');
-  console.log('Composer browser checks passed: desktop/narrow IME, newline, sizing, selection, preview lifetime, captured File retention and subscription teardown.');
+  console.log('Composer browser checks passed: desktop/narrow IME, newline, sizing, selection, attachment clear/voice dismissal, preview lifetime, captured File retention and subscription teardown.');
 } finally {
   await evaluate('window.__arcLifecycleQA?.dispose();window.__arcLifecycleRestore?.()').catch(() => {});
   ws.close();

@@ -562,7 +562,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   };
   const clearSelected = () => {
     setSelectedImages([]);
-    setImagePreviewUrls([]);
     setAllImagesEditMode(false);
     setSelectedDocuments([]);
   };
@@ -572,7 +571,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   useEffect(() => {
     const handleVoiceImageDismiss = () => {
       setSelectedImages([]);
-      setImagePreviewUrls([]);
       setAllImagesEditMode(false);
       setSelectedDocuments([]);
     };
