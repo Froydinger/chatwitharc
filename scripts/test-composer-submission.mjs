@@ -8,6 +8,7 @@ function load(path) {
   return exports;
 }
 const intent = load('../src/lib/chat-input/intent.ts');
+const { createComposerActivity } = load('../src/lib/chat-input/activity.ts');
 const types = load('../src/lib/chat-input/types.ts');
 const { createComposerSubmitter } = load('../src/hooks/chat-input/useComposerSubmission.ts');
 const appIntent = load('../src/utils/appBuilderIntent.ts');
@@ -68,7 +69,7 @@ function fixture(options = {}) {
           args[11]?.addEventListener('abort', () => reject(new DOMException('Stopped', 'AbortError')), { once: true }); });
       }
     },
-    foregroundSubmissionRef: { current: false }, foregroundOwnerRef: { current: null },
+    createComposerActivity, foregroundSubmissionRef: { current: false }, foregroundOwnerRef: { current: null },
     ...options,
   };
   state.setLoading = deps.setLoading;

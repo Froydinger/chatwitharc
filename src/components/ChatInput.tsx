@@ -1,3 +1,4 @@
+import { createComposerActivity } from "@/lib/chat-input/activity";
 import { useComposerSubmission } from "@/hooks/chat-input/useComposerSubmission";
 import { ComposerView } from "@/components/chat-input/ComposerView";
 import { ComposerSubmitControls } from "@/components/chat-input/ComposerSubmitControls";
@@ -1195,27 +1196,17 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const requestImageModel = captured?.imageOptions.generationModel ?? imageGenModel;
     const requestEditModel = captured?.imageOptions.editModel ?? imageEditModel;
     const requestImageCount = captured?.imageOptions.count ?? imageGenCount;
-    const attemptId = crypto.randomUUID();
-    let requestStarted = false;
-    let workAccepted = false;
     let handedOffToCloudRun = false;
-    const requestIsCancelled = () => requestStarted ? activeForegroundRequestId !== attemptId : cancelRequested;
-    const ownsActivity = () => isArcWorkMode || !requestStarted || activeForegroundRequestId === attemptId;
-    const beginRequest = () => {
-      if (isArcWorkMode) { workAccepted = true; cancelRequested = false; return; }
-      if (requestStarted) return;
-      requestStarted = true;
-      activeForegroundRequestId = attemptId;
-      cancelRequested = false;
-    };
-    const setLoading = (value: boolean) => {
-      if (value) beginRequest();
-      if (ownsActivity()) useArcStore.getState().setLoading(value);
-    };
-    const setGeneratingImage = (value: boolean) => { if (ownsActivity()) useArcStore.getState().setGeneratingImage(value); };
-    const setSearchingChats = (value: boolean) => { if (ownsActivity()) useArcStore.getState().setSearchingChats(value); };
-    const setAccessingMemory = (value: boolean) => { if (ownsActivity()) useArcStore.getState().setAccessingMemory(value); };
-    const setSearchingWeb = (value: boolean) => { if (ownsActivity()) useArcStore.getState().setSearchingWeb(value); };
+    const activity = createComposerActivity({
+      work: isArcWorkMode,
+      store: useArcStore.getState,
+      getActiveId: () => activeForegroundRequestId,
+      setActiveId: id => { activeForegroundRequestId = id; },
+      getCancelled: () => cancelRequested,
+      setCancelled: value => { cancelRequested = value; },
+      clearController: () => { currentAbortController = null; },
+    });
+    const { beginRequest, requestIsCancelled, setLoading, setGeneratingImage, setSearchingChats, setAccessingMemory, setSearchingWeb } = activity;
     let acceptedRequest = captured;
     const retainFailedRequest = (error: unknown) => {
       if (requestIsCancelled() || isArcWorkMode || wasCloudHandoff || !user || user.id !== dispatchScopeRef.current.ownerId) return;
@@ -1237,7 +1228,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     let owningSessionId = captured?.sessionId ?? useArcStore.getState().currentSessionId;
     const originalOwnerId = captured?.ownerId ?? user?.id;
     const addMessage: ReturnType<typeof useArcStore.getState>['addMessage'] = (message, options) => {
-      if ((requestStarted && requestIsCancelled()) || (originalOwnerId && originalOwnerId !== dispatchScopeRef.current.ownerId)) return Promise.resolve("");
+      if ((activity.started && requestIsCancelled()) || (originalOwnerId && originalOwnerId !== dispatchScopeRef.current.ownerId)) return Promise.resolve("");
       owningSessionId ||= createNewSession();
       return useArcStore.getState().addMessage(message, { ...options, sessionId: owningSessionId });
     };
@@ -2808,18 +2799,7 @@ ${safeCode}
         toast({ title: 'Request failed', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
       }
     } finally {
-      // Stop or a later request may have taken ownership; stale completions
-      // cannot clear its indicator/controller. Work keeps its durable projection.
-      if (ownsActivity() && (requestStarted || workAccepted)) {
-        if (!requestIsCancelled() && !handedOffToCloudRun) setLoading(false);
-        setSearchingChats(false);
-        setAccessingMemory(false);
-        setSearchingWeb(false);
-        useArcStore.getState().setActiveTask(null);
-        useArcStore.getState().setActiveStatusDetails(null);
-        currentAbortController = null;
-        if (activeForegroundRequestId === attemptId) activeForegroundRequestId = null;
-      }
+      activity.finish(handedOffToCloudRun);
     }
   };
 

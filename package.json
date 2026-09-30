@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test:voice": "node scripts/test-realtime-browser-transport.mjs && node scripts/test-voice-webrtc.mjs && node scripts/test-live-speech-indicator.mjs",
-    "test:composer": "node scripts/test-composer-intent.mjs && node scripts/test-message-queue.mjs && node scripts/test-composer-submission.mjs && node scripts/test-session-message-ownership.mjs && node scripts/test-composer-stream-finalization.mjs",
+    "test:composer": "node scripts/test-composer-intent.mjs && node scripts/test-message-queue.mjs && node scripts/test-composer-submission.mjs && node scripts/test-composer-activity.mjs && node scripts/test-session-message-ownership.mjs && node scripts/test-composer-stream-finalization.mjs",
     "test:composer:browser": "node scripts/test-composer-browser.mjs && node scripts/test-composer-queue-browser.mjs",
     "test:activity": "node scripts/test-chat-activity.mjs",
     "test:media": "npm run test:voice && node scripts/test-media-guards.mjs"
