@@ -1,3 +1,4 @@
+import { useLiveAnswerStore } from '@/store/useLiveAnswerStore';
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getModelForTask, resolveReasoningEffort, useModelStore, type LunaReasoningEffort } from "@/store/useModelStore";
 import { incrementDailyBalancedCount, incrementDailyDeepCount } from "@/hooks/useSubscription";
@@ -163,6 +164,7 @@ export interface CodeUpdate {
 }
 
 export interface SendMessageResult {
+  streamedAnswer?: boolean;
   content: string;
   browserSession?: BrowserbaseChatSession;
   webSources?: WebSource[];
@@ -249,31 +251,14 @@ export class AIService {
       // Always fetch the freshest profile to include latest memory/context
       let effectiveProfile = profile || {};
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Fetch the profile and canonical living memory in parallel. Legacy
-          // context blocks remain as migration backups and are not re-injected
-          // into every request.
-          const [profileResult, memorySummaryResult] = await Promise.all([
-            supabase
-              .from('profiles')
-              .select('display_name, context_info, memory_info, preferred_model')
-              .eq('user_id', user.id)
-              .maybeSingle(),
-            supabase
-              .from('memory_summaries')
-              .select('summary')
-              .eq('user_id', user.id)
-              .maybeSingle()
-          ]);
-
-          if (profileResult.data) {
-            effectiveProfile = { ...effectiveProfile, ...profileResult.data };
-          }
-
-          if (memorySummaryResult.data?.summary?.trim()) {
-            (effectiveProfile as any).memory_info = memorySummaryResult.data.summary;
-          }
+        // Session is local; the edge function still verifies the token.
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data } = await supabase.from('profiles')
+            .select('display_name, context_info, memory_info, preferred_model')
+            .eq('user_id', session.user.id).maybeSingle();
+          if (data) effectiveProfile = { ...effectiveProfile, ...data };
+          // Canonical living memory is loaded once by the trusted backend.
         }
       } catch (e) {
         console.warn('Falling back to provided profile:', e);
@@ -353,6 +338,8 @@ export class AIService {
       for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
         try {
           const startTime = Date.now();
+          const liveRequestId = crypto.randomUUID();
+          let streamedAnswer = false;
           const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
           const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
           if (!supabaseUrl || !supabaseKey) {
@@ -475,6 +462,9 @@ export class AIService {
                     if (browserSession?.sessionHandle === event.sessionHandle) browserSession = undefined;
                   } else if (event.type === 'subagent' && event.event && typeof event.event === 'object') {
                     onStatus?.({ type: 'subagent', subagent: event.event as Record<string, unknown> });
+                  } else if (event.type === 'answer' && typeof event.text === 'string' && sessionId && onStatus && !forceCanvas && !forceCode) {
+                    streamedAnswer = true;
+                    useLiveAnswerStore.getState().show(liveRequestId, sessionId, event.text);
                   } else if (event.type === 'done') {
                     data = event.result;
                   } else if (event.type === 'error') {
@@ -484,6 +474,7 @@ export class AIService {
               if (data) break;
             }
             } finally {
+              useLiveAnswerStore.getState().clear(liveRequestId);
               void reader.cancel().catch(() => undefined);
               reader.releaseLock();
             }
@@ -527,6 +518,7 @@ export class AIService {
           }
 
           return {
+            streamedAnswer,
             content: data.choices[0]?.message?.content || 'Sorry, I could not generate a response.',
             ...(browserSession ? { browserSession } : {}),
             webSources: data.web_sources,

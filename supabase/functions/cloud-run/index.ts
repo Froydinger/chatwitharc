@@ -526,7 +526,7 @@ export function publicRun(row: Obj) {
 /** Wake the detached worker without making the browser hold the request open.
  * The minute-level database sweep remains the recovery path; this kick makes
  * ordinary chat feel immediate while still surviving a closed tab. */
-function wakeCloudWorker(): void {
+function wakeCloudWorker(runId: string): void {
   if (Deno.env.get("CLOUD_WORKER_ENABLED") !== "true") return;
   const url = Deno.env.get("SUPABASE_URL");
   const secret = Deno.env.get("CLOUD_WORKER_SECRET") ?? Deno.env.get("SCHEDULED_TASKS_CRON_SECRET");
@@ -534,7 +534,7 @@ function wakeCloudWorker(): void {
   const request = fetch(`${url}/functions/v1/cloud-worker`, {
     method: "POST",
     headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
-    body: "{}",
+    body: JSON.stringify({ runId }),
   }).catch(() => undefined);
   const runtime = (globalThis as unknown as {
     EdgeRuntime?: { waitUntil(promise: Promise<unknown>): void };
@@ -742,7 +742,7 @@ export async function handleCloudRun(req: Request): Promise<Response> {
       // Only explicit Arc Work submissions need an immediate detached worker
       // wake. Regular Chat stays on the conversational endpoint and legacy
       // queued Chat runs can still be recovered by the bounded minute sweep.
-      if (action.mode === "auto" || action.kind === "app") wakeCloudWorker();
+      if (action.mode === "auto" || action.kind === "app") wakeCloudWorker(action.id);
       return json({
         ...publicRun(submitted),
         sessionRevision: receipt.session_revision,
@@ -827,7 +827,7 @@ export async function handleCloudRun(req: Request): Promise<Response> {
     }
     const resumed = await readOwned();
     if (!resumed) throw new HttpError(404, "Run not found.");
-    wakeCloudWorker();
+    wakeCloudWorker(action.id);
     return json(publicRun(resumed), 202);
   } catch (error) {
     if (error instanceof CloudAppIngressError) return json({ error: error.message }, error.status);

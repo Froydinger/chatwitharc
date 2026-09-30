@@ -27,3 +27,16 @@ Deno.test('cloud worker endpoint: configuration and internal failures do not exp
   equal(response.status, 503);
   deepStrictEqual(await response.json(), { error: 'Cloud sweep could not complete.' });
 });
+
+Deno.test('cloud worker endpoint targets only a validated ID behind scheduler auth', async () => {
+  const id = '00000000-0000-4000-8000-000000000001';
+  let received: string | undefined;
+  const options = { enabled: true, secret: 'fixture-secret', sweep: async (runId?: string) => { received = runId; return {}; } };
+  const request = (runId: string, token = 'fixture-secret') => new Request('https://test.invalid', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({ runId }) });
+  equal((await handleCloudWorker(request(id), options)).status, 200);
+  equal(received, id);
+  equal((await handleCloudWorker(request('invalid'), options)).status, 400);
+  received = undefined;
+  equal((await handleCloudWorker(request(id, 'user-jwt'), options)).status, 401);
+  equal(received, undefined);
+});

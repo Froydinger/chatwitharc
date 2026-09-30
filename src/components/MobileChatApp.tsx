@@ -25,6 +25,7 @@ import { prepareCloudMediaCapture, cloudMediaDigest, type CloudMediaReference } 
 import { resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
 import { getQueryComplexity } from "@/services/ai";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
+import { LiveChatAnswer } from "@/components/LiveChatAnswer";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
 
@@ -1720,7 +1721,7 @@ export function MobileChatApp() {
                       const isLastAssistantMessage = message.role === "assistant" && index === displayedMessages.length - 1;
                       // Only animate reveal if this is a new message (not loaded from history)
                       const shouldAnimateReveal =
-                        !isVoiceActive && isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current
+                        !message.streamedAnswer && !isVoiceActive && isLastAssistantMessage && message.id !== lastLoadedMessageIdRef.current
                         && !isSessionLoading && message.sourceModel !== 'cloud-voice';
 
                       return (
@@ -1800,6 +1801,7 @@ export function MobileChatApp() {
                         </motion.div>
                       )}
                   </AnimatePresence>
+                  <LiveChatAnswer sessionId={currentSessionId} visible={isLoading && !isVoiceActive && !isGeneratingImage} />
                 </div>
               </div>
             )}

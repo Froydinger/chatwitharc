@@ -45,6 +45,7 @@ export function cloudWorkerStore(
       ) {
         throw new Error("Invalid claimed run");
       }
+      if (!run.checkpoint.engine) console.log('Cloud queue timing', { runId: run.id, queueMs: Math.max(0, Date.parse(run.started_at!) - Date.parse(run.created_at)) });
       return run;
     },
     async checkpoint(run, checkpoint, status, reason) {

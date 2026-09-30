@@ -177,6 +177,7 @@ export interface MemoryAction {
 }
 
 export interface Message {
+  streamedAnswer?: boolean;
   id: string;
   content: string;
   role: 'user' | 'assistant';

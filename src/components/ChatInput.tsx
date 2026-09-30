@@ -3070,8 +3070,9 @@ ${safeCode}
                 };
               }
 
-              // Add the complete response with source tag
+              // Add the authoritative complete response with source tag
               await addMessage({
+                streamedAnswer: result.streamedAnswer,
                 content: result.content,
                 role: "assistant",
                 type: "text",

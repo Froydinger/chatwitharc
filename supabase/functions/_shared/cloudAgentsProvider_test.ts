@@ -89,6 +89,7 @@ Deno.test('Agents API tool results use the durable idempotency key and verified 
   const provider = cloudAgentsProvider({
     apiKey: 'test-only', instructions: 'test', reasoningEffort: 'low', tools: [],
     fetcher: (async (_url, init) => {
+      if (!init?.body) return Response.json({ status: 'requires_action', required_actions: [{ type: 'function_call', call_id: 'call_test', turn_id: 'turn_test' }] });
       body = JSON.parse(String(init?.body));
       headers = init?.headers;
       return new Response(null, { status: 202 });
@@ -129,7 +130,7 @@ Deno.test('Agents API cancellation posts the documented cancel event with an ide
 Deno.test('Agents API rejection reports bounded endpoint diagnostics without echoing request data', async () => {
   const provider = cloudAgentsProvider({
     apiKey: 'do-not-return-this-key', instructions: 'test', reasoningEffort: 'low', tools: [],
-    fetcher: (async () => Response.json({ error: {
+    fetcher: (async (_url, init) => !init?.body ? Response.json({ status: 'requires_action', required_actions: [{ type: 'function_call', call_id: 'call_test', turn_id: 'turn_test' }] }) : Response.json({ error: {
       message: 'private input must not be echoed', type: 'invalid_request_error',
       code: 'invalid_type', param: 'events[0].output',
     } }, { status: 400 })) as typeof fetch,
