@@ -1,6 +1,8 @@
+import { TransitionPart } from "@/components/transitions/TransitionPart";
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { X, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SmoothImage } from "@/components/ui/smooth-image";
@@ -81,11 +83,8 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
 
   const modal = (
       <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+      <ConditionalTransition preset="fade">{isOpen && (
+        <div
           onClick={onClose}
           className="fixed inset-0 z-[150] flex items-center justify-center p-4"
           style={{ 
@@ -95,10 +94,7 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
           }}
         >
           {/* Modal Content — sized to fit the visible (non-sidebar) area */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          <TransitionPart><div
             onClick={(e) => e.stopPropagation()}
             className="relative"
             style={{ width: previewWidth, maxWidth: "100%", height: previewHeight, maxHeight: "calc(100vh - 6rem)" }}
@@ -148,9 +144,9 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
                 loadingClassName="w-full h-full"
               />
             </div>
-          </motion.div>
-        </motion.div>
-      )}
+          </div></TransitionPart>
+        </div>
+      )}</ConditionalTransition>
     </AnimatePresence>
   );
 

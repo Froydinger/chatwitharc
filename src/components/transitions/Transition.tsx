@@ -20,6 +20,8 @@ export function Transition({ children, show = true, preset = "fade", delay = 0 }
       <Slot
         className={`arc-transition arc-transition-${preset}`}
         data-motion-state={show ? "open" : "closed"}
+        aria-hidden={!show || undefined}
+        {...(!show ? { inert: "" } : {})}
         style={{ "--arc-motion-delay": `${Math.min(Math.max(delay, 0), 0.3)}s` } as CSSProperties}
       >
         {children}

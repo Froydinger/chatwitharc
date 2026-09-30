@@ -1,4 +1,6 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { TransitionPart } from "@/components/transitions/TransitionPart";
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
+import { AnimatePresence } from "framer-motion";
 import { X, Mic, MicOff, Loader2, Camera, CameraOff, Paperclip, SwitchCamera, Check, RotateCw, Search } from "lucide-react";
 import { WeatherCard } from "@/components/WeatherCard";
 import { useVoiceModeStore, VoiceName } from "@/store/useVoiceModeStore";
@@ -340,12 +342,8 @@ export function VoiceModeOverlay() {
 
   return (
     <AnimatePresence>
-      {isActive && (
-        <motion.div
-          initial={{ opacity: 0, y: 32, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 24, scale: 0.97 }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      <ConditionalTransition preset="modal">{isActive && (
+        <div
           className="fixed inset-x-0 bottom-0 z-[100] pointer-events-none px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]"
         >
           <input
@@ -361,11 +359,8 @@ export function VoiceModeOverlay() {
             <div className="w-full mb-2 flex flex-col items-center gap-2">
               {/* Camera Preview */}
               <AnimatePresence>
-                {isCameraActive && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 12, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                <ConditionalTransition preset="modal">{isCameraActive && (
+                  <div
                     className="flex justify-end w-full max-w-xs"
                   >
                     <div className="relative w-40 overflow-hidden rounded-2xl border border-primary/30 bg-background/85 shadow-xl backdrop-blur-xl">
@@ -390,17 +385,14 @@ export function VoiceModeOverlay() {
                         <SwitchCamera className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                  </motion.div>
-                )}
+                  </div>
+                )}</ConditionalTransition>
               </AnimatePresence>
 
               {/* Attached Image Preview */}
               <AnimatePresence>
-                {attachedImagePreview && !isCameraActive && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 12, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                <ConditionalTransition preset="modal">{attachedImagePreview && !isCameraActive && (
+                  <div
                     className="flex justify-end w-full max-w-xs"
                   >
                     <div className="relative max-w-40 rounded-2xl border border-primary/30 bg-background/85 p-1 shadow-xl backdrop-blur-xl">
@@ -413,18 +405,15 @@ export function VoiceModeOverlay() {
                         <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                  </motion.div>
-                )}
+                  </div>
+                )}</ConditionalTransition>
               </AnimatePresence>
 
               {/* Keep completed voice-search results visible in the voice
                   overlay instead of leaving them only as transcript text. */}
               <AnimatePresence>
-                {(isSearching || searchSummary) && !generatedImage && !isGeneratingImage && !weatherData && !isFetchingWeather && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.96, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.96, y: 10 }}
+                <ConditionalTransition preset="modal">{(isSearching || searchSummary) && !generatedImage && !isGeneratingImage && !weatherData && !isFetchingWeather && (
+                  <div
                     className="w-full max-w-[420px]"
                   >
                     <div className="relative rounded-2xl border border-primary/20 bg-background/90 p-4 shadow-xl backdrop-blur-xl">
@@ -467,17 +456,14 @@ export function VoiceModeOverlay() {
                         </div>
                       )}
                     </div>
-                  </motion.div>
-                )}
+                  </div>
+                )}</ConditionalTransition>
               </AnimatePresence>
 
               {/* Weather Card */}
               <AnimatePresence>
-                {(isFetchingWeather || weatherData) && !generatedImage && !isGeneratingImage && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.92, y: 12 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.92, y: 12 }}
+                <ConditionalTransition preset="modal">{(isFetchingWeather || weatherData) && !generatedImage && !isGeneratingImage && (
+                  <div
                     className="w-full max-w-[320px]"
                   >
                     {weatherData ? (
@@ -488,17 +474,14 @@ export function VoiceModeOverlay() {
                         <span>Checking weather...</span>
                       </div>
                     )}
-                  </motion.div>
-                )}
+                  </div>
+                )}</ConditionalTransition>
               </AnimatePresence>
 
               {/* Generated Image Display */}
               <AnimatePresence>
-                {(generatedImage || isGeneratingImage) && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.92, y: 12 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.92, y: 12 }}
+                <ConditionalTransition preset="modal">{(generatedImage || isGeneratingImage) && (
+                  <div
                     className="w-full max-w-[220px]"
                   >
                     {isGeneratingImage ? (
@@ -518,16 +501,13 @@ export function VoiceModeOverlay() {
                         </button>
                       </div>
                     ) : null}
-                  </motion.div>
-                )}
+                  </div>
+                )}</ConditionalTransition>
               </AnimatePresence>
             </div>
 
             {/* Hero Orb-Focused Voice Bar Pill */}
-            <motion.div
-              initial={{ opacity: 0, y: 24, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 24, scale: 0.96 }}
+            <TransitionPart><div
               className="relative mx-auto w-full sm:w-fit sm:max-w-fit overflow-hidden rounded-full border border-primary/25 bg-background/90 px-4 py-2 sm:px-6 sm:py-2.5 shadow-2xl backdrop-blur-2xl transition-all"
               style={{
                 boxShadow: orbTheme === 'dark'
@@ -657,10 +637,10 @@ export function VoiceModeOverlay() {
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </div></TransitionPart>
           </div>
-        </motion.div>
-      )}
+        </div>
+      )}</ConditionalTransition>
     </AnimatePresence>
   );
 }

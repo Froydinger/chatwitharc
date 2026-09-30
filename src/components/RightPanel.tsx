@@ -1,3 +1,4 @@
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -169,16 +170,12 @@ export function RightPanel({
     <>
       {/* Mobile backdrop */}
       <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+        <ConditionalTransition preset="fade">{isOpen && (
+          <div
             className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden"
             onClick={onClose}
           />
-        )}
+        )}</ConditionalTransition>
       </AnimatePresence>
 
       {/* Panel */}

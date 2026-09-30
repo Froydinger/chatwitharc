@@ -1,3 +1,4 @@
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { Transition } from "@/components/transitions/Transition";
 import { useState, useEffect, useRef } from "react";
 import { Sparkles, Music } from "lucide-react";
@@ -298,34 +299,26 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
       
       {/* Music button - appears after 3 seconds */}
       <AnimatePresence>
-        {showMusicButton && !hideHelpers && (
-          <motion.button
-            initial={{ opacity: 0, y: -5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -5 }}
-            transition={{ duration: 0.2 }}
+        <ConditionalTransition preset="panel">{showMusicButton && !hideHelpers && (
+          <button
             onClick={handlePlayMusic}
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors ml-1"
           >
             <Music className="h-3 w-3" />
             <span>{isPlayingMusic ? "stop the tunes" : "taking too long? listen to some tunes"}</span>
-          </motion.button>
-        )}
+          </button>
+        )}</ConditionalTransition>
       </AnimatePresence>
 
       {/* Reassurance note - appears after 60 seconds of a slow generation */}
       <AnimatePresence>
-        {showHangTight && !hideHelpers && (
-          <motion.span
-            initial={{ opacity: 0, y: -4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.2 }}
+        <ConditionalTransition preset="panel">{showHangTight && !hideHelpers && (
+          <span
             className="text-[10px] text-muted-foreground/70 ml-1"
           >
             hang tight, Arc is still thinking...
-          </motion.span>
-        )}
+          </span>
+        )}</ConditionalTransition>
       </AnimatePresence>
     </motion.div>
   );

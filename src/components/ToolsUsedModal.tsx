@@ -1,5 +1,7 @@
+import { TransitionPart } from "@/components/transitions/TransitionPart";
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { X, Globe, Sparkles, Search, Database, Brain } from "lucide-react";
 import { MemoryAction } from "@/store/useArcStore";
 import { SourcesAccordion } from "@/components/SourcesAccordion";
@@ -39,18 +41,12 @@ export function ToolsUsedModal({ isOpen, onClose, actions, messageContent }: Too
 
   return (
     <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+      <ConditionalTransition preset="fade">{isOpen && (
+        <div
           onClick={onClose}
           className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
         >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
+          <TransitionPart><div
             onClick={(e) => e.stopPropagation()}
             className="glass-card rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
           >
@@ -159,9 +155,9 @@ export function ToolsUsedModal({ isOpen, onClose, actions, messageContent }: Too
                 </div>
               )}
             </div>
-          </motion.div>
-        </motion.div>
-      )}
+          </div></TransitionPart>
+        </div>
+      )}</ConditionalTransition>
     </AnimatePresence>
   );
 }

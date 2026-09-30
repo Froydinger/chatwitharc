@@ -1,6 +1,6 @@
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { useEffect, useState } from "react";
 import { Check, Search, Share2, Sparkles, Users, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -56,11 +56,8 @@ export function SourceSurveyBanner() {
     else console.warn("[source survey] could not save answer", error.message);
   };
 
-  return <AnimatePresence>{visible && (
-    <motion.div
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
+  return <ConditionalTransition preset="panel">{visible && (
+    <div
       className="fixed inset-x-0 top-0 z-[1000] mx-auto w-full max-w-3xl px-3 pt-[calc(var(--arcai-safe-area-top)+0.75rem)] sm:pt-3"
     >
       <div className="relative rounded-2xl border border-primary/25 bg-background/95 px-4 py-3 shadow-lg backdrop-blur-xl sm:px-5">
@@ -73,6 +70,6 @@ export function SourceSurveyBanner() {
         {selected === "other" && <div className="mt-2 flex gap-2 pr-6"><input value={other} onChange={(event) => setOther(event.target.value)} maxLength={200} autoFocus placeholder="Tell us where" className="min-w-0 flex-1 rounded-full border border-border/50 bg-muted/20 px-3 py-1.5 text-xs text-foreground outline-none focus:border-primary/60" /><button type="button" disabled={saving || !other.trim()} onClick={() => void submit()} className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-40">{saving ? "Saving…" : "Send"}</button></div>}
         {selected && selected !== "other" && <button type="button" disabled={saving} onClick={() => void submit()} className="mt-3 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-40">{saving ? "Saving…" : "Send answer"}</button>}
       </div>
-    </motion.div>
-  )}</AnimatePresence>;
+    </div>
+  )}</ConditionalTransition>;
 }

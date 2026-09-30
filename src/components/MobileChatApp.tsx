@@ -1,3 +1,4 @@
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { ReplyActionsProvider, canShowReplyActions } from "@/components/ReplyActionsProvider";
 import { Transition } from "@/components/transitions/Transition";
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
@@ -1482,12 +1483,8 @@ export function MobileChatApp() {
 
               {/* Voice Volume Button (when Voice Mode is active) */}
               <AnimatePresence>
-                {isVoiceActive && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8, x: 10 }}
-                    animate={{ opacity: 1, scale: 1, x: 0 }}
-                    exit={{ opacity: 0, scale: 0.8, x: 10 }}
-                    transition={{ type: "spring", damping: 20, stiffness: 350 }}
+                <ConditionalTransition preset="modal">{isVoiceActive && (
+                  <div
                     className="relative"
                   >
                     <Popover open={isVolumePopoverOpen} onOpenChange={setIsVolumePopoverOpen}>
@@ -1556,8 +1553,8 @@ export function MobileChatApp() {
                         </div>
                       </PopoverContent>
                     </Popover>
-                  </motion.div>
-                )}
+                  </div>
+                )}</ConditionalTransition>
               </AnimatePresence>
 
               {/* Music Player Button */}
@@ -1637,12 +1634,8 @@ export function MobileChatApp() {
 
             {/* Mobile canvas input bar (hideable) */}
             <AnimatePresence>
-              {showMobileCanvasInput && !isVoiceActive && (
-                <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 50 }}
-                  transition={{ duration: 0.2 }}
+              <ConditionalTransition preset="panel">{showMobileCanvasInput && !isVoiceActive && (
+                <div
                   className="fixed bottom-6 left-16 right-4 z-[75]"
                 >
                   <div className="mb-2 px-1">
@@ -1661,8 +1654,8 @@ export function MobileChatApp() {
                         onCloudTextSubmit={cloudRunObserverEnabled ? submitCloudText : undefined} />
                     </div>
                   </ArcInputEffects>
-                </motion.div>
-              )}
+                </div>
+              )}</ConditionalTransition>
             </AnimatePresence>
           </div>
         )}
@@ -1785,18 +1778,14 @@ export function MobileChatApp() {
                   <SubagentProgress />
                   {/* Show thinking indicator when loading */}
                   <AnimatePresence>
-                    {!hasSubagentRun && !hasLiveAnswer &&
+                    <ConditionalTransition preset="panel">{!hasSubagentRun && !hasLiveAnswer &&
                       isLoading &&
                       !isGeneratingImage &&
                       messages.length > 0 &&
                       (messages[messages.length - 1]?.role === "user" ||
                         (messages[messages.length - 1]?.role === "assistant" &&
                           !messages[messages.length - 1]?.content?.trim())) && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                        <div
                         >
                           <ThinkingIndicator
                             isLoading={isLoading}
@@ -1805,8 +1794,8 @@ export function MobileChatApp() {
                             accessingMemory={isAccessingMemory}
                             searchingWeb={isSearchingWeb}
                           />
-                        </motion.div>
-                      )}
+                        </div>
+                      )}</ConditionalTransition>
                   </AnimatePresence>
                   <LiveChatAnswer sessionId={currentSessionId} visible={isLoading && !isVoiceActive && !isGeneratingImage} />
                 </div>
@@ -1816,12 +1805,8 @@ export function MobileChatApp() {
 
           {/* Scroll to bottom button */}
           <AnimatePresence>
-            {showScrollButton && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
+            <ConditionalTransition preset="panel">{showScrollButton && (
+              <div
                 className="fixed left-0 z-40 flex justify-center pointer-events-none"
                 style={{
                   right: isDesktopCanvasMode ? `${canvasWidthPercent}%` : 0,
@@ -1836,8 +1821,8 @@ export function MobileChatApp() {
                 >
                   <ArrowDown className="h-4 w-4" />
                 </Button>
-              </motion.div>
-            )}
+              </div>
+            )}</ConditionalTransition>
           </AnimatePresence>
 
           {/* Free-floating input shelf with canvas tile above it */}
@@ -1865,13 +1850,9 @@ export function MobileChatApp() {
               </div>
 
               {/* Thinking indicator above greeting on empty state while waiting for first message */}
-              {messages.length === 0 && (isLoading || isGeneratingImage) && (
-                <motion.div
+              <ConditionalTransition preset="modal">{messages.length === 0 && (isLoading || isGeneratingImage) && (
+                <div
                   className="pointer-events-auto flex justify-center mb-4"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ duration: 0.25 }}
                 >
                   <ThinkingIndicator
                     isLoading={isLoading}
@@ -1880,8 +1861,8 @@ export function MobileChatApp() {
                     accessingMemory={isAccessingMemory}
                     searchingWeb={isSearchingWeb}
                   />
-                </motion.div>
-              )}
+                </div>
+              )}</ConditionalTransition>
 
               {/* Greeting - above input on empty state */}
               {!isVoiceActive && messages.length === 0 && (
@@ -1901,18 +1882,14 @@ export function MobileChatApp() {
                   and the metal ring still painting underneath VoiceModeOverlay's
                   bar, which sits at the same width and offset — so their edges
                   showed through as the voice bar grew and moved while listening. */}
-              {!isVoiceActive && (
+              <ConditionalTransition preset="panel">{!isVoiceActive && (
               /* Entrance animation lives on the OUTER wrapper so the element
                  MetalFx measures (the .glass-dock below) is never mid-transform.
                  Framer rewrites `style.transform` every frame, and MetalFx
                  re-measures on every style mutation of its host — animating the
                  host directly is what made the input flicker and collapse. */
-              <motion.div
+              <div
                 className="pointer-events-auto"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 12 }}
-                transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
                 style={{ willChange: 'transform, opacity' }}
               >
                 <ArcInputEffects
@@ -1931,8 +1908,8 @@ export function MobileChatApp() {
                       onCloudTextSubmit={cloudRunObserverEnabled ? submitCloudText : undefined} />
                   </div>
                 </ArcInputEffects>
-              </motion.div>
-              )}
+              </div>
+              )}</ConditionalTransition>
               {/* Quick Prompts - below input bar on empty state */}
               {!isVoiceActive && messages.length === 0 && (
                 <div className="pointer-events-auto mt-4 flex justify-center">
@@ -2035,33 +2012,25 @@ export function MobileChatApp() {
 
       {/* Search Mode - Full Screen Takeover (all devices) */}
       <AnimatePresence>
-        {isSearchOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+        <ConditionalTransition preset="fade">{isSearchOpen && (
+          <div
             className="fixed inset-0 z-[100] bg-background"
           >
             <SearchCanvas />
-          </motion.div>
-        )}
+          </div>
+        )}</ConditionalTransition>
       </AnimatePresence>
 
       {/* App Builder workspace takeover — portaled directly to document.body */}
       {createPortal(
         <AnimatePresence>
-          {APP_BUILDER_ENABLED && isIDEOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+          <ConditionalTransition preset="fade">{APP_BUILDER_ENABLED && isIDEOpen && (
+            <div
               className="fixed inset-0 z-[200] bg-background h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col"
             >
               <AppBuilderWorkspace onClose={closeIDE} />
-            </motion.div>
-          )}
+            </div>
+          )}</ConditionalTransition>
         </AnimatePresence>,
         document.body
       )}

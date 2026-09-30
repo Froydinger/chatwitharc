@@ -1,3 +1,4 @@
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { Transition } from "@/components/transitions/Transition";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -508,18 +509,14 @@ function ScheduledRemindersDemo() {
 
               {/* Notification popup */}
               <AnimatePresence>
-                {activeIndex === 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.9 }}
-                    transition={{ delay: 0.3 }}
+                <ConditionalTransition preset="modal" delay={0.3}>{activeIndex === 0 && (
+                  <div
                     className="absolute top-4 right-4 bg-slate-900 dark:bg-slate-950 text-white px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 shadow-lg"
                   >
                     <Bell className="w-3 h-3" />
                     Reminder in 5 min
-                  </motion.div>
-                )}
+                  </div>
+                )}</ConditionalTransition>
               </AnimatePresence>
             </div>
 

@@ -1,3 +1,5 @@
+import { TransitionPart } from "@/components/transitions/TransitionPart";
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { shouldForceVideoSearch, inferPromptMode, isImageEditRequest, checkForImageRequest, checkForVideoRequest, isAnimateImageRequest, extractVideoPrompt, extractSubjectForImageRequest, analyzeImageRequestIntent, checkForCodingRequest, checkForCanvasRequest, checkForSearchRequest, checkForGitRequest, isConversationalMessage, looksLikeNaturalCodeRequest, looksLikeNaturalCanvasRequest, looksLikeCanvasEditRequest, referencesCanvasSurface, looksLikeCodeEditRequest, referencesCodeSurface, extractPrefixPrompt, extractImagePrompt, isContextualImagePrompt, findRecentVisualContext } from "@/lib/chat-input/intent";
 export { inferPromptMode } from "@/lib/chat-input/intent";
 export type { PromptMode } from "@/lib/chat-input/intent";
@@ -2897,19 +2899,12 @@ ${safeCode}
       {portalRoot &&
         createPortal(
           <AnimatePresence>
-            {isDragOver && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+            <ConditionalTransition preset="fade">{isDragOver && (
+              <div
                 style={{ position: "fixed", inset: 0, zIndex: 9999 }}
                 className="flex items-center justify-center bg-background/90 backdrop-blur-md"
               >
-                <motion.div
-                  initial={{ scale: 0.92, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.92, opacity: 0 }}
-                  transition={{ type: "spring", damping: 25, stiffness: 400 }}
+                <TransitionPart><div
                   style={{ position: "absolute", inset: 24 }}
                   className="rounded-3xl border-2 border-dashed border-primary/60 bg-primary/5 flex flex-col items-center justify-center gap-4 pointer-events-none"
                 >
@@ -2918,9 +2913,9 @@ ${safeCode}
                   </div>
                   <p className="text-2xl font-semibold text-foreground">Drop files here</p>
                   <p className="text-base text-muted-foreground">Images, PDFs, DOCX, PPTX, and more</p>
-                </motion.div>
-              </motion.div>
-            )}
+                </div></TransitionPart>
+              </div>
+            )}</ConditionalTransition>
           </AnimatePresence>,
           portalRoot,
         )}

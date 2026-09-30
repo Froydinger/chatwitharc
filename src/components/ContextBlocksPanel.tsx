@@ -1,3 +1,4 @@
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Brain, Check, Edit2, Plus, Sparkles, Trash2, X } from "lucide-react";
@@ -61,13 +62,9 @@ export function ContextBlocksPanel({ isOpen, onClose }: ContextBlocksPanelProps)
 
   return (
     <AnimatePresence>
-      {isOpen && (
-        <motion.div
+      <ConditionalTransition preset="modal">{isOpen && (
+        <div
           ref={panelRef}
-          initial={{ opacity: 0, y: -8, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -8, scale: 0.96 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
           className={cn("fixed z-[60] glass-panel border border-border/40 rounded-2xl shadow-2xl overflow-hidden", isMobile ? "inset-x-3 top-16 max-h-[70vh]" : "right-4 top-16 w-[380px] max-h-[70vh]")}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
@@ -108,8 +105,8 @@ export function ContextBlocksPanel({ isOpen, onClose }: ContextBlocksPanelProps)
               </div>
             ) : null}
           </div>
-        </motion.div>
-      )}
+        </div>
+      )}</ConditionalTransition>
     </AnimatePresence>
   );
 }
