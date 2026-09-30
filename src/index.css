@@ -2754,7 +2754,8 @@ button.app-builder-tab:focus-visible {
 }
 
 /* Upgrade details must remain opaque and readable above the page in both themes. */
-:root .arc-upgrade-dialog {
+:root.light .arc-upgrade-dialog,
+:root.dark .arc-upgrade-dialog {
   background: hsl(var(--background)) !important;
   color: hsl(var(--foreground)) !important;
 }
