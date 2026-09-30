@@ -1,0 +1,57 @@
+/* Adapted from Jakub Antalik's transitions.dev modal, dropdown, panel,
+   page, text-swap and accordion recipes. React state / Radix Presence
+   supplies the lifecycle; CSS owns the motion. https://transitions.dev */
+:root {
+  --arc-motion-quick: 150ms;
+  --arc-motion-fast: 250ms;
+  --arc-motion-panel-open: 400ms;
+  --arc-motion-panel-close: 350ms;
+  --arc-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.arc-transition { animation-fill-mode: both; animation-timing-function: var(--arc-motion-ease); }
+.arc-transition[data-motion-state="open"] { animation-duration: var(--arc-motion-fast); animation-delay: var(--arc-motion-delay, 0s); }
+.arc-transition[data-motion-state="closed"] { animation-duration: var(--arc-motion-quick); animation-delay: 0s; pointer-events: none; }
+.arc-transition-fade[data-motion-state="open"] { animation-name: arc-fade-in; }
+.arc-transition-fade[data-motion-state="closed"] { animation-name: arc-fade-out; }
+.arc-transition-modal[data-motion-state="open"] { animation-name: arc-modal-in; }
+.arc-transition-modal[data-motion-state="closed"] { animation-name: arc-modal-out; }
+.arc-transition-panel[data-motion-state="open"] { animation-name: arc-panel-in; animation-duration: var(--arc-motion-panel-open); }
+.arc-transition-panel[data-motion-state="closed"] { animation-name: arc-panel-out; animation-duration: var(--arc-motion-panel-close); }
+.arc-transition-page[data-motion-state="open"] { animation-name: arc-page-in; }
+.arc-transition-page[data-motion-state="closed"] { animation-name: arc-page-out; }
+.arc-transition-text[data-motion-state="open"] { animation-name: arc-text-in; animation-duration: var(--arc-motion-quick); }
+.arc-transition-text[data-motion-state="closed"] { animation-name: arc-text-out; }
+/* Independent scale / translate preserve positioning transforms (centered
+   dialogs, floating menus), rather than overwriting them. */
+.arc-modal[data-state="open"] { animation: arc-modal-in var(--arc-motion-fast) var(--arc-motion-ease) both; }
+.arc-modal[data-state="closed"] { animation: arc-modal-out var(--arc-motion-quick) var(--arc-motion-ease) both; }
+.arc-overlay[data-state="open"] { animation: arc-fade-in var(--arc-motion-fast) var(--arc-motion-ease) both; }
+.arc-overlay[data-state="closed"] { animation: arc-fade-out var(--arc-motion-quick) var(--arc-motion-ease) both; }
+.arc-dropdown { transform-origin: var(--radix-popover-content-transform-origin, var(--radix-dropdown-menu-content-transform-origin, center top)); }
+.arc-dropdown[data-state="open"] { animation: arc-dropdown-in var(--arc-motion-fast) var(--arc-motion-ease) both; }
+.arc-dropdown[data-state="closed"] { animation: arc-dropdown-out var(--arc-motion-quick) var(--arc-motion-ease) both; }
+.arc-tooltip[data-state="delayed-open"], .arc-tooltip[data-state="instant-open"] { animation: arc-tooltip-in var(--arc-motion-quick) ease-out both; }
+.arc-tooltip[data-state="closed"] { animation: arc-fade-out 80ms ease-out both; }
+.arc-accordion { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--arc-motion-fast) var(--arc-motion-ease); }
+.arc-accordion[data-open="true"] { grid-template-rows: 1fr; }
+.arc-accordion > div { overflow: hidden; min-height: 0; opacity: 0; transition: opacity var(--arc-motion-fast) var(--arc-motion-ease); }
+.arc-accordion[data-open="true"] > div { opacity: 1; }
+.arc-chevron { transition: scale var(--arc-motion-fast) var(--arc-motion-ease); }
+.arc-chevron[data-open="true"] { scale: 1 -1; }
+@keyframes arc-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes arc-fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes arc-modal-in { from { opacity: 0; scale: .96; } to { opacity: 1; scale: 1; } }
+@keyframes arc-modal-out { from { opacity: 1; scale: 1; } to { opacity: 0; scale: .96; } }
+@keyframes arc-dropdown-in { from { opacity: 0; scale: .97; translate: 0 4px; } to { opacity: 1; scale: 1; translate: 0 0; } }
+@keyframes arc-dropdown-out { from { opacity: 1; scale: 1; } to { opacity: 0; scale: .99; } }
+@keyframes arc-tooltip-in { from { opacity: 0; scale: .98; } to { opacity: 1; scale: 1; } }
+@keyframes arc-panel-in { from { opacity: 0; translate: 0 12px; } to { opacity: 1; translate: 0 0; } }
+@keyframes arc-panel-out { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 12px; } }
+@keyframes arc-page-in { from { opacity: 0; translate: 8px 0; } to { opacity: 1; translate: 0 0; } }
+@keyframes arc-page-out { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: -8px 0; } }
+@keyframes arc-text-in { from { opacity: 0; translate: 0 4px; } to { opacity: 1; translate: 0 0; } }
+@keyframes arc-text-out { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 -4px; } }
+@media (prefers-reduced-motion: reduce) {
+  .arc-transition, .arc-modal, .arc-overlay, .arc-dropdown, .arc-tooltip { animation: none !important; }
+  .arc-accordion, .arc-accordion > div, .arc-chevron { transition: none !important; }
+}

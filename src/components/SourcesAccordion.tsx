@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Transition } from "@/components/transitions/Transition";
+import { useId, useState } from "react";
 import { Globe, ChevronDown, ExternalLink, Play, Image as ImageIcon } from "lucide-react";
 import { WebSource } from "@/store/useArcStore";
 import { MediaEmbeds, getMediaType, getYouTubeVideoId } from "@/components/MediaEmbed";
@@ -12,6 +12,8 @@ interface SourcesAccordionProps {
 
 export const SourcesAccordion = ({ sources, showMediaEmbeds = true, messageContent }: SourcesAccordionProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [hasOpened, setHasOpened] = useState(false);
+  const panelId = useId();
 
   if (!sources || sources.length === 0) return null;
 
@@ -59,10 +61,7 @@ export const SourcesAccordion = ({ sources, showMediaEmbeds = true, messageConte
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -4 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
+    <Transition preset="panel"><div
       className="mt-3 w-full max-w-full overflow-hidden"
     >
       {/* Media Embeds (shown above accordion when enabled) */}
@@ -75,7 +74,9 @@ export const SourcesAccordion = ({ sources, showMediaEmbeds = true, messageConte
 
       {/* Trigger Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-controls={panelId}
+        onClick={() => { setHasOpened(true); setIsOpen(!isOpen); }}
         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 border border-border/40 hover:bg-muted/70 transition-colors group w-fit max-w-full mt-3"
       >
         <Globe className="h-3.5 w-3.5 text-primary/70" />
@@ -94,34 +95,22 @@ export const SourcesAccordion = ({ sources, showMediaEmbeds = true, messageConte
             {imageCount}
           </span>
         )}
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
+        <span className="arc-chevron inline-flex" data-open={isOpen}>
           <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/70" />
-        </motion.div>
+        </span>
       </button>
 
       {/* Sources List */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden w-full max-w-full"
-          >
+      <div id={panelId} className="arc-accordion w-full max-w-full" data-open={isOpen} aria-hidden={!isOpen}>
+        <div>
+          {hasOpened && (
             <div className="mt-2 space-y-1.5 pl-1 w-full max-w-full">
               {sources.map((source, index) => (
-                <motion.a
-                  key={index}
+                <Transition preset="page" delay={index * 0.05} key={index}><a
                   href={source.url}
+                  tabIndex={isOpen ? undefined : -1}
                   target="_blank"
                   rel="noopener noreferrer"
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
                   className="group flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 hover:border-primary/30 transition-[background-color,border-color] w-full max-w-full overflow-hidden"
                 >
                   {/* Favicon */}
@@ -153,12 +142,12 @@ export const SourcesAccordion = ({ sources, showMediaEmbeds = true, messageConte
                       </p>
                     )}
                   </div>
-                </motion.a>
+                </a></Transition>
               ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+          )}
+        </div>
+      </div>
+    </div></Transition>
   );
 };

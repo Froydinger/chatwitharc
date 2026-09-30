@@ -12,6 +12,15 @@ const toolNames: Record<MemoryActionType, string> = {
   context_saved: "Memory saved", memory_accessed: "Memory accessed",
 };
 
+const responseToolNames: Record<string, string> = {
+  web_search: "Web search", get_weather: "Weather", get_current_location: "Location",
+  search_chats: "Past chats", save_memory: "Memory", access_memory: "Memory",
+  generate_image: "Image generation", edit_image: "Image editing",
+  update_canvas: "Writing canvas", update_code: "Code canvas",
+  schedule_task: "Reminder", open_bug_report: "Bug report",
+  browserbase_open_live_site: "Web browser", browserbase_search: "Web browser",
+};
+
 /** Reply details use recorded values, never today's model picker or local model. */
 export function MessageMetadata({ message }: { message: Message }) {
   const [open, setOpen] = useState(false);
@@ -27,8 +36,9 @@ export function MessageMetadata({ message }: { message: Message }) {
   const sources = message.webSources?.length ? message.webSources : message.memoryAction?.sources;
 
   const tools = Array.from(new Set([
-    ...(message.toolsUsed || []).map((tool) => tool.replace(/_/g, " ")),
+    ...(message.toolsUsed || []).map((tool) => responseToolNames[tool] || tool.replace(/_/g, " ")),
     ...(!message.toolsUsed?.length && message.memoryAction ? [toolNames[message.memoryAction.type]] : []),
+    ...(!message.toolsUsed?.length && !message.memoryAction && sources?.length ? ["Web search"] : []),
     ...(!message.toolsUsed?.length && message.weatherData ? ["Weather"] : []),
     ...(!message.toolsUsed?.length && message.scheduledTask ? ["Reminder"] : []),
   ]));
@@ -70,7 +80,7 @@ export function MessageMetadata({ message }: { message: Message }) {
           <p className="text-sm text-muted-foreground break-words">{message.memoryAction.content}</p>
         )}
         {sources && sources.length > 0 && (
-          <SourcesAccordion sources={sources} messageContent={message.content} showMediaEmbeds={false} />
+          <SourcesAccordion sources={sources.map((source) => ({ ...source, title: source.title || source.url }))} messageContent={message.content} showMediaEmbeds={false} />
         )}
         <div className="flex justify-end">
           <button type="button" title="Report a bug" aria-label="Report a bug"

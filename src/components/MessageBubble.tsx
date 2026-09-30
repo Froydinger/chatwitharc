@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { Fragment, forwardRef, useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Copy, Edit2, Check, MapPin, Volume2, Square, Loader2, Share2 } from "lucide-react";
@@ -274,23 +275,15 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
               {/* Weather Card */}
               {!isUser && message.weatherData && (
-                <motion.div
-                  key="card-weather"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
+                <Transition preset="panel" key="card-weather"><div
                   className="mb-3 relative z-10 flex justify-start"
                 >
                   <WeatherCard weather={message.weatherData} />
-                </motion.div>
+                </div></Transition>
               )}
 
               {hasVoiceSearchCard && (
-                <motion.div
-                  key="card-voice-search-results"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
+                <Transition preset="panel" key="card-voice-search-results"><div
                   className="relative z-10 mb-3 flex w-full justify-start"
                   onClick={(event) => event.stopPropagation()}
                 >
@@ -300,41 +293,29 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     query={message.memoryAction?.type === "web_searched" ? message.memoryAction.query : undefined}
                     images={message.searchImages}
                   />
-                </motion.div>
+                </div></Transition>
               )}
 
               {/* Scheduled Task Card */}
               {!isUser && message.scheduledTask && (
-                <motion.div
-                  key="card-scheduled-task"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
+                <Transition preset="panel" key="card-scheduled-task"><div
                   className="mb-3 relative z-10 flex justify-start"
                 >
                   <ScheduledTaskCard task={message.scheduledTask} />
-                </motion.div>
+                </div></Transition>
               )}
 
               {/* Notification Dispatch Card */}
               {!isUser && message.notificationDispatch && (
-                <motion.div
-                  key="card-notification-dispatch"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
+                <Transition preset="panel" key="card-notification-dispatch"><div
                   className="mb-3 relative z-10 flex justify-start"
                 >
                   <NotificationDispatchCard dispatch={message.notificationDispatch} />
-                </motion.div>
+                </div></Transition>
               )}
 
               {!isUser && message.ideProjectId && (
-                <motion.div
-                  key="card-app-builder-artifact"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
+                <Transition preset="panel" key="card-app-builder-artifact"><div
                   className="relative z-10 mb-2 w-full"
                 >
                   <AppBuilderArtifactCard
@@ -343,31 +324,23 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     prompt={message.idePrompt}
                     fileCount={message.ideFileCount}
                   />
-                </motion.div>
+                </div></Transition>
               )}
 
               {!isUser && message.appChoices && message.appChoices.length > 0 && (
-                <motion.div
-                  key="card-app-builder-choices"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
+                <Transition preset="panel" key="card-app-builder-choices"><div
                   className="relative z-10 mb-2 w-full"
                 >
                   <AppBuilderAppChoiceCard
                     projects={message.appChoices}
                     editPrompt={message.appChoicePrompt || ''}
                   />
-                </motion.div>
+                </div></Transition>
               )}
 
               {/* Image Choice Card */}
               {!isUser && message.imageChoiceSubject && (
-                <motion.div
-                  key="card-image-choice"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
+                <Transition preset="panel" key="card-image-choice"><div
                   className="mb-3 mt-2 relative z-10 p-3 rounded-2xl glass border border-border/40 max-w-sm"
                 >
                   <p className="text-xs text-muted-foreground mb-3 font-medium">Select an option:</p>
@@ -397,17 +370,13 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                       Search Web Photos
                     </Button>
                   </div>
-                </motion.div>
+                </div></Transition>
               )}
 
               {/* Images */}
               {message.type === "image" &&
                 (message.imageUrl || message.imageUrls) && (
-                  <motion.div
-                    key="card-images"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.12 }}
+                  <Transition preset="fade" key="card-images"><div
                     className="mb-2 relative z-10"
                   >
                     {message.imageUrls && message.imageUrls.length > 0 ? (
@@ -513,7 +482,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                         </div>
                       )
                     )}
-                   </motion.div>
+                   </div></Transition>
                 )}
 
               {/* File Attachment */}
@@ -524,11 +493,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </div>
               ))}
               {!message.generatedFiles?.length && message.type === "file" && message.fileUrl && (
-                <motion.div
-                  key="card-file"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.12 }}
+                <Transition preset="fade" key="card-file"><div
                   className="mb-2 relative z-10"
                 >
                   <FileAttachment
@@ -538,17 +503,13 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     fileSize={message.fileSize}
                     className="max-w-md"
                   />
-                </motion.div>
+                </div></Transition>
               )}
 
               {/* Work summaries are text messages that can also carry saved artifacts. */}
               {/* Canvas Attachment */}
               {message.canvasContent && (
-                <motion.div
-                  key="card-canvas"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.12 }}
+                <Transition preset="fade" key="card-canvas"><div
                   className="mb-2 relative z-10"
                 >
                   <CanvasAttachment
@@ -556,16 +517,12 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     canvasLabel={message.canvasLabel}
                     className="max-w-md"
                   />
-                </motion.div>
+                </div></Transition>
               )}
 
               {/* Code Artifact */}
               {message.codeContent && (
-                <motion.div
-                  key="card-code"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.12 }}
+                <Transition preset="fade" key="card-code"><div
                   className="mb-2 relative z-10"
                 >
                   <CodeArtifactCard
@@ -574,7 +531,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     codeLabel={message.codeLabel}
                     className="max-w-md"
                   />
-                </motion.div>
+                </div></Transition>
               )}
 
               {/* Text */}

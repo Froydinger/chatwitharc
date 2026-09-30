@@ -1,5 +1,5 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
 import { Volume2, VolumeX, X, Music, Heart, Repeat, Repeat1, Shuffle, ArrowRight, RotateCcw, RotateCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -31,7 +31,6 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const [showLikedOnly, setShowLikedOnly] = useState(false);
   const { likedTrackIds, toggleLike } = useMusicLikes();
-  const reducedMotion = useReducedMotion();
   const safeDuration = Number.isFinite(duration) && duration > 0 ? duration : 0;
   const ModeIcon = PLAYBACK_MODE_ICONS[playbackMode];
   const visibleTracks = showLikedOnly
@@ -64,11 +63,9 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
 
   return (
     <>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: reducedMotion ? 0 : 0.2 }}
-        className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
-      <motion.div ref={popupRef} role="dialog" aria-modal="true" aria-labelledby="arc-music-title"
-        initial={{ opacity: 0, y: reducedMotion ? 0 : -12 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: reducedMotion ? 0 : 0.25, ease: [0.22, 1, 0.36, 1] }}
+      <Transition preset="fade"><div
+        className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" /></Transition>
+      <Transition preset="panel"><div ref={popupRef} role="dialog" aria-modal="true" aria-labelledby="arc-music-title"
         className="fixed right-2 top-[max(1rem,var(--arcai-safe-area-top))] z-50 max-h-[calc(100dvh-2rem)] w-[340px] max-w-[calc(100vw-1rem)] overflow-y-auto overscroll-contain rounded-3xl border border-border/60 bg-background/95 text-foreground shadow-2xl backdrop-blur-2xl sm:right-4 sm:top-20 sm:max-h-[calc(100dvh-6rem)]">
         <div className="flex items-center justify-between px-5 pt-4 pb-1">
           <h2 id="arc-music-title" className="flex items-center gap-2 text-sm font-medium"><Music className="h-4 w-4" />Music</h2>
@@ -132,7 +129,7 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
           </TabsContent>
           <TabsContent value="youtube" className="mt-4"><YouTubeMusicEmbed /></TabsContent>
         </Tabs>
-      </motion.div>
+      </div></Transition>
     </>
   );
 }
