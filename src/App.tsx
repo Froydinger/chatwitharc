@@ -68,78 +68,11 @@ const VoiceLabPage = lazy(() => import("./pages/VoiceLabPage").then((m) => ({ de
 const AppBuilderPage = lazy(() => import("./pages/AppBuilderPage").then((m) => ({ default: m.AppBuilderPage })));
 import { useAuth } from "@/hooks/useAuth";
 import { GUEST_CHAT_ENABLED } from "@/lib/features";
-import { ThemedLogo } from "@/components/ThemedLogo";
-import { motion } from "framer-motion";
+import { FullscreenLoader, FastLoader } from "@/components/AppLoaders";
 import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { isLocalChatPreview } from "@/lib/localPreview";
 import { isLocalDashboardPreview } from "@/lib/localPreview";
 import { DashboardPreviewPage } from "./pages/DashboardPreviewPage";
-
-const FullscreenLoader = () => {
-  const [stage, setStage] = useState<'spin' | 'bloop'>('spin');
-
-  useEffect(() => {
-    // 1.0 second of spinning, then transition to concurrent bloop/fade
-    const timer = setTimeout(() => {
-      setStage('bloop');
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <motion.div
-      className="fixed inset-0 flex items-center justify-center bg-background z-[9999]"
-      initial={{ opacity: 1 }}
-      animate={{ opacity: stage === 'bloop' ? 0 : 1 }}
-      transition={{ duration: 0.5, ease: "easeInOut" }}
-    >
-      <div className="relative flex items-center justify-center">
-        <div className="absolute inset-0 rounded-full bg-primary/20 filter blur-xl animate-pulse scale-150" />
-        
-        <motion.div
-          className="h-20 w-20 relative z-10"
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={
-            stage === 'spin'
-              ? { scale: 1, opacity: 1, rotate: 360 * 3 }
-              : { scale: 0, opacity: 0, rotate: 360 * 3 }
-          }
-          transition={
-            stage === 'spin'
-              ? {
-                  rotate: { duration: 1.0, ease: "easeOut" },
-                  scale: { duration: 0.4, ease: "easeOut" },
-                  opacity: { duration: 0.4, ease: "easeOut" }
-                }
-              : {
-                  scale: { duration: 0.4, ease: [0.34, 1.56, 0.64, 1] },
-                  opacity: { duration: 0.3 }
-                }
-          }
-        >
-          <ThemedLogo className="h-full w-full" alt="Loading" />
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-};
-
-const FastLoader = () => {
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-background z-50">
-      <motion.div
-        className="h-12 w-12"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-      >
-        <div className="h-full w-full relative flex items-center justify-center">
-          <ThemedLogo className="h-full w-full" alt="Loading" />
-          <div className="absolute inset-0 rounded-full bg-primary/20 filter blur-xl animate-pulse" />
-        </div>
-      </motion.div>
-    </div>
-  );
-};
 
 /**
  * Signed-out visitors get the marketing lander. Real accounts always get the
