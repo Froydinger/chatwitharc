@@ -57,15 +57,19 @@ try {
         const host = document.querySelector('#arc-entrance-qa');
         const nodes = [...host.querySelectorAll('.arc-transition')];
         return { count: nodes.length, states: nodes.map(node => ({ opacity: getComputedStyle(node).opacity, animation: getComputedStyle(node).animationName })), overflow: host.scrollWidth > host.clientWidth, text: host.textContent,
-          loops: [...host.querySelectorAll('.arc-image-thinking-spin,.arc-image-thinking-glow')].map(node => ({name:getComputedStyle(node).animationName, iterations:getComputedStyle(node).animationIterationCount})) };
+          loops: [...host.querySelectorAll('.arc-image-thinking-spin,.arc-image-thinking-glow,.arc-welcome-avatar-float,.arc-welcome-avatar-glow')].map(node => ({name:getComputedStyle(node).animationName, iterations:getComputedStyle(node).animationIterationCount})) };
       })()`);
-      assert.equal(result.count, 4, 'Actual welcome, image card, spin wrapper and caption entrances');
+      assert.equal(result.count, 7, 'Actual welcome/avatar, two prompt chips, image card, spin wrapper and caption entrances');
       assert.ok(result.states.every(state => Number(state.opacity) === 1), `Entrances settle visible: ${JSON.stringify(result.states)}`);
       if (reduced) assert.ok(result.states.every(state => state.animation === 'none'));
-      assert.equal(result.loops.length, 2, 'Spin and glow keep separate animation owners');
+      assert.equal(result.loops.length, 4, 'Image and avatar loops keep separate animation owners');
       if (reduced) assert.ok(result.loops.every(loop => loop.name === 'none'), 'Reduced motion stops both loops');
       else assert.ok(result.loops.every(loop => loop.name !== 'none' && loop.iterations === 'infinite'), 'Loop CSS must not replace an entrance lifetime');
       assert.equal(result.overflow, false, 'No new horizontal overflow');
+      assert.equal(await evaluate('document.querySelector("#arc-entrance-qa img[alt=Arc]").naturalWidth > 0'), true, 'Avatar asset loads');
+      const beforeClicks = await evaluate('Number(document.querySelector("#arc-entrance-qa").dataset.promptClicks)');
+      await evaluate('document.querySelector("#arc-entrance-qa .arc-prompt-chip").click()');
+      assert.equal(await evaluate('Number(document.querySelector("#arc-entrance-qa").dataset.promptClicks)'), beforeClicks + 1, 'A chip click invokes its callback exactly once');
       assert.ok(/generat|image/i.test(result.text));
     }
   }

@@ -1,5 +1,4 @@
-import { motion } from "framer-motion";
-import { staggerContainerVariants, staggerItemVariants, ANIMATION_DURATION, STAGGER, createHoverVariants, createTapVariants } from "@/utils/animations";
+import { Transition } from "@/components/transitions/Transition";
 
 interface QuickPromptsProps {
   quickPrompts: Array<{ label: string; prompt: string }>;
@@ -17,31 +16,21 @@ export function QuickPrompts({ quickPrompts, onTriggerPrompt }: QuickPromptsProp
   return (
     <div className="flex flex-col items-center gap-4 px-4">
       {/* Prompt Chips */}
-      <motion.div
-        className="flex flex-wrap items-center justify-center gap-2 max-w-4xl"
-        variants={staggerContainerVariants}
-        initial="initial"
-        animate="animate"
-      >
-        {quickPrompts.map((prompt) => (
-          <motion.button
-            key={prompt.label}
-            variants={staggerItemVariants}
-            whileHover={createHoverVariants(1.07, -3)}
-            whileTap={createTapVariants(0.95)}
+      <div className="flex flex-wrap items-center justify-center gap-2 max-w-4xl">
+        {quickPrompts.map((prompt, index) => (
+          <Transition key={prompt.label} preset="panel" delay={index * 0.04}><button
             onClick={() => handlePromptClick(prompt.prompt)}
-            className="group relative px-4 py-2.5 rounded-full outline-shimmer hover:ring-1 hover:ring-primary/50 transition-all duration-200"
+            className="arc-prompt-chip group relative px-4 py-2.5 rounded-full outline-shimmer hover:ring-1 hover:ring-primary/50"
           >
             <span className="text-sm font-medium">{prompt.label}</span>
 
             {/* Subtle hover glow */}
-            <motion.div
+            <div
               className="absolute inset-0 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-              initial={false}
             />
-          </motion.button>
+          </button></Transition>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }

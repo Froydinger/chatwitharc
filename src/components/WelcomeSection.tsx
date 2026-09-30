@@ -1,6 +1,5 @@
 import { Transition } from "@/components/transitions/Transition";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 
 // Typewriter component for smooth text reveal - plays once only
@@ -199,22 +198,12 @@ export function WelcomeSection({
         className="flex flex-col items-center gap-3 sm:gap-4 text-center"
       >
         {heroAvatar && (
-          <motion.div
-            className="relative"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, y: [0, -8, 0] }}
-            transition={{
-              opacity: { duration: 0.6, ease: "easeOut" },
-              y: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.8 }
-            }}
-          >
-            <img src={heroAvatar} alt="Arc" className="h-24 w-24 rounded-full" />
-            <motion.div
-              className="absolute -inset-1 bg-gradient-to-tr from-neon-500/25 to-primary/25 rounded-full blur-xl"
-              animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </motion.div>
+          <Transition preset="fade"><div className="relative">
+            <div className="arc-welcome-avatar-float">
+              <img src={heroAvatar} alt="Arc" className="h-24 w-24 rounded-full" />
+              <div className="arc-welcome-avatar-glow absolute -inset-1 bg-gradient-to-tr from-neon-500/25 to-primary/25 rounded-full blur-xl" />
+            </div>
+          </div></Transition>
         )}
       </div></Transition>
 

@@ -2,7 +2,6 @@ import { TransitionPart } from "@/components/transitions/TransitionPart";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence } from "framer-motion";
 import { X, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SmoothImage } from "@/components/ui/smooth-image";
@@ -82,7 +81,6 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
   };
 
   const modal = (
-      <AnimatePresence>
       <ConditionalTransition preset="fade">{isOpen && (
         <div
           onClick={onClose}
@@ -147,7 +145,6 @@ export function ImageModal({ isOpen, onClose, imageUrl, alt = "Image", sourceUrl
           </div></TransitionPart>
         </div>
       )}</ConditionalTransition>
-    </AnimatePresence>
   );
 
   // The preview is rendered above the app shell so fixed chat controls cannot

@@ -8,6 +8,20 @@
   --arc-motion-panel-close: 350ms;
   --arc-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* Welcome loops have their own owners so entrance lifetimes stay finite. */
+.arc-welcome-avatar-float { position: relative; animation: arc-welcome-float 4s ease-in-out .8s infinite; }
+.arc-welcome-avatar-glow { animation: arc-welcome-glow 3s ease-in-out infinite; }
+.arc-prompt-chip { transition: scale var(--arc-motion-fast) var(--arc-motion-ease), transform var(--arc-motion-fast) var(--arc-motion-ease), box-shadow var(--arc-motion-fast) var(--arc-motion-ease); }
+@media (hover: hover) { .arc-prompt-chip:hover { scale: 1.07; transform: translateY(-3px); } }
+.arc-prompt-chip:active { scale: .95; }
+@keyframes arc-welcome-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -8px; } }
+@keyframes arc-welcome-glow { 0%, 100% { scale: 1; opacity: .3; } 50% { scale: 1.1; opacity: .5; } }
+@media (prefers-reduced-motion: reduce) {
+  .arc-welcome-avatar-float, .arc-welcome-avatar-glow { animation: none !important; }
+  .arc-welcome-avatar-glow { opacity: .3; }
+  .arc-prompt-chip { transition: none !important; }
+  .arc-prompt-chip:hover, .arc-prompt-chip:active { scale: 1; transform: none; }
+}
 .arc-transition { animation-fill-mode: both; animation-timing-function: var(--arc-motion-ease); }
 .arc-transition[data-motion-state="open"] { animation-duration: var(--arc-motion-fast); animation-delay: var(--arc-motion-delay, 0s); }
 .arc-transition[data-motion-state="closed"] { animation-duration: var(--arc-motion-quick); animation-delay: 0s; pointer-events: none; }
