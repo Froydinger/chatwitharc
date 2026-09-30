@@ -1,6 +1,8 @@
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { Transition, type TransitionPreset } from "@/components/transitions/Transition";
+import { SubscriptionProvider } from "@/hooks/useSubscription";
+import { ChatModelPicker } from "@/components/ChatModelPicker";
 import { MessageMetadata } from "@/components/MessageMetadata";
 
 /** Local test fixture only. No route, auth bypass, provider call or persisted message. */
@@ -17,6 +19,7 @@ export function installTransitionQA() {
         <Transition show={show} preset={preset}>
           <button id="arc-transition-target" style={{ width: 120, height: 40 }}>Motion target</button>
         </Transition>
+        <SubscriptionProvider><ChatModelPicker /></SubscriptionProvider>
         <MessageMetadata message={{ id: "qa-reply", role: "assistant", content: "Synthetic reply", type: "text", timestamp: new Date(), sourceModel: "cloud-chat", modelUsed: "gpt-6-luna", reasoningEffortUsed: "medium", toolsUsed: ["web_search", "get_weather"], webSources: [{ url: "https://example.com", title: "Example source" }] }} />
       </>
     ));

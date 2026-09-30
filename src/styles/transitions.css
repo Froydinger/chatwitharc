@@ -13,6 +13,9 @@
 .arc-transition[data-motion-state="closed"] { animation-duration: var(--arc-motion-quick); animation-delay: 0s; pointer-events: none; }
 .arc-transition-fade[data-motion-state="open"] { animation-name: arc-fade-in; }
 .arc-transition-fade[data-motion-state="closed"] { animation-name: arc-fade-out; }
+.arc-transition-dropdown { transform-origin: center top; }
+.arc-transition-dropdown[data-motion-state="open"] { animation-name: arc-dropdown-in; }
+.arc-transition-dropdown[data-motion-state="closed"] { animation-name: arc-dropdown-out; }
 .arc-transition-modal[data-motion-state="open"] { animation-name: arc-modal-in; }
 .arc-transition-modal[data-motion-state="closed"] { animation-name: arc-modal-out; }
 .arc-transition-panel[data-motion-state="open"] { animation-name: arc-panel-in; animation-duration: var(--arc-motion-panel-open); }

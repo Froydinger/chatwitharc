@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ConditionalTransition } from '@/components/transitions/ConditionalTransition';
 import { Bubbles, RefreshCcwDot, Droplets, WavesHorizontal, Zap, Check, ChevronDown, Crown } from 'lucide-react';
 import { canSeeFlynnPreview, useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -109,15 +109,12 @@ export function ChatModelPicker({
       </button>
 
       {createPortal(
-        <AnimatePresence>
-          {open && coords && (
-            <>
-              <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
-              <motion.div
-                initial={{ opacity: 0, y: -6, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -6, scale: 0.96 }}
-                transition={{ type: 'spring', stiffness: 380, damping: 26 }}
+        <>
+          {open && coords && <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />}
+          <ConditionalTransition preset="dropdown">
+            {open && coords && (
+              <div
+                data-testid="chat-model-menu"
                 style={{ top: coords.top, left: coords.left }}
                 className="fixed z-[9999] w-[17rem] rounded-2xl border border-border/40 glass shadow-2xl p-1.5"
               >
@@ -211,10 +208,10 @@ export function ChatModelPicker({
                     </button>
                   </div>
                 )}
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>,
+              </div>
+            )}
+          </ConditionalTransition>
+        </>,
         document.body,
       )}
     </>

@@ -2,7 +2,7 @@ import type { CSSProperties, ReactElement } from "react";
 import { Presence } from "@radix-ui/react-presence";
 import { Slot } from "@radix-ui/react-slot";
 
-export type TransitionPreset = "fade" | "modal" | "panel" | "page" | "text";
+export type TransitionPreset = "fade" | "dropdown" | "modal" | "panel" | "page" | "text";
 
 /** Native React orchestration for transitions.dev patterns. No extra layout node.
  * Radix retains the element through its CSS exit animation and cancels removal

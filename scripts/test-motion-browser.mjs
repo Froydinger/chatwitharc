@@ -25,7 +25,7 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 try {
   await evaluate('window.__arcMotionQA?.dispose(); import("/src/dev/TransitionQA.tsx").then(m => { window.__arcMotionQA = m.installTransitionQA(); return true; })');
   assert.equal(await evaluate('document.querySelector("#arc-transition-target").parentElement.id'), 'arc-transition-qa', 'No extra layout wrapper');
-  for (const preset of ['fade', 'modal', 'panel', 'page', 'text']) {
+  for (const preset of ['fade', 'modal', 'dropdown', 'panel', 'page', 'text']) {
     await evaluate(`window.__arcMotionQA.render(true, "${preset}")`);
     assert.ok((await evaluate('getComputedStyle(document.querySelector("#arc-transition-target")).animationName')).startsWith('arc-'));
     await wait(420);
@@ -71,7 +71,36 @@ try {
   await evaluate('[...document.querySelectorAll("[role=dialog] button")].find(b => b.textContent.trim() === "Close").click()');
   await wait(300);
   assert.equal(await evaluate('document.activeElement.getAttribute("aria-label")'), 'About this reply', 'Focus returns to trigger');
-  console.log('Motion browser checks passed: five presets, exit cleanup, interruption, reduced motion, branding/tools, modal position and focus.');
+  for (const width of [412, 1280]) {
+    await call('Emulation.setDeviceMetricsOverride', { width, height: 915, deviceScaleFactor: 1, mobile: width === 412 });
+    const trigger = 'document.querySelector(`#arc-transition-qa button[aria-label^="Arc Matrix model:"]`)';
+    await evaluate(`${trigger}.click()`);
+    await wait(300);
+    const menu = await evaluate('(()=>{const n=document.querySelector(`[data-testid="chat-model-menu"]`);const r=n.getBoundingClientRect();return {x:r.x,right:r.right,animation:getComputedStyle(n).animationName,text:n.textContent}})()');
+    assert.ok(menu.x >= 0 && menu.right <= width, 'Picker stays inside viewport');
+    assert.equal(menu.animation, 'arc-dropdown-in');
+    assert.ok(!menu.text.includes('Flynn'), 'Signed-out fixture cannot select owner preview');
+    await evaluate(`${trigger}.click()`);
+    await wait(20);
+    assert.equal(await evaluate('document.querySelector(`[data-testid="chat-model-menu"]`)?.dataset.motionState'), 'closed');
+    assert.equal(await evaluate('document.querySelector(`[data-testid="chat-model-menu"]`)?.hasAttribute("inert")'), true);
+    await evaluate(`${trigger}.click()`);
+    await wait(300);
+    assert.equal(await evaluate('document.querySelectorAll(`[data-testid="chat-model-menu"]`).length'), 1, 'Rapid reopen retains one menu');
+    await evaluate('[...document.querySelectorAll(`[data-testid="chat-model-menu"] button`)].find(b=>b.textContent.includes("Maya")).click()');
+    await wait(250);
+    assert.equal(await evaluate('!!document.querySelector(`[data-testid="chat-model-menu"]`)'), false);
+    assert.ok((await evaluate(`${trigger}.getAttribute("aria-label")`)).includes('Maya'));
+    await call('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    await evaluate(`${trigger}.click()`);
+    await wait(30);
+    assert.equal(await evaluate('getComputedStyle(document.querySelector(`[data-testid="chat-model-menu"]`)).animationName'), 'none');
+    await evaluate(`${trigger}.click()`);
+    await wait(30);
+    assert.equal(await evaluate('!!document.querySelector(`[data-testid="chat-model-menu"]`)'), false);
+    await call('Emulation.setEmulatedMedia', { features: [] });
+  }
+  console.log('Motion browser checks passed: six presets, exit cleanup, interruption, reduced motion, branding/tools, modal position/focus and actual model picker at 412/1280px.');
 } finally {
   await evaluate('window.__arcMotionQA?.dispose()').catch(() => {});
   ws.close();
