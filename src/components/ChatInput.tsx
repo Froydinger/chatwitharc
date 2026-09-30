@@ -3092,6 +3092,7 @@ ${safeCode}
                     : "cloud-search"
                   : "cloud-chat",
                 modelUsed: result.modelUsed,
+                toolsUsed: result.toolsUsed,
                 reasoningEffortUsed: result.reasoningEffortUsed,
               });
 

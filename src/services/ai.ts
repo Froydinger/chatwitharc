@@ -178,6 +178,7 @@ export interface SendMessageResult {
   notificationDispatch?: import('@/components/NotificationDispatchCard').NotificationDispatchData;
   locationUsed?: { city?: string; region?: string; country?: string; latitude: number; longitude: number };
   modelUsed?: string;
+  toolsUsed?: string[];
   /** Reasoning effort that actually ran, so a stored message can name the model that answered it. */
   reasoningEffortUsed?: LunaReasoningEffort;
 }
@@ -546,6 +547,7 @@ export class AIService {
               longitude: usedLocation.longitude,
             } : undefined,
             modelUsed: data.model_used,
+            toolsUsed: Array.isArray(data.tool_calls_used) ? data.tool_calls_used.filter((tool: unknown): tool is string => typeof tool === "string") : undefined,
             reasoningEffortUsed: reasoningEffort,
           };
         } catch (err: any) {

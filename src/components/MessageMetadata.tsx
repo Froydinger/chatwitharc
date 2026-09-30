@@ -1,3 +1,7 @@
+import { useState } from "react";
+import { Bug } from "lucide-react";
+import { useBugReport } from "@/hooks/useBugReport";
+import { getModelDisplayName } from "@/store/useModelStore";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { SourcesAccordion } from "@/components/SourcesAccordion";
@@ -10,17 +14,27 @@ const toolNames: Record<MemoryActionType, string> = {
 
 /** Reply details use recorded values, never today's model picker or local model. */
 export function MessageMetadata({ message }: { message: Message }) {
+  const [open, setOpen] = useState(false);
+  const openBugReport = useBugReport((state) => state.openBugReport);
   const source = message.sourceModel;
   const isLocal = source === "local";
   const isImage = source?.startsWith("cloud-image");
   const name = isLocal ? "Local AI"
     : source === "cloud-voice" ? "Voxi"
     : isImage ? source?.includes("edit") ? "Arc Imagix Edit" : "Arc Imagix"
-    : "Arc Matrix";
+    : message.modelUsed === "gpt-6-sol" ? "River"
+    : message.reasoningEffortUsed ? getModelDisplayName(message.reasoningEffortUsed) : "Arc Matrix";
   const sources = message.webSources?.length ? message.webSources : message.memoryAction?.sources;
 
+  const tools = Array.from(new Set([
+    ...(message.toolsUsed || []).map((tool) => tool.replace(/_/g, " ")),
+    ...(!message.toolsUsed?.length && message.memoryAction ? [toolNames[message.memoryAction.type]] : []),
+    ...(!message.toolsUsed?.length && message.weatherData ? ["Weather"] : []),
+    ...(!message.toolsUsed?.length && message.scheduledTask ? ["Reminder"] : []),
+  ]));
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <button
           className="inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:bg-muted/40 transition-colors"
@@ -30,7 +44,7 @@ export function MessageMetadata({ message }: { message: Message }) {
           <ThemedLogo className="h-[18px] w-[18px] opacity-70" alt="Arc" />
         </button>
       </DialogTrigger>
-      <DialogContent className="glass-card max-w-md w-[calc(100%-2rem)] max-h-[80dvh] overflow-y-auto">
+      <DialogContent className="glass-card max-w-md w-[calc(100%-2rem)] max-h-[80dvh] overflow-y-auto" onCloseAutoFocus={(event) => { if (useBugReport.getState().isOpen) event.preventDefault(); }}>
         <DialogHeader className="text-left">
           <DialogTitle>About this reply</DialogTitle>
           <DialogDescription>The model behind this reply and any tools used.</DialogDescription>
@@ -40,21 +54,17 @@ export function MessageMetadata({ message }: { message: Message }) {
             <ThemedLogo className="h-7 w-7 shrink-0" alt="Arc" />
             <div>
               <p className="font-medium">{name}</p>
-              <p className="text-xs text-muted-foreground">{isLocal ? "On your device" : "ArcAI · Cloud"}</p>
+              <p className="text-xs text-muted-foreground">{isLocal ? "On your device" : isImage || source === "cloud-voice" ? "ArcAI · Cloud" : "Powered by GPT 6"}</p>
             </div>
           </div>
-          <dl className="mt-4 space-y-3 text-sm">
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">Model</dt>
-              <dd className="text-right break-all">{isLocal ? "On-device model" : isImage ? name : source === "cloud-voice" ? "Voxi" : "GPT 6"}</dd>
+          {tools.length > 0 && (
+            <div className="mt-4 border-t border-border/40 pt-3">
+              <p className="text-xs text-muted-foreground mb-2">Tools used</p>
+              <ul className="flex flex-wrap gap-2">
+                {tools.map((tool) => <li key={tool} className="rounded-full bg-muted/40 px-3 py-1 text-sm capitalize">{tool}</li>)}
+              </ul>
             </div>
-            {message.memoryAction && (
-              <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Tool</dt>
-                <dd>{toolNames[message.memoryAction.type]}</dd>
-              </div>
-            )}
-          </dl>
+          )}
         </div>
         {message.memoryAction?.content && (
           <p className="text-sm text-muted-foreground break-words">{message.memoryAction.content}</p>
@@ -62,6 +72,13 @@ export function MessageMetadata({ message }: { message: Message }) {
         {sources && sources.length > 0 && (
           <SourcesAccordion sources={sources} messageContent={message.content} showMediaEmbeds={false} />
         )}
+        <div className="flex justify-end">
+          <button type="button" title="Report a bug" aria-label="Report a bug"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
+            onClick={() => { setOpen(false); openBugReport(""); }}>
+            <Bug className="h-4 w-4" />
+          </button>
+        </div>
       </DialogContent>
     </Dialog>
   );
