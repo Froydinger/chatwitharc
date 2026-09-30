@@ -287,3 +287,14 @@
   .arc-fullscreen-loader, .arc-fullscreen-loader-logo { transition: none; }
   .arc-fullscreen-loader[data-stage="spin"] .arc-fullscreen-loader-logo, .arc-fast-loader-logo, .arc-loader-halo.arc-loader-halo { animation: none; }
 }
+
+.arc-width-panel {
+  transition-property: width, min-width, opacity;
+  transition-duration: var(--duration-quick);
+  transition-timing-function: var(--ease-smooth-out);
+}
+.arc-width-panel[data-open="true"] { transition-duration: var(--duration-fast); }
+.arc-width-panel[data-instant="true"] { transition-duration: 0s; }
+@media (prefers-reduced-motion: reduce) {
+  .arc-width-panel.arc-width-panel { transition-duration: 0s; }
+}

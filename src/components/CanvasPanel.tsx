@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { CanvasVersionHistory } from "@/components/CanvasVersionHistory";
 import {
   Bold,
   Check,
@@ -800,60 +800,7 @@ export function CanvasPanel({ className, embedded = false }: CanvasPanelProps) {
         )}
 
         {/* Version History Sidebar */}
-        <AnimatePresence>
-          {showHistory && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 200, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="border-l border-border/30 bg-muted/20 overflow-hidden flex-shrink-0"
-            >
-              <div className="w-[200px] h-full flex flex-col">
-                <div className="px-3 py-2.5 border-b border-border/20">
-                  <h3 className="text-xs font-medium text-foreground">Versions</h3>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {charCount} chars
-                  </p>
-                </div>
-                <ScrollArea className="flex-1">
-                  <div className="p-2 space-y-1">
-                    {versions.length === 0 ? (
-                      <p className="text-xs text-muted-foreground/60 text-center py-6 px-2">
-                        No versions yet. Click "Save" to create one.
-                      </p>
-                    ) : (
-                      versions.map((version, index) => (
-                        <button
-                          key={version.id}
-                          onClick={() => restoreVersion(index)}
-                          className={cn(
-                            "w-full text-left p-2.5 rounded-lg transition-colors",
-                            activeVersionIndex === index
-                              ? "bg-primary/10 border border-primary/20"
-                              : "hover:bg-muted/50 border border-transparent"
-                          )}
-                        >
-                          <p className="text-xs font-medium text-foreground truncate">
-                            {version.label}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
-                            {new Date(version.timestamp).toLocaleString(undefined, {
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <CanvasVersionHistory open={showHistory} charCount={charCount} versions={versions} activeVersionIndex={activeVersionIndex} onRestore={restoreVersion} />
       </div>
 
       <PublishModal

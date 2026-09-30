@@ -1,7 +1,6 @@
 import { TransitionPart } from "@/components/transitions/TransitionPart";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, CircleHelp, Code2,
@@ -680,7 +679,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
 
       <AppBuilderPublishDialog open={showPublish} demo={demo} onOpenChange={setShowPublish} currentTitle={appName} currentSubdomain={netlifySubdomain} currentDescription={projectMetadata.seo_description || ''} currentHideBadge={projectMetadata.hide_badge === true} currentFavicon={projectMetadata.favicon_label || 'Rocket'} publishedUrl={deployedUrl} onPublish={onPublish} />
 
-      <AnimatePresence><ConditionalTransition preset="fade">{showUnpublish && <div className="fixed inset-0 z-[230] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"><TransitionPart><div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111211] p-5 shadow-2xl"><p className="text-base font-semibold">Take this app offline?</p><p className="mt-2 text-xs leading-relaxed text-white/45">The {deployedUrl?.replace(/^https?:\/\//, '')} link will stop working. You can publish it again later.</p><div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setShowUnpublish(false)} className="text-white/60">Keep live</Button><Button disabled={publishing} onClick={() => void handleUnpublish()} className="app-builder-action bg-white text-black hover:bg-white/90">{publishing ? 'Unpublishing…' : 'Unpublish'}</Button></div></div></TransitionPart></div>}</ConditionalTransition></AnimatePresence>
+      <ConditionalTransition preset="fade">{showUnpublish && <div className="fixed inset-0 z-[230] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"><TransitionPart><div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111211] p-5 shadow-2xl"><p className="text-base font-semibold">Take this app offline?</p><p className="mt-2 text-xs leading-relaxed text-white/45">The {deployedUrl?.replace(/^https?:\/\//, '')} link will stop working. You can publish it again later.</p><div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setShowUnpublish(false)} className="text-white/60">Keep live</Button><Button disabled={publishing} onClick={() => void handleUnpublish()} className="app-builder-action bg-white text-black hover:bg-white/90">{publishing ? 'Unpublishing…' : 'Unpublish'}</Button></div></div></TransitionPart></div>}</ConditionalTransition>
 
       <AppBuilderGitHandoff
         open={gitDialog}

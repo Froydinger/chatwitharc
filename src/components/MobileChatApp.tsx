@@ -1,3 +1,4 @@
+import { WidthPanel } from "@/components/transitions/WidthPanel";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { ReplyActionsProvider, canShowReplyActions } from "@/components/ReplyActionsProvider";
 import { Transition } from "@/components/transitions/Transition";
@@ -1937,16 +1938,8 @@ export function MobileChatApp() {
       </div>
 
       {/* Side-by-side Canvas Panel on RIGHT (Desktop only) with resize handle */}
-      <AnimatePresence>
-        {isCanvasOpen && !isMobile && (
-          <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: canvasWidthPercent + "%", opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={canvasResizingRef.current ? { duration: 0 } : { duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="flex-shrink-0 overflow-hidden bg-background flex relative border-l border-border/30"
-            style={{ minWidth: MIN_DESKTOP_CANVAS_WIDTH }}
-          >
+      <WidthPanel open={isCanvasOpen && !isMobile} width={canvasWidthPercent + "%"} minWidth={MIN_DESKTOP_CANVAS_WIDTH} instant={isCanvasResizing}
+        className="flex-shrink-0 overflow-hidden bg-background flex relative border-l border-border/30">
             {/* Resize Handle - positioned absolutely to extend grab area into chat */}
             <div 
               className="absolute -left-1.5 top-0 bottom-0 w-3 cursor-col-resize z-50 group"
@@ -1972,7 +1965,7 @@ export function MobileChatApp() {
                     Math.max(startWidth + delta, minWidth),
                     maxWidth,
                   );
-                  // Update percentage directly — framer-motion transition is disabled during drag
+                  // Update percentage directly — width transitions are disabled during drag
                   setCanvasWidthPercent((newWidth / containerWidth) * 100);
                 };
                 
@@ -1994,9 +1987,7 @@ export function MobileChatApp() {
             <div className="flex-1 overflow-hidden">
               <CanvasPanel embedded />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </WidthPanel>
 
       {/* Search Mode - Full Screen Takeover (all devices) */}
       <AnimatePresence>
