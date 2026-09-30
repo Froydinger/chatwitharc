@@ -29,13 +29,9 @@ import { CanvasAttachment } from "@/components/CanvasAttachment";
 import { CodeArtifactCard } from "@/components/CodeArtifactCard";
 import { AppBuilderArtifactCard } from "@/components/app-builder/AppBuilderArtifactCard";
 import { AppBuilderAppChoiceCard } from "@/components/app-builder/AppBuilderAppChoiceCard";
-import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
-import { ModelSourceBadge } from "@/components/ModelSourceBadge";
-import { MessageMetadata } from "@/components/MessageMetadata";
 import { WeatherCard } from "@/components/WeatherCard";
 import { SearchResultsCard } from "@/components/SearchResultsCard";
-import { SourcesAccordion } from "@/components/SourcesAccordion";
 import { ScheduledTaskCard } from "@/components/ScheduledTaskCard";
 import { NotificationDispatchCard } from "@/components/NotificationDispatchCard";
 import { SvgArtifact } from "@/components/SvgArtifact";
@@ -680,15 +676,12 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </div>
               )}
 
-              {!isUser && !hasVoiceSearchCard && !!message.webSources?.length && (
-                <SourcesAccordion sources={message.webSources} messageContent={message.content} showMediaEmbeds={false} />
-              )}
 
 
             </div>
 
             {/* Action Buttons, now outside the clipped inner wrapper */}
-            {!isEditing && (
+            {!isEditing && isUser && (
               <motion.div
                 initial={false}
                 animate={{
@@ -761,7 +754,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             )}
           </div>
           
-          {/* Keep reply metadata attached to the response as text wraps. */}
+          {/* Reply actions remain visible on both touch and desktop. */}
           {!isUser && message.type !== 'image-generating' && message.type !== 'video-generating' && (
             <motion.div
               className="w-full"
@@ -770,12 +763,21 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             >
               {message.type !== 'image-generating' && message.type !== 'video-generating' && (
                 <div className="flex items-center gap-1 mt-1">
-                  <MessageMetadata message={message} />
+                  {message.content && (
+                    <button
+                      onClick={handleCopy}
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+                      title={hasCopied ? "Copied!" : "Copy"}
+                      aria-label={hasCopied ? "Copied!" : "Copy"}
+                    >
+                      {hasCopied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  )}
                   {message.content && message.type === 'text' && (
                     <button
                       onClick={handleToggleSpeech}
                       className={cn(
-                        "inline-flex items-center justify-center h-6 w-6 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors",
+                        "inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors",
                         isPlayingSpeech && "text-primary bg-primary/10"
                       )}
                       title={isPlayingSpeech ? "Stop speaking" : "Read aloud"}
