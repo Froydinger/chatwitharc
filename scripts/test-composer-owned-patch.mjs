@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const source=readFileSync('src/components/ChatInput.tsx','utf8');
+const ast=ts.createSourceFile('ChatInput.tsx',source,ts.ScriptTarget.Latest,true);let initializer;
+function visit(node){if(ts.isVariableDeclaration(node)&&node.name.getText(ast)==='patchResponseMessage')initializer=node.initializer;ts.forEachChild(node,visit);}visit(ast);assert.ok(initializer);
+const code=ts.transpileModule(`return ${initializer.getText(ast)};`,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+const bind=(cancelled,owner,scope,session,patch)=>new Function('requestIsCancelled','originalOwnerId','dispatchScopeRef','owningSessionId','useArcStore',code)(()=>cancelled,owner,{current:{ownerId:scope}},session,{getState:()=>({patchOwnedMessage:patch})});
+const calls=[];const save=async(...args)=>calls.push(args);
+await bind(false,'owner','owner','chat-a',save)('message',{sourceModel:'cloud-code',modelUsed:'gpt-6.1-sol'},true);
+assert.deepEqual(calls[0],['chat-a','message',{sourceModel:'cloud-code',modelUsed:'gpt-6.1-sol'},true]);
+for(const args of [[true,'owner','owner','chat-a'],[false,'old','new','chat-a'],[false,'owner','owner',null]])await bind(...args,save)('message',{content:'stale'},true);
+assert.equal(calls.length,1,'Cancelled, account-changed or unowned completions never patch');
+let finish;let done=false;const promise=bind(false,'owner','owner','chat-a',()=>new Promise(resolve=>{finish=resolve;}))('message',{content:'final'},true).then(()=>{done=true;});
+await Promise.resolve();assert.equal(done,false);finish();await promise;assert.equal(done,true);
+console.log('Production owned-patch adapter passed: original session/model metadata, cancellation/account/owner guards and awaited persistence.');

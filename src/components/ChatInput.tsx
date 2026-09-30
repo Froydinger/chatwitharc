@@ -1231,6 +1231,10 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       return useArcStore.getState().addMessage(message, { ...options, sessionId: owningSessionId });
     };
     const canShowWorkspace = () => !requestIsCancelled() && owningSessionId === useArcStore.getState().currentSessionId;
+    const patchResponseMessage = async (id: string, patch: Parameters<ReturnType<typeof useArcStore.getState>['patchOwnedMessage']>[2], persist = false) => {
+      if (requestIsCancelled() || originalOwnerId !== dispatchScopeRef.current.ownerId || !owningSessionId) return;
+      await useArcStore.getState().patchOwnedMessage(owningSessionId, id, patch, persist);
+    };
     const replaceLastMessage: ReturnType<typeof useArcStore.getState>['replaceLastMessage'] = (message) => requestIsCancelled()
       ? Promise.resolve() : useArcStore.getState().replaceLastMessage(message, { sessionId: owningSessionId });
     const upsertCanvasMessage: ReturnType<typeof useArcStore.getState>['upsertCanvasMessage'] = (content, label, memoryAction) => requestIsCancelled()
@@ -2287,13 +2291,7 @@ ${safeCode}
                 // Save to history FIRST
                 const codeMsgId = await upsertCodeMessage(finalContent, lang, result.label, memoryAction);
                 // Tag the source model on the saved code tile
-                useArcStore.setState((state) => {
-                  const idx = state.messages.findIndex((m) => m.id === codeMsgId);
-                  if (idx === -1) return state;
-                  const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code", modelUsed: result.modelUsed, reasoningEffortUsed: result.reasoningEffortUsed } as any;
-                  return { messages: updated } as any;
-                });
+                await patchResponseMessage(codeMsgId, { sourceModel: "cloud-code", modelUsed: result.modelUsed, reasoningEffortUsed: result.reasoningEffortUsed }, true);
 
                 // Read content back from saved message (same source as tile click)
                 const messages = useArcStore.getState().messages;
@@ -2317,13 +2315,7 @@ ${safeCode}
               } else if (result.mode === "canvas") {
                 // Save to history FIRST
                 const canvasMsgId = await upsertCanvasMessage(finalContent, result.label, memoryAction);
-                useArcStore.setState((state) => {
-                  const idx = state.messages.findIndex((m) => m.id === canvasMsgId);
-                  if (idx === -1) return state;
-                  const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas", modelUsed: result.modelUsed, reasoningEffortUsed: result.reasoningEffortUsed } as any;
-                  return { messages: updated } as any;
-                });
+                await patchResponseMessage(canvasMsgId, { sourceModel: "cloud-canvas", modelUsed: result.modelUsed, reasoningEffortUsed: result.reasoningEffortUsed }, true);
 
                 // Read content back from saved message
                 const messages = useArcStore.getState().messages;
@@ -2438,9 +2430,7 @@ ${safeCode}
                       return;
                     }
                     const id = await ensurePlaceholder();
-                    if (!requestIsCancelled() && originalOwnerId === dispatchScopeRef.current.ownerId && owningSessionId) {
-                      await useArcStore.getState().patchOwnedMessage(owningSessionId, id, { content: next });
-                    }
+                    await patchResponseMessage(id, { content: next });
                     pending = "";
                   };
 
@@ -2529,13 +2519,11 @@ ${safeCode}
                 // provider completion uses the non-destructive owned patch.
                 const id = await ensurePlaceholder();
                 const finalContent = displayed || "I couldn't generate a response locally.";
-                if (!requestIsCancelled() && originalOwnerId === dispatchScopeRef.current.ownerId && owningSessionId) {
-                  await useArcStore.getState().patchOwnedMessage(owningSessionId, id, {
-                    content: finalContent,
-                    sourceModel: "local",
-                    ...(pendingMemoryAction ? { memoryAction: pendingMemoryAction as any } : {}),
-                  }, true);
-                }
+                await patchResponseMessage(id, {
+                  content: finalContent,
+                  sourceModel: "local",
+                  ...(pendingMemoryAction ? { memoryAction: pendingMemoryAction as any } : {}),
+                }, true);
                 setLoading(false);
                 setSearchingChats(false);
                 setAccessingMemory(false);
@@ -2739,24 +2727,12 @@ ${safeCode}
                   result.codeUpdate.language || "html",
                   result.codeUpdate.label,
                 );
-                useArcStore.setState((state) => {
-                  const idx = state.messages.findIndex((m) => m.id === codeMsgId);
-                  if (idx === -1) return state;
-                  const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-code" } as any;
-                  return { messages: updated } as any;
-                });
+                await patchResponseMessage(codeMsgId, { sourceModel: "cloud-code" }, true);
               } else if (result.canvasUpdate) {
                 const { openCanvas } = useCanvasStore.getState();
                 if (canShowWorkspace()) openCanvas(result.canvasUpdate.content);
                 const canvasMsgId = await upsertCanvasMessage(result.canvasUpdate.content, result.canvasUpdate.label);
-                useArcStore.setState((state) => {
-                  const idx = state.messages.findIndex((m) => m.id === canvasMsgId);
-                  if (idx === -1) return state;
-                  const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "cloud-canvas" } as any;
-                  return { messages: updated } as any;
-                });
+                await patchResponseMessage(canvasMsgId, { sourceModel: "cloud-canvas" }, true);
               }
             }
           } catch (err: any) {
