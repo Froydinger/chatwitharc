@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
-import { motion } from 'framer-motion';
+import { Transition } from '@/components/transitions/Transition';
+import { useNativeListLayout } from '@/hooks/useNativeListLayout';
 import { AccordionPanel } from '@/components/transitions/AccordionPanel';
 import { Play, Pause, X, Trash2, Send, GripVertical, Pencil, Check, RotateCcw, ChevronDown, ListOrdered } from 'lucide-react';
 import { useMessageQueueStore, QueuedMessage } from '@/store/useMessageQueueStore';
@@ -30,6 +31,7 @@ export function MessageQueueView({ onSendMessage, onRetryRequest, isLoading, isD
   const [editValue, setEditValue] = useState('');
   const [collapsed, setCollapsed] = useState(false);
   const panelId = useId();
+  const rowsRef = useNativeListLayout();
 
   if (!isOpen || (queue.length === 0 && failed.length === 0)) return null;
 
@@ -58,11 +60,7 @@ export function MessageQueueView({ onSendMessage, onRetryRequest, isLoading, isD
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 12, scale: 0.97 }}
-      transition={{ type: 'spring', damping: 28, stiffness: 500 }}
+    <Transition preset="panel"><div
       data-open={!collapsed}
       className={cn(
         "t-acc w-full rounded-2xl border backdrop-blur-xl overflow-hidden",
@@ -139,15 +137,10 @@ export function MessageQueueView({ onSendMessage, onRetryRequest, isLoading, isD
       </div>}
       {/* Queue items */}
       <AccordionPanel open={!collapsed} id={panelId}>
-            <div className="max-h-40 overflow-y-auto px-2 py-1.5 space-y-1">
+            <div ref={rowsRef} className="relative max-h-40 overflow-y-auto px-2 py-1.5 space-y-1">
               {queue.map((msg, index) => (
-                <motion.div
-                  key={msg.id}
-                  layout
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 8, height: 0, marginBottom: 0 }}
-                  transition={{ type: 'spring', damping: 25, stiffness: 400 }}
+                <Transition key={msg.id} preset="fade"><div
+                  data-layout-row={msg.id}
                   className={cn(
                     "group flex items-center gap-1.5 px-2 py-1.5 rounded-xl transition-colors",
                     index === 0 && !isPaused
@@ -211,10 +204,10 @@ export function MessageQueueView({ onSendMessage, onRetryRequest, isLoading, isD
                       </div>
                     </>
                   )}
-                </motion.div>
+                </div></Transition>
               ))}
             </div>
       </AccordionPanel>
-    </motion.div>
+    </div></Transition>
   );
 }
