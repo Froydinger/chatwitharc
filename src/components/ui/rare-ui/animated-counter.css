@@ -1,0 +1,6 @@
+.arc-counter-strip {
+  transition: transform var(--duration-medium) var(--ease-smooth-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .arc-counter-strip { transition: none; }
+}

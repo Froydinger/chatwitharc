@@ -1,5 +1,4 @@
-import { useEffect, useRef } from "react";
-import { motion, useSpring, useTransform } from "framer-motion";
+import "./animated-counter.css";
 import { cn } from "@/lib/utils";
 
 interface DigitColumnProps {
@@ -9,23 +8,15 @@ interface DigitColumnProps {
   stiffness?: number;
 }
 
-function DigitColumn({ digit, height = 24, damping = 20, stiffness = 160 }: DigitColumnProps) {
-  const spring = useSpring(digit, { damping, stiffness });
-
-  useEffect(() => {
-    spring.set(digit);
-  }, [digit, spring]);
-
-  const y = useTransform(spring, (latest) => -latest * height);
-
+function DigitColumn({ digit, height = 24 }: DigitColumnProps) {
   return (
     <span
       className="inline-block overflow-hidden relative"
       style={{ height, lineHeight: `${height}px` }}
     >
-      <motion.span
-        style={{ y }}
-        className="flex flex-col select-none items-center"
+      <span
+        style={{ transform: `translateY(${-digit * height}px)` }}
+        className="arc-counter-strip flex flex-col select-none items-center"
       >
         {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
           <span
@@ -36,7 +27,7 @@ function DigitColumn({ digit, height = 24, damping = 20, stiffness = 160 }: Digi
             {n}
           </span>
         ))}
-      </motion.span>
+      </span>
     </span>
   );
 }
@@ -54,7 +45,8 @@ export interface AnimatedCounterProps {
 
 /**
  * AnimatedCounter from Rare UI (adapted for ArcAI Noir theme).
- * Creates rolling spring digit micro-interactions for tokens, stats, and limits.
+ * Uses clipped native digit reels for quiet updates to tokens, stats, and limits.
+ * Legacy spring props remain accepted for caller compatibility.
  */
 export function AnimatedCounter({
   value,
