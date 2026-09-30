@@ -1,7 +1,9 @@
 import { Transition } from "@/components/transitions/Transition";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
+import { TransitionPart } from "@/components/transitions/TransitionPart";
+import { SequencedTransition } from "@/components/transitions/SequencedTransition";
 import { X, Lightbulb, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -192,28 +194,15 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
   ];
 
   return createPortal(
-    <AnimatePresence>
+    <ConditionalTransition preset="fade">
       {isOpen && (
-        <>
-          {/* Backdrop with blur - serves as centering container */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+          <div
             onClick={onClose}
+            data-testid="arc-prompt-library"
             className="fixed inset-0 bg-black/40 backdrop-blur-md z-[9998] flex items-center justify-center p-4"
           >
             {/* Center Modal - gorgeous redesign */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              transition={{
-                type: "spring",
-                damping: 28,
-                stiffness: 350
-              }}
+            <TransitionPart><div
               className="w-full max-w-3xl"
               onClick={(e) => e.stopPropagation()}
               style={{ willChange: 'transform, opacity' }}
@@ -226,19 +215,11 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
               {/* Header with elegant design */}
               <div className="relative flex items-center justify-between px-6 sm:px-8 py-5 sm:py-6 border-b border-border/30 backdrop-blur-xl bg-background/40">
                 <div className="flex items-center gap-3">
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{
-                      type: "spring",
-                      damping: 12,
-                      stiffness: 400,
-                      delay: 0.05
-                    }}
+                  <div
                     className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center"
                   >
                     <Lightbulb className="h-5 w-5 text-primary" />
-                  </motion.div>
+                  </div>
                   <div>
                     <Transition preset="page" delay={0.08}><h3
                       className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"
@@ -255,17 +236,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
 
                 <div className="flex items-center gap-2">
                   {(
-                    <motion.div
-                      initial={{ scale: 0, rotate: -90 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{
-                        type: "spring",
-                        damping: 12,
-                        stiffness: 400,
-                        delay: 0.1
-                      }}
-                      whileHover={{ scale: 1.05, rotate: 90 }}
-                      whileTap={{ scale: 0.95 }}
+                    <div
                     >
                       <Button
                         variant="ghost"
@@ -276,57 +247,46 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                         }}
                         className="h-9 w-9 rounded-full glass-shimmer hover:border-primary/50 transition-all z-20"
                         title="Refresh prompts"
+                        data-prompt-refresh
                       >
                         <RefreshCw className="h-4 w-4" />
                       </Button>
-                    </motion.div>
+                    </div>
                   )}
 
-                  <motion.div
-                    initial={{ scale: 0, rotate: 90 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{
-                      type: "spring",
-                      damping: 12,
-                      stiffness: 400,
-                      delay: 0.12
-                    }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                  <div
                   >
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={onClose}
+                      aria-label="Close prompt library"
                       className="h-9 w-9 rounded-full glass-shimmer hover:border-destructive/50 transition-all z-20"
                     >
                       <X className="h-4 w-4" />
                     </Button>
-                  </motion.div>
+                  </div>
                 </div>
               </div>
 
               {/* Tab Navigation — three equal, color-coded pills spanning the sheet */}
               <div className="px-6 sm:px-8 pt-5 pb-4 border-b border-border/20">
                 <div className="grid grid-cols-3 gap-2">
-                  {tabs.map((tab, index) => {
+                  {tabs.map((tab) => {
                     const isActive = activeTab === tab.id;
                     return (
-                      <motion.button
+                      <button
                         key={tab.id}
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.12 + index * 0.03, duration: 0.2 }}
                         onClick={() => setActiveTab(tab.id)}
-                        whileTap={{ scale: 0.98 }}
+
                         className={cn(
-                          "w-full py-2.5 px-2 rounded-2xl border text-center font-semibold transition-all duration-200",
+                          "arc-prompt-press w-full py-2.5 px-2 rounded-2xl border text-center font-semibold transition-all duration-200",
                           "text-[13px] sm:text-sm tracking-wide",
                           isActive ? tab.activeClass : tab.idleClass
                         )}
                       >
                         {tab.label}
-                      </motion.button>
+                      </button>
                     );
                   })}
                 </div>
@@ -342,32 +302,16 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                   willChange: 'scroll-position'
                 }}
               >
-                <AnimatePresence mode="wait">
-                  <motion.div 
-                    key={activeTab} 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15, ease: "easeInOut" }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 py-4"
-                  >
+                <SequencedTransition contentKey={activeTab} preset="fade" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 py-4">
                     {isCurrentTabLoading() ? (
                     <div className="col-span-full flex items-center justify-center py-16">
                       <Transition preset="modal"><div
                         className="flex flex-col items-center gap-4"
                       >
-                        <motion.div
-                          animate={{
-                            rotate: 360,
-                            scale: [1, 1.1, 1]
-                          }}
-                          transition={{
-                            rotate: { duration: 2, repeat: Infinity, ease: "linear" },
-                            scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
-                          }}
+                        <div
                         >
-                          <Lightbulb className="h-10 w-10 text-primary" />
-                        </motion.div>
+                          <div className="arc-prompt-loading"><Lightbulb className="h-10 w-10 text-primary" /></div>
+                        </div>
                         <p className="text-sm text-muted-foreground font-medium">
                           Generating fresh prompts...
                         </p>
@@ -375,30 +319,18 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     </div>
                   ) : (
                     getCurrentPrompts().map((prompt, index) => (
-                      <motion.button
+                      <button
                         key={`${activeTab}-${index}-${prompt.label}`}
-                        initial={false}
-                        animate={{ opacity: 1 }}
-                        transition={{
-                          duration: 0.15,
-                          delay: Math.min(index * 0.02, 0.2),
-                          ease: "easeOut"
-                        }}
-                        whileHover={{
-                          y: -2,
-                          transition: { duration: 0.15, ease: "easeOut" }
-                        }}
-                        whileTap={{ scale: 0.98 }}
                         onClick={() => {
                           onSelectPrompt(prompt.prompt);
                           onClose();
                         }}
-                        className="group relative p-5 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-background/80 to-background/60 border border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-200 text-left overflow-hidden"
+                        className="arc-prompt-card arc-prompt-press group relative p-5 rounded-2xl backdrop-blur-xl bg-gradient-to-br from-background/80 to-background/60 border border-border/40 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 text-left overflow-hidden"
                       >
                         {/* Gradient overlay on hover */}
-                        <motion.div
+                        <div
                           className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                          initial={false}
+
                         />
 
                         {/* Content */}
@@ -407,24 +339,22 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                         </span>
 
                         {/* Subtle shine effect */}
-                        <motion.div
+                        <div
                           className="absolute inset-0 opacity-0 group-hover:opacity-100"
-                          initial={false}
+
                         >
                           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
-                        </motion.div>
-                      </motion.button>
+                        </div>
+                      </button>
                     ))
                   )}
-                  </motion.div>
-                </AnimatePresence>
+                </SequencedTransition>
               </div>
             </div>
-          </motion.div>
-          </motion.div>
-        </>
+          </div></TransitionPart>
+          </div>
       )}
-    </AnimatePresence>,
+    </ConditionalTransition>,
     document.body
   );
 }

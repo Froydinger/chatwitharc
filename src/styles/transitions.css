@@ -25,6 +25,24 @@
 .arc-transition { animation-fill-mode: both; animation-timing-function: var(--arc-motion-ease); }
 .arc-history-drawer { translate: -100% 0; transition: translate var(--arc-motion-panel-close) var(--arc-motion-ease); }
 .arc-history-drawer[data-open="true"] { translate: 0 0; transition-duration: var(--arc-motion-panel-open); }
+.arc-prompt-press:active { scale: .98; }
+.arc-prompt-card { transition: transform var(--arc-motion-fast) var(--arc-motion-ease), box-shadow var(--arc-motion-fast) var(--arc-motion-ease), border-color var(--arc-motion-fast) var(--arc-motion-ease), scale var(--arc-motion-quick) var(--arc-motion-ease); }
+@media (hover: hover) {
+  .arc-prompt-card:hover { transform: translateY(-2px); }
+  [data-prompt-refresh]:hover svg { rotate: 90deg; }
+}
+[data-prompt-refresh] svg { transition: rotate var(--arc-motion-fast) var(--arc-motion-ease); }
+.arc-prompt-loading { animation: arc-prompt-spin 2s linear infinite; }
+.arc-prompt-loading svg { animation: arc-prompt-pulse 1.5s ease-in-out infinite; }
+@keyframes arc-prompt-spin { to { rotate: 360deg; } }
+@keyframes arc-prompt-pulse { 0%, 100% { scale: 1; } 50% { scale: 1.1; } }
+@media (prefers-reduced-motion: reduce) {
+  .arc-prompt-loading, .arc-prompt-loading svg { animation: none !important; }
+  .arc-prompt-card, [data-prompt-refresh] svg { transition: none !important; }
+  .arc-prompt-press:active { scale: 1; }
+  .arc-prompt-card:hover { transform: none; }
+  [data-prompt-refresh]:hover svg { rotate: none; }
+}
 @media (prefers-reduced-motion: reduce) { .arc-history-drawer { transition: none !important; } }
 .arc-transition[data-motion-state="open"] { animation-duration: var(--arc-motion-fast); animation-delay: var(--arc-motion-delay, 0s); }
 .arc-transition[data-motion-state="closed"] { animation-duration: var(--arc-motion-quick); animation-delay: 0s; pointer-events: none; }
