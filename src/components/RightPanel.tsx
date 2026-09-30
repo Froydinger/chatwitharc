@@ -23,7 +23,8 @@ import { useAccentStore } from "@/store/useAccentStore";
 import { useLocalAIStore } from "@/store/useLocalAIStore";
 import { useArcStore } from "@/store/useArcStore";
 import { useToast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { Transition } from "@/components/transitions/Transition";
+import { SequencedTransition } from "@/components/transitions/SequencedTransition";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -169,24 +170,22 @@ export function RightPanel({
   return (
     <>
       {/* Mobile backdrop */}
-      <AnimatePresence>
         <ConditionalTransition preset="fade">{isOpen && (
           <div
             className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden"
             onClick={onClose}
           />
         )}</ConditionalTransition>
-      </AnimatePresence>
 
       {/* Panel */}
-      <motion.div
-        initial={{ x: "-100%" }}
-        animate={{ x: isOpen ? "0%" : "-100%" }}
-        transition={{ type: "spring", damping: 20, stiffness: 320, mass: 0.6 }}
+      <div
+        data-open={isOpen}
+        aria-hidden={!isOpen}
+        {...(!isOpen ? { inert: "" } : {})}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         className={cn(
-          "fixed left-0 z-50 panel-solid border-r border-border/60 shadow-2xl",
+          "arc-history-drawer fixed left-0 z-50 panel-solid border-r border-border/60 shadow-2xl",
           "w-full sm:w-[22rem] lg:w-[20rem] xl:w-[22rem]",
           "flex flex-col overflow-hidden",
           isOpen ? "pointer-events-auto" : "pointer-events-none"
@@ -247,15 +246,9 @@ export function RightPanel({
               aria-label={`Theme: ${themeLabel}`}
               className="h-9 w-9 rounded-full bg-muted/40 hover:bg-primary/15 hover:text-primary"
             >
-              <motion.span
-                key={themeMode}
-                initial={{ rotate: -90, opacity: 0, scale: 0.7 }}
-                animate={{ rotate: 0, opacity: 1, scale: 1 }}
-                transition={{ type: "spring", damping: 14, stiffness: 320 }}
-                className="inline-flex"
-              >
+              <Transition key={themeMode} preset="text"><span className="inline-flex">
                 <ThemeIcon className="h-4 w-4" />
-              </motion.span>
+              </span></Transition>
             </Button>
 
             {/* Overflow menu — Corporate Mode and theme */}
@@ -338,41 +331,9 @@ export function RightPanel({
 
           {/* Content */}
           <div className="flex-1 overflow-hidden">
-            <AnimatePresence mode="wait">
-              {activeTab === "history" && (
-                <motion.div
-                  key="history"
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 12 }}
-                  transition={{
-                    type: "spring",
-                    damping: 22,
-                    stiffness: 320,
-                  }}
-                  className="h-full"
-                >
-                  <ChatHistoryPanel />
-                </motion.div>
-              )}
-
-              {activeTab === "quote" && (
-                <motion.div
-                  key="quote"
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 12 }}
-                  transition={{
-                    type: "spring",
-                    damping: 22,
-                    stiffness: 320,
-                  }}
-                  className="h-full"
-                >
-                  <QuotePanel />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <SequencedTransition contentKey={activeTab} className="h-full">
+              {activeTab === "history" ? <ChatHistoryPanel /> : activeTab === "quote" ? <QuotePanel /> : null}
+            </SequencedTransition>
           </div>
 
           {!hasBoost && (
@@ -404,7 +365,7 @@ export function RightPanel({
           )}
 
         </div>
-      </motion.div>
+      </div>
     </>
   );
 }

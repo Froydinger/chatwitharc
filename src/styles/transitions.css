@@ -23,6 +23,9 @@
   .arc-prompt-chip:hover, .arc-prompt-chip:active { scale: 1; transform: none; }
 }
 .arc-transition { animation-fill-mode: both; animation-timing-function: var(--arc-motion-ease); }
+.arc-history-drawer { translate: -100% 0; transition: translate var(--arc-motion-panel-close) var(--arc-motion-ease); }
+.arc-history-drawer[data-open="true"] { translate: 0 0; transition-duration: var(--arc-motion-panel-open); }
+@media (prefers-reduced-motion: reduce) { .arc-history-drawer { transition: none !important; } }
 .arc-transition[data-motion-state="open"] { animation-duration: var(--arc-motion-fast); animation-delay: var(--arc-motion-delay, 0s); }
 .arc-transition[data-motion-state="closed"] { animation-duration: var(--arc-motion-quick); animation-delay: 0s; pointer-events: none; }
 .arc-transition-fade[data-motion-state="open"] { animation-name: arc-fade-in; }
