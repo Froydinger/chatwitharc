@@ -7,9 +7,10 @@ export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-ana
 /** Luna is the default user-facing text/reasoning model. */
 export const LUNA_MODEL = 'gpt-6-luna';
 export const SOL_MODEL = 'gpt-6.1-sol';
+export const FLYNN_MODEL = 'gemini-3.8-flash';
 export type ChatModel = typeof LUNA_MODEL;
 export type LunaReasoningEffort = 'low' | 'medium' | 'high';
-export type LunaReasoningSelection = 'auto' | LunaReasoningEffort;
+export type LunaReasoningSelection = 'auto' | 'flynn' | LunaReasoningEffort;
 
 /** Map every retired or stale chat-model id to Luna without breaking old clients. */
 export const LEGACY_MODEL_MAP: Record<string, ChatModel> = {
@@ -37,13 +38,19 @@ interface ModelStore {
   setIsBoost: (isBoost: boolean) => void;
 }
 
-const VALID_REASONING_SELECTIONS = new Set<LunaReasoningSelection>(['auto', 'low', 'medium', 'high']);
+const VALID_REASONING_SELECTIONS = new Set<LunaReasoningSelection>(['auto', 'low', 'medium', 'high', 'flynn']);
+
+/** Picker visibility only; authenticated server checks remain authoritative. */
+export function canSeeFlynnPreview(user: { email?: string | null; is_anonymous?: boolean } | null): boolean {
+  return !user?.is_anonymous && user?.email?.trim().toLowerCase() === 'jakefroydinger@gmail.com';
+}
 
 export function getModelDisplayName(selection: LunaReasoningSelection): string {
   switch (selection) {
     case 'low': return 'Ava';
     case 'medium': return 'Maya';
     case 'high': return 'River';
+    case 'flynn': return 'Flynn';
     case 'auto': default: return 'Auto';
   }
 }
@@ -53,6 +60,7 @@ export function resolveReasoningEffort(
   complexity: 0 | 1 | 2 | 3 = 0,
   canUseRiver = useModelStore.getState().isBoost,
 ): LunaReasoningEffort {
+  if (selection === 'flynn') return 'low';
   if (selection !== 'auto') return selection;
   if (complexity >= 3) return canUseRiver ? 'high' : 'medium';
   if (complexity >= 2) return 'medium';

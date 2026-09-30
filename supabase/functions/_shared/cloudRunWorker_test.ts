@@ -449,9 +449,10 @@ Deno.test('cloud worker: trusted preparation records the actual answering model'
     fake.run.checkpoint.engine = {
       ...initialEngineState(fake.run.request.messages, NOW), phase: 'done', finalText: 'Saved answer', turns: 1,
     };
-    await processCloudRun(fake.run.id, { store: fake.store, provider: fake.provider, tools: fake.tools, modelUsed, now: () => fake.clock });
+    await processCloudRun(fake.run.id, { store: fake.store, provider: fake.provider, tools: fake.tools, modelUsed, reasoningEffortUsed: 'low', now: () => fake.clock });
     equal((fake.completions[0].result as { model_used: string }).model_used, modelUsed);
     equal((fake.completions[0].message as { modelUsed: string }).modelUsed, modelUsed);
+    equal((fake.completions[0].message as { reasoningEffortUsed: string }).reasoningEffortUsed, 'low');
   }
 });
 

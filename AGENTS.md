@@ -210,10 +210,14 @@ spreads this map and overrides only the typography keys.
   deeper work. Free accounts receive 3 voice sessions per UTC day, up to 10 minutes each;
   Boost subscribers and administrators get unlimited voice sessions up to 2 hours each. The microphone stays
   active for natural interruptions; the assistant is always Arc.
-- **Ava and Maya use GPT-6 Luna; Boost-only River uses GPT-6.1 Sol.** The Gemini Flash experiment has been
-  retired. Old saved `flash` reasoning preferences migrate to Ava (low), and
-  stale Gemini model IDs normalize to Luna in both the client and `chat` edge
-  function. Do not restore Gemini Flash routing or its API key.
+- **Ava and Maya use GPT-6 Luna; Boost-only River uses GPT-6.1 Sol.** Flynn is an
+  owner-only Gemini Flash preview for the authenticated account
+  `jakefroydinger@gmail.com`, using `gemini-3.8-flash` through Google's OpenAI-compatible
+  endpoint and the server-only `GEMINI_API_KEY`. Verify account access on both
+  submission and worker resume. Preserve complete signed assistant tool messages
+  inside execution history, but never expose signatures in reply metadata. Old
+  saved `flash` preferences still migrate to Ava; retired Gemini IDs still normalize
+  to Luna. Do not expand Flynn access or change image/voice providers without authorization.
 - **Chat vs Work is recorded on the session.** `chat_sessions.is_work` (mirroring
   `is_git`) marks a conversation that was handed to Arc Work, and dashboard
   history badges each chat accordingly. It used to live only in localStorage, so

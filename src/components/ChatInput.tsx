@@ -161,6 +161,7 @@ type Props = {
 };
 
 export interface CloudTextSubmitIntent {
+  reasoningSelection?: import('@/store/useModelStore').LunaReasoningSelection;
   sessionId: string;
   userMessageId: string;
   userContent: string;
@@ -2191,6 +2192,7 @@ ${safeCode}
             }) : undefined;
             wasCloudHandoff = true;
             await onCloudTextSubmit({
+              reasoningSelection: acceptedRequest?.reasoningSelection ?? useModelStore.getState().reasoningEffort,
               sessionId: requestSessionId,
               userMessageId,
               userContent: finalMessage,

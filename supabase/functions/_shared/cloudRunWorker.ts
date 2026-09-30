@@ -27,6 +27,7 @@ export type CloudWorkerContext = {
   provider: EngineProvider;
   /** Actual provider selected by trusted preparation, never request metadata. */
   modelUsed?: string;
+  reasoningEffortUsed?: 'low' | 'medium' | 'high';
   tools: Record<string, RegisteredCloudTool>;
 };
 export type CloudWorkerOptions = {
@@ -137,6 +138,7 @@ export async function processCloudRun(id: string, options: CloudWorkerOptions): 
           ...presentation },
         { id: `cloud-${id}`, role: 'assistant', content: text, timestamp: run.created_at,
           ...summary, modelUsed: context.modelUsed ?? 'gpt-6-luna',
+          ...(context.reasoningEffortUsed ? { reasoningEffortUsed: context.reasoningEffortUsed } : {}),
           sourceModel: (summary as { sourceModel?: string }).sourceModel ?? 'cloud-chat',
           metadata: { cloudRunId: id, modelTurns: state.turns } });
     },

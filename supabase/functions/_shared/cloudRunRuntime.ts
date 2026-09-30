@@ -151,6 +151,7 @@ export function cloudRunAdvance(db: SupabaseClient, apiKey: string, options: {
       return {
         modelUsed: request.model === FLYNN_MODEL ? FLYNN_MODEL
           : context.reasoningEffort === 'high' ? 'gpt-6.1-sol' : 'gpt-6-luna',
+        reasoningEffortUsed: request.model === FLYNN_MODEL || context.reasoningEffort === 'high' ? 'low' : context.reasoningEffort,
         provider: createProvider({ apiKey, ...context,
           model: context.reasoningEffort === 'high' ? 'gpt-6.1-sol' : 'gpt-6-luna',
           reasoningEffort: context.reasoningEffort === 'high' ? 'low' : context.reasoningEffort,

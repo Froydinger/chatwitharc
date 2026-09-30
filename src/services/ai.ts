@@ -1,6 +1,6 @@
 import { useLiveAnswerStore } from '@/store/useLiveAnswerStore';
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { getModelForTask, resolveReasoningEffort, useModelStore, type LunaReasoningEffort, type LunaReasoningSelection } from "@/store/useModelStore";
+import { FLYNN_MODEL, getModelForTask, resolveReasoningEffort, useModelStore, type LunaReasoningEffort, type LunaReasoningSelection } from "@/store/useModelStore";
 import { incrementDailyBalancedCount, incrementDailyDeepCount } from "@/hooks/useSubscription";
 import { detectsLocationIntent, getUserLocation, getCachedLocation, formatLocationForContext, requestsCurrentLocation } from "@/lib/userLocation";
 import { useBrowserbaseSessionStore, type BrowserbaseChatSession } from "@/store/useBrowserbaseSessionStore";
@@ -311,7 +311,7 @@ export class AIService {
       const isComplex = !isCanvasOrCode && detectComplexQuery(lastUserMsg);
       
       const complexity = getQueryComplexity(lastUserMsg);
-      const selectedModel = forceCode
+      const selectedModel = (this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort) === 'flynn' ? FLYNN_MODEL : forceCode
         ? getModelForTask('code', complexity)
         : forceCanvas
           ? getModelForTask('file-gen', complexity)
@@ -626,6 +626,26 @@ export class AIService {
     forceWebSearch?: boolean,
     abortSignal?: AbortSignal
   ): Promise<void> {
+    if ((this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort) === 'flynn') {
+      // Flynn uses the same event-based chat/tool pipeline. Deliver its complete
+      // owned canvas/code artifact through the established continuation contract.
+      onStart?.(forceCode ? 'code' : forceCanvas ? 'canvas' : 'text');
+      try {
+        const result = await this.sendMessage(messages, profile, undefined, sessionId, forceWebSearch,
+          forceCanvas, forceCode, false, false, undefined, undefined, abortSignal);
+        abortSignal?.throwIfAborted();
+        const artifact = result.codeUpdate ? { mode: 'code' as const, content: result.codeUpdate.code,
+          label: result.codeUpdate.label, language: result.codeUpdate.language }
+          : result.canvasUpdate ? { mode: 'canvas' as const, content: result.canvasUpdate.content, label: result.canvasUpdate.label }
+          : { mode: 'text' as const, content: result.content };
+        onDelta?.(artifact.content);
+        onDone?.({ ...artifact, webSources: result.webSources, modelUsed: result.modelUsed, reasoningEffortUsed: result.reasoningEffortUsed });
+      } catch (error) {
+        if (abortSignal?.aborted) throw error;
+        onError?.(error instanceof Error ? error.message : 'Flynn request failed.');
+      }
+      return;
+    }
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Chat service is not available. Please configure Supabase.');
     }
@@ -635,7 +655,7 @@ export class AIService {
     const isComplex = !(forceCanvas || forceCode) && detectComplexQuery(lastUserMsg);
     
     const complexity = getQueryComplexity(lastUserMsg);
-    const selectedModel = forceCode
+    const selectedModel = (this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort) === 'flynn' ? FLYNN_MODEL : forceCode
       ? getModelForTask('code', complexity)
       : forceCanvas
         ? getModelForTask('file-gen', complexity)

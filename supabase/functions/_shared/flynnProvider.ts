@@ -38,6 +38,7 @@ export function flynnModelTurn(result: FlynnCompletion): ModelTurn {
   if (typeof tokens !== 'number' || !Number.isSafeInteger(tokens) || tokens < 0) throw new Error('Missing Flynn model usage.');
   const content = result.message.content;
   if (content !== null && content !== undefined && typeof content !== 'string') throw new Error('Invalid Flynn answer.');
+  if (!calls.length && (typeof content !== 'string' || !content.trim())) throw new Error('Flynn returned no final answer.');
   return { calls, text: typeof content === 'string' ? content : '', tokens, outputItems: [result.message] };
 }
 

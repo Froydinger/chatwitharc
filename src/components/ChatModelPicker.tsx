@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bubbles, RefreshCcwDot, Droplets, WavesHorizontal, Check, ChevronDown, Crown } from 'lucide-react';
-import { useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
+import { Bubbles, RefreshCcwDot, Droplets, WavesHorizontal, Zap, Check, ChevronDown, Crown } from 'lucide-react';
+import { canSeeFlynnPreview, useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
+import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +23,7 @@ export const PRESETS = [
   { effort: 'low', title: 'Ava', subtitle: 'Snappy answers & everyday speed', icon: Bubbles },
   { effort: 'medium', title: 'Maya', subtitle: 'Versatile powerhouse intelligence', icon: Droplets },
   { effort: 'high', title: 'River', subtitle: 'Deep logic & heavy reasoning', icon: WavesHorizontal },
+  { effort: 'flynn', title: 'Flynn', subtitle: 'Gemini Flash · Private preview', icon: Zap },
 ] as const;
 
 export function ChatModelPicker({
@@ -42,12 +44,18 @@ export function ChatModelPicker({
     FREE_DAILY_DEEP_LIMIT,
   } = useSubscription();
   const reasoningEffort = useModelStore((state) => state.reasoningEffort);
+  const { user, loading: authLoading } = useAuth();
+  const presets = PRESETS.filter(preset => preset.effort !== 'flynn' || canSeeFlynnPreview(user));
   const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
-  const activePreset = PRESETS.find((preset) => preset.effort === reasoningEffort) ?? PRESETS[0];
+  const activePreset = presets.find((preset) => preset.effort === reasoningEffort) ?? presets[0];
   const CurrentIcon = activePreset.icon;
+
+  useEffect(() => {
+    if (!authLoading && reasoningEffort === 'flynn' && !canSeeFlynnPreview(user)) setReasoningEffort('low');
+  }, [authLoading, reasoningEffort, user, setReasoningEffort]);
 
   useEffect(() => {
     if (!open) return;
@@ -71,6 +79,7 @@ export function ChatModelPicker({
   }, [open]);
 
   const pick = (effort: LunaReasoningSelection) => {
+    if (effort === 'flynn' && !canSeeFlynnPreview(user)) return;
     if (effort === 'high' && !hasBoost && !isAdmin) {
       setOpen(false);
       openCheckout(undefined, 'river_boost_required');
@@ -159,7 +168,7 @@ export function ChatModelPicker({
                   <div className="text-xs font-semibold">Arc Matrix™ Models</div>
                   <div className="text-[10px] text-muted-foreground">Select a reasoning engine for Arc.</div>
                 </div>
-                {PRESETS.map((preset) => {
+                {presets.map((preset) => {
                   let badge: string | undefined;
                   if (preset.effort === 'low') {
                     badge = 'Unlimited';

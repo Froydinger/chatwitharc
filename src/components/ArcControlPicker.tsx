@@ -1,9 +1,10 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Check, ChevronDown, Crown } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
+import { canSeeFlynnPreview, useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
+import { useAuth } from '@/hooks/useAuth';
 import { VoiceMagneticPicker } from '@/components/VoiceMagneticPicker';
 import { PRESETS } from '@/components/ChatModelPicker';
 import type { VoiceName } from '@/store/useVoiceModeStore';
@@ -21,9 +22,15 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<'model' | 'voice'>('model');
   const reasoningEffort = useModelStore((state) => state.reasoningEffort);
+  const { user, loading: authLoading } = useAuth();
+  const presets = PRESETS.filter(preset => preset.effort !== 'flynn' || canSeeFlynnPreview(user));
   const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
   const { hasBoost, isAdmin, openCheckout, dailyBalancedUsed, FREE_DAILY_BALANCED_LIMIT } = useSubscription();
-  const selectedPreset = PRESETS.find((preset) => preset.effort === reasoningEffort) ?? PRESETS[0];
+  const selectedPreset = presets.find((preset) => preset.effort === reasoningEffort) ?? presets[0];
+
+  useEffect(() => {
+    if (!authLoading && reasoningEffort === 'flynn' && !canSeeFlynnPreview(user)) setReasoningEffort('low');
+  }, [authLoading, reasoningEffort, user, setReasoningEffort]);
 
   return (
     <DialogPrimitive.Root
@@ -100,7 +107,7 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
                   <div className="text-sm font-semibold">Arc Matrix™ Models</div>
                   <div className="text-xs text-muted-foreground">Select a reasoning engine for Arc.</div>
                 </div>
-                {PRESETS.map((preset) => {
+                {presets.map((preset) => {
                   let badge: string | undefined;
                   if (preset.effort === 'low') badge = 'Unlimited';
                   if (preset.effort === 'medium') badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_BALANCED_LIMIT - dailyBalancedUsed)}/${FREE_DAILY_BALANCED_LIMIT} left`;

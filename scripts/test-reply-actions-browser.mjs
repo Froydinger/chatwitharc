@@ -74,6 +74,24 @@ try {
     await tap('older'); await wait(50);
     await evaluate('window.__arcReplyActionsQA.remove("older")'); await wait(50);
     assert.deepEqual(await active(), ['final-request'], 'Deleted selected reply falls back to latest');
+    for (const [model, name, powered] of [['gemini-3.8-flash', 'Flynn', 'Powered by Gemini Flash'], ['gpt-6.1-sol', 'River', 'Powered by GPT 6']]) {
+      await evaluate(`window.__arcReplyActionsQA.add("provider-reply", "assistant", ${JSON.stringify(model)})`);
+      await wait(50);
+      await evaluate(`document.querySelector('[data-qa-reply="provider-reply"] button[aria-label="About this reply"]').click()`);
+      await wait(300);
+      const details = await evaluate('document.querySelector("[role=dialog]").textContent');
+      assert.ok(details.includes(name));
+      assert.ok(details.includes(powered));
+      assert.ok(!details.includes(model), 'Raw provider ID stays hidden');
+      assert.equal(await evaluate(`document.querySelectorAll('[role=dialog] button[aria-label="Report a bug"]').length`), 1);
+      if (width === 412 && name === 'Flynn') {
+        const image = await call('Page.captureScreenshot', { format: 'png' });
+        writeFileSync('/tmp/arc-flynn-reply-details.png', Buffer.from(image.data, 'base64'));
+      }
+      await evaluate(`document.querySelector('[role="dialog"] button span.sr-only')?.parentElement.click()`);
+      await wait(300);
+      await evaluate('window.__arcReplyActionsQA.remove("provider-reply")');
+    }
   }
   console.log('Reply controls browser checks passed: one latest row, older tap, model ownership, keyboard, links/selection, user messages, stream/final, chat switches and deletion at 412/1280px.');
 } finally {

@@ -25,7 +25,7 @@ import { useCloudRuns, type CloudRunsApi, type TextCloudRunSubmission } from "@/
 import { reconcileCloudAppRun } from '@/services/cloudAppProjectClient';
 import { captureCloudWorkspaceContext, type CloudRunMode, type CloudRunSubmission, type CloudTextRequest } from "@/services/cloudRuns";
 import { prepareCloudMediaCapture, cloudMediaDigest, type CloudMediaReference } from "@/services/cloudMediaCapture";
-import { resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
+import { FLYNN_MODEL, resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
 import { getQueryComplexity } from "@/services/ai";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { ChatResponseStatus } from "@/components/ChatResponseStatus";
@@ -477,6 +477,7 @@ export function MobileChatApp() {
     // not change the workspace or history of this accepted text intent.
     const captured = {
       ...structuredClone(intent),
+      reasoningSelection: intent.reasoningSelection ?? useModelStore.getState().reasoningEffort,
       attachments: intent.attachments ? [...intent.attachments] : undefined,
     };
     const workspaceContext = captured.workspaceContext === undefined ? undefined
@@ -518,8 +519,7 @@ export function MobileChatApp() {
       const browserbaseSessionHandle = storedBrowserSession
         ? storedBrowserSession.status === 'closed' || storedBrowserSession.status === 'expired' ? undefined : storedBrowserSession.sessionHandle
         : historyBrowserSession?.sessionHandle;
-      const browserbaseDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
-        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ? 'mobile' as const : 'desktop' as const;
+      const browserbaseDevice = 'desktop' as const;
       return {
         messages: captured.messages, forceWebSearch: captured.forceWebSearch,
         forceCanvas: captured.forceCanvas, forceCode: captured.forceCode,
@@ -527,7 +527,8 @@ export function MobileChatApp() {
         ...(captured.forceGit ? { browserbaseDevice, ...(browserbaseSessionHandle ? { browserbaseSessionHandle } : {}) } : {}),
         ...(uploadedAttachments ? { attachments: uploadedAttachments } : {}),
         ...(workspaceContext ? { workspace_context: workspaceContext } : {}),
-        reasoningEffort: resolveReasoningEffort(useModelStore.getState().reasoningEffort, getQueryComplexity(message.content)),
+        ...(captured.reasoningSelection === 'flynn' ? { model: FLYNN_MODEL } : {}),
+        reasoningEffort: resolveReasoningEffort(captured.reasoningSelection, getQueryComplexity(message.content)),
         clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       };
     };

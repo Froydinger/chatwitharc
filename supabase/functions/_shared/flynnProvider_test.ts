@@ -20,6 +20,7 @@ Deno.test('Flynn maps into Arc tools while preserving full execution history and
   throws(() => flynnModelTurn({ message, finishReason: 'tool_calls', usage: undefined }), /usage/);
   throws(() => flynnModelTurn({ message: { ...message, tool_calls: [...message.tool_calls, ...message.tool_calls] }, finishReason: 'tool_calls', usage: { total_tokens: 123 } }), /Duplicate/);
   throws(() => flynnModelTurn({ message, finishReason: 'stop', usage: { total_tokens: 123 } }), /Inconsistent/);
+  throws(() => flynnModelTurn({ message: { role: 'assistant', content: null }, finishReason: 'stop', usage: { total_tokens: 1 } }), /no final answer/);
 });
 
 Deno.test('Flynn aborts an active provider request on Stop and timeout', async () => {

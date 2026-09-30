@@ -10,7 +10,9 @@ export function installReplyActionsQA() {
   if (!import.meta.env.DEV) throw new Error("Local QA only");
   const host = document.createElement("div");
   host.id = "arc-reply-actions-qa";
-  host.className = "fixed inset-0 z-[10000] overflow-auto bg-background p-6 text-foreground";
+  // Keep the fixture above the app and below the real Dialog portal so visual
+  // checks exercise the actual modal, rather than a hidden accessibility tree.
+  host.className = "fixed inset-0 z-40 overflow-auto bg-background p-6 text-foreground";
   document.body.append(host);
   const root = createRoot(host);
   const message = (id: string, role: Message["role"], content: string, modelUsed = "gpt-6-luna"): Message => ({
@@ -31,7 +33,7 @@ export function installReplyActionsQA() {
   render();
   return {
     reset: () => { messages = initial; scope = "chat-a"; render(); },
-    add: (id: string, role: Message["role"] = "assistant") => { messages = [...messages, message(id, role, `Reply ${id}`)]; render(); },
+    add: (id: string, role: Message["role"] = "assistant", modelUsed?: string) => { messages = [...messages, message(id, role, `Reply ${id}`, modelUsed)]; render(); },
     remove: (id: string) => { messages = messages.filter(message => message.id !== id); render(); },
     setScope: (next: string) => { scope = next; render(); },
     dispose: () => { flushSync(() => root.unmount()); host.remove(); },

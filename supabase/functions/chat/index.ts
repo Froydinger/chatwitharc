@@ -10,6 +10,8 @@ import { createBrowserProvider, liveBrowserEnabled as isLiveBrowserEnabled } fro
 import { streamAgentAnswer } from '../_shared/cloudAgentAnswerStream.ts';
 import { isMultiPageBuildRequest } from '../_shared/multiPageIntent.ts';
 import { cloudAgentsProvider } from '../_shared/cloudAgentsProvider.ts';
+import { FLYNN_MODEL, flynnAllowedForUser } from '../_shared/flynnProvider.ts';
+import { flynnChatSession } from '../_shared/flynnChatSession.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -914,6 +916,18 @@ serve(async (req) => {
     }
 
     const { messages, profile, model, reasoningEffort, reasoningSelection, sessionId, forceWebSearch, forceCanvas, forceCode, forceGit, stream, streamEvents, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
+    const useFlynn = model === FLYNN_MODEL;
+    const geminiApiKey = useFlynn ? Deno.env.get('GEMINI_API_KEY') : undefined;
+    if (useFlynn && (isGuestMode || !flynnAllowedForUser(user ?? null, geminiApiKey))) {
+      return new Response(JSON.stringify({ error: 'Flynn is unavailable for this account.' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (useFlynn && stream) {
+      return new Response(JSON.stringify({ error: 'Flynn requires the chat events interface.' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const browserbaseSessionHandle = typeof body.browserbaseSessionHandle === 'string' ? body.browserbaseSessionHandle.slice(0, 64) : undefined;
 
     let isSessionGit = false;
@@ -966,6 +980,7 @@ serve(async (req) => {
     let selectedReasoningEffort = allowedReasoningEfforts.has(reasoningEffort)
       ? reasoningEffort
       : 'medium';
+    if (useFlynn) selectedReasoningEffort = 'low';
 
     console.log('📊 Request details:', {
       model: model || `${LUNA_MODEL} (default)`,
@@ -1079,7 +1094,7 @@ serve(async (req) => {
       }
     }
 
-    const validatedModel = selectedReasoningEffort === 'high' ? SOL_MODEL : LUNA_MODEL;
+    const validatedModel = useFlynn ? FLYNN_MODEL : selectedReasoningEffort === 'high' ? SOL_MODEL : LUNA_MODEL;
     const modelReasoningEffort = selectedReasoningEffort === 'high' ? 'low' : selectedReasoningEffort;
     if (model && model !== validatedModel) {
       console.log('Normalizing client model to the authorized Arc Matrix tier');
@@ -1723,7 +1738,7 @@ product and is helping someone with it. Stay in that voice completely.`;
     const explicitMemoryIntent = /\b(remember (?:this|that|what|when|how|my)|save (?:this|that) (?:to|in) (?:memory|memories)|do you remember|can you remember|recall|past (?:chat|chats|conversation|conversations)|we (?:talked|spoke|discussed)|i (?:told|mentioned) you)\b/i.test(lastUserMessage);
 
     // Explicit memory-intent turns retain the Luna routing used by this tool path.
-    if (toolChoice === "auto" && explicitMemoryIntent) {
+    if (!useFlynn && toolChoice === "auto" && explicitMemoryIntent) {
       selectedModel = lunaModel;
       console.log('🧠 Explicit memory/recall intent: routing through Luna');
     }
@@ -2144,6 +2159,14 @@ product and is helping someone with it. Stay in that voice completely.`;
       let agentTurnId: string | null = null;
       let agentUsageTokens = 0;
       const agentDeadline = Date.now() + 80_000;
+      const flynnSession = useFlynn ? flynnChatSession({ user: user ?? null, apiKey: geminiApiKey,
+        tools: toolsToUse, signal: clientSignal, tokenLimit: MAX_CHAT_AGENT_TOKENS, deadline: agentDeadline }) : null;
+      const completeFlynnTurn = async (choice: unknown = 'auto') => {
+        const result = await flynnSession!.complete(conversationMessages, choice);
+        const message = result.message as ChatAssistantMessage;
+        return { model: FLYNN_MODEL, usage: { total_tokens: flynnSession!.tokens },
+          choices: [{ message, finish_reason: result.finishReason }] } as ChatPipelineData;
+      };
       let data: ChatPipelineData;
       let assistantMessage: ChatAssistantMessage;
       // Tool-driven Chat, including explicit Code and Canvas requests, uses the
@@ -2174,6 +2197,7 @@ product and is helping someone with it. Stay in that voice completely.`;
         && typeof latestUserText === 'string'
         ? browserPreflightIntent(latestUserText, browserbaseSessionHandle) : null;
       if (browserIntent) {
+        clientSignal.throwIfAborted();
         const browserTools = getBrowserbaseTools();
         if (browserTools) {
           sendEvent?.({ type: 'status', activity: 'browser' });
@@ -2243,7 +2267,14 @@ product and is helping someone with it. Stay in that voice completely.`;
         throw new Error('Arc could not finish this request in time. Check the chat before retrying to avoid repeating an action.');
       };
 
-      if (useAgentsApi) {
+      if (flynnSession) {
+        const providerStart = Date.now();
+        data = await completeFlynnTurn(toolChoice);
+        assistantMessage = data.choices[0].message;
+        console.log('Chat provider start timing', { elapsedMs: Date.now() - providerStart, provider: 'flynn' });
+        if (assistantMessage.content) console.log('Chat first answer timing', { elapsedMs: Date.now() - providerStart, provider: 'flynn' });
+        finalResponseModel = FLYNN_MODEL;
+      } else if (useAgentsApi) {
         const agentTools = toolsToUse.map((tool) => ({
           type: 'function' as const,
           name: String(tool.function?.name || ''),
@@ -2425,7 +2456,7 @@ product and is helping someone with it. Stay in that voice completely.`;
     const requestedMemoryCalls = (assistantMessage.tool_calls || []).filter(
       (tc: any) => memoryToolNames.has(tc.function?.name),
     );
-    if (requestedMemoryCalls.length > 0 && selectedModel !== lunaModel) {
+    if (!useFlynn && requestedMemoryCalls.length > 0 && selectedModel !== lunaModel) {
       const replacements = new Map<string, any>();
       for (const originalCall of requestedMemoryCalls) {
         const toolName = originalCall.function.name;
@@ -2497,6 +2528,7 @@ product and is helping someone with it. Stay in that voice completely.`;
     let subagentResult: ChatSubagentToolResult | null = null;
 
     const executeTool = async (toolCall: any) => {
+      flynnSession?.checkActive();
       const toolName = toolCall.function?.name;
       if (toolName) {
         sendEvent?.({
@@ -3156,7 +3188,22 @@ product and is helping someone with it. Stay in that voice completely.`;
         await executeTool(toolCall);
       }
 
-      if (agentSessionId && agentProvider) {
+      if (flynnSession) {
+        while (true) {
+          data = await completeFlynnTurn();
+          assistantMessage = data.choices[0].message;
+          if (!assistantMessage.tool_calls?.length) break;
+          conversationMessages.push(assistantMessage);
+          for (const call of assistantMessage.tool_calls) {
+            if (call.function?.name) {
+              toolsUsed.push(call.function.name);
+              sendEvent?.({ type: 'status', activity: mapToolToActivity(call.function.name), tool: call.function.name });
+            }
+            await executeTool(call);
+          }
+        }
+        console.log('Chat agent timing', { elapsedMs: Date.now() - startTime, tokens: flynnSession.tokens, provider: 'flynn' });
+      } else if (agentSessionId && agentProvider) {
         const MAX_AGENT_ACTION_ROUNDS = 8;
         let actionRounds = 1;
         let pendingCalls: ChatToolCallPayload[] | null | undefined = assistantMessage.tool_calls;
@@ -3253,7 +3300,7 @@ product and is helping someone with it. Stay in that voice completely.`;
 
       // If Git mode is active and changes haven't been applied yet,
       // run up to 5 loop turns so Luna can search -> read -> apply remote changes.
-      if (wantsGit && !agentSessionId) {
+      if (wantsGit && !agentSessionId && !flynnSession) {
         let gitLoopTurns = 0;
         const MAX_GIT_TURNS = 5;
 
@@ -3308,7 +3355,10 @@ product and is helping someone with it. Stay in that voice completely.`;
       const capturedCode = codeUpdate as any;
       const capturedCanvas = canvasUpdate as any;
       const completedSubagentResult = subagentResult as ChatSubagentToolResult | null;
-      if (completedSubagentResult && toolsUsed.every((toolName) => toolName === 'spawn_subagents')) {
+      if (flynnSession) {
+        // The compatible conversation already answered from its original tool
+        // results. Preserve Flynn's final prose and actual provider attribution.
+      } else if (completedSubagentResult && toolsUsed.every((toolName) => toolName === 'spawn_subagents')) {
         // The helper endpoint already planned, ran, and synthesized the
         // temporary Luna workers. Re-answering through the outer model would
         // add latency and could dilute the helper result.
@@ -3435,6 +3485,11 @@ product and is helping someone with it. Stay in that voice completely.`;
     if (sanitizedContent !== rawContent) {
       console.warn('⚠️ Stripped leaked tool call text from AI response');
       data.choices[0].message.content = sanitizedContent;
+    }
+    if (useFlynn) {
+      // Provider signatures are execution state only. Return final prose and
+      // Arc's safe tool/source metadata, never the raw compatible message.
+      data.choices[0].message = { role: 'assistant', content: sanitizedContent };
     }
     
     // Add tool usage metadata, sources, canvas and code update to the response

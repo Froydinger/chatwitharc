@@ -10,6 +10,7 @@ export type CloudWorkspaceContext = {
   label?: string;
 };
 export type CloudTextRequest = {
+  model?: string;
   messages: Array<{role: 'user' | 'assistant'; content: string}>;
   attachments?: CloudMediaReference[];
   workspace_context?: CloudWorkspaceContext;
