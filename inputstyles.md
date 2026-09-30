@@ -64,7 +64,7 @@ src/hooks/chat-input/
   useComposerAttachments.ts               # file lifecycle, previews, cleanup
   useComposerViewport.ts                  # implemented shared rectangle, dock styles and observer lifecycle
   useComposerDraft.ts                     # draft/mode lifecycle, only if extraction helps
-  useComposerSubmission.ts                # submission ownership and queue integration
+  useComposerSubmission.ts                # implemented atomic foreground admission + owner-change cancel
 src/lib/chat-input/
   intent.ts                              # pure classification; existing precedence first
   types.ts                               # typed snapshots, outcomes, mode discriminants
@@ -191,6 +191,7 @@ Use existing glass utilities, Noir theme and shared spacing. Keep domain state o
 
 | Date | Work | Status / evidence |
 | --- | --- | --- |
+| 2026-09-30 | Phase 4 admission: `useComposerSubmission` owns the synchronous foreground guard and account-change cancellation; typed `createComposerSubmitter` adapts existing execution/queue callbacks. | Production adapter checks now execute the extracted guard. Actual React hook fixture covers double-send/queued overlap, failed release, single owner-change cancellation and subsequent owner completion. Existing desktop/narrow composer and queue suites pass. Provider route implementations, global attempt-owned terminal cleanup and durable Work observation remain unchanged. |
 | 2026-09-30 | Phase 3 anchoring: `useComposerViewport` returns one measured composer rectangle per render; `composerDockStyle` centralizes positioning for image options, document/image trays, enhancer and Git docks. | 960 old/new comparisons match all five formulas in committed `edf6dcf6`, including stacking, clamp and safe-area fallback. Desktop/narrow browser focus/selection/attachments, subscription cleanup and queue recovery checks pass. Overlay business callbacks remain in the entry point. |
 | 2026-09-30 | Phase 2 layout: `ComposerView` owns the existing measured input wrapper and layout slots; `ChatInput` supplies menu, field and action handlers. | Exact rendered DOM matches pre-extraction `956db6dd` for all four active/voice states. Desktop/narrow browser IME, selection, attachment cleanup and queue ownership/recovery checks pass; no routing, voice request or provider changes. Submission execution and anchored overlay orchestration remain in the entry point. |
 | 2026-09-30 | Phase 2 submit controls: `ComposerSubmitControls` owns controlled Stop/Send/voice presentation; request and voice handlers remain in `ChatInput`. Removed redundant Framer presence from native tools dialog. | Composer routing/ownership/async-finalization tests and desktop/412px browser IME, selection, preview teardown and queue recovery checks pass; targeted component lint, build/prerender and diff check pass. Dashboard navigation unchanged. Authenticated provider/voice E2E is not claimed by this mechanical stage. |

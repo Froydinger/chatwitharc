@@ -1,3 +1,4 @@
+import { useComposerSubmission } from "@/hooks/chat-input/useComposerSubmission";
 import { ComposerView } from "@/components/chat-input/ComposerView";
 import { ComposerSubmitControls } from "@/components/chat-input/ComposerSubmitControls";
 import { ComposerActions } from "@/components/chat-input/ComposerActions";
@@ -2822,22 +2823,14 @@ ${safeCode}
     }
   };
 
-  const foregroundSubmissionRef = useRef(false);
-  const foregroundOwnerRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (foregroundSubmissionRef.current && foregroundOwnerRef.current !== (user?.id ?? null)) cancelCurrentRequest();
-  }, [user?.id]);
-  const handleSend = async (messageOverride?: string, captured?: ComposerRequestSnapshot): Promise<false | void> => {
-    const content = captured?.content ?? messageOverride ?? inputValue;
-    const workBypass = canSubmitCloudTextWhileBusy(content);
-    if (foregroundSubmissionRef.current && !workBypass) {
-      if (!captured) enqueueComposerRequest(content, !messageOverride);
-      return;
-    }
-    if (!workBypass) { foregroundSubmissionRef.current = true; foregroundOwnerRef.current = user?.id ?? null; }
-    try { return await executeRequest(messageOverride, captured); }
-    finally { if (!workBypass) foregroundSubmissionRef.current = false; }
-  };
+  const { handleSend, foregroundSubmissionRef } = useComposerSubmission({
+    ownerId: user?.id ?? null,
+    inputValue,
+    canSubmitWork: canSubmitCloudTextWhileBusy,
+    execute: executeRequest,
+    enqueue: enqueueComposerRequest,
+    cancel: cancelCurrentRequest,
+  });
 
   const dispatchScopeRef = useRef({ ownerId: user?.id ?? null, sessionId: currentSessionId, executionMode: cloudExecutionMode });
   dispatchScopeRef.current = { ownerId: user?.id ?? null, sessionId: currentSessionId, executionMode: cloudExecutionMode };

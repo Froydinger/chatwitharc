@@ -9,6 +9,7 @@ function load(path) {
 }
 const intent = load('../src/lib/chat-input/intent.ts');
 const types = load('../src/lib/chat-input/types.ts');
+const { createComposerSubmitter } = load('../src/hooks/chat-input/useComposerSubmission.ts');
 const appIntent = load('../src/utils/appBuilderIntent.ts');
 const source = readFileSync(new URL('../src/components/ChatInput.tsx', import.meta.url), 'utf8');
 const ast = ts.createSourceFile('input.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -76,7 +77,7 @@ function fixture(options = {}) {
   state.setAccessingMemory = deps.setAccessingMemory;
   state.setSearchingWeb = deps.setSearchingWeb;
   deps.executeRequest = new Function('deps', `with(deps){${arrow('executeRequest')}}`)(deps);
-  const send = new Function('deps', `with(deps){${arrow('handleSend')}}`)(deps);
+  const send = createComposerSubmitter({ ownerId: deps.user?.id ?? null, inputValue: deps.inputValue, canSubmitWork: deps.canSubmitCloudTextWhileBusy, execute: deps.executeRequest, enqueue: deps.enqueueComposerRequest, busyRef: deps.foregroundSubmissionRef, ownerRef: deps.foregroundOwnerRef });
   return { send, deps, state, calls, failed,
     resolve: () => resolveProvider({ content: 'complete reply', modelUsed: 'gpt-6-luna', reasoningEffortUsed: 'medium', toolsUsed: ['web_search'] }),
     reject: () => rejectProvider(new Error('Synthetic provider failure')),
