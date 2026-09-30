@@ -44,12 +44,12 @@ try {
             const capture = await call('Page.captureScreenshot', {format:'png'});
             const bytes = Buffer.from(capture.data, 'base64');
             writeFileSync(`${folder}/${String(frame).padStart(4,'0')}.png`, bytes);
-            if (frame === 20) writeFileSync('/tmp/arc-thinking-native-frame.png', bytes);
+            if (frame === 20) writeFileSync('/tmp/arc-suggestions-image-native-frame.png', bytes);
             await wait(60);
           }
           const duration = (performance.now() - started) / 1000;
-          execFileSync('ffmpeg',['-y','-framerate',String(36/duration),'-i',`${folder}/%04d.png`,'-vf','pad=ceil(iw/2)*2:ceil(ih/2)*2','-c:v','libx264','-pix_fmt','yuv420p','/tmp/arc-thinking-native-motion.mp4'],{stdio:'ignore'});
-          console.log(`Recorded 36 actual component frames over ${duration.toFixed(2)}s to /tmp/arc-thinking-native-motion.mp4`);
+          execFileSync('ffmpeg',['-y','-framerate',String(36/duration),'-i',`${folder}/%04d.png`,'-vf','pad=ceil(iw/2)*2:ceil(ih/2)*2','-c:v','libx264','-pix_fmt','yuv420p','/tmp/arc-suggestions-image-native-motion.mp4'],{stdio:'ignore'});
+          console.log(`Recorded 36 actual component frames over ${duration.toFixed(2)}s to /tmp/arc-suggestions-image-native-motion.mp4`);
         } finally { rmSync(folder,{recursive:true,force:true}); }
       }
       await wait(550);
@@ -57,12 +57,12 @@ try {
         const host = document.querySelector('#arc-entrance-qa');
         const nodes = [...host.querySelectorAll('.arc-transition')];
         return { count: nodes.length, states: nodes.map(node => ({ opacity: getComputedStyle(node).opacity, animation: getComputedStyle(node).animationName })), overflow: host.scrollWidth > host.clientWidth, text: host.textContent,
-          loops: [...host.querySelectorAll('.arc-image-thinking-spin,.arc-image-thinking-glow,.arc-welcome-avatar-float,.arc-welcome-avatar-glow')].map(node => ({name:getComputedStyle(node).animationName, iterations:getComputedStyle(node).animationIterationCount})) };
+          loops: [...host.querySelectorAll('.arc-image-thinking-spin,.arc-image-thinking-glow,.arc-welcome-avatar-float,.arc-welcome-avatar-glow,.arc-image-placeholder-glow')].map(node => ({name:getComputedStyle(node).animationName, iterations:getComputedStyle(node).animationIterationCount})) };
       })()`);
-      assert.equal(result.count, 7, 'Actual welcome/avatar, two prompt chips, image card, spin wrapper and caption entrances');
+      assert.equal(result.count, 15, 'Actual welcome, quick prompts, suggestions, image placeholder and Thinking entrances');
       assert.ok(result.states.every(state => Number(state.opacity) === 1), `Entrances settle visible: ${JSON.stringify(result.states)}`);
       if (reduced) assert.ok(result.states.every(state => state.animation === 'none'));
-      assert.equal(result.loops.length, 4, 'Image and avatar loops keep separate animation owners');
+      assert.equal(result.loops.length, 6, 'Image and avatar loops keep separate animation owners');
       if (reduced) assert.ok(result.loops.every(loop => loop.name === 'none'), 'Reduced motion stops both loops');
       else assert.ok(result.loops.every(loop => loop.name !== 'none' && loop.iterations === 'infinite'), 'Loop CSS must not replace an entrance lifetime');
       assert.equal(result.overflow, false, 'No new horizontal overflow');
@@ -71,8 +71,22 @@ try {
       await evaluate('document.querySelector("#arc-entrance-qa .arc-prompt-chip").click()');
       assert.equal(await evaluate('Number(document.querySelector("#arc-entrance-qa").dataset.promptClicks)'), beforeClicks + 1, 'A chip click invokes its callback exactly once');
       assert.ok(/generat|image/i.test(result.text));
+      const beforeSuggestions = await evaluate('Number(document.querySelector("#arc-entrance-qa").dataset.suggestionClicks||0)');
+      await evaluate('document.querySelectorAll("#arc-entrance-qa .arc-suggestion-chip")[0].click()');
+      assert.equal(await evaluate('document.querySelector("#arc-entrance-qa").dataset.suggestion'),'captured full prompt');
+      assert.equal(await evaluate('Number(document.querySelector("#arc-entrance-qa").dataset.suggestionClicks)'),beforeSuggestions+1);
+      await evaluate('document.querySelectorAll("#arc-entrance-qa .arc-suggestion-chip")[1].click()');
+      assert.equal(await evaluate('document.querySelector("#arc-entrance-qa").dataset.suggestion'),'captured short prompt');
+      await evaluate(`(()=>{[...document.querySelectorAll('#arc-entrance-qa button')].find(b=>b.textContent.trim()==='Quick Ideas').click()})()`);
+      assert.ok(await evaluate('Number(document.querySelector("#arc-entrance-qa").dataset.moreClicks)>0'));
+
     }
   }
+  await call('Emulation.setDeviceMetricsOverride',{width:412,height:450,deviceScaleFactor:1,mobile:true});await wait(100);
+  assert.equal(await evaluate('document.querySelectorAll("#arc-entrance-qa .arc-suggestion-chip").length'),0,'Short viewport hides suggestion chips');
+  assert.ok(await evaluate(`[...document.querySelectorAll('#arc-entrance-qa button')].some(b=>b.textContent.trim()==='Quick Ideas')`),'Quick Ideas remains available');
+  await call('Emulation.setDeviceMetricsOverride',{width:412,height:915,deviceScaleFactor:1,mobile:true});await wait(100);
+  assert.equal(await evaluate('document.querySelectorAll("#arc-entrance-qa .arc-suggestion-chip").length'),2,'Resize restores chips');
   console.log('Actual entrance browser checks passed: welcome and full-size Thinking at 412/1280px, visible settlement and reduced motion.');
 } finally {
   await call('Emulation.setEmulatedMedia', { features: [] });

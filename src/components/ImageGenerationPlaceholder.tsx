@@ -1,6 +1,4 @@
 import { Transition } from "@/components/transitions/Transition";
-import { Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { ImageGenerationFx } from "@/components/ImageGenerationFx";
 
@@ -16,51 +14,18 @@ export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerati
        shader and wash it out. The border and radius stay on the child so the
        effect is clipped to the same rounded box. */
     <ImageGenerationFx className="w-full max-w-sm mx-auto">
-    <motion.div
+    <Transition preset="fade"><div
       className="w-full rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center"
       style={{ aspectRatio: '1 / 1', minHeight: '320px' }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
     >
       <div className="flex flex-col items-center gap-6 p-8">
         <div className="relative flex items-center justify-center" style={{ willChange: 'transform' }}>
-          <motion.div
-            className="h-24 w-24 animate-spin-slow"
-            style={{
-              backfaceVisibility: 'hidden',
-              transform: 'translateZ(0)',
-              willChange: 'transform'
-            }}
-            initial={{ opacity: 0 }}
-            animate={{
-              opacity: 1
-            }}
-            transition={{
-              opacity: { duration: 0.4, ease: "easeOut" }
-            }}
-          >
-            <ThemedLogo className="h-full w-full opacity-90" alt="Generating" />
-          </motion.div>
-          <motion.div
-            className="absolute inset-0 rounded-full bg-primary/20"
-            style={{
-              filter: 'blur(32px)',
-              backfaceVisibility: 'hidden',
-              transform: 'translateZ(0)',
-              willChange: 'transform, opacity'
-            }}
-            initial={{ opacity: 0 }}
-            animate={{
-              scale: [0.8, 1.2, 0.8],
-              opacity: [0.3, 0.6, 0.3]
-            }}
-            transition={{
-              opacity: { duration: 0.4, ease: "easeOut" },
-              scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
-            }}
-          />
+          <Transition preset="fade"><div>
+            <div className="arc-image-thinking-spin h-24 w-24 animate-spin-slow" style={{ backfaceVisibility: 'hidden', transform: 'translateZ(0)', willChange: 'transform' }}>
+              <ThemedLogo className="h-full w-full opacity-90" alt="Generating" />
+            </div>
+          </div></Transition>
+          <div className="arc-image-placeholder-glow absolute inset-0 rounded-full bg-primary/20" style={{ filter: 'blur(32px)', backfaceVisibility: 'hidden', transform: 'translateZ(0)', willChange: 'transform, opacity' }} />
         </div>
         <div className="flex flex-col items-center gap-2 text-center">
           <Transition preset="panel"><span
@@ -75,7 +40,7 @@ export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerati
           </p></Transition>
         </div>
       </div>
-    </motion.div>
+    </div></Transition>
     </ImageGenerationFx>
   );
 }

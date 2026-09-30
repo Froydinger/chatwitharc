@@ -2,6 +2,8 @@ import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 import { WelcomeSection } from "@/components/WelcomeSection";
 import { QuickPrompts } from "@/components/QuickPrompts";
+import { SmartSuggestions } from "@/components/SmartSuggestions";
+import { ImageGenerationPlaceholder } from "@/components/ImageGenerationPlaceholder";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 
 /** Actual components, local only. Never submits or saves a provider request. */
@@ -19,6 +21,10 @@ export function installEntranceMotionQA() {
     <div className="space-y-8">
       <WelcomeSection greeting="Local animation check" heroAvatar="/arc-logo.png" />
       <QuickPrompts quickPrompts={[{label:"Explain something",prompt:"fixture"},{label:"Write something",prompt:"fixture"}]} onTriggerPrompt={() => { host.dataset.promptClicks = String(++promptClicks); }} />
+      <SmartSuggestions suggestions={[{label:"Full prompt",prompt:"short",fullPrompt:"captured full prompt"},{label:"Short prompt",prompt:"captured short prompt"}]}
+        onSelectPrompt={text => { host.dataset.suggestion = text; host.dataset.suggestionClicks = String(Number(host.dataset.suggestionClicks ?? 0) + 1); }}
+        onShowMore={() => { host.dataset.moreClicks = String(Number(host.dataset.moreClicks ?? 0) + 1); }} />
+      <ImageGenerationPlaceholder prompt="Local image placeholder" />
       <ThinkingIndicator isLoading={thinking} isGeneratingImage={thinking} fullSize hideHelpers />
     </div>
   ));

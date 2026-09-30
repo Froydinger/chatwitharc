@@ -14,6 +14,16 @@
 .arc-prompt-chip { transition: scale var(--arc-motion-fast) var(--arc-motion-ease), transform var(--arc-motion-fast) var(--arc-motion-ease), box-shadow var(--arc-motion-fast) var(--arc-motion-ease); }
 @media (hover: hover) { .arc-prompt-chip:hover { scale: 1.07; transform: translateY(-3px); } }
 .arc-prompt-chip:active { scale: .95; }
+.arc-suggestion-chip.arc-transition { transition: scale var(--arc-motion-fast) var(--arc-motion-ease), background-color var(--arc-motion-fast) var(--arc-motion-ease), border-color var(--arc-motion-fast) var(--arc-motion-ease); }
+@media (hover: hover) { .arc-suggestion-chip:hover { scale: 1.05; } }
+.arc-suggestion-chip:active { scale: .98; }
+.arc-image-placeholder-glow { animation: arc-image-placeholder-pulse 1.5s ease-in-out .4s infinite; }
+@keyframes arc-image-placeholder-pulse { 0%, 100% { scale: .8; opacity: .3; } 50% { scale: 1.2; opacity: .6; } }
+@media (prefers-reduced-motion: reduce) {
+  .arc-suggestion-chip.arc-transition { transition: none !important; }
+  .arc-suggestion-chip:hover, .arc-suggestion-chip:active { scale: 1; }
+  .arc-image-placeholder-glow { animation: none !important; scale: 1; opacity: .3; }
+}
 @keyframes arc-welcome-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -8px; } }
 @keyframes arc-welcome-glow { 0%, 100% { scale: 1; opacity: .3; } 50% { scale: 1.1; opacity: .5; } }
 @media (prefers-reduced-motion: reduce) {

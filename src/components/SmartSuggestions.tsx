@@ -1,9 +1,7 @@
 import { Transition } from "@/components/transitions/Transition";
 import { useRef, useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { slideUpVariants, staggerContainerVariants, staggerItemVariants, ANIMATION_DURATION, STAGGER, createHoverVariants, createTapVariants } from "@/utils/animations";
 
 interface SmartSuggestionsProps {
   suggestions: Array<{ label: string; prompt: string; fullPrompt?: string }>;
@@ -35,41 +33,28 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
   }
 
   return (
-    <motion.div
-      variants={slideUpVariants}
-      initial="initial"
-      animate="animate"
+    <Transition preset="panel"><div
       className="flex flex-col items-center gap-4 px-4"
     >
       {/* Suggestion Chips - hidden on very short viewports */}
       {showChips && (
-        <motion.div
-          className="flex flex-wrap items-center justify-center gap-2 max-w-sm sm:max-w-xl lg:max-w-2xl"
-          variants={staggerContainerVariants}
-          initial="initial"
-          animate="animate"
-        >
-          {suggestions.map((suggestion) => (
-            <motion.button
-              key={suggestion.label}
-              variants={staggerItemVariants}
-              whileHover={createHoverVariants(1.05, 0)}
-              whileTap={createTapVariants(0.98)}
+        <div className="flex flex-wrap items-center justify-center gap-2 max-w-sm sm:max-w-xl lg:max-w-2xl">
+          {suggestions.map((suggestion, index) => (
+            <Transition key={suggestion.label} preset="fade" delay={index * 0.04}><button
               onClick={() => onSelectPrompt(suggestion.fullPrompt || suggestion.prompt)}
-              className="group relative px-4 py-2.5 rounded-full bg-background/40 backdrop-blur-sm border border-border/50 hover:border-neon-500/35 hover:bg-background/60 transition-[background-color,border-color] duration-200"
+              className="arc-suggestion-chip group relative px-4 py-2.5 rounded-full bg-background/40 backdrop-blur-sm border border-border/50 hover:border-neon-500/35 hover:bg-background/60 transition-[background-color,border-color] duration-200"
             >
               <span className="text-sm font-medium transition-colors group-hover:text-neon-600 dark:group-hover:text-neon-300">{suggestion.label}</span>
-              <motion.div
+              <div
                 className="absolute inset-0 rounded-full bg-neon-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                initial={false}
               />
-            </motion.button>
+            </button></Transition>
           ))}
-        </motion.div>
+        </div>
       )}
 
       {/* Expand Button - always visible */}
-      <Transition preset="fade" delay={suggestions.length * STAGGER.NORMAL + 0.1}><div
+      <Transition preset="fade" delay={suggestions.length * 0.04 + 0.1}><div
       >
         <Button
           variant="ghost"
@@ -81,6 +66,6 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
           Quick Ideas
         </Button>
       </div></Transition>
-    </motion.div>
+    </div></Transition>
   );
 }
