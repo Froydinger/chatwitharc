@@ -1,6 +1,6 @@
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AccordionPanel } from "@/components/transitions/AccordionPanel";
 import { Brain, Check, Edit2, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { useContextBlocks } from "@/hooks/useContextBlocks";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -15,7 +15,14 @@ interface ContextBlocksPanelProps {
 
 /** A single editable living-memory document. The compatibility hook hides the old slot storage. */
 export function ContextBlocksPanel({ isOpen, onClose }: ContextBlocksPanelProps) {
-  const { blocks, loading, addBlock, updateBlock, clearAll } = useContextBlocks();
+  const memory = useContextBlocks();
+  return <ContextBlocksPanelView isOpen={isOpen} onClose={onClose} memory={memory} />;
+}
+
+export function ContextBlocksPanelView({ isOpen, onClose, memory }: ContextBlocksPanelProps & {
+  memory: Pick<ReturnType<typeof useContextBlocks>, "blocks" | "loading" | "addBlock" | "updateBlock" | "clearAll">;
+}) {
+  const { blocks, loading, addBlock, updateBlock, clearAll } = memory;
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -61,7 +68,6 @@ export function ContextBlocksPanel({ isOpen, onClose }: ContextBlocksPanelProps)
   };
 
   return (
-    <AnimatePresence>
       <ConditionalTransition preset="modal">{isOpen && (
         <div
           ref={panelRef}
@@ -82,17 +88,17 @@ export function ContextBlocksPanel({ isOpen, onClose }: ContextBlocksPanelProps)
           <div className="overflow-y-auto max-h-[calc(70vh-52px)] p-3 scrollbar-hide">
             <p className="px-1 pb-3 text-xs leading-relaxed text-muted-foreground">Arc keeps one detailed, evolving summary about you. Tell Arc something naturally, or ask it to remember.</p>
 
-            <AnimatePresence>
-              {(isAdding || isEditing) && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="glass border border-border/30 rounded-xl p-3 space-y-2">
+            <div className="t-acc" data-open={isAdding || isEditing}>
+              <AccordionPanel open={isAdding || isEditing}>
+                <div className="glass border border-border/30 rounded-xl p-3 space-y-2">
                   <Textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={isEditing ? "Edit Arc's full living memory summary..." : "Tell Arc something about you. It will merge this into the living summary..."} className="glass border-border/30 min-h-[120px] resize-none text-sm" autoFocus={!isMobile} />
                   <div className="flex items-center gap-2">
                     <GlassButton variant="ghost" size="sm" onClick={save} disabled={!draft.trim()} className="h-7 text-xs"><Check className="w-3 h-3 mr-1" /> Save summary</GlassButton>
                     <GlassButton variant="ghost" size="sm" onClick={cancel} className="h-7 text-xs"><X className="w-3 h-3 mr-1" /> Cancel</GlassButton>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+              </AccordionPanel>
+            </div>
 
             {loading ? (
               <div className="flex items-center justify-center py-8"><div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>
@@ -107,6 +113,5 @@ export function ContextBlocksPanel({ isOpen, onClose }: ContextBlocksPanelProps)
           </div>
         </div>
       )}</ConditionalTransition>
-    </AnimatePresence>
   );
 }
