@@ -1,3 +1,4 @@
+import { AccordionPanel } from "@/components/transitions/AccordionPanel";
 import { Transition } from "@/components/transitions/Transition";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -472,12 +473,15 @@ export function DocsPage() {
                     transition={{ duration: 0.2 }}
                   >
                     <GlassCard 
-                      className={`border-glass-border overflow-hidden transition-all duration-200 ${
+                      data-open={isExpanded}
+                      className={`t-acc border-glass-border overflow-hidden transition-all duration-200 ${
                         isExpanded ? "border-primary/40 bg-primary/5" : "hover:bg-white/5"
                       }`}
                     >
                       <button
                         onClick={() => handleToggleArticle(art.id)}
+                        aria-expanded={isExpanded}
+                        aria-controls={`docs-answer-${art.id}`}
                         className="w-full px-6 py-4 flex items-center justify-between text-left gap-4"
                       >
                         <div className="flex items-center gap-3">
@@ -495,21 +499,11 @@ export function DocsPage() {
                         )}
                       </button>
                       
-                      <AnimatePresence initial={false}>
-                        {isExpanded && (
-                          <motion.div
-                            initial={{ height: 0 }}
-                            animate={{ height: "auto" }}
-                            exit={{ height: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="border-t border-border/20"
-                          >
-                            <div className="px-6 py-5 bg-background/25">
+                      <AccordionPanel open={isExpanded} id={`docs-answer-${art.id}`}>
+                            <div className="border-t border-border/20 px-6 py-5 bg-background/25">
                               {art.answer}
                             </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                      </AccordionPanel>
                     </GlassCard>
                   </motion.div>
                 );

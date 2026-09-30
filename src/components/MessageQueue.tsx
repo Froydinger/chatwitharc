@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, X, Trash2, Send, GripVertical, Pencil, Check, RotateCcw, ChevronDown, ChevronUp, ListOrdered } from 'lucide-react';
+import { useId, useState } from 'react';
+import { motion } from 'framer-motion';
+import { AccordionPanel } from '@/components/transitions/AccordionPanel';
+import { Play, Pause, X, Trash2, Send, GripVertical, Pencil, Check, RotateCcw, ChevronDown, ListOrdered } from 'lucide-react';
 import { useMessageQueueStore, QueuedMessage } from '@/store/useMessageQueueStore';
 import { cn } from '@/lib/utils';
 import { useArcStore } from '@/store/useArcStore';
@@ -28,6 +29,7 @@ export function MessageQueueView({ onSendMessage, onRetryRequest, isLoading, isD
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [collapsed, setCollapsed] = useState(false);
+  const panelId = useId();
 
   if (!isOpen || (queue.length === 0 && failed.length === 0)) return null;
 
@@ -61,8 +63,9 @@ export function MessageQueueView({ onSendMessage, onRetryRequest, isLoading, isD
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 12, scale: 0.97 }}
       transition={{ type: 'spring', damping: 28, stiffness: 500 }}
+      data-open={!collapsed}
       className={cn(
-        "w-full rounded-2xl border backdrop-blur-xl overflow-hidden",
+        "t-acc w-full rounded-2xl border backdrop-blur-xl overflow-hidden",
         isDashboard
           ? "bg-black/80 border-white/10 shadow-[0_8px_32px_rgba(0,0,0,.5)]"
           : "bg-background/90 border-border/40 shadow-xl"
@@ -99,10 +102,13 @@ export function MessageQueueView({ onSendMessage, onRetryRequest, isLoading, isD
             Next
           </button>
           <button
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={(event) => { event.currentTarget.focus(); setCollapsed(!collapsed); }}
+            aria-label={collapsed ? "Expand queued messages" : "Collapse queued messages"}
+            aria-expanded={!collapsed}
+            aria-controls={panelId}
             className="h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
           >
-            {collapsed ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            <ChevronDown className="t-acc-chevron h-3 w-3" />
           </button>
           <button
             onClick={clearQueue}
@@ -132,14 +138,7 @@ export function MessageQueueView({ onSendMessage, onRetryRequest, isLoading, isD
         })}
       </div>}
       {/* Queue items */}
-      <AnimatePresence>
-        {!collapsed && (
-          <motion.div
-            initial={{ height: 0 }}
-            animate={{ height: 'auto' }}
-            exit={{ height: 0 }}
-            className="overflow-hidden"
-          >
+      <AccordionPanel open={!collapsed} id={panelId}>
             <div className="max-h-40 overflow-y-auto px-2 py-1.5 space-y-1">
               {queue.map((msg, index) => (
                 <motion.div
@@ -215,9 +214,7 @@ export function MessageQueueView({ onSendMessage, onRetryRequest, isLoading, isD
                 </motion.div>
               ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </AccordionPanel>
     </motion.div>
   );
 }

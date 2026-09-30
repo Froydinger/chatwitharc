@@ -1,5 +1,6 @@
+import { AccordionPanel } from "@/components/transitions/AccordionPanel";
 import { Transition } from "@/components/transitions/Transition";
-import { useState, useEffect } from "react";
+import { useId, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -41,6 +42,7 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
 export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [showEmailForm, setShowEmailForm] = useState(true);
+  const emailFormId = useId();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -279,7 +281,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                 <X className={cn("h-4 w-4", t.closeIcon)} />
               </motion.button>
 
-              <Transition preset="panel" delay={0.1}><div className="space-y-6">
+              <Transition preset="panel" delay={0.1}><div className="t-acc space-y-6" data-open={showEmailForm}>
                 <>
                 {/* Logo / contextual headline */}
                 <div className="text-center">
@@ -367,7 +369,9 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                   <div className={cn("flex-1 h-px bg-gradient-to-r from-transparent to-transparent", t.divider)} />
                   <button
                     type="button"
-                    onClick={() => setShowEmailForm(!showEmailForm)}
+                    onClick={(event) => { event.currentTarget.focus(); setShowEmailForm(!showEmailForm); }}
+                    aria-expanded={showEmailForm}
+                    aria-controls={emailFormId}
                     className={cn("text-xs font-medium transition-colors whitespace-nowrap", t.textSubtle, isLight ? "hover:text-zinc-800" : "hover:text-white/70")}
                   >
                     {showEmailForm ? "Hide email form" : "Use email instead"}
@@ -377,15 +381,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
 
 
                 {/* Email Form (collapsed by default) */}
-                <AnimatePresence>
-                  {showEmailForm && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.25, ease: "easeInOut" }}
-                      className="overflow-hidden"
-                    >
+                  <AccordionPanel open={showEmailForm} id={emailFormId}>
                       <form onSubmit={onSubmit} className="space-y-4 px-1 pt-1 pb-1">
                         <div className="space-y-2">
                           <label htmlFor="email" className={cn("text-sm font-medium", isLight ? "text-zinc-700" : "text-white/80")}>Email</label>
@@ -489,9 +485,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                           </GlassButton>
                         </motion.div>
                       </form>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  </AccordionPanel>
 
                 </>
               </div></Transition>

@@ -21,10 +21,33 @@ const evaluate = async expression => {
 const wait = ms => new Promise(r => setTimeout(r, ms));
 try {
   await call('Emulation.setDeviceMetricsOverride', { width: 412, height: 915, deviceScaleFactor: 1, mobile: true });
-  await evaluate(`import('/src/dev/ComposerQueueQA.tsx').then(m=>{window.__arcQueueQA=m.installComposerQueueQA();return true})`);
+  await evaluate(`window.__arcQueueQA?.dispose(); import('/src/dev/ComposerQueueQA.tsx').then(m=>{window.__arcQueueQA=m.installComposerQueueQA();return true})`);
   await wait(500);
   await evaluate(`window.__arcQueueQA.enqueue('First captured request',[new File(['captured bytes'],'captured.png',{type:'image/png'})]);window.__arcQueueQA.enqueue('Second request')`);
   await wait(750);
+  assert.ok(await evaluate('document.querySelector("#arc-queue-qa .t-acc-panel").getBoundingClientRect().height > 0'));
+  await evaluate(`window.__arcQueuePanelChild=document.querySelector('#arc-queue-qa .t-acc-panel-inner').firstElementChild;document.querySelector('#arc-queue-qa button[aria-label="Collapse queued messages"]').click()`);
+  await wait(40);
+  assert.equal(await evaluate('document.querySelector("#arc-queue-qa .t-acc-panel-inner").inert'), true, 'Closing queue cannot take focus or clicks');
+  assert.equal(await evaluate('document.querySelector("#arc-queue-qa .t-acc-panel-inner").getAttribute("aria-hidden")'), 'true');
+  await evaluate(`document.querySelector('#arc-queue-qa button[aria-label="Expand queued messages"]').click()`);
+  await wait(300);
+  assert.equal(await evaluate('window.__arcQueuePanelChild === document.querySelector("#arc-queue-qa .t-acc-panel-inner").firstElementChild'), true, 'Interrupted close retains DOM/edit state');
+  await evaluate(`document.querySelector('#arc-queue-qa button[aria-label="Collapse queued messages"]').click()`);
+  await wait(300);
+  assert.equal(await evaluate('document.querySelector("#arc-queue-qa .t-acc-panel").getBoundingClientRect().height'), 0, 'Closed grid leaves no residual padding/height');
+  assert.equal(await evaluate('document.querySelector("#arc-queue-qa .t-acc-panel-inner").childElementCount'), 0, 'Completed close unmounts rows');
+  assert.equal(await evaluate('document.activeElement.getAttribute("aria-label")'), 'Expand queued messages', 'Collapse retains keyboard focus on trigger');
+  await call('Emulation.setEmulatedMedia', { features: [{name:'prefers-reduced-motion',value:'reduce'}] });
+  await evaluate(`document.querySelector('#arc-queue-qa button[aria-label="Expand queued messages"]').click()`);
+  await wait(40);
+  assert.equal(await evaluate('document.querySelector("#arc-queue-qa .t-acc-panel-inner").inert'), false);
+  await evaluate(`document.querySelector('#arc-queue-qa button[aria-label="Collapse queued messages"]').click()`);
+  await wait(40);
+  assert.equal(await evaluate('document.querySelector("#arc-queue-qa .t-acc-panel-inner").childElementCount'), 0, 'Reduced motion closes immediately');
+  await evaluate(`document.querySelector('#arc-queue-qa button[aria-label="Expand queued messages"]').click()`);
+  await call('Emulation.setEmulatedMedia', { features: [] });
+  await wait(300);
   assert.equal(await evaluate('window.__arcQueueQA.started.length'), 0, 'Wrong chat holds automatic dispatch');
   assert.equal(await evaluate(`document.querySelector('#arc-queue-qa button[title="Send next message"]').disabled`), true);
   await evaluate(`window.__arcQueueQA.setScope({ownerId:'fixture-owner',sessionId:'chat-a',executionMode:'ask'})`);
@@ -67,8 +90,9 @@ try {
   await evaluate(`window.__arcQueueQA.enqueue('Unmounted request');window.__arcQueueQA.dispose()`);
   await wait(750);
   assert.equal(await evaluate('window.__arcQueueQA.started.length'), 3, 'Unmount cancels idle drain timer');
-  console.log('Queue browser checks passed: original-chat hold, captured Files, failure pause, manual retry, rapid duplicate clicks, newer draft, Stop/cancellation, resume, account cleanup and unmount.');
+  console.log('Queue browser checks passed: native collapse/reopen, no residual height, inert/focus safety, reduced motion, original-chat hold, captured Files, failure pause, manual retry, rapid duplicate clicks, newer draft, Stop/cancellation, resume, account cleanup and unmount.');
 } finally {
+  await call('Emulation.setEmulatedMedia', {features:[]});
   await evaluate(`window.__arcQueueQA?.dispose()`);
   ws.close();
 }
