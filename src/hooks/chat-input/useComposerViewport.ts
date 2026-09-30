@@ -1,4 +1,13 @@
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState, type RefObject, type CSSProperties } from "react";
+
+/** All floating surfaces share the same measured rectangle for this render.
+ * Each caller still owns its existing stacking and unmeasured fallback. */
+export function composerDockStyle(rect: Pick<DOMRect, 'top' | 'left' | 'width'> | null, viewportHeight: number, offset: number, fallbackBottom: number): CSSProperties & { bottom: string } {
+  const bottom = rect
+    ? `${Math.max(12, viewportHeight - rect.top + offset)}px`
+    : `calc(${fallbackBottom}px + env(safe-area-inset-bottom, 0px))`;
+  return rect ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom } : { bottom };
+}
 
 /** One owner for the composer anchor subscriptions, with symmetric teardown. */
 export function useComposerViewport(inputBarRef: RefObject<HTMLDivElement>) {
@@ -37,4 +46,5 @@ export function useComposerViewport(inputBarRef: RefObject<HTMLDivElement>) {
     };
   }, [inputBarRef]);
 
+  return inputBarRef.current?.getBoundingClientRect() ?? null;
 }

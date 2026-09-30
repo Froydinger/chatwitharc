@@ -31,7 +31,7 @@ import {
   Clapperboard,
 } from "lucide-react";
 import { ComposerTextarea } from "@/components/chat-input/ComposerTextarea";
-import { useComposerViewport } from "@/hooks/chat-input/useComposerViewport";
+import { useComposerViewport, composerDockStyle } from "@/hooks/chat-input/useComposerViewport";
 import { useAttachmentPreviews } from "@/hooks/chat-input/useAttachmentPreviews";
 import { useArcStore, type Message } from "@/store/useArcStore";
 import { useIDEStore } from "@/store/useIDEStore";
@@ -272,7 +272,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const inputBarRef = useRef<HTMLDivElement>(null);
   const modelLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useComposerViewport(inputBarRef);
+  const composerRect = useComposerViewport(inputBarRef);
 
   // Prompt library
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
@@ -2929,11 +2929,9 @@ ${safeCode}
         selectedImages.length === 0 &&
         (() => {
           const hasDocs = selectedDocuments.length > 0;
-          const rect = inputBarRef.current?.getBoundingClientRect();
+          const rect = composerRect;
           const previewStack = hasDocs ? 100 : 0;
-          const dockBottom = rect
-            ? `${Math.max(12, window.innerHeight - rect.top + 12 + previewStack)}px`
-            : `calc(${110 + previewStack}px + env(safe-area-inset-bottom, 0px))`;
+          const dockBottom = composerDockStyle(rect, window.innerHeight, 12 + previewStack, 110 + previewStack).bottom;
           return (
             <ImageOptionsDock
               portalRoot={portalRoot}
@@ -2949,12 +2947,9 @@ ${safeCode}
         selectedDocuments.length > 0 &&
         portalRoot &&
         (() => {
-          const rect = inputBarRef.current?.getBoundingClientRect();
+          const rect = composerRect;
           const imgStack = selectedImages.length > 0 ? 220 : 0;
-          const bottom = rect
-            ? `${Math.max(12, window.innerHeight - rect.top + 12 + imgStack)}px`
-            : `calc(${110 + imgStack}px + env(safe-area-inset-bottom, 0px))`;
-          const anchored = rect ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom } : { bottom };
+          const anchored = composerDockStyle(rect, window.innerHeight, 12 + imgStack, 110 + imgStack);
           return createPortal(
             <div className={rect ? "fixed z-[33]" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"} style={anchored}>
               <AttachmentTray kind="documents" files={selectedDocuments} onClear={() => setSelectedDocuments([])} onRemove={removeDocument} />
@@ -2968,11 +2963,8 @@ ${safeCode}
         selectedImages.length > 0 &&
         portalRoot &&
         (() => {
-          const rect = inputBarRef.current?.getBoundingClientRect();
-          const bottom = rect
-            ? `${Math.max(12, window.innerHeight - rect.top + 12)}px`
-            : `calc(110px + env(safe-area-inset-bottom, 0px))`;
-          const anchored = rect ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom } : { bottom };
+          const rect = composerRect;
+          const anchored = composerDockStyle(rect, window.innerHeight, 12, 110);
           return createPortal(
             <div className={rect ? "fixed z-[33]" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"} style={anchored}>
               <AttachmentTray kind="images" files={selectedImages} previewUrls={imagePreviewUrls} onClear={clearSelected} onRemove={removeImage}>
@@ -3030,11 +3022,8 @@ ${safeCode}
           const previewStack = (hasDocs ? 80 : 0) + (hasImages ? 90 : 0);
           const gitOffset = shouldShowGitMode ? 54 : 0;
           const imageDockOffset = (shouldShowBanana && !hasImages) ? 116 : 0;
-          const rect = inputBarRef.current?.getBoundingClientRect();
-          const bottom = rect
-            ? `${Math.max(12, window.innerHeight - rect.top + 8 + previewStack + gitOffset + imageDockOffset)}px`
-            : `calc(${120 + previewStack + gitOffset + imageDockOffset}px + env(safe-area-inset-bottom, 0px))`;
-          const anchored = rect ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom } : { bottom };
+          const rect = composerRect;
+          const anchored = composerDockStyle(rect, window.innerHeight, 8 + previewStack + gitOffset + imageDockOffset, 120 + previewStack + gitOffset + imageDockOffset);
           const enhancerKind = shouldShowGitMode ? "git_plan" : (shouldShowBanana ? "image" : "chat");
           return createPortal(
             <div
@@ -3068,13 +3057,8 @@ ${safeCode}
           const hasDocs = selectedDocuments.length > 0;
           const hasImages = selectedImages.length > 0;
           const previewStack = (hasDocs ? 80 : 0) + (hasImages ? 90 : 0);
-          const rect = inputBarRef.current?.getBoundingClientRect();
-          const dockBottom = rect
-            ? `${Math.max(12, window.innerHeight - rect.top + 10 + previewStack)}px`
-            : `calc(${100 + previewStack}px + env(safe-area-inset-bottom, 0px))`;
-          const anchored = rect
-            ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom: dockBottom }
-            : { bottom: dockBottom };
+          const rect = composerRect;
+          const anchored = composerDockStyle(rect, window.innerHeight, 10 + previewStack, 100 + previewStack);
           return createPortal(
             <div
               className={
