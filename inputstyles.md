@@ -1,6 +1,6 @@
 # Arc input bar: structure, compatibility, and refactor plan
 
-Status: **incremental implementation in progress**, September 30, 2026. Pure intent helpers, the controlled textarea, attachment-preview ownership, image-quota overlay presentation, and viewport subscriptions are extracted; the queue now captures request ownership/files/context, and submission attempts guard terminal cleanup and retain explicit recovery. The remaining presentation/orchestration extraction is still in progress. The ledger records completed work separately from the proposed phases.
+Status: **incremental implementation in progress**, September 30, 2026. Pure intent helpers, the controlled layout and submit controls, textarea, attachment-preview ownership, image-quota overlay presentation, and viewport subscriptions are extracted; the queue now captures request ownership/files/context, and submission attempts guard terminal cleanup and retain explicit recovery. The remaining presentation/orchestration extraction is still in progress. The ledger records completed work separately from the proposed phases.
 
 ## Recommendation
 
@@ -53,10 +53,11 @@ Public integration contract:
 ```text
 src/components/ChatInput.tsx              # compatible entry point, props/ref adapter
 src/components/chat-input/
-  ComposerView.tsx                        # layout and composition only
+  ComposerView.tsx                        # implemented controlled layout slots; no effects
   ComposerTextarea.tsx                    # controlled text, keyboard and sizing
   AttachmentTray.tsx                      # previews/removal, no upload requests
-  ComposerActions.tsx                     # buttons/tool menu, declarative actions
+  ComposerActions.tsx                     # implemented create-menu presentation
+  ComposerSubmitControls.tsx              # implemented Stop/Send/voice presentation
   ComposerOverlays.tsx                    # existing dialogs/docks wiring
   composerStyles.ts                      # shared named class groups if useful
 src/hooks/chat-input/
@@ -190,6 +191,7 @@ Use existing glass utilities, Noir theme and shared spacing. Keep domain state o
 
 | Date | Work | Status / evidence |
 | --- | --- | --- |
+| 2026-09-30 | Phase 2 layout: `ComposerView` owns the existing measured input wrapper and layout slots; `ChatInput` supplies menu, field and action handlers. | Exact rendered DOM matches pre-extraction `956db6dd` for all four active/voice states. Desktop/narrow browser IME, selection, attachment cleanup and queue ownership/recovery checks pass; no routing, voice request or provider changes. Submission execution and anchored overlay orchestration remain in the entry point. |
 | 2026-09-30 | Phase 2 submit controls: `ComposerSubmitControls` owns controlled Stop/Send/voice presentation; request and voice handlers remain in `ChatInput`. Removed redundant Framer presence from native tools dialog. | Composer routing/ownership/async-finalization tests and desktop/412px browser IME, selection, preview teardown and queue recovery checks pass; targeted component lint, build/prerender and diff check pass. Dashboard navigation unchanged. Authenticated provider/voice E2E is not claimed by this mechanical stage. |
 | 2026-09-30 | Phase 2 overlays: `ComposerOverlays` owns image-quota dialog presentation; composer retains visibility, quota state, navigation and checkout | Exact rendered DOM matches baseline `39535d67` for 18 hidden/free/Boost/admin/count states. No provider, submission or persistence changes; existing animation remains until the overlay motion pass. |
 | 2026-09-29 | Phase 2 attachment tray: `AttachmentTray` renders controlled document/image previews; composer retains file state, callbacks, access checks, options, portal anchors and uploads | Exact rendered DOM matches pre-extraction revision `536decb1` for six empty/single/full file states; existing footer callbacks unchanged. Actual composer browser checks at 412/1280px cover combined files, individual removal, both clear actions and outer geometry; preview cleanup/IME/selection and queue regressions pass. No provider requests or physical Pixel checks in this stage. |

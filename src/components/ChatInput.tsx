@@ -1,3 +1,4 @@
+import { ComposerView } from "@/components/chat-input/ComposerView";
 import { ComposerSubmitControls } from "@/components/chat-input/ComposerSubmitControls";
 import { ComposerActions } from "@/components/chat-input/ComposerActions";
 import { ComposerOverlays } from "@/components/chat-input/ComposerOverlays";
@@ -3090,29 +3091,12 @@ ${safeCode}
         })()}
 
       {inline && shouldShowGitMode && <GitModeDock />}
-      <div
-        ref={inputBarRef}
-        className={cn(
-          "relative flex max-h-[360px] origin-bottom flex-col gap-2 p-0.5 transition-all duration-300 ease-out cursor-text",
-          isActive ? "opacity-100" : "opacity-95",
-          isVoiceActive && "max-h-0 translate-y-3 scale-95 overflow-hidden p-0 opacity-0 pointer-events-none select-none",
-        )}
-        aria-hidden={isVoiceActive}
-        onClick={(e) => {
-          if ((e.target as HTMLElement).closest('button, input, a, [role="button"]')) return;
-          textareaRef.current?.focus();
-        }}
-      >
-        <div className="flex items-end gap-2 relative">
-          {/* Main Input Wrapper */}
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Mode indicators removed — single-tool indication is handled inline elsewhere */}
-            {/* Model picker moved to header (see MobileChatApp header buttons) */}
-
-
-
-            <div className="relative flex items-center gap-2">
-              {/* Add/Attachment Menu */}
+      <ComposerView
+        inputBarRef={inputBarRef}
+        active={isActive}
+        voiceActive={isVoiceActive}
+        onFocusRequest={() => textareaRef.current?.focus()}
+        menu={(
               <div className="relative">
                 <button
                   ref={menuButtonRef}
@@ -3184,22 +3168,8 @@ ${safeCode}
 
                 <ComposerActions showMenu={showMenu} position={menuPosition} actions={createMenuActions} onClose={() => setShowMenu(false)} />
               </div>
-
-
-
-
-
-
-
-
-
-              {/* Input Field.
-                  Padding is written as an explicit 4px/4px rather than py-1 so
-                  the optical centring stays tunable in one place. It landed back
-                  at dead centre after trying 3px and 1px down, both of which
-                  read as too low. The 8px vertical total is what matters: it
-                  keeps scrollHeight, the autosize height and the pill's height
-                  unchanged no matter how the 8px is split. */}
+        )}
+        field={(
               <ComposerTextarea
                 ref={textareaRef}
                 voiceActive={isVoiceActive}
@@ -3215,9 +3185,8 @@ ${safeCode}
                 onPaste={handlePaste}
                 onFocus={handleInputFocus}
               />
-            </div>
-          </div>
-
+        )}
+        actions={(
           <ComposerSubmitControls
             busy={isLoading || isGeneratingImage}
             hasContent={!!inputValue.trim() || selectedImages.length > 0 || selectedDocuments.length > 0}
@@ -3268,8 +3237,8 @@ ${safeCode}
                 </button>
               </div>
           </ComposerSubmitControls>
-        </div>
-      </div>
+        )}
+      />
 
       <input ref={fileInputRef} type="file" multiple hidden onChange={handleFileSelect} />
 
