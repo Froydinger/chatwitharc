@@ -10,8 +10,11 @@ import { ThemedLogo } from "@/components/ThemedLogo";
 import { useAdminBanner } from "@/components/AdminBanner";
 import { shouldReserveDesktopTrafficLightSpace } from "@/utils/platform";
 import { useAccentStore } from "@/store/useAccentStore";
+import { useAccentColor } from "@/hooks/useAccentColor";
 
 export function DashboardSettingsPage() {
+  // Dashboard unmounts here; keep Noir variables in sync with this page's theme toggle.
+  useAccentColor();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const isAdminBannerActive = useAdminBanner();
@@ -33,7 +36,7 @@ export function DashboardSettingsPage() {
 
   return (
     <div
-      className="relative z-10 min-h-screen overflow-y-auto bg-black text-foreground touch-pan-y"
+      className="relative z-10 min-h-screen overflow-y-auto bg-background text-foreground touch-pan-y"
       style={{
       paddingTop: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'})`,
       }}
