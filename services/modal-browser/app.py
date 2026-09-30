@@ -55,8 +55,8 @@ def api():
                 app=app, image=browser_image, workdir='/opt/arc', timeout=duration,
                 cpu=(0.5,1.0), memory=(1024,2048), encrypted_ports=[8080],
                 env={'SESSION_SECRET':secret,'VIEW_SECRET':viewer,'ALLOWED_DOMAINS':json.dumps(domains),
-                     'WIDTH':str(360 if viewport.get('width')==360 else 1365),
-                     'HEIGHT':str(800 if viewport.get('width')==360 else 768)},
+                     'WIDTH':str(360 if viewport.get('width')==360 else 1280),
+                     'HEIGHT':str(800 if viewport.get('width')==360 else 720)},
             )
             tunnel = (await sb.tunnels.aio())[8080].url
             async with httpx.AsyncClient(timeout=5) as client:

@@ -915,9 +915,6 @@ serve(async (req) => {
 
     const { messages, profile, model, reasoningEffort, reasoningSelection, sessionId, forceWebSearch, forceCanvas, forceCode, forceGit, stream, streamEvents, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
     const browserbaseSessionHandle = typeof body.browserbaseSessionHandle === 'string' ? body.browserbaseSessionHandle.slice(0, 64) : undefined;
-    const browserbaseUserAgent = req.headers.get('user-agent') || '';
-    const browserbaseDevice = body.browserbaseDevice === 'mobile' || /Android|iPhone|iPad|iPod|Mobile/i.test(browserbaseUserAgent)
-      ? 'mobile' as const : 'desktop' as const;
 
     let isSessionGit = false;
     if (sessionId && user && !isGuestMode) {
@@ -2159,7 +2156,7 @@ product and is helping someone with it. Stay in that voice completely.`;
         browserbaseTools ??= browserbaseChatTools({
           backend: browserbaseBackend,
           userId: user.id,
-          device: browserbaseDevice,
+          device: 'desktop',
           taskKind: wantsGit ? 'git' : 'chat',
           ...(typeof sessionId === 'string' ? { chatSessionId: sessionId } : {}),
           ...(wantsGit && gitTarget?.repo ? { repo: gitTarget.repo } : {}),

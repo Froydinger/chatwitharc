@@ -61,7 +61,7 @@ export function BrowserbaseLivePreview({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [isViewOnly, setIsViewOnly] = useState(device === 'mobile');
-  const frameRatio = device === 'mobile' ? '360 / 840' : '1365 / 808';
+  const frameRatio = device === 'mobile' ? '360 / 840' : '16 / 9';
   const userHasControl = !isViewOnly && status === 'user_control';
 
   const refreshView = useCallback(async () => {
@@ -208,7 +208,7 @@ export function BrowserbaseLivePreview({
           </DialogHeader>
 
           <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-xl border border-border/50 bg-black">
-            <div className="max-h-full" style={{ aspectRatio: frameRatio, width: `min(100%, calc((min(88dvh, 900px) - 180px) * ${device === 'mobile' ? '360 / 840' : '1365 / 808'}))` }}>
+            <div className="max-h-full" style={{ aspectRatio: frameRatio, width: `min(100%, calc((min(88dvh, 900px) - 180px) * ${frameRatio}))` }}>
               {open ? renderFrame('h-full w-full') : null}
             </div>
           </div>

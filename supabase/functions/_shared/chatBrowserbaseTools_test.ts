@@ -3,6 +3,22 @@ import type { BrowserbaseActionResult } from './browserbaseSessions.ts';
 
 type Backend = Parameters<typeof browserbaseChatTools>[0]['backend'];
 
+Deno.test('explicit browser device overrides the default without replacing an active session', async () => {
+  const devices: string[] = [];
+  const backend: Backend = {
+    create: async (_userId, input) => { const device = input.device ?? 'desktop'; devices.push(device); return { ...active, device }; },
+    view: async () => ({ ...active, device: 'mobile' }),
+    act: async () => active,
+    close: async () => active,
+  };
+  const options = { backend, userId: 'owner', device: 'desktop' as const, taskKind: 'chat' as const };
+  await browserbaseChatTools(options).execute('browserbase_open_live_site', JSON.stringify({ targetUrl: 'https://example.com' }));
+  const mobile = browserbaseChatTools(options);
+  await mobile.execute('browserbase_open_live_site', JSON.stringify({ targetUrl: 'https://example.com', device: 'mobile' }));
+  await mobile.execute('browserbase_open_live_site', JSON.stringify({ targetUrl: 'https://example.com', device: 'desktop' }));
+  assert(JSON.stringify(devices) === '["desktop","mobile"]');
+});
+
 function assert(value: unknown, message = 'Assertion failed'): asserts value {
   if (!value) throw new Error(message);
 }

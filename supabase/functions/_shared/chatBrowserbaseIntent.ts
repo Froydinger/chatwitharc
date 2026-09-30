@@ -9,5 +9,10 @@ export function browserPreflightIntent(text: string, activeHandle?: string):
   if (!matches || matches.length !== 1) return null;
   const raw = matches[0].replace(/[.,!?;:)]+$/, '');
   if (!raw.startsWith('https://') && text.includes('http://')) return null;
-  return { name: 'browserbase_open_live_site', arguments: JSON.stringify({ targetUrl: raw.startsWith('https://') ? raw : `https://${raw}`, ...(/\b(?:one|1)[ -]minute\b|\b60[ -]seconds?\b/i.test(text) ? { durationSeconds: 60 } : {}) }) };
+  // Ambiguous device instructions need model interpretation, not a desktop preflight.
+  const deviceText = text.replace(matches[0], '');
+  const mobileRequested = /\b(?:mobile|phone|iphone|android)\s+(?:layout|view|viewport|version|screen)\b|\bon\s+(?:a\s+)?(?:phone|mobile|iphone|android)\b/i.test(deviceText);
+  if (/\b(?:mobile|phone|iphone|android)\b/i.test(deviceText) && !mobileRequested) return null;
+  if (mobileRequested && /\bdesktop\b/i.test(deviceText)) return null;
+  return { name: 'browserbase_open_live_site', arguments: JSON.stringify({ targetUrl: raw.startsWith('https://') ? raw : `https://${raw}`, ...(mobileRequested ? { device: 'mobile' } : {}), ...(/\b(?:one|1)[ -]minute\b|\b60[ -]seconds?\b/i.test(text) ? { durationSeconds: 60 } : {}) }) };
 }

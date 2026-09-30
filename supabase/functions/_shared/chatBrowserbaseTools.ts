@@ -32,6 +32,7 @@ export const CHAT_BROWSERBASE_DEFINITIONS = [
         type: 'object',
         properties: {
           targetUrl: { type: 'string', minLength: 8, maxLength: 2048, description: 'The public HTTPS URL the user asked Arc to inspect.' },
+          device: { type: 'string', enum: ['desktop', 'mobile'], description: 'Defaults to desktop. Use mobile only when the user explicitly asks to inspect a mobile/phone layout or viewport. The device viewing Arc does not determine this viewport.' },
           durationSeconds: { type: 'integer', minimum: 60, maximum: 600, description: 'Optional hard lifetime when the user asks for a shorter session.' },
           allowedDomains: { type: 'array', maxItems: 8, items: { type: 'string', maxLength: 253 }, description: 'Optional public hostnames needed for expected sign-in redirects. Use only when required.' },
         },
@@ -160,7 +161,7 @@ export function browserbaseChatTools(options: {
           }
           const input: BrowserbaseCreateInput = {
             targetUrl: typeof args.targetUrl === 'string' ? args.targetUrl : '',
-            device: options.device,
+            device: args.device === 'mobile' ? 'mobile' : args.device === 'desktop' ? 'desktop' : options.device,
             ...(typeof args.durationSeconds === 'number' ? { durationSeconds: args.durationSeconds } : {}),
             taskKind: options.taskKind,
             ...(options.chatSessionId ? { chatSessionId: options.chatSessionId } : {}),

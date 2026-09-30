@@ -354,10 +354,6 @@ export class AIService {
           const activeBrowserSession = sessionId
             ? useBrowserbaseSessionStore.getState().getSession(sessionId)
             : undefined;
-          const browserbaseDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
-            || window.matchMedia('(max-width: 768px)').matches
-            ? 'mobile'
-            : 'desktop';
 
           const response = await this.fetchWithTimeout(
             () =>
@@ -379,7 +375,6 @@ export class AIService {
                   forceCanvas: forceCanvas || false,
                   forceCode: forceCode || false,
                   forceGit,
-                  browserbaseDevice,
                   ...(activeBrowserSession && activeBrowserSession.status !== 'closed' && activeBrowserSession.status !== 'expired'
                     ? { browserbaseSessionHandle: activeBrowserSession.sessionHandle }
                     : {}),

@@ -198,6 +198,7 @@ Deno.test('create reserves first, limits the provider payload, navigates with CD
   equal(createCall.body.timeout, 300);
   equal(createCall.body.keepAlive, true);
   const settings = createCall.body.browserSettings as Record<string, unknown>;
+  deepStrictEqual(settings.viewport, { width: 1280, height: 720 });
   equal(settings.recordSession, false);
   equal(settings.logSession, false);
   deepStrictEqual(settings.allowedDomains, ['example.com']);

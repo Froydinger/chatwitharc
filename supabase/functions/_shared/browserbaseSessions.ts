@@ -473,7 +473,7 @@ export function createBrowserbaseSessionBackend(
 
     const viewport = device === 'mobile'
       ? { width: 360, height: 800 }
-      : { width: 1365, height: 768 };
+      : { width: 1280, height: 720 };
     let created: Record<string, unknown>;
     try {
       created = await requestJson(`${apiBase}/sessions`, {

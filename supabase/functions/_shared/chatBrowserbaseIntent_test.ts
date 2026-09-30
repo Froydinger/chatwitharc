@@ -9,6 +9,12 @@ Deno.test('explicit browser requests open before reasoning; ambiguous/negative t
   equal(browserPreflightIntent('Review https://example.com and https://example.org'), null);
   equal(browserPreflightIntent('Open http://example.com'), null);
 });
+Deno.test('browser preflight honors explicit mobile inspection and defers ambiguous device requests', () => {
+  deepStrictEqual(JSON.parse(browserPreflightIntent('Check the mobile layout of https://example.com')!.arguments), { targetUrl: 'https://example.com', device: 'mobile' });
+  deepStrictEqual(JSON.parse(browserPreflightIntent('Open https://mobile.example.com')!.arguments), { targetUrl: 'https://mobile.example.com' });
+  equal(browserPreflightIntent('Check desktop and mobile layouts of https://example.com'), null);
+  equal(browserPreflightIntent('Check https://example.com for mobile accessories'), null);
+});
 Deno.test('handoff reads the same current browser instead of opening its original URL', () => {
   const text = "I'm done controlling the browser. Please check the current page and continue.";
   const intent = browserPreflightIntent(text, 'owner-scoped-handle');
