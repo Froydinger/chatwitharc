@@ -1,45 +1,20 @@
+import { SupportTicketView, type SupportTicket } from "@/components/support/SupportTicketView";
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, MessageSquare, Clock, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-import { GlassCard } from "@/components/ui/glass-card";
-import { GlassButton } from "@/components/ui/glass-button";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { TicketChat } from "@/components/support/TicketChat";
 import { AdminTicketList } from "@/components/support/AdminTicketList";
 import { AnonSupportForm } from "@/components/support/AnonSupportForm";
-import { fadeInVariants, staggerContainerVariants, staggerItemVariants } from "@/utils/animations";
-
-interface Ticket {
-  id: string;
-  subject: string;
-  status: string;
-  priority: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-}
-
-const statusConfig: Record<string, { icon: any; color: string; label: string }> = {
-  open: { icon: AlertCircle, color: "text-yellow-400", label: "Open" },
-  in_progress: { icon: Clock, color: "text-blue-400", label: "In Progress" },
-  resolved: { icon: CheckCircle2, color: "text-green-400", label: "Resolved" },
-  closed: { icon: XCircle, color: "text-muted-foreground", label: "Closed" },
-};
 
 export function SupportPage() {
   const { user } = useAuth();
   const { isAdmin } = useAdminAccess();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewTicket, setShowNewTicket] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
@@ -132,108 +107,8 @@ export function SupportPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen p-4 pt-16 sm:p-6 sm:pt-20 max-w-2xl mx-auto">
-      <motion.div variants={fadeInVariants} initial="initial" animate="animate">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <GlassButton variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
-            <ArrowLeft className="w-5 h-5" />
-          </GlassButton>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground">Help Center</h1>
-            <p className="text-sm text-muted-foreground">Get help with your account or chat with our team</p>
-          </div>
-          <GlassButton onClick={() => setShowNewTicket(true)} className="gap-2">
-            <Plus className="w-4 h-4" />
-            New Ticket
-          </GlassButton>
-        </div>
-
-        {/* New Ticket Form */}
-        <AnimatePresence>
-          {showNewTicket && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden mb-6"
-            >
-              <GlassCard className="p-5 space-y-4">
-                <h3 className="font-semibold text-foreground">New Support Ticket</h3>
-                <Input
-                  placeholder="Subject"
-                  value={newSubject}
-                  onChange={(e) => setNewSubject(e.target.value)}
-                  className="bg-background/50"
-                />
-                <Textarea
-                  placeholder="Describe your issue..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  rows={4}
-                  className="bg-background/50"
-                />
-                <div className="flex gap-2 justify-end">
-                  <Button variant="ghost" onClick={() => setShowNewTicket(false)}>Cancel</Button>
-                  <GlassButton onClick={createTicket} disabled={creating || !newSubject.trim() || !newMessage.trim()}>
-                    {creating ? "Creating..." : "Submit Ticket"}
-                  </GlassButton>
-                </div>
-              </GlassCard>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Tickets List */}
-        <motion.div variants={staggerContainerVariants} initial="initial" animate="animate" className="space-y-3">
-          {loading ? (
-            <div className="text-center py-12 text-muted-foreground">Loading tickets...</div>
-          ) : tickets.length === 0 ? (
-            <GlassCard className="p-8 text-center">
-              <MessageSquare className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">No support tickets yet</p>
-              <p className="text-sm text-muted-foreground/60 mt-1">Create one if you need help!</p>
-            </GlassCard>
-          ) : (
-            tickets.map((ticket) => {
-              const status = statusConfig[ticket.status] || statusConfig.open;
-              const StatusIcon = status.icon;
-              return (
-                <motion.div key={ticket.id} variants={staggerItemVariants}>
-                  <GlassCard
-                    className="p-4 cursor-pointer hover:bg-accent/20 transition-colors"
-                    onClick={() => setSelectedTicketId(ticket.id)}
-                  >
-                    <div className="flex items-start gap-3">
-                      <StatusIcon className={`w-5 h-5 mt-0.5 ${status.color}`} />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-foreground truncate">{ticket.subject}</h3>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(ticket.updated_at).toLocaleDateString()} · {status.label}
-                        </p>
-                      </div>
-                      <Badge variant="outline" className="text-xs shrink-0">{ticket.priority}</Badge>
-                    </div>
-                  </GlassCard>
-                </motion.div>
-              );
-            })
-          )}
-        </motion.div>
-
-        <div className="text-center text-xs text-muted-foreground/60 pt-8 pb-4">
-          ArcAI is founded and created by{" "}
-          <a
-            href="https://winthenight.org"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-primary transition-colors underline"
-          >
-            Win The Night™ Foundation
-          </a>
-        </div>
-      </motion.div>
-    </div>
-  );
+  return <SupportTicketView tickets={tickets} loading={loading} showNewTicket={showNewTicket}
+    newSubject={newSubject} newMessage={newMessage} creating={creating} navigate={navigate}
+    setShowNewTicket={setShowNewTicket} setNewSubject={setNewSubject} setNewMessage={setNewMessage}
+    setSelectedTicketId={setSelectedTicketId} createTicket={createTicket} />;
 }
