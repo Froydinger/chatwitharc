@@ -32,3 +32,7 @@ Phase 1 extracted pure intent helpers without changing precedence. Presentation/
 ## Rollback policy
 
 Each main commit is independently releasable. If a production regression is reproduced, revert the affected stage, push, verify the previously working route/interaction, then repair and retest locally before publishing again. Do not advance over a failing gate or call local fixtures provider E2E.
+
+## Stop queue regression (2026-09-29)
+
+Stop now idempotently pauses the queue before loading becomes idle, preventing the existing idle-drain effect from dispatching another request. Pending entries remain available for explicit Resume. `node scripts/test-message-queue.mjs` checks repeated Stop pause semantics, FIFO retention and explicit resume; production SSE/cancellation tests and production build pass. This stage does not yet fix original-chat ownership, file snapshots or recoverable failed requests.

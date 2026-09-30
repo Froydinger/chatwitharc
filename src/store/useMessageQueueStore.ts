@@ -17,6 +17,7 @@ interface MessageQueueState {
   reorderQueue: (fromIndex: number, toIndex: number) => void;
   clearQueue: () => void;
   togglePause: () => void;
+  pause: () => void;
   setOpen: (open: boolean) => void;
   popNext: () => QueuedMessage | null;
 }
@@ -60,6 +61,8 @@ export const useMessageQueueStore = create<MessageQueueState>((set, get) => ({
   clearQueue: () => set({ queue: [], isOpen: false }),
 
   togglePause: () => set((s) => ({ isPaused: !s.isPaused })),
+
+  pause: () => set({ isPaused: true }),
 
   setOpen: (open) => set({ isOpen: open }),
 

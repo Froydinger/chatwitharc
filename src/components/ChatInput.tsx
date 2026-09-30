@@ -89,6 +89,8 @@ let cancelRequested = false;
 let currentAbortController: AbortController | null = null;
 
 export const cancelCurrentRequest = () => {
+  // Pause before clearing loading: becoming idle otherwise drains the queue.
+  useMessageQueueStore.getState().pause();
   cancelRequested = true;
   // Abort any ongoing fetch request FIRST to prevent more data arriving
   if (currentAbortController) {
