@@ -298,3 +298,14 @@
 @media (prefers-reduced-motion: reduce) {
   .arc-width-panel.arc-width-panel { transition-duration: 0s; }
 }
+.arc-helper-chip {
+  animation: arc-helper-chip-enter var(--duration-fast) var(--ease-smooth-out);
+}
+@keyframes arc-helper-chip-enter {
+  from { opacity: 0; scale: .92; }
+  to { opacity: 1; scale: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arc-helper-chip.arc-helper-chip { animation: none; }
+  [data-testid="subagent-progress"] .animate-spin { animation: none; }
+}

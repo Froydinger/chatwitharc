@@ -1,4 +1,5 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
+import { useNativeListLayout } from "@/hooks/useNativeListLayout";
 import { Check, Circle, Loader2, Sparkles, X } from "lucide-react";
 import { useSubagentStore, type SubagentTaskState } from "@/store/useSubagentStore";
 import { cn } from "@/lib/utils";
@@ -12,29 +13,25 @@ function taskIcon(task: SubagentTaskState) {
 
 export function SubagentProgress() {
   const run = useSubagentStore((state) => state.run);
-  if (!run) return null;
+  const taskList = useNativeListLayout();
 
-  const completed = run.tasks.filter((task) => task.status === "complete").length;
-  const total = run.tasks.length;
-  const statusText = run.phase === "planning"
+  const completed = run?.tasks.filter((task) => task.status === "complete").length ?? 0;
+  const total = run?.tasks.length ?? 0;
+  const statusText = run?.phase === "planning"
     ? "Arc is splitting the request…"
-    : run.phase === "synthesizing"
+    : run?.phase === "synthesizing"
       ? "Arc is pulling the strongest pieces together…"
-      : run.phase === "complete"
+      : run?.phase === "complete"
         ? "Arc finished the parallel pass."
-        : run.phase === "failed"
-          ? run.error || "Parallel help stopped."
+        : run?.phase === "failed"
+          ? run?.error || "Parallel help stopped."
           : `${completed} of ${total || "the"} helpers finished`;
 
   return (
-    <motion.section
+    <ConditionalTransition preset="panel">{run && <section
       data-testid="subagent-progress"
       aria-live="polite"
-      aria-busy={run.phase === "planning" || run.phase === "working" || run.phase === "synthesizing"}
-      initial={{ opacity: 0, y: 8, height: 0 }}
-      animate={{ opacity: 1, y: 0, height: "auto" }}
-      exit={{ opacity: 0, y: -6, height: 0 }}
-      transition={{ duration: 0.2 }}
+      aria-busy={run?.phase === "planning" || run?.phase === "working" || run?.phase === "synthesizing"}
       className="mb-3 overflow-hidden rounded-2xl border border-primary/15 bg-primary/[0.045] px-3 py-2.5 text-xs shadow-sm"
     >
       <div className="mb-2 flex items-center justify-between gap-3 text-muted-foreground">
@@ -45,19 +42,13 @@ export function SubagentProgress() {
         {total > 0 && <span className="shrink-0 tabular-nums">{completed}/{total}</span>}
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        <AnimatePresence initial={false} mode="popLayout">
+      <div ref={taskList} className="relative flex flex-wrap gap-1.5">
           {run.tasks.map((task) => (
-            <motion.div
+            <div data-layout-row
               key={task.id}
-              layout
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.86 }}
-              transition={{ duration: 0.16 }}
               title={task.focus}
               className={cn(
-                "flex max-w-full items-center gap-1.5 rounded-full border px-2 py-1 transition-colors",
+                "arc-helper-chip flex max-w-full items-center gap-1.5 rounded-full border px-2 py-1 transition-colors",
                 task.status === "working" && "border-primary/35 bg-primary/10 text-foreground",
                 task.status === "complete" && "border-emerald-500/20 bg-emerald-500/5 text-muted-foreground",
                 task.status === "failed" && "border-destructive/25 bg-destructive/5 text-destructive",
@@ -73,12 +64,11 @@ export function SubagentProgress() {
                 {taskIcon(task)}
               </span>
               <span className="truncate">{task.label}</span>
-            </motion.div>
+            </div>
           ))}
-        </AnimatePresence>
       </div>
 
       <p className="mt-2 truncate text-[11px] text-muted-foreground">{statusText}</p>
-    </motion.section>
+    </section>}</ConditionalTransition>
   );
 }
