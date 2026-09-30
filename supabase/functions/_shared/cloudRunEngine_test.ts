@@ -139,6 +139,58 @@ Deno.test('cloud engine: initial state establishes durable budgets', () => {
   deepStrictEqual(state.receipts, {});
 });
 
+Deno.test('cloud engine: compatible completion survives worker restart before tool execution', async () => {
+  const fake = new FakePorts();
+  let submissions = 0;
+  const signedMessage = { role: 'assistant', content: null, tool_calls: [{ id: 'call-1', extra_content: { google: { thought_signature: 'fixture-signature' } } }] };
+  fake.ports.completeModel = async (_transcript, key, maxTokens) => {
+    submissions++;
+    equal(key, `${RUN}:model:0`);
+    equal(maxTokens, CLOUD_LIMITS.outputPerTurn);
+    return { ...turn([tool()]), outputItems: [signedMessage] };
+  };
+  await fake.tick();
+  equal(fake.durable.modelProvider, 'compatible');
+  deepStrictEqual(fake.durable.pendingModelTurn?.outputItems, [signedMessage]);
+  equal(fake.executions.length, 0);
+  await fake.tick();
+  equal(fake.durable.phase, 'tools');
+  equal(fake.durable.pendingModelTurn, undefined);
+  deepStrictEqual(fake.durable.transcript.at(-1), signedMessage);
+  await fake.tick();
+  equal(fake.executions.length, 1);
+  equal(submissions, 1);
+  equal(fake.starts.length, 0);
+  equal(fake.polls.length, 0);
+});
+
+Deno.test('cloud engine: lost compatible completion checkpoint never repeats a paid submission', async () => {
+  const fake = new FakePorts();
+  let submissions = 0;
+  fake.ports.completeModel = async () => { submissions++; return turn(); };
+  fake.rejectSave = state => !!state.pendingModelTurn;
+  await fake.tick();
+  equal(fake.durable.pendingModelTurn, undefined);
+  equal(fake.durable.modelIntent, `${RUN}:model:0`);
+  fake.rejectSave = () => false;
+  await fake.tick();
+  equal(fake.status, 'awaiting_input');
+  equal(submissions, 1);
+  equal(fake.completions.length, 0);
+});
+
+Deno.test('cloud engine: compatible final answer completes once from its durable checkpoint', async () => {
+  const fake = new FakePorts();
+  let submissions = 0;
+  fake.ports.completeModel = async () => { submissions++; return turn([], 'Hello', 12); };
+  await fake.finish();
+  equal(fake.status, 'completed');
+  equal(submissions, 1);
+  equal(fake.completions.length, 1);
+  equal(fake.completions[0].text, 'Hello');
+  equal(fake.durable.tokens, 12);
+});
+
 Deno.test('cloud engine: current task budgets stay bounded while approval waits are excluded', () => {
   equal(CLOUD_LIMITS.turns, 16);
   equal(CLOUD_LIMITS.tokens, 64_000);

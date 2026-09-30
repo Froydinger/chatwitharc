@@ -58,8 +58,10 @@ export type EngineState = {
   }>;
   modelIntent?: string;
   responseId?: string;
+  /** Completed compatible-provider turn, fenced before any tool execution. */
+  pendingModelTurn?: ModelTurn;
   /** Agents API session state is checkpointed with the rest of the run. */
-  modelProvider?: 'responses' | 'agents';
+  modelProvider?: 'responses' | 'agents' | 'compatible';
   agentSessionId?: string;
   agentTurnId?: string;
   agentToolResultIntent?: string;
@@ -73,6 +75,7 @@ export interface EnginePorts {
   save(state: EngineState, status: 'running' | 'queued' | 'awaiting_input' | 'failed', reason?: string): Promise<boolean>;
   startModel(transcript: unknown[], requestKey: string, maxTokens: number): Promise<string>;
   pollModel(responseId: string): Promise<ModelTurn | null>;
+  completeModel?(transcript: unknown[], requestKey: string, maxTokens: number): Promise<ModelTurn>;
   startAgentSession?(transcript: unknown[], requestKey: string, maxTokens: number): Promise<string>;
   pollAgentSession?(sessionId: string, previousUsageTokens?: number): Promise<ModelTurn | null>;
   submitAgentToolResults?(sessionId: string, results: AgentToolResult[], idempotencyKey: string): Promise<void>;
@@ -83,7 +86,7 @@ export interface EnginePorts {
   executeTool(call: ToolCall, idempotencyKey: string): Promise<CloudToolOutput>;
 }
 export type EngineProvider = Pick<EnginePorts, 'startModel' | 'pollModel'> &
-  Partial<Pick<EnginePorts, 'startAgentSession' | 'pollAgentSession' | 'submitAgentToolResults' | 'cancelAgentSession'>> & {
+  Partial<Pick<EnginePorts, 'completeModel' | 'startAgentSession' | 'pollAgentSession' | 'submitAgentToolResults' | 'cancelAgentSession'>> & {
     cancelModel?(responseId: string): Promise<void>;
   };
 export type CloudRunLimits = { turns: number; tokens: number; outputPerTurn: number; durationMs: number };
@@ -119,7 +122,7 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
     return;
   }
   if (state.phase === 'model') {
-    if (!state.responseId && !state.agentSessionId) {
+    if (!state.responseId && !state.agentSessionId && !state.pendingModelTurn) {
       if (state.turns >= limits.turns) {
         await ports.save(state, 'failed', 'Run step limit reached');
         return;
@@ -133,7 +136,10 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
       state.modelIntent = `${runId}:model:${state.turns}`;
       if (!await ports.save(state, 'running')) return;
       const maxTokens = Math.min(limits.outputPerTurn, limits.tokens - state.tokens);
-      if (ports.startAgentSession) {
+      if (ports.completeModel) {
+        state.modelProvider = 'compatible';
+        state.pendingModelTurn = await ports.completeModel(state.transcript, state.modelIntent, maxTokens);
+      } else if (ports.startAgentSession) {
         state.modelProvider = 'agents';
         state.agentSessionId = await ports.startAgentSession(state.transcript, state.modelIntent, maxTokens);
       } else {
@@ -145,9 +151,9 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
     }
     let turn: ModelTurn | null;
     try {
-      turn = state.modelProvider === 'agents'
+      turn = state.pendingModelTurn ?? (state.modelProvider === 'agents'
         ? await ports.pollAgentSession?.(state.agentSessionId!, state.tokens) ?? null
-        : await ports.pollModel(state.responseId!);
+        : await ports.pollModel(state.responseId!));
     } catch (error) {
       if (!(error instanceof CloudModelTerminalError)) throw error;
       await ports.save(state, 'failed', error.status === 'incomplete'
@@ -180,6 +186,7 @@ export async function tickCloudRun(runId: string, previous: EngineState, ports: 
       return;
     }
     state.turns += 1;
+    state.pendingModelTurn = undefined;
     state.modelIntent = undefined;
     state.responseId = undefined;
     if (turn.reasoningSummary) state.reasoningSummary = turn.reasoningSummary;

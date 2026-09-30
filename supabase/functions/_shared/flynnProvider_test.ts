@@ -1,0 +1,73 @@
+import { equal, throws, deepStrictEqual, rejects } from 'node:assert/strict';
+import { flynnAllowedForUser, requireFlynnAccess, requestFlynnCompletion, flynnModelTurn } from './flynnProvider.ts';
+
+Deno.test('Flynn preview requires authenticated owner identity and configured provider key', () => {
+  equal(flynnAllowedForUser(null, 'test-only'), false);
+  equal(flynnAllowedForUser({ email: 'someone@example.com' }, 'test-only'), false);
+  equal(flynnAllowedForUser({ email: 'jakefroydinger@gmail.com' }, undefined), false);
+  equal(flynnAllowedForUser({ email: 'jakefroydinger@gmail.com' }, '  '), false);
+  equal(flynnAllowedForUser({ email: 'JAKEFROYDINGER@gmail.com' }, 'test-only'), true);
+  throws(() => requireFlynnAccess({ email: 'someone@example.com' }, 'test-only'), /unavailable for this account/);
+  equal(requireFlynnAccess({ email: 'jakefroydinger@gmail.com' }, 'test-only'), 'test-only');
+});
+
+Deno.test('Flynn maps into Arc tools while preserving full execution history and accounting', () => {
+  const message = { role: 'assistant', content: null, tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'weather', arguments: '{}' }, extra_content: { google: { thought_signature: 'test-signature' } } }] };
+  const turn = flynnModelTurn({ message, finishReason: 'tool_calls', usage: { total_tokens: 123 } });
+  deepStrictEqual(turn.calls, [{ id: 'call_1', name: 'weather', arguments: '{}' }]);
+  deepStrictEqual(turn.outputItems, [message]);
+  equal(turn.tokens, 123);
+  throws(() => flynnModelTurn({ message, finishReason: 'tool_calls', usage: undefined }), /usage/);
+  throws(() => flynnModelTurn({ message: { ...message, tool_calls: [...message.tool_calls, ...message.tool_calls] }, finishReason: 'tool_calls', usage: { total_tokens: 123 } }), /Duplicate/);
+  throws(() => flynnModelTurn({ message, finishReason: 'stop', usage: { total_tokens: 123 } }), /Inconsistent/);
+});
+
+Deno.test('Flynn aborts an active provider request on Stop and timeout', async () => {
+  for (const timeout of [false, true]) {
+    const controller = new AbortController();
+    let started!: () => void;
+    const ready = new Promise<void>(resolve => { started = resolve; });
+    let calls = 0;
+    const pending = requestFlynnCompletion({
+      user: { email: 'jakefroydinger@gmail.com' }, apiKey: 'test-only', messages: [],
+      signal: controller.signal, timeoutMs: timeout ? 10 : 60_000,
+      fetcher: ((_url, init) => new Promise<Response>((_resolve, reject) => {
+        calls++; started();
+        init!.signal!.addEventListener('abort', () => reject(init!.signal!.reason), { once: true });
+      })) as typeof fetch,
+    });
+    const rejection = rejects(pending, timeout ? /timed out/ : /stopped/);
+    await ready;
+    if (!timeout) controller.abort(new Error('Response stopped'));
+    await rejection;
+    equal(calls, 1);
+  }
+});
+
+Deno.test('compatible Flynn turns preserve signed tool-call metadata across rounds', async () => {
+  const message = { role: 'assistant', content: null, tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'weather', arguments: '{}' }, extra_content: { google: { thought_signature: 'test-signature' } } }] };
+  const bodies: Record<string, unknown>[] = [];
+  const options = { user: { email: 'jakefroydinger@gmail.com' }, apiKey: 'test-only', fetcher: ((url, init) => {
+    equal(String(url), 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
+    bodies.push(JSON.parse(String(init?.body)));
+    return Promise.resolve(Response.json({ choices: [{ message, finish_reason: 'tool_calls' }] }));
+  }) as typeof fetch };
+  const result = await requestFlynnCompletion({ ...options, messages: [{ role: 'user', content: 'Weather?' }] });
+  await requestFlynnCompletion({ ...options, messages: [result.message, { role: 'tool', tool_call_id: 'call_1', content: 'Sunny' }] });
+  deepStrictEqual((bodies[1].messages as unknown[])[0], message);
+  equal(bodies[0].model, 'gemini-3.8-flash');
+  equal(bodies[0].reasoning_effort, 'low');
+});
+
+Deno.test('Flynn rejects unauthorized, cancelled, failed, and truncated requests without retry', async () => {
+  let calls = 0;
+  const options = { user: { email: 'jakefroydinger@gmail.com' }, apiKey: 'test-only', messages: [], fetcher: (() => { calls++; return Promise.resolve(new Response('private upstream details', { status: 503 })); }) as typeof fetch };
+  await rejects(requestFlynnCompletion({ ...options, user: null }), /unavailable/);
+  equal(calls, 0);
+  const controller = new AbortController(); controller.abort();
+  await rejects(requestFlynnCompletion({ ...options, signal: controller.signal }));
+  equal(calls, 0);
+  await rejects(requestFlynnCompletion(options), /^Error: Flynn provider HTTP 503\.$/);
+  equal(calls, 1);
+  await rejects(requestFlynnCompletion({ ...options, fetcher: (() => Promise.resolve(Response.json({ choices: [{ message: { role: 'assistant', content: 'Partial' }, finish_reason: 'length' }] }))) as typeof fetch }), /did not complete/);
+});

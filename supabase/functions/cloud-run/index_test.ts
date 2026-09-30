@@ -111,6 +111,17 @@ Deno.test('regular Ask chat is durable for free users while Arc Cloud Auto is Bo
   assert(denied.status === 403);
 });
 
+Deno.test('Flynn submission uses authenticated owner email and refuses unavailable preview before persistence', async () => {
+  const flynn = { ...submit, mode: 'ask', request: { ...submit.request, model: 'gemini-3.8-flash' } };
+  for (const email of [undefined, 'another@example.com']) {
+    const response = await exercise(flynn, [{ ...auth(), data: { id: owner, email } }], 'true', 'false', 'fixture-key');
+    assert(response.status === 403);
+  }
+  const ownerAuth = { ...auth(), data: { id: owner, email: 'jakefroydinger@gmail.com' } };
+  assert((await exercise(flynn, [ownerAuth])).status === 403);
+  assert((await exercise(flynn, [ownerAuth, submitRpc(), read(row())], 'true', 'false', 'fixture-key')).status === 202);
+});
+
 Deno.test('workspace reaches atomic submit RPC unchanged without augmenting visible user',async()=>{
   const workspace={kind:'canvas',content:'Current live draft\nwith exact spacing  '};
   const response=await exercise({...submit,request:{...submit.request,workspace_context:workspace}},[auth(),boost(),{
@@ -432,12 +443,13 @@ type Step = {
   data: unknown;
   inspect?: (url: URL, body: Record<string, unknown>) => void;
 };
-async function exercise(body: unknown, steps: Step[], enabled = "true", appEnabled = "false") {
+async function exercise(body: unknown, steps: Step[], enabled = "true", appEnabled = "false", geminiKey?: string) {
   const names = [
     "CLOUD_RUNS_ENABLED",
     "SUPABASE_URL",
     "SUPABASE_SERVICE_ROLE_KEY",
     "CLOUD_APP_RUNS_ENABLED",
+    "GEMINI_API_KEY",
   ];
   const oldEnv = names.map((name) => Deno.env.get(name));
   const oldFetch = globalThis.fetch;
@@ -445,6 +457,8 @@ async function exercise(body: unknown, steps: Step[], enabled = "true", appEnabl
   Deno.env.set(names[1], "https://cloud-run-test.invalid");
   Deno.env.set(names[2], "test-service-key");
   Deno.env.set(names[3], appEnabled);
+  if (geminiKey === undefined) Deno.env.delete(names[4]);
+  else Deno.env.set(names[4], geminiKey);
   globalThis.fetch = async (input, init) => {
     const step = steps.shift();
     assert(step, "Unexpected HTTP call (possibly provider/dispatcher)");

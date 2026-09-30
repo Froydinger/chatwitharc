@@ -443,6 +443,18 @@ Deno.test('cloud worker: unknown browser state is unnecessary for start, polling
   deepStrictEqual(fake.run.checkpoint.unrelatedState, { preserved: true });
 });
 
+Deno.test('cloud worker: trusted preparation records the actual answering model', async () => {
+  for (const modelUsed of ['gemini-3.8-flash', 'gpt-6.1-sol']) {
+    const fake = new WorkerFixture();
+    fake.run.checkpoint.engine = {
+      ...initialEngineState(fake.run.request.messages, NOW), phase: 'done', finalText: 'Saved answer', turns: 1,
+    };
+    await processCloudRun(fake.run.id, { store: fake.store, provider: fake.provider, tools: fake.tools, modelUsed, now: () => fake.clock });
+    equal((fake.completions[0].result as { model_used: string }).model_used, modelUsed);
+    equal((fake.completions[0].message as { modelUsed: string }).modelUsed, modelUsed);
+  }
+});
+
 Deno.test('cloud worker: completion retry changes only lease, never owner, session or assistant identity', async () => {
   const fake = new WorkerFixture();
   fake.run.checkpoint.engine = {
