@@ -18,7 +18,7 @@ const corsHeaders = {
 };
 
 const LUNA_MODEL = 'gpt-6-luna';
-const SOL_MODEL = 'gpt-6-sol';
+const SOL_MODEL = 'gpt-6.1-sol';
 const MAX_CHAT_AGENT_TOKENS = 65_536;
 const isOpenAIReasoningModel = (model: string): boolean =>
   model.startsWith('gpt-6-') || model.startsWith('gpt-5.') || model.startsWith('o1') || model.startsWith('o3');
@@ -2260,11 +2260,12 @@ product and is helping someone with it. Stay in that voice completely.`;
         agentProvider = cloudAgentsProvider({
           apiKey: openaiApiKey,
           instructions: `You are Arc, the assistant in ArcAI. Follow the trusted system instructions and use only the supplied functions for actions. Never claim an action succeeded unless its function result confirms it. ${toolRequirement}`,
-          reasoningEffort: selectedModel === SOL_MODEL ? 'high' : modelReasoningEffort,
+          model: selectedModel === SOL_MODEL ? SOL_MODEL : LUNA_MODEL,
+          reasoningEffort: modelReasoningEffort,
           tools: agentTools,
           firstTool: forcedAgentTool,
         });
-        finalResponseModel = LUNA_MODEL;
+        finalResponseModel = selectedModel;
         const agentRequestKey = `chat:${sessionId || 'unsaved'}:${crypto.randomUUID()}`;
         const providerStart = Date.now();
         agentSessionId = await agentProvider.startAgentSession!(

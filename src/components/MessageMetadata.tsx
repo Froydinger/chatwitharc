@@ -31,7 +31,7 @@ export function MessageMetadata({ message }: { message: Message }) {
   const name = isLocal ? "Local AI"
     : source === "cloud-voice" ? "Voxi"
     : isImage ? source?.includes("edit") ? "Arc Imagix Edit" : "Arc Imagix"
-    : message.modelUsed === "gpt-6-sol" ? "River"
+    : message.modelUsed === "gpt-6-sol" || message.modelUsed === "gpt-6.1-sol" ? "River"
     : message.reasoningEffortUsed ? getModelDisplayName(message.reasoningEffortUsed) : "Arc Matrix";
   const sources = message.webSources?.length ? message.webSources : message.memoryAction?.sources;
 

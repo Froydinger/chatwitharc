@@ -131,6 +131,7 @@ export function cloudAgentsProvider(options: {
   apiKey: string;
   instructions: string;
   reasoningEffort: 'low' | 'medium' | 'high';
+  model?: 'gpt-6-luna' | 'gpt-6.1-sol';
   tools: CloudToolDefinition[];
   firstTool?: string;
   expandInput?: (transcript: unknown[]) => Promise<unknown[]>;
@@ -189,9 +190,7 @@ export function cloudAgentsProvider(options: {
     const system = [options.instructions, ...input.system, initialToolInstruction].filter(Boolean).join('\n\n');
     const response = await request('/sessions', 'POST', {
       agent: {
-        // Arc routes eligible Agents API work through Luna at every supported
-        // effort level. Keep the requested reasoning level; Luna supports high.
-        model: 'gpt-6-luna',
+        model: options.model ?? 'gpt-6-luna',
         instructions: system,
         reasoning: { effort: options.reasoningEffort, summary: 'concise' },
         text: { verbosity: 'low' },

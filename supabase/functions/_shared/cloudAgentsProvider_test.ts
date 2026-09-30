@@ -40,7 +40,7 @@ Deno.test('Agents API provider opens a Luna session without an execution sandbox
   assert(headers.get('OpenAI-Beta') === 'agents=v1');
 });
 
-Deno.test('Agents API keeps Luna for high reasoning instead of routing to Sol', async () => {
+Deno.test('Agents API defaults to Luna even when callers request high reasoning', async () => {
   let requestBody: Record<string, unknown> | undefined;
   const provider = cloudAgentsProvider({
     apiKey: 'test-only', instructions: 'Arc instructions', reasoningEffort: 'high', tools: [],
@@ -53,6 +53,21 @@ Deno.test('Agents API keeps Luna for high reasoning instead of routing to Sol', 
   const agent = requestBody?.agent as Record<string, unknown>;
   assert(agent.model === 'gpt-6-luna');
   assert((agent.reasoning as Record<string, unknown>).effort === 'high');
+});
+
+Deno.test('River Agents sessions use the explicitly selected Sol 6.1 and low reasoning', async () => {
+  let requestBody: Record<string, unknown> | undefined;
+  const provider = cloudAgentsProvider({
+    apiKey: 'test-only', instructions: 'Arc instructions', model: 'gpt-6.1-sol', reasoningEffort: 'low', tools: [],
+    fetcher: (async (_url, init) => {
+      requestBody = JSON.parse(String(init?.body));
+      return Response.json({ id: 'sess_test' });
+    }) as typeof fetch,
+  });
+  await provider.startAgentSession!([{ role: 'user', content: 'Reason carefully.' }], 'run:river', 4000);
+  const agent = requestBody?.agent as Record<string, unknown>;
+  assert(agent.model === 'gpt-6.1-sol');
+  assert((agent.reasoning as Record<string, unknown>).effort === 'low');
 });
 
 Deno.test('Agents API required actions keep call and turn IDs for approval-safe execution', async () => {

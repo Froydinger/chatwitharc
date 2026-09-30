@@ -50,7 +50,7 @@ Deno.test('high Arc Work selects Sol with low provider reasoning', async () => {
     apiKey: 'test-only', instructions: 'test', reasoningEffort: 'high', tools: [],
     fetcher: (async (_url, init) => {
       const body = JSON.parse(String(init?.body));
-      assert(body.model === 'gpt-6-sol');
+      assert(body.model === 'gpt-6.1-sol');
       assert(body.reasoning?.effort === 'low');
       return Response.json({ id: 'resp_test' });
     }) as typeof fetch,

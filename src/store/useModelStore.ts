@@ -6,7 +6,7 @@ export type ModelTask = 'chat' | 'code' | 'deep-chat' | 'image-gen' | 'image-ana
 
 /** Luna is the default user-facing text/reasoning model. */
 export const LUNA_MODEL = 'gpt-6-luna';
-export const SOL_MODEL = 'gpt-6-sol';
+export const SOL_MODEL = 'gpt-6.1-sol';
 export type ChatModel = typeof LUNA_MODEL;
 export type LunaReasoningEffort = 'low' | 'medium' | 'high';
 export type LunaReasoningSelection = 'auto' | LunaReasoningEffort;
