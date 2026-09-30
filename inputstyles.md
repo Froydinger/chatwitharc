@@ -1,12 +1,12 @@
 # Arc input bar: structure, compatibility, and refactor plan
 
-Status: **incremental implementation in progress**, September 29, 2026. Pure intent helpers, the controlled textarea, attachment-preview ownership, image-quota overlay presentation, and viewport subscriptions are extracted; the queue now captures request ownership/files/context, and submission attempts guard terminal cleanup and retain explicit recovery. The remaining presentation/orchestration extraction is still in progress. The ledger records completed work separately from the proposed phases.
+Status: **incremental implementation in progress**, September 30, 2026. Pure intent helpers, the controlled textarea, attachment-preview ownership, image-quota overlay presentation, and viewport subscriptions are extracted; the queue now captures request ownership/files/context, and submission attempts guard terminal cleanup and retain explicit recovery. The remaining presentation/orchestration extraction is still in progress. The ledger records completed work separately from the proposed phases.
 
 ## Recommendation
 
 Refactor incrementally. Keep the public ChatInput interface and existing service/store contracts. Extract pure routing helpers and presentation before moving submission orchestration. Do not replace the entire composer, introduce a new global store, or rewrite routing, layout, and async behavior in one release.
 
-Keeping everything unchanged is the lowest immediate release risk, and is sensible while shipping an unrelated urgent fix. It is a poor long-term fit for frequent feature additions: ChatInput.tsx currently combines roughly 3,900 lines of intent detection, UI, attachments, permissions, queues, voice integration, and async execution. Splitting that responsibility makes future changes easier to isolate, but splitting files alone does not repair races.
+Keeping everything unchanged is the lowest immediate release risk, and is sensible while shipping an unrelated urgent fix. It is a poor long-term fit for frequent feature additions: ChatInput.tsx currently combines roughly 3,300 lines after the initial extractions of intent detection, UI, attachments, permissions, queues, voice integration, and async execution. Splitting that responsibility makes future changes easier to isolate, but splitting files alone does not repair races.
 
 There is no honest zero-regression guarantee. Compatibility comes from recording current behavior, keeping changes small, testing the same inputs and outputs, and reverting a failed phase. Each phase must be useful and independently reversible.
 
@@ -14,7 +14,8 @@ There is no honest zero-regression guarantee. Compatibility comes from recording
 
 | Location | Current responsibility | Preserve |
 | --- | --- | --- |
-| `src/components/ChatInput.tsx` | Intent classifiers, draft/files, modes, menus, upload/edit/paste/drop, send orchestration, queue draining, keyboard and viewport behavior; the input placeholder and stop/send button also reflect store busy flags | Public props/ref and behavior |
+| `src/components/ChatInput.tsx` | Draft/files, modes, permissions, route adapters and submission execution; delegates presentation and lifecycle helpers | Public props/ref and behavior |
+| `src/components/chat-input/ComposerSubmitControls.tsx` | Controlled Stop/Send/voice presentation with existing DOM/classes; caller supplies callbacks and voice content | Busy/content/Work precedence, no provider calls or request state |
 | `src/store/useArcStore.ts` | Session/messages, loading and image-generation state, search/memory activity | Existing persistent schema and session ownership |
 | `src/services/ai.ts` | Chat transport, streaming and browser session events | Request/response contract |
 | `src/services/cloudRuns.ts` | Durable Work requests | Explicit Chat/Work boundary |
@@ -29,9 +30,9 @@ Public integration contract:
 - Ref methods: `handleImageUploadFiles`, `focusInput`, `sendMessage`, `prefillInput`.
 - `CloudTextSubmitIntent` carries captured files, session/message identity, workspace context and explicit force flags. Files are captured before clearing, and parent-owned Work observation survives composer remounts.
 - Current Enter submits or queues; Shift+Enter remains newline. Ctrl/Cmd+Enter explicitly queues except where explicit Work bypasses the browser queue.
-- Busy ordinary Chat queues non-empty text and clears the visible draft; selected files are not copied into that queue and remain in the mutable composer state. A files-only submit during busy state is not added to the text queue. Ctrl/Cmd+Enter can enqueue text while idle too. Queue items are global across chats and have no captured route/model/context.
+- Current busy Chat captures an immutable request including text, selected files, original account/session, execution mode, model selection and route context. Dispatch waits for the original chat and mode. Ctrl/Cmd+Enter can explicitly queue while idle. This intentionally replaces the original global text-only queue; see the confirmed decisions and ownership ledger.
 - Explicit authenticated Work text can bypass the browser queue while busy, carrying captured attachments via `CloudTextSubmitIntent`; specialized image, app and local-AI paths keep their existing busy behavior. Preserve the ask/auto mode, authentication/local-preview/corporate gates, and durable parent-owned Work observation.
-- The visible queue is the Zustand store above, not the separate localStorage `messageQueue` service. It drains after an `isLoading` true-to-false transition: waits 600 ms, polls store loading/image-generation up to 20 times at 250 ms, then dispatches after 50 ms. The queue UI also offers pause, edit, reorder, clear, and send-next. Treat these as current behavior to characterize; do not silently migrate persistence or ownership.
+- The visible queue is the Zustand store above, not the separate localStorage `messageQueue` service. `useComposerQueue` coordinates scoped claims and dispatch. Stop pauses the queue; a failed request is retained for manual retry without replacing a newer draft. The queue UI retains pause, edit, clear and send-next. No persistence migration or background dispatch is introduced.
 - `ChatInput` sets/clears shared loading and activity flags across many branches. `MobileChatApp` renders the existing `ThinkingIndicator` (with its own delayed helper copy at 3 seconds and 60 seconds); the indicator itself appears when the chat surface's existing busy conditions are met. On accepted work, the refactor must make that existing indicator appear at the earliest honest acceptance point, before upload/preparation/network awaits, and keep it continuous through tool handoff and streaming. Do not show a new indicator in the input bar. Typing availability and permission to submit remain separate concepts.
 
 ## Behavior that must stay unchanged
@@ -140,9 +141,9 @@ Replace this proposed map with actual files and responsibilities. Record per-pha
 - Failed requests remain recoverable for an explicit manual retry without replacing a newer draft.
 - Preserve current typing, mode precedence, concurrency and temporary drafts. Validate/authenticate/capture before accepted-work progress; use the existing chat-level indicator before awaited preparation, without adding another spinner.
 
-## Decisions for Jake before submission-state work
+## Original decision inventory (resolved defaults below)
 
-These are product decisions, not blockers for the unrelated browser fix or early pure extraction. The first four affect request ownership and should be answered before Phase 4; the rest can follow before the relevant behavior changes. Proposed defaults are recommendations only, not approved scope.
+This is the historical inventory from the initial plan. Items 1–5 are covered by the confirmed decisions above and the implemented ownership stage. Items 6–9 retain existing behavior; no new concurrency, precedence or draft-persistence feature is approved. The descriptions of the old queue below are baseline observations, not the current implementation.
 
 1. **Queue ownership across chats (Phase 4 prerequisite):** if a message is queued in chat A and the user opens chat B, should it remain tied to A and wait, send in A in the background, or be cancelled? Current queue entries are global and lack a session ID, so current dispatch reads whatever session is active later. Recommendation: capture the original session and never silently send into B; decide whether to pause or allow background dispatch.
 2. **Files while busy (Phase 4 prerequisite):** when text and files are selected during an active answer, should Enter queue both as one request or wait until idle? Current ordinary busy path queues text only and leaves files mutable; a files-only send does not queue. Recommendation: queue one immutable request (text, files, session, route) as an intentional behavior change with a recoverable attachment lifecycle.
@@ -189,6 +190,7 @@ Use existing glass utilities, Noir theme and shared spacing. Keep domain state o
 
 | Date | Work | Status / evidence |
 | --- | --- | --- |
+| 2026-09-30 | Phase 2 submit controls: `ComposerSubmitControls` owns controlled Stop/Send/voice presentation; request and voice handlers remain in `ChatInput`. Removed redundant Framer presence from native tools dialog. | Composer routing/ownership/async-finalization tests and desktop/412px browser IME, selection, preview teardown and queue recovery checks pass; targeted component lint, build/prerender and diff check pass. Dashboard navigation unchanged. Authenticated provider/voice E2E is not claimed by this mechanical stage. |
 | 2026-09-30 | Phase 2 overlays: `ComposerOverlays` owns image-quota dialog presentation; composer retains visibility, quota state, navigation and checkout | Exact rendered DOM matches baseline `39535d67` for 18 hidden/free/Boost/admin/count states. No provider, submission or persistence changes; existing animation remains until the overlay motion pass. |
 | 2026-09-29 | Phase 2 attachment tray: `AttachmentTray` renders controlled document/image previews; composer retains file state, callbacks, access checks, options, portal anchors and uploads | Exact rendered DOM matches pre-extraction revision `536decb1` for six empty/single/full file states; existing footer callbacks unchanged. Actual composer browser checks at 412/1280px cover combined files, individual removal, both clear actions and outer geometry; preview cleanup/IME/selection and queue regressions pass. No provider requests or physical Pixel checks in this stage. |
 | 2026-09-29 | Phase 4 request ownership/recovery stage: typed immutable snapshots, `useComposerQueue`, scoped `addMessage`, attempt-owned cleanup and foreground admission guard | Node tests cover FIFO/chat/account/mode, File retention, original-session persistence, stale completion, cancellation, document failure, denied image-edit access and uncertain Work acknowledgement. Actual React hook + queue view browser checks cover hold, failure/manual retry, newer draft, rapid clicks, Stop/resume, owner change and unmount. Queue/recovery is in-memory; reload recovery and background dispatch are not introduced. |

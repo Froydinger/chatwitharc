@@ -1,3 +1,4 @@
+import { ComposerSubmitControls } from "@/components/chat-input/ComposerSubmitControls";
 import { ComposerActions } from "@/components/chat-input/ComposerActions";
 import { ComposerOverlays } from "@/components/chat-input/ComposerOverlays";
 import { AttachmentTray } from "@/components/chat-input/AttachmentTray";
@@ -13,7 +14,6 @@ import { createPortal } from "react-dom";
 import {
   X,
   Paperclip,
-  ArrowRight,
   Sparkles,
   Plus,
   ImagePlus,
@@ -23,7 +23,6 @@ import {
   PenLine,
   Search,
   Globe,
-  Square,
   Lightbulb,
   Rocket,
   Smartphone,
@@ -3219,25 +3218,13 @@ ${safeCode}
             </div>
           </div>
 
-          {/* Action Button - Voice or Send or Stop */}
-          <div className="flex items-center gap-1.5 shrink-0 self-center">
-            {isLoading || isGeneratingImage ? (
-              <button
-                onClick={cancelCurrentRequest}
-                className="arc-composer-press flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground shadow-lg transition-all"
-                title="Stop response"
-              >
-                <Square className="h-3.5 w-3.5 fill-current" />
-              </button>
-            ) : inputValue.trim() || selectedImages.length > 0 || selectedDocuments.length > 0 ? (
-              <button
-                onClick={() => handleSend()}
-                className="arc-composer-press flex items-center justify-center w-9 h-9 rounded-full bg-transparent text-primary hover:text-neon-600 dark:hover:text-neon-400 hover:bg-neon-500/10 transition-all"
-                aria-label="Send"
-              >
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            ) : cloudExecutionMode !== 'auto' ? (
+          <ComposerSubmitControls
+            busy={isLoading || isGeneratingImage}
+            hasContent={!!inputValue.trim() || selectedImages.length > 0 || selectedDocuments.length > 0}
+            showVoice={cloudExecutionMode !== 'auto'}
+            onStop={cancelCurrentRequest}
+            onSend={() => handleSend()}
+          >
               <div className="flex items-center gap-1 shrink-0">
                 {/* Keep voice selection beside the waveform control. */}
                 <ChatVoicePicker name={currentVoice?.name ?? "Marina"} selectedVoice={selectedVoice}
@@ -3280,8 +3267,7 @@ ${safeCode}
                 <AudioWaveform className="ci-voice-icon h-4 w-4" strokeWidth={1.8} />
                 </button>
               </div>
-            ) : null}
-          </div>
+          </ComposerSubmitControls>
         </div>
       </div>
 

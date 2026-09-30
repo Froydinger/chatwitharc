@@ -1,7 +1,6 @@
 import { TransitionPart } from "@/components/transitions/TransitionPart";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { useState } from "react";
-import { AnimatePresence } from "framer-motion";
 import { X, Globe, Sparkles, Search, Database, Brain } from "lucide-react";
 import { MemoryAction } from "@/store/useArcStore";
 import { SourcesAccordion } from "@/components/SourcesAccordion";
@@ -40,7 +39,6 @@ export function ToolsUsedModal({ isOpen, onClose, actions, messageContent }: Too
   };
 
   return (
-    <AnimatePresence>
       <ConditionalTransition preset="fade">{isOpen && (
         <div
           onClick={onClose}
@@ -158,6 +156,5 @@ export function ToolsUsedModal({ isOpen, onClose, actions, messageContent }: Too
           </div></TransitionPart>
         </div>
       )}</ConditionalTransition>
-    </AnimatePresence>
   );
 }
