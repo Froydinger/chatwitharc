@@ -113,3 +113,12 @@
     transition: none !important;
   }
 }
+
+/* Composer feedback stays on the button without a JS animation owner. */
+.arc-composer-press { transition: scale var(--arc-motion-quick) var(--arc-motion-ease); }
+@media (hover: hover) { .arc-composer-press:hover { scale: 1.05; } }
+.arc-composer-press:active { scale: .95; }
+@media (prefers-reduced-motion: reduce) {
+  .arc-composer-press { transition: none !important; }
+  .arc-composer-press:hover, .arc-composer-press:active { scale: 1; }
+}
