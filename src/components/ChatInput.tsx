@@ -1156,8 +1156,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         regularChat: forceRegularChatMode, editImages: !editedTextOnly && allImagesEditMode,
       },
       corporateMode: useCorporateModeStore.getState().enabled,
-      appIntent: !forceRegularChatMode && !isCurrentSessionGit && !forceGitMode && !checkForGitRequest(content)
-        ? getAppBuilderIntent(content, !!useIDEStore.getState().ideProjectId && !!useIDEStore.getState().ideFiles) : null,
+      hasExistingApp: !!useIDEStore.getState().ideProjectId && !!useIDEStore.getState().ideFiles,
       workspace: (() => {
         const canvas = useCanvasStore.getState();
         const live = typeof (window as any).__arcaiLiveCanvasContent === 'string' ? (window as any).__arcaiLiveCanvasContent : '';
@@ -1307,8 +1306,8 @@ Feel free to send another message or test a prompt to see the animation again!`,
 
     const userMessage = messageToSend.trim();
     const builderStore = useIDEStore.getState();
-    const hasExistingApp = !!builderStore.ideProjectId && !!builderStore.ideFiles;
-    const appIntent = captured ? captured.appIntent : !requestRegularChatMode && !requestGitMode && !checkForGitRequest(userMessage)
+    const hasExistingApp = captured?.hasExistingApp ?? (!!builderStore.ideProjectId && !!builderStore.ideFiles);
+    const appIntent = !requestRegularChatMode && !requestGitMode && !checkForGitRequest(userMessage)
       ? getAppBuilderIntent(userMessage, hasExistingApp)
       : null;
     if (appIntent) {

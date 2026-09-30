@@ -55,7 +55,7 @@ export function installComposerQueueQA() {
       const request = snapshotComposerRequest({
         content, images: files, documents: [], ownerId: 'fixture-owner', sessionId: 'chat-a', executionMode: 'ask',
         modes: { image: false, code: false, canvas: false, search: false, git: false, regularChat: false, editImages: false },
-        reasoningSelection: 'medium', corporateMode: false, appIntent: null,
+        reasoningSelection: 'medium', corporateMode: false, hasExistingApp: false,
         workspace: { isOpen: false, canvasType: 'writing', content: '', codeLanguage: 'html' },
         imageOptions: { aspect: 'auto', editAspect: 'auto', count: 1 },
       });

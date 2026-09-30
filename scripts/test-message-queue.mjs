@@ -16,7 +16,7 @@ const scope = { ownerId: 'owner', sessionId: 'chat-a', executionMode: 'ask' };
 const images = [new File(['first'], 'first.png', { type: 'image/png' })];
 const documents = [new File(['document'], 'notes.txt', { type: 'text/plain' })];
 const request = content => snapshotComposerRequest({
-  ...scope, content, images, documents, reasoningSelection: 'medium', corporateMode: false, appIntent: null,
+  ...scope, content, images, documents, reasoningSelection: 'medium', corporateMode: false, hasExistingApp: false,
   modes: { image: false, code: false, canvas: false, search: true, git: false, regularChat: true, editImages: false },
   imageOptions: { aspect: 'auto', editAspect: 'auto', count: 1 },
   workspace: { isOpen: false, content: '', canvasType: 'writing', codeLanguage: 'html' },

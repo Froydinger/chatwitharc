@@ -15,7 +15,7 @@ export interface ComposerRequestSnapshot {
     regularChat: boolean; editImages: boolean;
   }>;
   corporateMode: boolean;
-  appIntent: Readonly<{ action: 'create' | 'edit'; prompt: string }> | null;
+  hasExistingApp: boolean;
   workspace: Readonly<{ isOpen: boolean; canvasType: 'writing' | 'code'; content: string; codeLanguage: string }>;
   reasoningSelection: LunaReasoningSelection;
   imageOptions: Readonly<{ aspect: string; editAspect: string; count: number }>;
@@ -39,7 +39,6 @@ export function snapshotComposerRequest(input: Omit<ComposerRequestSnapshot, 'id
     createdAt: Date.now(),
     images: Object.freeze([...input.images]),
     documents: Object.freeze([...input.documents]),
-    appIntent: input.appIntent ? Object.freeze({ ...input.appIntent }) : null,
     workspace: Object.freeze({ ...input.workspace }),
     modes: Object.freeze({ ...input.modes }),
     imageOptions: Object.freeze({ ...input.imageOptions }),

@@ -9,6 +9,7 @@ function load(path) {
 }
 const intent = load('../src/lib/chat-input/intent.ts');
 const types = load('../src/lib/chat-input/types.ts');
+const appIntent = load('../src/utils/appBuilderIntent.ts');
 const source = readFileSync(new URL('../src/components/ChatInput.tsx', import.meta.url), 'utf8');
 const ast = ts.createSourceFile('input.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 function arrow(name) {
@@ -19,7 +20,7 @@ function arrow(name) {
 const workspace = { isOpen: false, canvasType: 'writing', content: '', codeLanguage: 'html' };
 const scope = { ownerId: 'owner', sessionId: 'chat-a', executionMode: 'ask' };
 const request = (overrides = {}) => types.snapshotComposerRequest({
-  ...scope, content: 'hey', images: [], documents: [], corporateMode: false, appIntent: null,
+  ...scope, content: 'hey', images: [], documents: [], corporateMode: false, hasExistingApp: false,
   modes: { image: false, code: false, canvas: false, search: true, git: false, regularChat: false, editImages: false },
   workspace, reasoningSelection: 'medium', imageOptions: { aspect: 'auto', editAspect: 'auto', count: 1 }, ...overrides,
 });
@@ -41,7 +42,7 @@ function fixture(options = {}) {
     isLocalChatPreview: () => false, requireAuth: () => calls.push(['auth']), canSubmitCloudTextWhileBusy: () => false,
     enqueueComposerRequest: (...args) => calls.push(['queue', ...args]), useIDEStore: { getState: () => ({}) },
     subscriptionLoading: false, hasBoost: true, isAdmin: true, canGenerateVideo: false, isWriteCanvasOpen: false,
-    getAppBuilderIntent: () => null, parseSubagentDirective: () => ({ requested: false }),
+    getAppBuilderIntent: appIntent.getAppBuilderIntent, parseSubagentDirective: () => ({ requested: false }),
     requestsCurrentLocation: () => false, useCorporateModeStore: { getState: () => ({ enabled: false }) },
     useCanvasStore: { getState: () => ({ ...workspace, isOpen: true, content: 'newer canvas' }) },
     setLoading: value => { state.isLoading = value; calls.push(['loading', value]); },
@@ -121,6 +122,14 @@ await document.send(undefined, docRequest);
 assert.equal(document.calls.find(c => c[0] === 'document')[1], 'original.txt');
 assert.equal(document.failed[0].captured.documents[0], docRequest.documents[0]);
 assert.equal(document.calls.filter(c => c[0] === 'clear-draft').length, 0);
+const appCalls = [];
+const editedApp = fixture({ selectedImages: [],
+  getAppBuilderIntent: (content, hasExistingApp) => { assert.equal(hasExistingApp, false); return appIntent.getAppBuilderIntent(content, hasExistingApp); },
+  useIDEStore: { getState: () => ({ ideProjectId: 'newer-app', ideFiles: {}, openIDECanvas: prompt => appCalls.push(prompt) }) },
+});
+await editedApp.send(undefined, request({ content: '/app recipe planner', modes: {...first.modes, search:false} }));
+assert.deepEqual(appCalls, ['recipe planner'], 'Edited queued text is reclassified with captured app context');
+assert.equal(editedApp.calls.filter(c => c[0] === 'clear-draft').length, 0);
 const denied = fixture({ hasBoost: false, openCheckout: () => {} });
 assert.equal(await denied.send(undefined, request({ images: [new File(['old'],'original.png',{type:'image/png'})], modes: {...first.modes, editImages:true} })), false);
 assert.equal(denied.calls.filter(c => c[0] === 'clear-draft').length, 0);
