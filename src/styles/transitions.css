@@ -254,3 +254,12 @@
   .arc-auth-modal-blob, .arc-auth-modal-logo { animation: none; }
   .arc-auth-modal-action.arc-auth-modal-action, .arc-auth-modal-icon.arc-auth-modal-icon { transition: none; scale: 1; }
 }
+
+.arc-links-chevron {
+  rotate: 0deg;
+  transition: rotate var(--duration-quick) var(--ease-smooth-out);
+}
+.arc-links-chevron[data-expanded="true"] { rotate: 90deg; }
+@media (prefers-reduced-motion: reduce) {
+  .arc-links-chevron { transition: none; }
+}

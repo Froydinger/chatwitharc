@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Transition } from "@/components/transitions/Transition";
+import { useNativeListLayout } from "@/hooks/useNativeListLayout";
 import {
   Link2,
   Trash2,
@@ -15,8 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import { useSearchStore, LinkList, SavedLink } from "@/store/useSearchStore";
+import { useSearchStore } from "@/store/useSearchStore";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,7 +37,13 @@ import {
 } from "@/components/ui/collapsible";
 
 export function LinksPanel() {
-  const { lists, createList, deleteList, renameList, removeLink } = useSearchStore();
+  const data = useSearchStore();
+  return <LinksPanelView data={data} />;
+}
+
+export function LinksPanelView({ data }: { data: Pick<ReturnType<typeof useSearchStore.getState>, "lists" | "createList" | "deleteList" | "renameList" | "removeLink"> }) {
+  const { lists, createList, deleteList, renameList, removeLink } = data;
+  const layoutRef = useNativeListLayout();
   const { toast } = useToast();
   
   const [expandedLists, setExpandedLists] = useState<Set<string>>(new Set(['default']));
@@ -133,7 +139,7 @@ export function LinksPanel() {
 
       {/* Lists */}
       <ScrollArea className="flex-1">
-        <div className="p-3 space-y-2">
+        <div ref={layoutRef} className="p-3 space-y-2">
           {lists.length === 0 ? (
             <div className="text-center py-8">
               <Link2 className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
@@ -154,12 +160,9 @@ export function LinksPanel() {
                   <CollapsibleTrigger asChild>
                     <div className="flex items-center justify-between px-3 py-2 hover:bg-muted/30 cursor-pointer group">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <motion.div
-                          animate={{ rotate: expandedLists.has(list.id) ? 90 : 0 }}
-                          transition={{ duration: 0.15 }}
-                        >
+                        <div className="arc-links-chevron" data-expanded={expandedLists.has(list.id)}>
                           <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                        </motion.div>
+                        </div>
                         
                         {editingListId === list.id ? (
                           <Input
@@ -225,21 +228,14 @@ export function LinksPanel() {
 
                   {/* Links */}
                   <CollapsibleContent>
-                    <AnimatePresence>
                       {list.links.length === 0 ? (
                         <div className="px-3 py-4 text-center border-t border-border/20">
                           <p className="text-xs text-muted-foreground">No links in this list</p>
                         </div>
                       ) : (
                         <div className="border-t border-border/20">
-                          {list.links.map((link, index) => (
-                            <motion.div
-                              key={link.id}
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              className="group/link"
-                            >
+                          {list.links.map((link) => (
+                            <Transition key={link.id} preset="fade"><div data-layout-row={link.id} className="group/link">
                               <div className="flex items-start gap-2 px-3 py-2 hover:bg-muted/20 border-b border-border/10 last:border-b-0">
                                 <div className="flex-shrink-0 w-4 h-4 mt-0.5">
                                   {getFaviconUrl(link.url) ? (
@@ -294,11 +290,10 @@ export function LinksPanel() {
                                   </Button>
                                 </div>
                               </div>
-                            </motion.div>
+                            </div></Transition>
                           ))}
                         </div>
                       )}
-                    </AnimatePresence>
                   </CollapsibleContent>
                 </div>
               </Collapsible>
