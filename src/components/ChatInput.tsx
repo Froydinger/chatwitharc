@@ -3092,6 +3092,7 @@ ${safeCode}
                     : "cloud-search"
                   : "cloud-chat",
                 modelUsed: result.modelUsed,
+                reasoningEffortUsed: result.reasoningEffortUsed,
               });
 
               // Intelligently generate a title if it's the first assistant message or still has default title.

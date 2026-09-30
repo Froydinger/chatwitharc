@@ -30,6 +30,7 @@ import { CodeArtifactCard } from "@/components/CodeArtifactCard";
 import { AppBuilderArtifactCard } from "@/components/app-builder/AppBuilderArtifactCard";
 import { AppBuilderAppChoiceCard } from "@/components/app-builder/AppBuilderAppChoiceCard";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
+import { MessageMetadata } from "@/components/MessageMetadata";
 import { WeatherCard } from "@/components/WeatherCard";
 import { SearchResultsCard } from "@/components/SearchResultsCard";
 import { ScheduledTaskCard } from "@/components/ScheduledTaskCard";
@@ -763,6 +764,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             >
               {message.type !== 'image-generating' && message.type !== 'video-generating' && (
                 <div className="flex items-center gap-1 mt-1">
+                  <MessageMetadata message={message} />
                   {message.content && (
                     <button
                       onClick={handleCopy}

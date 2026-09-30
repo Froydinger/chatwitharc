@@ -1,105 +1,78 @@
-import { useState } from "react";
-import { ChevronDown, ChevronUp, Zap, MapPin } from "lucide-react";
-import { ModelSourceBadge } from "@/components/ModelSourceBadge";
-import { ToolsUsedModal } from "@/components/ToolsUsedModal";
-import { Message } from "@/store/useArcStore";
-import { cn } from "@/lib/utils";
+import { ThemedLogo } from "@/components/ThemedLogo";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { SourcesAccordion } from "@/components/SourcesAccordion";
+import { getModelDisplayName } from "@/store/useModelStore";
+import type { Message, MemoryActionType } from "@/store/useArcStore";
 
-interface MessageMetadataProps {
-  message: Message;
-}
+const toolNames: Record<MemoryActionType, string> = {
+  web_searched: "Web search", chats_searched: "Past chats", memory_saved: "Memory saved",
+  context_saved: "Memory saved", memory_accessed: "Memory accessed",
+};
 
-/**
- * Compact metadata tile below messages. Shows just icons when collapsed,
- * expands to show model name, tools, location info, etc. Sources stay inline.
- */
-export function MessageMetadata({ message }: MessageMetadataProps) {
-  const [expanded, setExpanded] = useState(false);
-  const [toolsModalOpen, setToolsModalOpen] = useState(false);
-
-  const hasTools = !!message.memoryAction;
-  const hasLocation = !!message.locationUsed;
-  const hasMetadata = message.sourceModel || hasTools || hasLocation;
-
-  if (!hasMetadata) return null;
+/** Reply details use recorded values, never today's model picker or local model. */
+export function MessageMetadata({ message }: { message: Message }) {
+  const source = message.sourceModel;
+  const model = message.modelUsed;
+  const effort = message.reasoningEffortUsed;
+  const isLocal = source === "local";
+  const isImage = source?.startsWith("cloud-image");
+  const name = isLocal ? "Local AI"
+    : source === "cloud-voice" ? "Voxi"
+    : isImage ? source?.includes("edit") ? "Arc Imagix Edit" : "Arc Imagix"
+    : model === "gpt-6-sol" ? "River"
+    : model === "gpt-6-luna" && effort ? getModelDisplayName(effort) : "Arc Matrix";
+  const sources = message.webSources?.length ? message.webSources : message.memoryAction?.sources;
 
   return (
-    <div className="mt-2">
-      {!expanded ? (
-        // Collapsed: compact pill that sits right next to the model badge
+    <Dialog>
+      <DialogTrigger asChild>
         <button
-          onClick={() => setExpanded(true)}
-          className="group inline-flex items-center gap-1 px-1 py-0.5 rounded-md hover:bg-muted/40 transition-colors"
-          aria-label="Show message details"
+          className="inline-flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:bg-muted/40 transition-colors"
+          title="About this reply"
+          aria-label="About this reply"
         >
-          {message.sourceModel && (
-            <ModelSourceBadge source={message.sourceModel} modelUsed={message.modelUsed} effortUsed={message.reasoningEffortUsed} />
-          )}
-          {hasTools && (
-            <Zap className="h-3 w-3 text-primary/70 group-hover:text-primary" />
-          )}
-          {hasLocation && (
-            <MapPin className="h-3 w-3 text-primary/70 group-hover:text-primary" />
-          )}
-          <ChevronDown className="h-3 w-3 text-muted-foreground group-hover:text-foreground" />
+          <ThemedLogo className="h-[18px] w-[18px] opacity-70" alt="Arc" />
         </button>
-      ) : (
-        // Expanded: show all details
-        <div className="p-3 rounded-lg border border-border/40 bg-muted/20 space-y-2">
-          <button
-            onClick={() => setExpanded(false)}
-            className="flex items-center justify-between w-full text-sm font-medium text-foreground hover:text-primary transition-colors"
-          >
-            Details
-            <ChevronUp className="h-4 w-4" />
-          </button>
-
-          {/* Model */}
-          {message.sourceModel && (
-            <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Model</div>
-              <ModelSourceBadge source={message.sourceModel} modelUsed={message.modelUsed} effortUsed={message.reasoningEffortUsed} />
+      </DialogTrigger>
+      <DialogContent className="glass-card max-w-md w-[calc(100%-2rem)] max-h-[80dvh] overflow-y-auto">
+        <DialogHeader className="text-left">
+          <DialogTitle>About this reply</DialogTitle>
+          <DialogDescription>The model and tools recorded for this response.</DialogDescription>
+        </DialogHeader>
+        <div className="rounded-2xl border border-border/40 bg-muted/20 p-4">
+          <div className="flex items-center gap-3">
+            <ThemedLogo className="h-7 w-7 shrink-0" alt="Arc" />
+            <div>
+              <p className="font-medium">{name}</p>
+              <p className="text-xs text-muted-foreground">{isLocal ? "On your device" : "ArcAI · Cloud"}</p>
             </div>
-          )}
-
-          {/* Tools */}
-          {hasTools && message.memoryAction && (
-            <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Tools Used</div>
-              <button
-                onClick={() => setToolsModalOpen(true)}
-                className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-              >
-                <Zap className="h-3 w-3" />
-                View tools ({message.memoryAction.type === "web_searched" ? "Search" : "Memory"})
-              </button>
+          </div>
+          <dl className="mt-4 space-y-3 text-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Model</dt>
+              <dd className="text-right break-all">{model || "Not recorded"}</dd>
             </div>
-          )}
-
-          {/* Location */}
-          {hasLocation && (
-            <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Location Used</div>
-              <div className="inline-flex items-center gap-1.5 text-xs px-2 py-1 rounded bg-primary/10 text-primary">
-                <MapPin className="h-3 w-3" />
-                {message.locationUsed?.city}
-                {message.locationUsed?.region && `, ${message.locationUsed.region}`}
-                {message.locationUsed?.country && ` (${message.locationUsed.country})`}
+            {!isImage && source !== "cloud-voice" && !isLocal && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Reasoning</dt>
+                <dd>{effort ? effort[0].toUpperCase() + effort.slice(1) : "Not recorded"}</dd>
               </div>
-            </div>
-          )}
+            )}
+            {message.memoryAction && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-muted-foreground">Tool</dt>
+                <dd>{toolNames[message.memoryAction.type]}</dd>
+              </div>
+            )}
+          </dl>
         </div>
-      )}
-
-      {/* Tools modal — opened from the expanded view */}
-      {hasTools && message.memoryAction && (
-        <ToolsUsedModal
-          isOpen={toolsModalOpen}
-          onClose={() => setToolsModalOpen(false)}
-          actions={[message.memoryAction]}
-          messageContent={message.content}
-        />
-      )}
-    </div>
+        {message.memoryAction?.content && (
+          <p className="text-sm text-muted-foreground break-words">{message.memoryAction.content}</p>
+        )}
+        {sources && sources.length > 0 && (
+          <SourcesAccordion sources={sources} messageContent={message.content} showMediaEmbeds={false} />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
