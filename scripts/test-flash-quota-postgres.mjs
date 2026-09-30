@@ -33,6 +33,8 @@ try {
  const results=await Promise.all(Array.from({length:35},()=>queryAsync(reserve(free,randomUUID()))));
  assert.equal(results.filter(out=>parse(out).allowed).length,19,'Only remaining free messages admitted');
  assert.equal(Number(sql(`SELECT used FROM arc_flash_daily_usage WHERE user_id='${free}';`).trim()),20);
+ sql(readFileSync('supabase/migrations/20260930070000_arc_flash_daily_message_quota.sql','utf8'));
+ assert.equal(Number(sql(`SELECT used FROM arc_flash_daily_usage WHERE user_id='${free}';`).trim()),20,'Repeated migration preserves recorded usage');
  assert.equal(parse(sql(reserve(free,key))).replayed,true,'An admitted replay still does not double-charge at the limit');
  assert.equal(parse(sql(reserve(other,key))).usage_percent,5,'Request ownership is account scoped');
  assert.equal(parse(sql(reserve(boost,randomUUID()))).unlimited,true);

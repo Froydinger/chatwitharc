@@ -1,12 +1,12 @@
 -- Count accepted user submissions, not assistant replies or individual tool turns.
 -- Additive migration: existing history, image quotas and voice remain untouched.
-CREATE TABLE public.arc_flash_daily_usage (
+CREATE TABLE IF NOT EXISTS public.arc_flash_daily_usage (
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   usage_date date NOT NULL,
   used integer NOT NULL DEFAULT 0 CHECK (used BETWEEN 0 AND 20),
   PRIMARY KEY (user_id, usage_date)
 );
-CREATE TABLE public.arc_flash_message_reservations (
+CREATE TABLE IF NOT EXISTS public.arc_flash_message_reservations (
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   request_id uuid NOT NULL,
   usage_date date NOT NULL,
