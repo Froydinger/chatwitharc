@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { Download, X } from "lucide-react";
 import { GlassButton } from "@/components/ui/glass-button";
 import { AppleLogo } from "@/components/icons/AppleLogo";
@@ -36,15 +36,12 @@ export function MacInstallPrompt() {
     window.location.assign("/downloads");
   };
 
-  if (!show) return null;
+  return <MacInstallPromptView show={show} onDownload={handleDownload} onDismiss={rememberDecision} />;
+}
 
+export function MacInstallPromptView({ show, onDownload, onDismiss }: { show: boolean; onDownload: () => void; onDismiss: () => void }) {
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0, y: 100 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 100 }}
-        transition={{ type: "spring", damping: 20 }}
+    <ConditionalTransition preset="panel">{show && (<div
         className="fixed bottom-8 left-4 right-4 z-50 md:left-auto md:right-8 md:w-96"
       >
         <div className="rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-xl">
@@ -63,7 +60,7 @@ export function MacInstallPrompt() {
                 <GlassButton
                   variant="glow"
                   size="sm"
-                  onClick={handleDownload}
+                  onClick={onDownload}
                   className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   <Download className="mr-2 h-4 w-4" />
@@ -72,7 +69,7 @@ export function MacInstallPrompt() {
                 <GlassButton
                   variant="ghost"
                   size="sm"
-                  onClick={rememberDecision}
+                  onClick={onDismiss}
                   className="border border-border"
                   aria-label="Not now"
                 >
@@ -82,7 +79,6 @@ export function MacInstallPrompt() {
             </div>
           </div>
         </div>
-      </motion.div>
-    </AnimatePresence>
+      </div>)}</ConditionalTransition>
   );
 }

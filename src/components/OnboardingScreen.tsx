@@ -1,6 +1,5 @@
 import { Transition } from "@/components/transitions/Transition";
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
@@ -86,13 +85,9 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
         >
           {/* Logo */}
           <div className="text-center">
-            <motion.div
-              animate={{ rotate: [0, 5, -5, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="flex justify-center mb-4"
-            >
-              <img src="/arc-logo-ui.png" alt="ArcAI" className="h-16 w-16" />
-            </motion.div>
+            <div className="flex justify-center mb-4">
+              <img src="/arc-logo-ui.png" alt="ArcAI" className="arc-auth-logo h-16 w-16" />
+            </div>
             <h1 className="text-2xl font-bold text-foreground mb-2">
               Welcome to ArcAI!
             </h1>
