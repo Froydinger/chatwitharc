@@ -1,7 +1,7 @@
 import { AccordionPanel } from "@/components/transitions/AccordionPanel";
 import { Transition } from "@/components/transitions/Transition";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useNativeListLayout } from "@/hooks/useNativeListLayout";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Search, Sparkles, Cpu, BookOpen, 
@@ -24,6 +24,7 @@ interface DocArticle {
 }
 
 export function DocsPage() {
+  const layoutRef = useNativeListLayout();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -453,20 +454,12 @@ export function DocsPage() {
         </div>
 
         {/* Articles List */}
-        <div className="space-y-3">
-          <AnimatePresence mode="popLayout">
+        <div ref={layoutRef} className="space-y-3">
             {filteredArticles.length > 0 ? (
               filteredArticles.map((art) => {
                 const isExpanded = expandedArticleId === art.id;
                 return (
-                  <motion.div
-                    key={art.id}
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                  >
+                  <Transition key={art.id} preset="panel"><div data-layout-row={art.id}>
                     <GlassCard 
                       data-open={isExpanded}
                       className={`t-acc border-glass-border overflow-hidden transition-all duration-200 ${
@@ -500,7 +493,7 @@ export function DocsPage() {
                             </div>
                       </AccordionPanel>
                     </GlassCard>
-                  </motion.div>
+                  </div></Transition>
                 );
               })
             ) : (
@@ -512,7 +505,6 @@ export function DocsPage() {
                 <p className="text-xs opacity-60">Try searching broad terms like "model", "local", "memory", or "canvas".</p>
               </div></Transition>
             )}
-          </AnimatePresence>
         </div>
 
         <div className="text-center text-xs text-muted-foreground/60 pt-8 pb-4">

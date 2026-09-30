@@ -1,6 +1,6 @@
 import { Transition } from "@/components/transitions/Transition";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { SequencedTransition } from "@/components/transitions/SequencedTransition";
 import { AlertCircle, CheckCircle, Download, Smartphone } from "lucide-react";
 import { GlassButton } from "@/components/ui/glass-button";
 import { BackgroundGradients } from "@/components/BackgroundGradients";
@@ -14,7 +14,12 @@ import { ANDROID_APK_URL } from "@/lib/androidDownload";
 type Platform = "mac" | "windows" | null;
 
 export function DownloadPage() {
-  const { mac, windows, loading } = useDownloadInfo();
+  const info = useDownloadInfo();
+  return <DownloadPageView info={info} />;
+}
+
+export function DownloadPageView({ info }: { info: ReturnType<typeof useDownloadInfo> }) {
+  const { mac, windows, loading } = info;
   const [selectedPlatform, setSelectedPlatform] = useState<Platform>(null);
   const [downloadStarted, setDownloadStarted] = useState(false);
 
@@ -57,14 +62,9 @@ export function DownloadPage() {
             </div>
           </div>
 
-          <AnimatePresence mode="wait">
+          <SequencedTransition contentKey={selectedPlatform ? "confirm" : "select"}>
             {!selectedPlatform && (
-              <motion.div
-                key="select"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
+              <div
                 className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
               >
                 <button
@@ -139,16 +139,11 @@ export function DownloadPage() {
                     <p className="text-[11px] text-muted-foreground">Play beta coming soon. Moving to Play may require reinstalling ArcAI.</p>
                   </div>
                 </a>
-              </motion.div>
+              </div>
             )}
 
             {selectedPlatform && (
-              <motion.div
-                key="confirm"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
+              <div
                 className="space-y-6"
               >
                 <div className="glass-panel rounded-2xl border border-border/40 p-8">
@@ -255,9 +250,9 @@ export function DownloadPage() {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+          </SequencedTransition>
 
           <Transition preset="fade" delay={0.8}><div
             className="flex justify-center gap-4 text-sm text-muted-foreground"

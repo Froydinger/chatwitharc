@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { motion, AnimatePresence } from "framer-motion";
+import { Transition } from "@/components/transitions/Transition";
+import { useNativeListLayout } from "@/hooks/useNativeListLayout";
 import {
   ArrowLeft,
   ArrowRight,
@@ -104,6 +105,7 @@ function formatDate(dateStr: string): string {
 
 export function BlogIndexPage() {
   const navigate = useNavigate();
+  const layoutRef = useNativeListLayout();
   const { user, isAnonymous } = useAuth();
   const isAuthenticated = !!user && !isAnonymous;
   const [searchQuery, setSearchQuery] = useState("");
@@ -488,23 +490,12 @@ export function BlogIndexPage() {
 
         {/* Articles Grid */}
         {filteredPosts.length > 0 ? (
-          <motion.div
-            layout
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            <AnimatePresence>
+          <div ref={layoutRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredPosts.map((post) => {
                 const category = getCategoryForPost(post);
                 const CategoryIcon = category.icon;
                 return (
-                  <motion.div
-                    key={post.slug}
-                    layout
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
-                  >
+                  <Transition key={post.slug} preset="panel"><div data-layout-row={post.slug}>
                     <Link
                       to={`/blog/${post.slug}`}
                       className="group flex flex-col justify-between h-full rounded-2xl border border-white/10 bg-white/[0.025] p-6 backdrop-blur-lg transition-all duration-300 hover:border-primary/40 hover:bg-white/[0.05] hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
@@ -541,11 +532,10 @@ export function BlogIndexPage() {
                         </div>
                       </div>
                     </Link>
-                  </motion.div>
+                  </div></Transition>
                 );
               })}
-            </AnimatePresence>
-          </motion.div>
+          </div>
         ) : (
           <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-12 text-center my-12">
             <Search className="mx-auto h-8 w-8 text-white/30" />
