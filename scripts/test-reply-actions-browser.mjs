@@ -83,6 +83,14 @@ try {
       assert.ok(details.includes(name));
       assert.ok(details.includes(powered));
       assert.ok(!details.includes(model), 'Raw provider ID stays hidden');
+      await call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 0, y: 0 });
+      await wait(350);
+      const beforeHover = await evaluate(`(()=>{const r=document.querySelector('[role=dialog]').getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};})()`);
+      await call('Input.dispatchMouseEvent', { type: 'mouseMoved', x: beforeHover.x + beforeHover.width / 2, y: beforeHover.y + beforeHover.height / 2 });
+      await wait(350);
+      const afterHover = await evaluate(`(()=>{const r=document.querySelector('[role=dialog]').getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};})()`);
+      assert.ok(Math.abs(afterHover.x - beforeHover.x) < 1 && Math.abs(afterHover.y - beforeHover.y) < 1,
+        `Hover must preserve modal position: ${JSON.stringify({beforeHover,afterHover})}`);
       assert.equal(await evaluate(`document.querySelectorAll('[role=dialog] button[aria-label="Report a bug"]').length`), 1);
       if (width === 412 && name === 'Flynn') {
         const image = await call('Page.captureScreenshot', { format: 'png' });

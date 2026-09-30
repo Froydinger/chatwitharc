@@ -2153,7 +2153,9 @@ All colors MUST be HSL for perfect glass effects.
     transition: all 0.3s ease;
   }
 
-  .glass-card:hover {
+  /* Centered dialogs own their positioning transform; the card hover lift
+     must not replace it when the pointer enters a modal. */
+  .glass-card:not(.arc-modal):hover {
     background: rgba(255, 255, 255, 0.06);
     border-color: rgba(255, 255, 255, 0.15);
     transform: translateY(-2px);
