@@ -2,7 +2,7 @@
  * Source and MIT notice: ./BENCHO-LICENSE.md. Arc supplies real audio state.
  */
 import { useEffect, useRef, useState } from "react";
-import { useReducedMotion } from "framer-motion";
+import { useReducedMotionPreference } from "@/hooks/useReducedMotionPreference";
 import { Heart, LoaderCircle, SkipBack, SkipForward } from "lucide-react";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
 import "./bencho-now-playing.css";
@@ -70,7 +70,7 @@ export function BenchoNowPlaying({ liked, onToggleLike }: BenchoNowPlayingProps)
   const track = musicTracks.find((item) => item.id === currentTrack) || musicTracks[0];
   const [open, setOpen] = useState(true);
   const boxRef = useRef<HTMLDivElement>(null);
-  const still = !!useReducedMotion();
+  const still = useReducedMotionPreference();
   // Published Morph=50 maps to 460 * (1.6 - 50 / 100 * 1.2) ms.
   const p = useTween(+open, 460, still);
   const u = useTween(+open, 460, still, linear);
