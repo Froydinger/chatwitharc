@@ -1,6 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import type { CSSProperties } from 'react';
-import { motion, useMotionValue, useReducedMotion, useSpring } from 'framer-motion';
+import { useReducedMotionPreference } from '@/hooks/useReducedMotionPreference';
+import { useNativeListLayout } from '@/hooks/useNativeListLayout';
+import './voice-magnetic-picker.css';
 import { Check } from 'lucide-react';
 import { REALTIME_VOICES, VOICE_AVATARS } from '@/constants/voices';
 import type { VoiceName } from '@/store/useVoiceModeStore';
@@ -39,11 +41,13 @@ function MagneticVoiceBubble({
   style: CSSProperties;
   onSelect: (voice: VoiceName) => void;
 }) {
-  const reduceMotion = useReducedMotion();
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const springX = useSpring(x, { stiffness: 420, damping: 26, mass: 0.45 });
-  const springY = useSpring(y, { stiffness: 420, damping: 26, mass: 0.45 });
+  const reduceMotion = useReducedMotionPreference();
+  const button = useRef<HTMLButtonElement>(null);
+  const move = (x:number,y:number) => {
+    button.current?.style.setProperty('--voice-x', `${x}px`);
+    button.current?.style.setProperty('--voice-y', `${y}px`);
+  };
+  useEffect(()=>{if(reduceMotion)move(0,0);},[reduceMotion]);
 
   const handlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (reduceMotion) return;
@@ -52,42 +56,24 @@ function MagneticVoiceBubble({
     const dy = event.clientY - (rect.top + rect.height / 2);
     const pull = centerSlot ? 0.08 : 0.18;
     const limit = centerSlot ? 8 : 15;
-    x.set(clamp(dx * pull, limit));
-    y.set(clamp(dy * pull, limit));
+    move(clamp(dx * pull, limit),clamp(dy * pull, limit));
   };
 
   const release = () => {
-    x.set(0);
-    y.set(0);
+    move(0,0);
   };
 
   return (
-    <motion.div
-      layout
-      className="absolute"
-      style={style}
-      transition={{
-        layout: { type: 'spring', stiffness: 420, damping: 30, mass: 0.72 },
-      }}
-    >
+    <div data-layout-row className="absolute" style={style}>
       <div className="-translate-x-1/2 -translate-y-1/2">
-        <motion.div
-          animate={selected && !reduceMotion ? { scale: [1, 1.045, 1] } : { scale: 1 }}
-          transition={{
-            scale: selected && !reduceMotion ? { duration: 2.4, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.18 },
-          }}
-        >
-        <motion.button
+        <div className="arc-voice-pulse" data-selected={selected}>
+        <button ref={button}
         type="button"
-        style={{ x: springX, y: springY }}
-        whileHover={!reduceMotion ? { scale: 1.1 } : undefined}
-        whileTap={!reduceMotion ? { scale: 0.92 } : undefined}
         onPointerMove={handlePointerMove}
         onPointerLeave={release}
         onFocus={() => {
           if (!reduceMotion) {
-            x.set(centerSlot ? 4 : 7);
-            y.set(centerSlot ? -3 : -5);
+            move(centerSlot ? 4 : 7,centerSlot ? -3 : -5);
           }
         }}
         onBlur={release}
@@ -96,7 +82,7 @@ function MagneticVoiceBubble({
         aria-label={`${voice.name}${voice.recommended ? ', best voice' : ''}${selected ? ', selected' : ''}`}
         title={voice.name}
         className={cn(
-          'group relative flex items-center justify-center rounded-full border bg-black shadow-[0_10px_28px_rgba(0,0,0,0.55)] outline-none transition-[border-color,box-shadow,background-color] focus-visible:ring-2 focus-visible:ring-primary/75',
+          'arc-voice-magnetic group relative flex items-center justify-center rounded-full border bg-black shadow-[0_10px_28px_rgba(0,0,0,0.55)] outline-none transition-[border-color,box-shadow,background-color] focus-visible:ring-2 focus-visible:ring-primary/75',
           selected
             ? compact
               ? 'h-[82px] w-[82px]'
@@ -117,14 +103,15 @@ function MagneticVoiceBubble({
             <Check className="h-3 w-3" strokeWidth={3} />
           </span>
         )}
-          </motion.button>
-        </motion.div>
+          </button>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 export function VoiceMagneticPicker({ selectedVoice, onSelect, compact = false }: VoiceMagneticPickerProps) {
+  const layout = useNativeListLayout();
   const availableVoices = useMemo(
     () => voiceIds
       .map((id) => REALTIME_VOICES.find((voice) => voice.id === id))
@@ -156,7 +143,7 @@ export function VoiceMagneticPicker({ selectedVoice, onSelect, compact = false }
   ];
 
   return (
-    <div className={cn('relative mx-auto w-full bg-transparent', compact ? 'h-[326px] max-w-[310px]' : 'h-[330px] max-w-[440px]')} aria-label="Choose a voice">
+    <div ref={layout} className={cn('relative mx-auto w-full bg-transparent', compact ? 'h-[326px] max-w-[310px]' : 'h-[330px] max-w-[440px]')} aria-label="Choose a voice">
       <div className="pointer-events-none absolute left-[15px] top-4 z-10 text-sm font-medium tracking-tight text-foreground/55">
         Voice:
       </div>

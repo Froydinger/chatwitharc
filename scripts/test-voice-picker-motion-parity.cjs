@@ -1,0 +1,7 @@
+const fs=require('node:fs'),assert=require('node:assert/strict'),{execFileSync}=require('node:child_process'),ts=require('typescript');
+const path='src/components/VoiceMagneticPicker.tsx';const old=execFileSync('git',['show',`707717dd:${path}`],{encoding:'utf8'});const now=fs.readFileSync(path,'utf8');
+const parse=s=>ts.createSourceFile('picker.tsx',s,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);const print=ts.createPrinter({removeComments:true});const p=(n,f)=>print.printNode(ts.EmitHint.Unspecified,n,f);
+function pieces(source){const f=parse(source);const main=f.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='VoiceMagneticPicker');const body=main.body.statements.slice(0,-1).filter(n=>!(ts.isVariableStatement(n)&&n.declarationList.declarations[0].name.getText(f)==='layout')).map(n=>p(n,f));const named=f.statements.filter(n=>(ts.isVariableStatement(n)&&['voiceIds','voiceTones'].includes(n.declarationList.declarations[0].name.getText(f)))||(ts.isFunctionDeclaration(n)&&n.name?.text==='clamp')).map(n=>p(n,f));const bindings=[];function visit(n){if(ts.isJsxAttribute(n)&&['aria-label','aria-pressed','title','onClick'].includes(n.name.text))bindings.push(p(n,f));ts.forEachChild(n,visit);}visit(f);return {body,named,bindings};}
+assert.deepEqual(pieces(now),pieces(old));
+assert.equal(fs.readFileSync('src/constants/voices.ts','utf8'),execFileSync('git',['show','707717dd:src/constants/voices.ts'],{encoding:'utf8'}));
+console.log('Voice IDs, slot geometry/ordering, labels/selection, click binding, and provider voice catalog match 707717dd.');

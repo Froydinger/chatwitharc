@@ -1,0 +1,14 @@
+.arc-voice-magnetic.arc-voice-magnetic {
+  translate: var(--voice-x, 0px) var(--voice-y, 0px);
+  transition-property: translate, scale, width, height, border-color, box-shadow, background-color;
+  transition-duration: var(--duration-quick);
+  transition-timing-function: var(--ease-smooth-out);
+}
+.arc-voice-pulse[data-selected="true"] { animation: arc-voice-breathe 2.4s ease-in-out infinite; }
+@keyframes arc-voice-breathe { 0%,100% { scale: 1; } 50% { scale: 1.045; } }
+@media (hover: hover) { .arc-voice-magnetic:hover { scale: 1.1; } }
+.arc-voice-magnetic:active { scale: .92; }
+@media (prefers-reduced-motion: reduce) {
+  .arc-voice-pulse[data-selected="true"] { animation: none; }
+  .arc-voice-magnetic.arc-voice-magnetic { translate: 0 0; scale: 1; transition-duration: 0s; }
+}
