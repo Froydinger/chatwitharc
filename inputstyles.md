@@ -1,6 +1,6 @@
 # Arc input bar: structure, compatibility, and refactor plan
 
-Status: **planning only**, September 28, 2026. No composer refactor has been implemented by this document. Update the implementation ledger below after each approved phase; do not describe proposed files as existing code.
+Status: **incremental implementation in progress**, September 29, 2026. Pure intent helpers are extracted; submission ownership and queue policy remain unchanged. The ledger records completed work separately from the proposed phases.
 
 ## Recommendation
 
@@ -47,7 +47,7 @@ Public integration contract:
 9. Never send twice because a render, effect, remount, Enter press or timer repeated. Async completion must belong to the request/session that started it.
 10. The existing `ThinkingIndicator` must reflect accepted work promptly and stay consistent through uploads, tool calls and streaming. Its earlier trigger is a required behavior change: set accepted-work state before the first awaited preparation step, then hand off that same state across the existing loading/activity projections. Keep its existing presentation and helper delays; do not add another visual indicator. Typing availability and permission to submit are separate concepts.
 
-## Proposed structure (does not exist yet)
+## Target structure (see implementation ledger for completed files)
 
 ```text
 src/components/ChatInput.tsx              # compatible entry point, props/ref adapter
@@ -182,6 +182,7 @@ Use existing glass utilities, Noir theme and shared spacing. Keep domain state o
 
 | Date | Work | Status / evidence |
 | --- | --- | --- |
+| 2026-09-29 | Phase 1: moved 24 pure classifiers/context helpers to `src/lib/chat-input/intent.ts`, preserving `ChatInput` exports and branch order | 504 old/new comparisons matched; 25 permanent command/near-miss cases pass; helper lint and production build pass. Full typecheck is blocked by existing JSX errors in unchanged `AdminSettingsPanel.tsx`. Queue/submission behavior unchanged. |
 | 2026-09-28 | Inspected ChatInput responsibilities, public interface, busy/queue behavior and Work boundary; wrote this plan | Documentation only; no composer implementation changes |
 
 After approval and each phase, add changed files, preserved behavior, intentional behavior changes, checks actually run, release revision and rollback commit. Never mark an unchecked acceptance row as passed.
