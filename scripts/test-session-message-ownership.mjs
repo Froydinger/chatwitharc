@@ -54,3 +54,33 @@ assert.deepEqual(state.chatSessions[0].messages.slice(-2).map(m => m.type), ['ca
 assert.ok(saves.slice(2).every(session => session.id === 'chat-a'));
 assert.equal(await bind('upsertCodeMessage')('deleted', 'js', undefined, undefined, {sessionId:'missing'}), '');
 console.log('Session persistence checks passed: late A completion keeps B untouched, persona ownership, existing active callers, deferred Work save deleted-chat guard, owned image replacement and owned canvas/code results.');
+const patchOwned = bind('patchOwnedMessage');
+const owner = state.chatSessions[0];
+const target = owner.messages[0].id;
+const visibleBefore = state.messages;
+await patchOwned('chat-a', target, {content:'local partial'});
+assert.equal(state.chatSessions[0].messages[0].content,'local partial');
+assert.equal(state.messages,visibleBefore);
+const lengthBefore = state.chatSessions[0].messages.length;
+await patchOwned('chat-a',target,{content:'local final',sourceModel:'local'},true);
+assert.equal(state.chatSessions[0].messages.length,lengthBefore,'Finalizing never truncates later messages');
+assert.equal(saves.at(-1).id,'chat-a');
+assert.equal(saves.at(-1).messages[0].sourceModel,'local');
+const savesBefore=saves.length;
+await patchOwned('missing',target,{content:'deleted'},true);
+await patchOwned('chat-a','missing',{content:'missing'},true);
+assert.equal(saves.length,savesBefore);
+const activeId=state.messages[0].id;
+await patchOwned('chat-b',activeId,{content:'active local'},true);
+assert.equal(state.messages[0].content,'active local');
+assert.equal(saves.at(-1).id,'chat-b');
+let finishSave;
+const awaitingPatch = new Function('set','get',extract('patchOwnedMessage'))(
+  updater=>{state={...state,...updater(state)};},
+  ()=>({saveChatToSupabase:()=>new Promise(resolve=>{finishSave=resolve;})}),
+);
+let finished=false;
+const pendingSave=awaitingPatch('chat-a',target,{content:'awaited'},true).then(()=>{finished=true;});
+await Promise.resolve();assert.equal(finished,false,'Completion waits for persistence');
+finishSave();await pendingSave;assert.equal(finished,true);
+console.log('Owned local patches passed: active/inactive owners, no truncation, missing/deleted targets, source metadata and awaited final persistence.');

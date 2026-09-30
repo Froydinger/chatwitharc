@@ -300,6 +300,7 @@ export interface ArcState {
   addMessage: (message: Omit<Message, 'id' | 'timestamp'> & { id?: string; timestamp?: Date }, options?: { deferCloudPersistence?: boolean; sessionId?: string }) => Promise<string>;
   replaceMessage: (messageId: string, message: Omit<Message, 'id' | 'timestamp'>) => Promise<void>;
   replaceLastMessage: (message: Omit<Message, 'id' | 'timestamp'>, options?: { sessionId?: string }) => Promise<void>;
+  patchOwnedMessage: (sessionId: string, messageId: string, patch: Partial<Message>, persist?: boolean) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => void;
   updateMessageMemoryAction: (messageId: string, memoryAction: MemoryAction) => void;
   upsertCanvasMessage: (canvasContent: string, label?: string, memoryAction?: MemoryAction, options?: { sessionId?: string }) => Promise<string>;
@@ -2094,6 +2095,25 @@ export const useArcStore = create<ArcState>()(
         return uniqueCodeId;
       },
       
+      patchOwnedMessage: async (sessionId, messageId, patch, persist = false) => {
+        let sessionToSave: ChatSession | undefined;
+        set((state) => {
+          const session = state.chatSessions.find(item => item.id === sessionId);
+          if (!session) return state;
+          const messages = state.currentSessionId === sessionId ? state.messages : session.messages;
+          const index = messages.findIndex(item => item.id === messageId);
+          if (index < 0) return state;
+          const updated = [...messages];
+          updated[index] = { ...updated[index], ...patch, id: messageId };
+          sessionToSave = { ...session, messages: updated };
+          return {
+            chatSessions: state.chatSessions.map(item => item.id === sessionId ? sessionToSave! : item),
+            ...(state.currentSessionId === sessionId ? { messages: updated } : {}),
+          };
+        });
+        if (persist && sessionToSave) await get().saveChatToSupabase(sessionToSave);
+      },
+
       editMessage: (messageId, newContent) => {
         set((state) => {
           const messageIndex = state.messages.findIndex(m => m.id === messageId);

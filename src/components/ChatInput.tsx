@@ -213,11 +213,9 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     setLoading,
     isGeneratingImage,
     setGeneratingImage,
-    editMessage,
     setSearchingChats,
     setAccessingMemory,
     setSearchingWeb,
-    updateMessageMemoryAction,
     upsertCanvasMessage,
     upsertCodeMessage,
     createNewSession,
@@ -2440,13 +2438,9 @@ ${safeCode}
                       return;
                     }
                     const id = await ensurePlaceholder();
-                    useArcStore.setState((state) => {
-                      const idx = state.messages.findIndex((m) => m.id === id);
-                      if (idx === -1) return state;
-                      const updated = [...state.messages];
-                      updated[idx] = { ...updated[idx], content: next };
-                      return { messages: updated } as any;
-                    });
+                    if (!requestIsCancelled() && originalOwnerId === dispatchScopeRef.current.ownerId && owningSessionId) {
+                      await useArcStore.getState().patchOwnedMessage(owningSessionId, id, { content: next });
+                    }
                     pending = "";
                   };
 
@@ -2530,24 +2524,18 @@ ${safeCode}
                   });
                 }
 
-                // Final commit. We MUST persist via editMessage (which writes
-                // to Supabase) — raw setState only updates memory, so the next
-                // chat-sync poll would wipe the local reply with an empty row.
+                // Final commit stays with the submitting chat and awaits persistence.
+                // User editMessage intentionally truncates later messages, so
+                // provider completion uses the non-destructive owned patch.
                 const id = await ensurePlaceholder();
                 const finalContent = displayed || "I couldn't generate a response locally.";
-                editMessage(id, finalContent);
-                if (pendingMemoryAction) {
-                  updateMessageMemoryAction(id, pendingMemoryAction as any);
+                if (!requestIsCancelled() && originalOwnerId === dispatchScopeRef.current.ownerId && owningSessionId) {
+                  await useArcStore.getState().patchOwnedMessage(owningSessionId, id, {
+                    content: finalContent,
+                    sourceModel: "local",
+                    ...(pendingMemoryAction ? { memoryAction: pendingMemoryAction as any } : {}),
+                  }, true);
                 }
-                // Re-apply sourceModel since editMessage doesn't touch it but
-                // also doesn't strip it — defensive set in case of races.
-                useArcStore.setState((state) => {
-                  const idx = state.messages.findIndex((m) => m.id === id);
-                  if (idx === -1) return state;
-                  const updated = [...state.messages];
-                  updated[idx] = { ...updated[idx], sourceModel: "local" } as any;
-                  return { messages: updated } as any;
-                });
                 setLoading(false);
                 setSearchingChats(false);
                 setAccessingMemory(false);
