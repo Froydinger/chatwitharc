@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { PlanUsageBreakdown } from "@/components/PlanUsageBreakdown";
 import { SequencedTransition } from "@/components/transitions/SequencedTransition";
 import {
   Trash2,
@@ -987,6 +988,7 @@ export function SettingsPanel() {
       case "plan":
         return (
           <>
+            <PlanUsageBreakdown />
             {PlanCard}
           </>
         );

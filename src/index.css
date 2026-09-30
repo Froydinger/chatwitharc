@@ -2752,3 +2752,9 @@ button.app-builder-tab:focus-visible {
   outline: 2px solid #93c5fd;
   outline-offset: 2px;
 }
+
+/* Upgrade details must remain opaque and readable above the page in both themes. */
+:root .arc-upgrade-dialog {
+  background: hsl(var(--background)) !important;
+  color: hsl(var(--foreground)) !important;
+}
