@@ -1,3 +1,4 @@
+import { AttachmentTray } from "@/components/chat-input/AttachmentTray";
 import { TransitionPart } from "@/components/transitions/TransitionPart";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { shouldForceVideoSearch, inferPromptMode, isImageEditRequest, checkForImageRequest, checkForVideoRequest, isAnimateImageRequest, extractVideoPrompt, extractSubjectForImageRequest, analyzeImageRequestIntent, checkForCodingRequest, checkForCanvasRequest, checkForSearchRequest, checkForGitRequest, isConversationalMessage, looksLikeNaturalCodeRequest, looksLikeNaturalCanvasRequest, looksLikeCanvasEditRequest, referencesCanvasSurface, looksLikeCodeEditRequest, referencesCodeSurface, extractPrefixPrompt, extractImagePrompt, isContextualImagePrompt, findRecentVisualContext } from "@/lib/chat-input/intent";
@@ -24,7 +25,6 @@ import {
   Lightbulb,
   Rocket,
   Smartphone,
-  FileText,
   ListPlus,
   Clapperboard,
 } from "lucide-react";
@@ -2955,32 +2955,7 @@ ${safeCode}
           const anchored = rect ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom } : { bottom };
           return createPortal(
             <div className={rect ? "fixed z-[33]" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"} style={anchored}>
-              <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3 mx-auto max-w-[760px]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">Documents ({selectedDocuments.length}/3)</span>
-                  <button
-                    onClick={() => setSelectedDocuments([])}
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    Clear
-                  </button>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {selectedDocuments.map((doc, i) => (
-                    <div key={i} className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 group">
-                      <FileText className="h-4 w-4 text-primary shrink-0" />
-                      <span className="text-sm text-foreground truncate flex-1">{doc.name}</span>
-                      <span className="text-xs text-muted-foreground">{(doc.size / 1024).toFixed(0)} KB</span>
-                      <button
-                        onClick={() => removeDocument(i)}
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <AttachmentTray kind="documents" files={selectedDocuments} onClear={() => setSelectedDocuments([])} onRemove={removeDocument} />
             </div>,
             portalRoot,
           );
@@ -2998,35 +2973,8 @@ ${safeCode}
           const anchored = rect ? { left: `${rect.left}px`, width: `${rect.width}px`, bottom } : { bottom };
           return createPortal(
             <div className={rect ? "fixed z-[33]" : "fixed left-1/2 -translate-x-1/2 w-[min(760px,92vw)] z-[33]"} style={anchored}>
-              <div className="rounded-3xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-xl px-4 py-3 mx-auto max-w-[760px]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">Selected Images ({selectedImages.length}/6)</span>
-                  <button onClick={clearSelected} className="text-xs text-muted-foreground hover:text-foreground">
-                    Clear All
-                  </button>
-                </div>
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {selectedImages.map((f, i) => {
-                    const url = imagePreviewUrls[i];
-                    return (
-                      <div key={i} className="relative group shrink-0">
-                        <img
-                          src={url}
-                          alt={`sel-${i}`}
-                          className="w-10 h-10 sm:w-16 sm:h-16 object-cover rounded-full border border-border/40"
-                        />
-                        <button
-                          onClick={() => removeImage(i)}
-                          className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Remove"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-                {selectedImages.length > 0 && (
+              <AttachmentTray kind="images" files={selectedImages} previewUrls={imagePreviewUrls} onClear={clearSelected} onRemove={removeImage}>
+{selectedImages.length > 0 && (
                   <div className="mt-3 pt-2 border-t border-border/30">
                     <button
                       type="button"
@@ -3059,12 +3007,12 @@ ${safeCode}
                     )}
                   </div>
                 )}
-                {(shouldShowBanana || allImagesEditMode) && (
+{(shouldShowBanana || allImagesEditMode) && (
                   <div className="mt-3 pt-2 border-t border-border/30">
                     <ImageOptionsContent editMode={allImagesEditMode} />
                   </div>
                 )}
-              </div>
+</AttachmentTray>
             </div>,
             portalRoot,
           );

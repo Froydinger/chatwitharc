@@ -51,6 +51,21 @@ try {
     await wait(100);
     assert.equal(await evaluate(`document.body.textContent.includes('Selected Images (1/6)')`), false);
   }
+  for (const width of [1280, 412]) {
+    await call('Emulation.setDeviceMetricsOverride', { width, height: 915, deviceScaleFactor: 1, mobile: width === 412 });
+    await evaluate(`(()=>{const input=document.querySelector('input[type="file"][multiple]');const files=new DataTransfer();for(const name of ['tray-a.png','tray-b.png','tray-a.pdf','tray-b.pdf'])files.items.add(new File(['offline fixture'],name,{type:name.endsWith('.png')?'image/png':'application/pdf'}));input.files=files.files;input.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    await wait(150);
+    assert.equal(await evaluate(`document.body.textContent.includes('Selected Images (2/6)') && document.body.textContent.includes('Documents (2/3)')`),true);
+    const anchor = await evaluate(`(()=>{const t=document.querySelector('textarea[data-arc-composer]');const r=t.closest('div.origin-bottom').getBoundingClientRect();return {x:r.x,width:r.width}})()`);
+    await evaluate(`document.querySelector('button[title="Remove"]').click()`);
+    await evaluate(`(()=>{const label=[...document.querySelectorAll('span')].find(n=>n.textContent==='tray-a.pdf');label.parentElement.querySelector('button').click()})()`);
+    await wait(100);
+    assert.equal(await evaluate(`document.body.textContent.includes('Selected Images (1/6)') && document.body.textContent.includes('Documents (1/3)') && !document.body.textContent.includes('tray-a.pdf') && document.body.textContent.includes('tray-b.pdf')`),true);
+    await evaluate(`(()=>{for(const text of ['Clear','Clear All'])[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===text).click()})()`);
+    await wait(100);
+    assert.equal(await evaluate(`document.body.textContent.includes('Selected Images (1/6)') || document.body.textContent.includes('Documents (1/3)')`),false);
+    assert.deepEqual(await evaluate(`(()=>{const r=document.querySelector('textarea[data-arc-composer]').closest('div.origin-bottom').getBoundingClientRect();return {x:r.x,width:r.width}})()`),anchor,'Tray changes preserve composer geometry');
+  }
   assert.deepEqual(await evaluate('window.__arcDismissErrors'), []);
   await evaluate(`window.removeEventListener('error',window.__arcDismissListener)`);
   await evaluate(`(()=>{
