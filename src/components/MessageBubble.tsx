@@ -1,4 +1,4 @@
-import { Fragment, forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, forwardRef, useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Copy, Edit2, Check, MapPin, Volume2, Square, Loader2, Share2 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -29,7 +29,6 @@ import { CanvasAttachment } from "@/components/CanvasAttachment";
 import { CodeArtifactCard } from "@/components/CodeArtifactCard";
 import { AppBuilderArtifactCard } from "@/components/app-builder/AppBuilderArtifactCard";
 import { AppBuilderAppChoiceCard } from "@/components/app-builder/AppBuilderAppChoiceCard";
-import { ThemedLogo } from "@/components/ThemedLogo";
 import { MemoryIndicator } from "@/components/MemoryIndicator";
 import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmbed";
 import { ModelSourceBadge } from "@/components/ModelSourceBadge";
@@ -56,7 +55,7 @@ interface MessageBubbleProps {
 }
 
 export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
-  ({ message, onEdit, isLatestAssistant, shouldAnimateTypewriter, shouldAnimateReveal, isThinking }, ref) => {
+  ({ message, onEdit, shouldAnimateTypewriter, shouldAnimateReveal }, ref) => {
     const shouldAnimate = shouldAnimateReveal ?? shouldAnimateTypewriter ?? false;
     const { editMessage, currentSessionId, chatSessions } = useArcStore();
     const { profile } = useProfile();
@@ -133,25 +132,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
       resolvedImageUrls[imageRef] || (isPrivateImageReference(imageRef) ? "" : imageRef);
 
 
-    // One-shot logo handoff pulse for the latest assistant message
-    const [logoPulse, setLogoPulse] = useState(false);
-    const prevThinkingRef = useRef(isThinking);
-    const prevContentLenRef = useRef((message.content || "").length);
     const hasAssistantContent = !isUser && (message.content || "").trim().length > 0;
-
-    useEffect(() => {
-      if (isUser || !isLatestAssistant) return;
-      const len = (message.content || "").length;
-      // Logo handoff pulse: thinking -> speaking, or first token without thinking phase
-      const firstToken = prevContentLenRef.current === 0 && len > 0;
-      const thinkingEnded = prevThinkingRef.current && !isThinking && len > 0;
-      if (firstToken || thinkingEnded) {
-        setLogoPulse(true);
-      }
-      prevThinkingRef.current = isThinking;
-      prevContentLenRef.current = len;
-    }, [isLatestAssistant, isThinking, message.content, isUser]);
-
 
     const handleCopy = async () => {
       try {
@@ -780,10 +761,8 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
             )}
           </div>
           
-          {/* Keep reply metadata and the Arc mark in one layout-aware footer.
-              As streamed text wraps, this moves the whole footer with the
-              response instead of snapping each element to its next line. */}
-          {!isUser && ((message.type !== 'image-generating' && message.type !== 'video-generating') || isLatestAssistant) && (
+          {/* Keep reply metadata attached to the response as text wraps. */}
+          {!isUser && message.type !== 'image-generating' && message.type !== 'video-generating' && (
             <motion.div
               className="w-full"
               layout="position"
@@ -814,51 +793,6 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </div>
               )}
 
-              {/* Arc / Persona avatar - latest assistant message */}
-              {isLatestAssistant && (
-                <motion.div
-                  className="flex items-center justify-start mt-2 ml-2 h-10"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ opacity: { duration: 0.3, ease: "easeOut" } }}
-                >
-              <motion.div
-                className="relative"
-                animate={{
-                  scale: isThinking ? [1, 1.08, 1] : 1
-                }}
-                transition={isThinking ? {
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                } : { duration: 0.2 }}
-              >
-                <div
-                  className={logoPulse ? "arc-logo-pulse" : ""}
-                  onAnimationEnd={(e) => {
-                    if (e.animationName === "arc-logo-handoff") setLogoPulse(false);
-                  }}
-                >
-                  <ThemedLogo className="h-10 w-10 -ml-[5px]" alt="Arc" />
-                </div>
-                {isThinking && (
-                  <motion.div
-                    className="absolute inset-0 rounded-full bg-gradient-to-tr from-neon-500/25 to-primary/20 blur-xl"
-                    animate={{
-                      scale: [0.9, 1.15, 0.9],
-                      opacity: [0.2, 0.5, 0.2]
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut"
-                    }}
-                  />
-                )}
-              </motion.div>
-                </motion.div>
-              )}
             </motion.div>
           )}
 
