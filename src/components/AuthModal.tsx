@@ -1,7 +1,6 @@
 import { AccordionPanel } from "@/components/transitions/AccordionPanel";
 import { Transition } from "@/components/transitions/Transition";
 import { useId, useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { GlassButton } from "@/components/ui/glass-button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
@@ -255,45 +254,33 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
           hideCloseButton
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="relative w-full"
-          >
+          <div className="relative w-full">
             {/* Animated Liquid Blobs */}
             <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
-              <motion.div animate={{ x: [0, 30, 0], y: [0, -20, 0], scale: [1, 1.1, 1] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className={cn("absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[80px]", t.blob1)} />
-              <motion.div animate={{ x: [0, -20, 0], y: [0, 30, 0], scale: [1, 1.15, 1] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }} className={cn("absolute -bottom-20 -left-20 w-64 h-64 rounded-full blur-[80px]", t.blob2)} />
-              <motion.div animate={{ x: [0, 15, 0], y: [0, -15, 0], scale: [1, 1.2, 1] }} transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }} className={cn("absolute top-1/2 right-0 w-48 h-48 rounded-full blur-[70px]", t.blob3)} />
+              <div className={cn("arc-auth-modal-blob arc-auth-modal-blob-1 absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[80px]", t.blob1)} />
+              <div className={cn("arc-auth-modal-blob arc-auth-modal-blob-2 absolute -bottom-20 -left-20 w-64 h-64 rounded-full blur-[80px]", t.blob2)} />
+              <div className={cn("arc-auth-modal-blob arc-auth-modal-blob-3 absolute top-1/2 right-0 w-48 h-48 rounded-full blur-[70px]", t.blob3)} />
             </div>
 
             {/* Main Glass Card */}
             <div className={cn("relative backdrop-blur-[40px] bg-gradient-to-br rounded-3xl border-0 shadow-2xl p-8", t.card, isLight ? "shadow-zinc-900/15" : "shadow-black/50")}>
-              <motion.button
-                whileHover={{ scale: 1.1, backgroundColor: isLight ? "rgba(0, 0, 0, 0.08)" : "rgba(255, 255, 255, 0.15)" }}
-                whileTap={{ scale: 0.95 }}
+              <button
                 onClick={onClose}
-                className={cn("absolute top-4 right-4 w-8 h-8 rounded-full border flex items-center justify-center transition-colors backdrop-blur-sm", t.surface, t.border, t.surfaceHover)}
+                className={cn("arc-auth-modal-icon absolute top-4 right-4 w-8 h-8 rounded-full border flex items-center justify-center transition-colors backdrop-blur-sm", t.surface, t.border, t.surfaceHover)}
                 aria-label="Close"
               >
                 <X className={cn("h-4 w-4", t.closeIcon)} />
-              </motion.button>
+              </button>
 
               <Transition preset="panel" delay={0.1}><div className="t-acc space-y-6" data-open={showEmailForm}>
                 <>
                 {/* Logo / contextual headline */}
                 <div className="text-center">
-                  <motion.div
-                    animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                    className="flex justify-center mb-4"
-                  >
-                    <div className={cn("w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-neon-500/20 border flex items-center justify-center backdrop-blur-sm relative", t.border)}>
+                  <div className="flex justify-center mb-4">
+                    <div className={cn("arc-auth-modal-logo w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-neon-500/20 border flex items-center justify-center backdrop-blur-sm relative", t.border)}>
                       <img src="/arc-logo-ui.png" alt="ArcAI" className="h-10 w-10" />
                     </div>
-                  </motion.div>
+                  </div>
                   <DialogTitle className={cn("text-2xl font-bold mb-2", t.textStrong)}>{copy.title}</DialogTitle>
                   <DialogDescription className={cn("text-sm", t.textMuted)}>{copy.subtitle}</DialogDescription>
                 </div>
@@ -344,7 +331,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
 
                 {/* Social Buttons */}
                 <div className="space-y-3">
-                  <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                  <div className="arc-auth-modal-action">
                     <GlassButton
                       variant="ghost"
                       onClick={handleGoogleAuth}
@@ -360,7 +347,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                       </svg>
                       Continue with Google
                     </GlassButton>
-                  </motion.div>
+                  </div>
 
                 </div>
 
@@ -454,21 +441,19 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                               autoComplete={isLogin ? "current-password" : "new-password"}
                               required
                             />
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.95 }}
+                            <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className={cn("absolute right-3 top-1/2 -translate-y-1/2 transition-colors", t.textFaint, isLight ? "hover:text-zinc-700" : "hover:text-white/70")}
+                              className={cn("arc-auth-modal-icon absolute right-3 top-1/2 -translate-y-1/2 transition-colors", t.textFaint, isLight ? "hover:text-zinc-700" : "hover:text-white/70")}
                               tabIndex={-1}
                             >
                               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </motion.button>
+                            </button>
                           </div>
                         </div>
 
 
-                        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+                        <div className="arc-auth-modal-action">
                           <GlassButton
                             variant="glow"
                             type="submit"
@@ -483,7 +468,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                           >
                             {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
                           </GlassButton>
-                        </motion.div>
+                        </div>
                       </form>
                   </AccordionPanel>
 
@@ -516,7 +501,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                 </span>
               </div></Transition>
             )}
-          </motion.div>
+          </div>
         </DialogContent>
       </Dialog>
       <style>{`
