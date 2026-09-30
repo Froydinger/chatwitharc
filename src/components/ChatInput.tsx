@@ -57,6 +57,7 @@ import { useMessageQueueStore } from "@/store/useMessageQueueStore";
 import { APP_BUILDER_ENABLED } from "@/lib/features";
 import { routeRequest } from "@/utils/routeRequest";
 import { streamLocalChat } from "@/services/localAI";
+import { useLiveAnswerStore } from "@/store/useLiveAnswerStore";
 import { buildLocalSystemPrompt } from "@/utils/localSystemPrompt";
 import { findFirstToolCall, executeLocalToolCall, stripToolTags, hasPartialOpenTag } from "@/utils/localToolProtocol";
 import { ImageOptionsDock, ImageOptionsContent } from "@/components/ImageOptionsDock";
@@ -644,6 +645,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     currentSessionId,
     chatSessions,
   } = useArcStore();
+  const hasLiveAnswer = useLiveAnswerStore(state => Boolean(state.answer?.sessionId === currentSessionId && state.answer.content));
   const { profile, updateProfile } = useProfile();
   const { accentColor } = useAccentColor();
   const { openSearchMode } = useSearchStore();
@@ -3098,7 +3100,7 @@ ${safeCode}
               if (requestSessionId) {
                 const session = cSessions.find((s) => s.id === requestSessionId);
                 if (session && (session.title === "New Chat" || session.messages.length <= 2)) {
-                  await generateChatTitle(requestSessionId);
+                  void generateChatTitle(requestSessionId);
                 }
               }
 
@@ -3160,6 +3162,7 @@ ${safeCode}
       setAccessingMemory(false);
       setSearchingWeb(false);
       useArcStore.getState().setActiveTask(null);
+      useArcStore.getState().setActiveStatusDetails(null);
       currentAbortController = null;
     }
   };
@@ -3690,7 +3693,7 @@ ${safeCode}
                 onPaste={handlePaste}
                 onFocus={handleInputFocus}
                 disabled={isVoiceActive}
-                placeholder={isVoiceActive ? "Voice mode is listening..." : isLoading ? "Thinking..." : "Type or talk..."}
+                placeholder={isVoiceActive ? "Voice mode is listening..." : isLoading ? hasLiveAnswer ? "Finishing..." : "Thinking..." : "Type or talk..."}
                 className="flex-1 min-h-[28px] max-h-[200px] border-0 bg-transparent pt-[4px] pb-[4px] pr-4 focus-visible:ring-0 resize-none text-base placeholder:text-muted-foreground/60 scrollbar-hide"
                 rows={1}
               />

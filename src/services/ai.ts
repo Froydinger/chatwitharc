@@ -336,6 +336,7 @@ export class AIService {
       let lastError: Error | null = null;
       
       for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+        let requestAccepted = false;
         try {
           const startTime = Date.now();
           const liveRequestId = crypto.randomUUID();
@@ -413,6 +414,7 @@ export class AIService {
           }
 
           window.dispatchEvent(new Event('arc-reasoning-quota-changed'));
+          requestAccepted = true;
 
           let data: any = null;
           const contentType = response.headers.get('content-type') || '';
@@ -423,6 +425,11 @@ export class AIService {
             const decoder = new TextDecoder();
             let buffer = '';
             const deadline = Date.now() + timeoutMs;
+            const cancelRead = () => {
+              useLiveAnswerStore.getState().clear(liveRequestId);
+              void reader.cancel().catch(() => undefined);
+            };
+            abortSignal?.addEventListener('abort', cancelRead, { once: true });
             try {
             while (true) {
               if (abortSignal?.aborted) break;
@@ -474,6 +481,7 @@ export class AIService {
               if (data) break;
             }
             } finally {
+              abortSignal?.removeEventListener('abort', cancelRead);
               useLiveAnswerStore.getState().clear(liveRequestId);
               void reader.cancel().catch(() => undefined);
               reader.releaseLock();
@@ -554,7 +562,7 @@ export class AIService {
             err.message?.includes('503') ||
             err.message?.includes('504');
           
-          if (isTransient && attempt < this.maxRetries) {
+          if (!requestAccepted && isTransient && attempt < this.maxRetries) {
             const delay = Math.pow(2, attempt) * 1000;
             console.log(`⚠️ Retrying in ${delay}ms (attempt ${attempt + 1}/${this.maxRetries}):`, err.message);
             await new Promise(r => setTimeout(r, delay));

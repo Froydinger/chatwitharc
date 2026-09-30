@@ -13,7 +13,7 @@ import { cloudAgentsProvider } from '../_shared/cloudAgentsProvider.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'X-Arc-Chat-Revision': 'agents-fast-20260929',
+  'X-Arc-Chat-Revision': 'chat-completion-20260929',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -2136,7 +2136,7 @@ product and is helping someone with it. Stay in that voice completely.`;
         finish_reason?: string;
       }>;
     };
-    const runChatPipeline = async (sendEvent?: (event: any) => void) => {
+    const runChatPipeline = async (sendEvent?: (event: any) => void, clientSignal = req.signal) => {
       const memoryToolNames = new Set(['search_past_chats', 'save_memory']);
       let response: Response;
       let usedFallback = false;
@@ -2200,7 +2200,7 @@ product and is helping someone with it. Stay in that voice completely.`;
         }
       }
 
-      const cancelAgentSession = async (reason: 'usage-limit' | 'deadline' | 'provider-error') => {
+      const cancelAgentSession = async (reason: 'usage-limit' | 'deadline' | 'provider-error' | 'client-cancel') => {
         if (!agentProvider || !agentSessionId) return;
         try {
           await agentProvider.cancelAgentSession?.(
@@ -2216,6 +2216,11 @@ product and is helping someone with it. Stay in that voice completely.`;
       const waitForAgentResult = async () => {
         if (!agentProvider || !agentSessionId) throw new Error('Arc could not start this request. Please try again.');
         while (Date.now() < agentDeadline) {
+          if (clientSignal.aborted) {
+            answerStream?.abort();
+            await cancelAgentSession('client-cancel');
+            throw new Error('Chat request cancelled.');
+          }
           let next: Awaited<ReturnType<NonNullable<typeof agentProvider.pollAgentSession>>>;
           try {
             agentPolls++;
@@ -2236,6 +2241,7 @@ product and is helping someone with it. Stay in that voice completely.`;
           if (Date.now() >= agentDeadline) break;
           await new Promise(resolve => setTimeout(resolve, 650));
         }
+        console.log('Chat agent deadline timing', { polls: agentPolls, tokens: agentUsageTokens });
         await cancelAgentSession('deadline');
         throw new Error('Arc could not finish this request in time. Check the chat before retrying to avoid repeating an action.');
       };
@@ -3467,16 +3473,18 @@ product and is helping someone with it. Stay in that voice completely.`;
     if (streamEvents) {
       const encoder = new TextEncoder();
       let clientGone = false;
+      const clientAbort = new AbortController();
 
       const transformStream = new ReadableStream({
-        async start(controller) {
+        start(controller) {
           const safeEnqueue = (chunk: Uint8Array) => {
             if (clientGone) return;
             try { controller.enqueue(chunk); } catch { clientGone = true; }
           };
 
           try {
-            req.signal.addEventListener('abort', () => { clientGone = true; });
+            req.signal.addEventListener('abort', () => { clientGone = true; clientAbort.abort(); }, { once: true });
+            if (req.signal.aborted) { clientGone = true; clientAbort.abort(); }
           } catch {
             // Signal listener not supported or aborted
           }
@@ -3486,9 +3494,9 @@ product and is helping someone with it. Stay in that voice completely.`;
             safeEnqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
           };
 
-          try {
+          void (async () => { try {
             sendEvent({ type: 'status', activity: forceWebSearch ? 'web' : 'thinking' });
-            const finalResponse = await runChatPipeline(sendEvent);
+            const finalResponse = await runChatPipeline(sendEvent, clientAbort.signal);
             sendEvent({ type: 'done', result: finalResponse });
           } catch (pipelineErr: unknown) {
             console.error('Chat pipeline error in streamEvents:', pipelineErr);
@@ -3500,8 +3508,9 @@ product and is helping someone with it. Stay in that voice completely.`;
             } catch {
               // Controller may already be closed
             }
-          }
-        }
+          } })();
+        },
+        cancel() { clientGone = true; clientAbort.abort(); }
       });
 
       return new Response(transformStream, {

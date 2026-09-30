@@ -26,6 +26,7 @@ import { resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
 import { getQueryComplexity } from "@/services/ai";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { LiveChatAnswer } from "@/components/LiveChatAnswer";
+import { useLiveAnswerStore } from "@/store/useLiveAnswerStore";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
 import { ShareChatDialog } from "@/components/ShareChatDialog";
 
@@ -342,6 +343,7 @@ export function MobileChatApp() {
     markSessionAsWork,
   } = useArcStore();
   const isArcWorking = isLoading || isGeneratingImage || isSearchingChats || isAccessingMemory || isSearchingWeb;
+  const hasLiveAnswer = useLiveAnswerStore(state => Boolean(state.answer?.sessionId === currentSessionId && state.answer.content));
   const hasSubagentRun = useSubagentStore((state) => Boolean(state.run));
   const isVoiceActive = useVoiceModeStore((s) => s.isActive);
   const liveCaptionEntries = useVoiceModeStore((s) => s.liveCaptionEntries);
@@ -1778,7 +1780,7 @@ export function MobileChatApp() {
                   <SubagentProgress />
                   {/* Show thinking indicator when loading */}
                   <AnimatePresence>
-                    {!hasSubagentRun &&
+                    {!hasSubagentRun && !hasLiveAnswer &&
                       isLoading &&
                       !isGeneratingImage &&
                       messages.length > 0 &&
