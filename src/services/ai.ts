@@ -626,8 +626,8 @@ export class AIService {
     forceWebSearch?: boolean,
     abortSignal?: AbortSignal
   ): Promise<void> {
-    if ((this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort) === 'flynn') {
-      // Flynn uses the same event-based chat/tool pipeline. Deliver its complete
+    if (['flynn', 'high'].includes(this.capturedReasoningSelection ?? useModelStore.getState().reasoningEffort)) {
+      // Flynn and River use the event-based chat/tool pipeline. Deliver their complete
       // owned canvas/code artifact through the established continuation contract.
       onStart?.(forceCode ? 'code' : forceCanvas ? 'canvas' : 'text');
       try {
@@ -642,7 +642,7 @@ export class AIService {
         onDone?.({ ...artifact, webSources: result.webSources, modelUsed: result.modelUsed, reasoningEffortUsed: result.reasoningEffortUsed });
       } catch (error) {
         if (abortSignal?.aborted) throw error;
-        onError?.(error instanceof Error ? error.message : 'Flynn request failed.');
+        onError?.(error instanceof Error ? error.message : 'Chat request failed.');
       }
       return;
     }

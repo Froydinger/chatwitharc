@@ -12,10 +12,11 @@ import { isMultiPageBuildRequest } from '../_shared/multiPageIntent.ts';
 import { cloudAgentsProvider } from '../_shared/cloudAgentsProvider.ts';
 import { FLYNN_MODEL, flynnAllowedForUser } from '../_shared/flynnProvider.ts';
 import { flynnChatSession } from '../_shared/flynnChatSession.ts';
+import { chatArtifactStream } from '../_shared/chatArtifactStream.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'X-Arc-Chat-Revision': 'chat-completion-20260929',
+  'X-Arc-Chat-Revision': 'flynn-river-20260930',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -23,7 +24,7 @@ const LUNA_MODEL = 'gpt-6-luna';
 const SOL_MODEL = 'gpt-6.1-sol';
 const MAX_CHAT_AGENT_TOKENS = 65_536;
 const isOpenAIReasoningModel = (model: string): boolean =>
-  model.startsWith('gpt-6-') || model.startsWith('gpt-5.') || model.startsWith('o1') || model.startsWith('o3');
+  /^gpt-6(?:[.-])/.test(model) || model.startsWith('gpt-5.') || model.startsWith('o1') || model.startsWith('o3');
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -1753,7 +1754,7 @@ product and is helping someone with it. Stay in that voice completely.`;
     
     // ========== STREAMING MODE ==========
     // When stream=true, stream content directly to client (for all message types)
-    if (stream) {
+    if (stream && selectedModel !== SOL_MODEL) {
       const isCanvasOrCodeMode = wantsCode || wantsCanvas;
       console.log('🌊 Using streaming mode', isCanvasOrCodeMode ? 'for canvas/code' : 'for text');
       
@@ -2172,7 +2173,7 @@ product and is helping someone with it. Stay in that voice completely.`;
       // Tool-driven Chat, including explicit Code and Canvas requests, uses the
       // same Agents session path. Raw token-stream requests return through the
       // established streaming handler before reaching this branch.
-      const useAgentsApi = !stream;
+      const useAgentsApi = !stream || selectedModel === SOL_MODEL;
       let browserbaseTools: ReturnType<typeof browserbaseChatTools> | null = null;
       const getBrowserbaseTools = () => {
         if (!user || isGuestMode) return null;
@@ -3574,6 +3575,13 @@ product and is helping someone with it. Stay in that voice completely.`;
           'Connection': 'keep-alive',
         }
       });
+    }
+
+    if (stream && selectedModel === SOL_MODEL) {
+      return new Response(chatArtifactStream({ signal: req.signal,
+        mode: wantsCode ? 'code' : wantsCanvas ? 'canvas' : 'text',
+        run: signal => runChatPipeline(undefined, signal),
+      }), { headers: { ...corsHeaders, 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' } });
     }
 
     const finalResponse = await runChatPipeline();

@@ -19,7 +19,7 @@ type WorkerOptions = {
   secret: string;
   sweep(runId?: string): Promise<unknown>;
 };
-const WORKER_REVISION = 'agents-fast-20260929';
+const WORKER_REVISION = 'flynn-river-20260930';
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Arc-Worker-Revision': WORKER_REVISION } });
 }
