@@ -5,8 +5,8 @@ import { richMarkdownComponents } from "@/components/richMarkdown";
 import { cn } from "@/lib/utils";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { ImageModal } from "@/components/ImageModal";
-import { motion, useReducedMotion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useReducedMotionPreference } from "@/hooks/useReducedMotionPreference";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 
 interface SearchSource {
   title?: string;
@@ -72,7 +72,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
     moved: boolean;
   } | null>(null);
   const suppressClickRef = useRef(false);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionPreference();
   const visibleImages = images.slice(0, 4).filter((url) => !failedImages.has(url));
   const imageCount = visibleImages.length;
   const imageSignature = visibleImages.join("\u0001");
@@ -103,7 +103,10 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
     }
 
     const startTime = performance.now();
-    const duration = 620;
+    const token = carouselRef.current ? getComputedStyle(carouselRef.current).transitionDuration.split(",")[0].trim() : "400ms";
+    const parsed = Number.parseFloat(token);
+    const duration = Number.isFinite(parsed) ? parsed * (token.endsWith("ms") ? 1 : 1000) : 400;
+    if (duration <= 0) { updateTurn(targetTurn); return; }
     const animate = (now: number) => {
       const progress = Math.min(1, (now - startTime) / duration);
       const eased = 1 - (1 - progress) ** 4;
@@ -131,8 +134,13 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
   }, []);
 
   useEffect(() => {
+    cancelSettle();
     updateTurn(0);
-  }, [imageSignature, updateTurn]);
+  }, [imageSignature, cancelSettle, updateTurn]);
+
+  useEffect(() => {
+    if (prefersReducedMotion) { cancelSettle(); updateTurn(Math.round(turnRef.current)); }
+  }, [prefersReducedMotion, cancelSettle, updateTurn]);
 
   useEffect(() => () => cancelSettle(), [cancelSettle]);
 
@@ -334,7 +342,7 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
           <div
             ref={carouselRef}
             className={cn(
-              "relative mx-auto min-w-0 w-full max-w-full overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "arc-search-image-carousel relative mx-auto min-w-0 w-full max-w-full overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               isDragging ? "cursor-grabbing" : "cursor-grab",
             )}
             role="group"
@@ -363,31 +371,17 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
                     style={{ zIndex: cardState.zIndex }}
                   >
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <motion.div
+                      <div
                         className="h-[84%] w-[66%] sm:h-[88%] sm:w-[58%]"
-                        animate={{
-                          x: cardState.x,
-                          y: cardState.y,
-                          scale: cardState.scale,
-                          rotate: cardState.rotate,
-                        }}
-                        transition={isDragging
-                          ? { duration: 0 }
-                          : { type: "spring", stiffness: 320, damping: 28, mass: 0.7 }}
+                        style={{ transform: `translate(${cardState.x}px, ${cardState.y}px) rotate(${cardState.rotate}deg) scale(${cardState.scale})` }}
                       >
-                        <motion.div
-                          className="h-full w-full"
-                          animate={prefersReducedMotion
-                            ? undefined
-                            : {
-                                y: [-cardState.float, cardState.float, -cardState.float],
-                                rotate: [-cardState.sway, cardState.sway, -cardState.sway],
-                              }}
-                          transition={{
-                            duration: 5.3 + index * 0.4,
-                            ease: "easeInOut",
-                            repeat: Infinity,
-                          }}
+                        <div
+                          className="arc-search-image-float h-full w-full"
+                          style={{
+                            "--arc-search-float": `${cardState.float}px`,
+                            "--arc-search-sway": `${cardState.sway}deg`,
+                            "--arc-search-float-duration": `${5.3 + index * 0.4}s`,
+                          } as CSSProperties}
                         >
                         <button
                           type="button"
@@ -437,8 +431,8 @@ export function SearchResultsCard({ content, sources, query, images = [] }: Sear
                             Open full size
                           </span>
                           </button>
-                        </motion.div>
-                      </motion.div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 );

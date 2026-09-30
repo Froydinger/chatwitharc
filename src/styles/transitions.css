@@ -206,3 +206,20 @@
   .arc-image-thinking-glow { scale: 1; opacity: .2; }
   .arc-user-message-actions { transition: none !important; }
 }
+
+/* The carousel's pointer/keyboard position is already interpolated by its
+   cancellable RAF. Only its decorative inner float runs as a CSS loop. */
+.arc-search-image-carousel {
+  transition-property: none;
+  transition-duration: var(--duration-slow);
+}
+.arc-search-image-float {
+  animation: arc-search-image-float var(--arc-search-float-duration) var(--ease-in-out) infinite;
+}
+@keyframes arc-search-image-float {
+  0%, 100% { transform: translateY(calc(-1 * var(--arc-search-float))) rotate(calc(-1 * var(--arc-search-sway))); }
+  50% { transform: translateY(var(--arc-search-float)) rotate(var(--arc-search-sway)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arc-search-image-float { animation: none; }
+}
