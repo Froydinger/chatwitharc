@@ -4,6 +4,8 @@ import { ChevronDown, Ratio, Check, Images } from "lucide-react";
 import {
   useImageGenStore,
   IMAGE_ASPECT_OPTIONS,
+  IMAGE_MODEL_OPTIONS,
+  FLASH_IMAGE_MODEL,
   EDIT_ASPECT_OPTIONS,
   type ImageAspectRatio,
   type EditAspectRatio,
@@ -39,6 +41,8 @@ export function ImageOptionsContent({
   editMode?: boolean;
 }) {
   const {
+    imageMode,
+    setImageMode,
     aspectRatio,
     editAspectRatio,
     count,
@@ -72,6 +76,16 @@ export function ImageOptionsContent({
         </div>
       )}
 
+      <div className="flex gap-1 mb-3" role="group" aria-label="Image mode">
+        {IMAGE_MODEL_OPTIONS.map(option => {
+          const mode = option.id === FLASH_IMAGE_MODEL ? 'flash' : 'image';
+          return <button key={mode} type="button" aria-pressed={imageMode === mode}
+            title={option.blurb} onClick={() => setImageMode(mode)}
+            className={cn("rounded-full px-3 py-1.5 text-xs border transition-colors", imageMode === mode ? "bg-primary/10 border-primary/40 text-foreground" : "border-border/40 text-muted-foreground hover:bg-muted/40")}>
+            {option.label}
+          </button>;
+        })}
+      </div>
       <div className="flex flex-wrap items-end gap-3">
         {/* Aspect ratio picker */}
         <div className="relative flex flex-col gap-1">
@@ -109,7 +123,7 @@ export function ImageOptionsContent({
           )}
         </div>
 
-        {/* Each output counts toward the 20/day allowance. */}
+        {/* Both image modes share the account’s image credits. */}
           <div className="relative flex flex-col gap-1">
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground/80 pl-1">Count</span>
             <button

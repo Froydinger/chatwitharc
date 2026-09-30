@@ -49,7 +49,7 @@ try {
   await evaluate('window.__arcMotionQA.render(true); document.querySelector(`#arc-transition-qa button[aria-label="About this reply"]`).click()');
   await wait(30);
   const details = await evaluate('document.querySelector("[role=dialog]").innerText');
-  assert.ok(details.includes('Maya') && details.includes('Powered by GPT 6'));
+  assert.ok(details.includes('Arc Think') && details.includes('Powered by GPT 6'));
   assert.ok(details.toLowerCase().includes('web search') && details.toLowerCase().includes('weather'));
   assert.ok(!details.includes('gpt-6-luna') && !details.includes('Reasoning'));
   await evaluate('document.querySelector(`[role=dialog] button[aria-expanded="false"][aria-controls]`).click()');
@@ -79,7 +79,8 @@ try {
     const menu = await evaluate('(()=>{const n=document.querySelector(`[data-testid="chat-model-menu"]`);const r=n.getBoundingClientRect();return {x:r.x,right:r.right,animation:getComputedStyle(n).animationName,text:n.textContent}})()');
     assert.ok(menu.x >= 0 && menu.right <= width, 'Picker stays inside viewport');
     assert.equal(menu.animation, 'arc-dropdown-in');
-    assert.ok(!menu.text.includes('Flynn'), 'Signed-out fixture cannot select owner preview');
+    assert.ok(menu.text.includes('Arc Flash') && menu.text.includes('Less usage'), 'Both modes use public usage labels');
+    assert.equal((menu.text.match(/Powered by/g) || []).length, 2, 'Picker contains exactly two model choices');
     await evaluate(`${trigger}.click()`);
     await wait(20);
     assert.equal(await evaluate('document.querySelector(`[data-testid="chat-model-menu"]`)?.dataset.motionState'), 'closed');
@@ -87,10 +88,10 @@ try {
     await evaluate(`${trigger}.click()`);
     await wait(300);
     assert.equal(await evaluate('document.querySelectorAll(`[data-testid="chat-model-menu"]`).length'), 1, 'Rapid reopen retains one menu');
-    await evaluate('[...document.querySelectorAll(`[data-testid="chat-model-menu"] button`)].find(b=>b.textContent.includes("Maya")).click()');
+    await evaluate('[...document.querySelectorAll(`[data-testid="chat-model-menu"] button`)].find(b=>b.textContent.includes("Arc Think")).click()');
     await wait(250);
     assert.equal(await evaluate('!!document.querySelector(`[data-testid="chat-model-menu"]`)'), false);
-    assert.ok((await evaluate(`${trigger}.getAttribute("aria-label")`)).includes('Maya'));
+    assert.ok((await evaluate(`${trigger}.getAttribute("aria-label")`)).includes('Arc Think'));
     await call('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
     await evaluate(`${trigger}.click()`);
     await wait(30);

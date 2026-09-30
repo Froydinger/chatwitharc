@@ -1,6 +1,6 @@
 import { Sparkles, Mic, Crown } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
-import { AnimatedCounter } from "@/components/ui/rare-ui/animated-counter";
+import { useImageQuota } from "@/hooks/useImageQuota";
 import { cn } from "@/lib/utils";
 
 interface UsageMeterProps {
@@ -15,14 +15,13 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
   const {
     isAdmin,
     hasBoost,
-    dailyImagesUsed,
-    imageLimit,
     dailyVoiceSessionsUsed,
     remainingVoiceConversations,
     FREE_DAILY_VOICE_LIMIT,
     openCheckout,
   } = useSubscription();
 
+  const { creditsUsed: dailyImagesUsed, creditLimit: imageLimit } = useImageQuota();
   const isImage = kind === "image";
 
   if (isAdmin || hasBoost && (isImage ? imageLimit === Infinity : true)) {
@@ -35,10 +34,10 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           "text-xs font-medium text-primary",
           className,
         )}
-        aria-label={isImage ? "Unlimited Arc Imagix" : "Unlimited voice sessions, up to 2 hours each"}
+        aria-label={isImage ? "Unlimited usage" : "Unlimited voice sessions, up to 2 hours each"}
       >
         <Icon className="h-3.5 w-3.5 shrink-0" />
-        <span className="hidden sm:inline">{isImage ? "Unlimited Arc Imagix" : "Unlimited voice · 2h max"}</span>
+        <span className="hidden sm:inline">{isImage ? "Unlimited usage" : "Unlimited voice · 2h max"}</span>
         <span className="sm:hidden">{isImage ? "Unltd." : "Unltd."}</span>
       </div>
     );
@@ -81,7 +80,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
       title={
         isImage
           ? isExhausted
-            ? "Free Arc Imagix limit reached. Click to upgrade to Boost for unlimited creations."
+            ? "Image usage limit reached. Upgrade to Boost for unlimited usage."
             : "Click to view image limits and upgrade options"
           : voicePolicyLabel
       }
@@ -97,7 +96,7 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
           : "border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border",
         className,
       )}
-      aria-label={isImage ? `${remaining} free Arc Imagix creations remaining.` : `${voicePctLabel}. ${voicePolicyLabel}.`}
+      aria-label={isImage ? `${Math.round(pct)}% of image usage used today.` : `${voicePctLabel}. ${voicePolicyLabel}.`}
     >
       {isExhausted && !hasBoost && !isAdmin ? (
         <Crown className="h-3.5 w-3.5 shrink-0 text-destructive animate-pulse" />
@@ -108,12 +107,12 @@ export function UsageMeter({ kind, className }: UsageMeterProps) {
         {isExhausted ? (
           isImage ? "Free limit reached · Upgrade to Boost" : "Daily limit reached · Upgrade to Boost"
         ) : (
-          <>{isImage ? <><AnimatedCounter value={remaining} height={15} /> / {limit} free Arc Imagix left</> : voicePctLabel}</>
+          <>{isImage ? <>{Math.round(pct)}% used</> : voicePctLabel}</>
         )}
       </span>
       <span className="tabular-nums sm:hidden inline-flex items-center gap-0.5">
         {isExhausted ? "Upgrade" : (
-          <>{isImage ? <><AnimatedCounter value={used} height={14} />/{limit}</> : `${Math.round(pct)}%`}</>
+          <>{isImage ? <>{Math.round(pct)}%</> : `${Math.round(pct)}%`}</>
         )}
       </span>
       {/* mini progress bar */}

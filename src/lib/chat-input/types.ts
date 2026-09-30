@@ -18,7 +18,7 @@ export interface ComposerRequestSnapshot {
   hasExistingApp: boolean;
   workspace: Readonly<{ isOpen: boolean; canvasType: 'writing' | 'code'; content: string; codeLanguage: string }>;
   reasoningSelection: LunaReasoningSelection;
-  imageOptions: Readonly<{ aspect: string; editAspect: string; count: number }>;
+  imageOptions: Readonly<{ aspect: string; editAspect: string; count: number; generationModel?: string; editModel?: string }>;
 }
 
 export interface ComposerDispatchScope {

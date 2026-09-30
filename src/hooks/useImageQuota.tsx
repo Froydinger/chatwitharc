@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-export const DAILY_IMAGE_OUTPUT_LIMIT = 20;
+export const FREE_DAILY_IMAGE_CREDITS = 8;
 
 import { useImageGenStore, useResolvedImageModel } from "@/store/useImageGenStore";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -11,12 +11,17 @@ interface ImageQuotaSnapshot {
   used: number;
   remaining: number | null;
   limit: number | null;
-  isAdmin: boolean;
+  isBoost: boolean;
+  usage_percent: number;
   resetAt: string;
 }
 
 interface ImageQuotaState {
   loading: boolean;
+  creditsUsed: number;
+  remainingCredits: number;
+  creditLimit: number;
+  usagePercent: number;
   isAdmin: boolean;
   dailyImagesUsed: number;
   remainingImages: number;
@@ -32,9 +37,10 @@ const ImageQuotaContext = createContext<ImageQuotaState | null>(null);
 export function ImageQuotaProvider({ children }: { children: React.ReactNode }) {
   const { user, isAnonymous } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [quota, setQuota] = useState<ImageQuotaSnapshot | null>(null);
+  const [quota, setQuota] = useState<(ImageQuotaSnapshot & { ownerId: string }) | null>(null);
   const { hasBoost, isAdmin } = useSubscription();
   const selectedModel = useResolvedImageModel(hasBoost || isAdmin);
+  const count = useImageGenStore(state => state.count);
 
   const refreshQuota = useCallback(async () => {
     if (!user || isAnonymous) {
@@ -44,19 +50,18 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc("get_my_image_quota", {
-        chosen_model: selectedModel
-      });
+      const { data, error } = await supabase.rpc("get_my_arc_image_credits");
       if (error) throw error;
-      setQuota(data as unknown as ImageQuotaSnapshot);
+      setQuota({ ...(data as unknown as ImageQuotaSnapshot), ownerId: user.id });
     } catch (error) {
+      setQuota(null);
       console.error("[image-quota] refresh failed", error);
     } finally {
       setLoading(false);
     }
-  }, [isAnonymous, selectedModel, user]);
+  }, [isAnonymous, user]);
 
-  useEffect(() => { void refreshQuota(); }, [refreshQuota, selectedModel]);
+  useEffect(() => { void refreshQuota(); }, [refreshQuota]);
 
   useEffect(() => {
     const refresh = () => void refreshQuota();
@@ -69,21 +74,28 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
   }, [refreshQuota]);
 
   const value = useMemo<ImageQuotaState>(() => {
-    const isUnlimited = quota?.isAdmin === true || quota?.remaining === null;
-    const remaining = isUnlimited ? Infinity : quota?.remaining ?? 3;
-    const limit = isUnlimited ? Infinity : quota?.limit ?? 3;
+    const snapshot = quota?.ownerId === user?.id ? quota : null;
+    const isUnlimited = snapshot?.isBoost === true || snapshot?.remaining === null;
+    const remaining = isUnlimited ? Infinity : snapshot?.remaining ?? 0;
+    const limit = isUnlimited ? Infinity : snapshot?.limit ?? FREE_DAILY_IMAGE_CREDITS;
+    const unitCost = selectedModel === 'gemini-3.1-flash-image' ? 2 : 1;
     return {
       loading,
-      isAdmin: quota?.isAdmin === true,
-      dailyImagesUsed: quota?.used ?? 0,
-      remainingImages: remaining,
+      isAdmin,
+      creditsUsed: snapshot?.used ?? 0,
+      remainingCredits: remaining,
+      creditLimit: limit,
+      usagePercent: snapshot?.usage_percent ?? 0,
+      // Compatibility for existing meters: these fields now represent shared credits.
+      dailyImagesUsed: snapshot?.used ?? 0,
+      remainingImages: isUnlimited ? Infinity : Math.floor(remaining / unitCost),
       limit,
-      canGenerateImage: !isAnonymous && (isUnlimited || remaining > 0),
-      resetAt: quota?.resetAt ?? null,
+      canGenerateImage: !!user && !isAnonymous && (isUnlimited || remaining >= unitCost * count),
+      resetAt: snapshot?.resetAt ?? null,
       refreshQuota,
-      FREE_DAILY_IMAGE_LIMIT: 3,
+      FREE_DAILY_IMAGE_LIMIT: FREE_DAILY_IMAGE_CREDITS,
     };
-  }, [isAnonymous, loading, quota, refreshQuota]);
+  }, [count, isAdmin, isAnonymous, loading, quota, refreshQuota, selectedModel, user]);
 
   return <ImageQuotaContext.Provider value={value}>{children}</ImageQuotaContext.Provider>;
 }

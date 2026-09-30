@@ -1,16 +1,26 @@
 import type { ModelTurn } from './cloudRunEngine.ts';
 
-/** Owner preview only. Call with the authenticated user's email, never request data. */
+/** Boost access is resolved from the authenticated user, never request profile data. */
 export const FLYNN_MODEL = 'gemini-3.8-flash';
 export const FLYNN_OPENAI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
+export type FlynnUser = { id?: string; email?: string | null; is_anonymous?: boolean };
 
-export function flynnAllowedForUser(user: { email?: string | null } | null, apiKey: string | undefined): boolean {
-  return Boolean(apiKey?.trim()) && user?.email?.trim().toLowerCase() === 'jakefroydinger@gmail.com';
+export async function getFlynnEntitlement(client: {
+  rpc(name: string, args: Record<string, unknown>): PromiseLike<{ data: unknown; error: unknown }>;
+}, user: FlynnUser | null): Promise<boolean> {
+  if (!user?.id || user.is_anonymous) return false;
+  const { data, error } = await client.rpc('user_has_boost', { check_user_id: user.id });
+  if (error) throw new Error('Flynn access could not be verified.');
+  return data === true;
 }
 
-/** Fail before any provider call, including when a client forges a Flynn selection. */
-export function requireFlynnAccess(user: { email?: string | null } | null, apiKey: string | undefined): string {
-  if (!flynnAllowedForUser(user, apiKey)) throw new Error('Flynn is unavailable for this account.');
+export function flynnAllowedForUser(user: FlynnUser | null, apiKey: string | undefined, accessGranted = false): boolean {
+  return Boolean(user?.id && !user.is_anonymous && apiKey?.trim() && accessGranted === true);
+}
+
+/** Fail before any provider call, including forged selections or revoked access. */
+export function requireFlynnAccess(user: FlynnUser | null, apiKey: string | undefined, accessGranted = false): string {
+  if (!flynnAllowedForUser(user, apiKey, accessGranted)) throw new Error('Arc Flash access has not been authorized.');
   return apiKey!;
 }
 
@@ -46,7 +56,8 @@ export function flynnModelTurn(result: FlynnCompletion): ModelTurn {
  * execution history, including tool_calls[*].extra_content thought signatures.
  * It is execution state, not user-facing prose. Never retry an accepted POST. */
 export async function requestFlynnCompletion(options: {
-  user: { email?: string | null } | null;
+  user: FlynnUser | null;
+  accessGranted?: boolean;
   apiKey: string | undefined;
   messages: readonly Json[];
   tools?: readonly Json[];
@@ -56,7 +67,7 @@ export async function requestFlynnCompletion(options: {
   maxTokens?: number;
   fetcher?: typeof fetch;
 }): Promise<FlynnCompletion> {
-  const key = requireFlynnAccess(options.user, options.apiKey);
+  const key = requireFlynnAccess(options.user, options.apiKey, options.accessGranted);
   const timeoutMs = options.timeoutMs ?? 60_000;
   const maxTokens = options.maxTokens ?? 65_536;
   if (!Number.isSafeInteger(maxTokens) || maxTokens <= 0 || maxTokens > 65_536) throw new Error('Invalid Flynn output budget.');

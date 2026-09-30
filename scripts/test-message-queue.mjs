@@ -18,7 +18,7 @@ const documents = [new File(['document'], 'notes.txt', { type: 'text/plain' })];
 const request = content => snapshotComposerRequest({
   ...scope, content, images, documents, reasoningSelection: 'medium', corporateMode: false, hasExistingApp: false,
   modes: { image: false, code: false, canvas: false, search: true, git: false, regularChat: true, editImages: false },
-  imageOptions: { aspect: 'auto', editAspect: 'auto', count: 1 },
+  imageOptions: { aspect: 'auto', editAspect: 'auto', count: 1, generationModel: 'gemini-3.1-flash-image', editModel: 'gemini-3.1-flash-image' },
   workspace: { isOpen: false, content: '', canvasType: 'writing', codeLanguage: 'html' },
 });
 const first = request('first');
@@ -45,6 +45,8 @@ assert.equal(store.getState().popNext(scope, first.id), first);
 assert.equal(store.getState().popNext(scope, first.id), null, 'Atomic claim prevents duplicate timer/button dispatch');
 store.getState().editInQueue(second.id, 'edited');
 assert.equal(store.getState().queue[0].content, 'edited');
+assert.equal(store.getState().queue[0].imageOptions.generationModel, 'gemini-3.1-flash-image', 'Editing queued text retains the captured image provider');
+assert.ok(Object.isFrozen(store.getState().queue[0].imageOptions));
 assert.equal(store.getState().queue[0].images[0], second.images[0]);
 store.getState().reorderQueue(-1, 20);
 assert.equal(store.getState().queue.length, 1);

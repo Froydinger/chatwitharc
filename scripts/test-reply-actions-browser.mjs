@@ -42,7 +42,7 @@ try {
     if (width === 412) { const image = await call('Page.captureScreenshot', {format:'png'}); writeFileSync('/tmp/arc-reply-controls-older.png', Buffer.from(image.data,'base64')); }
     await evaluate(`document.querySelector('[data-qa-reply="older"] button[aria-label="About this reply"]').click()`);
     await wait(300);
-    assert.ok((await evaluate('document.querySelector("[role=dialog]").textContent')).includes('Maya'));
+    assert.ok((await evaluate('document.querySelector("[role=dialog]").textContent')).includes('Arc Think'));
     await evaluate(`document.querySelector('[role="dialog"] button span.sr-only')?.parentElement.click()`);
     await wait(300);
     assert.deepEqual(await active(), ['older'], 'Model dialog belongs to selected older reply');
@@ -74,7 +74,7 @@ try {
     await tap('older'); await wait(50);
     await evaluate('window.__arcReplyActionsQA.remove("older")'); await wait(50);
     assert.deepEqual(await active(), ['final-request'], 'Deleted selected reply falls back to latest');
-    for (const [model, name, powered] of [['gemini-3.8-flash', 'Flynn', 'Powered by Gemini Flash'], ['gpt-6.1-sol', 'River', 'Powered by GPT 6']]) {
+    for (const [model, name, powered] of [['gemini-3.8-flash', 'Arc Flash', 'Powered by Gemini Flash'], ['gpt-6.1-sol', 'Arc Think', 'Powered by GPT 6']]) {
       await evaluate(`window.__arcReplyActionsQA.add("provider-reply", "assistant", ${JSON.stringify(model)})`);
       await wait(50);
       await evaluate(`document.querySelector('[data-qa-reply="provider-reply"] button[aria-label="About this reply"]').click()`);
@@ -92,7 +92,7 @@ try {
       assert.ok(Math.abs(afterHover.x - beforeHover.x) < 1 && Math.abs(afterHover.y - beforeHover.y) < 1,
         `Hover must preserve modal position: ${JSON.stringify({beforeHover,afterHover})}`);
       assert.equal(await evaluate(`document.querySelectorAll('[role=dialog] button[aria-label="Report a bug"]').length`), 1);
-      if (width === 412 && name === 'Flynn') {
+      if (width === 412 && name === 'Arc Flash') {
         const image = await call('Page.captureScreenshot', { format: 'png' });
         writeFileSync('/tmp/arc-flynn-reply-details.png', Buffer.from(image.data, 'base64'));
       }

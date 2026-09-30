@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConditionalTransition } from '@/components/transitions/ConditionalTransition';
-import { Bubbles, RefreshCcwDot, Droplets, WavesHorizontal, Zap, Check, ChevronDown, Crown } from 'lucide-react';
-import { canSeeFlynnPreview, useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
+import { RefreshCcwDot, Fish, Check, ChevronDown, Crown } from 'lucide-react';
+import { canSelectFlynn, useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
 import { useAuth } from '@/hooks/useAuth';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { cn } from '@/lib/utils';
 
@@ -19,11 +20,8 @@ interface Props {
 }
 
 export const PRESETS = [
-  { effort: 'auto', title: 'Auto', subtitle: 'Smart routing across Arc Matrix', icon: RefreshCcwDot },
-  { effort: 'low', title: 'Ava', subtitle: 'Snappy answers & everyday speed', icon: Bubbles },
-  { effort: 'medium', title: 'Maya', subtitle: 'Versatile powerhouse intelligence', icon: Droplets },
-  { effort: 'high', title: 'River', subtitle: 'Deep logic & heavy reasoning', icon: WavesHorizontal },
-  { effort: 'flynn', title: 'Flynn', subtitle: 'Gemini Flash · Private preview', icon: Zap },
+  { effort: 'auto', title: 'Arc Think', subtitle: 'Powered by GPT 6 & 6.1', icon: RefreshCcwDot },
+  { effort: 'flynn', title: 'Arc Flash', subtitle: 'Powered by Gemini Flash', icon: Fish },
 ] as const;
 
 export function ChatModelPicker({
@@ -37,15 +35,14 @@ export function ChatModelPicker({
   const {
     hasBoost,
     isAdmin,
+    loading: subscriptionLoading,
     openCheckout,
-    dailyBalancedUsed,
-    dailyDeepUsed,
-    FREE_DAILY_BALANCED_LIMIT,
-    FREE_DAILY_DEEP_LIMIT,
   } = useSubscription();
   const reasoningEffort = useModelStore((state) => state.reasoningEffort);
   const { user, loading: authLoading } = useAuth();
-  const presets = PRESETS.filter(preset => preset.effort !== 'flynn' || canSeeFlynnPreview(user));
+  const presets = PRESETS;
+  const requireAuth = useRequireAuth();
+  const flynnAvailable = canSelectFlynn(user, hasBoost || isAdmin);
   const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -54,8 +51,8 @@ export function ChatModelPicker({
   const CurrentIcon = activePreset.icon;
 
   useEffect(() => {
-    if (!authLoading && reasoningEffort === 'flynn' && !canSeeFlynnPreview(user)) setReasoningEffort('low');
-  }, [authLoading, reasoningEffort, user, setReasoningEffort]);
+    if (!authLoading && !subscriptionLoading && reasoningEffort === 'flynn' && !flynnAvailable) setReasoningEffort('auto');
+  }, [authLoading, subscriptionLoading, reasoningEffort, flynnAvailable, setReasoningEffort]);
 
   useEffect(() => {
     if (!open) return;
@@ -79,7 +76,11 @@ export function ChatModelPicker({
   }, [open]);
 
   const pick = (effort: LunaReasoningSelection) => {
-    if (effort === 'flynn' && !canSeeFlynnPreview(user)) return;
+    if (effort === 'flynn' && !flynnAvailable) {
+      setOpen(false);
+      requireAuth('generic', undefined, 'Arc Flash');
+      return;
+    }
     if (effort === 'high' && !hasBoost && !isAdmin) {
       setOpen(false);
       openCheckout(undefined, 'river_boost_required');
@@ -96,15 +97,15 @@ export function ChatModelPicker({
         type="button"
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          'glass-btn inline-flex items-center gap-1.5 h-10 rounded-full text-sm font-semibold text-foreground/90',
-          compact ? 'px-3' : 'px-4',
+          'glass-btn inline-flex items-center gap-1.5 h-8 rounded-full text-xs font-semibold text-foreground/90',
+          compact ? 'px-2.5' : 'px-3',
           className,
         )}
         aria-label={`Arc Matrix model: ${activePreset.title}`}
         title={`Arc · ${activePreset.title} — tap to change model`}
       >
         <CurrentIcon className="h-4 w-4 text-primary" />
-        <span>{compact ? activePreset.title : `Arc · ${activePreset.title}`}</span>
+        <span>{compact ? activePreset.title : activePreset.title}</span>
         <ChevronDown className={cn('h-3.5 w-3.5 opacity-60 transition-transform', open && 'rotate-180')} />
       </button>
 
@@ -157,23 +158,16 @@ export function ChatModelPicker({
                       </button>
                     </div>
                     <div className="text-[10px] text-muted-foreground mt-2">
-                      {arcWorkAvailable ? 'Chat with Arc here, or let Work continue after you leave.' : 'Arc Work is the Boost cloud agent (powered by River).'}
+                      {arcWorkAvailable ? 'Chat with Arc here, or let Work continue after you leave.' : 'Arc Work is the Boost cloud agent.'}
                     </div>
                   </div>
                 )}
                 <div className="px-2.5 pt-2 pb-1.5">
-                  <div className="text-xs font-semibold">Arc Matrix™ Models</div>
-                  <div className="text-[10px] text-muted-foreground">Select a reasoning engine for Arc.</div>
+                  <div className="text-xs font-semibold">Arc Matrix™</div>
+                  <div className="text-[10px] text-muted-foreground">Choose how Arc responds.</div>
                 </div>
                 {presets.map((preset) => {
-                  let badge: string | undefined;
-                  if (preset.effort === 'low') {
-                    badge = 'Unlimited';
-                  } else if (preset.effort === 'medium') {
-                    badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_BALANCED_LIMIT - dailyBalancedUsed)}/${FREE_DAILY_BALANCED_LIMIT} left`;
-                  } else if (preset.effort === 'high') {
-                    badge = isAdmin || hasBoost ? 'Unlimited' : 'Boost only';
-                  }
+                  const badge = hasBoost || isAdmin ? 'Unlimited usage' : 'Less usage';
                   return (
                     <Row
                       key={preset.effort}

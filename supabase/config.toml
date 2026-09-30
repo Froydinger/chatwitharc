@@ -1,6 +1,13 @@
 project_id = "jpqtoixhjnfdubvqshwk"
 
 [functions]
+  [functions.chat]
+    # Preserve deployed gateway settings; handler verifies callers with auth.getUser.
+    verify_jwt = false
+  [functions.generate-image]
+    verify_jwt = true
+  [functions.edit-image]
+    verify_jwt = true
   [functions.chat-subagents]
     # The handler verifies the caller and Boost/admin entitlement itself before
     # starting any temporary parallel provider work.

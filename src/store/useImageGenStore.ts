@@ -7,14 +7,16 @@ import { persist } from 'zustand/middleware';
  * - gpt-image-2.5-sunburst: Flagship "Pro" model (maximum fidelity, rich lighting, creative precision)
  * - gpt-image-2: Legacy fallback
  */
-export type ImageModelId = 'gpt-image-2.5-flare' | 'gpt-image-2.5-sunburst' | 'gpt-image-2';
+export type ImageModelId = 'gpt-image-2.5-flare' | 'gpt-image-2.5-sunburst' | 'gpt-image-2' | 'gemini-3.1-flash-image';
 export const DEFAULT_IMAGE_MODEL: ImageModelId = 'gpt-image-2.5-flare';
 export const PRO_IMAGE_MODEL: ImageModelId = 'gpt-image-2.5-sunburst';
 export const EDIT_IMAGE_MODEL: ImageModelId = 'gpt-image-2.5-sunburst';
+export const FLASH_IMAGE_MODEL: ImageModelId = 'gemini-3.1-flash-image';
 export const ALLOWED_IMAGE_MODELS: ImageModelId[] = [
   'gpt-image-2.5-flare',
   'gpt-image-2.5-sunburst',
   'gpt-image-2',
+  FLASH_IMAGE_MODEL,
 ];
 
 export type ImageAspectRatio = '1:1' | '3:2' | '2:3' | '16:9';
@@ -38,23 +40,9 @@ export const EDIT_ASPECT_OPTIONS: Array<{ id: EditAspectRatio; label: string }> 
   { id: '16:9', label: '16:9 (YouTube)' },
 ];
 
-export const IMAGE_MODEL_OPTIONS: Array<{ id: ImageModelId; label: string; blurb: string; pro?: boolean }> = [
-  {
-    id: 'gpt-image-2.5-flare',
-    label: 'GPT Image 2.5 Quick (Default)',
-    blurb: 'Fast, high-fidelity generation · up to 50% lower latency',
-  },
-  {
-    id: 'gpt-image-2.5-sunburst',
-    label: 'GPT Image 2.5 Pro',
-    blurb: 'Maximum fidelity, lighting, texture, and precision edits',
-    pro: true,
-  },
-  {
-    id: 'gpt-image-2',
-    label: 'GPT Image 2',
-    blurb: 'Legacy Image 2.0 generation',
-  },
+export const IMAGE_MODEL_OPTIONS = [
+  { id: DEFAULT_IMAGE_MODEL, label: 'Arc Image', blurb: 'Powered by GPT Image 2.5' },
+  { id: FLASH_IMAGE_MODEL, label: 'Arc Image Flash', blurb: 'Powered by Nano Banana 2' },
 ];
 
 export const IMAGE_ASPECT_OPTIONS: Array<{ id: ImageAspectRatio; label: string }> = [
@@ -93,6 +81,8 @@ function normalizeCount(value: unknown): ImageCount {
 }
 
 interface ImageGenState {
+  imageMode: 'image' | 'flash';
+  setImageMode: (mode: 'image' | 'flash') => void;
   aspectRatio: ImageAspectRatio;
   /** Shape for edits. 'source' keeps the original image's shape. */
   editAspectRatio: EditAspectRatio;
@@ -109,6 +99,8 @@ interface ImageGenState {
 export const useImageGenStore = create<ImageGenState>()(
   persist(
     (set) => ({
+      imageMode: 'image',
+      setImageMode: (imageMode) => set({ imageMode: imageMode === 'flash' ? 'flash' : 'image' }),
       aspectRatio: DEFAULT_ASPECT_RATIO,
       editAspectRatio: DEFAULT_EDIT_ASPECT,
       count: 1,
@@ -121,15 +113,17 @@ export const useImageGenStore = create<ImageGenState>()(
     }),
     {
       name: 'arc-image-gen-prefs',
-      version: 4,
+      version: 5,
       migrate: (persisted: unknown) => {
         const state = (persisted ?? {}) as {
+          imageMode?: unknown;
           aspectRatio?: unknown;
           editAspectRatio?: unknown;
           count?: unknown;
           proImage?: unknown;
         };
         return {
+          imageMode: state.imageMode === 'flash' ? 'flash' : 'image',
           aspectRatio: normalizeAspect(state.aspectRatio),
           editAspectRatio: normalizeEditAspect(state.editAspectRatio),
           count: normalizeCount(state.count),
@@ -138,6 +132,7 @@ export const useImageGenStore = create<ImageGenState>()(
       },
       onRehydrateStorage: () => (state) => {
         if (!state) return;
+        state.imageMode = state.imageMode === 'flash' ? 'flash' : 'image';
         state.aspectRatio = normalizeAspect(state.aspectRatio);
         state.count = normalizeCount(state.count);
         state.editAspectRatio = normalizeEditAspect(state.editAspectRatio);
@@ -147,27 +142,16 @@ export const useImageGenStore = create<ImageGenState>()(
   )
 );
 
-function checkIsBoostOrAdmin(): boolean {
-  try {
-    return typeof window !== "undefined" && localStorage.getItem("arcai-has-boost") === "true";
-  } catch {
-    return false;
-  }
-}
-
-/** Resolve the generation model in non-React code (e.g. Zustand store getters). EVERYONE uses 2.5 Flare. */
+/** Captured at submission; the server validates model and shared credits. */
 export function getResolvedImageModel(_isBoost?: boolean): ImageModelId {
-  return DEFAULT_IMAGE_MODEL;
+  return useImageGenStore.getState().imageMode === 'flash' ? FLASH_IMAGE_MODEL : DEFAULT_IMAGE_MODEL;
 }
-
-/** React hook for the model used by *initial generation*. EVERYONE uses 2.5 Flare. */
+export function getResolvedEditImageModel(): ImageModelId {
+  return useImageGenStore.getState().imageMode === 'flash' ? FLASH_IMAGE_MODEL : EDIT_IMAGE_MODEL;
+}
 export function useResolvedImageModel(_isBoost?: boolean): ImageModelId {
-  return DEFAULT_IMAGE_MODEL;
+  return useImageGenStore(state => state.imageMode === 'flash' ? FLASH_IMAGE_MODEL : DEFAULT_IMAGE_MODEL);
 }
-
-/**
- * The model used for edits. All edits use 2.5 Sunburst for precision control.
- */
 export function useEditImageModel(_isBoost?: boolean): ImageModelId {
-  return EDIT_IMAGE_MODEL;
+  return useImageGenStore(state => state.imageMode === 'flash' ? FLASH_IMAGE_MODEL : EDIT_IMAGE_MODEL);
 }

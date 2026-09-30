@@ -4,6 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { Image, decode } from "https://deno.land/x/imagescript@1.2.17/mod.ts";
 import { uploadPrivateImage, downloadPrivateImage } from "../_shared/privateImageStorage.ts";
 import { fetchPublicMedia } from "../_shared/safeRemoteMedia.ts";
+import { ARC_IMAGE_FLASH_MODEL, callImageFlash, imageFlashAspect, imageFlashInputs } from "../_shared/arcImageFlash.ts";
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 
@@ -13,13 +14,13 @@ const corsHeaders = {
 };
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const OPENAI_TIMEOUT_MS = 180_000;
 const DEFAULT_IMAGE_MODEL = 'gpt-image-2.5-sunburst';
-function pickModel(_requested?: string): string {
-  // All image edits use GPT Image 2.5 Sunburst (OpenAI's precision editor)
-  return DEFAULT_IMAGE_MODEL;
+function pickModel(requested?: string): string {
+  return requested === ARC_IMAGE_FLASH_MODEL ? ARC_IMAGE_FLASH_MODEL : DEFAULT_IMAGE_MODEL;
 }
 
 function toOpenAIModel(model: string): string {
@@ -368,8 +369,12 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
       console.log(`[job ${jobId}] matching source shape ${sources[0]?.width}x${sources[0]?.height} -> ${size}`);
     }
 
-    console.log(`[job ${jobId}] OpenAI edit attempt (${size}, n=${count})`);
-    const primary = await callOpenAIEdits(prompt, sources, selectedModel, size, count);
+    console.log(`[job ${jobId}] Image edit attempt (${size}, n=${count})`);
+    const primary = selectedModel === ARC_IMAGE_FLASH_MODEL
+      ? await callImageFlash({ apiKey: GEMINI_API_KEY, prompt, count,
+        aspect: imageFlashAspect(aspect, sources[0]?.width, sources[0]?.height),
+        images: await imageFlashInputs(sources) })
+      : await callOpenAIEdits(prompt, sources, selectedModel, size, count);
 
     let urls: string[] = [];
     let primaryErr: ReturnType<typeof classifyError> | null = null;
@@ -389,7 +394,7 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
     if (urls.length === 0) {
       const err = primaryErr ?? {
         errorType: 'provider_error',
-        errorMessage: 'OpenAI returned no edited image. Please try again.',
+        errorMessage: 'The image model returned no edited image. Please try again.',
         debugDetail: 'Empty OpenAI image response',
       };
       await updateJob(supabase, jobId, { status: 'failed', error_message: err.errorMessage, error_type: err.errorType });
@@ -397,12 +402,14 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
       return;
     }
 
-    const finalUrls = await Promise.all(
+    const uploads = await Promise.allSettled(
       urls.map((url) => uploadPrivateImage(supabase, url, {
         userId,
         kind: 'edited',
       })),
     );
+    const finalUrls = uploads.filter((result): result is PromiseFulfilledResult<string> => result.status === "fulfilled").map(result => result.value);
+    if (finalUrls.length === 0) throw new Error("Edited image could not be stored. Please try again.");
     await updateJob(supabase, jobId, {
       status: 'completed',
       result_image_url: finalUrls[0],
@@ -418,7 +425,7 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
     console.error(`[job ${jobId}] processing error:`, err);
     await updateJob(supabase, jobId, { status: 'failed', error_message: message, error_type: 'processing_error' });
   } finally {
-    const { error } = await supabase.rpc('finalize_image_quota', {
+    const { error } = await supabase.rpc('finalize_arc_image_credits', {
       target_job_id: jobId,
       successful_count: successfulCount,
     });
@@ -429,7 +436,7 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-  if (!OPENAI_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return jsonResponse({ success: false, error: 'Image editing backend not configured.', errorType: 'configuration_error' });
   }
 
@@ -458,6 +465,12 @@ serve(async (req) => {
   try {
     const { prompt, baseImageUrl, baseImageUrls, aspectRatio, imageModel, count } = await req.json();
     const selectedModel = pickModel(imageModel);
+    if (!(selectedModel === ARC_IMAGE_FLASH_MODEL ? GEMINI_API_KEY : OPENAI_API_KEY)) {
+      return jsonResponse({ success: false, error: "The selected image mode is unavailable.", errorType: "configuration_error" });
+    }
+    if (selectedModel === ARC_IMAGE_FLASH_MODEL && typeof prompt === "string" && wantsTransparentBackground(prompt)) {
+      return jsonResponse({ success: false, error: "For a transparent background, choose Arc Image.", errorType: "invalid_request" });
+    }
     // Edits default to keeping the source image's shape. Only an explicit,
     // recognized aspect ratio overrides that.
     const rawAspect = (typeof aspectRatio === 'string' && aspectRatio.trim()) ? aspectRatio.trim() : SOURCE_ASPECT;
@@ -494,7 +507,7 @@ serve(async (req) => {
     }
 
     const jobId = jobData.id;
-    const { data: quota, error: quotaError } = await supabase.rpc('reserve_image_quota', {
+    const { data: quota, error: quotaError } = await supabase.rpc('reserve_arc_image_credits', {
       target_user_id: user.id,
       target_job_id: jobId,
       requested_count: requestedCount,
@@ -507,7 +520,7 @@ serve(async (req) => {
       await updateJob(supabase, jobId, { status: 'failed', error_message: 'Free image limit reached', error_type: 'daily_limit' });
       return jsonResponse({
         success: false,
-        error: `Free image limit reached (3 images total). Upgrade to ArcAI Boost for unlimited image editing.`,
+        error: `Image usage limit reached. Upgrade to ArcAI Boost for unlimited usage.`,
         errorType: 'daily_limit',
         quota,
       });

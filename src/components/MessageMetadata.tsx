@@ -30,10 +30,10 @@ export function MessageMetadata({ message }: { message: Message }) {
   const isImage = source?.startsWith("cloud-image");
   const name = isLocal ? "Local AI"
     : source === "cloud-voice" ? "Voxi"
-    : isImage ? source?.includes("edit") ? "Arc Imagix Edit" : "Arc Imagix"
-    : message.modelUsed === "gemini-3.8-flash" ? "Flynn"
-    : message.modelUsed === "gpt-6-sol" || message.modelUsed === "gpt-6.1-sol" ? "River"
-    : message.reasoningEffortUsed ? getModelDisplayName(message.reasoningEffortUsed) : "Arc Matrix";
+    : isImage ? message.modelUsed === "gemini-3.1-flash-image" ? "Arc Image Flash" : "Arc Image"
+    : message.modelUsed === "gemini-3.8-flash" ? "Arc Flash"
+    : message.modelUsed === "gpt-6-sol" || message.modelUsed === "gpt-6.1-sol" ? "Arc Think"
+    : message.reasoningEffortUsed ? getModelDisplayName(message.reasoningEffortUsed) : "Arc Think";
   const sources = message.webSources?.length ? message.webSources : message.memoryAction?.sources;
 
   const tools = Array.from(new Set([
@@ -65,7 +65,7 @@ export function MessageMetadata({ message }: { message: Message }) {
             <ThemedLogo className="h-7 w-7 shrink-0" alt="Arc" />
             <div>
               <p className="font-medium">{name}</p>
-              <p className="text-xs text-muted-foreground">{isLocal ? "On your device" : isImage || source === "cloud-voice" ? "ArcAI · Cloud" : name === "Flynn" ? "Powered by Gemini Flash" : "Powered by GPT 6"}</p>
+              <p className="text-xs text-muted-foreground">{isLocal ? "On your device" : isImage ? name === "Arc Image Flash" ? "Powered by Nano Banana 2" : "Powered by GPT Image 2.5" : source === "cloud-voice" ? "ArcAI · Cloud" : name === "Arc Flash" ? "Powered by Gemini Flash" : "Powered by GPT 6 & 6.1"}</p>
             </div>
           </div>
           {tools.length > 0 && (

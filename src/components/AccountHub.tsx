@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useImageQuota } from "@/hooks/useImageQuota";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
 import { useArcStore } from "@/store/useArcStore";
@@ -63,8 +64,6 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   const {
     loading: subLoading,
     isAdmin: quotaAdmin,
-    dailyImagesUsed,
-    imageLimit: FREE_DAILY_IMAGE_LIMIT,
     hasBoost,
     openCheckout,
     openCustomerPortal,
@@ -203,7 +202,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     : null;
 
 
-  const imagePercent = quotaAdmin ? 0 : Math.min(100, (dailyImagesUsed / FREE_DAILY_IMAGE_LIMIT) * 100);
+  const { usagePercent: imagePercent } = useImageQuota();
 
   const getSyncStatus = () => {
     if (!user) return { icon: CloudOff, color: "text-muted-foreground", text: "Not signed in" };
@@ -303,7 +302,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                       <div>
                         <div className="flex justify-between text-xs text-muted-foreground mb-1">
                           <span>🖼️ Images (today)</span>
-                          <span>{quotaAdmin ? "Unlimited" : `${dailyImagesUsed}/${FREE_DAILY_IMAGE_LIMIT}`}</span>
+                          <span>{quotaAdmin || hasBoost ? "Unlimited usage" : `${imagePercent}% used`}</span>
                         </div>
                         <Progress value={imagePercent} className="h-1.5" />
                       </div>

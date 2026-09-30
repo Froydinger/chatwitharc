@@ -36,7 +36,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["ArcAI", "Ask Arc", "AI assistant", "AI with memory", "Boost tier"],
     updated: UPDATED,
     intro:
-      "ArcAI (sometimes called Ask Arc) is an AI workspace that combines Luna reasoning chat, real-time voice, image generation, and coding tools in a single browser app. You can get started with a free account, or unlock higher limits and unlimited research with Boost.",
+      "ArcAI (sometimes called Ask Arc) is an AI workspace that combines Arc Think chat, real-time voice, image generation, and coding tools in a single browser app. You can get started with a free account, or unlock higher limits and unlimited research with Boost.",
     faq: [
       {
         q: "What is ArcAI?",
@@ -44,7 +44,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI free?",
-        a: "Yes. The free tier includes Arc Matrix™ chat (unlimited Ava and 20 Maya chats daily), image generation with Arc Imagix, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. River requires Boost, which also adds unlimited research, Arc Imagix generation and editing, and unlimited voice sessions up to 2 hours each.",
+        a: "Yes. The free tier includes Arc Matrix™ chat with less usage on Free, image generation with Arc Image, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost adds unlimited usage, including unlimited research, Arc Image generation and editing, and unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "Can I use ArcAI for coding?",
@@ -64,7 +64,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which AI models does ArcAI use?",
-        a: "ArcAI is powered by Arc Matrix™—our proprietary orchestration engine combining frontier language models, multimodal vision, and deep reasoning architectures. Chat and analysis are driven by Ava, Maya, and River; visual generation and precision editing are powered by Arc Imagix and Arc Imagix Edit; natural voice conversations run on Voxi; and live web research is powered by Deep Search.",
+        a: "ArcAI is powered by Arc Matrix™—our proprietary orchestration engine combining frontier language models, multimodal vision, and deep reasoning architectures. Chat and analysis use Arc Think and Arc Flash; visual generation and precision editing are powered by Arc Image and Arc Image Flash; natural voice conversations run on Voxi; and live web research is powered by Deep Search.",
       },
     ],
     cta: "Try ArcAI now",
@@ -93,11 +93,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI as good as ChatGPT Plus?",
-        a: "Boost adds unlimited Deep Search and Ultra Deep Search, unlimited Ava, Maya, and River reasoning, premium Arc Imagix tools, and unlimited voice sessions up to 2 hours each.",
+        a: "Boost adds unlimited Deep Search and Ultra Deep Search, unlimited usage for Arc Think and Arc Flash, premium Arc Image tools, and unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "Does the free tier have message limits?",
-        a: "ArcAI provides unlimited Ava and 20 Maya chats daily on the free plan. River requires Boost, which also makes Maya unlimited.",
+        a: "ArcAI offers less usage on Free and unlimited usage with Boost.",
       },
       {
         q: "Can I use ArcAI without signing up?",
@@ -147,11 +147,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["GPT-4 alternative", "GPT-4 free", "free GPT", "AI coding assistant"],
     updated: UPDATED,
     intro:
-      "Access to advanced reasoning is restricted on many services. ArcAI gives free accounts Arc Matrix™ intelligence with Ava and Maya; Boost unlocks River and unlimited Maya.",
+      "Access to advanced reasoning is restricted on many services. ArcAI gives free accounts Arc Matrix™ intelligence with Arc Think and Arc Flash; Boost adds unlimited usage.",
     faq: [
       {
         q: "Is there a free version of advanced AI reasoning?",
-        a: "ArcAI is a leading alternative that gives you Ava for speed, Maya for balanced intelligence, and River for deep reasoning and code architecture. Auto-mode picks the best engine for your task.",
+        a: "ArcAI is a leading alternative that gives you Arc Think for Auto orchestration and Arc Flash for Gemini Flash replies.",
       },
       {
         q: "Can ArcAI help me write and understand code?",
@@ -163,7 +163,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "What model does ArcAI use for chat?",
-        a: "ArcAI chat is powered by Arc Matrix™, letting you select Ava for quick tasks, Maya for nuanced conversation, and River for complex problem solving.",
+        a: "ArcAI chat is powered by Arc Matrix™, letting you choose Arc Think or Arc Flash.",
       },
       {
         q: "Can ArcAI do everything GPT-4 can?",
@@ -209,7 +209,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     faq: [
       {
         q: "What is the best free AI assistant in 2026?",
-        a: "ArcAI offers unlimited Ava, 20 Maya chats daily, image creation, cited web research, document analysis, and long-term memory. Boost unlocks River and higher quotas.",
+        a: "ArcAI offers free chat with less usage, image creation, cited web research, document analysis, and long-term memory. Boost adds unlimited usage.",
       },
       {
         q: "What makes ArcAI different from other AI assistants in 2026?",
@@ -259,11 +259,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["AI image generator", "AI image free", "GPT image free", "image creator"],
     updated: UPDATED,
     intro:
-      "ArcAI includes a built-in AI image studio powered by Arc Imagix for generation and Arc Imagix Edit for precision editing. Free accounts get 3 free creations total, while Boost accounts unlock unlimited image generation and editing.",
+      "ArcAI includes a built-in AI image studio with Arc Image (powered by GPT Image 2.5) and Arc Image Flash (powered by Nano Banana 2) for generation and editing. Free accounts get less usage; Boost accounts get unlimited usage for both image modes.",
     faq: [
       {
         q: "What is the best AI image generator?",
-        a: "ArcAI is a strong option because it integrates Arc Imagix for fast creative synthesis and Arc Imagix Edit for precision editing directly into your chat and workspace.",
+        a: "ArcAI is a strong option because it integrates Arc Image for fast creative synthesis and Arc Image for precision editing directly into your chat and workspace.",
       },
       {
         q: "Can I use generated images in my chats and canvases?",
@@ -271,11 +271,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How many free images can I generate?",
-        a: "Free accounts get 3 Arc Imagix creations total to try out image generation. Upgrading to Boost gives you unlimited Arc Imagix generation and precision Arc Imagix Edit tools.",
+        a: "Free accounts get less usage for image generation. Upgrading to Boost gives you unlimited Arc Image generation and precision Arc Image tools.",
       },
       {
         q: "Can I edit generated images?",
-        a: "Yes. Full image editing (combining, inpainting, and precision variations) is powered by Arc Imagix Edit and included with unlimited access on Boost.",
+        a: "Yes. Full image editing (combining, inpainting, and precision variations) is powered by Arc Image and included with unlimited access on Boost.",
       },
     ],
     cta: "Generate AI images",
@@ -485,7 +485,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "what-is-arcai": {
     angle: "ArcAI is built around a simple idea: one assistant should help with thinking, searching, speaking, writing, coding, creating images, and remembering the context that makes those tasks personal.",
     useCases: ["daily planning", "coding help", "research with sources", "image generation", "voice brainstorming", "long-term bot memory"],
-    freeAccess: "The free plan includes unlimited Ava and 20 Maya chats daily, plus 3 voice sessions per UTC day, up to 10 minutes each. Boost unlocks River, unlimited Maya, unlimited research, and unlimited voice sessions up to 2 hours each.",
+    freeAccess: "The free plan includes chat with less usage, plus 3 voice sessions per UTC day, up to 10 minutes each. Boost adds unlimited usage for chat, images and research, and unlimited voice sessions up to 2 hours each.",
     proof: "That combination makes ArcAI feel less like a single chatbot tab and more like a workspace for creative work and research.",
   },
   "free-chatgpt-alternative": {
@@ -503,13 +503,13 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-gpt-4-alternative": {
     angle: "People looking for a GPT-4 alternative often want strong reasoning alongside practical tools and persistent memory.",
     useCases: ["reasoning through hard questions", "coding help", "writing drafts", "debugging code", "generating images", "persistent bot memory"],
-    freeAccess: "Free accounts get Arc Matrix™ with unlimited Ava and 20 Maya chats daily; Boost adds River, unlimited Maya, and premium tools.",
+    freeAccess: "Free accounts get Arc Matrix™ with less usage on Free; Boost adds unlimited usage and premium tools.",
     proof: "ArcAI brings chat, voice, images, memory, and coding help together in one product.",
   },
   "free-claude-alternative": {
     angle: "Claude is known for thoughtful writing and analysis. ArcAI also brings voice, images, coding help, and persistent cross-session memory into one product.",
     useCases: ["long-form writing", "coding help", "structured thinking", "brainstorming", "voice notes", "saved personal context"],
-    freeAccess: "ArcAI offers a free tier for daily use and a Boost upgrade with unlimited Ava, Maya, and River reasoning.",
+    freeAccess: "ArcAI offers a free tier for daily use and a Boost upgrade with unlimited usage for Arc Think and Arc Flash.",
     proof: "ArcAI is useful when you want a writing-friendly assistant that can also search, speak, and remember your context.",
   },
   "best-free-ai-assistant-2026": {
@@ -527,7 +527,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-ai-image-generator": {
     angle: "A standalone image generator is useful, but an image generator inside your AI assistant is more useful because the same chat can plan, revise, describe, and edit the image workflow.",
     useCases: ["social graphics", "chat illustrations", "concept art", "product mockups", "moodboards", "iterative image edits"],
-    freeAccess: "Free accounts receive 3 Arc Imagix creations total, while Boost accounts unlock unlimited Arc Imagix generation and precision Arc Imagix Edit tools.",
+    freeAccess: "Free accounts receive less usage for image generation, while Boost accounts unlock unlimited Arc Image generation and precision Arc Image tools.",
     proof: "ArcAI makes image generation feel like part of the conversation instead of a separate tool you have to manage.",
   },
   "ai-that-remembers-conversations": {
@@ -592,7 +592,7 @@ function enrichPost(post: BlogPost): BlogPost {
         `${item.a} In practical terms, this means you can start with a normal question and keep going into follow-ups, research, drafts, files, images, voice, or code without switching products. ArcAI is designed for the kind of messy, real workflow where a user asks one thing, changes direction, adds context, and expects the assistant to keep up.`,
         index === 0
           ? context.proof
-          : `ArcAI offers a generous free tier with Luna reasoning, image generation, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost unlocks unlimited research, higher Luna limits, higher image quotas, and unlimited voice sessions up to 2 hours each.`
+          : `ArcAI offers a generous free tier with Arc Think, image generation, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost unlocks unlimited research, unlimited chat and image usage, and unlimited voice sessions up to 2 hours each.`
       ],
     bullets:
       item.bullets ??

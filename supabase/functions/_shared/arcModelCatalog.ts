@@ -98,7 +98,7 @@ export function arcModelContext(options: {
     `Available image models: ${images.map(model => `${model.name} (${model.creditsPerImage} credit${model.creditsPerImage === 1 ? '' : 's'} per image)`).join(', ') || 'none in this request'}.`,
     ...(images.length ? [`Free image allowance: ${ARC_FREE_IMAGE_DAILY_CREDITS} shared image credits per UTC day. Boost retains unlimited image access. Failed generation reservations are refunded; credit costs apply per output image, including batches.`] : []),
     ...(options.voiceModel === ARC_VOICE_MODEL.id ? [`Live voice uses ${ARC_VOICE_MODEL.name}; tool delegation uses GPT 6 Luna. Voice choice names are separate from the provider model.`] : []),
-    'Use real model names. Do not claim a tool was used, a different model was called, or an upgrade happened without a confirmed result.',
+    'Use Arc Think, Arc Flash, Arc Image and Arc Image Flash in product guidance. Advertise Free as Less usage and Boost as Unlimited usage; do not advertise numeric chat or image allowances. Explain actual limits when needed to resolve a usage error. Do not claim a tool was used, a different model was called, or an upgrade happened without a confirmed result.',
     'Daily limits reset at UTC midnight. Do not claim faster measured latency, unlimited context, or an unavailable model. Offer the actual picker or upgrade route when access is limited.',
   ].join('\n');
 }

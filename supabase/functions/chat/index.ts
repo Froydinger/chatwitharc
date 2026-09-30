@@ -10,13 +10,15 @@ import { createBrowserProvider, liveBrowserEnabled as isLiveBrowserEnabled } fro
 import { streamAgentAnswer } from '../_shared/cloudAgentAnswerStream.ts';
 import { isMultiPageBuildRequest } from '../_shared/multiPageIntent.ts';
 import { cloudAgentsProvider } from '../_shared/cloudAgentsProvider.ts';
-import { FLYNN_MODEL, flynnAllowedForUser } from '../_shared/flynnProvider.ts';
+import { FLYNN_MODEL } from '../_shared/flynnProvider.ts';
 import { flynnChatSession } from '../_shared/flynnChatSession.ts';
+import { reserveArcFlashSubmission, shouldAutoUseFlash, ArcFlashAccessError } from '../_shared/arcFlashAccess.ts';
+import { arcModelContext } from '../_shared/arcModelCatalog.ts';
 import { chatArtifactStream } from '../_shared/chatArtifactStream.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'X-Arc-Chat-Revision': 'flynn-river-20260930',
+  'X-Arc-Chat-Revision': 'arc-modes-20260930',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
@@ -522,13 +524,13 @@ const DEFAULT_GROUNDING_PROMPT = `=== GROUNDING RULES (CRITICAL) ===
 const ARC_CAPABILITIES_CONTEXT = `=== ARCAI PRODUCT CAPABILITIES (WHAT YOU CAN DO) ===
 When users ask what you can do, what features ArcAI has, or how you can help, speak knowledgeably and warmly in the first person about your full suite of built-in capabilities:
 
-1. 💬 CONVERSATION & DEEP REASONING: Powered by Arc Matrix™ with Ava (fast everyday speed), Maya (balanced intelligence), and River (deep reasoning and complex code architecture).
+1. 💬 CONVERSATION & DEEP REASONING: Arc Matrix™ orchestrates Arc Think (Powered by GPT 6 & 6.1) and Arc Flash (Powered by Gemini Flash). Arc Think selects the appropriate available model automatically.
 2. 🌐 REAL-TIME WEB SEARCH & WEATHER: Instant live web search for news, facts, products, and documentation, plus accurate location-aware weather forecasts. You can also find and embed playable YouTube videos directly in chat.
 3. 🧠 LONG-TERM MEMORY & PAST CHAT RECALL: You automatically save key facts, user preferences, and memories over time, and can search through all past chat history to recall earlier discussions.
 4. ⏰ REMINDERS & SCHEDULED NOTIFICATIONS: You can set one-time or recurring reminders ("remind me in 20 minutes", "every morning at 8am") with delivery via browser push notifications, email alerts, or in-chat posts.
 5. 📄 CANVAS & LIVE CODE EDITOR: Split-screen editor for writing essays, blog posts, and docs, plus live interactive single-file HTML/CSS/JS preview rendering in chat.
 6. 🔍 DEEP SEARCH & ULTRA DEEP SEARCH: Two research modes at https://askarc.chat, powered by Perplexity. Deep Search retrieves ranked live web results and synthesizes a cited answer. Ultra Deep Search runs Perplexity's agentic Pro Search, which browses and cross-checks sources before answering — slower, and better for questions whose answer has to be assembled rather than looked up. Free accounts get 4 Deep Searches and 1 Ultra Deep Search per week; Boost makes both unlimited. This is separate from the quick in-chat web search, which stays instant and uncapped.
-7. 🎨 IMAGE GENERATION & EDITING: High-quality AI image generation powered by Arc Imagix, with precise image editing and revisions powered by Arc Imagix Edit. Free accounts include 3 creations total period; ArcAI Boost includes unlimited image generation and editing. Video generation is currently unavailable. Never tell a signed-in user that image generation "can't be done in this session/chat." If an image request reaches regular chat instead of the image generator, say: "Try again using image/ before your prompt, or click the + and select Image!"
+7. 🎨 IMAGE GENERATION & EDITING: Arc Image uses GPT Image 2.5 for generation and precision edits. Arc Image Flash uses Nano Banana 2 for generation and edits. Free accounts share daily image credits between both modes; ArcAI Boost includes unlimited usage. Video generation is currently unavailable. Never tell a signed-in user that image generation "can't be done in this session/chat." If an image request reaches regular chat instead of the image generator, say: "Try again using image/ before your prompt, or click the + and select Image!"
 8. 💻 LOCAL ON-DEVICE AI (BOOST): Privacy-first local AI processing via WebGPU directly in the browser.
 9. 👥 TEAM CHATS & SHARED ROOMS: Real-time collaborative shared chat rooms and workspace invites.
 10. 🎵 MUSIC & AMBIENT PLAYER: Built-in background music player for focus and productivity.
@@ -917,13 +919,10 @@ serve(async (req) => {
     }
 
     const { messages, profile, model, reasoningEffort, reasoningSelection, sessionId, forceWebSearch, forceCanvas, forceCode, forceGit, stream, streamEvents, useProModel, clientDateTime, clientTimezone, clientTimezoneOffsetMinutes } = body;
-    const useFlynn = model === FLYNN_MODEL;
-    const geminiApiKey = useFlynn ? Deno.env.get('GEMINI_API_KEY') : undefined;
-    if (useFlynn && (isGuestMode || !flynnAllowedForUser(user ?? null, geminiApiKey))) {
-      return new Response(JSON.stringify({ error: 'Flynn is unavailable for this account.' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    let useFlynn = model === FLYNN_MODEL;
+    const explicitFlash = useFlynn;
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    let flynnEntitled = false;
     if (useFlynn && stream) {
       return new Response(JSON.stringify({ error: 'Flynn requires the chat events interface.' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -1058,42 +1057,57 @@ serve(async (req) => {
       );
     }
 
+    let verifiedBoost: boolean | null = null;
+    const lastUserText = [...messages].reverse().find((item: { role?: string }) => item.role === 'user')?.content;
+    const autoFlash = !isGuestMode && !!user && !!geminiApiKey && shouldAutoUseFlash({
+      selection: reasoningSelection, lastUserText, stream,
+      work: body.arcMode !== 'chat', toolOrArtifact: !!(forceWebSearch || forceCanvas || forceCode || effectiveForceGit),
+    });
+    if (explicitFlash || autoFlash) {
+      try {
+        const reservation = await reserveArcFlashSubmission(supabase, isGuestMode ? null : user ?? null,
+          geminiApiKey, typeof body.submissionId === 'string' ? body.submissionId : crypto.randomUUID());
+        verifiedBoost = reservation.unlimited;
+        flynnEntitled = reservation.allowed;
+        useFlynn = reservation.allowed;
+        if (!reservation.allowed && explicitFlash) return new Response(JSON.stringify({
+          error: 'Arc Flash usage limit reached. Continue with Arc Think or upgrade to Boost for unlimited usage.',
+        }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        if (useFlynn) selectedReasoningEffort = 'low';
+      } catch (error) {
+        // Auto remains available through Luna when quota admission is unavailable.
+        // Explicit Flash never silently changes the requested provider.
+        if (explicitFlash || (error instanceof ArcFlashAccessError && error.status === 409)) return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Arc Flash access could not be verified.' }), {
+          status: error instanceof ArcFlashAccessError ? error.status : 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+        useFlynn = false;
+      }
+    }
+
     // Never trust the picker, a persisted preference, or a client-supplied model
     // for Sol access. Admins and active Boost plans are checked on the server.
     if (selectedReasoningEffort === 'high') {
       if (!user || isGuestMode) {
-        return new Response(JSON.stringify({ error: 'River requires ArcAI Boost.' }), {
+        return new Response(JSON.stringify({ error: 'This model requires ArcAI Boost.' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       const { data: riverEntitled, error: entitlementError } = await supabase.rpc('user_has_boost', { check_user_id: user.id });
       if (entitlementError) {
-        return new Response(JSON.stringify({ error: 'Could not verify River access. Please try again.' }), {
+        return new Response(JSON.stringify({ error: 'Could not verify model access. Please try again.' }), {
           status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+      verifiedBoost = riverEntitled === true;
       if (!riverEntitled) {
         if (reasoningSelection === 'auto') selectedReasoningEffort = 'medium';
-        else return new Response(JSON.stringify({ error: 'River requires ArcAI Boost.' }), {
+        else return new Response(JSON.stringify({ error: 'This model requires ArcAI Boost.' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
     }
 
-    if (selectedReasoningEffort === 'medium' && user && !isGuestMode) {
-      const { data: mayaQuota, error: mayaQuotaError } = await supabase.rpc('reserve_arc_maya_turn', { target_user_id: user.id });
-      if (mayaQuotaError) {
-        return new Response(JSON.stringify({ error: 'Could not check Maya usage. Please try again.' }), {
-          status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (!mayaQuota?.allowed) {
-        if (reasoningSelection === 'auto') selectedReasoningEffort = 'low';
-        else return new Response(JSON.stringify({ error: 'You have used your 20 free Maya chats today. Ava is still available, or upgrade to Boost for unlimited Maya.' }), {
-          status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-    }
 
     const validatedModel = useFlynn ? FLYNN_MODEL : selectedReasoningEffort === 'high' ? SOL_MODEL : LUNA_MODEL;
     const modelReasoningEffort = selectedReasoningEffort === 'high' ? 'low' : selectedReasoningEffort;
@@ -1112,7 +1126,7 @@ serve(async (req) => {
 
     // Fetch admin settings for system prompt and global context
     const contextStarted = Date.now();
-    const [settingsResult, memoryResult] = await Promise.all([
+    const [settingsResult, memoryResult, planResult] = await Promise.all([
       supabase.from('admin_settings')
       .select('key, value')
       .in('key', [
@@ -1126,6 +1140,7 @@ serve(async (req) => {
         'canvas_mode_prompt',
       ]),
       user ? supabase.from('memory_summaries').select('summary').eq('user_id', user.id).maybeSingle() : Promise.resolve({ data: null }),
+      verifiedBoost === null && user && !isGuestMode ? supabase.rpc('user_has_boost', { check_user_id: user.id }) : Promise.resolve({ data: verifiedBoost ?? false }),
     ]);
     const settingsData = settingsResult.data;
     console.log('Chat context timing', { elapsedMs: Date.now() - contextStarted });
@@ -1743,6 +1758,15 @@ product and is helping someone with it. Stay in that voice completely.`;
       selectedModel = lunaModel;
       console.log('🧠 Explicit memory/recall intent: routing through Luna');
     }
+    conversationMessages[0].content += '\n\n' + arcModelContext({
+      selectedModel,
+      hasBoost: verifiedBoost ?? planResult.data === true,
+      availableTextModels: [LUNA_MODEL, SOL_MODEL, ...(geminiApiKey ? [FLYNN_MODEL] : [])],
+      availableImageModels: [
+        ...(Deno.env.get('OPENAI_API_KEY') ? ['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'] : []),
+        ...(geminiApiKey ? ['gemini-3.1-flash-image'] : []),
+      ],
+    });
     let finalResponseModel = selectedModel;
     const fallbackModel = lunaModel;
     
@@ -2160,7 +2184,7 @@ product and is helping someone with it. Stay in that voice completely.`;
       let agentTurnId: string | null = null;
       let agentUsageTokens = 0;
       const agentDeadline = Date.now() + 80_000;
-      const flynnSession = useFlynn ? flynnChatSession({ user: user ?? null, apiKey: geminiApiKey,
+      const flynnSession = useFlynn ? flynnChatSession({ user: user ?? null, accessGranted: flynnEntitled, apiKey: geminiApiKey,
         tools: toolsToUse, signal: clientSignal, tokenLimit: MAX_CHAT_AGENT_TOKENS, deadline: agentDeadline }) : null;
       const completeFlynnTurn = async (choice: unknown = 'auto') => {
         const result = await flynnSession!.complete(conversationMessages, choice);

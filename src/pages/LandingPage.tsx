@@ -39,11 +39,11 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes Arc Matrix™ chat (unlimited Ava and 20 Maya chats daily), canvases, a living memory summary, 3 Arc Imagix creations, weekly research, and 3 voice sessions per UTC day up to 10 minutes each with Arc. River requires Boost, which also adds unlimited research, unlimited Maya, unlimited Arc Imagix creation & editing, and unlimited voice sessions up to 2 hours each.",
+    a: "Yes. Our free tier includes Arc Matrix™ chat with less usage on Free, canvases, a living memory summary, image generation with less usage, weekly research, and 3 voice sessions per UTC day up to 10 minutes each with Arc. Boost adds unlimited usage, including unlimited research, unlimited chat usage, unlimited Arc Image creation & editing, and unlimited voice sessions up to 2 hours each.",
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade with a 7-day free trial (card required), then $10/month or a limited-time $95/year annual rate, normally $120/year. The annual rate renews at $95/year while you keep Boost and adds unlimited Ava, Maya, and River reasoning across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, unlimited Arc Imagix generation & editing, and unlimited voice sessions up to 2 hours each.",
+    a: "Yes. We offer a Boost upgrade with a 7-day free trial (card required), then $10/month or a limited-time $95/year annual rate, normally $120/year. The annual rate renews at $95/year while you keep Boost and adds unlimited usage for Arc Think and Arc Flash across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, unlimited Arc Image generation & editing, and unlimited voice sessions up to 2 hours each.",
   },
   {
     q: "How does Arc's memory work?",
@@ -59,7 +59,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "Arc Matrix™ is ArcAI's intelligence engine, powered by GPT-6. Our proprietary orchestration connects GPT-6 Luna for Ava and Maya, GPT-6 Sol for Boost-only River, plus Arc's tools and memory. Image creation and editing use Arc Imagix; natural voice runs through Voxi; live research uses Deep Search.",
+    a: "Arc Matrix™ orchestrates Arc Think (Powered by GPT 6 & 6.1) and Arc Flash (Powered by Gemini Flash), plus Arc's tools and memory. Arc Image uses GPT Image 2.5; Arc Image Flash uses Nano Banana 2. Natural voice runs through Voxi; live research uses Deep Search.",
   },
   {
     q: "Is ArcAI private?",
@@ -71,7 +71,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI generate images?",
-    a: "Yes. Free accounts include 3 Arc Imagix creations total. Boost accounts receive unlimited Arc Imagix creation and precision editing with Arc Imagix Edit.",
+    a: "Yes. Free accounts include image generation with less usage. Boost accounts receive unlimited Arc Image creation and precision editing with Arc Image.",
   },
   {
     q: "Does ArcAI have voice mode?",
@@ -342,7 +342,7 @@ export function LandingPage() {
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "ArcAI's intelligence engine, powered by GPT-6. Chat with Ava and Maya for free; Boost unlocks River. Auto chooses the best available tier for your plan." },
+            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "Choose Arc Think or Arc Flash. Arc Matrix™ automatically selects an available model for your task in Think mode." },
             { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
             { category: "Reflect", icon: Brain, title: "Living Cross-Session Memory", body: "Arc keeps one detailed, evolving summary of the preferences, goals, facts, and boundaries you want it to remember, then recalls it when relevant." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },
@@ -388,14 +388,14 @@ export function LandingPage() {
               Free is powerful. <span className="text-white/70">Boost is optional.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              Arc is built to be a safe, helpful hub for everyone. The free plan includes unlimited Ava, 20 Maya chats daily, a living memory summary, 3 voice sessions per UTC day up to 10 minutes each, search, and coding out of the box. Start Boost with a 7-day free trial (card required) for $10/month, or save 21% with the limited-time $95/year plan (normally $120/year, renewing at $95/year while subscribed), to unlock River, unlimited Maya, and unlimited voice sessions up to 2 hours each.
+              Arc is built to be a safe, helpful hub for everyone. The free plan includes chat with less usage, a living memory summary, 3 voice sessions per UTC day up to 10 minutes each, search, and coding out of the box. Start Boost with a 7-day free trial (card required) for $10/month, or save 21% with the limited-time $95/year plan (normally $120/year, renewing at $95/year while subscribed), for unlimited usage and unlimited voice sessions up to 2 hours each.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
-                { icon: ImageIcon, title: "3 free images to start", body: "Create up to 3 images for free with Arc Imagix, or upgrade to Boost for unlimited generation and editing." },
+                { icon: ImageIcon, title: "Create images for free", body: "Create images with less usage on Free, or upgrade to Boost for unlimited generation and editing." },
                 { icon: Mic, title: "Natural voice conversations", body: "Speak naturally with low-latency, interruptible audio. Free accounts get 3 voice sessions per UTC day, up to 10 minutes each, and Boost includes unlimited live voice sessions up to 2 hours each." },
-                { icon: Search, title: "Deep research, powered by Perplexity", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. 4 Deep and 1 Ultra a week free, unlimited on Boost." },
+                { icon: Search, title: "Deep research, powered by Perplexity", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. Less usage on Free, unlimited usage on Boost." },
                 { icon: Code2, title: "GitHub Mode", body: "Connect a repository and let Arc prepare changes on a branch for a pull request." },
               ].map((b) => (
                 <div
@@ -507,7 +507,7 @@ export function LandingPage() {
           Find your creative center.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-          Start with 20 daily reasoning chats, 3 free images, and 3 voice sessions per UTC day up to 10 minutes each. Upgrade to Boost for unlimited image generation, higher reasoning, and unlimited voice sessions up to 2 hours each.
+          Start with less usage for chat and images, and 3 voice sessions per UTC day up to 10 minutes each. Upgrade to Boost for unlimited image generation, higher reasoning, and unlimited voice sessions up to 2 hours each.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button

@@ -34,7 +34,7 @@ function fixture(options = {}) {
     ...intent, ...types, LUNA_MODEL: "gpt-6-luna",
     inputValue: 'newer draft', selectedImages: [new File(['new'], 'new.png', { type: 'image/png' })], selectedDocuments: [],
     shouldShowBanana: true, shouldShowCodeMode: true, shouldShowCanvasMode: true, shouldShowSearchMode: true, shouldShowGitMode: true,
-    forceRegularChatMode: false, allImagesEditMode: true, imageGenAspect: 'portrait', imageEditAspect: 'portrait', imageGenCount: 3,
+    forceRegularChatMode: false, allImagesEditMode: true, imageGenAspect: 'portrait', imageEditAspect: 'portrait', imageGenCount: 3, imageGenModel: 'gpt-image-2.5-flare', imageEditModel: 'gpt-image-2.5-sunburst',
     dispatchScopeRef: { current: scope }, createNewSession: () => 'chat-a', clearComposer: () => calls.push(['clear-draft']),
     captureComposerRequest: () => request(), useArcStore: { getState: () => state },
     useMessageQueueStore: { getState: () => ({ retainFailure: (captured, error) => failed.push({ captured, error }) }) },

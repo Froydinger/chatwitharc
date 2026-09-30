@@ -37,9 +37,9 @@ export function PricingPage() {
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="text-sm font-semibold text-foreground/90">ArcAI Pricing Plans</span>
           </div>
-          <h1 className="text-5xl font-bold mb-4 text-foreground">Choose your reasoning tier.</h1>
+          <h1 className="text-5xl font-bold mb-4 text-foreground">Choose your plan.</h1>
           <p className="text-lg text-foreground/75 max-w-xl mx-auto">
-            Arc Matrix™ is ArcAI’s intelligence engine, powered by GPT-6. Start free with Ava and Maya, or get River with Boost.
+            Arc Think and Arc Flash, orchestrated by Arc Matrix™. Less usage on Free, unlimited usage with Boost.
           </p>
         </div>
 

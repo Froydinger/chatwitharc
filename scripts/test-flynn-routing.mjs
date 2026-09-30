@@ -4,12 +4,13 @@ import ts from 'typescript';
 const transpile = source => ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
 const modelSource = readFileSync(new URL('../src/store/useModelStore.ts', import.meta.url), 'utf8');
 const modelAst = ts.createSourceFile('model.ts', modelSource, ts.ScriptTarget.Latest, true);
-const functions = modelAst.statements.filter(node => ts.isFunctionDeclaration(node) && ['canSeeFlynnPreview', 'getModelDisplayName', 'resolveReasoningEffort'].includes(node.name?.text));
+const functions = modelAst.statements.filter(node => ts.isFunctionDeclaration(node) && ['canSelectFlynn', 'getModelDisplayName', 'resolveReasoningEffort'].includes(node.name?.text));
 const exports = {};
 new Function('exports', transpile(functions.map(node => node.getText(modelAst)).join('\n')))(exports);
-assert.equal(exports.canSeeFlynnPreview({ email: ' JAKEFROYDINGER@gmail.com ' }), true);
-for (const user of [null, {}, { email: 'another@example.com' }, { email: 'jakefroydinger@gmail.com', is_anonymous: true }]) assert.equal(exports.canSeeFlynnPreview(user), false);
-assert.equal(exports.getModelDisplayName('flynn'), 'Flynn');
+assert.equal(exports.canSelectFlynn({ id: 'member' }, true), true);
+for (const user of [null, {}, { id: 'member', is_anonymous: true }]) assert.equal(exports.canSelectFlynn(user, true), false);
+assert.equal(exports.canSelectFlynn({ id: 'member' }, false), true);
+assert.equal(exports.getModelDisplayName('flynn'), 'Arc Flash');
 assert.equal(exports.resolveReasoningEffort('flynn', 3, false), 'low');
 assert.equal(exports.resolveReasoningEffort('auto', 3, false), 'medium');
 assert.equal(exports.resolveReasoningEffort('auto', 3, true), 'high');
@@ -71,9 +72,30 @@ for (const original of ['flynn', 'medium']) {
     'gemini-3.8-flash', selection => exports.resolveReasoningEffort(selection, 0, true), () => 0, { content: 'hey' },
   );
   const request = build();
-  assert.equal(request.model, original === 'flynn' ? 'gemini-3.8-flash' : undefined);
+  assert.equal(request.model, undefined, 'Work must never inherit the Flash provider');
   assert.equal(request.reasoningEffort, original === 'flynn' ? 'low' : 'medium');
   assert.equal(request.browserbaseDevice, 'desktop');
   assert.deepEqual(request.messages, intent.messages);
 }
-console.log('Flynn routing passed: owner-only visibility, unchanged Auto tiers, captured selection, original chat/cancellation, code/canvas artifact delivery, and queued Work model/desktop viewport retention.');
+console.log('Flynn routing passed: signed-in selection access, unchanged Auto tiers, captured selection, original chat/cancellation, code/canvas artifact delivery, and queued Work model/desktop viewport retention.');
+
+// Guard both new submissions and saved-run resumes against provider overrides.
+const ingressSource = readFileSync(new URL('../supabase/functions/cloud-run/index.ts', import.meta.url), 'utf8');
+const ingressAst = ts.createSourceFile('ingress.ts', ingressSource, ts.ScriptTarget.Latest, true);
+let stripModel;
+function findStrip(node) {
+  if (ts.isIfStatement(node) && node.expression.getText(ingressAst) === "action.action === 'submit'" && node.thenStatement.getText(ingressAst).includes('delete action.request.model')) stripModel = node.getText(ingressAst);
+  ts.forEachChild(node, findStrip);
+}
+findStrip(ingressAst); assert.ok(stripModel, 'Work ingress must normalize provider overrides');
+for (const model of ['gemini-3.8-flash', 'gemini-other', 'gpt-6-astra', undefined]) {
+  const action = { action: 'submit', request: { model, messages: ['original'], reasoningEffort: 'high' } };
+  new Function('action', transpile(stripModel))(action);
+  assert.equal(action.request.model, undefined);
+  assert.equal(action.request.reasoningEffort, 'high');
+  assert.deepEqual(action.request.messages, ['original']);
+}
+const runtimeSource = readFileSync(new URL('../supabase/functions/_shared/cloudRunRuntime.ts', import.meta.url), 'utf8');
+assert.ok(runtimeSource.includes('const createProvider = cloudAgentsProvider;'), 'Every saved Work resume must construct the GPT provider');
+assert.ok(!runtimeSource.includes('flynnCloudProvider') && !runtimeSource.includes('request.model'), 'Saved provider overrides must not select Work transport or metadata');
+console.log('Work GPT-only admission and saved-run provider boundary passed.');

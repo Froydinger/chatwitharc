@@ -25,7 +25,7 @@ import { useCloudRuns, type CloudRunsApi, type TextCloudRunSubmission } from "@/
 import { reconcileCloudAppRun } from '@/services/cloudAppProjectClient';
 import { captureCloudWorkspaceContext, type CloudRunMode, type CloudRunSubmission, type CloudTextRequest } from "@/services/cloudRuns";
 import { prepareCloudMediaCapture, cloudMediaDigest, type CloudMediaReference } from "@/services/cloudMediaCapture";
-import { FLYNN_MODEL, resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
+import { resolveReasoningEffort, useModelStore } from "@/store/useModelStore";
 import { getQueryComplexity } from "@/services/ai";
 import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
 import { ChatResponseStatus } from "@/components/ChatResponseStatus";
@@ -527,7 +527,6 @@ export function MobileChatApp() {
         ...(captured.forceGit ? { browserbaseDevice, ...(browserbaseSessionHandle ? { browserbaseSessionHandle } : {}) } : {}),
         ...(uploadedAttachments ? { attachments: uploadedAttachments } : {}),
         ...(workspaceContext ? { workspace_context: workspaceContext } : {}),
-        ...(captured.reasoningSelection === 'flynn' ? { model: FLYNN_MODEL } : {}),
         reasoningEffort: resolveReasoningEffort(captured.reasoningSelection, getQueryComplexity(message.content)),
         clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       };

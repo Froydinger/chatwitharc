@@ -14,7 +14,7 @@ Deno.test('Flynn cloud adapter preserves signed tool messages and converts expan
 
 Deno.test('Flynn cloud adapter enforces engine budget and forces registered first tool only on first turn', async () => {
   const bodies: Record<string, unknown>[] = [];
-  const provider = flynnCloudProvider({ user: { email: 'jakefroydinger@gmail.com' }, apiKey: 'fixture-key', instructions: 'fixture-instructions',
+  const provider = flynnCloudProvider({ user: { id: 'boost-user', email: 'member@example.com' }, accessGranted: true, apiKey: 'fixture-key', instructions: 'fixture-instructions',
     tools: [{ type: 'function', name: 'lookup', description: 'Read', parameters: { type: 'object' } }], firstTool: 'lookup',
     fetcher: (_url, init) => { bodies.push(JSON.parse(String(init?.body))); return Promise.resolve(Response.json({ choices: [{ message: { role: 'assistant', content: 'Hello' }, finish_reason: 'stop' }], usage: { total_tokens: 12 } })); },
   });
@@ -24,5 +24,5 @@ Deno.test('Flynn cloud adapter enforces engine budget and forces registered firs
   equal(bodies[1].max_completion_tokens, 4000);
   deepStrictEqual(bodies[0].tool_choice, { type: 'function', function: { name: 'lookup' } });
   equal(bodies[1].tool_choice, 'auto');
-  throws(() => flynnCloudProvider({ user: { email: 'another@example.com' }, apiKey: 'fixture-key', instructions: '', tools: [] }));
+  throws(() => flynnCloudProvider({ user: { id: 'free-user', email: 'another@example.com' }, apiKey: 'fixture-key', instructions: '', tools: [] }));
 });

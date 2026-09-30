@@ -210,30 +210,34 @@ spreads this map and overrides only the typography keys.
   deeper work. Free accounts receive 3 voice sessions per UTC day, up to 10 minutes each;
   Boost subscribers and administrators get unlimited voice sessions up to 2 hours each. The microphone stays
   active for natural interruptions; the assistant is always Arc.
-- **Ava and Maya use GPT-6 Luna; Boost-only River uses GPT-6.1 Sol.** Flynn is an
-  owner-only Gemini Flash preview for the authenticated account
-  `jakefroydinger@gmail.com`, using `gemini-3.8-flash` through Google's OpenAI-compatible
-  endpoint and the server-only `GEMINI_API_KEY`. Verify account access on both
-  submission and worker resume. Preserve complete signed assistant tool messages
-  inside execution history, but never expose signatures in reply metadata. Old
-  saved `flash` preferences still migrate to Ava; retired Gemini IDs still normalize
-  to Luna. Do not expand Flynn access or change image/voice providers without authorization.
+- **Arc Think and Arc Flash are the only chat choices.** Arc Think uses Auto
+  orchestration through Arc Matrix™ (Powered by GPT 6 & 6.1); free accounts use
+  Luna for GPT requests and Boost can use GPT-6.1 Sol. Arc Flash uses
+  `gemini-3.8-flash` through Google's OpenAI-compatible endpoint and the server-only
+  `GEMINI_API_KEY`. Free accounts get 20 user messages sent to Flash per UTC day;
+  assistant replies and tool rounds do not count. Auto-routed Flash consumes the
+  same allowance and falls back to Luna when exhausted. Explicit Flash stops with
+  a quota message. Boost has unlimited usage. Durable Work is GPT-only for text, tools and images, including stale Flash
+  selections at submission and worker resume. Work still requires Boost. Preserve signed
+  assistant tool messages privately in execution history. Old GPT picker
+  preferences migrate to Auto Think; saved Flynn choices migrate to Arc Flash.
 - **Chat vs Work is recorded on the session.** `chat_sessions.is_work` (mirroring
   `is_git`) marks a conversation that was handed to Arc Work, and dashboard
   history badges each chat accordingly. It used to live only in localStorage, so
   it was device-local and invisible to the dashboard.
-- **Arc Matrix™ Models: Auto, Ava, Maya, River.** The picker exposes Auto, Ava
-  (Fast & Agile), Maya (Balanced Intelligence), and River (Deep Reasoning). Ava,
-  Maya, and River map to Luna low, Luna medium, and Sol low reasoning; Auto
-  starts at Ava and steps up for clearly harder requests, but free Auto never selects River. Free Maya is capped at 20 daily chats. Old Terra, Sol, GPT-5.4,
-  and GPT-5.5 selections normalize smoothly on both client and server. Specialized
-  image, realtime voice, video, and search provider models remain separate.
-- **Image setup: Arc Imagix for generation, Arc Imagix Edit for edits.**
-  Initial image generation uses Arc Imagix (backed by `gpt-image-2.5-flare`). All
-  edits and variations use Arc Imagix Edit (backed by `gpt-image-2.5-sunburst` for
-  tighter control and precision across edits). Free tier accounts receive 3
-  creations total (period), and Boost subscribers receive unlimited image generation
-  and editing.
+- **Images: Arc Image and Arc Image Flash.** Arc Image keeps OpenAI
+  `gpt-image-2.5-flare` for generation and `gpt-image-2.5-sunburst` for edits.
+  Arc Image Flash uses Nano Banana 2 (`gemini-3.1-flash-image`) through Google's
+  Interactions API. Free accounts share 8 image credits per UTC day: OpenAI
+  costs 1 credit per output and Nano Banana costs 2; batches multiply that cost.
+  Failed or unsaved outputs refund reservations once against the original date.
+  Boost keeps unlimited images. Preserve private storage and source-aspect edits.
+  Transparent alpha requests use Arc Image; do not silently switch providers.
+- **Limits advertising:** say “Less usage” on Free and “Unlimited usage” on Boost.
+  Show percentages for Flash and images in dashboard content, not numeric caps.
+  Exact enforcement values stay in backend/internal technical docs. Voice names,
+  providers, session limits and behavior stay unchanged. Dashboard navigation
+  and the notification bell are outside the animation/layout change scope.
 - **Accent color: Noir only.** Arc went black-and-white a long time ago and
   accent selection is retired — there is no picker to add colors back to.
   `useAccentStore.ts` force-writes `noir` to `localStorage` on every start, so

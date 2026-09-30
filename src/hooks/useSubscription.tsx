@@ -113,7 +113,9 @@ interface SubscriptionState {
   remainingImages: number;
   imageLimit: number;
 
-  // Reasoning quota (daily: unlimited Ava, 20 Maya; River requires Boost)
+  flashUsagePercent: number | null;
+
+  // Legacy reasoning fields; Arc Think is unlimited and paid models remain gated.
   dailyBalancedUsed: number;
   dailyDeepUsed: number;
   balancedLimit: number;
@@ -177,6 +179,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const [dailyImagesUsed, setDailyImagesUsed] = useState(() => getDailyImageCount());
   const [dailySmarterChatsUsed, setDailySmarterChatsUsed] = useState(() => getDailySmarterChatCount());
+  const [flashUsage, setFlashUsage] = useState<{ ownerId: string; percent: number } | null>(null);
   const [dailyBalancedUsed, setDailyBalancedUsed] = useState(() => getDailyBalancedCount());
   const [dailyDeepUsed, setDailyDeepUsed] = useState(() => getDailyDeepCount());
   const [dailyVoiceSessionsUsed, setDailyVoiceSessionsUsed] = useState(0);
@@ -194,15 +197,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const canGenerateImage = isAdmin || hasBoost || dailyImagesUsed < imageLimit;
   const remainingImages = isAdmin || hasBoost ? Infinity : Math.max(0, imageLimit - dailyImagesUsed);
 
-  // Reasoning quota logic (daily: unlimited Ava, 20 Maya; River requires Boost)
-  // Admin: unlimited
-  // Boost: unlimited
-  // Free: unlimited Ava, 20 Maya, no River
-  const balancedLimit = isAdmin || hasBoost ? Infinity : FREE_DAILY_BALANCED_LIMIT;
+  // Arc Think has no daily message cap. Paid model access stays server-authorized.
+  const balancedLimit = Infinity;
   const deepLimit = isAdmin || hasBoost ? Infinity : FREE_DAILY_DEEP_LIMIT;
-  const remainingBalanced = isAdmin || hasBoost ? Infinity : Math.max(0, balancedLimit - dailyBalancedUsed);
+  const remainingBalanced = Infinity;
   const remainingDeep = isAdmin || hasBoost ? Infinity : Math.max(0, deepLimit - dailyDeepUsed);
-  const canSendBalanced = isAdmin || hasBoost || remainingBalanced > 0;
+  const canSendBalanced = true;
   const canSendDeep = isAdmin || hasBoost || remainingDeep > 0;
 
   // Fast (Mini) chat quota logic
@@ -256,19 +256,21 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       setCancelAtPeriodEnd(false);
       setCurrentPeriodEnd(null);
       setDailyBalancedUsed(0);
+      setFlashUsage(null);
       setLoading(false);
       return;
     }
     try {
       await syncGooglePlaySubscriptions(user.id).catch(() => {});
-      const [{ data: adminData }, { data: boostData }, { data: mayaUsed }] = await Promise.all([
+      const [{ data: adminData }, { data: boostData }, { data: flashData }] = await Promise.all([
         supabase.rpc('is_admin_user'),
         supabase.rpc('user_has_boost', { check_user_id: user.id }),
-        supabase.rpc('get_arc_maya_usage_today'),
+        supabase.rpc('get_arc_flash_usage_today'),
       ]);
       setIsAdmin(!!adminData);
       setHasBoostSub(!!boostData);
-      if (typeof mayaUsed === 'number') setDailyBalancedUsed(mayaUsed);
+      const flash = flashData as { usage_percent?: number } | null;
+      setFlashUsage(flash && typeof flash.usage_percent === 'number' ? { ownerId: user.id, percent: Math.min(100, Math.max(0, flash.usage_percent)) } : null);
 
       // Fetch active subscription details
       const { data: subDetails } = await supabase
@@ -423,6 +425,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       canSendSmarterChat,
       remainingSmarterChats,
       smarterChatLimit,
+      flashUsagePercent: flashUsage && flashUsage.ownerId === user?.id ? flashUsage.percent : null,
       dailyBalancedUsed,
       dailyDeepUsed,
       balancedLimit,

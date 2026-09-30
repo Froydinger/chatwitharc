@@ -1,10 +1,12 @@
 import { flynnModelTurn, requestFlynnCompletion, type FlynnCompletion } from './flynnProvider.ts';
+import type { FlynnUser } from './flynnProvider.ts';
 
 type Json = Record<string, unknown>;
 /** Request-scoped compatible tool conversation. No retries, fallback provider,
  * hidden server session, or stripped assistant execution metadata. */
 export function flynnChatSession(options: {
-  user: { email?: string | null } | null;
+  user: FlynnUser | null;
+  accessGranted?: boolean;
   apiKey: string | undefined;
   tools: readonly Json[];
   signal: AbortSignal;

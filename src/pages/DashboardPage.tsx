@@ -122,14 +122,13 @@ export function DashboardPageInner({ embedded = false, activeTabOverride }: { em
   const requestedTab = activeTabOverride || (searchParams.get("tab") as DashboardTab) || "overview";
   const initialTab = requestedTab;
   const { user, loading: authLoading, isAnonymous } = useAuth();
-  const { isAdmin, dailyImagesUsed, limit: imageLimit } = useImageQuota();
+  const { isAdmin, usagePercent: imageUsagePercent, limit: imageLimit } = useImageQuota();
   const {
     hasBoost,
     openCheckout,
-    dailyBalancedUsed,
+    flashUsagePercent,
     dailyVoiceSessionsUsed,
     FREE_DAILY_VOICE_LIMIT,
-    FREE_DAILY_BALANCED_LIMIT,
   } = useSubscription();
 
   // Anonymous users are not allowed to view the dashboard at all.
@@ -1403,20 +1402,17 @@ useEffect(() => {
                     >
                       <div className="mt-3 sm:mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-col sm:space-y-2.5 sm:gap-0">
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs col-span-2 sm:col-span-1">
-                          <span className="text-muted-foreground">Quick reasoning</span>
+                          <span className="text-muted-foreground">Arc Think</span>
                           <span className="font-medium text-primary">Unlimited</span>
                         </div>
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
-                          <span className="text-muted-foreground">Balanced</span>
-                          <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : `${dailyBalancedUsed}/${FREE_DAILY_BALANCED_LIMIT}`}</span>
+                          <span className="text-muted-foreground">Arc Flash</span>
+                          <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : flashUsagePercent === null ? "—" : `${flashUsagePercent}% used`}</span>
                         </div>
-                        <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
-                          <span className="text-muted-foreground">Deep</span>
-                          <span className="font-mono text-foreground">{isAdmin || hasBoost ? "Unlimited" : "Boost only"}</span>
-                        </div>
+
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
                           <span className="text-muted-foreground">Images</span>
-                          <span className="font-mono text-foreground">{isAdmin || imageLimit === Infinity ? "Unlimited" : `${dailyImagesUsed}/${imageLimit}`}</span>
+                          <span className="font-mono text-foreground">{isAdmin || imageLimit === Infinity ? "Unlimited" : `${imageUsagePercent}% used`}</span>
                         </div>
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
                           <span className="text-muted-foreground">Voice sessions</span>
@@ -1424,7 +1420,7 @@ useEffect(() => {
                         </div>
                         <div className="flex items-center justify-between rounded-xl bg-muted/20 px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11px] sm:text-xs">
                           <span className="text-muted-foreground">Search</span>
-                          <span className="font-medium text-primary truncate max-w-[70px] sm:max-w-none">{isAdmin || hasBoost ? "Unlimited" : "4+1/wk"}</span>
+                          <span className="font-medium text-primary truncate max-w-[70px] sm:max-w-none">{isAdmin || hasBoost ? "Unlimited usage" : "Less usage"}</span>
                         </div>
                       </div>
                       {!isAdmin && !hasBoost && (

@@ -248,7 +248,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const imagePreviewUrls = useAttachmentPreviews(selectedImages);
   const [allImagesEditMode, setAllImagesEditMode] = useState(false);
   const [showLimitsModal, setShowLimitsModal] = useState(false);
-  const { dailyImagesUsed, remainingImages, limit } = useImageQuota();
+  const { usagePercent: imageUsagePercent } = useImageQuota();
   const [selectedDocuments, setSelectedDocuments] = useState<File[]>([]);
   const [isActive, setIsActive] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -1165,7 +1165,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
           content: live.trim() ? live : canvas.content, codeLanguage: canvas.codeLanguage };
       })(),
       reasoningSelection: useModelStore.getState().reasoningEffort,
-      imageOptions: { aspect: imageGenAspect, editAspect: imageEditAspect, count: imageGenCount },
+      imageOptions: { aspect: imageGenAspect, editAspect: imageEditAspect, count: imageGenCount, generationModel: imageGenModel, editModel: imageEditModel },
     });
   }
 
@@ -1191,6 +1191,8 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const requestEditImages = requestModes?.editImages ?? allImagesEditMode;
     const requestImageAspect = captured?.imageOptions.aspect ?? imageGenAspect;
     const requestEditAspect = captured?.imageOptions.editAspect ?? imageEditAspect;
+    const requestImageModel = captured?.imageOptions.generationModel ?? imageGenModel;
+    const requestEditModel = captured?.imageOptions.editModel ?? imageEditModel;
     const requestImageCount = captured?.imageOptions.count ?? imageGenCount;
     const attemptId = crypto.randomUUID();
     let requestStarted = false;
@@ -1725,12 +1727,12 @@ Feel free to send another message or test a prompt to see the animation again!`,
             type: "image-generating",
             imagePrompt: finalMessage,
             sourceModel: "cloud-image-edit",
-            modelUsed: imageEditModel,
+            modelUsed: requestEditModel,
           });
           setGeneratingImage(true);
 
           try {
-            const editResult = await ai.editImage(finalMessage, imageUrls, imageEditModel, requestEditAspect, Math.max(1, Math.min(3, requestImageCount || 1)));
+            const editResult = await ai.editImage(finalMessage, imageUrls, requestEditModel, requestEditAspect, Math.max(1, Math.min(3, requestImageCount || 1)));
             const finalUrls = editResult.imageUrls;
             const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
             await replaceLastMessage({
@@ -1848,14 +1850,14 @@ Feel free to send another message or test a prompt to see the animation again!`,
           type: "image-generating",
           imagePrompt,
           sourceModel: "cloud-image",
-          modelUsed: imageGenModel,
+          modelUsed: requestImageModel,
         });
         setGeneratingImage(true);
 
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
           const requestedCount = Math.max(1, Math.min(3, requestImageCount || 1));
-          const generationResult = await ai.generateImage(apiPrompt, imageGenModel, requestImageAspect, requestedCount);
+          const generationResult = await ai.generateImage(apiPrompt, requestImageModel, requestImageAspect, requestedCount);
           const genUrls = generationResult.imageUrls;
 
           // Replace placeholder with a single message containing all generated images
@@ -1925,12 +1927,12 @@ Feel free to send another message or test a prompt to see the animation again!`,
             type: "image-generating",
             imagePrompt: finalMessage,
             sourceModel: "cloud-image-edit",
-            modelUsed: imageEditModel,
+            modelUsed: requestEditModel,
           });
           setGeneratingImage(true);
 
           try {
-            const editResult = await ai.editImage(finalMessage, sourceImageUrls, imageEditModel, requestEditAspect, Math.max(1, Math.min(3, requestImageCount || 1)));
+            const editResult = await ai.editImage(finalMessage, sourceImageUrls, requestEditModel, requestEditAspect, Math.max(1, Math.min(3, requestImageCount || 1)));
             const finalUrls = editResult.imageUrls;
             const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
             await replaceLastMessage({
@@ -3305,7 +3307,7 @@ ${safeCode}
         showLimitsModal={showLimitsModal}
         isBoostTier={isBoostTier}
         hasBoost={hasBoost}
-        dailyImagesUsed={dailyImagesUsed}
+        imageUsagePercent={imageUsagePercent}
         onClose={() => setShowLimitsModal(false)}
         onSettings={() => navigate("/dashboard/settings")}
         onUpgrade={() => openCheckout()}

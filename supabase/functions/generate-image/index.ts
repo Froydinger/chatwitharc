@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { uploadPrivateImage } from "../_shared/privateImageStorage.ts";
+import { ARC_IMAGE_FLASH_MODEL, callImageFlash } from "../_shared/arcImageFlash.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,15 +12,16 @@ const corsHeaders = {
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const REQUEST_TIMEOUT_MS = 180_000;
 const RETRY_DELAY_MS = 3_000;
 
-// All users use GPT Image 2.5 Flare for image generation (OpenAI's fast high-fidelity generator).
+// Arc Image keeps its existing OpenAI model; Arc Image Flash is explicitly selected.
 const DEFAULT_IMAGE_MODEL = "gpt-image-2.5-flare";
-function pickImageModel(_requested?: unknown): string {
-  return DEFAULT_IMAGE_MODEL;
+function pickImageModel(requested?: unknown): string {
+  return requested === ARC_IMAGE_FLASH_MODEL ? ARC_IMAGE_FLASH_MODEL : DEFAULT_IMAGE_MODEL;
 }
 
 // GPT Image 2.5 accepts custom dimensions in multiples of 16.
@@ -249,17 +251,20 @@ async function processGenerateJob(
   selectedModel: string,
   size: string,
   count: number,
+  aspectRatio: string,
 ) {
   try {
     console.log(`[job ${jobId}] generating ${count} image(s) with ${selectedModel} (${size}, medium)`);
-    const result = await callImageGateway(prompt, selectedModel, size, count);
+    const result = selectedModel === ARC_IMAGE_FLASH_MODEL
+      ? await callImageFlash({ apiKey: GEMINI_API_KEY, prompt, aspect: aspectRatio, count })
+      : await callImageGateway(prompt, selectedModel, size, count);
     const finalModel = selectedModel;
 
     if (!result.ok) {
       const errorInfo = classifyError(result.status, result.rawText);
       console.error(`[job ${jobId}] image gen failed: ${errorInfo.errorType} (${result.status}) ${errorInfo.debugDetail.slice(0, 240)}`);
       await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: errorInfo.errorMessage, error_type: errorInfo.errorType });
-      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
+      await supabaseAdmin.rpc("finalize_arc_image_credits", { target_job_id: jobId, successful_count: 0 });
       return;
     }
 
@@ -268,14 +273,14 @@ async function processGenerateJob(
       parsed = JSON.parse(result.rawText);
     } catch {
       await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: "Failed to parse model response", error_type: "parse_error" });
-      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
+      await supabaseAdmin.rpc("finalize_arc_image_credits", { target_job_id: jobId, successful_count: 0 });
       return;
     }
 
     const imageUrls = extractImageUrls(parsed);
     if (imageUrls.length === 0) {
       await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: "No image returned from model", error_type: "no_image_returned" });
-      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
+      await supabaseAdmin.rpc("finalize_arc_image_credits", { target_job_id: jobId, successful_count: 0 });
       return;
     }
 
@@ -291,7 +296,7 @@ async function processGenerateJob(
 
     if (persistedImageUrls.length === 0) {
       await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: "Generated image could not be stored. Please try again.", error_type: "storage_error" });
-      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
+      await supabaseAdmin.rpc("finalize_arc_image_credits", { target_job_id: jobId, successful_count: 0 });
       return;
     }
 
@@ -305,12 +310,12 @@ async function processGenerateJob(
       error_message: null,
       error_type: null,
     });
-    await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: persistedImageUrls.length });
+    await supabaseAdmin.rpc("finalize_arc_image_credits", { target_job_id: jobId, successful_count: persistedImageUrls.length });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     console.error(`[job ${jobId}] processing error:`, error);
     await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: message, error_type: "processing_error" });
-    await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
+    await supabaseAdmin.rpc("finalize_arc_image_credits", { target_job_id: jobId, successful_count: 0 });
   }
 }
 
@@ -319,7 +324,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (!OPENAI_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     return jsonResponse({ success: false, error: "Image generation backend is not configured.", errorType: "configuration_error" });
   }
 
@@ -350,6 +355,12 @@ serve(async (req) => {
     const aspectRatio = normalizeAspectRatio(body?.aspectRatio);
     const selectedModel = pickImageModel(body?.preferredModel);
     const size = aspectToSize(aspectRatio);
+    if (!(selectedModel === ARC_IMAGE_FLASH_MODEL ? GEMINI_API_KEY : OPENAI_API_KEY)) {
+      return jsonResponse({ success: false, error: "The selected image mode is unavailable.", errorType: "configuration_error" });
+    }
+    if (selectedModel === ARC_IMAGE_FLASH_MODEL && wantsTransparentBackground(rawPrompt)) {
+      return jsonResponse({ success: false, error: "For a transparent background, choose Arc Image.", errorType: "invalid_request" });
+    }
     const requestedCount = Number(body?.count);
     const count = Number.isFinite(requestedCount)
       ? Math.max(1, Math.min(3, Math.floor(requestedCount)))
@@ -384,7 +395,7 @@ serve(async (req) => {
     jobId = jobData.id;
     const currentJobId = jobData.id;
 
-    const { data: quota, error: quotaError } = await supabaseAdmin.rpc("reserve_image_quota", {
+    const { data: quota, error: quotaError } = await supabaseAdmin.rpc("reserve_arc_image_credits", {
       target_user_id: user.id,
       target_job_id: currentJobId,
       requested_count: count,
@@ -400,7 +411,7 @@ serve(async (req) => {
       await updateJob(supabaseAdmin, currentJobId, { status: "failed", error_message: "Free image limit reached", error_type: "daily_limit" });
       return jsonResponse({
         success: false,
-        error: `Free image limit reached (3 images total). Upgrade to ArcAI Boost for unlimited image generation.`,
+        error: `Image usage limit reached. Upgrade to ArcAI Boost for unlimited usage.`,
         errorType: "daily_limit",
         quota,
       });
@@ -416,6 +427,7 @@ serve(async (req) => {
       selectedModel,
       size,
       count,
+      aspectRatio,
     );
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
       EdgeRuntime.waitUntil(task);
@@ -430,7 +442,7 @@ serve(async (req) => {
     console.error("Error in generate-image function:", error);
     if (jobId) {
       await updateJob(supabaseAdmin, jobId, { status: "failed", error_message: message, error_type: "processing_error" });
-      await supabaseAdmin.rpc("finalize_image_quota", { target_job_id: jobId, successful_count: 0 });
+      await supabaseAdmin.rpc("finalize_arc_image_credits", { target_job_id: jobId, successful_count: 0 });
     }
     return jsonResponse({ success: false, error: message, errorType: "processing_error", fallback: true });
   }

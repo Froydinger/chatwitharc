@@ -58,40 +58,35 @@ export function DocsPage() {
     {
       id: "switch-model",
       category: "models",
-      title: "Choosing an Arc Matrix™ reasoning engine",
-      question: "How do I choose between Ava, Maya, and River?",
+      title: "Choosing how Arc responds",
+      question: "How do I choose between Arc Think and Arc Flash?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-          <p>
-            You can change your active model using the <strong>Model Picker dropdown</strong> located at the
-            <strong> top left of the chat window</strong> (above the chat input).
-          </p>
-          <p><strong>Arc Matrix™ is ArcAI's intelligence engine, powered by GPT-6.</strong> Arc Matrix brings together model routing, tools, and memory while GPT-6 powers the underlying text models. Click the picker to choose the best option for your task:</p>
+          <p>Open the compact model picker in chat to choose how Arc responds.</p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Auto</strong>: Routes between Ava and Maya for free accounts, and can use River with Boost.</li>
-            <li><strong className="text-foreground">Ava</strong>: Lightning-fast everyday answers, brainstorming, and drafting.</li>
-            <li><strong className="text-foreground">Maya</strong>: Everyday powerhouse intelligence with deep nuance and balanced reasoning.</li>
-            <li><strong className="text-foreground">River</strong>: Boost-only access to GPT-6 Sol for complex code architecture and heavy analytical problem solving.</li>
+            <li><strong className="text-foreground">Arc Think</strong>: Powered by GPT 6 &amp; 6.1. Arc Matrix™ automatically routes the request to an available model suited to the task.</li>
+            <li><strong className="text-foreground">Arc Flash</strong>: Powered by Gemini Flash.</li>
+            <li><strong className="text-foreground">Arc Work</strong>: Uses GPT only for work and tools, with OpenAI image models. Choosing Flash for chat does not change the Work provider.</li>
           </ul>
+          <p>Arc Matrix™ is the orchestrator behind Auto routing. The small Arc button beside a response opens its model and tool details.</p>
+          <p>For images, choose Arc Image (powered by GPT Image 2.5) or Arc Image Flash (powered by Nano Banana 2). Both image modes share your plan’s usage.</p>
         </div>
       ),
-      keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "arc matrix", "auto", "ava", "maya", "river"]
+      keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "arc matrix", "auto", "think", "flash", "images"]
     },
     {
       id: "model-quotas",
       category: "models",
-      title: "Model Quotas and Usage Limits",
-      question: "What are the daily message limits and quotas?",
+      title: "Plans and usage",
+      question: "How does usage work on Free and Boost?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
-          <p>
-            Usage quotas depend on your plan:
-          </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><strong className="text-foreground">Free Tier</strong>: Unlimited Ava and 20 Maya chats daily; River requires Boost. Includes 3 Arc Imagix creations and 3 voice sessions per UTC day, up to 10 minutes each.</li>
-            <li><strong className="text-foreground">Boost Plan ($10/mo or limited-time $95/yr, normally $120/yr)</strong>: Start with a 7-day free trial (card required). The annual rate renews at $95/yr while subscribed. Boost includes unlimited Ava, Maya, and River reasoning, unlimited Arc Imagix generation &amp; editing, offline local model support, and unlimited voice sessions up to 2 hours each.</li>
+            <li><strong className="text-foreground">Free</strong>: Less usage for Flash, images and research. Arc Think stays available. Includes 3 voice sessions per UTC day, up to 10 minutes each.</li>
+            <li><strong className="text-foreground">Boost ($10/mo or limited-time $95/yr, normally $120/yr)</strong>: Unlimited usage for both chat modes, both image modes and research, plus local AI and unlimited voice sessions up to 2 hours each. Start with a 7-day free trial (card required). The annual rate renews at $95/yr while subscribed.</li>
           </ul>
-          <p>You can check your current daily usage and remaining limit at <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>
+          <p>Your dashboard shows the percentage of usage consumed. Flash counts messages you send, including those routed through Flash by Auto; assistant replies and tool rounds do not consume another message. Failed image outputs are refunded.</p>
+          <p>Check your plan in <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>
         </div>
       ),
       keywords: ["limit", "quota", "usage", "cost", "free tier", "message limit", "credits", "boost plan"]

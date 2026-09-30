@@ -3,8 +3,9 @@ import { Check, ChevronDown, Crown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSubscription } from '@/hooks/useSubscription';
-import { canSeeFlynnPreview, useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
+import { canSelectFlynn, useModelStore, type LunaReasoningSelection } from '@/store/useModelStore';
 import { useAuth } from '@/hooks/useAuth';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { VoiceMagneticPicker } from '@/components/VoiceMagneticPicker';
 import { PRESETS } from '@/components/ChatModelPicker';
 import type { VoiceName } from '@/store/useVoiceModeStore';
@@ -23,14 +24,16 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
   const [tab, setTab] = useState<'model' | 'voice'>('model');
   const reasoningEffort = useModelStore((state) => state.reasoningEffort);
   const { user, loading: authLoading } = useAuth();
-  const presets = PRESETS.filter(preset => preset.effort !== 'flynn' || canSeeFlynnPreview(user));
+  const presets = PRESETS;
+  const requireAuth = useRequireAuth();
   const setReasoningEffort = useModelStore((state) => state.setReasoningEffort);
-  const { hasBoost, isAdmin, openCheckout, dailyBalancedUsed, FREE_DAILY_BALANCED_LIMIT } = useSubscription();
+  const { hasBoost, isAdmin, loading: subscriptionLoading, openCheckout } = useSubscription();
+  const flynnAvailable = canSelectFlynn(user, hasBoost || isAdmin);
   const selectedPreset = presets.find((preset) => preset.effort === reasoningEffort) ?? presets[0];
 
   useEffect(() => {
-    if (!authLoading && reasoningEffort === 'flynn' && !canSeeFlynnPreview(user)) setReasoningEffort('low');
-  }, [authLoading, reasoningEffort, user, setReasoningEffort]);
+    if (!authLoading && !subscriptionLoading && reasoningEffort === 'flynn' && !flynnAvailable) setReasoningEffort('auto');
+  }, [authLoading, subscriptionLoading, reasoningEffort, flynnAvailable, setReasoningEffort]);
 
   return (
     <DialogPrimitive.Root
@@ -104,14 +107,11 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
             {tab === 'model' ? (
               <div className="space-y-2">
                 <div className="px-1 pb-1">
-                  <div className="text-sm font-semibold">Arc Matrix™ Models</div>
-                  <div className="text-xs text-muted-foreground">Select a reasoning engine for Arc.</div>
+                  <div className="text-sm font-semibold">Arc Matrix™</div>
+                  <div className="text-xs text-muted-foreground">Choose how Arc responds.</div>
                 </div>
                 {presets.map((preset) => {
-                  let badge: string | undefined;
-                  if (preset.effort === 'low') badge = 'Unlimited';
-                  if (preset.effort === 'medium') badge = isAdmin || hasBoost ? 'Unlimited' : `${Math.max(0, FREE_DAILY_BALANCED_LIMIT - dailyBalancedUsed)}/${FREE_DAILY_BALANCED_LIMIT} left`;
-                  if (preset.effort === 'high') badge = isAdmin || hasBoost ? 'Unlimited' : 'Boost only';
+                  const badge = hasBoost || isAdmin ? 'Unlimited usage' : 'Less usage';
                   const Icon = preset.icon;
                   const active = reasoningEffort === preset.effort;
                   return (
@@ -119,9 +119,9 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
                       type="button"
                       key={preset.effort}
                       onClick={() => {
-                        if (preset.effort === 'high' && !hasBoost && !isAdmin) {
+                        if (preset.effort === 'flynn' && !flynnAvailable) {
                           setOpen(false);
-                          openCheckout(undefined, 'river_boost_required');
+                          requireAuth('generic', undefined, 'Arc Flash');
                           return;
                         }
                         setReasoningEffort(preset.effort as LunaReasoningSelection);
@@ -141,8 +141,8 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
                     </button>
                   );
                 })}
-                {!hasBoost && !isAdmin && <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs text-muted-foreground"><Crown className="h-4 w-4 shrink-0 text-primary" /><span>Boost unlocks River and unlimited Maya reasoning.</span></div>}
-                <div className="pt-1 text-center text-xs text-muted-foreground">Current: Arc · {selectedPreset.title}</div>
+                {!hasBoost && !isAdmin && <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs text-muted-foreground"><Crown className="h-4 w-4 shrink-0 text-primary" /><span>Boost includes unlimited Think and Flash usage.</span></div>}
+                <div className="pt-1 text-center text-xs text-muted-foreground">Current: {selectedPreset.title}</div>
               </div>
             ) : (
               <div className="rounded-2xl border border-border/40 bg-card/35 px-1 py-1">

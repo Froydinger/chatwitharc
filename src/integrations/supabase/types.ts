@@ -1296,6 +1296,8 @@ export type Database = {
         Returns: undefined
       }
       get_my_image_quota: { Args: never; Returns: Json }
+      get_my_arc_image_credits: { Args: never; Returns: Json }
+      get_arc_flash_usage_today: { Args: never; Returns: Json }
       is_admin_user: { Args: never; Returns: boolean }
       is_shared_chat_member: {
         Args: { _chat_id: string; _user_id: string }

@@ -4,7 +4,7 @@ import { flynnChatSession } from './flynnChatSession.ts';
 const tool = { type: 'function', function: { name: 'lookup', parameters: { type: 'object' } } };
 const signed = { role: 'assistant', content: null, tool_calls: [{ id: 'call-1', type: 'function', function: { name: 'lookup', arguments: '{}' }, extra_content: { google: { thought_signature: 'fixture' } } }] };
 const result = (message: unknown, tokens = 10, finish = 'stop') => Response.json({ choices: [{ message, finish_reason: finish }], usage: { total_tokens: tokens } });
-const defaults = { user: { email: 'jakefroydinger@gmail.com' }, apiKey: 'fixture-key', tools: [tool], tokenLimit: 100, deadline: 1000, now: () => 0 };
+const defaults = { user: { id: 'boost-user', email: 'member@example.com' }, accessGranted: true, apiKey: 'fixture-key', tools: [tool], tokenLimit: 100, deadline: 1000, now: () => 0 };
 
 Deno.test('Flynn Chat retains the complete assistant tool message and shares one token budget across rounds', async () => {
   const bodies: Record<string, unknown>[] = [];

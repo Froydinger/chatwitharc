@@ -5,7 +5,6 @@
  */
 import { useLocalAIStore } from '@/store/useLocalAIStore';
 import { useCorporateModeStore } from '@/store/useCorporateModeStore';
-import { useModelStore } from '@/store/useModelStore';
 import { FAST_MODEL, QUALITY_MODEL, FAST_FALLBACK, IOS_LITE_MODEL, getActiveLocalModelId } from '@/services/localAI';
 import { isMobileLocalDevice } from '@/utils/mobileLocal';
 
@@ -130,13 +129,15 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string, effor
 
     case 'cloud-image':
     case 'cloud-image-pro': {
-      return { label: 'Cloud · Arc Imagix', icon: 'cloud', tooltip: 'Image generation — Arc Imagix.' };
+      const name = modelUsed === 'gemini-3.1-flash-image' ? 'Arc Image Flash' : 'Arc Image';
+      return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `Image generation — ${name}.` };
     }
     case 'cloud-image-edit': {
-      return { label: 'Cloud · Arc Imagix Edit', icon: 'cloud', tooltip: 'Precision image editing — Arc Imagix Edit.' };
+      const name = modelUsed === 'gemini-3.1-flash-image' ? 'Arc Image Flash' : 'Arc Image';
+      return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `Image editing — ${name}.` };
     }
     case 'cloud-image-edit-fallback':
-      return { label: 'Cloud · Arc Imagix Edit (Fallback)', icon: 'cloud', tooltip: 'Image editing served by Arc Matrix fallback provider.' };
+      return { label: 'Cloud · Arc Image (Fallback)', icon: 'cloud', tooltip: 'Image editing served by Arc Matrix fallback provider.' };
     case 'cloud-video':
       return { label: 'Cloud · Video', icon: 'cloud', tooltip: 'Video generation.' };
     case 'cloud-ide':
@@ -148,32 +149,9 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string, effor
   }
 }
 
-const EFFORT_NAMES: Record<string, string> = { low: 'Ava', medium: 'Maya', high: 'River' };
-
-/**
- * `effortUsed` is the effort recorded on the message when it was generated.
- * Without it we can only report the picker's current selection, which is wrong
- * for stored messages and says nothing useful under Auto — Auto picks a model
- * per request, so "Arc Matrix" alone never names what actually answered.
- */
+/** Product mode follows recorded provider metadata, never the current picker. */
 function getModelInfo(effortUsed?: string, modelUsed?: string): { name: string; tier: string; providerName: string } {
-  const selection = useModelStore.getState().reasoningEffort;
-  // Flash records effort 'low', so effort alone would badge it as Ava. The model
-  // id is the only thing that tells the two apart on a stored message.
-  if (modelUsed?.startsWith('gemini-')) {
-    return { name: 'Arc · Flash', tier: 'Flash', providerName: 'Flash, Arc Matrix™ fast tier' };
-  }
-  const resolved = EFFORT_NAMES[effortUsed ?? ''] ?? EFFORT_NAMES[selection] ?? null;
-  const isAuto = selection === 'auto' && !EFFORT_NAMES[effortUsed ?? ''];
-
-  if (isAuto || !resolved) {
-    return { name: 'Arc · Arc Matrix', tier: 'Arc Matrix', providerName: 'Arc Matrix™ picks a model per request' };
-  }
-
-  const viaAuto = selection === 'auto' && !!EFFORT_NAMES[effortUsed ?? ''];
-  return {
-    name: `Arc · ${resolved}`,
-    tier: resolved,
-    providerName: viaAuto ? `${resolved}, chosen by Arc Matrix™` : `${resolved} on Arc Matrix™`,
-  };
+  if (modelUsed === 'gemini-3.8-flash') return { name: 'Arc Flash', tier: 'Flash', providerName: 'Powered by Gemini Flash' };
+  if (modelUsed?.startsWith('gpt-') || effortUsed) return { name: 'Arc Think', tier: 'Think', providerName: 'Powered by GPT 6 & 6.1' };
+  return { name: 'Arc Matrix', tier: 'Auto', providerName: 'Arc Matrix™ orchestration' };
 }

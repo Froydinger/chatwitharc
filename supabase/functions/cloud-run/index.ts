@@ -1,7 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 import { authorizeCloudAppSubmission, CloudAppIngressError } from '../_shared/cloudAppIngress.ts';
 import { validateCloudMediaReferences } from '../_shared/cloudMedia.ts';
-import { FLYNN_MODEL, flynnAllowedForUser } from '../_shared/flynnProvider.ts';
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -608,11 +607,8 @@ export async function handleCloudRun(req: Request): Promise<Response> {
       invalid("Invalid JSON.");
     }
   const action = validateAction(raw, match[1]);
-    if (action.action === 'submit' && action.request.model === FLYNN_MODEL) {
-      if (action.kind !== 'chat' || !flynnAllowedForUser(user, Deno.env.get('GEMINI_API_KEY'))) {
-        throw new HttpError(403, 'Flynn is unavailable for this account.');
-      }
-    }
+    // Work is GPT-only, including stale Flash selections sent by older clients.
+    if (action.action === 'submit') delete action.request.model;
     if (action.action === 'submit' && action.request.attachments !== undefined) {
       try {
         action.request.attachments = validateCloudMediaReferences(action.request.attachments, {

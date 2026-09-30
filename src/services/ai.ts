@@ -106,10 +106,10 @@ WHO MADE ARC
 - ArcAI was founded and created by Win The Night™ Foundation (https://winthenight.org), in collaboration with Froydinger™ Design Systems. If someone asks who made you, who built ArcAI, or who is behind Arc, say Win The Night™ Foundation are the founders and creators.
 
 WHAT ARC CAN DO
-- Chat and reason using Arc Matrix™ with Ava, Maya, or River from the model control at the top of chat, or use Auto to route dynamically.
+- Choose Arc Think (Powered by GPT 6 & 6.1) for Auto orchestration or Arc Flash (Powered by Gemini Flash) in the compact chat picker. Arc Matrix™ is the orchestrator. Free offers less usage; Boost offers unlimited usage. Voice limits are unchanged.
 - Search the live web, check weather, search the signed-in user's past chats, and use saved memories when the relevant tool is available.
 - Deep Search and Ultra Deep Search are the dedicated research modes, both powered by Perplexity, opened from the Deep Search button. Deep Search retrieves ranked live results and writes a cited answer; Ultra Deep Search runs agentic Pro Search that browses and cross-checks sources first — slower, and worth it when the answer has to be assembled rather than found. Free accounts get 4 Deep and 1 Ultra per week; Boost makes both unlimited. Follow-ups inside a research session stay in the mode it started in and do not count again. This is separate from the quick in-chat web search, which is instant and uncapped.
-- Generate images using Arc Imagix and revise/edit them using Arc Imagix Edit. Free accounts get 3 creations total period; Boost gives unlimited image generation and editing. Understand attached images and camera frames; work with uploaded files.
+- Generate and edit images with Arc Image (GPT Image 2.5) or Arc Image Flash (Nano Banana 2). Both share daily image credits on Free, with less usage; Boost gives unlimited usage. Understand attached images and camera frames; work with uploaded files.
 - Draft long-form writing in Canvas, create code in Code Canvas, and generate downloadable files when requested.
 - Create reminders and scheduled or recurring tasks, which are managed at https://askarc.chat/tasks.
 - Share chats and use shared rooms.
@@ -232,6 +232,7 @@ export class AIService {
     arcMode: ArcMode = 'chat',
     forceGit: boolean = false,
   ): Promise<SendMessageResult> {
+    const submissionId = crypto.randomUUID();
     const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content || '';
     const requestsBugReport = /\b(open|create|start|show|file|submit|send|make)\b[\s\S]{0,80}\b(bug\s*report|feedback|suggestion|support\s*(message|report)|message\s+(to|for)\s+(the\s+)?(team|support))\b/i.test(latestUserMessage);
     if (requestsBugReport) {
@@ -366,6 +367,7 @@ export class AIService {
                 },
                 body: JSON.stringify({
                   messages: [UI_CONTEXT_PROMPT, ARC_MODE_CONTEXT[arcMode], ...messages],
+                  submissionId, arcMode,
                   profile: effectiveProfile,
                   model: selectedModel,
                   reasoningEffort,
@@ -409,7 +411,6 @@ export class AIService {
             throw new Error(serviceMessage || `Chat service error: ${response.status}`);
           }
 
-          window.dispatchEvent(new Event('arc-reasoning-quota-changed'));
           requestAccepted = true;
 
           let data: any = null;
@@ -515,11 +516,6 @@ export class AIService {
             onToolUsage(data.tool_calls_used);
           }
 
-          if (reasoningEffort === 'medium') {
-            incrementDailyBalancedCount();
-          } else if (reasoningEffort === 'high') {
-            incrementDailyDeepCount();
-          }
 
           return {
             streamedAnswer,
@@ -583,6 +579,8 @@ export class AIService {
         }
       }
       throw error;
+    } finally {
+      window.dispatchEvent(new Event('arc-reasoning-quota-changed'));
     }
   }
 

@@ -41,17 +41,17 @@ interface ModelStore {
 const VALID_REASONING_SELECTIONS = new Set<LunaReasoningSelection>(['auto', 'low', 'medium', 'high', 'flynn']);
 
 /** Picker visibility only; authenticated server checks remain authoritative. */
-export function canSeeFlynnPreview(user: { email?: string | null; is_anonymous?: boolean } | null): boolean {
-  return !user?.is_anonymous && user?.email?.trim().toLowerCase() === 'jakefroydinger@gmail.com';
+export function canSelectFlynn(user: { id?: string; is_anonymous?: boolean } | null, _hasBoost: boolean): boolean {
+  return Boolean(user?.id && !user.is_anonymous);
 }
 
 export function getModelDisplayName(selection: LunaReasoningSelection): string {
   switch (selection) {
-    case 'low': return 'Ava';
-    case 'medium': return 'Maya';
-    case 'high': return 'River';
-    case 'flynn': return 'Flynn';
-    case 'auto': default: return 'Auto';
+    case 'low': return 'Arc Think';
+    case 'medium': return 'Arc Think';
+    case 'high': return 'Arc Think';
+    case 'flynn': return 'Arc Flash';
+    case 'auto': default: return 'Arc Think';
   }
 }
 
@@ -81,14 +81,10 @@ export const useModelStore = create<ModelStore>()(
     }),
     {
       name: 'arc-model-family',
-      version: 6,
+      version: 7,
       migrate: (persisted: unknown) => {
         const state = (persisted ?? {}) as { reasoningEffort?: string };
-        // A saved Flash choice now stays on Luna at its equivalent low effort.
-        const savedEffort = state.reasoningEffort === 'flash' ? 'low' : state.reasoningEffort;
-        const reasoningEffort = VALID_REASONING_SELECTIONS.has(savedEffort as LunaReasoningSelection)
-          ? savedEffort as LunaReasoningSelection
-          : 'auto';
+        const reasoningEffort: LunaReasoningSelection = state.reasoningEffort === 'flynn' ? 'flynn' : 'auto';
         return {
           modelFamily: 'openai' as const,
           chatModel: LUNA_MODEL,
@@ -104,14 +100,14 @@ export const useModelStore = create<ModelStore>()(
   )
 );
 
-import { useImageGenStore, getResolvedImageModel } from './useImageGenStore';
+import { getResolvedImageModel, getResolvedEditImageModel } from './useImageGenStore';
 
 export function getModelForTask(task: ModelTask, _complexity: 0 | 1 | 2 | 3 = 0): string {
   if (task === 'image-gen') {
-    return 'gpt-image-2.5-flare';
+    return getResolvedImageModel();
   }
   if (task === 'image-edit') {
-    return 'gpt-image-2.5-sunburst';
+    return getResolvedEditImageModel();
   }
   // Code, canvas, file generation, image analysis, and regular chat all use Luna.
   if (task === 'code' || task === 'file-gen' || task === 'image-analysis') {

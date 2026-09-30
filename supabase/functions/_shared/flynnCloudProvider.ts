@@ -1,6 +1,7 @@
 import type { EngineProvider } from './cloudRunEngine.ts';
 import type { CloudToolDefinition } from './cloudRunProvider.ts';
 import { flynnModelTurn, requestFlynnCompletion, requireFlynnAccess } from './flynnProvider.ts';
+import type { FlynnUser } from './flynnProvider.ts';
 
 type Json = Record<string, unknown>;
 function record(raw: unknown): Json {
@@ -28,7 +29,8 @@ export function flynnMessages(transcript: unknown[]): Json[] {
 }
 
 export function flynnCloudProvider(options: {
-  user: { email?: string | null } | null;
+  user: FlynnUser | null;
+  accessGranted?: boolean;
   apiKey: string | undefined;
   instructions: string;
   tools: CloudToolDefinition[];
@@ -37,7 +39,7 @@ export function flynnCloudProvider(options: {
   signal?: AbortSignal;
   fetcher?: typeof fetch;
 }): EngineProvider {
-  requireFlynnAccess(options.user, options.apiKey);
+  requireFlynnAccess(options.user, options.apiKey, options.accessGranted);
   if (options.firstTool && !options.tools.some(tool => tool.name === options.firstTool)) throw new Error('Requested initial tool is not registered');
   return {
     startModel: () => Promise.reject(new Error('Flynn requires durable completion checkpoints.')),
@@ -45,7 +47,7 @@ export function flynnCloudProvider(options: {
     async completeModel(transcript, requestKey, maxTokens) {
       const input = options.expandInput ? await options.expandInput(transcript) : transcript;
       const result = await requestFlynnCompletion({
-        user: options.user, apiKey: options.apiKey,
+        user: options.user, accessGranted: options.accessGranted, apiKey: options.apiKey,
         messages: [{ role: 'system', content: options.instructions }, ...flynnMessages(input)],
         tools: options.tools.map(tool => ({ type: 'function', function: { name: tool.name, description: tool.description, parameters: tool.parameters } })),
         ...(options.firstTool && requestKey.endsWith(':model:0')
