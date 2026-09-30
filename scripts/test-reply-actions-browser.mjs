@@ -49,6 +49,13 @@ try {
     await evaluate(`document.querySelector('[data-qa-reply="user"] .user-message-bubble').click()`);
     await wait(50);
     assert.deepEqual(await active(), ['older'], 'User messages do not move assistant controls');
+    await wait(180);
+    const userActions = await evaluate(`(() => {const n=document.querySelector('[data-qa-reply="user"] .arc-user-message-actions');const s=getComputedStyle(n);return {open:n.dataset.actionsOpen,opacity:s.opacity,pointer:s.pointerEvents};})()`);
+    assert.deepEqual(userActions, {open:'true', opacity:'1', pointer:'auto'}, 'Tap reveals usable user controls on phone and desktop');
+    await evaluate(`document.querySelector('[data-qa-reply="user"] .user-message-bubble').click()`);
+    await wait(180);
+    assert.equal(await evaluate(`document.querySelector('[data-qa-reply="user"] .arc-user-message-actions').dataset.actionsOpen`), 'false');
+
     await evaluate(`(() => { const node=document.querySelector('[data-qa-reply="latest"] [tabindex="0"]'); node.focus(); node.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); })()`);
     await wait(50);
     assert.deepEqual(await active(), ['latest'], 'Keyboard Enter selects a reply');

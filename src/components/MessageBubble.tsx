@@ -1,6 +1,5 @@
 import { Transition } from "@/components/transitions/Transition";
 import { Fragment, forwardRef, useCallback, useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import { Copy, Edit2, Check, MapPin, Volume2, Square, Loader2, Share2 } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import ReactMarkdown from "react-markdown";
@@ -659,19 +658,14 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
 
             {/* Action Buttons, now outside the clipped inner wrapper */}
             {!isEditing && isUser && (
-              <motion.div
-                initial={false}
-                animate={{
-                  opacity: showActions ? 1 : 0,
-                  scale: showActions ? 1 : 0.96,
-                }}
-                transition={{ duration: 0.18 }}
+              <div
+                data-actions-open={showActions ? "true" : "false"}
                 className={[
-                  "pointer-events-auto absolute z-20",
+                  "arc-user-message-actions absolute z-20",
                   // hang off the bubble corner
                   isUser ? "-top-3 -left-3" : "-top-3 -right-3",
                   // show on hover as well
-                  "hidden group-hover:flex",
+                  "flex",
                 ].join(" ")}
               >
                 <div className="rounded-full bg-background/70 backdrop-blur-md border border-border/50 shadow-lg p-1 flex gap-1">
@@ -727,7 +721,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                     </GlassButton>
                   )}
                 </div>
-              </motion.div>
+              </div>
             )}
           </div>
           

@@ -1,6 +1,6 @@
 # Model catalog rollout — September 30, 2026
 
-Requested end state; implementation is in progress. This is not a claim that these changes are live.
+The modes-and-usage batch was published as e9a954cc on September 30. Authenticated Gemini provider E2E is still unverified; wider animation/composer work remains in progress.
 
 - User-facing chat choices are **Arc Think** and **Arc Flash**, replacing the superseded raw-model/family picker request.
 - Arc Think is Auto orchestration. Free Think can use GPT 6 Luna and Gemini Flash within the free Flash allowance; Boost Think can use the supported GPT 6 / 6.1 models and Gemini Flash.
@@ -18,14 +18,21 @@ Release gates: verify official provider IDs, transport/tool compatibility, authe
 
 ## Verification ledger
 
-- Shared catalog/context helpers: saved selection migration, free/Boost policy, two-mode names, actual provider availability, mixed image credit costs and private/public usage wording tested locally. Not wired into released quota/provider paths yet.
-- Flash database admission: isolated real Postgres checks passed for concurrent duplicate submissions (one charge), 20-message cap under concurrency, account isolation, Boost bypass, private percentage RPC, grants and UTC rollover. The additive migration is installed in production; presence and grants verified (client cannot reserve directly, authenticated client can read only its own percentage). Chat integration is local and not released yet. Repeated migration application preserves recorded usage.
+- Shared catalog/context helpers: saved selection migration, free/Boost policy, two-mode names, actual provider availability, mixed image credit costs and private/public usage wording tested locally. Wired into released quota/provider paths.
+- Flash database admission: isolated real Postgres checks passed for concurrent duplicate submissions (one charge), 20-message cap under concurrency, account isolation, Boost bypass, private percentage RPC, grants and UTC rollover. The additive migration is installed in production; presence and grants verified (client cannot reserve directly, authenticated client can read only its own percentage). Chat integration is released. Repeated migration application preserves recorded usage.
 
 - Image credits: real isolated Postgres concurrency, mixed-provider batch cost, partial/storage-failure refunds, duplicate finalize, owner checks, grants, UTC rollover and replay checks pass. The additive ledger is installed in production and confirmed private; authenticated clients can call only their own usage getter. The legacy ledger remains intact.
 - Nano Banana adapter: native Interactions API, PNG/1K output, completed model output only, no thought images, no provider request storage, no automatic POST retry, timeout bounds and partial-batch results checked. Generation/edit handlers retain private storage and owned source downloads. Real authenticated provider generation is still unverified.
-- Client: two image modes, immutable queued image provider, percent usage meters, compact Think/Flash picker, signed-out handling, native image modal, reduced-motion cleanup and 412/1280px geometry pass local browser tests. Model context and public marketing now use the two-mode contract. Provider/client activation has not yet been released.
+- Client: two image modes, immutable queued image provider, percent usage meters, compact Think/Flash picker, signed-out handling, native image modal, reduced-motion cleanup and 412/1280px geometry pass local browser tests. Model context and public marketing now use the two-mode contract. Provider/client activation is released.
 - Production build and prerender pass. Targeted lint has no errors in the new image/mode components. Whole-project typecheck remains blocked by pre-existing JSX syntax in unused AdminSettingsPanel; excluding that file still exposes legacy schema/type errors. Changed-file error inspection found only existing Subscription/Dashboard schema/type failures, not new image/mode type failures.
 
 ## Work provider boundary
 
 Arc Work uses GPT only: Luna for ordinary work and GPT 6.1 Sol for harder Boost requests; image tools stay OpenAI Flare/Sunburst. The client omits Flash provider selection, submission strips stale provider overrides, and worker resume always constructs the GPT provider. Regular Chat Flash is unchanged.
+
+## Published batch evidence
+
+- Commit e9a954cc4cc311455afd3f98b7072fd133078b4d; pinned Netlify site published deploy 6abcbc729f76e30008a16f2e at 2026-09-30T07:38:56.698Z, matching commit and live /assets/index-C8OSuQjb.js (HTTP 200). Published chat/reply chunks load and contain the reply-controls marker.
+- Supabase chat 93, cloud-worker 59, cloud-run 42, generate-image 34, edit-image 37: ACTIVE. Chat/worker headers are arc-modes-20260930 and arc-modes-work-gpt-20260930. Preserved gateway settings: custom handler auth for chat/Work, gateway JWT verification for images. All five unauthenticated POSTs return 401.
+- Actual published pricing DOM confirms Think/Flash, both image modes, Less usage / Unlimited usage and unchanged voice allowance copy. Screenshot: /tmp/arc-modes-pricing-live.png. Live browser remains signed out, so these are deployment/public-UI/auth-rejection checks, not authenticated provider completion, image output, saved history, payment or read-aloud proof.
+- Before release: compositor/queue/SSE cancellation regression tests, 20 shared catalog/provider tests, 49 Work context/worker tests, five function type checks, three actual-component browser suites at 412/1280px, production build/prerender and diff check passed. Existing whole-app typecheck limitations remain as noted above. Dashboard navigation and preview source are unchanged; only authorized dashboard usage content changed.

@@ -1,8 +1,7 @@
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { Transition } from "@/components/transitions/Transition";
 import { useState, useEffect, useRef } from "react";
-import { Sparkles, Music } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Music } from "lucide-react";
 import { ThemedLogo } from "@/components/ThemedLogo";
 import { ThinkingOrb, type OrbState } from "thinking-orbs";
 import { normalizedOrbSpeed, useThinkingOrbConfig, useMotionConfig } from "@/hooks/useThinkingOrbConfig";
@@ -213,45 +212,30 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
   if (fullSize && isGeneratingImage) {
     return (
       <ImageGenerationFx className="w-full max-w-sm mx-auto">
-      <motion.div
+      <Transition preset="fade"><div
+        data-arc-image-thinking="true"
         className="w-full bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 overflow-hidden flex items-center justify-center"
         style={{ aspectRatio: '1 / 1', minHeight: '320px' }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
       >
         <div className="flex flex-col items-center gap-6 p-8">
           <div className="relative flex items-center justify-center" style={{ willChange: 'transform' }}>
-            <motion.div
-              className="h-24 w-24 animate-spin-slow"
+            <Transition preset="fade"><div><div
+              className="h-24 w-24 animate-spin-slow arc-image-thinking-spin"
               style={{
                 backfaceVisibility: 'hidden',
                 transform: 'translateZ(0)',
                 willChange: 'transform'
               }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ opacity: { duration: 0.4, ease: "easeOut" } }}
             >
               <ThemedLogo className="h-full w-full opacity-90" alt="Generating" />
-            </motion.div>
-            <motion.div
-              className="absolute inset-0 rounded-full bg-primary/20"
+            </div></div></Transition>
+            <div
+              className="absolute inset-0 rounded-full bg-primary/20 arc-image-thinking-glow"
               style={{
                 filter: 'blur(32px)',
                 backfaceVisibility: 'hidden',
                 transform: 'translateZ(0)',
                 willChange: 'transform, opacity'
-              }}
-              initial={{ opacity: 0 }}
-              animate={{
-                scale: [0.8, 1.3, 0.8],
-                opacity: [0.2, 0.5, 0.2]
-              }}
-              transition={{
-                opacity: { duration: 0.4, ease: "easeOut" },
-                scale: { duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }
               }}
             />
           </div>
@@ -261,7 +245,7 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
             {getMessage()}
           </span></Transition>
         </div>
-      </motion.div>
+      </div></Transition>
       </ImageGenerationFx>
     );
   }
@@ -292,7 +276,6 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
       </div>
       
       {/* Music button - appears after 3 seconds */}
-      <AnimatePresence>
         <ConditionalTransition preset="panel">{showMusicButton && !hideHelpers && (
           <button
             onClick={handlePlayMusic}
@@ -302,10 +285,8 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
             <span>{isPlayingMusic ? "stop the tunes" : "taking too long? listen to some tunes"}</span>
           </button>
         )}</ConditionalTransition>
-      </AnimatePresence>
 
       {/* Reassurance note - appears after 60 seconds of a slow generation */}
-      <AnimatePresence>
         <ConditionalTransition preset="panel">{showHangTight && !hideHelpers && (
           <span
             className="text-[10px] text-muted-foreground/70 ml-1"
@@ -313,7 +294,6 @@ export function ThinkingIndicator({ isLoading, isGeneratingImage, accessingMemor
             hang tight, Arc is still thinking...
           </span>
         )}</ConditionalTransition>
-      </AnimatePresence>
     </div></Transition>
   );
 }

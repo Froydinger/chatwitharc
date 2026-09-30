@@ -122,3 +122,28 @@
   .arc-composer-press { transition: none !important; }
   .arc-composer-press:hover, .arc-composer-press:active { scale: 1; }
 }
+
+/* Keep loop effects on children so they cannot replace entrance animation lifetimes. */
+.arc-image-thinking-glow {
+  animation: arc-image-thinking-pulse 2s var(--ease-in-out, ease-in-out) .4s infinite both;
+}
+@keyframes arc-image-thinking-pulse {
+  0%, 100% { scale: .8; opacity: .2; }
+  50% { scale: 1.3; opacity: .5; }
+}
+/* Native modal-scale reveal for the existing user-message controls. */
+.arc-user-message-actions {
+  opacity: 0; scale: .96; pointer-events: none;
+  transition: opacity var(--arc-motion-quick) var(--arc-motion-ease), scale var(--arc-motion-quick) var(--arc-motion-ease);
+}
+.arc-user-message-actions[data-actions-open="true"], .group:focus-within .arc-user-message-actions {
+  opacity: 1; scale: 1; pointer-events: auto;
+}
+@media (hover: hover) {
+  .group:hover .arc-user-message-actions { opacity: 1; scale: 1; pointer-events: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arc-image-thinking-glow, .arc-image-thinking-spin { animation: none !important; }
+  .arc-image-thinking-glow { scale: 1; opacity: .2; }
+  .arc-user-message-actions { transition: none !important; }
+}

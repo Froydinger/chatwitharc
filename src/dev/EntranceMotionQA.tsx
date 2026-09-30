@@ -8,7 +8,7 @@ export function installEntranceMotionQA() {
   if (!import.meta.env.DEV) throw new Error("Local QA only");
   const host = document.createElement("div");
   host.id = "arc-entrance-qa";
-  Object.assign(host.style, { position: "fixed", inset: "0", zIndex: "10000", padding: "24px", background: "var(--background)", overflow: "auto" });
+  Object.assign(host.style, { position: "fixed", inset: "0", zIndex: "10000", padding: "24px", background: "hsl(var(--background))", overflow: "auto" });
   host.className = "bg-background text-foreground";
   document.body.append(host);
   const root = createRoot(host);
