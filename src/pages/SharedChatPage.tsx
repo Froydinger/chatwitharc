@@ -1,6 +1,6 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import { Home, ArrowRight, MessageSquare, Flag, Ban, ShieldOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -237,11 +237,7 @@ export function SharedChatPage() {
             <div className="text-center text-sm text-muted-foreground py-12">This chat has no messages yet.</div>
           ) : (
             session.messages.map((message, idx) => (
-              <motion.div
-                key={message.id || idx}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
+              <Transition preset="panel" key={message.id || idx}><div
               >
                 <MessageBubble
                   message={message}
@@ -256,7 +252,7 @@ export function SharedChatPage() {
                     </Button>
                   </div>
                 )}
-              </motion.div>
+              </div></Transition>
             ))
           )}
           <div className="h-32" />

@@ -1,5 +1,5 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { Download, VideoOff, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -100,10 +100,7 @@ export function VideoAttachment({ jobId, prompt, seconds, size }: VideoAttachmen
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.98 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.25 }}
+    <Transition preset="modal"><div
       className="flex flex-col gap-1.5"
     >
       <div className={`glass-card rounded-2xl overflow-hidden ${isPortrait ? "max-w-[240px]" : "max-w-md"}`}>
@@ -155,6 +152,6 @@ export function VideoAttachment({ jobId, prompt, seconds, size }: VideoAttachmen
           Save
         </Button>
       </div>
-    </motion.div>
+    </div></Transition>
   );
 }

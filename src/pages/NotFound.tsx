@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
@@ -42,14 +43,11 @@ const NotFound = () => {
           </motion.div>
 
           <div className="space-y-2">
-            <motion.h1 
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
+            <Transition preset="modal"><h1
               className="text-7xl font-extrabold tracking-tighter bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent"
             >
               404
-            </motion.h1>
+            </h1></Transition>
             <h2 className="text-xl font-semibold text-foreground">
               Lost in space
             </h2>

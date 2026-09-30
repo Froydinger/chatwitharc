@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { ThemedLogo } from "@/components/ThemedLogo";
@@ -62,22 +63,16 @@ export function ImageGenerationPlaceholder({ prompt, onComplete }: ImageGenerati
           />
         </div>
         <div className="flex flex-col items-center gap-2 text-center">
-          <motion.span
+          <Transition preset="panel"><span
             className="text-xl font-semibold text-foreground/90 tracking-tight"
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
           >
             Creating your image
-          </motion.span>
-          <motion.p
+          </span></Transition>
+          <Transition preset="fade" delay={0.2}><p
             className="text-sm text-muted-foreground/60 max-w-[200px] line-clamp-2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.4 }}
           >
             {prompt}
-          </motion.p>
+          </p></Transition>
         </div>
       </div>
     </motion.div>

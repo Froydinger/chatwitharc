@@ -1,5 +1,5 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { Play, Image as ImageIcon, ExternalLink, X } from "lucide-react";
 import { SmoothImage } from "@/components/ui/smooth-image";
 
@@ -127,9 +127,7 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
 
     return (
       <>
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
+        <Transition preset="panel"><div
           className="relative rounded-xl overflow-hidden border border-border/40 bg-muted/30 cursor-pointer group"
           onClick={() => setShowFullImage(true)}
         >
@@ -146,7 +144,7 @@ export const MediaEmbed = ({ url, title, compact = false }: MediaEmbedProps) => 
               <p className="text-xs text-white truncate">{title}</p>
             </div>
           )}
-        </motion.div>
+        </div></Transition>
 
         {/* Full image modal */}
         {showFullImage && (

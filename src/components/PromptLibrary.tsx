@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -239,22 +240,16 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                     <Lightbulb className="h-5 w-5 text-primary" />
                   </motion.div>
                   <div>
-                    <motion.h3
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.08, duration: 0.2 }}
+                    <Transition preset="page" delay={0.08}><h3
                       className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"
                     >
                       Ideas
-                    </motion.h3>
-                    <motion.p
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1, duration: 0.2 }}
+                    </h3></Transition>
+                    <Transition preset="page" delay={0.1}><p
                       className="text-xs text-muted-foreground hidden sm:block"
                     >
                       {getCurrentPrompts().length} prompts available
-                    </motion.p>
+                    </p></Transition>
                   </div>
                 </div>
 
@@ -358,9 +353,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                   >
                     {isCurrentTabLoading() ? (
                     <div className="col-span-full flex items-center justify-center py-16">
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
+                      <Transition preset="modal"><div
                         className="flex flex-col items-center gap-4"
                       >
                         <motion.div
@@ -378,7 +371,7 @@ export function PromptLibrary({ isOpen, onClose, prompts, onSelectPrompt }: Prom
                         <p className="text-sm text-muted-foreground font-medium">
                           Generating fresh prompts...
                         </p>
-                      </motion.div>
+                      </div></Transition>
                     </div>
                   ) : (
                     getCurrentPrompts().map((prompt, index) => (

@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, CheckCircle, Download, Smartphone } from "lucide-react";
@@ -41,10 +42,7 @@ export function DownloadPage() {
       <BackgroundGradients />
 
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+        <Transition preset="panel"><div
           className="w-full max-w-4xl space-y-8"
         >
           <div className="flex flex-col items-center gap-6 text-center">
@@ -261,10 +259,7 @@ export function DownloadPage() {
             )}
           </AnimatePresence>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4, delay: 0.8 }}
+          <Transition preset="fade" delay={0.8}><div
             className="flex justify-center gap-4 text-sm text-muted-foreground"
           >
             <Link to="/" className="transition-colors hover:text-primary">
@@ -274,8 +269,8 @@ export function DownloadPage() {
             <a href="https://askarc.chat" className="transition-colors hover:text-primary">
               Open Web App
             </a>
-          </motion.div>
-        </motion.div>
+          </div></Transition>
+        </div></Transition>
       </div>
     </div>
   );

@@ -60,3 +60,13 @@ Remaining composer extraction and broader animation migration are still pending.
 Recovery UI was visually inspected in the local browser screenshot `/tmp/arc-queue-recovery.png`; the fixture contains only synthetic text/files and never saves production history.
 
 Queue editing recomputes app intent from edited text using the captured app context, so editing a queued greeting into `/app …` retains the normal Builder route. The production adapter regression case uses the actual app classifier and verifies a newer open app does not replace captured context.
+
+## Static entrance expansion
+
+Converted 62 further static entrances across 29 components/pages to the native Transition component. No handlers, state, provider payloads, routing or layout properties changed. DashboardPage, DashboardPreviewPage and gooey-tab-nav remain excluded. Shared animation CSS is unchanged in this stage.
+
+`node scripts/test-motion-entrance-parity.cjs d132ac7e <stage-ref>` compares the JSX/TypeScript after removing entrance declarations and wrappers, preserving keys, content and non-motion attributes. This proves source parity for this static stage, not provider E2E or later behavioral changes. Composer tests and the five-preset browser interruption/exit/reduced-motion/modal checks pass. Actual WelcomeSection and full-size image ThinkingIndicator render at 412px and 1280px, settle visible, and respect reduced motion in `test-motion-entrances-browser.mjs`.
+
+The actual image-loader check caught a collision between its existing `animate-spin-slow` shorthand and the new entrance CSS: the fade inherited infinite iteration. Kept the three existing spinning-loader entrances on Framer for this batch, pending a separate loop migration. Audited the other converted children for existing CSS animation classes. The corrected actual-component checks pass. No failing batch was published.
+
+Build/prerender passes. ESLint finds the same 19 existing errors and 19 warnings in changed files, with no new diagnostics (line-number references normalized for comparison). Recorded `/tmp/arc-motion-after.mp4` again, 315 browser frames over 5.8 seconds; this recording exercises the shared motion fixture and model dialog, not all 29 converted surfaces. DEV fixtures are provider-free and do not persist history.

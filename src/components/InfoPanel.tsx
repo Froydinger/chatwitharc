@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { motion } from "framer-motion";
 import { Mic2, MessageSquare, Zap, Shield, Github, ImagePlus } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -52,9 +53,7 @@ export function InfoPanel() {
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8">
       {/* Hero Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+      <Transition preset="panel"><div
         className="text-center space-y-4"
       >
         <motion.div
@@ -82,24 +81,17 @@ export function InfoPanel() {
         <p className="text-sm text-muted-foreground/70">
           Built by <a href="https://winthenight.org" target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="hover:text-foreground transition-colors underline">Win The Night™ Foundation</a> • Powered by OpenAI
         </p>
-      </motion.div>
+      </div></Transition>
 
       {/* Features Grid */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
+      <Transition preset="fade" delay={0.2}><div
         className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         {features.map((feature, index) => {
           const Icon = feature.icon;
           
           return (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 + index * 0.1 }}
+            <Transition preset="panel" delay={0.3 + index * 0.1} key={feature.title}><div
             >
               <GlassCard 
                 variant="bubble" 
@@ -122,16 +114,13 @@ export function InfoPanel() {
                   </div>
                 </div>
               </GlassCard>
-            </motion.div>
+            </div></Transition>
           );
         })}
-      </motion.div>
+      </div></Transition>
 
       {/* Roadmap */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
+      <Transition preset="panel" delay={0.8}><div
       >
         <GlassCard variant="bubble" glow className="p-8">
           <div className="text-center mb-6">
@@ -145,28 +134,21 @@ export function InfoPanel() {
 
           <div className="grid md:grid-cols-2 gap-4">
             {roadmap.map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1 + index * 0.1 }}
+              <Transition preset="page" delay={1 + index * 0.1} key={index}><div
                 className="flex items-center gap-3 p-3 glass rounded-lg"
               >
                 <div className="text-lg">{item.split(' ')[0]}</div>
                 <span className="text-foreground font-medium">
                   {item.substring(2)}
                 </span>
-              </motion.div>
+              </div></Transition>
             ))}
           </div>
         </GlassCard>
-      </motion.div>
+      </div></Transition>
 
       {/* Tech Stack */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.2 }}
+      <Transition preset="panel" delay={1.2}><div
       >
         <GlassCard variant="bubble" className="p-6">
           <div className="text-center space-y-4">
@@ -187,13 +169,10 @@ export function InfoPanel() {
             </div>
           </div>
         </GlassCard>
-      </motion.div>
+      </div></Transition>
 
       {/* CTA */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.4 }}
+      <Transition preset="panel" delay={1.4}><div
         className="text-center"
       >
         <GlassButton
@@ -205,7 +184,7 @@ export function InfoPanel() {
           <Github className="h-5 w-5 mr-2" />
           View on GitHub
         </GlassButton>
-      </motion.div>
+      </div></Transition>
     </div>
   );
 }

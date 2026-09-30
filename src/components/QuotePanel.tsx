@@ -1,7 +1,7 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle, Quote, RefreshCw } from "lucide-react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useArcStore } from "@/store/useArcStore";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -101,10 +101,7 @@ export function QuotePanel() {
 
   return (
     <div className="h-full flex flex-col items-center justify-center px-6 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+      <Transition preset="panel"><div
         className="text-center max-w-sm mx-auto"
       >
         {/* Icon */}
@@ -120,11 +117,7 @@ export function QuotePanel() {
         </p>
 
         {/* Quote */}
-        <motion.div
-          key={randomOffset}
-          initial={{ opacity: 0, y: 10, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
+        <Transition preset="modal" key={randomOffset}><div
         >
           <p className="text-xl sm:text-2xl font-medium text-foreground leading-relaxed mb-4">
             "{todaysQuote.text}"
@@ -132,7 +125,7 @@ export function QuotePanel() {
           <p className="text-sm text-muted-foreground italic">
             — {todaysQuote.author}
           </p>
-        </motion.div>
+        </div></Transition>
 
         {/* Actions */}
         <div className="mt-10 space-y-3">
@@ -152,7 +145,7 @@ export function QuotePanel() {
             Another quote
           </Button>
         </div>
-      </motion.div>
+      </div></Transition>
     </div>
   );
 }

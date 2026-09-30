@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThinkingOrb } from "thinking-orbs";
@@ -838,9 +839,7 @@ export function SearchCanvas() {
 
       {/* Mobile: New Search FAB when in active session */}
       {isMobile && activeSession && (
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
+        <Transition preset="modal"><button
           onClick={() => {
             setActiveSession(null as any);
             setSearchQuery("");
@@ -849,7 +848,7 @@ export function SearchCanvas() {
           className="fixed bottom-24 right-4 z-50 h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/90 transition-colors"
         >
           <Plus className="h-6 w-6" />
-        </motion.button>
+        </button></Transition>
       )}
 
       {/* Main Layout: Content + Sidebar on Desktop */}
@@ -921,11 +920,7 @@ export function SearchCanvas() {
                             {activeSession.results.map((result, index) => {
                               const isSaved = savedUrls.has(result.url);
                               return (
-                                <motion.div
-                                  key={result.id}
-                                  initial={{ opacity: 0, scale: 0.9 }}
-                                  animate={{ opacity: 1, scale: 1 }}
-                                  transition={{ delay: index * 0.03 }}
+                                <Transition preset="modal" delay={index * 0.03} key={result.id}><div
                                   className="group flex items-center gap-2 px-3 py-2 rounded-full border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-[background-color,border-color]"
                                 >
                                   <div className="flex-shrink-0 w-4 h-4">
@@ -972,7 +967,7 @@ export function SearchCanvas() {
                                       <ExternalLink className="w-3.5 h-3.5" />
                                     </a>
                                   </div>
-                                </motion.div>
+                                </div></Transition>
                               );
                             })}
                           </div>
@@ -1009,10 +1004,7 @@ export function SearchCanvas() {
 
                 {/* Search Quick Answer Card */}
                 {activeSession.quickAnswer && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.25 }}
+                  <Transition preset="panel"><div
                     className="mb-6 relative z-10 p-4 rounded-3xl border border-primary/20 bg-primary/5 backdrop-blur-md shadow-sm"
                   >
                     <div className="flex items-center gap-2 mb-2">
@@ -1022,7 +1014,7 @@ export function SearchCanvas() {
                     <p className="text-sm sm:text-base leading-relaxed text-foreground/95 font-medium">
                       {activeSession.quickAnswer}
                     </p>
-                  </motion.div>
+                  </div></Transition>
                 )}
 
                 {/* Search Visual Results Row */}
@@ -1031,11 +1023,7 @@ export function SearchCanvas() {
                     <h3 className="text-xs font-semibold text-muted-foreground mb-3 uppercase tracking-wider">Visual Results</h3>
                     <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
                       {activeSession.images.map((imgUrl, idx) => (
-                        <motion.div
-                          key={idx}
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ delay: idx * 0.04 }}
+                        <Transition preset="modal" delay={idx * 0.04} key={idx}><div
                           className="flex-shrink-0 w-44 sm:w-56 aspect-video snap-start group relative rounded-2xl overflow-hidden border border-border/50 bg-card cursor-pointer shadow-sm hover:scale-[1.02] hover:shadow-md hover:border-primary/40 transition-all duration-300"
                           onClick={() => setSelectedImageUrlForModal(imgUrl)}
                         >
@@ -1047,7 +1035,7 @@ export function SearchCanvas() {
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-2.5">
                             <span className="text-xs text-white font-medium truncate">View Image</span>
                           </div>
-                        </motion.div>
+                        </div></Transition>
                       ))}
                     </div>
                   </div>
@@ -1179,10 +1167,7 @@ export function SearchCanvas() {
                       if (msg.role === "user") {
                         const response = arr[idx + 1];
                         acc.push(
-                          <motion.div
-                            key={msg.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
+                          <Transition preset="panel" key={msg.id}><div
                             className="border-t border-border/30 pt-8"
                           >
                             {/* Follow-up Query as Sub-heading */}
@@ -1345,7 +1330,7 @@ export function SearchCanvas() {
                                 <span>Searching...</span>
                               </div>
                             )}
-                          </motion.div>,
+                          </div></Transition>,
                         );
                       }
                       return acc;
@@ -1430,7 +1415,7 @@ export function SearchCanvas() {
               </motion.div>
             ) : (
               /* Empty State */
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-12">
+              <Transition preset="panel"><div className="text-center py-12">
                 <div className="relative w-20 h-20 mx-auto mb-6">
                   <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5" />
                   <div className="absolute inset-0 flex items-center justify-center">
@@ -1487,11 +1472,7 @@ export function SearchCanvas() {
                       ))}
                     </motion.div>
                   ) : (
-                    <motion.div
-                      key="suggestions"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3 }}
+                    <Transition preset="panel" key="suggestions"><div
                       className="flex flex-wrap items-center justify-center gap-2 max-w-lg mx-auto"
                     >
                       {(smartSuggestions.length > 0 ? smartSuggestions : defaultSuggestions).map(
@@ -1513,10 +1494,10 @@ export function SearchCanvas() {
                           </motion.button>
                         ),
                       )}
-                    </motion.div>
+                    </div></Transition>
                   )}
                 </AnimatePresence>
-              </motion.div>
+              </div></Transition>
             )}
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
@@ -194,11 +195,8 @@ export function WelcomeSection({
   return (
     <div className="flex flex-col items-center px-4 space-y-3 sm:space-y-4 w-full">
       {/* Hero Section */}
-      <motion.div
+      <Transition preset="fade" delay={0.1}><div
         className="flex flex-col items-center gap-3 sm:gap-4 text-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1], delay: 0.1 }}
       >
         {heroAvatar && (
           <motion.div
@@ -218,7 +216,7 @@ export function WelcomeSection({
             />
           </motion.div>
         )}
-      </motion.div>
+      </div></Transition>
 
       {/* Thinking indicator now rendered above the centered input bar in MobileChatApp to avoid overlap */}
     </div>

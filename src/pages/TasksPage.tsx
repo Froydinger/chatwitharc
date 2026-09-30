@@ -1,5 +1,5 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Pause, Play, Trash2, Calendar, Clock, Repeat, CheckCircle2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -248,14 +248,14 @@ export function TasksPage() {
           </Button>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <Transition preset="panel"><div className="mb-6">
           <h1 className="text-3xl font-semibold flex items-center gap-3 text-foreground">
             <Calendar className="h-7 w-7 text-primary" /> Scheduled Tasks
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Arc runs prompts on a schedule and pings you when they're done.
           </p>
-        </motion.div>
+        </div></Transition>
 
         {showNew && (
           <GlassCard className="p-5 mb-6 space-y-4">

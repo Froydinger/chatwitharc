@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -815,10 +816,7 @@ export function VoiceLabPage() {
             )}
 
             {turns.map((turn) => (
-              <motion.div
-                key={turn.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
+              <Transition preset="panel" key={turn.id}><div
                 className={`flex items-end gap-2 ${turn.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {turn.role === 'assistant' && (
@@ -846,7 +844,7 @@ export function VoiceLabPage() {
                     </button>
                   )}
                 </div>
-              </motion.div>
+              </div></Transition>
             ))}
 
             {busy && (
@@ -1287,10 +1285,7 @@ export function VoiceLabPage() {
                 </div>
               ) : (
                 turns.map((turn) => (
-                  <motion.div
-                    key={turn.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
+                  <Transition preset="panel" key={turn.id}><div
                     className={`flex flex-col ${turn.role === 'user' ? 'items-end' : 'items-start'}`}
                   >
                     <div className="flex items-center gap-1.5 mb-1 px-1">
@@ -1333,7 +1328,7 @@ export function VoiceLabPage() {
                         </div>
                       )}
                     </div>
-                  </motion.div>
+                  </div></Transition>
                 ))
               )}
             </div>

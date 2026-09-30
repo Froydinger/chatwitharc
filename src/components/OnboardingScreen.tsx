@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -80,9 +81,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
       <GlassCard variant="bubble" className="w-full max-w-md p-8 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <Transition preset="panel"><div
           className="space-y-6"
         >
           {/* Logo */}
@@ -151,7 +150,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               {loading ? "Setting up..." : "Get Started"}
             </GlassButton>
           </div>
-        </motion.div>
+        </div></Transition>
       </GlassCard>
     </div>
   );

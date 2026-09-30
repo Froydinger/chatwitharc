@@ -1,6 +1,6 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState } from "react";
 import { Zap } from "lucide-react";
-import { motion } from "framer-motion";
 import { MemoryAction } from "@/store/useArcStore";
 import { ToolsUsedModal } from "@/components/ToolsUsedModal";
 import { Button } from "@/components/ui/button";
@@ -20,10 +20,7 @@ export const MemoryIndicator = ({ actions, messageContent }: MemoryIndicatorProp
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: -4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
+      <Transition preset="panel"><div
         className="mt-2"
       >
         <Button
@@ -35,7 +32,7 @@ export const MemoryIndicator = ({ actions, messageContent }: MemoryIndicatorProp
           <Zap className="h-3 w-3" />
           {toolCount} tool{toolCount !== 1 ? "s" : ""} used
         </Button>
-      </motion.div>
+      </div></Transition>
 
       <ToolsUsedModal
         isOpen={isModalOpen}

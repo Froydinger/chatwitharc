@@ -1,7 +1,7 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Activity, ArrowLeft, CheckCircle2, CircleAlert, Clock3, RefreshCw, ShieldCheck, WifiOff } from "lucide-react";
-import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -91,7 +91,7 @@ export function StatusPage() {
                   const visual = stateCopy[service.status];
                   const Icon = visual.Icon;
                   return (
-                    <motion.article key={service.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }} className="rounded-3xl border border-border/35 bg-background/45 p-5">
+                    <Transition preset="panel" delay={index * 0.05} key={service.id}><article className="rounded-3xl border border-border/35 bg-background/45 p-5">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-3">
                           <span className={cn("flex h-10 w-10 items-center justify-center rounded-2xl bg-muted/25", visual.color)}><Icon className="h-5 w-5" /></span>
@@ -103,7 +103,7 @@ export function StatusPage() {
                         <span className={cn("text-[10px] font-semibold uppercase tracking-wider", visual.color)}>{service.status === "operational" ? "Operational" : service.status === "degraded" ? "Degraded" : "Down"}</span>
                       </div>
                       {typeof service.latencyMs === "number" && <div className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"><Clock3 className="h-3.5 w-3.5" /> {service.latencyMs} ms</div>}
-                    </motion.article>
+                    </article></Transition>
                   );
                 })}
             </div>

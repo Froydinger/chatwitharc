@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Lightbulb } from "lucide-react";
@@ -68,10 +69,7 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
       )}
 
       {/* Expand Button - always visible */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: ANIMATION_DURATION.STANDARD, delay: suggestions.length * STAGGER.NORMAL + 0.1 }}
+      <Transition preset="fade" delay={suggestions.length * STAGGER.NORMAL + 0.1}><div
       >
         <Button
           variant="ghost"
@@ -82,7 +80,7 @@ export function SmartSuggestions({ suggestions, onSelectPrompt, onShowMore }: Sm
         <Lightbulb className="h-4 w-4 text-muted-foreground group-hover:text-neon-400" />
           Quick Ideas
         </Button>
-      </motion.div>
+      </div></Transition>
     </motion.div>
   );
 }

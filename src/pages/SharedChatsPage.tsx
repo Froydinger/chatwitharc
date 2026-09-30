@@ -1,6 +1,6 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { ArrowLeft, Plus, Users, MessageSquare, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,14 +98,14 @@ export function SharedChatsPage() {
         <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="gap-2 mb-4">
           <ArrowLeft className="h-4 w-4" /> Dashboard
         </Button>
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <Transition preset="panel"><div className="mb-6">
           <h1 className="text-3xl font-semibold flex items-center gap-3">
             <Users className="h-7 w-7 text-primary" /> Shared Chats
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Group conversations with Arc and the people you invite. Each chat fits the owner plus up to 5 others (6 total).
           </p>
-        </motion.div>
+        </div></Transition>
 
         <GlassCard className="p-4 mb-6 flex gap-2">
           <Input

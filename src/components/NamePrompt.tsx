@@ -1,5 +1,5 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { User } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -27,10 +27,7 @@ export function NamePrompt() {
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
+      <Transition preset="modal"><div
         className="w-full max-w-md"
       >
         <GlassCard variant="bubble" glow className="p-8">
@@ -75,7 +72,7 @@ export function NamePrompt() {
             </div>
           </form>
         </GlassCard>
-      </motion.div>
+      </div></Transition>
     </div>
   );
 }

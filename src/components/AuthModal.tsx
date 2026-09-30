@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -278,7 +279,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                 <X className={cn("h-4 w-4", t.closeIcon)} />
               </motion.button>
 
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-6">
+              <Transition preset="panel" delay={0.1}><div className="space-y-6">
                 <>
                 {/* Logo / contextual headline */}
                 <div className="text-center">
@@ -306,13 +307,11 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
 
                 {/* Inline Error Display */}
                 {authError && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
+                  <Transition preset="panel"><div
                     className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-xs font-medium text-red-400"
                   >
                     {authError}
-                  </motion.div>
+                  </div></Transition>
                 )}
 
                 {/* Tab Switcher */}
@@ -495,17 +494,14 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                 </AnimatePresence>
 
                 </>
-              </motion.div>
+              </div></Transition>
             </div>
 
             {/* Guest escape hatch — landing page only, deliberately outside the
                 glass card so it reads as a way past the modal, not a third
                 sign-in option competing with Google/email. */}
             {allowGuest && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15, duration: 0.3 }}
+              <Transition preset="panel" delay={0.15}><div
                 className="mt-4 flex flex-col items-center gap-1.5"
               >
                 <button
@@ -524,7 +520,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                 <span className={cn("text-[11px]", isLight ? "text-zinc-500" : "text-white/40")}>
                   Chat only — no history, images, or voice
                 </span>
-              </motion.div>
+              </div></Transition>
             )}
           </motion.div>
         </DialogContent>

@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -1613,11 +1614,8 @@ export function MobileChatApp() {
             <CanvasPanel />
             
             {/* Mobile canvas input toggle button */}
-            <motion.div
+            <Transition preset="modal"><div
               className="fixed bottom-6 left-4 z-[75]"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", damping: 15, stiffness: 300 }}
             >
               <Button
                 variant="outline"
@@ -1630,7 +1628,7 @@ export function MobileChatApp() {
               >
                 <MessageCircle className="h-4 w-4" />
               </Button>
-            </motion.div>
+            </div></Transition>
 
             {/* Mobile canvas input bar (hideable) */}
             <AnimatePresence>
@@ -1882,18 +1880,15 @@ export function MobileChatApp() {
 
               {/* Greeting - above input on empty state */}
               {!isVoiceActive && messages.length === 0 && (
-                <motion.div
+                <Transition preset="fade" delay={0.1}><div
                   className="flex justify-center mb-6"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1], delay: 0.1 }}
                 >
                   <div className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-center">
                     <span className="relative inline-block">
                       <CyclingGreeting />
                     </span>
                   </div>
-                </motion.div>
+                </div></Transition>
               )}
 
               {/* Voice mode replaces the dock outright rather than collapsing

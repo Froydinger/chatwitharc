@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PenLine, Sparkles, Code, Eye, Check, Clock, MessageCircle, Bell } from "lucide-react";
@@ -242,16 +243,12 @@ function CodeCanvasCard({
               className="px-5 py-4 font-mono text-[13px] leading-[1.7] text-slate-700 dark:text-slate-200"
             >
               {CODE_LINES.slice(0, visibleLines).map((line, i) => (
-                <motion.div
-                  key={`line-${i}`}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
+                <Transition preset="page" key={`line-${i}`}><div
                   className="flex"
                 >
                   <span className="w-7 text-right text-gray-600 dark:text-gray-300 select-none mr-4 text-[12px]">{i + 1}</span>
                   <span>{colorize(line)}</span>
-                </motion.div>
+                </div></Transition>
               ))}
               {isTypingCode && (
                 <span className={`inline-block w-[2px] h-[16px] bg-emerald-400 ml-[44px] align-text-bottom transition-opacity duration-100 ${showCursor ? "opacity-100" : "opacity-0"}`} />
@@ -266,21 +263,18 @@ function CodeCanvasCard({
               transition={{ duration: 0.4, ease: "easeOut" }}
               className="px-6 py-8 flex flex-col items-center justify-center text-center h-[320px]"
             >
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.4 }}
+              <Transition preset="panel" delay={0.1}><div
                 className="w-full max-w-[260px] rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 backdrop-blur-sm p-6 space-y-4"
               >
-                <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                <Transition preset="fade" delay={0.2}><h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                   🚀 My First App
-                </motion.h1>
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="text-lg text-slate-700 dark:text-slate-200 font-mono">
+                </h1></Transition>
+                <Transition preset="fade" delay={0.35}><p className="text-lg text-slate-700 dark:text-slate-200 font-mono">
                   Clicks:{" "}
                   <motion.span key={fakeCount} initial={{ scale: 1.4, color: "#34d399" }} animate={{ scale: 1, color: "#d1d5db" }} transition={{ duration: 0.3 }} className="inline-block font-bold">
                     {fakeCount}
                   </motion.span>
-                </motion.p>
+                </p></Transition>
                 <motion.button
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1, scale: fakeCount < 5 ? [1, 0.95, 1] : 1 }}
@@ -289,7 +283,7 @@ function CodeCanvasCard({
                 >
                   Tap Me
                 </motion.button>
-              </motion.div>
+              </div></Transition>
             </motion.div>
           )}
         </AnimatePresence>
@@ -297,15 +291,15 @@ function CodeCanvasCard({
         {/* Status indicator */}
         <div className="absolute bottom-3 right-4">
           {isTypingCode && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-1.5 text-[11px] text-emerald-400/60">
+            <Transition preset="fade"><div className="flex items-center gap-1.5 text-[11px] text-emerald-400/60">
               <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}><Sparkles className="w-3 h-3" /></motion.div>
               AI is coding…
-            </motion.div>
+            </div></Transition>
           )}
           {phase === "preview" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex items-center gap-1.5 text-[11px] text-emerald-400/50">
+            <Transition preset="fade" delay={0.5}><div className="flex items-center gap-1.5 text-[11px] text-emerald-400/50">
               <Check className="w-3 h-3" /> Live preview
-            </motion.div>
+            </div></Transition>
           )}
         </div>
       </div>
@@ -356,15 +350,11 @@ function WritingCanvasCard({
       <div className="h-[320px] relative overflow-hidden px-8 py-6">
         <div className="space-y-0">
           {POEM_LINES.slice(0, poemLines).map((line, i) => (
-            <motion.p
-              key={`poem-${i}`}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
+            <Transition preset="panel" key={`poem-${i}`}><p
               className={`text-[15px] leading-[2] ${line.trim() === "" ? "h-4" : "text-slate-700 dark:text-slate-200 italic"}`}
             >
               {line || "\u00A0"}
-            </motion.p>
+            </p></Transition>
           ))}
           {isTypingPoem && (
             <span className={`inline-block w-[2px] h-[16px] bg-amber-400 align-text-bottom transition-opacity duration-100 ${showCursor ? "opacity-100" : "opacity-0"}`} />
@@ -374,15 +364,15 @@ function WritingCanvasCard({
         {/* Status indicator */}
         <div className="absolute bottom-3 right-4">
           {isTypingPoem && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-1.5 text-[11px] text-amber-400/60">
+            <Transition preset="fade"><div className="flex items-center gap-1.5 text-[11px] text-amber-400/60">
               <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}><Sparkles className="w-3 h-3" /></motion.div>
               AI is writing…
-            </motion.div>
+            </div></Transition>
           )}
           {!isTypingPoem && poemLines >= POEM_LINES.length && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="flex items-center gap-1.5 text-[11px] text-amber-400/50">
+            <Transition preset="fade" delay={0.3}><div className="flex items-center gap-1.5 text-[11px] text-amber-400/50">
               <Check className="w-3 h-3" /> Done
-            </motion.div>
+            </div></Transition>
           )}
         </div>
       </div>
@@ -635,11 +625,7 @@ function TeamChatsDemo() {
             <div className="h-[320px] relative overflow-hidden px-4 py-4 flex flex-col">
               <div className="flex-1 overflow-y-auto space-y-3 mb-3">
                 {messages.slice(0, messagePhase + 1).map((msg, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1 }}
+                  <Transition preset="panel" delay={idx * 0.1} key={idx}><div
                     className="flex items-end gap-2"
                   >
                     <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${(msg as any).isArc ? "bg-gradient-to-br from-blue-400 to-cyan-500" : `bg-gradient-to-br ${msg.color}`}`}>
@@ -664,22 +650,19 @@ function TeamChatsDemo() {
                         )}
                       </div>
                     </div>
-                  </motion.div>
+                  </div></Transition>
                 ))}
               </div>
 
               {/* Input area */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
+              <Transition preset="fade" delay={0.5}><div
                 className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700"
               >
                 <span className="text-xs text-slate-500 dark:text-slate-400">Message...</span>
                 <div className="ml-auto w-5 h-5 rounded-full flex items-center justify-center">
                   <MessageCircle className="w-2.5 h-2.5 text-pink-400" />
                 </div>
-              </motion.div>
+              </div></Transition>
             </div>
 
             {/* Bottom bar */}

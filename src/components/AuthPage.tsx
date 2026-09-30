@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -157,7 +158,7 @@ export function AuthPage() {
     <div className="dark min-h-screen bg-background relative overflow-hidden flex items-center justify-center p-4">
       {/* Solid Black Card - no glass effects */}
       <div className="w-full max-w-md p-8 relative z-10 bg-black border border-white/10 rounded-2xl shadow-2xl">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+        <Transition preset="panel"><div className="space-y-6">
           {/* Back button for forgot password / magic link */}
           {(mode === 'forgot-password' || mode === 'magic-link') && (
             <button
@@ -364,7 +365,7 @@ export function AuthPage() {
               </div>
             </>
           )}
-        </motion.div>
+        </div></Transition>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Monitor, Moon, Sun } from "lucide-react";
@@ -38,9 +39,7 @@ export function DashboardSettingsPage() {
       }}
     >
       <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-8 sm:px-7 lg:px-10">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
+        <Transition preset="panel"><div
           className="flex items-center justify-between gap-4 pb-6 pt-5 sm:pt-8"
         >
           <div className="flex items-center gap-3">
@@ -62,15 +61,12 @@ export function DashboardSettingsPage() {
               <ThemeIcon className="h-4 w-4" />
             </motion.span>
           </button>
-        </motion.div>
+        </div></Transition>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
+        <Transition preset="panel" delay={0.05}><div
         >
           <SettingsPanel />
-        </motion.div>
+        </div></Transition>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
 import { ArrowLeft, Send, Image as ImageIcon, Loader2, Shield, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
@@ -326,10 +326,7 @@ export function TicketChat({ ticketId, onBack, isAdmin }: TicketChatProps) {
           {messages.map((msg) => {
             const isOwn = isAdmin ? msg.is_admin_reply : !msg.is_admin_reply;
             return (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
+              <Transition preset="panel" key={msg.id}><div
                 className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
               >
                 <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
@@ -364,7 +361,7 @@ export function TicketChat({ ticketId, onBack, isAdmin }: TicketChatProps) {
                     {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
-              </motion.div>
+              </div></Transition>
             );
           })}
           <div ref={messagesEndRef} />

@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -514,15 +515,13 @@ export function DocsPage() {
                 );
               })
             ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+              <Transition preset="fade"><div
                 className="text-center py-12 text-muted-foreground space-y-2"
               >
                 <BookOpen className="h-10 w-10 mx-auto opacity-30 text-primary" />
                 <p className="text-sm">No documentation found matching your search query.</p>
                 <p className="text-xs opacity-60">Try searching broad terms like "model", "local", "memory", or "canvas".</p>
-              </motion.div>
+              </div></Transition>
             )}
           </AnimatePresence>
         </div>

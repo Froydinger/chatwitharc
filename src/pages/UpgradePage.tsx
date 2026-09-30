@@ -1,3 +1,4 @@
+import { Transition } from "@/components/transitions/Transition";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, Sparkles, Zap, ShieldCheck, ExternalLink } from "lucide-react";
@@ -18,7 +19,6 @@ import {
   BOOST_TRIAL_DISPLAY,
   BOOST_TRIAL_NOTE,
 } from "@/lib/stripe";
-import { motion } from "framer-motion";
 import { BOOST_PLAN_FEATURES } from "@/lib/planCopy";
 
 export function UpgradePage() {
@@ -70,10 +70,7 @@ export function UpgradePage() {
 
         {hasBoost ? (
           /* Already Upgraded State */
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
+          <Transition preset="modal"><div
           >
             <GlassCard className="p-8 max-w-2xl mx-auto border-primary/30 bg-primary/[0.02] shadow-[0_0_50px_rgba(var(--primary-rgb),0.05)] text-center relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
@@ -124,13 +121,10 @@ export function UpgradePage() {
                 </Link>
               </div>
             </GlassCard>
-          </motion.div>
+          </div></Transition>
         ) : (
           /* Free Account Upgrade Plan Selection */
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
+          <Transition preset="panel"><div
             className="space-y-8"
           >
             <div className="text-center mb-10">
@@ -214,7 +208,7 @@ export function UpgradePage() {
                 </GlassButton>
               </GlassCard>
             </div>
-          </motion.div>
+          </div></Transition>
         )}
       </div>
     </div>
