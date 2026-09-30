@@ -309,3 +309,7 @@
   .arc-helper-chip.arc-helper-chip { animation: none; }
   [data-testid="subagent-progress"] .animate-spin { animation: none; }
 }
+.arc-chat-row-enter { animation: arc-reveal-fade-in var(--duration-quick) var(--ease-smooth-out); }
+@media (prefers-reduced-motion: reduce) {
+  .arc-chat-row-enter.arc-chat-row-enter { animation: none; }
+}

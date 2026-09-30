@@ -1,3 +1,4 @@
+import { ChatMessageRows } from "@/components/ChatMessageRows";
 import { WidthPanel } from "@/components/transitions/WidthPanel";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { ReplyActionsProvider, canShowReplyActions } from "@/components/ReplyActionsProvider";
@@ -698,7 +699,7 @@ export function MobileChatApp() {
   const requireAuth = useRequireAuth();
   const isMobile = useIsMobile();
   const isAdminBannerActive = useAdminBanner();
-  
+
   // Canvas state (single hook call; required for correct hook initialization order)
   const {
     isOpen: isCanvasOpen,
@@ -980,12 +981,12 @@ export function MobileChatApp() {
   // Hydrate canvas when switching sessions
   // We use a ref to track the last hydrated session to avoid re-hydrating on chatSessions updates
   const lastHydratedSessionRef = useRef<string | null>(null);
-  
+
   useEffect(() => {
     // Only hydrate when actually switching to a different session
     if (currentSessionId === lastHydratedSessionRef.current) return;
     lastHydratedSessionRef.current = currentSessionId;
-    
+
     const current = currentSessionId ? chatSessions.find(s => s.id === currentSessionId) : null;
     const nextSessionCanvas = current?.canvasContent ?? '';
 
@@ -1346,7 +1347,7 @@ export function MobileChatApp() {
 
   // Main chat interface - Desktop with canvas uses PanelGroup for resizable layout
   const isDesktopCanvasMode = !isMobile && isCanvasOpen;
-  
+
   const actionReplyIds = allDisplayedMessages.filter(canShowReplyActions).map(message => message.id);
   if (isLoading && !isVoiceActive && !isGeneratingImage && liveReplyId) actionReplyIds.push(liveReplyId);
   return (
@@ -1439,9 +1440,9 @@ export function MobileChatApp() {
               >
               {/* Upgrade / Boost CTA Button for Free Accounts */}
               {!hasBoost && !isAdmin && (
-                <motion.div 
-                  whileHover={{ scale: 1.05, y: -2 }} 
-                  whileTap={{ scale: 0.95 }} 
+                <motion.div
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                   transition={{ type: "spring", damping: 15, stiffness: 300 }}
                   className="cursor-pointer"
                   onClick={() => openCheckout()}
@@ -1461,9 +1462,9 @@ export function MobileChatApp() {
 
               {/* Share Button */}
               {showHeaderUtilityButtons && canShareChat && (
-                <motion.div 
-                  whileHover={{ scale: 1.1, y: -2 }} 
-                  whileTap={{ scale: 0.95 }} 
+                <motion.div
+                  whileHover={{ scale: 1.1, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                   transition={{ type: "spring", damping: 15, stiffness: 300 }}
                   className="cursor-pointer"
                   onClick={() => setIsShareDialogOpen(true)}
@@ -1558,9 +1559,9 @@ export function MobileChatApp() {
               </AnimatePresence>
 
               {/* Music Player Button */}
-              <motion.div 
-                whileHover={{ scale: 1.1, y: -2 }} 
-                whileTap={{ scale: 0.95 }} 
+              <motion.div
+                whileHover={{ scale: 1.1, y: -2 }}
+                whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", damping: 15, stiffness: 300 }}
                 className="relative cursor-pointer"
                 onClick={() => {
@@ -1583,17 +1584,17 @@ export function MobileChatApp() {
                   {/* Show waveform when playing, music note when not */}
                   {isMusicPlaying ? (
                     <div className="flex items-end justify-center gap-[3px] h-4 w-4">
-                      <motion.div 
+                      <motion.div
                         className="w-[3px] rounded-full bg-foreground dark:bg-white"
                         animate={{ height: ["40%", "100%", "60%", "90%", "40%"] }}
                         transition={{ duration: 1, repeat: Infinity, ease: "easeInOut" }}
                       />
-                      <motion.div 
+                      <motion.div
                         className="w-[3px] rounded-full bg-foreground dark:bg-white"
                         animate={{ height: ["100%", "50%", "80%", "40%", "100%"] }}
                         transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
                       />
-                      <motion.div 
+                      <motion.div
                         className="w-[3px] rounded-full bg-foreground dark:bg-white"
                         animate={{ height: ["60%", "90%", "40%", "100%", "60%"] }}
                         transition={{ duration: 1, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
@@ -1614,7 +1615,7 @@ export function MobileChatApp() {
         {isCanvasOpen && isMobile && (
           <div className="fixed inset-0 z-[70] bg-background">
             <CanvasPanel />
-            
+
             {/* Mobile canvas input toggle button */}
             <Transition preset="modal"><div
               className="fixed bottom-6 left-4 z-[75]"
@@ -1633,8 +1634,7 @@ export function MobileChatApp() {
             </div></Transition>
 
             {/* Mobile canvas input bar (hideable) */}
-            <AnimatePresence>
-              <ConditionalTransition preset="panel">{showMobileCanvasInput && !isVoiceActive && (
+            <ConditionalTransition preset="panel">{showMobileCanvasInput && !isVoiceActive && (
                 <div
                   className="fixed bottom-6 left-16 right-4 z-[75]"
                 >
@@ -1656,7 +1656,7 @@ export function MobileChatApp() {
                   </ArcInputEffects>
                 </div>
               )}</ConditionalTransition>
-            </AnimatePresence>
+
           </div>
         )}
         {/* Scrollable messages layer with bottom padding equal to dock height */}
@@ -1716,7 +1716,7 @@ export function MobileChatApp() {
                     </div>
                   )}
 
-                  <AnimatePresence mode="popLayout" initial={false}>
+                  <ChatMessageRows>
                     {displayedMessages.map((message, index) => {
                       const isLastAssistantMessage = message.role === "assistant" && index === displayedMessages.length - 1;
                       // Only animate reveal if this is a new message (not loaded from history)
@@ -1725,17 +1725,7 @@ export function MobileChatApp() {
                         && !isSessionLoading && message.sourceModel !== 'cloud-voice';
 
                       return (
-                        <motion.div
-                          key={message.id}
-                          initial={isSessionLoading || isLastAssistantMessage ? false : { opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0 }}
-                          transition={{
-                            duration: isSessionLoading ? 0 : isLastAssistantMessage ? 0.35 : 0.15,
-                            ease: [0.22, 1, 0.36, 1],
-                          }}
-                          layout={false}
-                        >
+                        <div key={message.id} data-row-reveal={!isSessionLoading && message.role !== 'assistant'}>
                           <MessageBubble
                             message={message}
                             isLatestAssistant={isLastAssistantMessage}
@@ -1752,10 +1742,10 @@ export function MobileChatApp() {
                           {cloudRunObserverEnabled && !isVoiceActive && message.role === 'assistant' && message.id.startsWith('cloud-') && (
                             <CloudRunList sessionId={currentSessionId} cloud={cloudRuns} runId={message.id.slice(6)} />
                           )}
-                        </motion.div>
+                        </div>
                       );
                     })}
-                  </AnimatePresence>
+                  </ChatMessageRows>
                   {browserbaseSession && browserbaseSession.status !== 'closed' && browserbaseSession.status !== 'expired' && !isVoiceActive && (
                     <div className="mx-auto mb-3 w-full max-w-3xl px-1">
                       <BrowserbaseLivePreview
@@ -1793,8 +1783,7 @@ export function MobileChatApp() {
           </div>
 
           {/* Scroll to bottom button */}
-          <AnimatePresence>
-            <ConditionalTransition preset="panel">{showScrollButton && (
+          <ConditionalTransition preset="panel">{showScrollButton && (
               <div
                 className="fixed left-0 z-40 flex justify-center pointer-events-none"
                 style={{
@@ -1812,7 +1801,7 @@ export function MobileChatApp() {
                 </Button>
               </div>
             )}</ConditionalTransition>
-          </AnimatePresence>
+
 
           {/* Free-floating input shelf with canvas tile above it */}
           {/* On desktop with canvas open: constrain to left side */}
@@ -1941,7 +1930,7 @@ export function MobileChatApp() {
       <WidthPanel open={isCanvasOpen && !isMobile} width={canvasWidthPercent + "%"} minWidth={MIN_DESKTOP_CANVAS_WIDTH} instant={isCanvasResizing}
         className="flex-shrink-0 overflow-hidden bg-background flex relative border-l border-border/30">
             {/* Resize Handle - positioned absolutely to extend grab area into chat */}
-            <div 
+            <div
               className="absolute -left-1.5 top-0 bottom-0 w-3 cursor-col-resize z-50 group"
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -1953,12 +1942,12 @@ export function MobileChatApp() {
                 const startWidth = canvasEl.offsetWidth;
                 const containerWidth = canvasEl.parentElement?.offsetWidth || window.innerWidth;
                 const { minWidth, maxWidth } = getCanvasWidthBounds(containerWidth);
-                
+
                 // Add a full-screen overlay to capture mouse events during drag
                 const overlay = document.createElement('div');
                 overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;cursor:col-resize;';
                 document.body.appendChild(overlay);
-                
+
                 const onMouseMove = (moveEvent: MouseEvent) => {
                   const delta = startX - moveEvent.clientX;
                   const newWidth = Math.min(
@@ -1968,7 +1957,7 @@ export function MobileChatApp() {
                   // Update percentage directly — width transitions are disabled during drag
                   setCanvasWidthPercent((newWidth / containerWidth) * 100);
                 };
-                
+
                 const onMouseUp = () => {
                   canvasResizingRef.current = false;
                   setIsCanvasResizing(false);
@@ -1976,7 +1965,7 @@ export function MobileChatApp() {
                   document.removeEventListener('mouseup', onMouseUp);
                   overlay.remove();
                 };
-                
+
                 document.addEventListener('mousemove', onMouseMove);
                 document.addEventListener('mouseup', onMouseUp);
               }}
@@ -1990,27 +1979,24 @@ export function MobileChatApp() {
       </WidthPanel>
 
       {/* Search Mode - Full Screen Takeover (all devices) */}
-      <AnimatePresence>
-        <ConditionalTransition preset="fade">{isSearchOpen && (
+      <ConditionalTransition preset="fade">{isSearchOpen && (
           <div
             className="fixed inset-0 z-[100] bg-background"
           >
             <SearchCanvas />
           </div>
         )}</ConditionalTransition>
-      </AnimatePresence>
+
 
       {/* App Builder workspace takeover — portaled directly to document.body */}
       {createPortal(
-        <AnimatePresence>
-          <ConditionalTransition preset="fade">{APP_BUILDER_ENABLED && isIDEOpen && (
+        <ConditionalTransition preset="fade">{APP_BUILDER_ENABLED && isIDEOpen && (
             <div
               className="fixed inset-0 z-[200] bg-background h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col"
             >
               <AppBuilderWorkspace onClose={closeIDE} />
             </div>
-          )}</ConditionalTransition>
-        </AnimatePresence>,
+          )}</ConditionalTransition>,
         document.body
       )}
 
