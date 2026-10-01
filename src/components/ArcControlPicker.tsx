@@ -10,6 +10,7 @@ import { VoiceMagneticPicker } from '@/components/VoiceMagneticPicker';
 import { PRESETS } from '@/components/ChatModelPicker';
 import type { VoiceName } from '@/store/useVoiceModeStore';
 import { cn } from '@/lib/utils';
+import { FreeUsageButton } from '@/components/FreeUsageButton';
 
 type ArcControlPickerProps = {
   name: string;
@@ -36,6 +37,7 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
   }, [authLoading, subscriptionLoading, reasoningEffort, flynnAvailable, setReasoningEffort]);
 
   return (
+    <>
     <DialogPrimitive.Root
       open={open}
       onOpenChange={(nextOpen) => {
@@ -154,5 +156,7 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
+    <FreeUsageButton />
+    </>
   );
 }
