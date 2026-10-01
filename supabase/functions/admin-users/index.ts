@@ -394,6 +394,10 @@ serve(async (req) => {
 
       const totalImages = imagesJobCount || 0;
 
+      // Missing migration/temporary failure must not take the whole dashboard down.
+      const { data: recentActivity, error: activityError } = await supabase.rpc("admin_recent_activity_counts");
+      if (activityError) console.warn("[ADMIN-USERS] Recent activity unavailable", { code: activityError.code });
+
       const trafficSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const [{ data: sourceRows, error: sourceError }, { data: trafficRows, error: trafficError }] = await Promise.all([
         supabase.from("profiles").select("signup_source,signup_source_detail").not("signup_source", "is", null),
@@ -428,6 +432,7 @@ serve(async (req) => {
         ticketsCount: ticketsCount || 0,
         voiceCount: voiceCount || 0,
         totalImages,
+        recentActivity: activityError ? null : recentActivity,
         sourceCounts,
         sourceResponseCount: sourceRows?.length || 0,
         otherSourceDetails,

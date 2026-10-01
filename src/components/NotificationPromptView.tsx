@@ -18,7 +18,7 @@ export function NotificationPromptView({show,loading,handleEnable,handleDismiss,
                 Turn on notifications
               </h3>
               <p className="text-sm text-muted-foreground mb-3">
-                Get pinged when scheduled tasks finish or someone @mentions you in a shared chat.
+                Get pinged when scheduled tasks finish or someone @mentions you in a Collab Chat.
               </p>
 
               <div className="flex flex-col gap-2">

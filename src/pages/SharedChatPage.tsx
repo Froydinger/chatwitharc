@@ -9,7 +9,9 @@ import { MessageBubble } from "@/components/MessageBubble";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { createUGCReport } from "@/lib/ugcReports";
-import type { Message } from "@/store/useArcStore";
+import { useArcStore, type Message } from "@/store/useArcStore";
+import { sharedConversationCopy } from "@/lib/continueSharedChat";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 interface SharedSession {
   id: string;
@@ -25,6 +27,8 @@ export function SharedChatPage() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
+  const requireAuth = useRequireAuth();
+  const [continuing, setContinuing] = useState(false);
   const [session, setSession] = useState<SharedSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -162,6 +166,30 @@ export function SharedChatPage() {
     }
   }
 
+  async function continueWithArc() {
+    if (!session || continuing) return;
+    if (!user || user.is_anonymous) {
+      requireAuth('generic', undefined, 'Continue with your Arc');
+      return;
+    }
+    setContinuing(true);
+    try {
+      const { data: { user: owner }, error: authError } = await supabase.auth.getUser();
+      if (authError || !owner || owner.id !== user.id) throw new Error('Sign in to continue.');
+      const id = crypto.randomUUID();
+      const messages = sharedConversationCopy(session.messages);
+      const { error: insertError } = await supabase.from('chat_sessions').insert({
+        id, user_id: owner.id, title: session.title, messages: JSON.parse(JSON.stringify(messages)), is_public: false,
+      });
+      if (insertError) throw insertError;
+      await useArcStore.getState().reloadCloudSession(id);
+      useArcStore.getState().loadSession(id);
+      navigate(`/chat/${id}`);
+    } catch {
+      toast({ title: "Couldn't continue this chat", description: 'Please try again.', variant: 'destructive' });
+    } finally { setContinuing(false); }
+  }
+
   if (loading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -267,21 +295,14 @@ export function SharedChatPage() {
         style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)" }}
       >
         <div className="mx-auto w-full max-w-xl">
-          <Button
-            asChild
-            size="lg"
-            className="w-full rounded-2xl py-6 bg-primary text-white hover:bg-primary/90 hover:text-white shadow-lg shadow-primary/20 border-0"
-          >
-            <Link to="/" className="flex w-full items-center justify-center gap-2 text-white hover:text-white">
-              Have your own conversation with Arc
-              <ArrowRight className="h-4 w-4 text-white" />
-            </Link>
+          <Button onClick={() => void continueWithArc()} disabled={continuing} size="lg"
+            className="w-full rounded-2xl py-6 bg-primary text-primary-foreground hover:bg-primary/90">
+            {continuing ? 'Opening your Arc…' : 'Continue with your Arc'}
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
-          {isSignedIn && (
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              You're viewing a chat shared by another user. Open ArcAI to start your own.
-            </p>
-          )}
+          <p className="mt-2 text-center text-xs text-muted-foreground">
+            {isSignedIn ? 'Continue in your own private chat. Shared images stay with the original.' : 'Sign in to pick up this conversation with your own Arc.'}
+          </p>
         </div>
       </div>
     </div>

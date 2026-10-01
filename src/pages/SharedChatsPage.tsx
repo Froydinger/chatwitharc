@@ -46,9 +46,9 @@ export function SharedChatsPage() {
         .from("shared_chats")
         .select("id,title,owner_id,updated_at")
         .in("id", memberIds);
-      memberChats = (data as any) ?? [];
+      memberChats = (data as ChatRow[] | null) ?? [];
     }
-    const all = [...((owned as any) ?? []), ...memberChats];
+    const all = [...((owned as ChatRow[] | null) ?? []), ...memberChats];
     const dedup = Array.from(new Map(all.map((c) => [c.id, c])).values())
       .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
     setChats(dedup);
@@ -93,17 +93,17 @@ export function SharedChatsPage() {
   if (authLoading || !user) return null;
 
   return (
-    <div className="min-h-screen w-full text-foreground" style={{ paddingTop: "calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 30px))" }}>
+    <div className="min-h-screen w-full bg-background text-foreground" style={{ paddingTop: "calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 30px))" }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
         <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="gap-2 mb-4">
           <ArrowLeft className="h-4 w-4" /> Dashboard
         </Button>
         <Transition preset="panel"><div className="mb-6">
           <h1 className="text-3xl font-semibold flex items-center gap-3">
-            <Users className="h-7 w-7 text-primary" /> Shared Chats
+            <Users className="h-7 w-7 text-primary" /> Collab Chats
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Group conversations with Arc and the people you invite. Each chat fits the owner plus up to 5 others (6 total).
+            Chat with up to six people. Mention @Arc for answers and web search; use your main Arc chat for other tools.
           </p>
         </div></Transition>
 
@@ -111,7 +111,7 @@ export function SharedChatsPage() {
           <Input
             value={newTitle}
             onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="New shared chat title"
+            placeholder="New Collab Chat title"
             onKeyDown={(e) => e.key === "Enter" && create()}
           />
           <Button onClick={create} disabled={creating || !newTitle.trim()} className="gap-2">
@@ -124,7 +124,7 @@ export function SharedChatsPage() {
         ) : chats.length === 0 ? (
           <GlassCard className="p-10 text-center">
             <MessageSquare className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-            <p className="text-muted-foreground">No shared chats yet. Create one above to get started.</p>
+            <p className="text-muted-foreground">No Collab Chats yet. Create one above to get started.</p>
           </GlassCard>
         ) : (
           <div className="grid sm:grid-cols-2 gap-3">
@@ -134,7 +134,7 @@ export function SharedChatsPage() {
                 <GlassCard
                   key={c.id}
                   onClick={() => navigate(`/shared/${c.id}`)}
-                  className="p-4 cursor-pointer hover:bg-white/5 transition group"
+                  className="p-4 cursor-pointer hover:bg-muted/50 transition group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-primary/15 text-primary flex items-center justify-center shrink-0">
@@ -151,7 +151,7 @@ export function SharedChatsPage() {
                         onClick={(e) => deleteChat(c, e)}
                         disabled={deletingId === c.id}
                         title="Delete chat"
-                        className="opacity-0 group-hover:opacity-100 transition p-2 rounded-lg hover:bg-destructive/15 text-destructive disabled:opacity-50"
+                        className="opacity-70 hover:opacity-100 transition p-2 rounded-lg hover:bg-destructive/15 text-destructive disabled:opacity-50"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

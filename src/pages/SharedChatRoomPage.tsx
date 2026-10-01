@@ -1,7 +1,7 @@
 import { ReplyActionsProvider } from "@/components/ReplyActionsProvider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, UserPlus, Settings, Sparkles, Users, Plus, ImagePlus, X, Loader2, Trash2, Mail, Paperclip, Flag, Ban, ShieldOff } from "lucide-react";
+import { ArrowLeft, ArrowRight, UserPlus, Settings, Sparkles, Users, Loader2, Trash2, Mail, Flag, Ban, ShieldOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import { MessageBubble } from "@/components/MessageBubble";
 import { cn } from "@/lib/utils";
 import { createUGCReport } from "@/lib/ugcReports";
 import type { Message } from "@/store/useArcStore";
-import { makePrivateImageReference, parsePrivateImageReference } from "@/lib/privateImages";
 
 interface MsgAttachment { type: "image"; url: string }
 interface Msg {
@@ -74,37 +73,35 @@ export function SharedChatRoomPage() {
   const [sending, setSending] = useState(false);
   const [aiThinking, setAiThinking] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showPlusMenu, setShowPlusMenu] = useState(false);
-  const [imageMode, setImageMode] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const [uploadingImages, setUploadingImages] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const blockedUserIdsRef = useRef<Set<string>>(new Set());
+  const activeChatRef = useRef(chatId);
+  activeChatRef.current = chatId;
 
   const loadAll = useCallback(async () => {
     if (!chatId || !user) return;
     const [{ data: c }, { data: msgs }, { data: mems }, { data: invs }] = await Promise.all([
       supabase.from("shared_chats").select("id,title,owner_id").eq("id", chatId).maybeSingle(),
-      supabase.from("shared_chat_messages").select("*").eq("chat_id", chatId).order("created_at", { ascending: true }).limit(200),
+      supabase.from("shared_chat_messages").select("*").eq("chat_id", chatId).order("created_at", { ascending: false }).limit(200),
       supabase.from("shared_chat_members").select("user_id,role").eq("chat_id", chatId),
       supabase.from("shared_chat_invites").select("id,email,accepted_at").eq("chat_id", chatId).is("accepted_at", null),
     ]);
+    if (activeChatRef.current !== chatId) return;
     if (!c) { toast({ title: "Chat not found", variant: "destructive" }); navigate("/shared"); return; }
     const { data: blocks, error: blocksError } = await supabase
       .from("user_blocks")
       .select("blocked_user_id")
       .eq("blocker_user_id", user.id);
     if (blocksError) {
-      toast({ title: "Safety settings unavailable", description: "Reload this shared chat in a moment.", variant: "destructive" });
+      toast({ title: "Safety settings unavailable", description: "Reload this Collab Chat in a moment.", variant: "destructive" });
       return;
     }
     const blocked = new Set((blocks ?? []).map((row) => row.blocked_user_id));
     blockedUserIdsRef.current = blocked;
     setBlockedUserIds(blocked);
-    const visibleMessages = ((msgs as Msg[] | null) ?? []).filter((message) => !message.author_user_id || !blocked.has(message.author_user_id));
+    const visibleMessages = ((msgs as Msg[] | null) ?? []).reverse().filter((message) => !message.author_user_id || !blocked.has(message.author_user_id));
     setChat(c);
     setMessages(visibleMessages);
     setPendingInvites((invs ?? []).map((invite) => ({ id: invite.id, email: invite.email })));
@@ -132,6 +129,7 @@ export function SharedChatRoomPage() {
     const ch = supabase
       .channel(`shared-${chatId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "shared_chat_messages", filter: `chat_id=eq.${chatId}` }, (payload) => {
+        if (activeChatRef.current !== chatId) return;
         const incoming = payload.new as Msg;
         if (incoming.author_user_id && blockedUserIdsRef.current.has(incoming.author_user_id)) return;
         setMessages((prev) => prev.find((m) => m.id === incoming.id) ? prev : [...prev, incoming]);
@@ -149,7 +147,9 @@ export function SharedChatRoomPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length, aiThinking]);
 
-  useEffect(() => { textareaRef.current?.focus(); }, [chatId]);
+  useEffect(() => {
+    setMessages([]); setAiThinking(false); setSending(false); setText("");
+  }, [chatId]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -175,7 +175,7 @@ export function SharedChatRoomPage() {
   async function toggleBlockMember(uid: string, displayName?: string) {
     if (!user || uid === user.id) return;
     const shouldBlock = !blockedUserIdsRef.current.has(uid);
-    if (shouldBlock && !window.confirm(`Block ${displayName || "this member"}? Their messages will be hidden from you in shared chats.`)) return;
+    if (shouldBlock && !window.confirm(`Block ${displayName || "this member"}? Their messages will be hidden from you in Collab Chats.`)) return;
     const { error } = shouldBlock
       ? await supabase.from("user_blocks").insert({ blocker_user_id: user.id, blocked_user_id: uid })
       : await supabase.from("user_blocks").delete().eq("blocker_user_id", user.id).eq("blocked_user_id", uid);
@@ -190,7 +190,7 @@ export function SharedChatRoomPage() {
     setBlockedUserIds(next);
     if (shouldBlock) {
       setMessages((current) => current.filter((message) => message.author_user_id !== uid));
-      toast({ title: "Member blocked", description: "Their messages are hidden from you in shared chats." });
+      toast({ title: "Member blocked", description: "Their messages are hidden from you in Collab Chats." });
     } else {
       toast({ title: "Member unblocked" });
       void loadAll();
@@ -206,7 +206,7 @@ export function SharedChatRoomPage() {
       await createUGCReport({
         subject: `Shared chat: ${chat?.title || "Untitled"}`,
         details: [
-          "User reported a message in a shared chat.",
+          "User reported a message in a Collab Chat.",
           `Chat ID: ${chatId}`,
           `Message ID: ${message.id}`,
           `Message author user ID: ${message.author_user_id ?? "ArcAI assistant"}`,
@@ -221,93 +221,15 @@ export function SharedChatRoomPage() {
     }
   }
 
-  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []);
-    const images = files.filter((f) => f.type.startsWith("image/"));
-    setSelectedImages((prev) => [...prev, ...images]);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }
-
-  async function uploadImagesToStorage(files: File[]): Promise<string[]> {
-    const imageUrls: string[] = [];
-    try {
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser();
-      if (!authUser) throw new Error("Not authenticated");
-
-      const uploadPromises = files.map(async (file) => {
-        const name = `${authUser.id}/team/${chatId}/team-chat-${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name.split(".").pop()}`;
-        const { error } = await supabase.storage.from("private-user-images").upload(name, file, {
-          contentType: file.type,
-          upsert: false,
-        });
-        if (error) throw error;
-        return makePrivateImageReference(name);
-      });
-      return await Promise.all(uploadPromises);
-    } catch (e) {
-      toast({ title: "Image upload failed", description: String(e), variant: "destructive" });
-      throw e;
-    }
-  }
-
-  async function generateSharedImage(prompt: string) {
-    setAiThinking(true);
-    try {
-      const ai = new AIService();
-      const result = await ai.generateImage(prompt);
-      const urls = result.imageUrls;
-      const imageRef = urls[0];
-      if (!imageRef) throw new Error("No image was generated");
-      const { data: { user: owner } } = await supabase.auth.getUser();
-      if (!owner) throw new Error("Not authenticated");
-      const privateRef = parsePrivateImageReference(imageRef);
-      let teamImageRef = imageRef;
-      if (privateRef) {
-        if (privateRef.ownerId !== owner.id) throw new Error("Generated image ownership could not be verified");
-        const { data: generatedFile, error: downloadError } = await supabase.storage
-          .from(privateRef.bucket)
-          .download(privateRef.path);
-        if (downloadError || !generatedFile) throw new Error(downloadError?.message || "Generated image could not be shared to this chat");
-        const extension = privateRef.path.split("/").pop()?.split(".").pop() || "png";
-        const teamPath = `${owner.id}/team/${chatId}/team-generated-${Date.now()}-${crypto.randomUUID()}.${extension}`;
-        const { error: teamUploadError } = await supabase.storage.from("private-user-images").upload(teamPath, generatedFile, {
-          contentType: generatedFile.type || "image/png",
-          upsert: false,
-        });
-        if (teamUploadError) throw teamUploadError;
-        teamImageRef = makePrivateImageReference(teamPath);
-      }
-      await supabase.from("shared_chat_messages").insert({
-        chat_id: chatId,
-        author_user_id: null,
-        role: "assistant",
-        content: `🎨 ${prompt}`,
-        attachments: [{ type: "image", url: teamImageRef }],
-      });
-    } catch (error: unknown) {
-      toast({ title: "Image generation failed", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
-    } finally {
-      setAiThinking(false);
-    }
-  }
-
   async function send() {
-    if (!user || !chatId || (!text.trim() && selectedImages.length === 0) || sending) return;
+    if (!user || !chatId || !text.trim() || sending || aiThinking) return;
     const content = text.trim();
     setText("");
     setSending(true);
-    setUploadingImages(selectedImages.length > 0);
 
     try {
-      // /image command or active image mode
-      const imageMatch = content.match(/^\/image\s+(.+)/i);
-      const wantImage = imageMode || !!imageMatch;
-      const imagePrompt = imageMatch ? imageMatch[1] : content;
-
       const mentionedNames = Array.from(content.matchAll(/@([\w-]+)/g)).map((m) => m[1].toLowerCase());
-      const wantArc = (mentionedNames.includes("arc") || (selectedImages.length > 0 && mentionedNames.includes("arc"))) && !wantImage;
+      const wantArc = mentionedNames.includes("arc");
       const mentionedIds: string[] = [];
       for (const [uid, info] of profilesMap.entries()) {
         const name = info.display_name;
@@ -316,34 +238,23 @@ export function SharedChatRoomPage() {
         }
       }
 
-      // Handle image attachments
-      let attachments: MsgAttachment[] = [];
-      if (selectedImages.length > 0) {
-        const imageUrls = await uploadImagesToStorage(selectedImages);
-        attachments = imageUrls.map((url) => ({ type: "image" as const, url }));
-        setSelectedImages([]);
-      }
-      setUploadingImages(false);
-
-      const { error } = await supabase.from("shared_chat_messages").insert([{
+      const { data: sent, error } = await supabase.from("shared_chat_messages").insert([{
         chat_id: chatId,
         author_user_id: user.id,
         role: "user",
-        content: content || (selectedImages.length > 0 ? "📸 Shared an image" : ""),
+        content,
         mentions: mentionedIds,
-        attachments: attachments.length > 0 ? attachments : undefined,
-      }]);
+      }]).select("*").single();
 
+      if (activeChatRef.current !== chatId) return;
       if (error) {
         toast({ title: "Send failed", description: error.message, variant: "destructive" });
         setText(content);
         setSending(false);
-        setUploadingImages(false);
         return;
       }
 
-      setSending(false);
-      setImageMode(false);
+      if (sent) setMessages((prev) => prev.some((m) => m.id === sent.id) ? prev : [...prev, sent as Msg]);
       textareaRef.current?.focus();
 
       await supabase.from("shared_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId);
@@ -362,17 +273,26 @@ export function SharedChatRoomPage() {
         }).catch(() => {});
       }
 
-      if (wantImage) {
-        void generateSharedImage(imagePrompt);
-      } else if (wantArc) {
+      if (wantArc && sent) {
         setAiThinking(true);
-        supabase.functions.invoke("shared-chat-respond", { body: { chat_id: chatId } })
-          .catch((e) => { setAiThinking(false); toast({ title: "Arc couldn't reply", description: String(e), variant: "destructive" }); });
+        try {
+          const { data, error: replyError } = await supabase.functions.invoke("shared-chat-respond", { body: { chat_id: chatId, message_id: sent.id } });
+          if (activeChatRef.current !== chatId) return;
+          if (replyError || data?.error) throw new Error(data?.error || "Arc couldn't reply. Try mentioning @Arc again.");
+          if (data?.message) setMessages((prev) => prev.some((m) => m.id === data.message.id) ? prev : [...prev, data.message as Msg]);
+        } catch (error) {
+          if (activeChatRef.current !== chatId) return;
+          toast({ title: "Arc couldn't reply", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
+        } finally {
+          if (activeChatRef.current === chatId) setAiThinking(false);
+        }
       }
     } catch (error: unknown) {
-      setSending(false);
-      setUploadingImages(false);
+      if (activeChatRef.current !== chatId) return;
+      setText((current) => current || content);
       toast({ title: "Error", description: error instanceof Error ? error.message : String(error), variant: "destructive" });
+    } finally {
+      if (activeChatRef.current === chatId) setSending(false);
     }
   }
 
@@ -402,7 +322,7 @@ export function SharedChatRoomPage() {
 
   return (
     <ReplyActionsProvider scopeKey={chatId ?? "shared-chat"} replyIds={messages.filter(message => message.author_user_id === null).map(message => message.id)}>
-    <div className="min-h-screen w-full text-foreground flex flex-col" style={{ paddingTop: "calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 30px))" }}>
+    <div className="h-[100dvh] w-full bg-background text-foreground flex flex-col" style={{ paddingTop: "calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 30px))" }}>
       <div className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-4 flex-1 flex flex-col min-h-0">
         {/* Header */}
         <div className="flex items-center justify-between gap-3 mb-4">
@@ -418,11 +338,11 @@ export function SharedChatRoomPage() {
         </div>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1 pb-40 space-y-5">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1 pb-6 space-y-5">
           {messages.length === 0 && (
             <div className="text-center text-muted-foreground py-16">
               <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-60" />
-              <p className="text-sm">Say hi! Mention <code className="px-1 py-0.5 rounded bg-white/10">@arc</code> to bring Arc in, or use <code className="px-1 py-0.5 rounded bg-white/10">/image</code> to generate one.</p>
+              <p className="text-sm">Chat together. Mention <code className="px-1 py-0.5 rounded bg-muted">@Arc</code> for a reply or web search. Use your main Arc chat for other tools.</p>
             </div>
           )}
           {messages.map((m) => {
@@ -489,121 +409,35 @@ export function SharedChatRoomPage() {
 
       </div>
 
-      {/* Composer — fixed glass dock at bottom, matches main chat */}
+      {/* Composer stays inside the viewport so mobile keyboards resize the room. */}
       <div
-        className="fixed bottom-6 left-0 right-0 z-30 px-4 pointer-events-none"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        className="shrink-0 z-30 px-4 pb-4 pointer-events-none"
+        style={{ paddingBottom: "max(16px, env(safe-area-inset-bottom))" }}
       >
         <div className="max-w-3xl mx-auto pointer-events-auto relative">
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-
-          {/* + menu popover */}
-          {showPlusMenu && (
-            <div className="absolute bottom-full left-2 mb-3 z-30">
-              <div className="glass-shimmer rounded-full px-3 py-2 ring-[0.5px] ring-border/40 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,.3)] flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => { setImageMode(true); setShowPlusMenu(false); textareaRef.current?.focus(); }}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-green-400 hover:bg-white/10 active:scale-95 transition"
-                >
-                  <ImagePlus className="h-4 w-4" />
-                  <span className="text-foreground/80">Image</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { fileInputRef.current?.click(); setShowPlusMenu(false); }}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-cyan-400 hover:bg-white/10 active:scale-95 transition"
-                >
-                  <Paperclip className="h-4 w-4" />
-                  <span className="text-foreground/80">Attach</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowPlusMenu(false)}
-                  className="flex items-center justify-center h-7 w-7 rounded-full hover:bg-white/10 active:scale-95 transition text-muted-foreground"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </div>
-          )}
-
           <div className="glass-dock">
             <div className="chat-input-halo flex items-center gap-3 rounded-full">
-              <button
-                type="button"
-                aria-label={imageMode ? "Disable image mode" : showPlusMenu ? "Close menu" : "Quick options"}
-                onClick={() => {
-                  if (imageMode) setImageMode(false);
-                  else setShowPlusMenu((v) => !v);
-                }}
-                className={cn(
-                  "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-colors duration-200 relative glass-shimmer",
-                  imageMode
-                    ? "!bg-green-500/20 ring-1 ring-green-400/50 !shadow-[0_0_24px_rgba(34,197,94,0.25)]"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {imageMode ? (
-                  <>
-                    <ImagePlus className="h-5 w-5 text-green-400" />
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black/70 text-white text-[10px] flex items-center justify-center">×</span>
-                  </>
-                ) : (
-                  <Plus className="h-5 w-5" />
-                )}
-              </button>
-
               <div className="flex-1 flex flex-col gap-2">
                 <Textarea
                   ref={textareaRef}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder={imageMode ? "Describe an image…" : "@Arc to chat with Arc!"}
+                  placeholder="Message everyone, or mention @Arc…"
                   rows={1}
                   className="!border-0 !bg-transparent text-foreground placeholder:text-muted-foreground resize-none min-h-[24px] max-h-[144px] leading-5 py-1.5 pl-0 pr-2 focus:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none text-[16px]"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
+                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); }
                   }}
                 />
-                {selectedImages.length > 0 && (
-                  <div className="flex gap-2 flex-wrap">
-                    {selectedImages.map((file, idx) => (
-                      <div key={idx} className="relative group">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Selected ${idx + 1}`}
-                          className="h-16 w-16 rounded-lg object-cover border border-primary/30 bg-white/5"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setSelectedImages((prev) => prev.filter((_, i) => i !== idx))}
-                          className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive/80 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          aria-label={`Remove image ${idx + 1}`}
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
 
               <button
                 onClick={send}
-                disabled={sending || (!text.trim() && selectedImages.length === 0)}
+                disabled={sending || aiThinking || !text.trim()}
                 aria-label="Send"
                 className={cn(
                   "shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-200 glass-shimmer",
-                  (text.trim() || selectedImages.length > 0)
+                  text.trim()
                     ? "bg-primary/10 ring-1 ring-primary/40 text-primary hover:bg-primary/20 !shadow-[0_0_10px_rgba(var(--primary-rgb),0.25)]"
                     : "text-muted-foreground cursor-not-allowed opacity-30",
                 )}
@@ -618,9 +452,9 @@ export function SharedChatRoomPage() {
 
       {/* Chat Settings Dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="glass-card max-w-md max-h-[85dvh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Chat settings</DialogTitle>
+            <DialogTitle>Collab Chat settings</DialogTitle>
           </DialogHeader>
           <div className="space-y-5">
             <div>

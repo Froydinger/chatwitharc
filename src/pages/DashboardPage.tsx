@@ -1433,7 +1433,7 @@ useEffect(() => {
                   <UsageSnapshotWidget onOpenPlan={() => navigate('/dashboard/settings?section=plan')} />
                   <div className="grid grid-cols-2 gap-3">
                     <button onClick={() => navigate('/tasks')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Clock className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Reminders</p><p className="mt-1 text-[11px] text-muted-foreground">Scheduled tasks</p></button>
-                    <button onClick={() => navigate('/shared')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Users className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Shared</p><p className="mt-1 text-[11px] text-muted-foreground">Chats with people</p></button>
+                    <button onClick={() => navigate('/shared')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Users className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Collab Chats</p><p className="mt-1 text-[11px] text-muted-foreground">Chat together with @Arc</p></button>
                   </div>
                 </aside>
               </div>

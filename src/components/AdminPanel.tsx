@@ -659,6 +659,29 @@ export function AdminPanel() {
                 </Button>
               </div>
 
+              <Card className="border-border/60 bg-muted/5">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2"><Activity className="h-4 w-4" />Recently active users</CardTitle>
+                  <CardDescription className="text-xs">Distinct accounts with saved chat activity, Collab messages, image requests, or voice sessions. This is activity, not an online presence count.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 pt-2">
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      ["Last hour", "lastHour"],
+                      ["Last 3 hours", "lastThreeHours"],
+                      ["Last 24 hours", "lastDay"],
+                    ].map(([label, key]) => (
+                      <div key={key} className="rounded-xl bg-muted/20 p-3">
+                        <p className="text-2xl font-bold">{statsLoading && !stats ? "…" : stats?.recentActivity?.[key] ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {!statsLoading && !stats?.recentActivity && <p className="text-xs text-muted-foreground mt-2">Activity metrics are unavailable. Refresh to try again.</p>}
+                  {stats?.recentActivity?.measuredAt && <p className="text-xs text-muted-foreground mt-2">Updated {new Date(stats.recentActivity.measuredAt).toLocaleTimeString()}</p>}
+                </CardContent>
+              </Card>
+
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <Card className="border-border/60 bg-muted/5 hover:bg-muted/10 transition-all">

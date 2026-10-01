@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
       .is("accepted_at", null);
     if ((memberCount ?? 0) + (pendingCount ?? 0) >= MAX_MEMBERS) {
       return new Response(JSON.stringify({
-        error: `This chat is full. Shared chats include the owner plus up to 5 others (6 total).`,
+        error: `This chat is full. Collab Chats include the owner plus up to 5 others (6 total).`,
       }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           user_ids: [target.id],
           payload: {
-            title: `${inviterName} added you to a shared chat`,
+            title: `${inviterName} added you to a Collab Chat`,
             body: chat.title,
             url: `/shared/${chat_id}`,
             tag: `shared-${chat_id}`,

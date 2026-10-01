@@ -340,18 +340,18 @@ export function DocsPage() {
     {
       id: "shared-chatrooms",
       category: "sharing",
-      title: "Shared Team Chat Rooms",
-      question: "How do shared collaborative chat rooms work?",
+      title: "Collab Chats",
+      question: "How do Collab Chats work?",
       answer: (
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <p>
-            ArcAI lets you invite other users to collaborative chat rooms under the <a href="/shared" className="text-primary hover:underline font-semibold">Shared chats page (/shared)</a>.
+            ArcAI lets you invite other users to collaborative chat rooms under the <a href="/shared" className="text-primary hover:underline font-semibold">Collab Chats page (/shared)</a>.
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li>Create a new chat room and share the public URL with team members.</li>
+            <li>Create a private Collab Chat and invite people by email.</li>
             <li>Messages sync in real-time across all connected clients.</li>
             <li>Mention other users directly in your message by typing <code>@username</code>.</li>
-            <li>Attach and upload images (up to 10MB per file) directly to the collaborative stream.</li>
+            <li>Mention @Arc to ask a question or search the web together. Other Arc tools are available in your main chat, not Collab Chats.</li>
           </ul>
         </div>
       ),
