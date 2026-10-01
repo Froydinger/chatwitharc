@@ -3,6 +3,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { ImageCreditSummary } from "@/components/ImageCreditSummary";
 import { SmoothImage } from "@/components/ui/smooth-image";
 import { X, Sparkles, ImagePlus, Ratio, Mic, ChevronDown, Check, Images } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -226,6 +227,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
               </div>
             )}
 
+            <ImageCreditSummary />
             {/* Image Preview(s) */}
             <div className="rounded-xl overflow-hidden border border-border/50 bg-muted/20">
               <div className="w-full">

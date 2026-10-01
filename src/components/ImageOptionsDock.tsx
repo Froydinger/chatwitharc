@@ -12,7 +12,7 @@ import {
   type ImageCount,
 } from "@/store/useImageGenStore";
 import { cn } from "@/lib/utils";
-import { UsageMeter } from "@/components/UsageMeter";
+import { ImageCreditSummary } from "@/components/ImageCreditSummary";
 
 
 interface ImageOptionsDockProps {
@@ -71,7 +71,7 @@ export function ImageOptionsContent({
       {showUsage && (
         <div className="flex items-center justify-end gap-3 mb-2">
           <div className="flex items-center gap-2 min-w-0">
-            <UsageMeter kind="image" />
+            <ImageCreditSummary />
           </div>
         </div>
       )}

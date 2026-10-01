@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ImageCreditSummary } from '@/components/ImageCreditSummary';
 import { Brain, Zap, Image, Mic, RefreshCw } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useImageQuota } from '@/hooks/useImageQuota';
@@ -11,7 +12,7 @@ export function PlanUsageBreakdown() {
   const unlimited = hasBoost || isAdmin;
   const rows = [
     { name: 'Arc Think', icon: Brain, detail: 'Everyday chat and reasoning', percent: null, unlimited: true },
-    { name: 'Arc Flash', icon: Zap, detail: 'Your sent Flash messages, including Auto when it uses Flash', percent: flashUsagePercent, unlimited },
+    { name: 'Arc Flash', icon: Zap, detail: 'Your sent messages using Arc Flash', percent: flashUsagePercent, unlimited },
     { name: 'Images', icon: Image, detail: 'Shared allowance for Arc Image and Arc Image Flash. Flash images use twice as much.', percent: images.loading || !images.resetAt ? null : images.usagePercent, unlimited },
     { name: 'Voice', icon: Mic, detail: 'Voice sessions started today', percent: Math.min(100, dailyVoiceSessionsUsed / FREE_DAILY_VOICE_LIMIT * 100), unlimited },
   ];
@@ -44,7 +45,7 @@ export function PlanUsageBreakdown() {
               className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-foreground" style={{ width: `${amount}%` }} />
             </div>}
-            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{detail}</p>
+            {name === 'Images' ? <div className="mt-2"><ImageCreditSummary /></div> : <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{detail}</p>}
           </div>;
         })}
       </div>

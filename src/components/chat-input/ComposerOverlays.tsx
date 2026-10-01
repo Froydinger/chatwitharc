@@ -1,3 +1,4 @@
+import { ImageCreditSummary } from "@/components/ImageCreditSummary";
 import { createPortal } from "react-dom";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { TransitionPart } from "@/components/transitions/TransitionPart";
@@ -46,6 +47,7 @@ export function ComposerOverlays({ showLimitsModal, isBoostTier, hasBoost, image
                   </div>
 
                   <div className="flex flex-col gap-4 py-1">
+                    <ImageCreditSummary />
                     {/* Active Model Progress Card */}
                     <div className="space-y-2.5 p-4 rounded-2xl bg-white/5 border border-black/10 dark:border-white/5 backdrop-blur-md">
                       <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">
@@ -60,24 +62,7 @@ export function ComposerOverlays({ showLimitsModal, isBoostTier, hasBoost, image
                       </div>
                     </div>
 
-                    {/* Reference Table */}
-                    <div className="space-y-1 text-xs">
-                      <div className="text-muted-foreground font-semibold px-1 mb-1 text-[11px] uppercase tracking-wider">Models & Workflows</div>
-                      <div className="flex justify-between items-center px-1 py-2 border-b border-black/10 dark:border-white/5 text-muted-foreground">
-                        <div>
-                          <div className="font-medium text-foreground">Arc Image</div>
-                          <div className="text-[10px]">Powered by GPT Image 2.5</div>
-                        </div>
-                        <span className="font-semibold text-foreground">{isBoostTier ? "Unlimited usage" : "Less usage"}</span>
-                      </div>
-                      <div className="flex justify-between items-center px-1 py-2 border-b border-black/10 dark:border-white/5 text-muted-foreground">
-                        <div>
-                          <div className="font-medium text-foreground">Arc Image Flash</div>
-                          <div className="text-[10px]">Powered by Nano Banana 2</div>
-                        </div>
-                        <span className="font-semibold text-foreground">{isBoostTier ? "Unlimited usage" : "Less usage"}</span>
-                      </div>
-                    </div>
+
                   </div>
 
                   <div className="flex gap-3 mt-1">
