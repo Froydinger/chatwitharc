@@ -29,8 +29,8 @@ export function extractImageFlashOutput(payload: unknown): string | null {
   for (const step of interaction.steps) {
     if (step?.type !== "model_output" || !Array.isArray(step.content)) continue;
     for (const block of step.content) {
-      // Request PNG and fail closed on URI-only or another MIME rather than saving mislabeled bytes.
-      if (block?.type === "image" && block.mime_type === "image/png" &&
+      // The live Interactions image output supports JPEG. Reject URI-only or mismatched MIME.
+      if (block?.type === "image" && block.mime_type === "image/jpeg" &&
         typeof block.data === "string" && block.data.length > 0 &&
         block.data.length <= 32 * 1024 * 1024 && /^[A-Za-z0-9+/]+={0,2}$/.test(block.data)) image = block.data;
     }
@@ -54,7 +54,7 @@ export async function callImageFlash(options: {
   const body = JSON.stringify({
     model: ARC_IMAGE_FLASH_MODEL,
     input: [{ type: "text", text: options.prompt }, ...(options.images ?? []).map(image => ({ type: "image", ...image }))],
-    response_format: { type: "image", mime_type: "image/png", aspect_ratio: imageFlashAspect(options.aspect), image_size: "1K" },
+    response_format: { type: "image", mime_type: "image/jpeg", aspect_ratio: imageFlashAspect(options.aspect), image_size: "1K" },
     store: false,
     stream: false,
   });
@@ -74,7 +74,7 @@ export async function callImageFlash(options: {
           : "Arc Image Flash could not finish the image. Please try again." };
       }
       const image = extractImageFlashOutput(await response.json());
-      return image ? { ok: true, status: 200, rawText: JSON.stringify({ data: [{ b64_json: image }] }) }
+      return image ? { ok: true, status: 200, rawText: JSON.stringify({ data: [{ url: `data:image/jpeg;base64,${image}` }] }) }
         : { ok: false, status: 502, rawText: "Arc Image Flash returned no completed image. Please try again." };
     } catch {
       return { ok: false, status: controller.signal.aborted ? 408 : 502,
