@@ -16,6 +16,7 @@ import {
 } from "@/store/useImageGenStore";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
 import { cn } from "@/lib/utils";
+import { isPrivateImageReference, useResolvedImageUrls } from "@/lib/privateImages";
 
 interface ImageEditModalProps {
   isOpen: boolean;
@@ -62,6 +63,9 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   // Normalize imageUrl to always be an array for easier handling
   const imageUrls = Array.isArray(imageUrl) ? imageUrl : [imageUrl];
   const isMultipleImages = imageUrls.length > 1;
+  const resolvedImageUrls = useResolvedImageUrls(isOpen ? imageUrls : []);
+  const previewUrl = (value: string) =>
+    isPrivateImageReference(value) ? resolvedImageUrls[value] : value;
 
   const charsLeft = useMemo(() => Math.max(0, MAX_CHARS - editInstruction.length), [editInstruction]);
 
@@ -230,7 +234,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
                     {imageUrls.map((url, idx) => (
                       <div key={idx} className="aspect-square rounded-lg overflow-hidden border border-border/30">
                         <SmoothImage
-                          src={url}
+                          src={previewUrl(url)}
                           alt={`Image ${idx + 1} to edit`}
                           className="w-full h-full object-cover"
                         />
@@ -240,9 +244,10 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
                 ) : (
                   <div className="aspect-video sm:aspect-[4/3]">
                     <SmoothImage
-                      src={imageUrls[0]}
+                      src={previewUrl(imageUrls[0])}
                       alt="Image to edit"
-                      className="w-full h-full object-contain"
+                      className="w-full h-full"
+                      imageClassName="object-contain"
                     />
                   </div>
                 )}
