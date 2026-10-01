@@ -440,11 +440,12 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="rounded-full h-8 px-3"
+                                  className="rounded-full h-8 w-8 shrink-0 p-0"
+                                  aria-label="Share publicly"
+                                  title="Share publicly"
                                   onClick={(e) => { e.stopPropagation(); void handleShareImage(url); }}
                                 >
-                                  <Share2 className="h-3.5 w-3.5 mr-1.5" />
-                                  Share publicly
+                                  <Share2 className="h-3.5 w-3.5" aria-hidden="true" />
                                 </Button>
                               )}
                             </div>
@@ -489,11 +490,12 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="rounded-full h-8 px-3"
+                                className="rounded-full h-8 w-8 shrink-0 p-0"
+                                aria-label="Share publicly"
+                                title="Share publicly"
                                 onClick={(e) => { e.stopPropagation(); void handleShareImage(message.imageUrl!); }}
                               >
-                                <Share2 className="h-3.5 w-3.5 mr-1.5" />
-                                Share publicly
+                                <Share2 className="h-3.5 w-3.5" aria-hidden="true" />
                               </Button>
                             )}
                           </div>
