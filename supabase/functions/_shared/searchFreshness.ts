@@ -1,7 +1,7 @@
 /** Keep historical/general queries intact; freshness is context, not a date filter. */
 export function searchDateContext(query: string, userRequest = '', now = new Date()) {
   const context = `${userRequest} ${query}`;
-  const explicitlyHistorical = /\b(?:historical|history of|back in|as of|in the year)\b/i.test(context)
+  const explicitlyHistorical = /\b(?:historical|history of|back in|in the year)\b/i.test(context)
     || /\b(?:in|during|before|as of)\s+(?:19\d{2}|20\d{2})\b/i.test(context);
   const current = !explicitlyHistorical && /\b(?:latest|currently|current|today|now|recent|new|updated|this year)\b/i.test(context);
   const law = /\b(?:laws?|legislation|statutes?|legal|legalized|legalisation|legalization|regulations?)\b/i.test(context);

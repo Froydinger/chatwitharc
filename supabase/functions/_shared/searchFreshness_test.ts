@@ -8,6 +8,8 @@ const now = new Date('2026-10-01T12:00:00Z');
 Deno.test('date context is selective and respects historical questions', () => {
   assert(searchDateContext('Illinois cannabis limits', 'What are the new laws?', now).query.includes('2026-10-01'));
   assert(searchDateContext('latest phones', '', now).current);
+  assert(searchDateContext('Illinois law', 'current law as of today', now).current);
+  assert(!searchDateContext('Illinois laws as of 2020', '', now).current);
   assert(searchDateContext('photosynthesis', '', now).query === 'photosynthesis');
   assert(searchDateContext('Illinois laws in 2020', '', now).query === 'Illinois laws in 2020');
   assert(!searchDateContext('latest historical research in 2020', '', now).current);
