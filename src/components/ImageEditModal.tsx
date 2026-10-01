@@ -64,8 +64,8 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const imageUrls = Array.isArray(imageUrl) ? imageUrl : [imageUrl];
   const isMultipleImages = imageUrls.length > 1;
   const resolvedImageUrls = useResolvedImageUrls(isOpen ? imageUrls : []);
-  const previewUrl = (value: string) =>
-    isPrivateImageReference(value) ? resolvedImageUrls[value] : value;
+  const previewUrl = (value: string | undefined) =>
+    value && isPrivateImageReference(value) ? resolvedImageUrls[value] : value;
 
   const charsLeft = useMemo(() => Math.max(0, MAX_CHARS - editInstruction.length), [editInstruction]);
 
