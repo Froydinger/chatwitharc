@@ -2542,14 +2542,14 @@ useEffect(() => {
                   onClick={() => switchTab(key)}
                   className={cn(
                     "flex items-center justify-center px-3 py-3 rounded-lg transition-all min-w-0 flex-1 relative min-h-[48px] touch-manipulation",
-                    isActive ? "text-neon-600 dark:text-neon-400" : "text-muted-foreground/60 hover:text-neon-500/80 dark:hover:text-neon-400/80"
+                    isActive ? "text-foreground" : "text-muted-foreground/60 hover:text-neon-500/80 dark:hover:text-neon-400/80"
                   )}
                   style={{ zIndex: 20, opacity: isHiddenByBubble ? 0 : 1, transitionProperty: 'opacity', transitionDuration: '0.15s' }}
                 >
-                  <Icon className={cn(
-                    "h-5 w-5 transition-all duration-300",
-                    isActive && "drop-shadow-[0_0_12px_rgba(59,130,246,0.55)]"
-                  )} />
+                  <Icon
+                    className="h-5 w-5 transition-colors duration-300"
+                    style={isActive ? { color: 'hsl(var(--foreground))', stroke: 'hsl(var(--foreground))' } : undefined}
+                  />
                 </button>
               );
             })}
