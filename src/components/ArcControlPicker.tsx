@@ -111,7 +111,7 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
                   <div className="text-xs text-muted-foreground">Choose how Arc responds.</div>
                 </div>
                 {presets.map((preset) => {
-                  const badge = hasBoost || isAdmin ? 'Unlimited usage' : 'Less usage';
+                  const badge = preset.effort !== 'flynn' || hasBoost || isAdmin ? 'Unlimited usage' : 'Less usage';
                   const Icon = preset.icon;
                   const active = reasoningEffort === preset.effort;
                   return (
@@ -141,7 +141,7 @@ export function ArcControlPicker({ name, selectedVoice, onSelectVoice }: ArcCont
                     </button>
                   );
                 })}
-                {!hasBoost && !isAdmin && <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs text-muted-foreground"><Crown className="h-4 w-4 shrink-0 text-primary" /><span>Boost includes unlimited Think and Flash usage.</span></div>}
+                {!hasBoost && !isAdmin && <div className="flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-3 py-2 text-xs text-muted-foreground"><Crown className="h-4 w-4 shrink-0 text-primary" /><span>Think is unlimited for everyone. Boost adds unlimited Flash usage.</span></div>}
                 <div className="pt-1 text-center text-xs text-muted-foreground">Current: {selectedPreset.title}</div>
               </div>
             ) : (

@@ -167,7 +167,7 @@ export function ChatModelPicker({
                   <div className="text-[10px] text-muted-foreground">Choose how Arc responds.</div>
                 </div>
                 {presets.map((preset) => {
-                  const badge = hasBoost || isAdmin ? 'Unlimited usage' : 'Less usage';
+                  const badge = preset.effort !== 'flynn' || hasBoost || isAdmin ? 'Unlimited usage' : 'Less usage';
                   return (
                     <Row
                       key={preset.effort}
