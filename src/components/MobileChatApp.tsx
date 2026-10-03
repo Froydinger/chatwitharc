@@ -986,15 +986,7 @@ export function MobileChatApp() {
     initializedSessionRef.current = currentSessionId;
   }
 
-  // Auto-focus input after Arc finishes responding
-  const wasLoadingRef = useRef(false);
-  useEffect(() => {
-    // Focus input when loading transitions from true to false
-    if (wasLoadingRef.current && !isLoading) {
-      chatInputRef.current?.focusInput();
-    }
-    wasLoadingRef.current = isLoading;
-  }, [isLoading]);
+  // Reply completion preserves focus; only user composer actions request focus.
 
   // Scroll to bottom whenever a new message is appended OR we enter a session
   const lastScrolledSessionRef = useRef<string | null>(null);

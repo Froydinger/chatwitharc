@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';import ts from 'typescript';
+const read=p=>fs.readFileSync(new URL('../'+p,import.meta.url),'utf8');
+const parse=(p)=>ts.createSourceFile(p,read(p),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+const walk=(node,fn)=>{fn(node);ts.forEachChild(node,n=>walk(n,fn));};
+const run=(code,ctx)=>vm.runInNewContext(ts.transpileModule(code,{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,ctx);
+let focus=0,blur=0;const textareaRef={current:{focus(){focus++;},blur(){blur++;}}};
+const shell=parse('src/components/MobileChatApp.tsx');const effects=[];
+walk(shell,n=>{if(ts.isCallExpression(n)&&n.expression.getText(shell)==='useEffect'){let touches=false;walk(n.arguments[0],x=>{if(ts.isPropertyAccessExpression(x)&&x.name.text==='focusInput')touches=true;});if(touches)effects.push(n.arguments[0].getText(shell));}});
+const wasLoadingRef={current:false};for(const isLoading of [false,true,false,true,false])for(const effect of effects)run(`(${effect})()`,{isLoading,wasLoadingRef,chatInputRef:{current:{focusInput(){focus++;}}}});
+assert.equal(focus,0,'loading completion must never focus composer');
+const input=parse('src/components/ChatInput.tsx');let clear,manual;
+walk(input,n=>{if(ts.isFunctionDeclaration(n)&&n.name?.text==='clearComposer')clear=n.body.getText(input);if(ts.isPropertyAssignment(n)&&n.name.getText(input)==='focusInput')manual=n.initializer.getText(input);});
+const no=()=>{};run(`(()=>${clear})()`,{textareaRef,setInputValue:no,setSelectedImages:no,setSelectedDocuments:no,setForceImageMode:no,setForceCodingMode:no,setForceCanvasMode:no,setForceSearchMode:no,setForceGitMode:no,setShowMenu:no});assert.equal(blur,1,'accepted user send dismisses keyboard');run(`(${manual})()`,{textareaRef});assert.equal(focus,1,'explicit composer focus remains available');
+const shared=parse('src/pages/SharedChatRoomPage.tsx');let send;walk(shared,n=>{if(ts.isFunctionDeclaration(n)&&n.name?.text==='send')send=n;});let asyncFocus=false;walk(send,n=>{if(ts.isCallExpression(n)&&ts.isPropertyAccessExpression(n.expression)&&n.expression.name.text==='focus')asyncFocus=true;});assert.equal(asyncFocus,false,'shared chat send completion must preserve focus');
+console.log('PASS: reply/loading transitions preserve focus, accepted send blurs, explicit focus works, shared send never refocuses');

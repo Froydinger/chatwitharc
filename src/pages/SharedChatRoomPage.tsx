@@ -224,6 +224,7 @@ export function SharedChatRoomPage() {
   async function send() {
     if (!user || !chatId || !text.trim() || sending || aiThinking) return;
     const content = text.trim();
+    textareaRef.current?.blur();
     setText("");
     setSending(true);
 
@@ -255,7 +256,6 @@ export function SharedChatRoomPage() {
       }
 
       if (sent) setMessages((prev) => prev.some((m) => m.id === sent.id) ? prev : [...prev, sent as Msg]);
-      textareaRef.current?.focus();
 
       await supabase.from("shared_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId);
 

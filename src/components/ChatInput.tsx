@@ -1128,6 +1128,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   };
 
   function clearComposer() {
+    textareaRef.current?.blur();
     setInputValue("");
     setSelectedImages([]);
     setSelectedDocuments([]);
