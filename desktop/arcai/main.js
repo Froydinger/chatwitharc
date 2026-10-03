@@ -2,6 +2,12 @@ const path = require("node:path");
 const http = require("node:http");
 const fs = require("node:fs");
 const crypto = require("node:crypto");
+const { spawn } = require("node:child_process");
+const {
+  getAppAuthCallbackUrl,
+  getSafariGoogleOAuthUrl,
+  isDesktopAuthCallback,
+} = require("./auth-routing");
 const { app, BrowserWindow, globalShortcut, screen, dialog, shell, Menu, session, systemPreferences, ipcMain, Notification } = require("electron");
 const { autoUpdater } = require("electron-updater");
 
@@ -63,34 +69,8 @@ function isAuthUrl(value = "") {
   }
 }
 
-function isDesktopAuthCallback(value = "") {
-  try {
-    const url = new URL(value);
-    return TRUSTED_ORIGINS.has(url.origin) && url.pathname === "/desktop-auth-callback";
-  } catch (_) {
-    return false;
-  }
-}
-
 function loadAuthCallbackInApp(href) {
-  let target = ARC_URL;
-  try {
-    const url = new URL(href);
-    const callback = new URL("/auth/callback", ARC_URL);
-
-    // Supabase's PKCE flow returns a one-time `code` to the external browser.
-    // The verifier that can exchange it is stored in Electron's session, so
-    // forward the code back into the app instead of dropping it and loading
-    // the landing page. Keep implicit-flow token hashes working as well.
-    for (const key of ["code", "error", "error_code", "error_description"]) {
-      const value = url.searchParams.get(key);
-      if (value) callback.searchParams.set(key, value);
-    }
-    callback.hash = url.hash;
-    target = callback.toString();
-  } catch (_) {
-    target = ARC_URL;
-  }
+  const target = getAppAuthCallbackUrl(href, ARC_URL);
 
   // A PKCE authorization code is single-use. Let one window exchange it
   // rather than racing the full and floating windows against each other.
@@ -521,6 +501,13 @@ function addDragZone(win) {
 
 function attachWindowHandlers(win, shouldFocusInput = false) {
   win.webContents.setWindowOpenHandler(({ url }) => {
+    if (process.platform === "darwin") {
+      const safariUrl = getSafariGoogleOAuthUrl(url);
+      if (safariUrl) {
+        openGoogleOAuthInSafari(safariUrl);
+        return { action: "deny" };
+      }
+    }
     if (isAuthUrl(url)) {
       return { action: "allow" };
     }
@@ -529,6 +516,14 @@ function attachWindowHandlers(win, shouldFocusInput = false) {
   });
 
   win.webContents.on("will-navigate", (event, url) => {
+    if (process.platform === "darwin") {
+      const safariUrl = getSafariGoogleOAuthUrl(url);
+      if (safariUrl) {
+        event.preventDefault();
+        openGoogleOAuthInSafari(safariUrl);
+        return;
+      }
+    }
     // OAuth must remain in this session so Supabase can recover the PKCE
     // verifier and persist the returned ArcAI session.
     if (isTrustedUrl(url) || isAuthUrl(url)) return;
@@ -544,6 +539,19 @@ function attachWindowHandlers(win, shouldFocusInput = false) {
     addDragZone(win);
     if (shouldFocusInput) focusInput(win);
   });
+}
+
+function openGoogleOAuthInSafari(url) {
+  // The URL has already passed strict HTTPS, Supabase-host, authorize-path,
+  // provider, and callback validation. Use an argument array, never a shell.
+  const child = spawn("/usr/bin/open", ["-a", "Safari", "--", url], {
+    detached: true,
+    stdio: "ignore",
+  });
+  child.once("error", (error) => {
+    console.error("Failed to open Google sign-in in Safari:", error);
+  });
+  child.unref();
 }
 
 function createFloating() {

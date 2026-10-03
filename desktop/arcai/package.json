@@ -1,12 +1,13 @@
 {
   "name": "arcai-desktop",
-  "version": "5.2.1",
+  "version": "5.2.3",
   "description": "ArcAI desktop assistant",
   "author": "Jake Freudinger",
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
+    "test:auth-routing": "node --test test/auth-routing.test.js",
     "pack:mac": "electron-builder --mac dmg zip --arm64",
     "pack:win": "electron-builder --win nsis portable --x64",
     "pack:all": "electron-builder --mac dmg --arm64 --win nsis portable --x64"
@@ -21,6 +22,7 @@
     },
     "files": [
       "main.js",
+      "auth-routing.js",
       "preload.js",
       "shortcut-guide.html",
       "package.json",
@@ -30,8 +32,8 @@
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
-      "identity": "Breeze Signing",
-      "hardenedRuntime": false,
+      "identity": "Developer ID Application: Jacob Freudinger (9228JV4RRX)",
+      "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "target": [
         {
@@ -80,7 +82,9 @@
             }
           }
         }
-      }
+      },
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist"
     },
     "dmg": {
       "title": "ArcAI ${version}",

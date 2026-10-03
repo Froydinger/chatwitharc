@@ -5,8 +5,8 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const STORAGE_BASE = SUPABASE_URL
   ? `${SUPABASE_URL}/storage/v1/object/public/download-files`
   : '';
-const CURRENT_MAC_VERSION = '5.2.0';
-const CURRENT_MAC_DOWNLOAD = 'https://github.com/Froydinger/chatwitharc/releases/download/v5.2.0/ArcAI-5.2.0-arm64.dmg';
+const CURRENT_MAC_VERSION = '5.2.3';
+const CURRENT_MAC_DOWNLOAD = 'https://github.com/Froydinger/chatwitharc/releases/download/v5.2.3/ArcAI-5.2.3-arm64.dmg';
 const CURRENT_WINDOWS_VERSION = '5.2.0';
 const CURRENT_WINDOWS_DOWNLOAD = 'https://github.com/Froydinger/chatwitharc/releases/download/v5.2.0/ArcAI-Setup-5.2.0.exe';
 

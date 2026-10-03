@@ -1,3 +1,4 @@
+import { LegacyMacUpdateNotice } from '@/components/LegacyMacUpdateNotice';
 import { useEffect, useState, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -214,6 +215,7 @@ const App = () => {
               <BackgroundGradients />
               {showStarfield && <Starfield />}
               <Toaster />
+              <LegacyMacUpdateNotice />
               <Sonner />
               <FingerPopupContainer />
               <PWAInstallPrompt />
