@@ -1,3 +1,4 @@
+import { useMacDecorationsActive } from '@/hooks/useMacDecorationsActive';
 import { ChatHistorySidebar } from '@/components/ChatHistorySidebar';
 import { ChatMessageRows } from "@/components/ChatMessageRows";
 import { WidthPanel } from "@/components/transitions/WidthPanel";
@@ -227,6 +228,7 @@ export function ArcInputEffects({
   theme: "dark" | "light" | "auto";
   children: ReactNode;
 }) {
+  const decorationsActive = useMacDecorationsActive();
   const shouldGlow = Boolean(active ?? (isNewChat || isWorking));
   const [visible, setVisible] = useState(shouldGlow);
   const [renderBeam, setRenderBeam] = useState(shouldGlow);
@@ -251,7 +253,7 @@ export function ArcInputEffects({
   return (
     <div className="arc-input-shell">
       {/* Beam layer BEHIND the opaque dock: rainbow halo spills past on new chat or when Arc is thinking */}
-      {renderBeam && (
+      {renderBeam && decorationsActive && (
         <div
           className="arc-input-fx arc-input-fx--beam transition-opacity duration-700 ease-out"
           style={{ opacity: visible ? 1 : 0 }}
@@ -274,9 +276,12 @@ export function ArcInputEffects({
       )}
 
       {children}
+      {renderBeam && !decorationsActive && (
+        <div aria-hidden="true" className="arc-input-fx arc-input-fx--metal" style={{ border: '1px solid hsl(var(--foreground) / 0.16)' }} />
+      )}
 
       {/* Metal ring layer ON TOP */}
-      {renderBeam && (
+      {renderBeam && decorationsActive && (
         <div
           className="arc-input-fx arc-input-fx--metal transition-opacity duration-700 ease-out"
           style={{ opacity: visible ? 0.28 : 0 }}

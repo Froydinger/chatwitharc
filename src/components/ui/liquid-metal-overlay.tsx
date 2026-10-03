@@ -1,3 +1,4 @@
+import { useMacDecorationsActive } from '@/hooks/useMacDecorationsActive';
 import { useEffect, useState } from "react";
 import { MetalFx } from "metal-fx";
 
@@ -17,6 +18,7 @@ export function LiquidMetalOverlay({
   preset?: "silver" | "chromatic";
   strength?: number;
 }) {
+  const decorationsActive = useMacDecorationsActive();
   const [theme, setTheme] = useState<"dark" | "light">(getAppTheme);
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -36,6 +38,8 @@ export function LiquidMetalOverlay({
       motionQuery.removeEventListener("change", syncMotion);
     };
   }, []);
+
+  if (!decorationsActive) return <div className="liquid-metal-overlay-frame" style={{ opacity: 0.28, border: '1px solid hsl(var(--foreground) / 0.25)' }} aria-hidden="true" />;
 
   return (
     <div className="liquid-metal-overlay-frame" style={{ opacity: 0.28 }} aria-hidden="true">

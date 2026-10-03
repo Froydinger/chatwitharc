@@ -1,0 +1,35 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+const source=fs.readFileSync('src/hooks/useMacDecorationsActive.ts','utf8');
+const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const context={exports:{},require:()=>({})};vm.createContext(context);vm.runInContext(code,context);
+const {isInstalledMacArc,subscribeMacDecorations}=context.exports;
+assert.equal(isInstalledMacArc('Macintosh ArcAIInternalAuth/5.2.3'),true);
+assert.equal(isInstalledMacArc('Macintosh Safari/600'),false);
+assert.equal(isInstalledMacArc('iPhone ArcAIInternalAuth/5.2.3'),false);
+const win=new EventTarget(),doc=new EventTarget();doc.hidden=false;let focused=true;doc.hasFocus=()=>focused;
+const active=[];const cleanup=subscribeMacDecorations(win,doc,true,v=>active.push(v));
+assert.equal(active.at(-1),true);
+focused=false;win.dispatchEvent(new Event('blur'));assert.equal(active.at(-1),false);
+focused=true;doc.hidden=true;win.dispatchEvent(new Event('focus'));assert.equal(active.at(-1),false);
+doc.hidden=false;doc.dispatchEvent(new Event('visibilitychange'));assert.equal(active.at(-1),true);
+cleanup();const length=active.length;focused=false;win.dispatchEvent(new Event('blur'));doc.dispatchEvent(new Event('visibilitychange'));assert.equal(active.length,length);
+const other=[];const nonMacCleanup=subscribeMacDecorations(win,doc,false,v=>other.push(v));win.dispatchEvent(new Event('blur'));assert.deepEqual(other,[true]);nonMacCleanup();
+console.log('Mac decorative effects stop on blur/hide, resume only when visible and focused, and remove listeners; other platforms unchanged.');
+const componentSource=fs.readFileSync('src/components/MobileChatApp.tsx','utf8');
+const tree=ts.createSourceFile('MobileChatApp.tsx',componentSource,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+const component=tree.statements.find(node=>ts.isFunctionDeclaration(node)&&node.name?.text==='ArcInputEffects');
+assert.ok(component);
+const renderCode=ts.transpileModule(component.getText(tree).replace('export function','function')+'\nglobalThis.render=ArcInputEffects;', {compilerOptions:{jsx:ts.JsxEmit.React,target:ts.ScriptTarget.ES2022}}).outputText;
+for (const enabled of [false,true]) {
+ const sandbox={useMacDecorationsActive:()=>enabled,useState:value=>[value,()=>{}],useEffect:()=>{},MetalFx:'metal',BorderBeam:'beam',React:{createElement:(type,props,...children)=>({type,props,children})}};
+ vm.createContext(sandbox);vm.runInContext(renderCode,sandbox);
+ const child={type:'composer'};const output=sandbox.render({isNewChat:true,theme:'dark',children:child});
+ const types=[];function walk(item){if(item&&typeof item==='object'){types.push(item.type);item.children?.forEach(walk);}}walk(output);
+ assert.equal(types.includes('composer'),true);
+ assert.equal(types.includes('metal'),enabled);
+ assert.equal(types.includes('beam'),enabled);
+}
+console.log('Actual composer rendering unmounts decorative MetalFx/BorderBeam when inactive and preserves the composer.');
