@@ -35,8 +35,8 @@ let lastBounds = null;
 let checkingForUpdate = false;
 let authServer = null;
 const pendingAuthBridgeNonces = new Map();
+let shortcutGuidePromise = null;
 let desktopNotificationDeviceId = null;
-let shortcutGuide = null;
 let floatingAnimation = null;
 let animatingFloating = false;
 let floatingTargetBounds = null;
@@ -863,45 +863,31 @@ function showFull() {
   }
 }
 
-async function showShortcutGuide({ shortcutReady = globalShortcut.isRegistered(SHORTCUT) } = {}) {
-  if (shortcutGuide && !shortcutGuide.isDestroyed()) {
-    shortcutGuide.show();
-    shortcutGuide.focus();
-    return;
-  }
+function showShortcutGuide({ shortcutReady = globalShortcut.isRegistered(SHORTCUT) } = {}) {
+  if (shortcutGuidePromise) return shortcutGuidePromise;
 
-  shortcutGuide = new BrowserWindow({
-    width: 620,
-    height: 480,
-    parent: full && !full.isDestroyed() ? full : undefined,
-    modal: false,
-    frame: false,
-    transparent: true,
-    resizable: false,
-    maximizable: false,
-    minimizable: false,
-    show: false,
-    hasShadow: true,
-    backgroundColor: "#00000000",
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
+  const detail = shortcutReady
+    ? `Press ${SHORTCUT_LABEL} to show or hide the floating ArcAI window.`
+    : `The ${SHORTCUT_LABEL} shortcut is being used by another app. You can still open ArcAI from the Window menu.`;
 
-  shortcutGuide.loadFile(path.join(__dirname, "shortcut-guide.html"), {
-    query: {
-      shortcut: SHORTCUT_LABEL,
-      ready: shortcutReady ? "1" : "0",
-    },
+  const options = {
+    type: "info",
+    title: "ArcAI Keyboard Shortcut",
+    message: "Press to show. Press again to hide.",
+    detail,
+    buttons: ["Got it"],
+    defaultId: 0,
+    noLink: true,
+  };
+  const parent = full && !full.isDestroyed() ? full : null;
+  const dialogPromise = parent
+    ? dialog.showMessageBox(parent, options)
+    : dialog.showMessageBox(options);
+
+  shortcutGuidePromise = Promise.resolve(dialogPromise).finally(() => {
+    shortcutGuidePromise = null;
   });
-  shortcutGuide.once("ready-to-show", () => {
-    shortcutGuide?.show();
-    shortcutGuide?.focus();
-  });
-  shortcutGuide.on("closed", () => {
-    shortcutGuide = null;
-  });
+  return shortcutGuidePromise;
 }
 
 app.whenReady().then(() => {
