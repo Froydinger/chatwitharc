@@ -173,8 +173,8 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
         style={{ maxHeight: "calc(100dvh - var(--arcai-safe-area-top, 0px) - env(safe-area-inset-bottom, 0px) - 24px)" }}>
         <header className="shrink-0 px-5 pb-4 pt-5 pr-14 sm:px-6 sm:pr-14">
           <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Zap className="h-4 w-4" /> ARCAI BOOST</div>
-          <DialogTitle className="text-2xl font-semibold tracking-tight">{isVoiceLimit ? 'Keep the conversation going' : 'More room to create.'}</DialogTitle>
-          <DialogDescription className="mt-1.5 text-sm">Unlimited usage for chat, images, and research.</DialogDescription>
+          <DialogTitle className="text-2xl font-semibold tracking-tight">{isVoiceLimit ? 'Keep the conversation going' : 'Put your agent to work.'}</DialogTitle>
+          <DialogDescription className="mt-1.5 text-sm">Unlock Arc Work and App Builder, plus unlimited usage for chat, images, and research.</DialogDescription>
         </header>
         <div className="min-h-0 overflow-y-auto overscroll-contain px-5 pb-5 sm:px-6">
           <div role="group" aria-label="Billing period" className="grid grid-cols-2 gap-2">
@@ -195,6 +195,8 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
           </div>
           <ul className="space-y-3 border-t border-border/50 pt-4">
             {[
+              ['Arc Work', 'Your agent carries out longer tasks in the cloud, with progress saved to your chat.'],
+              ['App Builder', 'Build and refine working apps with Arc, then publish or export.'],
               ['Arc Think + Arc Flash', 'Unlimited usage, with advanced reasoning.'],
               ['Arc Image + Arc Image Flash', 'Unlimited generation and editing.'],
               ['Deep Search + Ultra Deep Search', 'Unlimited research.'],

@@ -35,7 +35,7 @@ const SITE = "https://askarc.chat";
 const LANDING_FAQ = [
   {
     q: "What is ArcAI?",
-    a: "ArcAI is a multimodal AI assistant founded and created by Win The Night™ Foundation, built on the three pillars of productivity: Ask, Reflect, and Create (ARC). It features reasoning chat, natural voice conversations, image generation, a code canvas, GitHub workflows, and living memory, all in your browser.",
+    a: "ArcAI is your personal AI agent for Ask, Reflect, and Create, founded and created by Win The Night™ Foundation. Arc brings tools and living memory into chat, voice, research, images, and code. With Boost, Arc Work carries out longer tasks in the cloud and App Builder turns your ideas into working apps.",
   },
   {
     q: "Is ArcAI free?",
@@ -276,7 +276,7 @@ export function LandingPage() {
           className="mx-auto mt-6 max-w-xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
           style={{ animationDelay: "120ms", animationFillMode: "backwards" }}
         >
-          Your new favorite personal assistant, that actually knows who you are.
+          Your personal AI agent. Arc remembers your context, researches your questions, and helps turn your ideas into finished work.
         </p>
         <div
           className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row animate-in fade-in slide-in-from-bottom-3 duration-700"
@@ -335,18 +335,20 @@ export function LandingPage() {
       {/* Features */}
       <section className="relative z-10 mx-auto max-w-6xl px-6 py-16">
         <h2 className="text-center text-3xl font-semibold tracking-tight md:text-4xl">
-          A Sanctuary for Your Thoughts and Creations
+          One agent. Room for every idea.
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-sm text-white/50">
-          Simple on the outside, deeply capable on the inside, and completely free.
+          Ask a question, think it through, or make something. Arc brings the right tools and your context into every step. Start free; unlock Work and App Builder with Boost.
         </p>
         <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "Choose Arc Think or Arc Flash. Arc Matrix™ automatically selects an available model for your task in Think mode." },
-            { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Scan the live web instantly, gathering real-time summaries and citations to find the truth behind any query." },
+            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "Choose Arc Think or Arc Flash. Arc combines reasoning, tools, and your context; Arc Matrix™ selects an available model in Think mode." },
+            { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Let Arc research the live web, bring sources together, and return an answer you can check with citations." },
             { category: "Reflect", icon: Brain, title: "Living Cross-Session Memory", body: "Arc keeps one detailed, evolving summary of the preferences, goals, facts, and boundaries you want it to remember, then recalls it when relevant." },
-            { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Speak out loud with zero-latency audio or focus with custom ambient music tracks built directly into your workspace." },
-            { category: "Create", icon: Code2, title: "Code Canvas", body: "Draft and preview quick code snippets in a visual workspace, then use GitHub Mode for changes to a connected repository." },
+            { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Talk naturally with the same Arc agent, with tools and memory close at hand. Keep ambient music in your workspace when you want to focus." },
+            { category: "Create", icon: Code2, title: "Code Canvas", body: "Work with Arc on code and prose in Canvas. GitHub Mode prepares changes to your connected repository as a branch and pull request." },
+            { category: "Ask", icon: Sparkles, title: "Arc Work · Boost", body: "Hand Arc a longer task. Your agent works in the cloud, keeps progress tied to your chat, and asks for input when needed." },
+            { category: "Create", icon: Code2, title: "App Builder · Boost", body: "Describe the app you want. Arc builds it, shows a live preview, and helps you refine it, then publish or export when you are ready." },
             { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create custom images and art with state-of-the-art vision models, bringing visual ideas to life in seconds." },
           ].map((f, i) => (
             <div
@@ -504,7 +506,7 @@ export function LandingPage() {
       {/* Bottom CTA */}
       <section className="relative z-10 mx-auto max-w-4xl px-6 pt-16 pb-24 text-center">
         <h2 className="text-4xl font-semibold tracking-tight md:text-5xl">
-          Find your creative center.
+          Give your next idea to Arc.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
           Start with less usage for chat and images, and 3 voice sessions per UTC day up to 10 minutes each. Upgrade to Boost for unlimited image generation, higher reasoning, and unlimited voice sessions up to 2 hours each.
