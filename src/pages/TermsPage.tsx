@@ -20,7 +20,7 @@ export default function TermsPage() {
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight m-0">Terms of Service</h1>
           </div>
-          <p className="text-sm text-muted-foreground mb-10">Last updated: September 23, 2026</p>
+          <p className="text-sm text-muted-foreground mb-10">Last updated: October 2, 2026</p>
 
           <div className="space-y-8 text-[15px] leading-relaxed text-foreground/90">
             <section>
@@ -48,6 +48,17 @@ export default function TermsPage() {
                 hours each. It is available with a 7-day free trial when a payment method is provided, then billed
                 through Stripe on a monthly or annual term. It renews automatically until cancelled and can be
                 cancelled at any time from your account settings; access continues to the end of the paid period.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold mb-2">iOS purchases and notifications</h2>
+              <p className="text-muted-foreground">
+                Eligible U.S. storefront users can purchase Boost through Stripe checkout in their browser.
+                This iOS release does not offer Apple in-app purchases or a Restore Purchases feature.
+                Manage Stripe subscriptions through account settings. Purchase controls are unavailable in other
+                storefronts in this release. Push notifications are optional and require your permission; you can
+                turn them off in ArcAI or your iPhone settings.
               </p>
             </section>
 

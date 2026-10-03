@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
             </div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight m-0">Privacy Notice</h1>
           </div>
-          <p className="text-sm text-muted-foreground mb-10">Last updated: September 28, 2026</p>
+          <p className="text-sm text-muted-foreground mb-10">Last updated: October 3, 2026</p>
 
           <div className="space-y-8 text-[15px] leading-relaxed text-foreground/90">
             <section>
@@ -40,7 +40,8 @@ export default function PrivacyPolicyPage() {
               <p className="text-muted-foreground">
                 ArcAI has a free tier and an optional Boost subscription. On the website, Boost checkout and recurring
                 billing are handled by Stripe. In the Android app, Boost checkout and recurring billing are handled by
-                Google Play. ArcAI does not store full payment card numbers. For Android purchases, ArcAI stores the
+                Google Play. In the iOS app, eligible U.S. storefront users can open Stripe checkout in their browser;
+                purchase controls are unavailable in other storefronts in this release. ArcAI does not store full payment card numbers. For Android purchases, ArcAI stores the
                 Google Play purchase token and subscription status needed to verify and provide Boost access.
               </p>
             </section>
@@ -61,6 +62,17 @@ export default function PrivacyPolicyPage() {
                 <li>
                   <strong>Subscription data:</strong> purchase provider, product, purchase token, subscription status,
                   and renewal or expiry information for Boost purchases.
+                </li>
+                <li>
+                  <strong>iOS notifications:</strong> if you enable push notifications, we store your Apple push device
+                  token, its sandbox or production environment, your account identifier, and the most recent registration
+                  time to deliver notifications to your device. Disabling push or signing out removes that registration.
+                </li>
+                <li>
+                  <strong>Location:</strong> when you allow location access, Arc can use your device coordinates and approximate city or region for relevant answers such as nearby weather. Location used in a conversation may be saved with that conversation. You can deny location access in your device settings.
+                </li>
+                <li>
+                  <strong>Service diagnostics:</strong> operational logs and usage records help us enforce usage limits, troubleshoot errors, and keep the service secure. We do not use this information for advertising tracking.
                 </li>
                 <li>
                   <strong>Desktop link requests:</strong> when you ask us to email a desktop download link, we send the
@@ -131,6 +143,11 @@ export default function PrivacyPolicyPage() {
                   <strong>Stripe and Google Play</strong> — process subscription payments through their respective
                   checkout systems. ArcAI receives the subscription information needed to verify your Boost access.
                 </li>
+                <li>
+                  <strong>Apple Push Notification service</strong> — receives your device token and notification
+                  content when we deliver an iOS push notification you have enabled. Notification content may appear
+                  on your lock screen, depending on your iPhone notification settings.
+                </li>
                 <li>Law enforcement or regulators when legally required.</li>
               </ul>
             </section>
@@ -138,7 +155,7 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold mb-2">Authentication</h2>
               <p className="text-muted-foreground">
-                ArcAI supports <strong>Google Sign-In and email authentication</strong> through Supabase Auth. Passwords
+                ArcAI supports <strong>Google Sign-In, Sign in with Apple on iOS, and email authentication</strong> through Supabase Auth. Passwords
                 are handled by Supabase and are not stored in ArcAI's application tables.
               </p>
             </section>
