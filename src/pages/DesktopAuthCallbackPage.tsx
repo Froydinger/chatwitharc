@@ -6,23 +6,43 @@ export function DesktopAuthCallbackPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const port = params.get("port") || "48879";
-    const endpoint = `http://127.0.0.1:${port}/auth-callback`;
+    const port = params.get("port");
+    if (port !== "48879") {
+      setStatus("failed");
+      return;
+    }
 
-    fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ href: window.location.href }),
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error("Desktop app did not accept auth callback");
-        setStatus("done");
-        setTimeout(() => window.close(), 1200);
+    if (params.get("transport") !== "loopback-get") {
+      const endpoint = `http://127.0.0.1:${port}/auth-callback`;
+      fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ href: window.location.href }),
       })
-      .catch((error) => {
-        console.error("Desktop auth callback failed:", error);
-        setStatus("failed");
-      });
+        .then((response) => {
+          if (!response.ok) throw new Error("Desktop app did not accept auth callback");
+          setStatus("done");
+          setTimeout(() => window.close(), 1200);
+        })
+        .catch(() => setStatus("failed"));
+      return;
+    }
+
+    const nonce = params.get("bridge_nonce");
+    if (!nonce || !/^[A-Za-z0-9_-]{32,128}$/.test(nonce)) {
+      setStatus("failed");
+      return;
+    }
+
+    // A top-level navigation avoids Safari's restrictions on HTTPS pages
+    // issuing cross-origin fetches to loopback addresses. The desktop bridge
+    // validates the callback URL before handing it to the app.
+    const callbackHref = window.location.href;
+    const endpoint = new URL(`http://127.0.0.1:${port}/auth-callback`);
+    endpoint.searchParams.set("href", callbackHref);
+    endpoint.searchParams.set("nonce", nonce);
+    window.history.replaceState(null, document.title, "/desktop-auth-callback");
+    window.location.replace(endpoint.toString());
   }, []);
 
   return (
