@@ -1,8 +1,7 @@
-import { useWideNativeLayout } from '@/hooks/useWideNativeLayout';
 import { sidebarSwipeAction } from '@/lib/sidebarSwipe';
 import { createPortal } from 'react-dom';
 import { useEffect, useId, useRef, useState } from 'react';
-import { History, PanelLeftOpen, PanelLeftClose, LayoutDashboard, MessageSquare, Pin, RefreshCw, Plus } from 'lucide-react';
+import { History, PanelLeftOpen, PanelLeftClose, LayoutDashboard, MessageSquare, Pin, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ChatRowActions } from '@/components/ChatRowActions';
@@ -15,8 +14,7 @@ import { useChatSync } from '@/hooks/useChatSync';
 
 type SidebarState = 'hidden' | 'hover' | 'docked';
 const desktopQuery = '(min-width: 1024px) and (hover: hover) and (pointer: fine)';
-export function ChatHistorySidebar({ onOpenDashboard, onOpenTools, onDockChange, gestureBlocked = false }: { onOpenDashboard: () => void; onOpenTools?: () => void; onDockChange: (docked: boolean) => void; gestureBlocked?: boolean }) {
-  const wideNative = useWideNativeLayout();
+export function ChatHistorySidebar({ onOpenDashboard, onDockChange, gestureBlocked = false }: { onOpenDashboard: () => void; onDockChange: (docked: boolean) => void; gestureBlocked?: boolean }) {
   const [panel, setPanel] = useState<SidebarState>('hidden');
   const [desktop, setDesktop] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -38,8 +36,7 @@ export function ChatHistorySidebar({ onOpenDashboard, onOpenTools, onDockChange,
   const isSyncing = useArcStore(state => state.isSyncing);
   const sidebarId = useId();
   const preferenceKey = `arc_chat_sidebar_docked:${user?.id ?? 'guest'}`;
-  const dockCapable = desktop || wideNative;
-  const docked = dockCapable && panel === 'docked';
+  const docked = desktop && panel === 'docked';
   const clearDismiss = () => clearTimeout(dismissTimer.current);
   const hide = () => { clearDismiss(); setPanel('hidden'); suppressEdge.current = true; clearTimeout(reopenTimer.current); reopenTimer.current = setTimeout(() => { suppressEdge.current = false; }, 350); try { localStorage.setItem(preferenceKey, 'false'); } catch { /* Device preference is optional. */ } };
   const dock = () => { clearDismiss(); setPanel('docked'); try { localStorage.setItem(preferenceKey, 'true'); } catch { /* Device preference is optional. */ } };
@@ -50,10 +47,10 @@ export function ChatHistorySidebar({ onOpenDashboard, onOpenTools, onDockChange,
     return () => { media.removeEventListener('change', update); clearTimeout(dismissTimer.current); clearTimeout(reopenTimer.current); };
   }, []);
   useEffect(() => {
-    let saved = wideNative;
-    try { const preference = localStorage.getItem(preferenceKey); saved = preference === 'true' || (preference === null && wideNative); } catch { /* Device preference is optional. */ }
-    setPanel(dockCapable && saved ? 'docked' : 'hidden');
-  }, [dockCapable, wideNative, preferenceKey]);
+    let saved = false;
+    try { saved = localStorage.getItem(preferenceKey) === 'true'; } catch { /* Device preference is optional. */ }
+    setPanel(desktop && saved ? 'docked' : 'hidden');
+  }, [desktop, preferenceKey]);
   useEffect(() => { onDockChange(docked); return () => onDockChange(false); }, [docked, onDockChange]);
   useEffect(() => {
     if (desktop || gestureBlocked) return;
@@ -122,7 +119,6 @@ export function ChatHistorySidebar({ onOpenDashboard, onOpenTools, onDockChange,
       {docked && <Button type="button" variant="ghost" size="icon" className="absolute right-0 h-11 w-11 rounded-full" aria-label="Hide sidebar" onClick={() => { hide(); triggerRef.current?.focus(); }}><PanelLeftClose className="h-4 w-4" /></Button>}
     </header>
     <Button variant="outline" className="mt-3 shrink-0 justify-start rounded-full" onClick={() => { closeAfterNavigate(); onOpenDashboard(); }}><LayoutDashboard className="h-4 w-4" />Open dashboard</Button>
-    {wideNative && onOpenTools && <Button variant="outline" className="shrink-0 justify-start rounded-full" onClick={onOpenTools}><Plus className="h-4 w-4" />Tools and actions</Button>}
     <Button variant="ghost" className="shrink-0 justify-start rounded-full" onClick={() => { closeAfterNavigate(); navigate('/dashboard?tab=chats'); }}>Show all chats</Button>
     <nav aria-label="Saved chats" className="mt-3 min-h-0 min-w-0 w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
       {visibleSessions.length === 0 && <p className="p-2 text-sm text-muted-foreground">{user && !isAnonymous && !isLoaded ? 'Loading chats…' : 'No saved chats yet.'}</p>}
@@ -134,16 +130,16 @@ export function ChatHistorySidebar({ onOpenDashboard, onOpenTools, onDockChange,
       </div>)}
     </nav>
   </>;
-  const trigger = <Button ref={triggerRef} variant="outline" size="icon" className="rounded-full glass-shimmer" aria-label={docked ? 'Hide sidebar' : 'Show chat history sidebar'} title="Chats" aria-expanded={panel !== 'hidden'} aria-controls={sidebarId} onClick={dockCapable ? () => { if (docked) hide(); else if (panel === 'hover') dock(); else setPanel('hover'); } : undefined}><History className="h-4 w-4" /></Button>;
+  const trigger = <Button ref={triggerRef} variant="outline" size="icon" className="rounded-full glass-shimmer" aria-label={docked ? 'Hide sidebar' : 'Show chat history sidebar'} title="Chats" aria-expanded={panel !== 'hidden'} aria-controls={sidebarId} onClick={desktop ? () => { if (docked) hide(); else if (panel === 'hover') dock(); else setPanel('hover'); } : undefined}><History className="h-4 w-4" /></Button>;
   const insetStyle = { paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--arcai-safe-area-top, 0px)) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1rem)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)', paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))' };
   return <>
     {desktop && panel === 'hidden' && createPortal(<div aria-hidden="true" className="fixed bottom-0 left-0 top-0 z-40 w-2" onPointerEnter={() => { if (!suppressEdge.current) { clearDismiss(); setPanel('hover'); } }} onPointerLeave={() => { suppressEdge.current = false; }} />, document.body)}
-    <Sheet modal={!dockCapable} open={panel === 'hover'} onOpenChange={value => setPanel(value ? 'hover' : 'hidden')}>
-      {dockCapable ? trigger : <SheetTrigger asChild>{trigger}</SheetTrigger>}
-      <SheetContent id={sidebarId} closeIcon={dockCapable ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />} closeLabel={dockCapable ? 'Dock sidebar' : 'Hide chat history sidebar'} onCloseControl={dockCapable ? dock : undefined} aria-describedby={undefined} data-chat-history-sidebar="true" side="left" className="flex min-w-0 w-[min(88vw,360px)] flex-col overflow-hidden px-4 lg:w-80" style={insetStyle} onPointerEnter={clearDismiss} onPointerLeave={desktop ? dismissHover : undefined} onOpenAutoFocus={desktop ? event => event.preventDefault() : undefined} onCloseAutoFocus={desktop ? event => event.preventDefault() : undefined}>
+    <Sheet modal={!desktop} open={panel === 'hover'} onOpenChange={value => setPanel(value ? 'hover' : 'hidden')}>
+      {desktop ? trigger : <SheetTrigger asChild>{trigger}</SheetTrigger>}
+      <SheetContent id={sidebarId} closeIcon={desktop ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />} closeLabel={desktop ? 'Dock sidebar' : 'Hide chat history sidebar'} onCloseControl={desktop ? dock : undefined} aria-describedby={undefined} data-chat-history-sidebar="true" side="left" className="flex min-w-0 w-[min(88vw,360px)] flex-col overflow-hidden px-4 lg:w-80" style={insetStyle} onPointerEnter={clearDismiss} onPointerLeave={desktop ? dismissHover : undefined} onOpenAutoFocus={desktop ? event => event.preventDefault() : undefined} onCloseAutoFocus={desktop ? event => event.preventDefault() : undefined}>
         {content}
       </SheetContent>
     </Sheet>
-    {docked && createPortal(<aside id={sidebarId} aria-label="Chats sidebar" className={`fixed bottom-0 left-0 top-0 z-50 flex ${wideNative ? "w-60" : "w-80"} flex-col border-r border-border bg-background px-4 shadow-lg`} style={insetStyle}>{content}</aside>, document.body)}
+    {docked && createPortal(<aside id={sidebarId} aria-label="Chats sidebar" className="fixed bottom-0 left-0 top-0 z-50 flex w-80 flex-col border-r border-border bg-background px-4 shadow-lg" style={insetStyle}>{content}</aside>, document.body)}
   </>;
 }

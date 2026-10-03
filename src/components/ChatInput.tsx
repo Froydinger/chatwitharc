@@ -1,4 +1,3 @@
-import { useWideNativeLayout } from '@/hooks/useWideNativeLayout';
 import { createComposerActivity } from "@/lib/chat-input/activity";
 import { useComposerSubmission } from "@/hooks/chat-input/useComposerSubmission";
 import { ComposerView } from "@/components/chat-input/ComposerView";
@@ -181,8 +180,6 @@ export interface CloudTextSubmitIntent {
 }
 
 export interface ChatInputRef {
-  /** Open the existing tools menu, preserving its account gate and anchor. */
-  openTools: () => void;
   handleImageUploadFiles: (files: File[]) => void;
   focusInput: () => void;
   sendMessage: (content: string) => void;
@@ -269,7 +266,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const runVideoGenerationRef = useRef<(...args: any[]) => void>(() => {});
 
   // Tiles menu
-  const wideNative = useWideNativeLayout();
   const [showMenu, setShowMenu] = useState(false);
   const [menuOrigin, setMenuOrigin] = useState<{ x: number; y: number } | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -382,7 +378,6 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   useImperativeHandle(
     ref,
     () => ({
-      openTools: () => { menuButtonRef.current?.click(); },
       handleImageUploadFiles: (files: File[]) => {
         handleUploadFiles(files);
       },
@@ -3044,10 +3039,9 @@ ${safeCode}
                   }}
                   className={cn(
                     "ci-menu-btn flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
-                    wideNative && !inline && "w-auto gap-2 px-3",
                     (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowGitMode || shouldShowAppMode || showCanvasIndicator) && !showMenu && "text-primary"
                   )}
-                  aria-label={shouldShowAppMode ? "Build an app mode" : wideNative ? "Tools and actions" : "Add content"}
+                  aria-label={shouldShowAppMode ? "Build an app mode" : "Add content"}
                 >
                   {showMenu ? (
                     <X className="h-4 w-4 transition-transform duration-300" />
@@ -3066,7 +3060,6 @@ ${safeCode}
                   ) : (
                     <Plus className="h-4 w-4" />
                   )}
-                {wideNative && !inline && <span className="text-xs font-medium">Tools</span>}
                 </button>
 
                 {/* Clear active tool badge (cannot clear if session is permanently Git) */}
