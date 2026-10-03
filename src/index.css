@@ -2766,3 +2766,9 @@ button.app-builder-tab:focus-visible {
 @media (min-width: 1024px) and (hover: hover) and (pointer: fine) { .chat-layout-history-docked { margin-left: 320px; width: calc(100% - 320px); transform: translateZ(0); } }
 html, body, #root, #root * { scrollbar-width: none; }
 html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, #root *::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* A roomy native viewport uses the same canonical routes and controls. */
+.dashboard-wide-native { padding-left: 240px; }
+.dashboard-wide-native-sidebar { padding-top: calc(var(--arcai-safe-area-top, 0px) + 1rem); padding-left: max(1rem, env(safe-area-inset-left, 0px)); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1rem); }
+.chat-layout-native-wide.chat-layout-history-docked { margin-left: 240px; width: calc(100% - 240px); transform: none; }
+.chat-layout-native-wide.chat-layout-history-docked .chat-input-dock { left: 240px; }

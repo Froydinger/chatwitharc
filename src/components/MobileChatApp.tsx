@@ -1,3 +1,4 @@
+import { useWideNativeLayout } from '@/hooks/useWideNativeLayout';
 import { useMacDecorationsActive } from '@/hooks/useMacDecorationsActive';
 import { ChatHistorySidebar } from '@/components/ChatHistorySidebar';
 import { ChatMessageRows } from "@/components/ChatMessageRows";
@@ -331,6 +332,7 @@ function writeWorkSessions(ownerId: string | null | undefined, ids: Set<string>)
 }
 
 export function MobileChatApp() {
+  const wideNativeLayout = useWideNativeLayout();
   const navigate = useNavigate();
   const isLocalPreview = isLocalChatPreview();
   const themeMode = useAccentStore((s) => s.themeMode);
@@ -1246,7 +1248,7 @@ export function MobileChatApp() {
   if (isLoading && !isVoiceActive && !isGeneratingImage && liveReplyId) actionReplyIds.push(liveReplyId);
   return (
     <ReplyActionsProvider scopeKey={currentSessionId ?? "new-chat"} replyIds={actionReplyIds}>
-    <div className={cn("h-screen flex relative overflow-hidden", historyDocked && "chat-layout-history-docked")}>
+    <div className={cn("h-screen flex relative overflow-hidden", historyDocked && "chat-layout-history-docked", wideNativeLayout && "chat-layout-native-wide")}>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10">
@@ -1263,7 +1265,7 @@ export function MobileChatApp() {
                 top: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
               }}
             >
-              <ChatHistorySidebar onOpenDashboard={handleOpenDashboard} onDockChange={setHistoryDocked} gestureBlocked={isCanvasOverlayActive || isSearchOpen || isVoiceActive} />
+              <ChatHistorySidebar onOpenTools={() => chatInputRef.current?.openTools()} onOpenDashboard={handleOpenDashboard} onDockChange={setHistoryDocked} gestureBlocked={isCanvasOverlayActive || isSearchOpen || isVoiceActive} />
 
               {messages.length > 0 && (
                 <motion.div
@@ -1686,7 +1688,7 @@ export function MobileChatApp() {
           <div
             ref={inputDockRef}
             className={cn(
-              "fixed z-30 pointer-events-none px-4 left-0",
+              "chat-input-dock fixed z-30 pointer-events-none px-4 left-0",
               isCanvasResizing
                 ? "transition-none"
                 : "transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",

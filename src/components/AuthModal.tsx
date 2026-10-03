@@ -14,6 +14,8 @@ import { useAuth } from "@/hooks/useAuth";
 interface AuthModalProps {
   isOpen: boolean;
   initialMode?: 'login' | 'signup';
+  /** Match the installed welcome without changing the account's saved theme. */
+  forceDark?: boolean;
   onClose: () => void;
   /** Optional contextual feature that triggered the modal */
   gatedFeature?: GatedFeature;
@@ -39,7 +41,7 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
   generic: { title: "Welcome to ArcAI", subtitle: "Sign in to unlock everything.", icon: Sparkles },
 };
 
-export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false, initialMode = 'login' }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false, initialMode = 'login', forceDark = false }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(initialMode === 'login');
   useEffect(() => { if (isOpen) setIsLogin(initialMode === 'login'); }, [isOpen, initialMode]);
   const [showEmailForm, setShowEmailForm] = useState(true);
@@ -77,7 +79,7 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false, i
 
   // Reactive light/dark detection so the modal can render a true light-mode
   // variant instead of always wrapping itself in `.dark`.
-  const [isLight, setIsLight] = useState(() =>
+  const [rootIsLight, setIsLight] = useState(() =>
     typeof document !== "undefined" && document.documentElement.classList.contains("light"),
   );
   useEffect(() => {
@@ -89,6 +91,22 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false, i
     obs.observe(root, { attributes: true, attributeFilter: ["class"] });
     return () => obs.disconnect();
   }, []);
+
+  const isLight = !forceDark && rootIsLight;
+  const [viewport, setViewport] = useState(() => ({ height: window.visualViewport?.height ?? window.innerHeight, top: window.visualViewport?.offsetTop ?? 0 }));
+  useEffect(() => {
+    if (!isOpen) return;
+    const update = () => setViewport({ height: window.visualViewport?.height ?? window.innerHeight, top: window.visualViewport?.offsetTop ?? 0 });
+    update();
+    window.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('scroll', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.visualViewport?.removeEventListener('resize', update);
+      window.visualViewport?.removeEventListener('scroll', update);
+    };
+  }, [isOpen]);
 
   // Themed class tokens for the modal surface.
   const t = isLight
@@ -114,9 +132,9 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false, i
         inputColor: "#18181b",
         autofillBg: "rgb(255, 255, 255)",
         autofillText: "#18181b",
-        blob1: "bg-blue-500/15",
-        blob2: "bg-neon-500/15",
-        blob3: "bg-cyan-400/10",
+        blob1: "bg-zinc-500/10",
+        blob2: "bg-zinc-400/10",
+        blob3: "bg-zinc-600/10",
       }
     : {
         card: "from-black/85 via-black/80 to-black/85",
@@ -140,9 +158,9 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false, i
         inputColor: "#fff",
         autofillBg: "rgb(0, 0, 0)",
         autofillText: "#fff",
-        blob1: "bg-blue-500/30",
-        blob2: "bg-neon-500/25",
-        blob3: "bg-cyan-400/20",
+        blob1: "bg-white/10",
+        blob2: "bg-zinc-400/10",
+        blob3: "bg-zinc-500/10",
       };
 
   const handleAuth = async () => {
@@ -252,12 +270,20 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false, i
   return (
     <div className={isLight ? "light" : "dark"}>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent 
-          className="sm:max-w-md p-0 bg-transparent border-0 shadow-none overflow-visible" 
+        <DialogContent
+          className={cn("arc-auth-viewport sm:max-w-md p-0 bg-transparent border-0 shadow-none overflow-hidden", isLight ? "light" : "dark")}
+          style={{ top: `calc(${viewport.top}px + ${viewport.height / 2}px + (var(--arcai-safe-area-top, env(safe-area-inset-top, 0px)) - env(safe-area-inset-bottom, 0px)) / 2)`, maxHeight: `calc(${viewport.height}px - var(--arcai-safe-area-top, env(safe-area-inset-top, 0px)) - env(safe-area-inset-bottom, 0px) - 24px)`, width: 'calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 24px)', display: 'flex', flexDirection: 'column' }}
           hideCloseButton
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <div className="relative w-full">
+              <button
+                onClick={onClose}
+                className={cn("arc-auth-modal-icon absolute z-30 top-3 right-3 w-8 h-8 rounded-full border flex items-center justify-center transition-colors backdrop-blur-sm", t.surface, t.border, t.surfaceHover)}
+                aria-label="Close"
+              >
+                <X className={cn("h-4 w-4", t.closeIcon)} />
+              </button>
+          <div className="relative w-full min-h-0 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', scrollPaddingBlock: '48px' }}>
             {/* Animated Liquid Blobs */}
             <div className="absolute inset-0 overflow-hidden rounded-3xl pointer-events-none">
               <div className={cn("arc-auth-modal-blob arc-auth-modal-blob-1 absolute -top-20 -right-20 w-64 h-64 rounded-full blur-[80px]", t.blob1)} />
@@ -266,21 +292,15 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false, i
             </div>
 
             {/* Main Glass Card */}
-            <div className={cn("relative backdrop-blur-[40px] bg-gradient-to-br rounded-3xl border-0 shadow-2xl p-8", t.card, isLight ? "shadow-zinc-900/15" : "shadow-black/50")}>
-              <button
-                onClick={onClose}
-                className={cn("arc-auth-modal-icon absolute top-4 right-4 w-8 h-8 rounded-full border flex items-center justify-center transition-colors backdrop-blur-sm", t.surface, t.border, t.surfaceHover)}
-                aria-label="Close"
-              >
-                <X className={cn("h-4 w-4", t.closeIcon)} />
-              </button>
+            <div className={cn("relative backdrop-blur-[40px] bg-gradient-to-br rounded-3xl border-0 shadow-2xl p-6 pt-12 sm:p-8 sm:pt-12", t.card, isLight ? "shadow-zinc-900/15" : "shadow-black/50")}>
+
 
               <Transition preset="panel" delay={0.1}><div className="t-acc space-y-6" data-open={showEmailForm}>
                 <>
                 {/* Logo / contextual headline */}
                 <div className="text-center">
                   <div className="flex justify-center mb-4">
-                    <div className={cn("arc-auth-modal-logo w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 to-neon-500/20 border flex items-center justify-center backdrop-blur-sm relative", t.border)}>
+                    <div className={cn("arc-auth-modal-logo w-16 h-16 rounded-2xl bg-gradient-to-br from-white/15 to-zinc-500/10 border flex items-center justify-center backdrop-blur-sm relative", t.border)}>
                       <img src="/arc-logo-ui.png" alt="ArcAI" className="h-10 w-10" />
                     </div>
                   </div>

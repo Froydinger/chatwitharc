@@ -1,3 +1,4 @@
+import { useWideNativeLayout } from '@/hooks/useWideNativeLayout';
 import { installDashboardSwipeNavigation } from '@/lib/dashboardSwipeNavigation';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -553,6 +554,7 @@ function DashboardOverview({ activeTab, onNavigate, onOpenUsage, chatItems = rec
 }
 
 function DashboardPreviewContent({ live = false }: { live?: boolean }) {
+  const wideNative = useWideNativeLayout();
   useAccentColor();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -840,7 +842,13 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
   const returnToChat = () => { if (live) navigate("/"); else window.location.assign("/?preview=chat"); };
 
   return (
-    <div className="dashboard-preview-shell min-h-screen overflow-x-hidden bg-background text-foreground">
+    <div className={cn("dashboard-preview-shell min-h-screen overflow-x-hidden bg-background text-foreground", wideNative && "dashboard-wide-native") }>
+
+      {wideNative && <aside aria-label="Dashboard navigation" className="dashboard-wide-native-sidebar fixed bottom-0 left-0 top-0 z-40 flex w-60 flex-col gap-2 border-r border-border bg-background p-4">
+        <button type="button" onClick={returnToChat} className="mb-4 min-h-11 rounded-full border border-border px-4 text-left text-sm">Return to chat</button>
+        {navItems.map(item => <button key={item.id} type="button" aria-current={activeTab === item.id ? 'page' : undefined} onClick={() => handleTabChange(item.id)} className={cn("flex min-h-11 items-center gap-3 rounded-full px-4 text-left text-sm", activeTab === item.id ? "bg-muted font-semibold" : "hover:bg-muted/60")}><item.icon className="h-4 w-4" />{item.label}</button>)}
+        <button type="button" onClick={() => navigate('/dashboard/settings')} className="mt-auto flex min-h-11 items-center gap-3 rounded-full px-4 text-left text-sm hover:bg-muted"><Settings2 className="h-4 w-4" />Settings</button>
+      </aside>}
 
       <header className="dashboard-preview-header relative z-50 flex w-full flex-row items-center justify-between gap-2 px-4 pb-5 sm:gap-4">
         <div className="flex min-w-0 items-center gap-2"><ArcMark iconOnly onClick={returnToChat} /><div className="min-w-0"><p className="truncate text-[15px] font-semibold tracking-[-0.02em] text-foreground">ArcAI</p><p className="truncate text-[11px] text-muted-foreground">Jake’s workspace</p></div>{!cleanPreview && <span className="hidden rounded-full border border-primary/20 bg-primary/[0.08] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-primary sm:inline-flex">Dashboard preview</span>}</div>
@@ -872,7 +880,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
           a transformed ancestor makes fixed positioning relative to the page
           content instead of the viewport, leaving the dock floating above the
           home-indicator edge. */}
-      <div key="bottom-dock" data-dashboard-nav-pill><BottomShelf activeTab={activeTab} onChange={handleTabChange} onSettings={() => navigate("/dashboard/settings")} /></div>
+      {!wideNative && <div key="bottom-dock" data-dashboard-nav-pill><BottomShelf activeTab={activeTab} onChange={handleTabChange} onSettings={() => navigate("/dashboard/settings")} /></div>}
       <AnimatePresence>
         {pendingDeleteChat && (
           <motion.div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if (!isDeletingChat) setPendingDeleteChat(null); }}>
