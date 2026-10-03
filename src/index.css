@@ -2762,7 +2762,7 @@ button.app-builder-tab:focus-visible {
 }
 
 /* Shared history layout and page scrolling. */
-[data-chat-history-sidebar="true"] > button:last-child { top: calc(max(env(safe-area-inset-top, 0px), var(--arcai-safe-area-top, 0px)) + 1rem); }
+[data-chat-history-sidebar="true"] > button:last-child { top: calc(max(env(safe-area-inset-top, 0px), var(--arcai-safe-area-top, 0px)) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1rem); }
 @media (min-width: 1024px) and (hover: hover) and (pointer: fine) { .chat-layout-history-docked { margin-left: 320px; width: calc(100% - 320px); transform: translateZ(0); } }
 html, body, #root, #root * { scrollbar-width: none; }
 html::-webkit-scrollbar, body::-webkit-scrollbar, #root::-webkit-scrollbar, #root *::-webkit-scrollbar { display: none; width: 0; height: 0; }

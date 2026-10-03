@@ -19,6 +19,8 @@ export function ChatHistorySidebar({ onOpenDashboard, onDockChange, gestureBlock
   const [desktop, setDesktop] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const syncInFlight = useRef(false);
+  const openDashboardRef = useRef(onOpenDashboard);
+  useEffect(() => { openDashboardRef.current = onOpenDashboard; }, [onOpenDashboard]);
   const dismissTimer = useRef<ReturnType<typeof setTimeout>>();
   const suppressEdge = useRef(false);
   const reopenTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -79,7 +81,7 @@ export function ChatHistorySidebar({ onOpenDashboard, onDockChange, gestureBlock
       if (!gesture) return;
       const action = sidebarSwipeAction({ startX: gesture.x, dx: gesture.dx, dy: gesture.dy, width: window.innerWidth, open: panel === 'hover', inside: gesture.inside });
       reset();
-      if (action === 'dashboard') onOpenDashboard();
+      if (action === 'dashboard') openDashboardRef.current();
       else if (action) setPanel(action === 'open' ? 'hover' : 'hidden');
     };
     window.addEventListener('touchstart', start, { passive: true });
@@ -87,7 +89,7 @@ export function ChatHistorySidebar({ onOpenDashboard, onDockChange, gestureBlock
     window.addEventListener('touchend', end, { passive: true });
     window.addEventListener('touchcancel', reset, { passive: true });
     return () => { window.removeEventListener('touchstart', start); window.removeEventListener('touchmove', move); window.removeEventListener('touchend', end); window.removeEventListener('touchcancel', reset); };
-  }, [desktop, gestureBlocked, panel, onOpenDashboard]);
+  }, [desktop, gestureBlocked, panel]);
   const dismissHover = () => {
     clearDismiss();
     dismissTimer.current = setTimeout(function dismiss() {
@@ -129,7 +131,7 @@ export function ChatHistorySidebar({ onOpenDashboard, onDockChange, gestureBlock
     </nav>
   </>;
   const trigger = <Button ref={triggerRef} variant="outline" size="icon" className="rounded-full glass-shimmer" aria-label={docked ? 'Hide sidebar' : 'Show chat history sidebar'} title="Chats" aria-expanded={panel !== 'hidden'} aria-controls={sidebarId} onClick={desktop ? () => { if (docked) hide(); else if (panel === 'hover') dock(); else setPanel('hover'); } : undefined}><History className="h-4 w-4" /></Button>;
-  const insetStyle = { paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--arcai-safe-area-top, 0px)) + 1rem)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)', paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))' };
+  const insetStyle = { paddingTop: 'calc(max(env(safe-area-inset-top, 0px), var(--arcai-safe-area-top, 0px)) + var(--arcai-desktop-titlebar-safe-area, 0px) + 1rem)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)', paddingLeft: 'max(1rem, env(safe-area-inset-left, 0px))' };
   return <>
     {desktop && panel === 'hidden' && createPortal(<div aria-hidden="true" className="fixed bottom-0 left-0 top-0 z-40 w-2" onPointerEnter={() => { if (!suppressEdge.current) { clearDismiss(); setPanel('hover'); } }} onPointerLeave={() => { suppressEdge.current = false; }} />, document.body)}
     <Sheet modal={!desktop} open={panel === 'hover'} onOpenChange={value => setPanel(value ? 'hover' : 'hidden')}>

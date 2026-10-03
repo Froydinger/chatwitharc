@@ -429,8 +429,9 @@ useEffect(() => {
   // Mobile: horizontal swipe to switch tabs (or return to chat from leftmost tab).
   // Enabled for all mobile contexts (browser + PWA on iOS/Android).
   useEffect(() => {
-    if (!isMobile) return;
+    if (!isMobile || embedded) return;
 
+    // Embedded libraries use the dashboard shell gesture owner.
     // Prevent Android Chrome / PWA from hijacking horizontal swipes for back-navigation
     const html = document.documentElement;
     const body = document.body;
@@ -569,7 +570,7 @@ useEffect(() => {
       body.style.overscrollBehaviorX = prevBodyOverscroll;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMobile, activeTab, navigate]);
+  }, [isMobile, embedded, activeTab, navigate]);
 
 
   useEffect(() => {

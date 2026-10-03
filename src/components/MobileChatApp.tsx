@@ -1113,7 +1113,7 @@ export function MobileChatApp() {
     await updateSessionCanvasContent(currentSessionId, canvasContent);
   }, [canvasContent, currentSessionId, isCanvasOpen, updateSessionCanvasContent]);
 
-  const handleOpenDashboard = () => {
+  const handleOpenDashboard = useCallback(() => {
     if ((!user || isAnonymous) && !isLocalPreview) {
       requireAuth("menu");
       return;
@@ -1132,7 +1132,7 @@ export function MobileChatApp() {
         console.warn('Canvas save before dashboard navigation failed; continuing.', error);
       });
     }, 0);
-  };
+  }, [user, isAnonymous, isLocalPreview, requireAuth, isCanvasOpen, currentSessionId, canvasContent, navigate, persistCanvasBeforeLeaving]);
 
   const handleNewChat = () => {
     void persistCanvasBeforeLeaving().catch((error) => {

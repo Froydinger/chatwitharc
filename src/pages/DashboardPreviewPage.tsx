@@ -1,3 +1,4 @@
+import { installDashboardSwipeNavigation } from '@/lib/dashboardSwipeNavigation';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatePresence, animate, motion, useMotionValue, useSpring, useTransform } from "framer-motion";
@@ -354,7 +355,7 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-3 pb-[10px] sm:px-6">
-      <div className="dashboard-preview-dock pointer-events-auto flex w-full max-w-[850px] items-center gap-2 rounded-full border border-white/[0.12] bg-[#111113]/92 p-2 shadow-[0_20px_70px_rgba(0,0,0,0.55),0_0_38px_rgba(59,130,246,0.08)] backdrop-blur-2xl sm:rounded-[26px]">
+      <div data-dashboard-nav-pill className="dashboard-preview-dock pointer-events-auto flex w-full max-w-[850px] items-center gap-2 rounded-full border border-white/[0.12] bg-[#111113]/92 p-2 shadow-[0_20px_70px_rgba(0,0,0,0.55),0_0_38px_rgba(59,130,246,0.08)] backdrop-blur-2xl sm:rounded-[26px]">
         <div className="hidden shrink-0 items-center pl-2 pr-3 sm:flex"><ArcMark compact /></div>
         <div className="hidden h-8 w-px bg-white/[0.09] sm:block" />
         <div ref={navRef} className="relative flex min-w-0 flex-1 items-center" style={{ touchAction: "none" }}>
@@ -751,13 +752,28 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
     return ids;
   }, [notifications, resolveNotificationChat]);
 
-  const handleTabChange = (tab: DashboardTab) => {
+  const handleTabChange = useCallback((tab: DashboardTab) => {
     setActiveTab(tab);
     const nextParams = new URLSearchParams(searchParams);
     if (tab === "overview") nextParams.delete("tab");
     else nextParams.set("tab", tab === "memory" ? "memories" : tab);
     setSearchParams(nextParams);
-  };
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    const next = queryTab === 'memories' ? 'memory' : queryTab;
+    setActiveTab(navItems.some(item => item.id === next) ? next as DashboardTab : 'overview');
+  }, [queryTab]);
+
+  useEffect(() => {
+    if (!window.matchMedia('(pointer: coarse)').matches && window.innerWidth >= 768) return;
+    return installDashboardSwipeNavigation({
+      tabs: navItems.map(item => item.id), activeTab,
+      onTab: handleTabChange,
+      onExit: () => navigate(live ? '/' : '/?preview=chat&clean=1'),
+    });
+  }, [activeTab, handleTabChange, live, navigate]);
+
   const handleNewChat = () => {
     if (live) {
       const id = createNewSession();
@@ -856,7 +872,7 @@ function DashboardPreviewContent({ live = false }: { live?: boolean }) {
           a transformed ancestor makes fixed positioning relative to the page
           content instead of the viewport, leaving the dock floating above the
           home-indicator edge. */}
-      <div key="bottom-dock"><BottomShelf activeTab={activeTab} onChange={handleTabChange} onSettings={() => navigate("/dashboard/settings")} /></div>
+      <div key="bottom-dock" data-dashboard-nav-pill><BottomShelf activeTab={activeTab} onChange={handleTabChange} onSettings={() => navigate("/dashboard/settings")} /></div>
       <AnimatePresence>
         {pendingDeleteChat && (
           <motion.div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => { if (!isDeletingChat) setPendingDeleteChat(null); }}>
