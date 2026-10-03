@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   getAppAuthCallbackUrl,
+  getDesktopAuthCallbackFromRequest,
   getSafariGoogleOAuthUrl,
   isDesktopAuthCallback,
 } = require("../auth-routing");
@@ -21,7 +22,8 @@ function startUrl({
 }
 
 test("rewrites trusted Google OAuth callback to the desktop bridge", () => {
-  const result = getSafariGoogleOAuthUrl(startUrl());
+  const nonce = "A".repeat(43);
+  const result = getSafariGoogleOAuthUrl(startUrl(), nonce);
   assert.ok(result);
 
   const oauth = new URL(result);
@@ -35,6 +37,8 @@ test("rewrites trusted Google OAuth callback to the desktop bridge", () => {
   assert.equal(callback.pathname, "/desktop-auth-callback");
   assert.equal(callback.searchParams.get("port"), "48879");
   assert.equal(callback.searchParams.get("return_origin"), "https://askarc.chat");
+  assert.equal(callback.searchParams.get("bridge_nonce"), nonce);
+  assert.equal(callback.searchParams.get("transport"), "loopback-get");
 });
 
 test("accepts ArcAI's custom Supabase auth host", () => {
@@ -82,6 +86,18 @@ test("accepts only HTTPS callbacks on trusted ArcAI origins and the bridge route
   ]) {
     assert.equal(isDesktopAuthCallback(value), false, value);
   }
+});
+
+test("accepts loopback navigation only for exact host and matching nonce", () => {
+  const nonce = "A".repeat(43);
+  const href = `https://askarc.chat/desktop-auth-callback?port=48879&bridge_nonce=${nonce}&transport=loopback-get`;
+  const target = `/auth-callback?href=${encodeURIComponent(href)}&nonce=${nonce}`;
+  assert.deepEqual(getDesktopAuthCallbackFromRequest(target, "127.0.0.1:48879"), { href, nonce });
+  assert.equal(getDesktopAuthCallbackFromRequest(target, "localhost:48879"), null);
+  assert.equal(getDesktopAuthCallbackFromRequest(target, "127.0.0.1:48880"), null);
+  assert.equal(getDesktopAuthCallbackFromRequest(`/auth-callback?href=${encodeURIComponent(href)}`, "127.0.0.1:48879"), null);
+  const otherNonce = "B".repeat(43);
+  assert.equal(getDesktopAuthCallbackFromRequest(`/auth-callback?href=${encodeURIComponent(href)}&nonce=${otherNonce}`, "127.0.0.1:48879"), null);
 });
 
 test("forwards PKCE codes and errors to the app callback without exchanging them externally", () => {

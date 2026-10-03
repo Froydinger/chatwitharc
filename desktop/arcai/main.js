@@ -5,6 +5,7 @@ const crypto = require("node:crypto");
 const { spawn } = require("node:child_process");
 const {
   getAppAuthCallbackUrl,
+  getDesktopAuthCallbackFromRequest,
   getSafariGoogleOAuthUrl,
   isDesktopAuthCallback,
 } = require("./auth-routing");
@@ -33,6 +34,7 @@ let full = null;
 let lastBounds = null;
 let checkingForUpdate = false;
 let authServer = null;
+const pendingAuthBridgeNonces = new Map();
 let desktopNotificationDeviceId = null;
 let shortcutGuide = null;
 let floatingAnimation = null;
@@ -174,6 +176,23 @@ function startDesktopAuthBridge() {
   if (authServer) return;
 
   authServer = http.createServer((req, res) => {
+    if (req.method === "GET" && req.url?.startsWith("/auth-callback?")) {
+      const callback = getDesktopAuthCallbackFromRequest(req.url, req.headers.host);
+      const pendingUntil = callback && pendingAuthBridgeNonces.get(callback.nonce);
+      if (!callback || !pendingUntil || pendingUntil < Date.now()) {
+        if (callback) pendingAuthBridgeNonces.delete(callback.nonce);
+        res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" });
+        res.end("Invalid callback.");
+        return;
+      }
+
+      pendingAuthBridgeNonces.delete(callback.nonce);
+      loadAuthCallbackInApp(callback.href);
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" });
+      res.end("<!doctype html><meta charset=\"utf-8\"><title>ArcAI sign-in</title><p>Sign-in returned to ArcAI. You can close this tab.</p>");
+      return;
+    }
+
     res.setHeader("Access-Control-Allow-Origin", ARC_URL);
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -542,13 +561,22 @@ function attachWindowHandlers(win, shouldFocusInput = false) {
 }
 
 function openGoogleOAuthInSafari(url) {
-  // The URL has already passed strict HTTPS, Supabase-host, authorize-path,
-  // provider, and callback validation. Use an argument array, never a shell.
-  const child = spawn("/usr/bin/open", ["-a", "Safari", "--", url], {
+  // Bind the loopback callback to an OAuth start initiated by this app.
+  const nonce = crypto.randomBytes(32).toString("base64url");
+  const safariUrl = getSafariGoogleOAuthUrl(url, nonce);
+  if (!safariUrl) return;
+  pendingAuthBridgeNonces.set(nonce, Date.now() + 10 * 60 * 1000);
+  for (const [key, expiry] of pendingAuthBridgeNonces) {
+    if (expiry < Date.now()) pendingAuthBridgeNonces.delete(key);
+  }
+
+  // Use an argument array, never a shell.
+  const child = spawn("/usr/bin/open", ["-a", "Safari", "--", safariUrl], {
     detached: true,
     stdio: "ignore",
   });
   child.once("error", (error) => {
+    pendingAuthBridgeNonces.delete(nonce);
     console.error("Failed to open Google sign-in in Safari:", error);
   });
   child.unref();

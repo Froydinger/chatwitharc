@@ -1,6 +1,6 @@
 {
   "name": "arcai-desktop",
-  "version": "5.2.3",
+  "version": "5.2.4",
   "description": "ArcAI desktop assistant",
   "author": "Jake Freudinger",
   "main": "main.js",
