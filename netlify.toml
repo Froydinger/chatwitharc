@@ -7,6 +7,12 @@
   VITE_CLOUD_SESSION_OPERATIONS_ENABLED = "true"
   VITE_CLOUD_APP_RUNS_ENABLED = "true"
 
+[[redirects]]
+  from = "/downloads/ArcAI-Android-Beta.apk"
+  to = "https://github.com/Froydinger/chatwitharc/releases/download/android-latest/ArcAI-Android-Beta.apk"
+  status = 302
+  force = true
+
 [[headers]]
   for = "/index.html"
   [headers.values]

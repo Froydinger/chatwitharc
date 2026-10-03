@@ -131,7 +131,7 @@ export function DownloadPageView({ info }: { info: ReturnType<typeof useDownload
                         <h2 className="text-xl font-semibold">Android</h2>
                         <span className="rounded-full border border-border/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">Beta</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">v1.0.0 • .apk</p>
+                      <p className="text-sm text-muted-foreground">v1.0.1 • .apk</p>
                     </div>
                     <span className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
                       <Download className="h-4 w-4" /> Download for Android

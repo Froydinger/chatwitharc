@@ -31,6 +31,9 @@ public class LauncherActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (getResources().getString(R.string.launchUrl).contains("android-direct")) {
+            DirectUpdateChecker.check(this);
+        }
         // Setting an orientation crashes the app due to the transparent background on Android 8.0
         // Oreo and below. We only set the orientation on Oreo and above. This only affects the
         // splash screen and Chrome will still respect the orientation.
@@ -49,6 +52,6 @@ public class LauncherActivity
 
 
 
-        return uri;
+        return uri.buildUpon().appendQueryParameter("androidVersionCode", "2").build();
     }
 }

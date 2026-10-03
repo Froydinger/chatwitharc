@@ -33,6 +33,7 @@
 
 
 
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:name="Application"
         android:allowBackup="true"
@@ -160,6 +161,7 @@
 
         </activity>
 
+        <activity android:name=".DirectUpdateActivity" android:exported="false" android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" />
 
         <activity android:name="com.google.androidbrowserhelper.trusted.WebViewFallbackActivity"

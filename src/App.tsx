@@ -1,3 +1,4 @@
+import { LegacyAndroidUpdateNotice } from '@/components/LegacyAndroidUpdateNotice';
 import { LegacyMacUpdateNotice } from '@/components/LegacyMacUpdateNotice';
 import { useEffect, useState, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
@@ -216,6 +217,7 @@ const App = () => {
               {showStarfield && <Starfield />}
               <Toaster />
               <LegacyMacUpdateNotice />
+              <LegacyAndroidUpdateNotice />
               <Sonner />
               <FingerPopupContainer />
               <PWAInstallPrompt />
