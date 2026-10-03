@@ -206,13 +206,14 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false, i
     try {
       const res = await signInWithGoogle();
       if (res?.error) throw res.error;
-      if (res?.data?.url) {
-        window.location.href = res.data.url;
-      }
+      // The auth helper owns the browser/session handoff; replaying its URL
+      // starts Google OAuth a second time after native sign-in succeeds.
+
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "An error occurred with Google sign in";
       setAuthError(msg);
       toast({ title: "Error", description: msg, variant: "destructive" });
+    } finally {
       setLoading(false);
     }
   };
