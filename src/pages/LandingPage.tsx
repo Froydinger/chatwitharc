@@ -1,3 +1,5 @@
+import { InstalledWelcomePage } from '@/pages/InstalledWelcomePage';
+import { isInstalledAppRuntime } from '@/lib/installedAppRuntime';
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -84,6 +86,10 @@ const LANDING_FAQ = [
 ];
 
 export function LandingPage() {
+  return isInstalledAppRuntime() ? <InstalledWelcomePage /> : <MarketingLandingPage />;
+}
+
+function MarketingLandingPage() {
   const { user, isAnonymous } = useAuth();
   const navigate = useNavigate();
   const isAndroidBrowser = typeof navigator !== "undefined"

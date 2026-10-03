@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface AuthModalProps {
   isOpen: boolean;
+  initialMode?: 'login' | 'signup';
   onClose: () => void;
   /** Optional contextual feature that triggered the modal */
   gatedFeature?: GatedFeature;
@@ -38,8 +39,9 @@ const FEATURE_COPY: Record<GatedFeature, { title: string; subtitle: string; icon
   generic: { title: "Welcome to ArcAI", subtitle: "Sign in to unlock everything.", icon: Sparkles },
 };
 
-export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }: AuthModalProps) {
-  const [isLogin, setIsLogin] = useState(true);
+export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false, initialMode = 'login' }: AuthModalProps) {
+  const [isLogin, setIsLogin] = useState(initialMode === 'login');
+  useEffect(() => { if (isOpen) setIsLogin(initialMode === 'login'); }, [isOpen, initialMode]);
   const [showEmailForm, setShowEmailForm] = useState(true);
   const emailFormId = useId();
   const [email, setEmail] = useState("");
