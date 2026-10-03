@@ -10,15 +10,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
 
   useEffect(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as any).standalone === true;
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
     const isElectron = /electron/i.test(navigator.userAgent);
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const isDesktopStandalone = (isStandalone || isElectron) && !isMobileDevice;
 
     if (isDesktopStandalone) {
       setTopOffset("calc(var(--arcai-desktop-titlebar-safe-area, 30px) + 1rem)");
-    } else if (isStandalone && isMobileDevice) {
-      setTopOffset("calc(var(--arcai-safe-area-top) + 1rem)");
+    } else if (isMobileDevice) {
+      setTopOffset("calc(max(env(safe-area-inset-top, 0px), var(--arcai-safe-area-top, 0px)) + 1rem)");
     }
   }, []);
 

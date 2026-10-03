@@ -285,11 +285,11 @@ export function AuthModal({ isOpen, onClose, gatedFeature, allowGuest = false }:
                   <DialogDescription className={cn("text-sm", t.textMuted)}>{copy.subtitle}</DialogDescription>
                 </div>
 
-                {/* Free-account emphasis */}
+                {/* Free plan and optional upgrade */}
                 <div className={cn("flex items-center justify-center gap-2 text-[12px]", t.textMuted)}>
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
                   <span>
-                    <span className={cn("font-semibold", t.textStrong)}>Free forever</span> — no card, no trial.
+                    <span className={cn("font-semibold", t.textStrong)}>Start free</span> · Optional Boost upgrade.
                   </span>
                 </div>
 

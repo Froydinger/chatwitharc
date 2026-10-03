@@ -169,6 +169,7 @@ export type Database = {
           folder_id: string | null
           id: string
           is_git: boolean
+          is_pinned: boolean
           is_public: boolean
           messages: Json | null
           persona_id: string | null
@@ -183,6 +184,7 @@ export type Database = {
           folder_id?: string | null
           id?: string
           is_git?: boolean
+          is_pinned?: boolean
           is_public?: boolean
           messages?: Json | null
           persona_id?: string | null
@@ -197,6 +199,7 @@ export type Database = {
           folder_id?: string | null
           id?: string
           is_git?: boolean
+          is_pinned?: boolean
           is_public?: boolean
           messages?: Json | null
           persona_id?: string | null

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import { sidebarSwipeAction } from '../src/lib/sidebarSwipe.ts';
+const base = { startX: 48, dx: 105, dy: 10, width: 390, open: false, inside: false };
+assert.equal(sidebarSwipeAction(base), 'open');
+assert.equal(sidebarSwipeAction({ ...base, startX: 10 }), 'open', 'left edge opens history');
+assert.equal(sidebarSwipeAction({ ...base, startX: 300 }), null, 'right-side content is not an opener');
+assert.equal(sidebarSwipeAction({ ...base, dx: 25, dy: 180 }), null, 'vertical scroll stays available');
+assert.equal(sidebarSwipeAction({ ...base, dx: 40 }), null, 'small taps/movements do not open');
+assert.equal(sidebarSwipeAction({ ...base, dx: 80, dy: 60 }), null, 'diagonal scrolling does not open');
+assert.equal(sidebarSwipeAction({ ...base, open: true, inside: true, dx: -100 }), 'close');
+assert.equal(sidebarSwipeAction({ ...base, open: true, inside: false, dx: -100 }), null, 'outside motion is not a close gesture');
+assert.equal(sidebarSwipeAction({ ...base, startX: 389, dx: -100 }), 'dashboard', 'right edge opens dashboard');
+assert.equal(sidebarSwipeAction({ ...base, startX: 250, dx: -100 }), null, 'middle leftward swipe does not navigate');
+console.log('PASS: left/right edge gestures, axis/distance guards and inside-only close');

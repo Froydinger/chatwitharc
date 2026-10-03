@@ -1,3 +1,4 @@
+import { ChatHistorySidebar } from '@/components/ChatHistorySidebar';
 import { ChatMessageRows } from "@/components/ChatMessageRows";
 import { WidthPanel } from "@/components/transitions/WidthPanel";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
@@ -6,7 +7,7 @@ import { Transition } from "@/components/transitions/Transition";
 import { useState, useRef, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { Plus, LayoutDashboard, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal, Volume2, Volume1, VolumeX, Crown } from "lucide-react";
+import { Plus, ArrowDown, X, Music, MessageSquare, PenLine, MessageCircle, Share2, Lock, MoreHorizontal, Volume2, Volume1, VolumeX, Crown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BorderBeam } from "border-beam";
 import { MetalFx } from "metal-fx";
@@ -764,111 +765,6 @@ export function MobileChatApp() {
     };
   }, []);
 
-  const dashboardSwipeOpeningRef = useRef(false);
-
-  // Mobile swipe gestures for browser + PWA. Decisions happen on touchend so route changes
-  // never start while the finger/browser is still finishing the native swipe.
-  useEffect(() => {
-    if (!isMobile) return;
-
-    const html = document.documentElement;
-    const body = document.body;
-    const prevHtmlOverscroll = html.style.overscrollBehaviorX;
-    const prevBodyOverscroll = body.style.overscrollBehaviorX;
-    const prevBodyTouchAction = body.style.touchAction;
-    html.style.overscrollBehaviorX = 'contain';
-    body.style.overscrollBehaviorX = 'contain';
-    body.style.touchAction = 'pan-y';
-
-    let startX = 0;
-    let startY = 0;
-    let currentX = 0;
-    let currentY = 0;
-    let mode: 'dashboard' | null = null;
-    let lockedHorizontal = false;
-    let committed = false;
-
-    const resetSwipe = () => {
-      mode = null;
-      lockedHorizontal = false;
-      committed = false;
-    };
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1 || isCanvasOverlayActive || isSearchOpen) return;
-      const t = e.touches[0];
-      if (!t) return;
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('input, textarea, select, button, a, [contenteditable="true"]')) return;
-
-      const w = window.innerWidth;
-      const deadZone = 40; // px buffer around center
-      const leftHalfMax = w / 2 - deadZone;
-      startX = currentX = t.clientX;
-      startY = currentY = t.clientY;
-
-      // Left-half swipe-right to open Dashboard from any chat
-      if (t.clientX < leftHalfMax) {
-        mode = 'dashboard';
-      }
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (!mode) return;
-      const t = e.touches[0];
-      if (!t) return;
-      currentX = t.clientX;
-      currentY = t.clientY;
-      const dx = currentX - startX;
-      const adx = Math.abs(dx);
-      const ady = Math.abs(currentY - startY);
-
-      if (!lockedHorizontal) {
-        if (ady > 28 && ady > adx) { resetSwipe(); return; }
-        if (adx < 28 || adx < ady * 1.35) return;
-        lockedHorizontal = true;
-      }
-
-      if (e.cancelable) e.preventDefault();
-      if (mode === 'dashboard') committed = dx > 64 && ady < 72;
-    };
-
-    const onTouchEnd = () => {
-      if (!mode) return;
-      const finalMode = mode;
-      const shouldCommit = committed;
-      resetSwipe();
-      if (!shouldCommit) return;
-
-      if (finalMode === 'dashboard') {
-        if (dashboardSwipeOpeningRef.current) return;
-        if ((!user || isAnonymous) && !isLocalPreview) {
-          requireAuth("menu");
-          return;
-        }
-        dashboardSwipeOpeningRef.current = true;
-        sessionStorage.setItem('arc_dashboard_entry', 'swipe');
-        navigate(isLocalPreview ? '/?preview=dashboard&clean=1' : '/dashboard');
-        return;
-      }
-    };
-
-    window.addEventListener('touchstart', onTouchStart, { passive: true });
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
-    window.addEventListener('touchend', onTouchEnd, { passive: true });
-    window.addEventListener('touchcancel', resetSwipe, { passive: true });
-    return () => {
-      window.removeEventListener('touchstart', onTouchStart);
-      window.removeEventListener('touchmove', onTouchMove);
-      window.removeEventListener('touchend', onTouchEnd);
-      window.removeEventListener('touchcancel', resetSwipe);
-      html.style.overscrollBehaviorX = prevHtmlOverscroll;
-      body.style.overscrollBehaviorX = prevBodyOverscroll;
-      body.style.touchAction = prevBodyTouchAction;
-    };
-  }, [isMobile, navigate, isCanvasOverlayActive, isSearchOpen, user, isAnonymous, isLocalPreview, requireAuth]);
-
-
   const [hasSelectedImages, setHasSelectedImages] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -1346,13 +1242,14 @@ export function MobileChatApp() {
   const showHeaderUtilityButtons = !isMobile && !isHeaderTight;
 
   // Main chat interface - Desktop with canvas uses PanelGroup for resizable layout
+  const [historyDocked, setHistoryDocked] = useState(false);
   const isDesktopCanvasMode = !isMobile && isCanvasOpen;
 
   const actionReplyIds = allDisplayedMessages.filter(canShowReplyActions).map(message => message.id);
   if (isLoading && !isVoiceActive && !isGeneratingImage && liveReplyId) actionReplyIds.push(liveReplyId);
   return (
     <ReplyActionsProvider scopeKey={currentSessionId ?? "new-chat"} replyIds={actionReplyIds}>
-    <div className="h-screen flex relative overflow-hidden">
+    <div className={cn("h-screen flex relative overflow-hidden", historyDocked && "chat-layout-history-docked")}>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] relative z-10">
@@ -1369,23 +1266,7 @@ export function MobileChatApp() {
                 top: `calc(var(--arcai-safe-area-top) + ${isAdminBannerActive ? 'var(--admin-banner-height, 0px)' : '0px'} + ${isDesktopStandalone ? 'var(--arcai-desktop-titlebar-safe-area, 30px)' : '0px'} + 8px)`,
               }}
             >
-              <motion.div
-                whileHover={{ scale: 1.1, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", damping: 15, stiffness: 300 }}
-                className="cursor-pointer"
-                onClick={handleOpenDashboard}
-              >
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full glass-shimmer transition-all pointer-events-none"
-                  title="Open menu"
-                  aria-label="Open menu"
-                >
-                  <LayoutDashboard className="h-4 w-4" />
-                </Button>
-              </motion.div>
+              <ChatHistorySidebar onOpenDashboard={handleOpenDashboard} onDockChange={setHistoryDocked} gestureBlocked={isCanvasOverlayActive || isSearchOpen || isVoiceActive} />
 
               {messages.length > 0 && (
                 <motion.div

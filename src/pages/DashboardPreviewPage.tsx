@@ -385,6 +385,7 @@ function BottomShelf({ activeTab, onChange, onSettings }: { activeTab: Dashboard
             <motion.button
               type="button"
               aria-label={`Drag dashboard navigation, currently ${navItems.find((item) => item.id === activeTab)?.label ?? "Dashboard"}`}
+              data-dragging={isDragging}
               className="dashboard-preview-dock-bubble absolute top-1/2 touch-none select-none overflow-hidden rounded-[18px] border border-primary/75 bg-white/[0.11] shadow-[0_0_0_1px_rgba(59,130,246,0.3),0_0_22px_rgba(59,130,246,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]"
               style={{ left: bubbleLeft, width: bubbleWidth, height: trackSize.height, translateY: "-50%", scaleX: bubbleScaleX, scaleY: bubbleScaleY, transformOrigin: "center", borderRadius: trackSize.height / 2, background: isDragging ? "hsl(var(--background) / 0.78)" : "transparent", backdropFilter: isDragging ? "blur(10px) saturate(140%)" : "none", WebkitBackdropFilter: isDragging ? "blur(10px) saturate(140%)" : "none", zIndex: 20, cursor: isDragging ? "grabbing" : "grab" }}
               onPointerDown={startDrag}

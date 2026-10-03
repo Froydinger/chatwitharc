@@ -65,7 +65,7 @@ export function PushNotificationsCard() {
     try {
       if (next) {
         await subscribe();
-        toast.success("Push notifications enabled — check for the welcome ping!");
+        toast.success("Push notifications enabled on this device.");
       } else {
         await unsubscribe();
         toast.success("Push notifications disabled");
@@ -106,13 +106,14 @@ export function PushNotificationsCard() {
             onPointerDown={(event) => event.stopPropagation()}
             disabled={loading}
             aria-pressed={subscribed}
+            data-push-toggle="true"
             aria-label={subscribed ? "Disable push notifications" : "Enable push notifications"}
             aria-busy={loading}
             data-on={subscribed}
             className={
               "group inline-flex h-10 shrink-0 items-center gap-2 self-start rounded-full border px-4 text-xs font-semibold transition-[background-color,border-color,box-shadow,color,transform] duration-200 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-wait disabled:opacity-60 motion-reduce:transition-none sm:self-auto " +
               (subscribed
-                ? "border-primary/45 bg-primary/12 text-foreground shadow-[0_8px_24px_-16px_hsl(var(--primary)/0.85)] hover:bg-primary/18"
+                ? "border-foreground bg-foreground text-background shadow-[0_8px_24px_-16px_hsl(var(--foreground)/0.85)] hover:bg-foreground/90"
                 : "border-border/55 bg-muted/25 text-muted-foreground hover:border-primary/40 hover:bg-primary/8 hover:text-foreground")
             }
           >
@@ -120,11 +121,11 @@ export function PushNotificationsCard() {
               ref={notifyGlyphRef}
               className={cn(
                 "grid h-5 w-5 shrink-0 origin-[50%_16%] place-items-center transition-colors",
-                subscribed ? "text-primary" : "text-muted-foreground group-hover:text-primary",
+                subscribed ? "text-background" : "text-muted-foreground group-hover:text-primary",
               )}
               aria-hidden="true"
             >
-              <Bell className="h-4 w-4" strokeWidth={2} />
+              {subscribed ? <Bell className="h-4 w-4" strokeWidth={2} /> : <BellOff className="h-4 w-4" strokeWidth={2} />}
             </span>
             <span
               ref={notifyLabelRef}
@@ -139,7 +140,7 @@ export function PushNotificationsCard() {
                   subscribed ? "opacity-0" : "opacity-100",
                 )}
               >
-                Notify me
+                Push off
               </span>
               <span
                 data-show={subscribed}
@@ -148,7 +149,7 @@ export function PushNotificationsCard() {
                   subscribed ? "opacity-100" : "opacity-0",
                 )}
               >
-                You’ll be notified
+                Push on
               </span>
             </span>
           </button>
