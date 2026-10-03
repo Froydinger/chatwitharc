@@ -13,7 +13,7 @@ export function InstalledWelcomePage() {
       <h1 className="text-4xl font-semibold tracking-tight">Welcome to ArcAI</h1>
       <p className="mt-4 max-w-xs text-base leading-relaxed text-white/65">Your personal AI agent. A place to think, make things, and move ideas forward.</p>
       <div className="mt-10 flex w-full flex-col gap-3">
-        <Button className="h-12 rounded-full bg-white text-base text-black hover:bg-white/90" onClick={() => setMode('login')}>Sign in</Button>
+        <Button variant="ghost" className="h-12 rounded-full !bg-white text-base !text-black hover:!bg-white/90" onClick={() => setMode('login')}>Sign in</Button>
         <Button variant="outline" className="h-12 rounded-full border-white/25 bg-transparent text-base text-white hover:bg-white/10 hover:text-white" onClick={() => setMode('signup')}>Create account</Button>
       </div>
     </div>
