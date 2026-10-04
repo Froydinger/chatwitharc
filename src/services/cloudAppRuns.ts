@@ -108,11 +108,11 @@ export class CloudAppRuns {
     }
     return page;
   }
-  async start(prompt: string, mode: CloudRunMode, snapshot: AppProjectSnapshot) {
+  async start(prompt: string, mode: CloudRunMode, snapshot: AppProjectSnapshot, appModelMode: 'fast' | 'pro' = 'fast') {
     if (this.view.busy || (this.view.entry && !['completed', 'failed', 'cancelled'].includes(this.view.entry.run?.status ?? 'unknown'))) {
       throw new Error('Reconnect or finish the current app run before starting another.');
     }
-    if (!prompt.trim() || prompt.length > 200000 || !['ask', 'auto'].includes(mode)) throw new Error('Invalid app prompt or mode.');
+    if (!prompt.trim() || prompt.length > 200000 || !['ask', 'auto'].includes(mode) || !['fast', 'pro'].includes(appModelMode)) throw new Error('Invalid app prompt or mode.');
     const captured = structuredClone(snapshot);
     this.view.busy = true; delete this.view.error; this.emit();
     try {
@@ -125,7 +125,7 @@ export class CloudAppRuns {
       const entry = lifecycle.prepare({ sessionId: session.id, kind: 'app', mode,
         expectedRevision: session.revision,
         userMessage: { id: this.ports.uuid?.() ?? crypto.randomUUID(), role: 'user', type: 'text', content: prompt, timestamp: new Date().toISOString() },
-        request: { projectId: this.projectId, messages: [...captured.messages.slice(-199).map(({ role, content }) => ({ role, content })), { role: 'user', content: prompt }] },
+        request: { projectId: this.projectId, appModelMode, messages: [...captured.messages.slice(-199).map(({ role, content }) => ({ role, content })), { role: 'user', content: prompt }] },
       });
       this.pendingId = entry.id;
       this.view.entry = entry; this.emit();

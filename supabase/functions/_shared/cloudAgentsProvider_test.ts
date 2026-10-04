@@ -186,3 +186,41 @@ Deno.test('Agents API only returns final text after a confirmed completed turn',
   assert(turn?.text === 'The answer is 42.');
   assert(turn?.tokens === 22, 'the cumulative session usage should be used consistently');
 });
+
+Deno.test('completed answer and usage reads begin concurrently after confirmed turn', async () => {
+  let releaseItems!: () => void;
+  const itemGate = new Promise<void>(resolve => { releaseItems = resolve; });
+  let itemsStarted = false;
+  const provider = cloudAgentsProvider({
+    apiKey: 'test-only', instructions: 'test', reasoningEffort: 'low', tools: [],
+    fetcher: (async url => {
+      const path = String(url);
+      if (path.endsWith('/sessions/sess_test')) return Response.json({ status: 'idle' });
+      if (path.endsWith('/turns?order=desc&limit=1')) return Response.json({ data: [{ id: 'turn_test', status: 'completed' }] });
+      if (path.includes('/items?')) {
+        itemsStarted = true;
+        await itemGate;
+        return Response.json({ data: [{ turn_id: 'turn_test', type: 'assistant_message', phase: 'final_answer', content: [{ type: 'output_text', text: 'Hello.' }] }] });
+      }
+      if (path.endsWith('/turns/turn_test')) {
+        assert(itemsStarted, 'items must already be requested');
+        releaseItems();
+        return Response.json({ usage: { total_tokens: 7 } });
+      }
+      throw new Error('Unexpected provider request');
+    }) as typeof fetch,
+  });
+  const result = await provider.pollAgentSession!('sess_test');
+  assert(result?.text === 'Hello.' && result.tokens === 7);
+});
+
+Deno.test('Luna accepts no reasoning without requesting a reasoning summary; Sol retains supported effort', async () => {
+  for (const model of ['gpt-6-luna', 'gpt-6.1-sol'] as const) {
+    let captured: Record<string, unknown> = {};
+    const provider = cloudAgentsProvider({ apiKey: 'test-only', instructions: 'test', model, reasoningEffort: 'none', tools: [], fetcher: (async (_url, init) => { captured = JSON.parse(String(init?.body)); return Response.json({ id: 'sess_test' }); }) as typeof fetch });
+    await provider.startAgentSession!([{ role: 'user', content: 'hi' }], 'test-none', 100);
+    const reasoning = (captured.agent as Record<string, unknown>).reasoning as Record<string, unknown>;
+    assert(reasoning.effort === (model === 'gpt-6-luna' ? 'none' : 'low'));
+    assert(!('summary' in reasoning));
+  }
+});

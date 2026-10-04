@@ -130,7 +130,7 @@ function assistantText(items: unknown[]): { text: string; summary?: string } {
 export function cloudAgentsProvider(options: {
   apiKey: string;
   instructions: string;
-  reasoningEffort: 'low' | 'medium' | 'high';
+  reasoningEffort: 'none' | 'low' | 'medium' | 'high';
   model?: 'gpt-6-luna' | 'gpt-6.1-sol';
   tools: CloudToolDefinition[];
   firstTool?: string;
@@ -192,7 +192,7 @@ export function cloudAgentsProvider(options: {
       agent: {
         model: options.model ?? 'gpt-6-luna',
         instructions: system,
-        reasoning: { effort: options.reasoningEffort, summary: 'concise' },
+        reasoning: { effort: options.model === 'gpt-6.1-sol' ? 'low' : options.reasoningEffort, ...(options.reasoningEffort === 'none' ? {} : { summary: 'concise' }) },
         text: { verbosity: 'low' },
         tools: options.tools.map(tool => ({
           type: 'function', name: tool.name, description: tool.description,
@@ -243,14 +243,17 @@ export function cloudAgentsProvider(options: {
     const turnId = latest.id;
     // The Agents API lists root-agent items at the session level; each item
     // carries turn_id. There is no root-turn /items route.
-    const itemsPage = await request(`/sessions/${sessionId}/items?order=desc&limit=100`);
+    // Both reads depend on the confirmed completed turn, not on each other.
+    const [itemsPage, detail] = await Promise.all([
+      request(`/sessions/${sessionId}/items?order=desc&limit=100`),
+      request(`/sessions/${sessionId}/turns/${encodeURIComponent(turnId)}`),
+    ]);
     const items = Array.isArray(itemsPage.data) ? itemsPage.data.filter(rawItem => {
       if (!rawItem || typeof rawItem !== 'object' || Array.isArray(rawItem)) return false;
       return stringValue((rawItem as Json).turn_id) === turnId;
     }) : [];
     const output = assistantText(items);
     if (!output.text.trim()) throw new Error('Agents API completed without an assistant answer');
-    const detail = await request(`/sessions/${sessionId}/turns/${encodeURIComponent(turnId)}`);
     const sessionTotal = totalTokens(session.usage);
     // Prefer the cumulative session count. If the session count is unavailable,
     // count the completed turn's usage as a conservative incremental estimate.

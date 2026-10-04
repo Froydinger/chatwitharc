@@ -1,3 +1,4 @@
+import { hasSessionCloudProgress } from '@/lib/chatPresentation';
 import { useMacDecorationsActive } from '@/hooks/useMacDecorationsActive';
 import { ChatHistorySidebar } from '@/components/ChatHistorySidebar';
 import { ChatMessageRows } from "@/components/ChatMessageRows";
@@ -474,6 +475,10 @@ export function MobileChatApp() {
       }
     },
   });
+  // Cloud progress owns the waiting state after a request enters this session's queue.
+  const hasActiveCloudProgress = !isVoiceActive && cloudRunObserverEnabled &&
+    hasSessionCloudProgress(cloudRuns.entries, currentSessionId);
+
   // The coordinator object is refreshed as its async startup completes. Keep
   // a live pointer so a send that began during startup can wait for readiness
   // instead of failing against the first not-ready snapshot.
@@ -532,6 +537,7 @@ export function MobileChatApp() {
         messages: captured.messages, forceWebSearch: captured.forceWebSearch,
         forceCanvas: captured.forceCanvas, forceCode: captured.forceCode,
         forceGit: captured.forceGit,
+        ...(captured.forceGit ? { gitModelMode: captured.gitModelMode ?? 'normal' } : {}),
         ...(captured.forceGit ? { browserbaseDevice, ...(browserbaseSessionHandle ? { browserbaseSessionHandle } : {}) } : {}),
         ...(uploadedAttachments ? { attachments: uploadedAttachments } : {}),
         ...(workspaceContext ? { workspace_context: workspaceContext } : {}),
@@ -1647,10 +1653,10 @@ export function MobileChatApp() {
                   <ChatResponseStatus
                     sessionId={currentSessionId}
                     isLoading={isLoading}
-                    showThinking={!hasSubagentRun && isLoading && !isGeneratingImage && messages.length > 0 &&
+                    showThinking={!hasActiveCloudProgress && !hasSubagentRun && isLoading && !isGeneratingImage && messages.length > 0 &&
                       (messages[messages.length - 1]?.role === "user" ||
                         (messages[messages.length - 1]?.role === "assistant" && !messages[messages.length - 1]?.content?.trim()))}
-                    showLiveAnswer={isLoading && !isVoiceActive && !isGeneratingImage}
+                    showLiveAnswer={!hasActiveCloudProgress && isLoading && !isVoiceActive && !isGeneratingImage}
                     searchingChats={isSearchingChats}
                     accessingMemory={isAccessingMemory}
                     searchingWeb={isSearchingWeb}

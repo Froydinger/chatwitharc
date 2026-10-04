@@ -1,3 +1,4 @@
+import { appModelRoute } from "./durableModelRouting.ts";
 import {
   type AppDatabase,
   cloudAppPersistence,
@@ -32,7 +33,7 @@ export type CloudAppRuntimePorts = {
     ): Promise<AppStepResult>;
   };
   context(run: ClaimedCloudRun): Promise<{ instructions: string }>;
-  provider(instructions: string): Provider;
+  provider(instructions: string, run: ClaimedCloudRun): Provider;
 };
 
 /** Shared engine handles model IDs, raw reasoning/tool rounds, approvals, lease
@@ -97,8 +98,11 @@ export async function advanceCloudAppRun(
         const provider = ports.provider(
           `${context.instructions}\n\n${CLOUD_APP_INSTRUCTIONS}\n\n` +
             `Durable app project: ${workspace.projectId}. Current draft version: ${workspace.version}. Use inspect_app and read_app_file for current source.`,
+          run,
         );
         return {
+          modelUsed: appModelRoute((run.request ?? {}) as Record<string, unknown>).model,
+          reasoningEffortUsed: "low",
           provider: {
             startModel: async (...args) => {
               await guard(run);
@@ -171,10 +175,11 @@ export function cloudAppAdvance(
       store: cloudWorkerStore(db),
       app: cloudAppPersistence(db, { publisher: options.publisher }),
       context: (run) => loadCloudRunContext(db, run),
-      provider: (instructions) =>
+      provider: (instructions, run) =>
         cloudAgentsProvider({
           apiKey,
           instructions,
+          model: appModelRoute((run.request ?? {}) as Record<string, unknown>).model,
           reasoningEffort: "low",
           tools: CLOUD_APP_DEFINITIONS,
           fetcher: options.fetcher,

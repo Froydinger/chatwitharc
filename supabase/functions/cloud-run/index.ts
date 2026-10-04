@@ -212,6 +212,8 @@ export function validateAction(value: unknown, bearer = ""): Action {
     "messages",
     "model",
     "reasoningEffort",
+    "gitModelMode",
+    "appModelMode",
     "forceWebSearch",
     "forceCanvas",
     "forceCode",
@@ -278,10 +280,18 @@ export function validateAction(value: unknown, bearer = ""): Action {
   }
   if (input.model !== undefined) request.model = string(input.model, 100);
   if (input.reasoningEffort !== undefined) {
-    if (!["low", "medium", "high"].includes(input.reasoningEffort as string)) {
+    if (!["none", "low", "medium", "high"].includes(input.reasoningEffort as string)) {
       invalid("Invalid reasoning effort.");
     }
     request.reasoningEffort = input.reasoningEffort;
+  }
+  if (input.gitModelMode !== undefined) {
+    if (body.kind !== "chat" || input.forceGit !== true || !["normal", "pro"].includes(input.gitModelMode as string)) invalid("Invalid Git model mode.");
+    request.gitModelMode = input.gitModelMode;
+  }
+  if (input.appModelMode !== undefined) {
+    if (body.kind !== "app" || !["fast", "pro"].includes(input.appModelMode as string)) invalid("Invalid App model mode.");
+    request.appModelMode = input.appModelMode;
   }
   for (
     const key of [

@@ -1,3 +1,5 @@
+import { getExecutionModelChoices } from '@/store/useExecutionModelStore';
+import { AppBuilderModelChoice } from '@/components/app-builder/AppBuilderModelChoice';
 import { useComposerDictation } from "@/hooks/chat-input/useComposerDictation";
 import { createComposerActivity } from "@/lib/chat-input/activity";
 import { useComposerSubmission } from "@/hooks/chat-input/useComposerSubmission";
@@ -180,6 +182,7 @@ export interface CloudTextSubmitIntent {
   forceCode: boolean;
   forceGit: boolean;
   modelOverride?: string;
+  gitModelMode?: 'normal' | 'pro';
 }
 
 export interface ChatInputRef {
@@ -1175,6 +1178,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         return { isOpen: canvas.isOpen, canvasType: canvas.canvasType,
           content: live.trim() ? live : canvas.content, codeLanguage: canvas.codeLanguage };
       })(),
+      ...getExecutionModelChoices(user.id, hasBoost || isAdmin),
       reasoningSelection: useModelStore.getState().reasoningEffort,
       imageOptions: { aspect: imageGenAspect, editAspect: imageEditAspect, count: imageGenCount, generationModel: imageGenModel, editModel: imageEditModel },
     });
@@ -1427,7 +1431,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
 
       // Add assistant prompt instructing model picker usage
       await addMessage({
-        content: "Luna is Arc's default and only model for now. Use the picker at the top of the chat to choose Auto, Quick, Balanced, or Deep reasoning. Auto starts with Quick and steps up for clearly harder requests.",
+        content: "Choose Arc Think or Arc Flash using the chat picker. Arc Think adjusts its reasoning to your request automatically.",
         role: "assistant",
         type: "text",
         sourceModel: "cloud-chat",
@@ -2211,11 +2215,12 @@ ${safeCode}
               forceCanvas: cloudExecutionMode === 'auto' ? false : shouldForceCanvas,
               forceCode: cloudExecutionMode === 'auto' ? false : shouldForceCode,
               forceGit: wasGitMode,
+              gitModelMode: acceptedRequest?.gitModelMode ?? getExecutionModelChoices(user?.id ?? null, hasBoost || isAdmin).gitModelMode,
               modelOverride: codeContextModelOverride,
             });
             // The accepted run is still working after this acknowledgement.
-            // Keep the existing ThinkingIndicator and composer stop state until
-            // the cloud observer loads its terminal result.
+            // Keep the composer stop state until the cloud observer loads its terminal result.
+            // The cloud progress card owns the waiting indicator after handoff.
             handedOffToCloudRun = true;
           } catch (error) {
             // An acknowledgement may be lost after acceptance. Do not fall back
@@ -3023,6 +3028,7 @@ ${safeCode}
         })()}
 
       {inline && shouldShowGitMode && <GitModeDock />}
+      {shouldShowAppMode && (hasBoost || isAdmin) && <div className="mb-2 flex justify-center"><AppBuilderModelChoice ownerId={user?.id ?? null} disabled={isLoading} /></div>}
       <ComposerView
         inputBarRef={inputBarRef}
         active={isActive}

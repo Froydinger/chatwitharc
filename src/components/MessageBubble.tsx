@@ -33,6 +33,7 @@ import { MediaEmbed, getYouTubeVideoId, isImageUrl } from "@/components/MediaEmb
 import { useReplyActions } from "@/components/ReplyActionsProvider";
 import { MessageMetadata } from "@/components/MessageMetadata";
 import { WeatherCard } from "@/components/WeatherCard";
+import { shouldShowSearchCard } from '@/lib/chatPresentation';
 import { SearchResultsCard } from "@/components/SearchResultsCard";
 import { ScheduledTaskCard } from "@/components/ScheduledTaskCard";
 import { NotificationDispatchCard } from "@/components/NotificationDispatchCard";
@@ -226,10 +227,10 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
     };
 
     const contentParts = !isUser && message.type === "text" ? parseCodeBlocks(message.content || "") : [];
-    const hasVoiceSearchCard = !isUser && message.voiceSearchResult === true;
+    const hasSearchCard = shouldShowSearchCard(message);
     const webQuery = message.memoryAction?.type === "web_searched" ? message.memoryAction.query || "" : "";
     const searchImages = message.searchImages || [];
-    const showSearchImages = !hasVoiceSearchCard && searchImages.length > 0 &&
+    const showSearchImages = !hasSearchCard && searchImages.length > 0 &&
       /\b(?:photos?|pictures?|images?|visuals?)\b|what\s+.{0,50}\s+looks?\s+like/i.test(webQuery);
 
     return (
@@ -237,7 +238,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
         ref={ref}
         className={`flex ${isUser ? "justify-end" : "justify-start"} group`}
       >
-        <div className={`flex flex-col gap-2 ${hasVoiceSearchCard ? "max-w-full sm:max-w-[85%]" : "max-w-[85%]"} ${isUser ? "ml-auto items-end" : "mr-auto items-start"}`}>
+        <div className={`flex flex-col gap-2 ${hasSearchCard ? "max-w-full sm:max-w-[85%]" : "max-w-[85%]"} ${isUser ? "ml-auto items-end" : "mr-auto items-start"}`}>
           {/* Message Bubble */}
           <div
             onClick={isUser ? handleMessageClick : undefined}
@@ -300,14 +301,14 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                 </div></Transition>
               )}
 
-              {hasVoiceSearchCard && (
-                <Transition preset="panel" key="card-voice-search-results"><div
+              {hasSearchCard && (
+                <Transition preset="panel" key="card-search-results"><div
                   className="relative z-10 mb-3 flex w-full justify-start"
                   onClick={(event) => event.stopPropagation()}
                 >
                   <SearchResultsCard
                     content={message.content || ""}
-                    sources={message.webSources || []}
+                    sources={message.webSources?.length ? message.webSources : message.memoryAction?.type === 'web_searched' ? message.memoryAction.sources || [] : []}
                     query={message.memoryAction?.type === "web_searched" ? message.memoryAction.query : undefined}
                     images={message.searchImages}
                   />
@@ -592,7 +593,7 @@ export const MessageBubble = forwardRef<HTMLDivElement, MessageBubbleProps>(
                   ) : (
                     // AI messages with code block support and markdown
                     (message.content || "").trim().length > 0 &&
-                    !hasVoiceSearchCard &&
+                    !hasSearchCard &&
                     !["canvas", "code", "ide", "file"].includes(message.type) && (
                       <div
                         key="text-assistant"

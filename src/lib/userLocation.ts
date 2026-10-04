@@ -68,16 +68,43 @@ async function reverseGeocode(lat: number, lon: number): Promise<Partial<UserLoc
 }
 
 /**
- * Request geolocation from the browser. Returns null if unavailable, denied,
- * or previously denied this session. Caches successful results in sessionStorage.
+ * Request native When-In-Use location on iOS, browser geolocation elsewhere.
+ * Returns null if unavailable or denied; caches successful results per session.
  */
+interface NativeLocationBridge {
+  getCurrentLocation(): Promise<{ latitude: number; longitude: number; accuracy: number }>;
+}
+function nativeLocationBridge(): NativeLocationBridge | null {
+  if (typeof window === 'undefined') return null;
+  const capacitor = (window as Window & { Capacitor?: { getPlatform?: () => string; registerPlugin?: (name: string) => NativeLocationBridge } }).Capacitor;
+  if (capacitor?.getPlatform?.() !== 'ios' || !capacitor.registerPlugin) return null;
+  return capacitor.registerPlugin('ArcNative');
+}
+
 export async function getUserLocation(): Promise<UserLocation | null> {
   const cached = getCachedLocation();
   if (cached) return cached;
-  if (typeof navigator === 'undefined' || !navigator.geolocation) return null;
+  const native = nativeLocationBridge();
+  if (!native && (typeof navigator === 'undefined' || !navigator.geolocation)) return null;
   if (pendingLocationRequest) return pendingLocationRequest;
 
   pendingLocationRequest = (async () => {
+    if (native) {
+      try {
+        const coords = await native.getCurrentLocation();
+        if (!Number.isFinite(coords.latitude) || !Number.isFinite(coords.longitude) || !Number.isFinite(coords.accuracy) ||
+            Math.abs(coords.latitude) > 90 || Math.abs(coords.longitude) > 180 || coords.accuracy < 0) return null;
+        const geo = await reverseGeocode(coords.latitude, coords.longitude);
+        const location: UserLocation = { ...geo, latitude: Number(coords.latitude.toFixed(4)), longitude: Number(coords.longitude.toFixed(4)), accuracyMeters: Math.round(coords.accuracy), fetchedAt: Date.now() };
+        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(location)); } catch {
+          // Session storage is best-effort.
+        }
+        return location;
+      } catch (error) {
+        if ((error as { code?: string })?.code === 'LOCATION_DENIED') window.dispatchEvent(new CustomEvent('arc:location-permission-denied'));
+        return null;
+      }
+    }
     const requestCoordinates = (enableHighAccuracy: boolean, maximumAge = 300_000) => new Promise<{
       coords: GeolocationCoordinates | null;
       errorCode?: number;
@@ -126,7 +153,9 @@ export async function getUserLocation(): Promise<UserLocation | null> {
       fetchedAt: Date.now(),
       accuracyMeters: Math.round(coords.accuracy),
     };
-    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(loc)); } catch {}
+    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(loc)); } catch {
+      // Session storage is best-effort.
+    }
     return loc;
   })();
 

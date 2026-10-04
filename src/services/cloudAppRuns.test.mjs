@@ -39,3 +39,15 @@ test('restoring a remembered queued app run reconnects status observation', asyn
   assert.deepEqual(calls, [['restoreRun', runId], ['reconnect', runId]]);
   runs.close();
 });
+
+test('app generation captures Fast default and explicit Pro in the durable request', async () => {
+  for (const choice of [undefined, 'pro']) {
+    let submitted;
+    const lifecycle = { prepare(input) { submitted = input; return {id:'run',kind:'app',sessionId:'session',mode:'ask'}; }, submit: async()=>{}, get:()=>undefined, detachAll(){} };
+    const runs = new CloudAppRuns('owner','project',true,{ownerId:async()=> 'owner',lifecycle:async()=>lifecycle,prepareProject:async()=>{},prepareSession:async()=>({id:'session',revision:0}),reconcile:async()=>{},remember(){}},()=>{});
+    await runs.start('Build two pages','ask',{files:{},messages:[]},choice);
+    assert.equal(submitted.request.appModelMode,choice??'fast');
+    assert.equal(submitted.request.projectId,'project');
+    runs.close();
+  }
+});

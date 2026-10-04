@@ -41,11 +41,11 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Our free tier includes Arc Matrix™ chat with less usage on Free, canvases, a living memory summary, image generation with less usage, weekly research, and 3 voice sessions per UTC day up to 10 minutes each with Arc. Boost adds unlimited usage, including unlimited research, unlimited chat usage, unlimited Arc Image creation & editing, and unlimited voice sessions up to 2 hours each.",
+    a: "Yes. Free includes Arc Think and Arc Flash with less usage, Canvas, living memory, images with less usage, research, GitHub Normal, and 3 voice sessions per UTC day up to 10 minutes each. Boost adds unlimited usage, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each.",
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade with a 7-day free trial (card required), then $10/month or a limited-time $95/year annual rate, normally $120/year. The annual rate renews at $95/year while you keep Boost and adds unlimited usage for Arc Think and Arc Flash across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, unlimited Arc Image generation & editing, and unlimited voice sessions up to 2 hours each.",
+    a: "Yes. We offer a Boost upgrade with a 7-day free trial (card required), then $10/month or a limited-time $95/year annual rate, normally $120/year. The annual rate renews at $95/year while you keep Boost and adds Arc Work, App Builder, GitHub Pro, unlimited usage for Arc Think and Arc Flash across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, unlimited Arc Image generation & editing, and unlimited voice sessions up to 2 hours each.",
   },
   {
     q: "How does Arc's memory work?",
@@ -61,11 +61,11 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "Arc Matrix™ orchestrates Arc Think (Powered by GPT 6 & 6.1) and Arc Flash (Powered by Gemini Flash), plus Arc's tools and memory. Arc Image uses GPT Image 2.5; Arc Image Flash uses Nano Banana 2. Natural voice runs through Voxi; live research uses Deep Search.",
+    a: "Arc Think uses GPT-6 Luna with adaptive reasoning: none for quick answers, then low, medium or high when the task needs more thought. Arc Flash uses Gemini Flash. App Builder Fast uses Luna; App Builder Pro and GitHub Pro use GPT-6.1 Sol with light reasoning. Arc Image uses GPT Image 2.5; Arc Image Flash uses Nano Banana 2. Natural voice runs through Voxi; live research uses Deep Search.",
   },
   {
     q: "Is ArcAI private?",
-    a: "Yes. Your chats sync to your private account and you can completely wipe your chat history and memory from settings in a single click.",
+    a: "Your chats sync to your private account. You can manage, export or clear your history and memory in Settings, and request account deletion there.",
   },
   {
     q: "Does Arc remember me across devices?",
@@ -81,7 +81,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI help with code?",
-    a: "Yes. Code Canvas helps with quick scripts and prototypes, and GitHub Mode can prepare changes in a connected repository as a branch and pull request.",
+    a: "Yes. Canvas helps with code and prose. GitHub Normal is available on Free and Boost and prepares changes in a connected repository as a branch and pull request. GitHub Pro uses GPT-6.1 Sol with light reasoning and requires Boost.",
   },
 ];
 
@@ -346,20 +346,20 @@ function MarketingLandingPage() {
         <p className="mx-auto mt-3 max-w-xl text-center text-sm text-white/50">
           Ask a question, think it through, or make something. Arc brings the right tools and your context into every step. Start free; unlock Work and App Builder with Boost.
         </p>
-        <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 flex flex-wrap justify-center gap-3">
           {[
-            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "Choose Arc Think or Arc Flash. Arc combines reasoning, tools, and your context; Arc Matrix™ selects an available model in Think mode." },
-            { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Let Arc research the live web, bring sources together, and return an answer you can check with citations." },
+            { category: "Ask", icon: MessageSquare, title: "Arc Matrix™ Inside", body: "Choose Arc Think for adaptive Luna reasoning or Arc Flash for quick Gemini responses. Both include Arc’s tools and context. Less usage on Free; unlimited usage on Boost." },
+            { category: "Ask", icon: Sparkles, title: "Deep Search", body: "Research the live web and check the answer against its sources. Less usage on Free; unlimited Deep Search and Ultra Deep Search on Boost." },
             { category: "Reflect", icon: Brain, title: "Living Cross-Session Memory", body: "Arc keeps one detailed, evolving summary of the preferences, goals, facts, and boundaries you want it to remember, then recalls it when relevant." },
             { category: "Reflect", icon: Mic, title: "Spoken Voice & Music", body: "Talk naturally with the same Arc agent, with tools and memory close at hand. Keep ambient music in your workspace when you want to focus." },
-            { category: "Create", icon: Code2, title: "Code Canvas", body: "Work with Arc on code and prose in Canvas. GitHub Mode prepares changes to your connected repository as a branch and pull request." },
-            { category: "Ask", icon: Sparkles, title: "Arc Work · Boost", body: "Hand Arc a longer task. Your agent works in the cloud, keeps progress tied to your chat, and asks for input when needed." },
-            { category: "Create", icon: Code2, title: "App Builder · Boost", body: "Describe the app you want. Arc builds it, shows a live preview, and helps you refine it, then publish or export when you are ready." },
-            { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create custom images and art with state-of-the-art vision models, bringing visual ideas to life in seconds." },
+            { category: "Create", icon: Code2, title: "Code Canvas", body: "Canvas and GitHub Normal are available on Free and Boost. Prepare repository changes as a branch and pull request; Boost unlocks GitHub Pro with GPT-6.1 Sol." },
+            { category: "Ask", icon: Sparkles, title: "Arc Work · Boost", body: "Available with Boost. Hand Arc a longer task to run in the cloud, with progress in your chat and requests for input when needed." },
+            { category: "Create", icon: Code2, title: "App Builder · Boost", body: "Available with Boost. Build, preview, refine, publish or export an app. Fast uses Luna by default; choose Pro for GPT-6.1 Sol with light reasoning." },
+            { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create and edit images with Arc Image or Arc Image Flash. Less usage on Free; unlimited generation and editing on Boost." },
           ].map((f, i) => (
             <div
               key={f.title}
-              className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 transition-all hover:bg-white/[0.06] hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-2 duration-500"
+              className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 transition-all hover:bg-white/[0.06] hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-2 duration-500 sm:w-[calc(50%_-_6px)] lg:w-[calc(33.333333%_-_8px)]"
               style={{ animationDelay: `${i * 60}ms`, animationFillMode: "backwards" }}
             >
               <div className="flex items-center justify-between mb-4">
@@ -396,15 +396,15 @@ function MarketingLandingPage() {
               Free is powerful. <span className="text-white/70">Boost is optional.</span>
             </h2>
             <p className="mt-3 max-w-xl text-white/60">
-              Arc is built to be a safe, helpful hub for everyone. The free plan includes chat with less usage, a living memory summary, 3 voice sessions per UTC day up to 10 minutes each, search, and coding out of the box. Start Boost with a 7-day free trial (card required) for $10/month, or save 21% with the limited-time $95/year plan (normally $120/year, renewing at $95/year while subscribed), for unlimited usage and unlimited voice sessions up to 2 hours each.
+              Arc is built to be a safe, helpful hub for everyone. The free plan includes chat with less usage, a living memory summary, 3 voice sessions per UTC day up to 10 minutes each, search, and coding out of the box. Start Boost with a 7-day free trial (card required) for $10/month, or save 21% with the limited-time $95/year plan (normally $120/year, renewing at $95/year while subscribed), for unlimited usage, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
                 { icon: ImageIcon, title: "Create images for free", body: "Create images with less usage on Free, or upgrade to Boost for unlimited generation and editing." },
                 { icon: Mic, title: "Natural voice conversations", body: "Speak naturally with low-latency, interruptible audio. Free accounts get 3 voice sessions per UTC day, up to 10 minutes each, and Boost includes unlimited live voice sessions up to 2 hours each." },
-                { icon: Search, title: "Deep research, powered by Perplexity", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. Less usage on Free, unlimited usage on Boost." },
-                { icon: Code2, title: "GitHub Mode", body: "Connect a repository and let Arc prepare changes on a branch for a pull request." },
+                { icon: Search, title: "Research with live sources", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. Less usage on Free, unlimited usage on Boost." },
+                { icon: Code2, title: "GitHub Mode", body: "Normal is available on Free and Boost. Connect a repository for branch-and-pull-request changes; Boost adds Pro with GPT-6.1 Sol." },
               ].map((b) => (
                 <div
                   key={b.title}
@@ -515,7 +515,7 @@ function MarketingLandingPage() {
           Give your next idea to Arc.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-          Start with less usage for chat and images, and 3 voice sessions per UTC day up to 10 minutes each. Upgrade to Boost for unlimited image generation, higher reasoning, and unlimited voice sessions up to 2 hours each.
+          Start with less usage for chat and images, and 3 voice sessions per UTC day up to 10 minutes each. Upgrade to Boost for unlimited usage, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button

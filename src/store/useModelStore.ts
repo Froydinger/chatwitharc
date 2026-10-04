@@ -9,7 +9,7 @@ export const LUNA_MODEL = 'gpt-6-luna';
 export const SOL_MODEL = 'gpt-6.1-sol';
 export const FLYNN_MODEL = 'gemini-3.8-flash';
 export type ChatModel = typeof LUNA_MODEL;
-export type LunaReasoningEffort = 'low' | 'medium' | 'high';
+export type LunaReasoningEffort = 'none' | 'low' | 'medium' | 'high';
 export type LunaReasoningSelection = 'auto' | 'flynn' | LunaReasoningEffort;
 
 /** Map every retired or stale chat-model id to Luna without breaking old clients. */
@@ -38,7 +38,7 @@ interface ModelStore {
   setIsBoost: (isBoost: boolean) => void;
 }
 
-const VALID_REASONING_SELECTIONS = new Set<LunaReasoningSelection>(['auto', 'low', 'medium', 'high', 'flynn']);
+const VALID_REASONING_SELECTIONS = new Set<LunaReasoningSelection>(['auto', 'none', 'low', 'medium', 'high', 'flynn']);
 
 /** Picker visibility only; authenticated server checks remain authoritative. */
 export function canSelectFlynn(user: { id?: string; is_anonymous?: boolean } | null, _hasBoost: boolean): boolean {
@@ -64,7 +64,7 @@ export function resolveReasoningEffort(
   if (selection !== 'auto') return selection;
   if (complexity >= 3) return canUseRiver ? 'high' : 'medium';
   if (complexity >= 2) return 'medium';
-  return 'low';
+  return complexity === 0 ? 'none' : 'low';
 }
 
 export const useModelStore = create<ModelStore>()(

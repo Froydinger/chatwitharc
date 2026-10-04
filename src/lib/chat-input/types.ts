@@ -17,6 +17,8 @@ export interface ComposerRequestSnapshot {
   corporateMode: boolean;
   hasExistingApp: boolean;
   workspace: Readonly<{ isOpen: boolean; canvasType: 'writing' | 'code'; content: string; codeLanguage: string }>;
+  gitModelMode?: 'normal' | 'pro';
+  appModelMode?: 'fast' | 'pro';
   reasoningSelection: LunaReasoningSelection;
   imageOptions: Readonly<{ aspect: string; editAspect: string; count: number; generationModel?: string; editModel?: string }>;
 }

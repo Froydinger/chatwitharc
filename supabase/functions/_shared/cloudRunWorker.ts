@@ -27,7 +27,7 @@ export type CloudWorkerContext = {
   provider: EngineProvider;
   /** Actual provider selected by trusted preparation, never request metadata. */
   modelUsed?: string;
-  reasoningEffortUsed?: 'low' | 'medium' | 'high';
+  reasoningEffortUsed?: 'none' | 'low' | 'medium' | 'high';
   tools: Record<string, RegisteredCloudTool>;
 };
 export type CloudWorkerOptions = {

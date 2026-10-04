@@ -19,7 +19,7 @@ export type CloudContextDatabase = Pick<SupabaseClient, 'from'>;
 
 export type CloudRunInstructions = {
   instructions: string;
-  reasoningEffort: 'low' | 'medium' | 'high';
+  reasoningEffort: 'none' | 'low' | 'medium' | 'high';
 };
 
 type ArcExecutionMode = 'ask' | 'auto';
@@ -137,7 +137,7 @@ export async function loadCloudRunContext(
       throw new Error('Cloud context accepts only user and assistant messages');
     }
   }
-  const reasoningEffort = request.reasoningEffort === 'low' || request.reasoningEffort === 'high'
+  const reasoningEffort = request.reasoningEffort === 'none' || request.reasoningEffort === 'low' || request.reasoningEffort === 'high'
     ? request.reasoningEffort : 'medium';
   const [profile, memory, settings, gitSelection] = await Promise.all([
     ownerRow(db, 'profiles', 'user_id, display_name, context_info, memory_info', claim.user_id),

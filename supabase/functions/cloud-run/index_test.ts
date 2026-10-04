@@ -817,3 +817,16 @@ Deno.test("approval pause changed after verification is rejected by RPC CAS", as
     ])).status === 409,
   );
 });
+
+Deno.test('model modes are persisted, kind-scoped and closed; none effort is accepted', () => {
+  const git = validateAction({ ...submit, request: { ...submit.request, forceGit: true, gitModelMode: 'pro', reasoningEffort: 'none' } });
+  assert(git.action === 'submit' && git.request.gitModelMode === 'pro' && git.request.reasoningEffort === 'none');
+  const app = validateAction({ ...submit, kind: 'app', request: { ...submit.request, appModelMode: 'pro' } });
+  assert(app.action === 'submit' && app.request.appModelMode === 'pro');
+  for (const payload of [
+    { ...submit, request: { ...submit.request, gitModelMode: 'pro' } },
+    { ...submit, request: { ...submit.request, forceGit: true, gitModelMode: 'invalid' } },
+    { ...submit, request: { ...submit.request, appModelMode: 'pro' } },
+    { ...submit, kind: 'app', request: { ...submit.request, appModelMode: 'invalid' } },
+  ]) { let rejected = false; try { validateAction(payload); } catch { rejected = true; } assert(rejected); }
+});

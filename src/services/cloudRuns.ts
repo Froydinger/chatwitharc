@@ -18,7 +18,9 @@ export type CloudTextRequest = {
   forceCanvas?: boolean;
   forceCode?: boolean;
   forceGit?: boolean;
-  reasoningEffort?: 'low' | 'medium' | 'high';
+  gitModelMode?: 'normal' | 'pro';
+  appModelMode?: 'fast' | 'pro';
+  reasoningEffort?: 'none' | 'low' | 'medium' | 'high';
   clientTimezone?: string;
   browserbaseDevice?: 'mobile' | 'desktop';
   browserbaseSessionHandle?: string;

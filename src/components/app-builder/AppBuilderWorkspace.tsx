@@ -1,3 +1,5 @@
+import { AppBuilderModelChoice } from './AppBuilderModelChoice';
+import { getExecutionModelChoices } from '@/store/useExecutionModelStore';
 import { TransitionPart } from "@/components/transitions/TransitionPart";
 import { ConditionalTransition } from "@/components/transitions/ConditionalTransition";
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -437,6 +439,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
 
   const handleSend = async (messageText = prompt, imageList = attachments) => {
     const trimmed = messageText.trim();
+    const { appModelMode } = getExecutionModelChoices(ownerId, hasBoost || isAdmin);
     if (!trimmed || agentBusy || cloudActive) return;
     if (subscriptionLoading) return;
     if (!isEntitled) { openCheckout(); return; }
@@ -461,7 +464,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
         // A save in finally can advance cloud_revision after the worker opens
         // its workspace and make an otherwise successful build fail at commit.
         cloudRunSubmissionAttempted = true;
-        await appRunsRef.current.start(trimmed, 'ask', { files: filesRef.current, messages: previousMessages });
+        await appRunsRef.current.start(trimmed, 'ask', { files: filesRef.current, messages: previousMessages }, appModelMode);
         setAgentBusy(false);
         return;
       }
@@ -596,7 +599,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
               <Button size="icon" onClick={() => void handleSend()} disabled={!prompt.trim() || agentBusy || cloudActive || (!demo && !ownerId)} className="app-builder-action h-8 w-8 rounded-xl bg-white text-black hover:bg-white/90 disabled:bg-white/10 disabled:text-white/25"><ArrowUp className="h-4 w-4" /></Button>
             </div>
           </div>
-          <div className="mt-2 flex items-center justify-between px-1"><span className="text-[9px] text-white/25">Cloud build</span><span className="text-[9px] text-white/25">Luna · Low</span></div>
+          <div className="mt-2 flex justify-center px-1">{!demo && ownerId && <AppBuilderModelChoice ownerId={ownerId} disabled={agentBusy || cloudActive} />}</div>
         </div>
       </div>
     </div>

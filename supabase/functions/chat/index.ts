@@ -978,7 +978,7 @@ serve(async (req) => {
       }
     }
 
-    const allowedReasoningEfforts = new Set(['low', 'medium', 'high']);
+    const allowedReasoningEfforts = new Set(['none', 'low', 'medium', 'high']);
     let selectedReasoningEffort = allowedReasoningEfforts.has(reasoningEffort)
       ? reasoningEffort
       : 'medium';

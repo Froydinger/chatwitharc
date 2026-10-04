@@ -250,7 +250,7 @@ export interface Message {
   // Reasoning effort that produced this response ('low' | 'medium' | 'high').
   // Auto resolves per request, so without this a stored message can only show
   // the picker's current selection instead of the model that answered.
-  reasoningEffortUsed?: 'low' | 'medium' | 'high';
+  reasoningEffortUsed?: 'none' | 'low' | 'medium' | 'high';
   searchImages?: string[];
   imageChoiceSubject?: string;
 }
