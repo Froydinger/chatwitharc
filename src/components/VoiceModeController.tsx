@@ -290,7 +290,7 @@ async function buildVoiceSystemPrompt(
     }
 
     voicePrompt += `\n\nDelegation policy:
-Backend tools: web search, weather, device location, past-chat search, living memory, images, reminders, bug reports, and vision analysis.
+Backend tools: web search, weather, approximate network city, past-chat search, living memory, images, reminders, bug reports, and vision analysis.
 Delegate when the request needs one of those capabilities or careful reasoning. Do not delegate simple conversation or repeat a result that is still current.
 Let the backend finish before stating what it found or what it changed. Keep tool acknowledgments natural and optional.`;
 
@@ -634,7 +634,7 @@ export function VoiceModeController() {
           searchQuery = `${query}\n\n${formatLocationForContext(locationUsed)}`;
         } else if (isCurrentLocationRequest(query)) {
           setIsSearching(false);
-          return "I couldn't access your device location. What city should I use?";
+          return "I couldn't estimate your city from the network. What city should I use?";
         }
       }
 
@@ -744,13 +744,13 @@ export function VoiceModeController() {
     try {
       let weatherLocation = location;
       let locationUsed: UserLocation | null = null;
-      if (!location?.trim() || isCurrentLocationRequest(location) || detectsLocationIntent(location)) {
+      if (!location?.trim() || isCurrentLocationRequest(location)) {
         locationUsed = getCachedLocation() || await getUserLocation();
         if (locationUsed) {
           weatherLocation = locationLabel(locationUsed);
         } else if (!location?.trim() || isCurrentLocationRequest(location)) {
           setIsFetchingWeather(false);
-          return "I couldn't access your device location. What city should I use for the weather?";
+          return "I couldn't estimate your city from the network. What city should I use for the weather?";
         }
       }
 
@@ -792,15 +792,15 @@ export function VoiceModeController() {
   }, [addMessage, flushTurnsBeforeCard, setIsFetchingWeather, setWeatherData]);
 
   const handleGetUserLocation = useCallback(async (): Promise<string> => {
-    console.log('VoiceModeController: Getting device location for user query');
+    // Resolve an approximate network city without opening a permission prompt.
     try {
       const loc = getCachedLocation() || await getUserLocation();
       if (loc) {
-        return `User's current device location: ${locationLabel(loc)} (latitude ${loc.latitude}, longitude ${loc.longitude}).`;
+        return formatLocationForContext(loc);
       }
-      return "Device location is unavailable or permission was not granted by the user. Prompt the user to allow location access in their device settings or ask what city they are in.";
+      return "Approximate network location is unavailable. Ask what city to use; do not ask the user to enable device permissions.";
     } catch (err: any) {
-      return `Failed to obtain device location: ${err?.message || 'unavailable'}. Ask what city to use.`;
+      return `Failed to obtain approximate network location: ${err?.message || 'unavailable'}. Ask what city to use.`;
     }
   }, []);
 

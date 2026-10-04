@@ -1,3 +1,4 @@
+import { captureCloudLocationContext } from '@/lib/cloudLocationContext';
 import { hasSessionCloudProgress } from '@/lib/chatPresentation';
 import { useMacDecorationsActive } from '@/hooks/useMacDecorationsActive';
 import { ChatHistorySidebar } from '@/components/ChatHistorySidebar';
@@ -524,6 +525,7 @@ export function MobileChatApp() {
       throw new Error('The submitted message changed. Review it before sending.');
     }
     const userMessage = JSON.parse(JSON.stringify(message)) as CloudRunSubmission['userMessage'];
+    const locationContext = await captureCloudLocationContext(captured.userContent);
 
     const buildRequest = (uploadedAttachments?: CloudMediaReference[]): CloudTextRequest => {
       const storedBrowserSession = useBrowserbaseSessionStore.getState().getSession(captured.sessionId);
@@ -543,6 +545,7 @@ export function MobileChatApp() {
         ...(workspaceContext ? { workspace_context: workspaceContext } : {}),
         reasoningEffort: resolveReasoningEffort(captured.reasoningSelection, getQueryComplexity(message.content)),
         clientTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        ...(locationContext ? { locationContext } : {}),
       };
     };
 

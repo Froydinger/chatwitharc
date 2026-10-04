@@ -227,6 +227,7 @@ export function validateAction(value: unknown, bearer = ""): Action {
     "currentFiles",
     "projectId",
     "workspace_context",
+    "locationContext",
     "attachments",
     "browserbaseDevice",
     "browserbaseSessionHandle",
@@ -277,6 +278,23 @@ export function validateAction(value: unknown, bearer = ""): Action {
       }
     }
     request.workspace_context = snapshot;
+  }
+  if (input.locationContext !== undefined) {
+    const location = object(input.locationContext);
+    if (location.source !== "ip" || typeof location.available !== "boolean") invalid("Invalid approximate location context.");
+    if (!location.available) {
+      keys(location, ["source", "available"]);
+      request.locationContext = { source: "ip", available: false };
+    } else {
+      keys(location, ["source", "available", "city", "region", "country", "latitude", "longitude"]);
+      const city = string(location.city, 120).trim();
+      if (!city || typeof location.latitude !== "number" || !Number.isFinite(location.latitude) || Math.abs(location.latitude) > 90 || typeof location.longitude !== "number" || !Number.isFinite(location.longitude) || Math.abs(location.longitude) > 180) invalid("Invalid approximate city.");
+      request.locationContext = { source: "ip", available: true, city,
+        latitude: location.latitude, longitude: location.longitude,
+        ...(location.region === undefined ? {} : { region: string(location.region, 120) }),
+        ...(location.country === undefined ? {} : { country: string(location.country, 120) }),
+      };
+    }
   }
   if (input.model !== undefined) request.model = string(input.model, 100);
   if (input.reasoningEffort !== undefined) {

@@ -1543,7 +1543,7 @@ product and is helping someone with it. Stay in that voice completely.`;
         type: "function",
         function: {
           name: "get_weather",
-          description: "Get current weather conditions for a specific location. Use this whenever the user asks about weather, temperature, forecast, or conditions for a place. If the user's precise latitude/longitude are available in context (e.g. for 'weather near me'), ALWAYS pass them as latitude/longitude instead of a city name — this is far more accurate than a place name. A weather card will be displayed to the user automatically.",
+          description: "Get current weather conditions for a specific location. Use this whenever the user asks about weather, temperature, forecast, or conditions for a place. An explicit user place overrides any snapshot. For 'weather near me', use consented device latitude/longitude only when the context explicitly marks them precise. A client IP-city snapshot is approximate: use its city name, never present it as precise coordinates, and never infer location from the server or worker IP. A weather card will be displayed to the user automatically.",
           parameters: {
             type: "object",
             properties: {

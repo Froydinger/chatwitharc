@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import { build } from 'esbuild-wasm';
+const bundled = await build({ entryPoints: ['src/lib/userLocation.ts'], bundle: true, write: false, format: 'esm' });
+let importId = 0;
+const load = () => import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].text + `\n// ${importId++}`).toString('base64')}`);
+const storage = new Map();
+globalThis.sessionStorage = { getItem: key => storage.get(key) ?? null, setItem: (key,value) => storage.set(key,value) };
+Object.defineProperty(globalThis, 'navigator', {configurable:true, value: { geolocation: { getCurrentPosition() { throw Error('GPS must never be requested'); } } }});
+globalThis.window = { Capacitor: { getPlatform: () => 'ios', registerPlugin() { throw Error('Native GPS must never be requested'); } } };
+const location = { city: 'Chicago', region: 'Illinois', country: 'US', latitude: 41.88, longitude: -87.63, source: 'ip' };
+let calls = 0;
+globalThis.fetch = async (url, options) => {
+  calls++;
+  assert.equal(url, 'https://askarc.chat/api/location');
+  assert.equal(options.credentials, 'omit');
+  assert.equal(options.cache, 'no-store');
+  return { ok: true, json: async () => ({location}) };
+};
+let helper = await load();
+const results = await Promise.all([helper.getUserLocation(), helper.getUserLocation()]);
+assert.equal(calls, 1, 'concurrent requests share lookup');
+assert.equal(results[0].city, 'Chicago');
+await helper.getUserLocation();
+assert.equal(calls, 1, 'success cached');
+assert.match(helper.formatLocationForContext(results[0]), /not GPS/);
+assert.match(helper.formatLocationForContext(results[0]), /explicitly stated city or location always overrides/);
+assert.match(helper.formatLocationForContext(results[0]), /VPNs/);
+assert.equal(helper.requestsCurrentLocation('coffee near me'), true);
+assert.equal(helper.requestsCurrentLocation('coffee in Paris'), false);
+// A precise legacy location cannot be reused as a network estimate.
+storage.clear(); storage.set('arc:userLocation:v2', JSON.stringify({...location, source: undefined, fetchedAt: Date.now()}));
+helper = await load(); assert.equal(helper.getCachedLocation(), null);
+globalThis.fetch = async () => { calls++; return { ok: true, json: async () => ({location: {...location, latitude: 190}}) }; };
+assert.equal(await helper.getUserLocation(), null);
+const failedCalls = calls;
+assert.equal(await helper.getUserLocation(), null);
+assert.equal(calls, failedCalls, 'failure negatively cached');
+// An unresponsive request, including its JSON body, cannot block a chat for seconds.
+storage.clear(); helper = await load();
+let aborted = false;
+globalThis.fetch = async (_url, options) => { options.signal.addEventListener('abort', () => { aborted = true; }); return {ok:true,json:()=>new Promise(()=>{})}; };
+const started = Date.now();
+assert.equal(await helper.getUserLocation(), null);
+assert.ok(Date.now() - started < 1900);
+assert.equal(aborted, true);
+console.log('PASS permission-free IP lookup, concurrency/cache, legacy GPS exclusion, malformed response, failure cache and bounded timeout');

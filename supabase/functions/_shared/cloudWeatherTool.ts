@@ -4,7 +4,7 @@ import type { CloudWeatherData } from './cloudRunArtifacts.ts';
 
 export const CLOUD_WEATHER_DEFINITION: CloudToolDefinition = {
   type: 'function', name: 'get_weather', strict: true,
-  description: 'Get weather and an inline weather card for an explicitly requested place. Use coordinates only when supplied by the user or their consented location snapshot. Never infer current location from profile, history, IP, or old coordinates. If current location is unavailable, ask for a place. Cloud execution cannot acquire a fresh device location.',
+  description: 'Get weather and an inline weather card for a requested place. An explicit user place overrides any location snapshot. For near-me weather, use a supplied client approximate IP-city snapshot as a city name, clearly approximate; never treat it as precise device coordinates. Use latitude/longitude only when supplied by the user or a consented device-location snapshot. Never infer current location from profile, history, the cloud worker IP, or old coordinates. If no supplied current location is available, ask for a place. Cloud execution cannot acquire a fresh device location.',
   parameters: {
     type: 'object', additionalProperties: false,
     properties: { location: { type: ['string', 'null'], maxLength: 300 },

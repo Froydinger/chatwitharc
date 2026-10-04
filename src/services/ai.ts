@@ -267,7 +267,7 @@ export class AIService {
       }
 
       // Auto-inject user location when the latest message implies it's relevant.
-      // Uses cached location if available; otherwise silently requests permission once.
+      // Uses a cached approximate city or a short first-party IP lookup; never prompts for GPS.
       let usedLocation: import('@/lib/userLocation').UserLocation | null = null;
       try {
         const lastUserText = messages.filter(m => m.role === 'user').pop()?.content || '';
@@ -292,8 +292,8 @@ export class AIService {
             (effectiveProfile as any).memory_info = '';
           }
           const unavailableLine = asksForCurrentLocation
-            ? "Device location is unavailable or was not allowed. Do not infer, mention, or substitute any location from memory, profile, IP, or old chats. Ask the user to allow device Location access or provide a city or ZIP code."
-            : "Device location is unavailable or was not allowed. Ask the user which city to use instead of guessing their location.";
+            ? "Approximate network location is unavailable. Do not substitute a location from memory, profile, or old chats. Ask for a city or ZIP code; do not ask the user to enable device permissions."
+            : "Approximate network location is unavailable. Use a city explicitly supplied by the user, or ask which city to use; do not ask for device permissions.";
           const existing = (effectiveProfile as any).context_info || '';
           (effectiveProfile as any).context_info = existing
             ? `${existing}\n\n${unavailableLine}`

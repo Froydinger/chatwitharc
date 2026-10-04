@@ -830,3 +830,13 @@ Deno.test('model modes are persisted, kind-scoped and closed; none effort is acc
     { ...submit, kind: 'app', request: { ...submit.request, appModelMode: 'invalid' } },
   ]) { let rejected = false; try { validateAction(payload); } catch { rejected = true; } assert(rejected); }
 });
+
+Deno.test('approximate client IP city is closed and cannot carry a raw IP or precise-location assertion', () => {
+  const estimate = { source: 'ip', available: true, city: 'Plainfield', region: 'Illinois', country: 'US', latitude: 41.6, longitude: -88.2 };
+  const accepted = validateAction({ ...submit, request: { ...submit.request, locationContext: estimate } });
+  assert(accepted.action === 'submit' && (accepted.request.locationContext as Record<string, unknown>).city === estimate.city && (accepted.request.locationContext as Record<string, unknown>).source === 'ip');
+  validateAction({ ...submit, request: { ...submit.request, locationContext: { source: 'ip', available: false } } });
+  for (const locationContext of [ { ...estimate, ip: '1.2.3.4' }, { ...estimate, precise: true }, { ...estimate, source: 'gps' }, { ...estimate, latitude: 91 }, { ...estimate, city: '' }, { source: 'ip', available: false, city: 'Old city' } ]) {
+    let failed = false; try { validateAction({ ...submit, request: { ...submit.request, locationContext } }); } catch { failed = true; } assert(failed);
+  }
+});

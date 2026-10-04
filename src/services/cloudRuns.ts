@@ -9,7 +9,11 @@ export type CloudWorkspaceContext = {
   language?: string;
   label?: string;
 };
+export type CloudLocationContext =
+  | { source: 'ip'; available: true; city: string; region?: string; country?: string; latitude: number; longitude: number }
+  | { source: 'ip'; available: false };
 export type CloudTextRequest = {
+  locationContext?: CloudLocationContext;
   model?: string;
   messages: Array<{role: 'user' | 'assistant'; content: string}>;
   attachments?: CloudMediaReference[];

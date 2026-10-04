@@ -1,8 +1,4 @@
-/**
- * User location helper — geolocation + reverse geocode (BigDataCloud free endpoint, no key).
- * Caches per session: location object, denial flag.
- */
-
+/** Approximate network location; never requests GPS or device permission. */
 export interface UserLocation {
   city?: string;
   region?: string;
@@ -11,163 +7,75 @@ export interface UserLocation {
   longitude: number;
   fetchedAt: number;
   accuracyMeters?: number;
+  source: 'ip';
 }
 
-// Versioned so previously cached coarse/IP-derived locations are discarded.
-const CACHE_KEY = 'arc:userLocation:v2';
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
+const CACHE_KEY = 'arc:userLocation:ip:v3';
+const CACHE_TTL_MS = 30 * 60 * 1000;
+const FAILURE_TTL_MS = 60_000;
+const REQUEST_TIMEOUT_MS = 1_500;
+let failedAt: number | null = null;
 let pendingLocationRequest: Promise<UserLocation | null> | null = null;
 
-// Trigger words/phrases that imply the model would benefit from user location.
 const LOCATION_INTENT = /\b(near\s*me|nearby|around\s*(me|here)|in\s*my\s*(area|city|town|region)|where\s*am\s*i|local\b|locally|weather|forecast|temperature|restaurants?|cafes?|coffee|bars?|gas\s*stations?|grocery|grocer(y|ies)|pharmac(y|ies)|hotels?|attractions?|things?\s*to\s*do|what'?s?\s*open|closest|nearest|directions?|how\s*far|distance\s*to|sunset|sunrise|tides?)\b/i;
 const CURRENT_LOCATION_INTENT = /\b(near\s*me|nearby|around\s*(me|here)|in\s*my\s*(area|city|town|region)|where\s*am\s*i|my\s*(location|area|city|town|region)|current\s*location|(closest|nearest)\s+to\s+me)\b/i;
+export function detectsLocationIntent(text: string): boolean { return !!text && LOCATION_INTENT.test(text); }
+export function requestsCurrentLocation(text: string): boolean { return !!text && CURRENT_LOCATION_INTENT.test(text); }
 
-export function detectsLocationIntent(text: string): boolean {
-  if (!text) return false;
-  return LOCATION_INTENT.test(text);
+function validLocation(value: unknown): value is UserLocation {
+  if (!value || typeof value !== 'object') return false;
+  const loc = value as UserLocation;
+  return loc.source === 'ip' && typeof loc.city === 'string' && !!loc.city.trim() &&
+    Number.isFinite(loc.latitude) && Math.abs(loc.latitude) <= 90 &&
+    Number.isFinite(loc.longitude) && Math.abs(loc.longitude) <= 180 &&
+    Number.isFinite(loc.fetchedAt) && loc.fetchedAt <= Date.now() &&
+    Date.now() - loc.fetchedAt <= CACHE_TTL_MS;
 }
-
-export function requestsCurrentLocation(text: string): boolean {
-  if (!text) return false;
-  return CURRENT_LOCATION_INTENT.test(text);
-}
-
 export function getCachedLocation(): UserLocation | null {
   try {
     const raw = sessionStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const loc = JSON.parse(raw) as UserLocation;
-    if (Date.now() - loc.fetchedAt > CACHE_TTL_MS) return null;
-    return loc;
-  } catch {
-    return null;
-  }
+    const loc: unknown = raw ? JSON.parse(raw) : null;
+    return validLocation(loc) ? loc : null;
+  } catch { return null; }
 }
 
-async function reverseGeocode(lat: number, lon: number): Promise<Partial<UserLocation>> {
-  try {
-    const fetchPromise = fetch(
-      `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`
-    );
-
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Timeout")), 4000)
-    );
-
-    const res = await Promise.race([fetchPromise, timeoutPromise]);
-    if (!res.ok) return {};
-    const data = await res.json();
-    return {
-      city: data.locality || data.city || undefined,
-      region: data.principalSubdivision || undefined,
-      country: data.countryName || undefined,
-    };
-  } catch {
-    return {};
-  }
-}
-
-/**
- * Request native When-In-Use location on iOS, browser geolocation elsewhere.
- * Returns null if unavailable or denied; caches successful results per session.
- */
-interface NativeLocationBridge {
-  getCurrentLocation(): Promise<{ latitude: number; longitude: number; accuracy: number }>;
-}
-function nativeLocationBridge(): NativeLocationBridge | null {
-  if (typeof window === 'undefined') return null;
-  const capacitor = (window as Window & { Capacitor?: { getPlatform?: () => string; registerPlugin?: (name: string) => NativeLocationBridge } }).Capacitor;
-  if (capacitor?.getPlatform?.() !== 'ios' || !capacitor.registerPlugin) return null;
-  return capacitor.registerPlugin('ArcNative');
-}
-
+/** One bounded request shared by chat, Work and voice, including installed apps. */
 export async function getUserLocation(): Promise<UserLocation | null> {
   const cached = getCachedLocation();
   if (cached) return cached;
-  const native = nativeLocationBridge();
-  if (!native && (typeof navigator === 'undefined' || !navigator.geolocation)) return null;
+  if (failedAt !== null && Date.now() - failedAt < FAILURE_TTL_MS) return null;
   if (pendingLocationRequest) return pendingLocationRequest;
-
   pendingLocationRequest = (async () => {
-    if (native) {
-      try {
-        const coords = await native.getCurrentLocation();
-        if (!Number.isFinite(coords.latitude) || !Number.isFinite(coords.longitude) || !Number.isFinite(coords.accuracy) ||
-            Math.abs(coords.latitude) > 90 || Math.abs(coords.longitude) > 180 || coords.accuracy < 0) return null;
-        const geo = await reverseGeocode(coords.latitude, coords.longitude);
-        const location: UserLocation = { ...geo, latitude: Number(coords.latitude.toFixed(4)), longitude: Number(coords.longitude.toFixed(4)), accuracyMeters: Math.round(coords.accuracy), fetchedAt: Date.now() };
-        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(location)); } catch {
-          // Session storage is best-effort.
-        }
-        return location;
-      } catch (error) {
-        if ((error as { code?: string })?.code === 'LOCATION_DENIED') window.dispatchEvent(new CustomEvent('arc:location-permission-denied'));
-        return null;
-      }
-    }
-    const requestCoordinates = (enableHighAccuracy: boolean, maximumAge = 300_000) => new Promise<{
-      coords: GeolocationCoordinates | null;
-      errorCode?: number;
-    }>((resolve) => {
-      // Give iOS enough time to present and resolve its native permission sheet.
-      const timerId = setTimeout(() => {
-        console.warn("Geolocation prompt timed out manually.");
-        resolve({ coords: null });
-      }, 12_000);
-
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          clearTimeout(timerId);
-          resolve({ coords: pos.coords });
-        },
-        (error) => {
-          clearTimeout(timerId);
-          // Do not cache denial here. iOS and embedded browsers can return the
-          // same code when no permission sheet was shown; the browser already
-          // remembers a genuine user denial itself.
-          resolve({ coords: null, errorCode: error.code });
-        },
-        { enableHighAccuracy, timeout: 8_000, maximumAge }
-      );
-    });
-
-    // Try standard accuracy first with OS cached position (resolves in ~50ms on mobile/desktop).
-    // If unavailable and not explicitly denied by the user, fallback to high accuracy.
-    let result = await requestCoordinates(false, 300_000);
-    if (!result.coords && result.errorCode !== 1) {
-      result = await requestCoordinates(true, 0);
-    }
-    const coords = result.coords;
-
-    if (!coords && result.errorCode === 1 && typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('arc:location-permission-denied'));
-    }
-
-    if (!coords) return null;
-
-    const geo = await reverseGeocode(coords.latitude, coords.longitude);
-    const loc: UserLocation = {
-      ...geo,
-      latitude: Number(coords.latitude.toFixed(4)),
-      longitude: Number(coords.longitude.toFixed(4)),
-      fetchedAt: Date.now(),
-      accuracyMeters: Math.round(coords.accuracy),
-    };
-    try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(loc)); } catch {
-      // Session storage is best-effort.
-    }
-    return loc;
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      // Fixed first-party origin works from native capacitor:// and web wrappers.
+      // The edge uses the caller's IP; no IP or precise position leaves this helper.
+      const request = (async () => {
+        const response = await fetch('https://askarc.chat/api/location', {
+          signal: controller.signal, credentials: 'omit', cache: 'no-store',
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        const location: unknown = data?.location ? { ...data.location, fetchedAt: Date.now() } : null;
+        return validLocation(location) ? location : null;
+      })();
+      const timeout = new Promise<null>((resolve) => {
+        timer = setTimeout(() => { controller.abort(); resolve(null); }, REQUEST_TIMEOUT_MS);
+      });
+      const loc = await Promise.race([request, timeout]);
+      if (!loc) { failedAt = Date.now(); return null; }
+      failedAt = null;
+      try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(loc)); } catch { /* Storage is optional. */ }
+      return loc;
+    } catch { failedAt = Date.now(); return null; }
+    finally { if (timer !== undefined) clearTimeout(timer); }
   })();
-
-  try {
-    return await pendingLocationRequest;
-  } finally {
-    pendingLocationRequest = null;
-  }
+  try { return await pendingLocationRequest; }
+  finally { pendingLocationRequest = null; }
 }
 
 export function formatLocationForContext(loc: UserLocation): string {
-  const parts = [loc.city, loc.region, loc.country].filter(Boolean);
-  const place = parts.length ? parts.join(', ') : `${loc.latitude}, ${loc.longitude}`;
-  return `Browser-reported location: ${place} (lat ${loc.latitude}, lon ${loc.longitude}). The user's explicitly stated location always overrides this value. Use it only when relevant.`;
+  const place = [loc.city, loc.region, loc.country].filter(Boolean).join(', ');
+  return `Approximate IP-based city: ${place} (city-area latitude ${loc.latitude}, longitude ${loc.longitude}). This is a network estimate, not GPS or an exact device location; VPNs and mobile networks can place it in another city. The user's explicitly stated city or location always overrides this estimate. Use it only when relevant. For nearby results identify the estimated city and let the user correct it; never claim exact distance or precise current location.`;
 }
