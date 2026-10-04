@@ -148,7 +148,6 @@ function ComingSoonConnector({
 function SectionCard({
   icon: Icon,
   title,
-  subtitle,
   children,
   className,
 }: {
@@ -166,7 +165,7 @@ function SectionCard({
         </div>
         <div className="min-w-0">
           <h3 className="font-semibold text-foreground">{title}</h3>
-          {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
+
         </div>
       </div>
       <div className="space-y-2">{children}</div>
@@ -1062,7 +1061,7 @@ export function SettingsPanel() {
                     </span>
                     <span className="flex flex-col items-start min-w-0">
                       <span className="text-sm font-semibold truncate">{current.label}</span>
-                      <span className="text-[11px] text-muted-foreground truncate">{current.subtitle}</span>
+
                     </span>
                   </span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -1095,7 +1094,7 @@ export function SettingsPanel() {
                       </span>
                       <span className="flex-1 min-w-0">
                         <span className="block text-sm font-medium truncate">{s.label}</span>
-                        <span className="block text-[11px] text-muted-foreground truncate">{s.subtitle}</span>
+
                       </span>
                       {active && <Check className="h-4 w-4 text-primary shrink-0" />}
                     </DropdownMenuItem>
@@ -1112,7 +1111,7 @@ export function SettingsPanel() {
         <aside className="hidden lg:flex flex-col sticky top-2 self-start h-[calc(100vh-6rem)] rounded-[28px] border border-white/[0.08] bg-white/[0.025] p-3 shadow-[0_22px_80px_rgba(0,0,0,0.12)]">
           <div className="px-3 pb-4 pt-2">
             <h1 className="text-xl font-semibold text-foreground">Settings</h1>
-            <p className="text-xs text-muted-foreground">Customize your ArcAI experience</p>
+
           </div>
           <nav className="flex flex-1 flex-col gap-1" aria-label="Settings sections">
             {SECTIONS.map((s) => {
@@ -1139,7 +1138,7 @@ export function SettingsPanel() {
                   </span>
                   <span className="flex-1 min-w-0">
                     <span className="block text-sm font-medium truncate">{s.label}</span>
-                    <span className="block text-[11px] text-muted-foreground truncate">{s.subtitle}</span>
+
                   </span>
                 </button>
               );

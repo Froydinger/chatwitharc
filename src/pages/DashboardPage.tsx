@@ -591,7 +591,7 @@ useEffect(() => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
-      
+
       // Use a more targeted query to find sessions with images
       const { data, error } = await supabase
         .from('chat_sessions')
@@ -600,9 +600,9 @@ useEffect(() => {
         .filter('messages', 'cs', '[{"type": "image", "role": "assistant"}]')
         .order('updated_at', { ascending: false })
         .range(offset, offset + DB_SESSION_BATCH - 1);
-        
+
       if (error) throw error;
-      
+
       const newImages: GeneratedImage[] = [];
       (data || []).forEach(s => {
         ((s.messages as any[]) || []).forEach(msg => {
@@ -619,7 +619,7 @@ useEffect(() => {
           }
         });
       });
-      
+
       newImages.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
       setDbImages(prev => reset ? newImages : [...prev, ...newImages]);
       setDbSessionOffset(offset + DB_SESSION_BATCH);
@@ -1127,7 +1127,7 @@ useEffect(() => {
   };
   const onBubblePtrUp = (e: React.PointerEvent) => {
     if (!isBubbleDragging || !navPillRef.current) return;
-    
+
     const contentW = navPillRef.current.offsetWidth - PILL_PAD * 2;
     const trackStart = PILL_PAD + NAV_EDGE_INSET;
     const trackW = Math.max(0, contentW - NAV_EDGE_INSET * 2);
@@ -1244,7 +1244,7 @@ useEffect(() => {
                 <h1 className="text-base sm:text-2xl font-light text-foreground tracking-tight">
                   {greeting}{profile?.display_name ? `, ${profile.display_name}` : ""}.
                 </h1>
-                <p className="text-xs text-muted-foreground">Everything you’ve made, saved, and scheduled.</p>
+
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -1433,8 +1433,8 @@ useEffect(() => {
                   </div>
                   <UsageSnapshotWidget onOpenPlan={() => navigate('/dashboard/settings?section=plan')} />
                   <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => navigate('/tasks')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Clock className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Reminders</p><p className="mt-1 text-[11px] text-muted-foreground">Scheduled tasks</p></button>
-                    <button onClick={() => navigate('/shared')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Users className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Collab Chats</p><p className="mt-1 text-[11px] text-muted-foreground">Chat together with @Arc</p></button>
+                    <button onClick={() => navigate('/tasks')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Clock className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Reminders</p></button>
+                    <button onClick={() => navigate('/shared')} className="rounded-3xl border border-border/60 bg-background/80 p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.04] dark:border-border/35 dark:bg-background/45 dark:shadow-none dark:hover:bg-primary/[0.06]"><Users className="h-5 w-5 text-primary" /><p className="mt-4 text-sm font-semibold">Collab Chats</p></button>
                   </div>
                 </aside>
               </div>
@@ -1493,14 +1493,14 @@ useEffect(() => {
 
               <section className="grid gap-4 lg:grid-cols-[1fr_0.65fr]">
                 <div className="rounded-[2rem] border border-border/35 bg-background/40 p-5 sm:p-6">
-                  <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><Brain className="h-5 w-5 text-primary" /><div><h2 className="text-sm font-semibold">Living memory</h2><p className="text-xs text-muted-foreground">The summary Arc carries forward</p></div></div><button onClick={() => switchTab('memories')} className="text-xs text-primary">Open</button></div>
+                  <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-3"><Brain className="h-5 w-5 text-primary" /><div><h2 className="text-sm font-semibold">Living memory</h2></div></div><button onClick={() => switchTab('memories')} className="text-xs text-primary">Open</button></div>
                   {blocksLoading ? <SkeletonList count={3} /> : contextBlocks.length === 0 ? <EmptyState icon={Brain} text="No memories yet" sub='Say “remember that…” in chat.' /> : (
                     <div className="grid gap-2 sm:grid-cols-2">{contextBlocks.slice(0, 4).map((block) => <div key={block.id} className="rounded-2xl border border-border/30 bg-muted/15 p-3.5"><p className="line-clamp-2 text-sm leading-relaxed text-foreground/90">{block.content}</p><span className="mt-2 block text-[10px] uppercase tracking-wider text-muted-foreground">{timeAgo(block.created_at)}</span></div>)}</div>
                   )}
                 </div>
                 <button onClick={() => navigate('/status')} className="group flex min-h-40 flex-col justify-between rounded-[2rem] border border-border/35 bg-gradient-to-br from-background/45 to-primary/[0.07] p-5 text-left transition-all hover:border-primary/35 sm:p-6">
                   <div className="flex items-center justify-between"><Globe className="h-5 w-5 text-primary" /><span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400"><span className="h-2 w-2 rounded-full bg-emerald-400" /> Live</span></div>
-                  <div><p className="text-lg font-semibold">Arc system status</p><p className="mt-1 text-xs leading-relaxed text-muted-foreground">Live service checks, incident visibility, and platform health.</p></div>
+                  <div><p className="text-lg font-semibold">Arc system status</p></div>
                 </button>
               </section>
             </motion.div>
@@ -1760,10 +1760,10 @@ useEffect(() => {
                             return <ImageCard key={`${img.sessionId}-${globalIndex}`} img={img} onClick={() => setViewingImageIndex(globalIndex)} index={i} />;
                           })}
                         </div>
-                        
+
                         <div className="flex flex-col items-center gap-4 pt-4">
                           <PaginationBar current={imagePage} total={Math.ceil(filteredImages.length / ITEMS_PER_PAGE)} onChange={setImagePage} />
-                          
+
                           {dbHasMoreSessions && (
                             <Button 
                               variant="ghost" 
@@ -2249,7 +2249,7 @@ useEffect(() => {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0 flex-1 basis-64">
                   <h2 className="text-lg font-semibold">Arc's living memory</h2>
-                  <p className="mt-1 text-xs text-muted-foreground">Tell Arc anything, and it remembers; ask to forget.</p>
+
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                 <Button

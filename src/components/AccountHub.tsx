@@ -60,7 +60,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   const { toast } = useToast();
   const { isAdmin } = useAdminSettings();
   const { clearAllSessions, createNewSession, lastSyncAt } = useArcStore();
-  
+
   const {
     loading: subLoading,
     isAdmin: quotaAdmin,
@@ -622,7 +622,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
   );
 }
 
-function Section({ icon, title, desc, badge, children }: {
+function Section({ icon, title, badge, children }: {
   icon: React.ReactNode; title: string; desc: string; badge?: string; children: React.ReactNode;
 }) {
   return (
@@ -634,7 +634,7 @@ function Section({ icon, title, desc, badge, children }: {
             <h3 className="font-medium text-foreground text-sm">{title}</h3>
             {badge && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary">{badge}</span>}
           </div>
-          <p className="text-xs text-muted-foreground">{desc}</p>
+
         </div>
       </div>
       {children}

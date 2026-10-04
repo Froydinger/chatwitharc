@@ -76,7 +76,7 @@ export function StatusPage() {
                   <Activity className="h-3.5 w-3.5" /> AskArc system status
                 </div>
                 <h1 className="max-w-2xl text-4xl font-light tracking-tight sm:text-6xl">AskArc status</h1>
-                <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">A simple live check for AskArc and the services that power it.</p>
+
               </div>
               <div className={cn("flex items-center gap-2 text-sm font-semibold", summary.color)}>
                 <span className={cn("h-2.5 w-2.5 rounded-full shadow-[0_0_18px_currentColor]", summary.bg)} />

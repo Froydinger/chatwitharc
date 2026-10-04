@@ -133,9 +133,7 @@ export function QuoteOfDayModal() {
             </div>
             <div className="flex-1 min-w-0">
               <h4 className="font-medium text-foreground text-sm">Quote of the Day</h4>
-              <p className="text-xs text-muted-foreground truncate">
-                Tap for today's inspiration
-              </p>
+
             </div>
           </div>
         </GlassCard>

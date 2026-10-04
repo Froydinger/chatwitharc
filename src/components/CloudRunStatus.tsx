@@ -161,7 +161,7 @@ function WorkCompletionSummary({ run, onClose }: { run: CloudRun<unknown, CloudR
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Arc Work</p>
           <h2 id="work-complete-title" className="mt-1 text-xl font-semibold">Work complete</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Here’s the finished result and everything Arc created.</p>
+
         </div>
         <button type="button" aria-label="Close work summary" onClick={onClose}
           className="rounded-full border border-border/60 px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Done</button>
@@ -296,7 +296,7 @@ function CloudRunStatusCard({ run, mode = 'auto', connection = 'idle', observati
   if (mode === 'auto' && run.status === 'completed') return <>
     {!hasWorkCompletionSummary(run) ? null : <>
     <section className="flex w-full max-w-xl items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background/70 p-3 text-foreground shadow-sm">
-      <div><p className="text-sm font-semibold">Work complete</p><p className="text-xs text-muted-foreground">Your response, links, created assets, and audit trail are ready.</p></div>
+      <div><p className="text-sm font-semibold">Work complete</p></div>
       <button type="button" className={button} onClick={() => setSummaryOpen(true)}>View summary</button>
     </section>
     {summaryOpen && <WorkCompletionSummary run={run} onClose={() => setSummaryOpen(false)} />}

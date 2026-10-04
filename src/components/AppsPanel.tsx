@@ -140,9 +140,7 @@ export function AppsPanel() {
           </div>
           <h2 className="text-3xl font-bold text-foreground">Apps</h2>
         </div>
-        <p className="text-muted-foreground text-base">
-          Full web applications built with Luna
-        </p>
+
         <div className="mx-auto max-w-2xl w-full">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

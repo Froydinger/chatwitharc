@@ -28,23 +28,6 @@ export const musicTracks: MusicTrack[] = [
 ];
 
 export type PlaybackMode = 'loop-track' | 'loop-all' | 'shuffle' | 'sequential';
-export type MusicSource = 'built-in' | 'youtube';
-
-export const LOFI_RADIO_VIDEO_ID = 'rFZHOHl-L8A';
-export const RETIRED_LOFI_RADIO_VIDEO_IDS = ['jfKfPfyJRdk', 'EWrX250Zhko'];
-
-export const YOUTUBE_PRESETS = [
-  { id: 'lofi-radio', name: 'Lo-Fi Radio', videoId: LOFI_RADIO_VIDEO_ID },
-  { id: 'chillhop-radio', name: 'Chillhop Radio', videoId: 'jiua2V9q9V0' },
-  { id: 'jazz-radio', name: 'Jazz Radio', videoId: 'Dx5qFachd3A' },
-  { id: 'ambient-space', name: 'Ambient Space', videoId: 'S_MOd40zlYU' },
-  { id: 'classical', name: 'Classical Piano', videoId: '4Tr0otuiQuU' },
-  { id: 'study-beats', name: 'Study Beats', videoId: '5qap5aO4i9A' },
-  { id: 'chill-synth', name: 'Synthwave', videoId: '4xDzrJKXOOY' },
-  { id: 'nature-sounds', name: 'Rain & Thunder', videoId: 'mPZkdNFkNps' },
-  { id: 'coffee-shop', name: 'Coffee Shop', videoId: 'h2zkV-l_TbY' },
-];
-
 interface MusicState {
   isPlaying: boolean;
   volume: number;
@@ -54,8 +37,6 @@ interface MusicState {
   duration: number;
   isLoading: boolean;
   playbackMode: PlaybackMode;
-  musicSource: MusicSource;
-  youtubeVideoId: string;
   audioRef: HTMLAudioElement | null;
 
   setAudioRef: (ref: HTMLAudioElement | null) => void;
@@ -66,8 +47,6 @@ interface MusicState {
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
   setIsLoading: (loading: boolean) => void;
-  setMusicSource: (source: MusicSource) => void;
-  setYoutubeVideoId: (id: string) => void;
 
   togglePlay: () => void;
   toggleMute: () => void;
@@ -93,8 +72,6 @@ export const useMusicStore = create<MusicState>()(
       duration: 0,
       isLoading: false,
       playbackMode: 'loop-track',
-      musicSource: 'built-in',
-      youtubeVideoId: LOFI_RADIO_VIDEO_ID,
       audioRef: null,
 
       setAudioRef: (ref) => set({ audioRef: ref }),
@@ -105,8 +82,6 @@ export const useMusicStore = create<MusicState>()(
       setCurrentTime: (time) => set({ currentTime: time }),
       setDuration: (duration) => set({ duration }),
       setIsLoading: (loading) => set({ isLoading: loading }),
-      setMusicSource: (source) => set({ musicSource: source }),
-      setYoutubeVideoId: (id) => set({ youtubeVideoId: id }),
 
       togglePlay: () => {
         const { audioRef, isPlaying, setIsPlaying, setIsLoading } = get();
@@ -233,22 +208,17 @@ export const useMusicStore = create<MusicState>()(
     }),
     {
       name: 'arc-music-storage',
-      version: 2,
+      version: 3,
       migrate: (persistedState) => {
         const state = persistedState as Partial<MusicState>;
-        const currentId = state.youtubeVideoId;
-        const isRetired = currentId ? RETIRED_LOFI_RADIO_VIDEO_IDS.includes(currentId) : false;
-        return isRetired
-          ? { ...state, youtubeVideoId: LOFI_RADIO_VIDEO_ID }
-          : state;
+        return { volume: state.volume, currentTrack: state.currentTrack,
+          isMuted: state.isMuted, playbackMode: state.playbackMode };
       },
       partialize: (state) => ({
         volume: state.volume,
         currentTrack: state.currentTrack,
         isMuted: state.isMuted,
         playbackMode: state.playbackMode,
-        musicSource: state.musicSource,
-        youtubeVideoId: state.youtubeVideoId,
       }),
     }
   )

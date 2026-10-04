@@ -69,7 +69,7 @@ export function SharedLinksCard() {
         </div>
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-foreground">Shared chat links</h3>
-          <p className="text-xs text-muted-foreground">Manage chats you've made public.</p>
+
         </div>
       </div>
 

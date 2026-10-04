@@ -77,7 +77,7 @@ export function MusicPlayerPanel({
   const handleSeek = (newTime: number[]) => {
     const audio = audioRef.current;
     if (!audio || !duration) return;
-    
+
     const seekTime = newTime[0];
     audio.currentTime = seekTime;
     setCurrentTime(seekTime);
@@ -103,7 +103,7 @@ export function MusicPlayerPanel({
   const toggleMute = () => {
     const audio = audioRef.current;
     if (!audio) return;
-    
+
     const newMuted = !isMuted;
     setIsMuted(newMuted);
     audio.volume = newMuted ? 0 : volume;
@@ -114,7 +114,7 @@ export function MusicPlayerPanel({
     setIsPlaying(false);
     setCurrentTrack(trackId);
     setCurrentTime(0);
-    
+
     if (wasPlaying) {
       setTimeout(() => {
         const audio = audioRef.current;
@@ -151,7 +151,7 @@ export function MusicPlayerPanel({
           </div>
           <h1 className="text-2xl font-bold text-foreground">Music Player</h1>
         </div>
-        <p className="text-muted-foreground">Focus with ambient background music</p>
+
       </div>
 
       {/* Current Track Display */}
@@ -178,7 +178,7 @@ export function MusicPlayerPanel({
               <div className="fallback-art absolute inset-0 bg-gradient-to-br from-primary/30 to-primary-glow/30 flex items-center justify-center hidden">
                 <Play className="h-20 w-20 text-primary-glow drop-shadow-lg" />
               </div>
-              
+
               {/* Now Playing Overlay */}
               {isPlaying && (
                 <div className="absolute inset-0 bg-black/20 flex items-end p-4">
@@ -193,7 +193,7 @@ export function MusicPlayerPanel({
                 </div>
               )}
             </div>
-            
+
             <div>
               <h2 className="text-2xl font-bold text-foreground">{track.name}</h2>
               <p className="text-lg text-muted-foreground">{track.artist}</p>
@@ -216,7 +216,7 @@ export function MusicPlayerPanel({
               <span className="font-mono">{formatTime(duration)}</span>
             </div>
           </div>
-          
+
           {/* Status Indicator */}
           <div className="flex items-center justify-center">
             {isLoading ? (
@@ -247,7 +247,7 @@ export function MusicPlayerPanel({
             >
               <SkipBack className="h-5 w-5" />
             </Button>
-            
+
             <Button
               variant="default"
               size="lg"
@@ -260,7 +260,7 @@ export function MusicPlayerPanel({
                 <Play className="h-6 w-6" />
               )}
             </Button>
-            
+
             <Button
               variant="ghost"
               size="icon"
@@ -346,7 +346,7 @@ export function MusicPlayerPanel({
                         <div className="w-1 h-4 bg-primary-glow rounded-full animate-pulse" style={{ animationDelay: '0.4s' }} />
                       </div>
                     ) : (
-                      <Pause className="h-4 w-4" />
+                      <Pause className="h-4 w-4 text-white" />
                     )}
                   </div>
                 )}

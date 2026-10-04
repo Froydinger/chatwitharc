@@ -651,7 +651,7 @@ export function AdminPanel() {
               <div className="p-5 border border-primary/15 bg-primary/[0.03] rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-bold text-foreground">Welcome to your administrative command center</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Here is how ArcAI is performing today.</p>
+
                 </div>
                 <Button variant="outline" size="sm" onClick={() => { fetchStats(); fetchUsers(); }} disabled={statsLoading} className="border-primary/25 text-primary hover:bg-primary/10">
                   <RefreshCw className={cn("h-3.5 w-3.5 mr-2", statsLoading && "animate-spin")} />
@@ -742,7 +742,7 @@ export function AdminPanel() {
                     ) : (
                       <h4 className="text-2xl font-black">{stats?.chatsCount || "0"}</h4>
                     )}
-                    <p className="text-[10px] text-muted-foreground mt-1">Created chat history threads</p>
+
                   </CardContent>
                 </Card>
 
@@ -757,7 +757,7 @@ export function AdminPanel() {
                     ) : (
                       <h4 className="text-2xl font-black">{stats?.totalImages || "0"}</h4>
                     )}
-                    <p className="text-[10px] text-muted-foreground mt-1">Generated via GPT Image models</p>
+
                   </CardContent>
                 </Card>
 
@@ -772,7 +772,7 @@ export function AdminPanel() {
                     ) : (
                       <h4 className="text-2xl font-black">{stats?.sitesCount || "0"}</h4>
                     )}
-                    <p className="text-[10px] text-muted-foreground mt-1">Online shared static websites</p>
+
                   </CardContent>
                 </Card>
 
@@ -787,7 +787,7 @@ export function AdminPanel() {
                     ) : (
                       <h4 className="text-2xl font-black">{stats?.bugsCount || "0"}</h4>
                     )}
-                    <p className="text-[10px] text-muted-foreground mt-1">Logged runtime crash traces</p>
+
                   </CardContent>
                 </Card>
 
@@ -802,7 +802,7 @@ export function AdminPanel() {
                     ) : (
                       <h4 className="text-2xl font-black">{stats?.ticketsCount || "0"}</h4>
                     )}
-                    <p className="text-[10px] text-muted-foreground mt-1">Logged customer help issues</p>
+
                   </CardContent>
                 </Card>
               </div>

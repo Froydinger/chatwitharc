@@ -114,7 +114,7 @@ export function CanvasesPanel() {
     chatSessions.forEach((session) => {
       session.messages.forEach((message) => {
         if (!message) return;
-        
+
         const coerced = toDate(message?.timestamp);
         if (!coerced) return;
 
@@ -222,7 +222,7 @@ export function CanvasesPanel() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       toast.success(`File saved as canvas.${extension}`);
     } catch (error) {
       toast.error("Failed to download file");
@@ -283,9 +283,7 @@ export function CanvasesPanel() {
           <h2 className="text-3xl font-bold text-foreground">Canvases</h2>
         </div>
 
-        <p className="text-muted-foreground text-base">
-          Writing and code canvases from your conversations
-        </p>
+
 
         {/* Search */}
         <div className="mx-auto max-w-2xl w-full">
@@ -352,7 +350,7 @@ export function CanvasesPanel() {
                     <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
                     <div className="w-2 h-2 rounded-full bg-green-500/60" />
                   </div>
-                  
+
                   {/* Preview content */}
                   {item.type === 'code' && item.language && canPreview(item.language) ? (
                     <div className="absolute inset-0 top-6 overflow-hidden pointer-events-none">
@@ -374,10 +372,10 @@ export function CanvasesPanel() {
                       </pre>
                     </div>
                   )}
-                  
+
                   {/* Fade overlay */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/90 pointer-events-none z-[5]" />
-                  
+
                   {/* Type and language badges */}
                   <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1.5">
                     {/* Type badge */}
@@ -393,7 +391,7 @@ export function CanvasesPanel() {
                       )}
                       {item.type === 'writing' ? 'Writing' : 'Code'}
                     </div>
-                    
+
                     {/* Language badge for code */}
                     {item.type === 'code' && item.language && (
                       <div className={`px-2 py-1 rounded-md text-[10px] font-mono backdrop-blur-sm ${getLanguageColor(item.language)}`}>
@@ -454,14 +452,14 @@ export function CanvasesPanel() {
                     )}
                     {selectedItem.type === 'writing' ? 'Writing' : 'Code'}
                   </div>
-                  
+
                   {/* Language badge for code */}
                   {selectedItem.type === 'code' && selectedItem.language && (
                     <div className={`px-2 sm:px-3 py-1 rounded-md text-xs sm:text-sm font-mono ${getLanguageColor(selectedItem.language)}`}>
                       {selectedItem.language}
                     </div>
                   )}
-                  
+
                   <span className="text-xs sm:text-sm text-muted-foreground truncate">
                     {selectedItem.sessionTitle}
                   </span>
@@ -488,7 +486,7 @@ export function CanvasesPanel() {
                       )}
                     </Button>
                   )}
-                  
+
                   {/* Open in Canvas */}
                   <Button
                     size="sm"
@@ -499,7 +497,7 @@ export function CanvasesPanel() {
                     <Layers className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Open in Canvas</span>
                   </Button>
-                  
+
                   <Button
                     size="sm"
                     variant="outline"

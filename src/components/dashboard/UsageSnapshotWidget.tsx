@@ -50,7 +50,7 @@ export function UsageSnapshotWidget({ onOpenPlan }: { onOpenPlan: () => void }) 
           </span>
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold">Usage today</h2>
-            <p className="truncate text-[10px] text-muted-foreground">Your plan’s current allowances</p>
+
           </div>
         </div>
         <span className="shrink-0 rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-primary">

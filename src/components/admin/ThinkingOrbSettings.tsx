@@ -18,7 +18,6 @@ import {
   Layers,
   RefreshCw,
   Sliders,
-  Radio,
   Tv,
   Bell,
   Play,
@@ -29,7 +28,6 @@ import { AnimatedCounter } from "@/components/ui/rare-ui/animated-counter";
 import { NotificationBell } from "@/components/ui/rare-ui/notification-bell";
 import { KineticDeleteButton } from "@/components/ui/rare-ui/kinetic-delete-button";
 import { GooeyTabNav } from "@/components/ui/rare-ui/gooey-tab-nav";
-import { useMusicStore, LOFI_RADIO_VIDEO_ID, YOUTUBE_PRESETS } from "@/store/useMusicStore";
 import { ThinkingIndicator, useResolvedOrbTheme } from "@/components/ThinkingIndicator";
 import { ImageGenerationFx } from "@/components/ImageGenerationFx";
 import {
@@ -102,10 +100,6 @@ export function ThinkingOrbSettings({
   const [deleteHoldMode, setDeleteHoldMode] = useState(true);
   const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
   const [demoTab, setDemoTab] = useState<"visuals" | "code" | "sound">("visuals");
-
-  // YouTube Live Stream Admin Testing
-  const { youtubeVideoId, setYoutubeVideoId } = useMusicStore();
-  const [testYoutubeId, setTestYoutubeId] = useState(youtubeVideoId || LOFI_RADIO_VIDEO_ID);
 
   const readState = (key: string, fallback: OrbState): OrbState => {
     const stored = getCurrentValue(key);
@@ -974,105 +968,6 @@ export function ThinkingOrbSettings({
                   onChange={(t) => setDemoTab(t)}
                   layoutId="admin-demo-gooey-pill"
                   size="sm"
-                />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── Section 5: Live Radio & Stream Manager ─────────────────────── */}
-      <Card className="border-border/60">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Radio className="h-5 w-5 text-primary" />
-            Live Radio & Media Stream Manager
-          </CardTitle>
-          <CardDescription>
-            Inspect and configure 24/7 background audio streams. Test live playback directly in the panel to verify streams before users hear them.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Controls */}
-            <div className="space-y-3">
-              <div>
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Default Live Radio Video ID
-                </Label>
-                <div className="flex gap-2 mt-1.5">
-                  <input
-                    type="text"
-                    value={testYoutubeId}
-                    onChange={(e) => setTestYoutubeId(e.target.value)}
-                    placeholder="YouTube Video ID (11 chars)"
-                    className="flex-1 rounded-xl bg-muted/30 border border-border/40 px-3 py-2 text-xs font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
-                  <Button
-                    size="sm"
-                    className="noir-send-btn text-xs"
-                    onClick={() => {
-                      setYoutubeVideoId(testYoutubeId);
-                    }}
-                  >
-                    Apply Live
-                  </Button>
-                </div>
-              </div>
-
-              {/* Station Presets */}
-              <div>
-                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Verified 24/7 Radio Presets
-                </Label>
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {YOUTUBE_PRESETS.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        setTestYoutubeId(p.videoId);
-                        setYoutubeVideoId(p.videoId);
-                      }}
-                      className={cn(
-                        "px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-150",
-                        testYoutubeId === p.videoId
-                          ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/40"
-                          : "bg-muted/30 text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                      )}
-                    >
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-muted/15 border border-border/30 text-xs text-muted-foreground space-y-1">
-                <p className="font-semibold text-foreground flex items-center gap-1.5">
-                  <Activity className="h-3.5 w-3.5 text-primary" /> Active Broadcast Status
-                </p>
-                <p className="font-mono text-[11px]">
-                  Current Video ID: <span className="text-primary font-bold">{youtubeVideoId}</span>
-                </p>
-                <p className="text-[11px]">
-                  Stream auto-migration is enabled for all users. If YouTube rotates a live broadcast, updating the default station here instantly applies to the Music Popup.
-                </p>
-              </div>
-            </div>
-
-            {/* Test Player Embed */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-                <span>Live Preview Player</span>
-                <span className="text-[10px] text-muted-foreground font-normal">Click play to test audio</span>
-              </Label>
-              <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/50 border border-border/40 shadow-inner">
-                <iframe
-                  src={`https://www.youtube.com/embed/${testYoutubeId}?autoplay=0&rel=0&modestbranding=1`}
-                  className="absolute inset-0 w-full h-full"
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  allowFullScreen
-                  title="Admin YouTube Preview"
                 />
               </div>
             </div>

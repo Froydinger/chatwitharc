@@ -4,13 +4,11 @@ import { Volume2, VolumeX, X, Music, Heart, Repeat, Repeat1, Shuffle, ArrowRight
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useMusicStore, musicTracks } from "@/store/useMusicStore";
-import { YouTubeMusicEmbed } from "@/components/YouTubeMusicEmbed";
 import { BenchoNowPlaying } from "@/components/music/BenchoNowPlaying";
 import { useMusicLikes } from "@/hooks/useMusicLikes";
 import { cn } from "@/lib/utils";
-import type { PlaybackMode, MusicSource } from "@/store/useMusicStore";
+import type { PlaybackMode } from "@/store/useMusicStore";
 
 const PLAYBACK_MODE_ICONS: Record<PlaybackMode, typeof Repeat1> = {
   "loop-track": Repeat1, "loop-all": Repeat, shuffle: Shuffle, sequential: ArrowRight,
@@ -24,7 +22,7 @@ interface MusicPopupProps { isOpen: boolean; onClose: () => void }
 export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
   const {
     isPlaying, volume, isMuted, currentTime, duration, currentTrack,
-    playbackMode, musicSource, setMusicSource, cyclePlaybackMode,
+    playbackMode, cyclePlaybackMode,
     toggleMute, seek, handleVolumeChange, handleTrackChange,
   } = useMusicStore();
   const popupRef = useRef<HTMLDivElement>(null);
@@ -72,12 +70,8 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
           <Button ref={closeRef} variant="ghost" size="icon" onClick={onClose} aria-label="Close music" className="h-8 w-8 rounded-full"><X className="h-4 w-4" /></Button>
         </div>
 
-        <Tabs value={musicSource} onValueChange={(value) => setMusicSource(value as MusicSource)} className="px-4 pb-4">
-          <TabsList className="grid w-full grid-cols-2 rounded-full bg-muted/50">
-            <TabsTrigger value="built-in" className="rounded-full">Built-in Tracks</TabsTrigger>
-            <TabsTrigger value="youtube" className="rounded-full">Live Radio</TabsTrigger>
-          </TabsList>
-          <TabsContent value="built-in" className="mt-1">
+        <div className="px-4 pb-4">
+          <div className="mt-1">
             <BenchoNowPlaying liked={likedTrackIds.has(currentTrack)} onToggleLike={() => void toggleLike(currentTrack)} />
             <div className="flex items-center justify-between border-t border-border/40 pt-2">
               <Button variant="ghost" onClick={cyclePlaybackMode} aria-label={`Playback mode: ${PLAYBACK_MODE_LABELS[playbackMode]}. Change mode`} className="h-9 gap-2 rounded-full px-3 text-xs">
@@ -126,9 +120,8 @@ export function MusicPopup({ isOpen, onClose }: MusicPopupProps) {
                 ))}
               </div>
             </ScrollArea>
-          </TabsContent>
-          <TabsContent value="youtube" className="mt-4"><YouTubeMusicEmbed /></TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div></Transition>
     </>
   );

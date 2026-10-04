@@ -278,9 +278,7 @@ export function MediaLibraryPanel() {
           <h2 className="text-3xl font-bold text-foreground">Media Library</h2>
         </div>
 
-        <p className="text-muted-foreground text-base">
-          All your AI-generated images from conversations
-        </p>
+
 
         {/* Search */}
         <div className="mx-auto max-w-2xl w-full">
@@ -388,7 +386,7 @@ export function MediaLibraryPanel() {
                       <MessageCircle className="h-4 w-4 mr-2" />
                       Go to Chat
                     </Button>
-                    
+
                     <Button
                       onClick={() => downloadImage(selectedImage)}
                       className="bg-black text-white hover:bg-black/80"

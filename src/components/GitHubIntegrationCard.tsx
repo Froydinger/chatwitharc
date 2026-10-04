@@ -111,9 +111,7 @@ export function GitHubIntegrationCard() {
           </div>
           <div className="min-w-0">
             <h3 className="font-semibold text-foreground">GitHub Integration</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Connect repositories, branch work, and manage Arc pull requests
-            </p>
+
           </div>
         </div>
 

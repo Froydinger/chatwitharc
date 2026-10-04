@@ -28,8 +28,8 @@
 .arc-bencho .snd-like { position: absolute; }
 .arc-bencho .snd-op:hover, .arc-bencho .snd-like:hover { color: var(--ink); background: hsl(var(--foreground) / .07); }
 .arc-bencho .snd-op:active, .arc-bencho .snd-like:active { scale: .9; }
-.arc-bencho .snd-op[data-lead] { background: var(--ink); color: var(--on-ink); }
-.arc-bencho .snd-op[data-lead]:hover { background: var(--ink); opacity: .88; }
+.arc-bencho .snd-op[data-lead] { background: #171717; color: #fff; }
+.arc-bencho .snd-op[data-lead]:hover { background: #262626; color: #fff; opacity: .88; }
 .arc-bencho .snd-like[data-on] { color: var(--ink); }
 .arc-bencho .snd-like[data-on] .lucide { animation: .34s cubic-bezier(.3,1.4,.5,1) arc-snd-beat; }
 @keyframes arc-snd-beat { 0% { scale: 1; } 38% { scale: 1.34; } 100% { scale: 1; } }
