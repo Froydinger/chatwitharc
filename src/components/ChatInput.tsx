@@ -1,3 +1,4 @@
+import { useComposerDictation } from "@/hooks/chat-input/useComposerDictation";
 import { createComposerActivity } from "@/lib/chat-input/activity";
 import { useComposerSubmission } from "@/hooks/chat-input/useComposerSubmission";
 import { ComposerView } from "@/components/chat-input/ComposerView";
@@ -21,6 +22,8 @@ import {
   Plus,
   ImagePlus,
   AudioWaveform,
+  Mic,
+  MicOff,
   Check,
   Code2,
   PenLine,
@@ -243,6 +246,13 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const isWriteCanvasOpen = useCanvasStore((s) => s.isOpen && s.canvasType === "writing");
 
   const [inputValue, setInputValue] = useState("");
+  const dictation = useComposerDictation({
+    enabled: cloudExecutionMode === 'auto' && !isLoading && !isGeneratingImage,
+    ownerKey: `${user?.id ?? 'guest'}:${currentSessionId ?? 'new'}`,
+    draft: inputValue,
+    onText: setInputValue,
+    onError: (description) => toast({ title: 'Dictation', description }),
+  });
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [animateAttachmentOpen, setAnimateAttachmentOpen] = useState(false);
   const imagePreviewUrls = useAttachmentPreviews(selectedImages);
@@ -3095,16 +3105,22 @@ ${safeCode}
               <ComposerTextarea
                 ref={textareaRef}
                 voiceActive={isVoiceActive}
+                workMode={cloudExecutionMode === 'auto'}
+                dictating={dictation.active}
                 loading={isLoading}
                 data-arc-composer="true"
                 value={inputValue}
                 onChange={(e) => {
                   if (isVoiceActive) return;
+                  dictation.stop();
                   setForceRegularChatMode(false);
                   setInputValue(e.target.value);
                 }}
-                onKeyDown={handleKeyPress}
-                onPaste={handlePaste}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) dictation.stop();
+                  handleKeyPress(event);
+                }}
+                onPaste={(event) => { dictation.stop(); handlePaste(event); }}
                 onFocus={handleInputFocus}
               />
         )}
@@ -3113,10 +3129,19 @@ ${safeCode}
             busy={isLoading || isGeneratingImage}
             hasContent={!!inputValue.trim() || selectedImages.length > 0 || selectedDocuments.length > 0}
             showVoice={cloudExecutionMode !== 'auto'}
+            showDictation={cloudExecutionMode === 'auto'}
             onStop={cancelCurrentRequest}
-            onSend={() => handleSend()}
+            onSend={() => { dictation.stop(); handleSend(); }}
           >
-              <div className="flex items-center gap-1 shrink-0">
+              {cloudExecutionMode === 'auto' ? (
+                <button type="button" onClick={() => void dictation.toggle()}
+                  aria-label={dictation.active ? 'Stop dictation' : 'Dictate into Work'}
+                  aria-pressed={dictation.active}
+                  title={dictation.active ? 'Stop dictation' : 'Dictate'}
+                  className={cn('arc-composer-press flex items-center justify-center w-9 h-9 rounded-full text-foreground transition-all', dictation.active ? 'bg-primary/20 ring-1 ring-primary/50' : 'bg-muted/40 hover:bg-primary/15')}>
+                  {dictation.active ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </button>
+              ) : <div className="flex items-center gap-1 shrink-0">
                 {/* Keep voice selection beside the waveform control. */}
                 <ChatVoicePicker name={currentVoice?.name ?? "Marina"} selectedVoice={selectedVoice}
                   onSelect={(voice) => void handleVoiceSelection(voice)} />
@@ -3157,7 +3182,7 @@ ${safeCode}
               >
                 <AudioWaveform className="ci-voice-icon h-4 w-4" strokeWidth={1.8} />
                 </button>
-              </div>
+              </div>}
           </ComposerSubmitControls>
         )}
       />

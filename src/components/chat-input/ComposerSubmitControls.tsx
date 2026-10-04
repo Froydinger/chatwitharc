@@ -3,16 +3,18 @@ import { ArrowRight, Square } from 'lucide-react';
 
 /** Presentation only. Request ownership, cancellation and voice permissions stay
  * with the composer; changing button layout cannot start another request. */
-export function ComposerSubmitControls({ busy, hasContent, showVoice, onStop, onSend, children }: {
+export function ComposerSubmitControls({ busy, hasContent, showVoice, showDictation = false, onStop, onSend, children }: {
   busy: boolean;
   hasContent: boolean;
   showVoice: boolean;
+  showDictation?: boolean;
   onStop: () => void;
   onSend: () => void;
   children: ReactNode;
 }) {
   return (
     <div className="flex items-center gap-1.5 shrink-0 self-center">
+      {!busy && showDictation && children}
       {busy ? (
         <button
           onClick={onStop}
@@ -29,7 +31,7 @@ export function ComposerSubmitControls({ busy, hasContent, showVoice, onStop, on
         >
           <ArrowRight className="h-4 w-4" />
         </button>
-      ) : showVoice ? children : null}
+      ) : showVoice && !showDictation ? children : null}
     </div>
   );
 }
