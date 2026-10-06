@@ -27,6 +27,7 @@ try{
  CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql AS $$SELECT current_setting('request.jwt.claim.role',true)$$;
  CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql AS $$SELECT jsonb_build_object('role',auth.role())$$;
+ CREATE TABLE account_entitlement_grants(email text PRIMARY KEY,grant_lifetime_boost boolean DEFAULT false);
  CREATE TABLE admin_users(user_id uuid); CREATE TABLE subscriptions(user_id uuid,price_id text,status text,current_period_end timestamptz);
  CREATE TABLE google_play_subscriptions(user_id uuid,subscription_state text,expiry_time timestamptz);
  CREATE FUNCTION user_has_boost(u uuid) RETURNS boolean LANGUAGE sql AS $$SELECT EXISTS(SELECT 1 FROM subscriptions WHERE user_id=u) OR EXISTS(SELECT 1 FROM admin_users WHERE user_id=u)$$;
@@ -126,13 +127,22 @@ try{
  INSERT INTO subscriptions VALUES('${trial}','arcai_boost_monthly','trialing','2027-01-01T00:00:00Z'),('${canceled}','arcai_boost_monthly','canceled','2027-01-02T00:00:00Z'),('${missing}','arcai_boost_monthly','active',NULL),('${expired}','arcai_boost_monthly','active','2026-12-01T00:00:00Z');
  INSERT INTO google_play_subscriptions VALUES('${google}','SUBSCRIPTION_STATE_IN_GRACE_PERIOD','2027-01-03T00:00:00Z');`);
  const report=()=>parse(sql(svc+`SELECT arc_image_transition_report();`));
- assert.equal(report().counts.missing,1);assert.equal(report().counts.expired,1);
+ const lifetime=randomUUID(),unknownLifetime=randomUUID();
+ sql(`INSERT INTO auth.users(id,email) VALUES('${lifetime}','lifetime-fixture@example.test'),('${unknownLifetime}','unknown-fixture@example.test'),('6b9f8eb1-11fe-4472-bdc8-786110442800','owner-grant-one@example.test'),('e5692ce0-0c72-4645-9bf2-695601d68096','owner-grant-two@example.test');
+ INSERT INTO account_entitlement_grants VALUES('lifetime-fixture@example.test',true);
+ INSERT INTO subscriptions VALUES('${lifetime}','arcai_boost_monthly','active','9999-12-31T23:59:59Z'),('${unknownLifetime}','arcai_boost_monthly','active','9999-12-31T23:59:59Z'),('6b9f8eb1-11fe-4472-bdc8-786110442800','arcai_boost_monthly','active',NULL),('e5692ce0-0c72-4645-9bf2-695601d68096','arcai_boost_monthly','active',NULL);`);
+ assert.equal(report().counts.grant,3,'Known grants are distinct from unknown paid renewals');
+ assert.equal(report().counts.missing,2);assert.equal(report().counts.expired,1);
  assert.throws(()=>sql(svc+`SELECT arc_image_activate_transition('grandfather','reject',true);`),/Missing renewal/);
  assert.equal(sql('SELECT count(*) FROM arc_image_transition_cohort;').trim(),'0','Failed activation rolls back cohort');
  assert.throws(()=>sql(svc+`SELECT arc_image_activate_transition('grandfather','finite',false);`),/Approved/);
  sql(svc+`SELECT arc_image_activate_transition('grandfather','finite',true);`);
  assert.equal(new Date(snapshot(trial).grandfatheredUntil).toISOString(),'2027-01-01T00:00:00.000Z');assert.equal(snapshot(trial).unlimited,true);
  assert.equal(snapshot(canceled).unlimited,true);assert.equal(snapshot(google).unlimited,true);
+ for(const u of [lifetime,'6b9f8eb1-11fe-4472-bdc8-786110442800','e5692ce0-0c72-4645-9bf2-695601d68096']) {
+ assert.equal(snapshot(u).tier,'boost','Grant tier preserved');assert.equal(snapshot(u).remaining,250);assert.equal(snapshot(u).unlimited,false,'Granted tier does not imply perpetual images');assert.equal(snapshot(u).grandfatheredUntil,null);assert.equal(snapshot(u).canRefill,true);
+ }
+ assert.equal(snapshot(unknownLifetime).unlimited,false,'Unclassified lifetime sentinel cannot create perpetual grandfathering');
  assert.equal(snapshot(missing).unlimited,false);assert.equal(snapshot(expired).unlimited,false);
  const before=report();sql(svc+`SELECT arc_image_activate_transition('grandfather','finite',true);`);assert.deepEqual(report(),before);
  assert.throws(()=>sql(svc+`SELECT arc_image_activate_transition('immediate','finite',true);`),/cannot replace/);
@@ -155,6 +165,7 @@ try{
  assert.equal(snapshot(trial).liteAvailable,false);assert.equal(reserve(trial,job(trial,'gemini-3.1-flash-lite-image','native')).allowed,false,'Stale Lite selection is denied');
  assert.throws(()=>sql(auth(admin)+`SELECT arc_image_set_lite_readiness(true,'{}',true);`),/permission denied/);
  assert.throws(()=>sql(auth(admin)+`SELECT reserve_arc_image_credits_finite('${trial}','${replayJob}',1);`),/permission denied/,'Browser cannot bypass readiness wrapper');
+ console.log('Owner-confirmed grants and lifetime grants retain Boost/250/refill without perpetual images. Unknown lifetime sentinel requires decision.');
  console.log('Release transition: staged default, fixed cohort, trials/canceled/grace, immediate option, missing/expired dates, renewal immutability, downgrade/upgrade, UTC expiry, campaigns, stale requests and Lite readiness passed.');
  console.log('Monthly image policy Postgres: tier/model restrictions, weights, idempotency, ownership, partial refunds, refill fencing/toggle, admin grants/revocation, extra refill, unlimited campaigns, privilege checks and concurrent cap passed.');
 }finally{if(started)run('pg_ctl',['-D',data,'-m','immediate','-w','stop']);rmSync(dir,{recursive:true,force:true});}

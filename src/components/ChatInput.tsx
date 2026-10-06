@@ -837,6 +837,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         additionalImages?: string[];
         editInstruction: string;
         imageModel?: string;
+        quality?: string;
         aspectRatio?: string;
         count?: number;
       }>;
@@ -849,6 +850,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
         e.detail.additionalImages,
         e.detail.aspectRatio,
         e.detail.count,
+        e.detail.quality,
       );
     };
     const editedMessageHandler = (ev: Event) => {
@@ -885,6 +887,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     additionalImages?: string[],
     aspectRatio?: string,
     countOverride?: number,
+    quality: string = "low",
   ) => {
     // Read fresh from store to avoid stale closure issues
     if (useArcStore.getState().isGeneratingImage) return;
@@ -913,7 +916,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       });
 
       const effectiveCount = Math.max(1, Math.min(3, Math.floor(Number(countOverride ?? imageGenCount) || 1)));
-      const editResult = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio, effectiveCount);
+      const editResult = await ai.editImage(editInstruction, allImageUrls, imageModel, aspectRatio, effectiveCount, quality);
       const finalUrls = editResult.imageUrls;
 
       const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();

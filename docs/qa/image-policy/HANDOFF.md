@@ -44,3 +44,5 @@ The inspected build21 archive contains bundled `dist-ios` web assets, no server.
 The picker now shows only a short balance/cost or unlimited status. Refill controls and transition explanations remain in Dashboard → Plan & usage details. Admin release readiness stays in the admin dashboard. Lite uses the exact label **Nano Banana 2 Lite**; the separate full model remains **Nano Banana 2**.
 
 Public image branding has been retired in landing/pricing/modals, settings, docs/blogs, SEO/static HTML/llms.txt, source badges and provider error messages. Copy uses actual model names, while unavailable Lite remains hidden. No Image Studio product is introduced.
+
+Owner-confirmed Stripe grants and explicit lifetime tier grants are now classified separately from paid-renewal grandfathering. They retain Boost tier and normal monthly image quantities after activation; year-9999 does not become perpetual unlimited image access. See RELEASE-TRANSITION.md. The precision edit modal follows the selected tier/model and preserves its quality rather than hardcoding Sunburst.

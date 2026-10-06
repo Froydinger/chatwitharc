@@ -1,3 +1,4 @@
+import { imageModelName } from '@/lib/imageModelNames';
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import {
   useImageGenStore,
   EDIT_ASPECT_OPTIONS,
   type EditAspectRatio,
-  type ImageModelId,
+  useEditImageModel,
   type ImageCount,
 } from "@/store/useImageGenStore";
 import { PromptEnhancer } from "@/components/PromptEnhancer";
@@ -47,10 +48,12 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
   const [additionalImages, setAdditionalImages] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { hasBoost, isAdmin, openCheckout } = useSubscription();
+  const { hasBoost, isAdmin } = useSubscription();
   const isBoostTier = Boolean(hasBoost || isAdmin);
   const { editAspectRatio: selectedAspect, count: selectedCount, setEditAspectRatio: setAspectRatio, setCount } = useImageGenStore();
-  const selectedModel: ImageModelId = 'gpt-image-2.5-sunburst';
+  const selectedModel = useEditImageModel(isBoostTier);
+  const mode = useImageGenStore(state => state.imageMode);
+  const selectedQuality = selectedModel.startsWith('gemini-') ? 'native' : selectedModel === 'gpt-image-2.5-sunburst' ? 'high' : !isBoostTier || mode === 'low' ? 'low' : 'medium';
   const [openMenu, setOpenMenu] = useState<null | "aspect" | "count">(null);
   const effectiveCount: ImageCount = selectedCount || 1;
 
@@ -154,6 +157,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
           additionalImages: additionalBase64s,
           editInstruction: textWithChips,
           imageModel: selectedModel,
+          quality: selectedQuality,
           aspectRatio: selectedAspect,
           count: effectiveCount,
         },
@@ -227,7 +231,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
               </div>
             )}
 
-            <ImageCreditSummary />
+            <ImageCreditSummary compact />
             {/* Image Preview(s) */}
             <div className="rounded-xl overflow-hidden border border-border/50 bg-muted/20">
               <div className="w-full">
@@ -329,10 +333,10 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
                 {/* Precision image editing via Image editing */}
                 <div
                   className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 text-sm text-foreground select-none"
-                  title="Precision image editing via Image editing"
+                  title="Selected image model"
                 >
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  <span className="font-medium">Image editing</span>
+                  <span className="font-medium">{imageModelName(selectedModel)}</span>
                 </div>
 
                 {/* Aspect picker */}

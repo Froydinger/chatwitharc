@@ -59,3 +59,19 @@ Current verification: connected Supabase read-only tools confirm project `jpqtoi
 After approval: fetch/reconcile current main; run candidate checks; deploy reviewed source through the existing main integration; verify migration/function/frontend versions and staged snapshots; inspect the release-time renewal-date report; apply only approved transition/readiness configuration; verify actual snapshots and expiry behavior. Real provider/storage smoke tests require authorization for their paid calls. The existing iOS release thread owns bundling, signing and TestFlight. No deployment, configuration write, campaign activation, billing change or native packaging occurred here.
 
 Public image branding has been retired in landing/pricing/modals, settings, docs/blogs, SEO/static HTML/llms.txt, source badges and provider error messages. Copy uses actual model names, while unavailable Lite remains hidden. No Image Studio product is introduced.
+
+## Owner-confirmed grant classification correction
+
+Jake confirmed that Frank and Bilbo were granted through Stripe and asked us to preserve their access rather than treat absent dates as unpaid/unverified renewals. The policy singleton contains only their two existing user UUIDs as server-controlled transition exclusions. This metadata does not create or modify a tier grant, subscription, billing record, or signup behavior. On approved activation they retain their existing Boost tier and receive the ordinary 250 monthly image credits and optional refill, with no fabricated paid-renewal expiry.
+
+Existing account_entitlement_grants lifetime Boost records are likewise classified as granted tier access, not year-9999 paid renewals. Their cohort expiry is NULL with status grant; no permanent unlimited image bypass is inherited. The pre-provisioned lifetime signup trigger is unchanged. An unclassified year-9999 sentinel is instead surfaced as missing and blocks default activation. There is no automatic perpetual transition. Admin quantity bypass and independent authorized campaigns remain unchanged.
+
+Read-only simulation at 2026-10-06 04:58:52 UTC: 4 grants, 1 ordinary future renewal, 1 expired admin promotion, 0 missing renewal dates. The formerly missing accounts no longer require Stripe connection or payment verification. The expired promo is still reported and receives finite image quantities under activation; tier records are untouched. Deployment/transition approval and Lite account readiness remain pending.
+
+## Edit routing
+
+Free edits use Flare Low. Normal Boost UI edits use the selected model; a fresh picker starts with Flare Low, and valid saved choices remain. Work edits default to Sunburst High. Builder edits use Flare Low unless the actual user explicitly asks for better images, then Sunburst High. Transparent edits require Flare/Sunburst; Google requests are rejected with switch guidance. Costs per output are Flare Low1, Flare Medium1 square/2 larger or source, Sunburst High4 square/6 larger or source, Lite3, full Nano5. Builder uses separate safety caps.
+
+The precision-edit modal had an old hardcoded Sunburst route and dropped captured quality in its event handler. This candidate makes it honor the same resolved tier/model selection and forwards captured quality through ChatInput to the edit service. The edit modal also uses the concise balance summary.
+
+Final grant/edit validation: disposable SQL policy tests PASS; browser fixtures PASS including Free/Boost precision edit event model and quality capture; production fixture build PASS; targeted ESLint PASS; final edit TSX parse PASS; excluded-file TypeScript check retains exactly the baseline 47 error signatures, with no additions.

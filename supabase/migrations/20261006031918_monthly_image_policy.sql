@@ -406,6 +406,7 @@ grant execute on function public.cloud_image_step(uuid,uuid,uuid,text,jsonb,text
 -- Staged by default: installing this migration does not activate a finite Boost
 -- transition or assert that the provider account can use Lite.
 ALTER TABLE public.arc_image_policy
+ ADD COLUMN owner_confirmed_transition_grants uuid[] NOT NULL DEFAULT ARRAY['6b9f8eb1-11fe-4472-bdc8-786110442800'::uuid,'e5692ce0-0c72-4645-9bf2-695601d68096'::uuid],
  ADD COLUMN transition_mode text NOT NULL DEFAULT 'staged' CHECK(transition_mode IN ('staged','grandfather','immediate')),
  ADD COLUMN transition_captured_at timestamptz,
  ADD COLUMN transition_missing_action text CHECK(transition_missing_action IN ('reject','finite')),
@@ -415,16 +416,27 @@ ALTER TABLE public.arc_image_policy
 CREATE TABLE public.arc_image_transition_cohort (
  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
  captured_at timestamptz NOT NULL, expires_at timestamptz,
- date_status text NOT NULL CHECK(date_status IN ('valid','missing','expired'))
+ date_status text NOT NULL CHECK(date_status IN ('valid','missing','expired','grant'))
 );
 ALTER TABLE public.arc_image_transition_cohort ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.arc_image_transition_cohort FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.arc_image_transition_cohort TO service_role;
 
+-- Classification only: these owner-confirmed accounts retain their existing tier
+-- records, but do not inherit a fabricated paid-renewal image expiry.
+CREATE FUNCTION public.arc_image_transition_is_granted(u uuid) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
+ SELECT coalesce((SELECT u=ANY(p.owner_confirmed_transition_grants) FROM arc_image_policy p WHERE p.id),false)
+ OR EXISTS(SELECT 1 FROM auth.users a JOIN account_entitlement_grants g ON lower(g.email)=lower(a.email)
+  WHERE a.id=u AND g.grant_lifetime_boost)
+$$;
+REVOKE ALL ON FUNCTION public.arc_image_transition_is_granted(uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.arc_image_transition_is_granted(uuid) TO service_role;
+
 -- Match existing entitlement eligibility; never mutate subscription/billing rows.
 CREATE FUNCTION public.arc_image_transition_candidates() RETURNS TABLE(user_id uuid,expires_at timestamptz,date_status text)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
- SELECT u.id,d.expires_at,CASE WHEN d.expires_at IS NULL THEN 'missing' WHEN d.expires_at<=now() THEN 'expired' ELSE 'valid' END
+ SELECT u.id,CASE WHEN arc_image_transition_is_granted(u.id) OR d.expires_at>='9999-01-01T00:00:00Z'::timestamptz THEN NULL ELSE d.expires_at END,
+ CASE WHEN arc_image_transition_is_granted(u.id) THEN 'grant' WHEN d.expires_at IS NULL OR d.expires_at>='9999-01-01T00:00:00Z'::timestamptz THEN 'missing' WHEN d.expires_at<=now() THEN 'expired' ELSE 'valid' END
  FROM auth.users u LEFT JOIN LATERAL (
   SELECT max(e.expiry) expires_at FROM (
    SELECT s.current_period_end expiry FROM subscriptions s WHERE s.user_id=u.id
@@ -443,9 +455,10 @@ BEGIN
  ELSE SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.user_id),'[]') INTO rows FROM arc_image_transition_cohort c; END IF;
  RETURN jsonb_build_object('capturedAt',captured,'counts',jsonb_build_object(
  'valid',(SELECT count(*) FROM jsonb_array_elements(rows) r WHERE r->>'date_status'='valid'),
+ 'grant',(SELECT count(*) FROM jsonb_array_elements(rows) r WHERE r->>'date_status'='grant'),
  'missing',(SELECT count(*) FROM jsonb_array_elements(rows) r WHERE r->>'date_status'='missing'),
  'expired',(SELECT count(*) FROM jsonb_array_elements(rows) r WHERE r->>'date_status'='expired')),
- 'dateExceptions',(SELECT coalesce(jsonb_agg(r),'[]') FROM (SELECT r FROM jsonb_array_elements(rows) r WHERE r->>'date_status'<>'valid' LIMIT 200) e),
+ 'dateExceptions',(SELECT coalesce(jsonb_agg(r),'[]') FROM (SELECT r FROM jsonb_array_elements(rows) r WHERE r->>'date_status' IN ('missing','expired') LIMIT 200) e),
  'exceptionListLimit',200);
 END $$;
 CREATE FUNCTION public.arc_image_activate_transition(mode text,missing_date_action text DEFAULT 'reject',confirmed boolean DEFAULT false)

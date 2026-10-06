@@ -241,7 +241,11 @@ spreads this map and overrides only the typography keys.
   Image rollout defaults to staged: Boost retains unlimited quantity until approved
   one-time transition capture. Grandfathering stores each existing eligible Boost
   account's fixed current-period expiry; webhook updates never extend it. Missing
-  renewal dates require an explicit release decision. Immediate transition is a
+  renewal dates require an explicit release decision. Owner-confirmed Stripe
+  grants and explicit lifetime tier grants retain ordinary Boost image quantities;
+  neither missing dates nor year-9999 lifetime sentinels create permanent image
+  grandfathering. Classification never modifies billing or tier grant records.
+  Immediate transition is a
   separate explicit release option. Lite stays hidden and server-blocked until
   account-specific read-only model readiness is recorded. Keep picker balance/cost
   concise; detailed refill and transition explanations belong in the dashboard.
