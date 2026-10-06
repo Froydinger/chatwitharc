@@ -61,7 +61,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "Arc Think uses GPT-6 Luna with adaptive reasoning: none for quick answers, then low, medium or high when the task needs more thought. Arc Flash uses Gemini Flash. App Builder Fast uses Luna; App Builder Pro and GitHub Pro use GPT-6.1 Sol with light reasoning. Images use GPT Image 2.5 Flare or Sunburst and Nano Banana 2. Natural voice runs through Voxi; live research uses Deep Search.",
+    a: "Arc Think uses GPT-6 Luna with adaptive reasoning: none for quick answers, then low, medium or high when the task needs more thought. Arc Flash uses Gemini Flash. App Builder Fast uses Luna; App Builder Pro and GitHub Pro use GPT-6.1 Sol with light reasoning. Images use GPT Image 2.5 Flare, GPT Image 2.5 Flare HQ, GPT Image 2.5 Sunburst, Nano Banana 2, and Nano Banana 2 Lite. Natural voice runs through Voxi; live research uses Deep Search.",
   },
   {
     q: "Is ArcAI private?",
@@ -355,7 +355,7 @@ function MarketingLandingPage() {
             { category: "Create", icon: Code2, title: "Code Canvas", body: "Canvas and GitHub Normal are available on Free and Boost. Prepare repository changes as a branch and pull request; Boost unlocks GitHub Pro with GPT-6.1 Sol." },
             { category: "Ask", icon: Sparkles, title: "Arc Work · Boost", body: "Available with Boost. Hand Arc a longer task to run in the cloud, with progress in your chat and requests for input when needed." },
             { category: "Create", icon: Code2, title: "App Builder · Boost", body: "Available with Boost. Build, preview, refine, publish or export an app. Fast uses Luna by default; choose Pro for GPT-6.1 Sol with light reasoning." },
-            { category: "Create", icon: ImageIcon, title: "Images", body: "Create and edit images with GPT Image 2.5 or Nano Banana 2. 30 Flare Low images monthly on Free; 250 shared monthly image credits on Boost." },
+            { category: "Create", icon: ImageIcon, title: "Images", body: "Create and edit images with GPT Image 2.5 or Nano Banana 2. 30 GPT Image 2.5 Flare images monthly on Free; 250 shared monthly image credits on Boost." },
           ].map((f, i) => (
             <div
               key={f.title}

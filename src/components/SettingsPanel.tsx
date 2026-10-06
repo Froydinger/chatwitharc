@@ -256,7 +256,7 @@ function ImageDefaultsCard() {
           <div className="p-3 rounded-xl bg-muted/20 border border-border/40 space-y-2 text-xs">
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">GPT Image 2.5</span>
-              <span className="font-medium text-foreground">Flare · Sunburst</span>
+              <span className="font-medium text-foreground text-right">GPT Image 2.5 Flare · GPT Image 2.5 Flare HQ · GPT Image 2.5 Sunburst</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Nano Banana 2</span>

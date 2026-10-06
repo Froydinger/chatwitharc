@@ -43,10 +43,10 @@ export const EDIT_ASPECT_OPTIONS: Array<{ id: EditAspectRatio; label: string }> 
 ];
 
 export const IMAGE_MODEL_OPTIONS = [
- { id: DEFAULT_IMAGE_MODEL, mode: 'low', label: 'Flare Low', blurb: 'Fast GPT images', boostOnly: false },
- { id: DEFAULT_IMAGE_MODEL, mode: 'image', label: 'Flare Medium', blurb: 'GPT images with more detail', boostOnly: true },
+ { id: DEFAULT_IMAGE_MODEL, mode: 'low', label: 'GPT Image 2.5 Flare', blurb: 'Fast GPT images', boostOnly: false },
+ { id: DEFAULT_IMAGE_MODEL, mode: 'image', label: 'GPT Image 2.5 Flare HQ', blurb: 'GPT images with more detail', boostOnly: true },
+ { id: PRO_IMAGE_MODEL, mode: 'pro', label: 'GPT Image 2.5 Sunburst', blurb: 'High fidelity GPT images', boostOnly: true },
  { id: LITE_IMAGE_MODEL, mode: 'lite', label: 'Nano Banana 2 Lite', blurb: 'Fast native 1K images', boostOnly: true },
- { id: PRO_IMAGE_MODEL, mode: 'pro', label: 'Sunburst High', blurb: 'High fidelity GPT images', boostOnly: true },
  { id: FLASH_IMAGE_MODEL, mode: 'flash', label: 'Nano Banana 2', blurb: 'Native 1K images', boostOnly: true },
 ] as const;
 export type ImageMode = typeof IMAGE_MODEL_OPTIONS[number]['mode'];

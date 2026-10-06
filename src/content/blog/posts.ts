@@ -259,7 +259,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["AI image generator", "AI image free", "GPT image free", "image creator"],
     updated: UPDATED,
     intro:
-      "ArcAI includes image generation and editing with GPT Image 2.5 Flare or Sunburst and Nano Banana 2 for generation and editing. Free accounts get less usage; Boost accounts get 250 shared monthly image credits across image models.",
+      "ArcAI includes image generation and editing with GPT Image 2.5 Flare, GPT Image 2.5 Flare HQ, GPT Image 2.5 Sunburst, Nano Banana 2, and Nano Banana 2 Lite for generation and editing. Free accounts get less usage; Boost accounts get 250 shared monthly image credits across image models.",
     faq: [
       {
         q: "What is the best AI image generator?",

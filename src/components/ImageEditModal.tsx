@@ -336,7 +336,7 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
                   title="Selected image model"
                 >
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  <span className="font-medium">{imageModelName(selectedModel)}</span>
+                  <span className="font-medium">{imageModelName(selectedModel, selectedQuality)}</span>
                 </div>
 
                 {/* Aspect picker */}
