@@ -30,7 +30,7 @@ Activation replays with the same choices return the same cohort. Different choic
 
 Read-only verification must use the **existing production Google account/key**, without retrieving it into chat, replacing it, creating grants or generating an image. Inspect existing secret-name presence with an already-authorized management context, then perform authenticated model metadata lookup for `models/gemini-3.1-flash-lite-image`. Check HTTP success and exact returned model name. Public documentation alone is not account verification. Record a redacted check reference and timestamp; never put credentials into evidence.
 
-Only after approved verification may the existing service context enable readiness:
+The existing service context can enable readiness after approved account verification or an explicit owner-reported account-access assertion:
 
 ```js
 await supabaseAdmin.rpc('arc_image_set_lite_readiness', {
@@ -45,9 +45,9 @@ await supabaseAdmin.rpc('arc_image_set_lite_readiness', {
 });
 ```
 
-Enabling requires evidence from within the preceding 24 hours. The flag is a release-controlled assertion of account readiness, not an automatic provider health monitor. Disabling through the same service RPC is allowed with an explanatory evidence object. Routine authenticated admin settings cannot activate the rollout or change readiness. The browser hides unavailable Lite, clears a saved Lite choice to Flare Low, and blocks submission during the change. Both generation/edit handlers and SQL reservation enforce readiness, including stale clients. Provider health can still change after verification; provider errors remain explicit and no automatic paid retries are introduced.
+Enabling requires evidence from within the preceding 24 hours; method owner-reported records an explicit owner assertion rather than a performed lookup. The flag is a release-controlled assertion of account readiness, not an automatic provider health monitor. Disabling through the same service RPC is allowed with an explanatory evidence object. Routine authenticated admin settings cannot activate the rollout or change readiness. The browser hides unavailable Lite, clears a saved Lite choice to Flare Low, and blocks submission during the change. Both generation/edit handlers and SQL reservation enforce readiness, including stale clients. Provider health can still change after verification; provider errors remain explicit and no automatic paid retries are introduced.
 
-Current verification: connected Supabase read-only tools confirm project `jpqtoixhjnfdubvqshwk` is ACTIVE_HEALTHY and deployed generation code contains existing OpenAI/Google paths. It does not contain Lite. Actual secret presence and authenticated Lite metadata lookup remain blocked by absent local CLI access token and lack of a connected secret-list capability. No readiness flag has been enabled. No real generation has been performed.
+Current verification: connected Supabase read-only tools confirm project `jpqtoixhjnfdubvqshwk` is ACTIVE_HEALTHY and deployed generation code contains existing OpenAI/Google paths. It does not contain Lite. Actual secret presence and authenticated Lite metadata lookup were not verified; attempts were blocked by absent local CLI access token and lack of a connected secret-list capability. The release is authorized to enable readiness from the owner-reported assertion documented below. No real generation has been performed.
 
 ## Evidence and release order
 
@@ -75,3 +75,7 @@ Free edits use Flare Low. Normal Boost UI edits use the selected model; a fresh 
 The precision-edit modal had an old hardcoded Sunburst route and dropped captured quality in its event handler. This candidate makes it honor the same resolved tier/model selection and forwards captured quality through ChatInput to the edit service. The edit modal also uses the concise balance summary.
 
 Final grant/edit validation: disposable SQL policy tests PASS; browser fixtures PASS including Free/Boost precision edit event model and quality capture; production fixture build PASS; targeted ESLint PASS; final edit TSX parse PASS; excluded-file TypeScript check retains exactly the baseline 47 error signatures, with no additions.
+
+## Approved release configuration
+
+Jake authorized deployment and explicitly instructed us to assume their existing Google account has Lite access. Enable Lite using method `owner-reported`, reference `main-chat/Sentinel_4feee15ae7808191947b65de3f20b159`, and their actual assertion timestamp `2026-10-06T05:03:06Z`. This is owner-reported access, not an authenticated metadata or paid runtime test. The service release gate accepts that explicit assertion; no new key, grant, account connection, purchase, or paid generation is required. Earlier readiness-wait instructions above are historical and superseded by this owner instruction. The approved release uses `grandfather` with default `reject` for genuinely missing dates; owner-confirmed and lifetime grants are classified separately and finite after activation.

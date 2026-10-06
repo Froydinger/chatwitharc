@@ -247,7 +247,7 @@ spreads this map and overrides only the typography keys.
   grandfathering. Classification never modifies billing or tier grant records.
   Immediate transition is a
   separate explicit release option. Lite stays hidden and server-blocked until
-  account-specific read-only model readiness is recorded. Keep picker balance/cost
+  account-specific verification or explicit owner-reported access is recorded. Keep picker balance/cost
   concise; detailed refill and transition explanations belong in the dashboard.
   Show Flash percentages. Images show monthly balances, costs and refill availability; never call finite Boost images unlimited.
   Exact enforcement values stay in backend/internal technical docs. Voice names,

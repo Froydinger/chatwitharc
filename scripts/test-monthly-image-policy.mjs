@@ -161,6 +161,7 @@ try{
  const offerid=sql(`SELECT id FROM arc_image_offers WHERE title='Fixture after renewal';`).trim();confirm(preview({operation:'offer_status',offerId:offerid,status:'revoked',reason:'fixture revoke'}));assert.equal(snapshot(trial).unlimited,false);
  sql(`UPDATE fixture_clock SET at='2027-01-02T00:00:00Z';`);assert.equal(snapshot(canceled).unlimited,false);
  assert.throws(()=>sql(svc+`SELECT arc_image_set_lite_readiness(true,'{}',true);`),/evidence required/);
+ sql(svc+`SELECT arc_image_set_lite_readiness(true,jsonb_build_object('model','gemini-3.1-flash-lite-image','method','owner-reported','reference','fixture-owner-assertion','checkedAt',fixture_now()),true);`);assert.equal(snapshot(trial).liteAvailable,true,'Explicit owner-reported access can enable Lite without claiming provider test');
  sql(svc+`SELECT arc_image_set_lite_readiness(false,'{"reason":"fixture disable"}',true);`);
  assert.equal(snapshot(trial).liteAvailable,false);assert.equal(reserve(trial,job(trial,'gemini-3.1-flash-lite-image','native')).allowed,false,'Stale Lite selection is denied');
  assert.throws(()=>sql(auth(admin)+`SELECT arc_image_set_lite_readiness(true,'{}',true);`),/permission denied/);

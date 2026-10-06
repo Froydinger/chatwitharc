@@ -480,15 +480,16 @@ BEGIN
  UPDATE arc_image_policy SET transition_mode=mode,transition_captured_at=now(),transition_missing_action=missing_date_action WHERE id;
  RETURN arc_image_transition_report();
 END $$;
--- Available only after an operator supplies account-specific read-only evidence.
+-- Account lookup evidence or an explicit owner-confirmed account assertion; never
+-- represent owner-reported access as a successful provider generation.
 CREATE FUNCTION public.arc_image_set_lite_readiness(available boolean,evidence jsonb,confirmed boolean DEFAULT false)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 BEGIN
  IF coalesce(auth.jwt()->>'role','')<>'service_role' OR confirmed IS DISTINCT FROM true OR available IS NULL THEN RAISE EXCEPTION 'Approved service configuration required'; END IF;
- IF available AND (evidence->>'model' IS DISTINCT FROM 'gemini-3.1-flash-lite-image' OR evidence->>'method' IS DISTINCT FROM 'account-model-lookup'
+ IF available AND (evidence->>'model' IS DISTINCT FROM 'gemini-3.1-flash-lite-image' OR coalesce(evidence->>'method','') NOT IN ('account-model-lookup','owner-reported')
   OR coalesce(evidence->>'reference','')='' OR (evidence->>'checkedAt')::timestamptz IS NULL
   OR (evidence->>'checkedAt')::timestamptz<now()-interval '24 hours' OR (evidence->>'checkedAt')::timestamptz>now()+interval '5 minutes') THEN
-  RAISE EXCEPTION 'Recent account-specific read-only Lite model evidence required';
+  RAISE EXCEPTION 'Recent account lookup or explicit owner-reported Lite evidence required';
  END IF;
  UPDATE arc_image_policy SET lite_available=available,lite_evidence=evidence,lite_checked_at=now() WHERE id;
 END $$;
