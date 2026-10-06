@@ -1,3 +1,4 @@
+import { ImageUsageAdmin } from "./admin/ImageUsageAdmin";
 import { useState, useEffect, useCallback } from "react";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useAdminSettings } from "@/hooks/useAdminSettings";
@@ -470,6 +471,7 @@ export function AdminPanel() {
   });
 
   const sidebarItems = [
+    { id: "images", label: "Images & Offers", icon: Sparkles, subtitle: "Usage, Refills & Campaigns" },
     { id: "dashboard",   label: "Dashboard",       icon: LayoutDashboard, subtitle: "At a Glance Overview" },
     { id: "stats",       label: "Stats",           icon: Activity,        subtitle: "Sources & Anonymous Traffic" },
     { id: "users",       label: "Users",           icon: Users,           subtitle: "Manage Accounts" },
@@ -931,6 +933,7 @@ export function AdminPanel() {
             </div>
           )}
 
+          {activeSection === "images" && <ImageUsageAdmin />}
           {activeSection === "stats" && (
             <div className="space-y-6 animate-fade-in">
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">

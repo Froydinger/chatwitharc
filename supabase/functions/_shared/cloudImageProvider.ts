@@ -171,9 +171,9 @@ export function cloudImageProvider(
               model: args.model,
               action: args.kind,
               size,
-              quality: args.model === "gpt-image-2.5-sunburst"
+              quality: args.quality ?? (args.model === "gpt-image-2.5-sunburst"
                 ? "high"
-                : "medium",
+                : "medium"),
               output_format: "png",
               background: args.transparent ? "transparent" : "auto",
             }],

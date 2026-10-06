@@ -7,16 +7,18 @@ import { persist } from 'zustand/middleware';
  * - gpt-image-2.5-sunburst: Flagship "Pro" model (maximum fidelity, rich lighting, creative precision)
  * - gpt-image-2: Legacy fallback
  */
-export type ImageModelId = 'gpt-image-2.5-flare' | 'gpt-image-2.5-sunburst' | 'gpt-image-2' | 'gemini-3.1-flash-image';
+export type ImageModelId = 'gpt-image-2.5-flare' | 'gpt-image-2.5-sunburst' | 'gpt-image-2' | 'gemini-3.1-flash-image' | 'gemini-3.1-flash-lite-image';
 export const DEFAULT_IMAGE_MODEL: ImageModelId = 'gpt-image-2.5-flare';
 export const PRO_IMAGE_MODEL: ImageModelId = 'gpt-image-2.5-sunburst';
-export const EDIT_IMAGE_MODEL: ImageModelId = 'gpt-image-2.5-sunburst';
+export const EDIT_IMAGE_MODEL: ImageModelId = 'gpt-image-2.5-flare';
+export const LITE_IMAGE_MODEL: ImageModelId = 'gemini-3.1-flash-lite-image';
 export const FLASH_IMAGE_MODEL: ImageModelId = 'gemini-3.1-flash-image';
 export const ALLOWED_IMAGE_MODELS: ImageModelId[] = [
   'gpt-image-2.5-flare',
   'gpt-image-2.5-sunburst',
   'gpt-image-2',
   FLASH_IMAGE_MODEL,
+  LITE_IMAGE_MODEL,
 ];
 
 export type ImageAspectRatio = '1:1' | '3:2' | '2:3' | '16:9';
@@ -41,9 +43,20 @@ export const EDIT_ASPECT_OPTIONS: Array<{ id: EditAspectRatio; label: string }> 
 ];
 
 export const IMAGE_MODEL_OPTIONS = [
-  { id: DEFAULT_IMAGE_MODEL, label: 'Arc Image', blurb: 'Powered by GPT Image 2.5' },
-  { id: FLASH_IMAGE_MODEL, label: 'Arc Image Flash', blurb: 'Powered by Nano Banana 2' },
-];
+ { id: DEFAULT_IMAGE_MODEL, mode: 'low', label: 'Flare Low', blurb: 'Fast GPT images', boostOnly: false },
+ { id: DEFAULT_IMAGE_MODEL, mode: 'image', label: 'Flare Medium', blurb: 'GPT images with more detail', boostOnly: true },
+ { id: LITE_IMAGE_MODEL, mode: 'lite', label: 'Nano Banana 2 Lite', blurb: 'Fast native 1K images', boostOnly: true },
+ { id: PRO_IMAGE_MODEL, mode: 'pro', label: 'Sunburst High', blurb: 'High fidelity GPT images', boostOnly: true },
+ { id: FLASH_IMAGE_MODEL, mode: 'flash', label: 'Nano Banana 2', blurb: 'Native 1K images', boostOnly: true },
+] as const;
+export type ImageMode = typeof IMAGE_MODEL_OPTIONS[number]['mode'];
+const normalizeMode = (mode: unknown): ImageMode => IMAGE_MODEL_OPTIONS.some(x => x.mode === mode) ? mode as ImageMode : 'low';
+export function imageCreditCost(model: string, aspect: string, quality: string = 'medium') {
+ if (model === LITE_IMAGE_MODEL) return 3;
+ if (model === FLASH_IMAGE_MODEL) return 5;
+ if (model === PRO_IMAGE_MODEL) return aspect === '1:1' ? 4 : 6;
+ return quality === 'low' || aspect === '1:1' ? 1 : 2;
+}
 
 export const IMAGE_ASPECT_OPTIONS: Array<{ id: ImageAspectRatio; label: string }> = [
   { id: '1:1', label: 'Square' },
@@ -81,8 +94,8 @@ function normalizeCount(value: unknown): ImageCount {
 }
 
 interface ImageGenState {
-  imageMode: 'image' | 'flash';
-  setImageMode: (mode: 'image' | 'flash') => void;
+  imageMode: ImageMode;
+  setImageMode: (mode: ImageMode) => void;
   aspectRatio: ImageAspectRatio;
   /** Shape for edits. 'source' keeps the original image's shape. */
   editAspectRatio: EditAspectRatio;
@@ -99,8 +112,8 @@ interface ImageGenState {
 export const useImageGenStore = create<ImageGenState>()(
   persist(
     (set) => ({
-      imageMode: 'image',
-      setImageMode: (imageMode) => set({ imageMode: imageMode === 'flash' ? 'flash' : 'image' }),
+      imageMode: 'low',
+      setImageMode: (imageMode) => set({ imageMode: normalizeMode(imageMode) }),
       aspectRatio: DEFAULT_ASPECT_RATIO,
       editAspectRatio: DEFAULT_EDIT_ASPECT,
       count: 1,
@@ -113,7 +126,7 @@ export const useImageGenStore = create<ImageGenState>()(
     }),
     {
       name: 'arc-image-gen-prefs',
-      version: 5,
+      version: 6,
       migrate: (persisted: unknown) => {
         const state = (persisted ?? {}) as {
           imageMode?: unknown;
@@ -123,7 +136,7 @@ export const useImageGenStore = create<ImageGenState>()(
           proImage?: unknown;
         };
         return {
-          imageMode: state.imageMode === 'flash' ? 'flash' : 'image',
+          imageMode: normalizeMode(state.imageMode),
           aspectRatio: normalizeAspect(state.aspectRatio),
           editAspectRatio: normalizeEditAspect(state.editAspectRatio),
           count: normalizeCount(state.count),
@@ -132,7 +145,7 @@ export const useImageGenStore = create<ImageGenState>()(
       },
       onRehydrateStorage: () => (state) => {
         if (!state) return;
-        state.imageMode = state.imageMode === 'flash' ? 'flash' : 'image';
+        state.imageMode = normalizeMode(state.imageMode);
         state.aspectRatio = normalizeAspect(state.aspectRatio);
         state.count = normalizeCount(state.count);
         state.editAspectRatio = normalizeEditAspect(state.editAspectRatio);
@@ -142,16 +155,12 @@ export const useImageGenStore = create<ImageGenState>()(
   )
 );
 
-/** Captured at submission; the server validates model and shared credits. */
-export function getResolvedImageModel(_isBoost?: boolean): ImageModelId {
-  return useImageGenStore.getState().imageMode === 'flash' ? FLASH_IMAGE_MODEL : DEFAULT_IMAGE_MODEL;
+/** Captured at submission; server validates actual tier and configuration. */
+function resolvedModel(mode: ImageMode, isBoost = true): ImageModelId {
+ if (!isBoost) return DEFAULT_IMAGE_MODEL;
+ return IMAGE_MODEL_OPTIONS.find(x => x.mode === mode)?.id ?? DEFAULT_IMAGE_MODEL;
 }
-export function getResolvedEditImageModel(): ImageModelId {
-  return useImageGenStore.getState().imageMode === 'flash' ? FLASH_IMAGE_MODEL : EDIT_IMAGE_MODEL;
-}
-export function useResolvedImageModel(_isBoost?: boolean): ImageModelId {
-  return useImageGenStore(state => state.imageMode === 'flash' ? FLASH_IMAGE_MODEL : DEFAULT_IMAGE_MODEL);
-}
-export function useEditImageModel(_isBoost?: boolean): ImageModelId {
-  return useImageGenStore(state => state.imageMode === 'flash' ? FLASH_IMAGE_MODEL : EDIT_IMAGE_MODEL);
-}
+export function getResolvedImageModel(isBoost = true): ImageModelId { return resolvedModel(useImageGenStore.getState().imageMode, isBoost); }
+export function getResolvedEditImageModel(isBoost = true): ImageModelId { return getResolvedImageModel(isBoost); }
+export function useResolvedImageModel(isBoost = true): ImageModelId { return useImageGenStore(state => resolvedModel(state.imageMode, isBoost)); }
+export function useEditImageModel(isBoost = true): ImageModelId { return useResolvedImageModel(isBoost); }

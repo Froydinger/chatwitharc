@@ -1,3 +1,4 @@
+import { useSubscription } from "@/hooks/useSubscription";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, Ratio, Check, Images } from "lucide-react";
@@ -5,7 +6,6 @@ import {
   useImageGenStore,
   IMAGE_ASPECT_OPTIONS,
   IMAGE_MODEL_OPTIONS,
-  FLASH_IMAGE_MODEL,
   EDIT_ASPECT_OPTIONS,
   type ImageAspectRatio,
   type EditAspectRatio,
@@ -51,6 +51,7 @@ export function ImageOptionsContent({
     setCount,
   } = useImageGenStore();
 
+  const { hasBoost, isAdmin } = useSubscription();
   const [openMenu, setOpenMenu] = useState<null | "aspect" | "count">(null);
 
   // Edits get their own shape list, including "Match original" — the default,
@@ -76,10 +77,10 @@ export function ImageOptionsContent({
         </div>
       )}
 
-      <div className="flex gap-1 mb-3" role="group" aria-label="Image mode">
-        {IMAGE_MODEL_OPTIONS.map(option => {
-          const mode = option.id === FLASH_IMAGE_MODEL ? 'flash' : 'image';
-          return <button key={mode} type="button" aria-pressed={imageMode === mode}
+      <div className="flex flex-wrap gap-1 mb-3" role="group" aria-label="Image mode">
+        {IMAGE_MODEL_OPTIONS.filter(option => !option.boostOnly || hasBoost || isAdmin).map(option => {
+          const mode = option.mode;
+          return <button key={mode} type="button" aria-pressed={(hasBoost || isAdmin ? imageMode : 'low') === mode}
             title={option.blurb} onClick={() => setImageMode(mode)}
             className={cn("rounded-full px-3 py-1.5 text-xs border transition-colors", imageMode === mode ? "bg-primary/10 border-primary/40 text-foreground" : "border-border/40 text-muted-foreground hover:bg-muted/40")}>
             {option.label}

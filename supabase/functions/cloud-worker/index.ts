@@ -77,6 +77,7 @@ if (import.meta.main) Deno.serve((req) => handleCloudWorker(req, {
         },
         appEnabled,
         app: cloudAppAdvance(db, apiKey, {
+          imageConfig,
           enabled: appEnabled,
           publisher: {
             netlifyAccessToken: Deno.env.get('NETLIFY_ACCESS_TOKEN') ?? '',

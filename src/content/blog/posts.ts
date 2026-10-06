@@ -44,7 +44,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI free?",
-        a: "Yes. The free tier includes Arc Matrix™ chat with less usage on Free, image generation with Arc Image, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost adds unlimited usage, including unlimited research, Arc Image generation and editing, and unlimited voice sessions up to 2 hours each.",
+        a: "Yes. The free tier includes Arc Matrix™ chat with less usage on Free, image generation with Arc Image, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost adds unlimited usage, including unlimited research, plus 250 shared monthly image credits for generation and editing, and unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "Can I use ArcAI for coding?",
@@ -259,7 +259,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["AI image generator", "AI image free", "GPT image free", "image creator"],
     updated: UPDATED,
     intro:
-      "ArcAI includes a built-in AI image studio with Arc Image (powered by GPT Image 2.5) and Arc Image Flash (powered by Nano Banana 2) for generation and editing. Free accounts get less usage; Boost accounts get unlimited usage for both image modes.",
+      "ArcAI includes a built-in AI image studio with Arc Image (powered by GPT Image 2.5) and Arc Image Flash (powered by Nano Banana 2) for generation and editing. Free accounts get less usage; Boost accounts get 250 shared monthly image credits across image models.",
     faq: [
       {
         q: "What is the best AI image generator?",
@@ -271,11 +271,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "How many free images can I generate?",
-        a: "Free accounts get less usage for image generation. Upgrading to Boost gives you unlimited Arc Image generation and precision Arc Image tools.",
+        a: "Free accounts get less usage for image generation. Upgrading to Boost gives you 250 shared monthly image credits for generation and editing.",
       },
       {
         q: "Can I edit generated images?",
-        a: "Yes. Full image editing (combining, inpainting, and precision variations) is powered by Arc Image and included with unlimited access on Boost.",
+        a: "Yes. Full image editing (combining, inpainting, and precision variations) is powered by Arc Image and included in Boost’s shared monthly image credits.",
       },
     ],
     cta: "Generate AI images",
@@ -485,7 +485,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "what-is-arcai": {
     angle: "ArcAI is built around a simple idea: one assistant should help with thinking, searching, speaking, writing, coding, creating images, and remembering the context that makes those tasks personal.",
     useCases: ["daily planning", "coding help", "research with sources", "image generation", "voice brainstorming", "long-term bot memory"],
-    freeAccess: "The free plan includes chat with less usage, plus 3 voice sessions per UTC day, up to 10 minutes each. Boost adds unlimited usage for chat, images and research, and unlimited voice sessions up to 2 hours each.",
+    freeAccess: "The free plan includes chat with less usage, plus 3 voice sessions per UTC day, up to 10 minutes each. Boost adds unlimited chat and research, plus 250 shared monthly image credits, and unlimited voice sessions up to 2 hours each.",
     proof: "That combination makes ArcAI feel less like a single chatbot tab and more like a workspace for creative work and research.",
   },
   "free-chatgpt-alternative": {
@@ -527,7 +527,7 @@ const TOPIC_CONTEXT: Record<string, { angle: string; useCases: string[]; freeAcc
   "free-ai-image-generator": {
     angle: "A standalone image generator is useful, but an image generator inside your AI assistant is more useful because the same chat can plan, revise, describe, and edit the image workflow.",
     useCases: ["social graphics", "chat illustrations", "concept art", "product mockups", "moodboards", "iterative image edits"],
-    freeAccess: "Free accounts receive less usage for image generation, while Boost accounts unlock unlimited Arc Image generation and precision Arc Image tools.",
+    freeAccess: "Free accounts receive less usage for image generation, while Boost accounts unlock 250 shared monthly image credits for generation and editing.",
     proof: "ArcAI makes image generation feel like part of the conversation instead of a separate tool you have to manage.",
   },
   "ai-that-remembers-conversations": {
@@ -592,7 +592,7 @@ function enrichPost(post: BlogPost): BlogPost {
         `${item.a} In practical terms, this means you can start with a normal question and keep going into follow-ups, research, drafts, files, images, voice, or code without switching products. ArcAI is designed for the kind of messy, real workflow where a user asks one thing, changes direction, adds context, and expects the assistant to keep up.`,
         index === 0
           ? context.proof
-          : `ArcAI offers a generous free tier with Arc Think, image generation, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost unlocks unlimited research, unlimited chat and image usage, and unlimited voice sessions up to 2 hours each.`
+          : `ArcAI offers a generous free tier with Arc Think, image generation, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost unlocks unlimited research, unlimited chat and 250 shared monthly image credits, and unlimited voice sessions up to 2 hours each.`
       ],
     bullets:
       item.bullets ??

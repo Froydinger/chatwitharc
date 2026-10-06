@@ -174,7 +174,7 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
         <header className="shrink-0 px-5 pb-4 pt-5 pr-14 sm:px-6 sm:pr-14">
           <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted-foreground"><Zap className="h-4 w-4" /> ARCAI BOOST</div>
           <DialogTitle className="text-2xl font-semibold tracking-tight">{isVoiceLimit ? 'Keep the conversation going' : 'Put your agent to work.'}</DialogTitle>
-          <DialogDescription className="mt-1.5 text-sm">Unlock Arc Work and App Builder, plus unlimited usage for chat, images, and research.</DialogDescription>
+          <DialogDescription className="mt-1.5 text-sm">Unlock Arc Work and App Builder, unlimited chat and research, and 250 shared monthly image credits.</DialogDescription>
         </header>
         <div className="min-h-0 overflow-y-auto overscroll-contain px-5 pb-5 sm:px-6">
           <div role="group" aria-label="Billing period" className="grid grid-cols-2 gap-2">

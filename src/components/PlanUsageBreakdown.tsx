@@ -13,7 +13,7 @@ export function PlanUsageBreakdown() {
   const rows = [
     { name: 'Arc Think', icon: Brain, detail: 'Everyday chat and reasoning', percent: null, unlimited: true },
     { name: 'Arc Flash', icon: Zap, detail: 'Your sent messages using Arc Flash', percent: flashUsagePercent, unlimited },
-    { name: 'Images', icon: Image, detail: 'Shared allowance for Arc Image and Arc Image Flash. Flash images use twice as much.', percent: images.loading || !images.resetAt ? null : images.usagePercent, unlimited },
+    { name: 'Images', icon: Image, detail: 'Monthly image allowance shared across available models.', percent: images.loading || !images.resetAt ? null : images.usagePercent, unlimited: images.remainingCredits === Infinity },
     { name: 'Voice', icon: Mic, detail: 'Voice sessions started today', percent: Math.min(100, dailyVoiceSessionsUsed / FREE_DAILY_VOICE_LIMIT * 100), unlimited },
   ];
   const refresh = async () => {
@@ -25,8 +25,8 @@ export function PlanUsageBreakdown() {
   return (
     <section className="rounded-[28px] border border-border/50 bg-background/60 p-5" aria-label="Usage breakdown">
       <div className="flex items-start justify-between gap-3">
-        <div><h2 className="font-semibold text-foreground">Usage today</h2>
-          <p className="mt-1 text-xs text-muted-foreground">Daily allowances reset at midnight UTC.</p></div>
+        <div><h2 className="font-semibold text-foreground">Usage</h2>
+          <p className="mt-1 text-xs text-muted-foreground">Images renew monthly; daily allowances reset at midnight UTC.</p></div>
         <button type="button" onClick={refresh} disabled={refreshing} aria-label="Refresh usage"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/50 text-foreground hover:bg-muted/40 disabled:opacity-50">
           <RefreshCw className="h-4 w-4" />

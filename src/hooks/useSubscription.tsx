@@ -5,9 +5,9 @@ import { paymentsAvailable, getStripeEnvironment } from '@/lib/stripe';
 import { isGooglePlayStoreTwa, restoreGooglePlayBoost, syncGooglePlaySubscriptions } from '@/services/googlePlayBilling';
 
 // ArcAI limits
-export const FREE_IMAGE_LIMIT = 3;
-export const FREE_DAILY_IMAGE_LIMIT = 3; // Kept for backwards compatibility
-export const BOOST_DAILY_IMAGE_LIMIT = Infinity;
+export const FREE_IMAGE_LIMIT = 30;
+export const FREE_DAILY_IMAGE_LIMIT = 30; // Kept for backwards compatibility
+export const BOOST_DAILY_IMAGE_LIMIT = 250;
 export const FREE_DAILY_SMARTER_CHAT_LIMIT = 20;
 export const FREE_DAILY_BALANCED_LIMIT = 20;
 export const FREE_DAILY_DEEP_LIMIT = 0;
@@ -25,8 +25,6 @@ const UNLIMITED_EMAILS = new Set([
   'lopezvivtorymma@gmail.com',
 ]);
 
-const TOTAL_IMAGE_KEY = 'arcai-total-images';
-const DAILY_IMAGE_KEY = 'arcai-daily-images';
 const DAILY_SMARTER_CHAT_KEY = 'arcai-daily-smarter-chats';
 const DAILY_BALANCED_KEY = 'arcai-daily-balanced';
 const DAILY_DEEP_KEY = 'arcai-daily-deep';
@@ -44,17 +42,6 @@ function rolloverIfNeeded() {
     localStorage.setItem(DAILY_BALANCED_KEY, '0');
     localStorage.setItem(DAILY_DEEP_KEY, '0');
   }
-}
-
-function getDailyImageCount(): number {
-  return parseInt(localStorage.getItem(TOTAL_IMAGE_KEY) || localStorage.getItem(DAILY_IMAGE_KEY) || '0', 10);
-}
-
-function incrementDailyImageCount(): number {
-  const count = getDailyImageCount() + 1;
-  localStorage.setItem(TOTAL_IMAGE_KEY, String(count));
-  localStorage.setItem(DAILY_IMAGE_KEY, String(count));
-  return count;
 }
 
 function isUserBoostedOrAdmin(): boolean {
@@ -177,7 +164,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasBoostSub, setHasBoostSub] = useState(() => isUserBoostedOrAdmin());
   const [loading, setLoading] = useState(true);
-  const [dailyImagesUsed, setDailyImagesUsed] = useState(() => getDailyImageCount());
+  const [imageSnapshot, setImageSnapshot] = useState<{ ownerId: string; used: number; remaining: number | null; limit: number | null; unlimited: boolean } | null>(null);
   const [dailySmarterChatsUsed, setDailySmarterChatsUsed] = useState(() => getDailySmarterChatCount());
   const [flashUsage, setFlashUsage] = useState<{ ownerId: string; percent: number } | null>(null);
   const [dailyBalancedUsed, setDailyBalancedUsed] = useState(() => getDailyBalancedCount());
@@ -189,13 +176,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const emailUnlimited = !!user?.email && UNLIMITED_EMAILS.has(user.email.toLowerCase());
   const hasBoost = isAdmin || emailUnlimited || hasBoostSub;
 
-  // Image quota logic
-  // Admin: unlimited
-  // Boost: unlimited
-  // Free: 3 images total period
-  const imageLimit = isAdmin || hasBoost ? Infinity : FREE_IMAGE_LIMIT;
-  const canGenerateImage = isAdmin || hasBoost || dailyImagesUsed < imageLimit;
-  const remainingImages = isAdmin || hasBoost ? Infinity : Math.max(0, imageLimit - dailyImagesUsed);
+  // Compatibility fields use the same server monthly ledger as the image UI.
+  const currentImage = imageSnapshot?.ownerId === user?.id ? imageSnapshot : null;
+  const dailyImagesUsed = currentImage?.used ?? 0;
+  const imageLimit = currentImage?.unlimited ? Infinity : currentImage?.limit ?? FREE_IMAGE_LIMIT;
+  const remainingImages = currentImage?.unlimited ? Infinity : currentImage?.remaining ?? 0;
+  const canGenerateImage = !!user && remainingImages > 0;
 
   // Arc Think has no daily message cap. Paid model access stays server-authorized.
   const balancedLimit = Infinity;
@@ -251,6 +237,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const checkSubscription = useCallback(async () => {
     if (!user || !supabase) {
+      setImageSnapshot(null);
       setIsAdmin(false);
       setHasBoostSub(false);
       setCancelAtPeriodEnd(false);
@@ -262,11 +249,13 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     }
     try {
       await syncGooglePlaySubscriptions(user.id).catch(() => {});
-      const [{ data: adminData }, { data: boostData }, { data: flashData }] = await Promise.all([
+      const [{ data: adminData }, { data: boostData }, { data: flashData }, { data: imageData }] = await Promise.all([
         supabase.rpc('is_admin_user'),
         supabase.rpc('user_has_boost', { check_user_id: user.id }),
         supabase.rpc('get_arc_flash_usage_today'),
+        supabase.rpc('get_my_arc_image_credits'),
       ]);
+      setImageSnapshot(imageData ? { ...(imageData as unknown as { used: number; remaining: number | null; limit: number | null; unlimited: boolean }), ownerId: user.id } : null);
       setIsAdmin(!!adminData);
       setHasBoostSub(!!boostData);
       const flash = flashData as { usage_percent?: number } | null;
@@ -315,11 +304,9 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const recordImageGeneration = useCallback(() => {
-    if (!isAdmin) {
-      const count = incrementDailyImageCount();
-      setDailyImagesUsed(count);
-    }
-  }, [isAdmin]);
+    window.dispatchEvent(new CustomEvent('arc-image-quota-changed'));
+    void checkSubscription();
+  }, [checkSubscription]);
 
   const recordSmarterChat = useCallback(() => {
     if (!hasBoost) {
@@ -376,7 +363,6 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     const handleFocusAndQuotaChange = () => {
-      setDailyImagesUsed(getDailyImageCount());
       setDailySmarterChatsUsed(getDailySmarterChatCount());
       setDailyDeepUsed(getDailyDeepCount());
       void checkSubscription();

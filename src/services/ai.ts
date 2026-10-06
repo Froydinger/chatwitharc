@@ -109,7 +109,7 @@ WHAT ARC CAN DO
 - Choose Arc Think (Powered by GPT 6 & 6.1) for Auto orchestration or Arc Flash (Powered by Gemini Flash) in the compact chat picker. Arc Matrix™ is the orchestrator. Free offers less usage; Boost offers unlimited usage. Voice limits are unchanged.
 - Search the live web, check weather, search the signed-in user's past chats, and use saved memories when the relevant tool is available.
 - Deep Search and Ultra Deep Search are the dedicated research modes, both powered by Perplexity, opened from the Deep Search button. Deep Search retrieves ranked live results and writes a cited answer; Ultra Deep Search runs agentic Pro Search that browses and cross-checks sources first — slower, and worth it when the answer has to be assembled rather than found. Free accounts get 4 Deep and 1 Ultra per week; Boost makes both unlimited. Follow-ups inside a research session stay in the mode it started in and do not count again. This is separate from the quick in-chat web search, which is instant and uncapped.
-- Generate and edit images with Arc Image (GPT Image 2.5) or Arc Image Flash (Nano Banana 2). Both share daily image credits on Free, with less usage; Boost gives unlimited usage. Understand attached images and camera frames; work with uploaded files.
+- Generate and edit images with Arc Image (GPT Image 2.5) or Arc Image Flash (Nano Banana 2). Free gets 30 Flare Low outputs monthly; Boost gets 250 shared monthly image credits including Nano Banana 2 Lite. Admins are unlimited. Understand attached images and camera frames; work with uploaded files.
 - Draft long-form writing in Canvas, create code in Code Canvas, and generate downloadable files when requested.
 - Create reminders and scheduled or recurring tasks, which are managed at https://askarc.chat/tasks.
 - Share chats and use shared rooms.
@@ -918,7 +918,7 @@ export class AIService {
     }
   }
 
-  async generateImage(prompt: string, preferredModel?: string, aspectRatio?: string, count: number = 1): Promise<ImageTaskResult> {
+  async generateImage(prompt: string, preferredModel?: string, aspectRatio?: string, count: number = 1, quality: string = 'low'): Promise<ImageTaskResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Image generation service is not available. Please configure Supabase.');
     }
@@ -931,8 +931,10 @@ export class AIService {
 
       const { invokeEdgeFunction } = await import('@/lib/invokeEdgeFunction');
       const data: any = await invokeEdgeFunction('generate-image', {
+        requestKey: crypto.randomUUID(),
         prompt,
         preferredModel: modelToUse,
+        quality,
         aspectRatio: aspectRatio || '3:2',
         count: safeCount,
       });
@@ -980,7 +982,7 @@ export class AIService {
     }
   }
 
-  async editImage(prompt: string, baseImageUrls: string | string[], imageModel?: string, aspectRatio?: string, count: number = 1): Promise<ImageTaskResult> {
+  async editImage(prompt: string, baseImageUrls: string | string[], imageModel?: string, aspectRatio?: string, count: number = 1, quality: string = 'low'): Promise<ImageTaskResult> {
     if (!supabase || !isSupabaseConfigured) {
       throw new Error('Image editing service is not available. Please configure Supabase.');
     }
@@ -990,14 +992,16 @@ export class AIService {
       if (images.length > 10) throw new Error('Maximum 10 images allowed for combining');
 
       // GPT Image 2.5 Sunburst is the primary edit model for high precision.
-      const modelToUse = imageModel || 'gpt-image-2.5-sunburst';
+      const modelToUse = imageModel || 'gpt-image-2.5-flare';
       const safeCount = Math.max(1, Math.min(3, Math.floor(count) || 1));
 
       const { invokeEdgeFunction } = await import('@/lib/invokeEdgeFunction');
       const data: any = await invokeEdgeFunction('edit-image', {
+        requestKey: crypto.randomUUID(),
         prompt,
         baseImageUrls: images,
         imageModel: modelToUse,
+        quality,
         aspectRatio,
         count: safeCount,
       });

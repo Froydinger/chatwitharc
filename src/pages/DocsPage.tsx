@@ -84,7 +84,7 @@ export function DocsPage() {
         <div className="space-y-3 text-sm text-muted-foreground leading-relaxed">
           <ul className="list-disc pl-5 space-y-1.5">
             <li><strong className="text-foreground">Free</strong>: Less usage for Flash, images and research. Arc Think stays available. Includes 3 voice sessions per UTC day, up to 10 minutes each.</li>
-            <li><strong className="text-foreground">Boost ($10/mo or limited-time $95/yr, normally $120/yr)</strong>: Unlimited usage for both chat modes, both image modes and research, plus local AI and unlimited voice sessions up to 2 hours each. Start with a 7-day free trial (card required). The annual rate renews at $95/yr while subscribed.</li>
+            <li><strong className="text-foreground">Boost ($10/mo or limited-time $95/yr, normally $120/yr)</strong>: Unlimited usage for both chat modes and research, plus 250 shared monthly image credits, plus local AI and unlimited voice sessions up to 2 hours each. Start with a 7-day free trial (card required). The annual rate renews at $95/yr while subscribed.</li>
           </ul>
           <p>Your dashboard shows the percentage of usage consumed. Flash counts messages you send, including those routed through Flash by Auto; assistant replies and tool rounds do not consume another message. Failed image outputs are refunded.</p>
           <p>Check your plan in <a href="/settings?tab=plan" className="text-primary hover:underline font-semibold">Settings &gt; Plan &amp; Usage</a>.</p>

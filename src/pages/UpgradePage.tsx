@@ -134,7 +134,7 @@ export function UpgradePage() {
               </div>
               <h1 className="text-4xl font-black tracking-tight text-white mb-3">Unlock ArcAI Boost.</h1>
               <p className="text-sm md:text-base text-muted-foreground max-w-md mx-auto">
-                Get unlimited usage for Arc Think, Arc Flash, research and both image modes, plus longer voice sessions.
+                Get unlimited Arc Think, Arc Flash and research, plus 250 shared monthly image credits, plus longer voice sessions.
               </p>
             </div>
 

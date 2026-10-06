@@ -5,11 +5,12 @@ import { TransitionPart } from "@/components/transitions/TransitionPart";
 import { Sparkles, X } from "lucide-react";
 
 /** Presentation only; quotas, navigation and checkout remain composer-owned. */
-export function ComposerOverlays({ showLimitsModal, isBoostTier, hasBoost, imageUsagePercent, onClose, onSettings, onUpgrade }: {
+export function ComposerOverlays({ showLimitsModal, isBoostTier, hasBoost, imageUsagePercent, imageUnlimited = false, onClose, onSettings, onUpgrade }: {
   showLimitsModal: boolean;
   isBoostTier: boolean;
   hasBoost: boolean;
   imageUsagePercent: number;
+  imageUnlimited?: boolean;
   onClose: () => void;
   onSettings: () => void;
   onUpgrade: () => void;
@@ -42,7 +43,7 @@ export function ComposerOverlays({ showLimitsModal, isBoostTier, hasBoost, image
                     </div>
                     <div>
                       <h3 className="text-base font-semibold">Image usage</h3>
-                      <p className="text-[10px] text-muted-foreground">{isBoostTier ? "Unlimited usage with ArcAI Boost" : "Less usage on Free"}</p>
+                      <p className="text-[10px] text-muted-foreground">{isBoostTier ? "Shared monthly credits with ArcAI Boost" : "Less usage on Free"}</p>
                     </div>
                   </div>
 
@@ -51,13 +52,13 @@ export function ComposerOverlays({ showLimitsModal, isBoostTier, hasBoost, image
                     {/* Active Model Progress Card */}
                     <div className="space-y-2.5 p-4 rounded-2xl bg-white/5 border border-black/10 dark:border-white/5 backdrop-blur-md">
                       <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">
-                        <span>Status: <strong className="text-foreground">{isBoostTier ? "Unlimited Images" : "Free Plan"}</strong></span>
-                        <span className="tabular-nums text-foreground">{isBoostTier ? "Unlimited" : `${imageUsagePercent}% used`}</span>
+                        <span>Status: <strong className="text-foreground">{imageUnlimited ? "Unlimited images" : isBoostTier ? "Boost monthly credits" : "Free monthly images"}</strong></span>
+                        <span className="tabular-nums text-foreground">{imageUnlimited ? "Unlimited" : `${imageUsagePercent}% used`}</span>
                       </div>
                       <div className="w-full bg-black/30 rounded-full h-2.5 overflow-hidden border border-black/10 dark:border-white/5 p-0.5">
                         <div
                           className="bg-primary h-full rounded-full transition-[width] duration-200 motion-reduce:transition-none"
-                          style={{ width: isBoostTier ? "100%" : `${Math.min(100, imageUsagePercent)}%` }}
+                          style={{ width: imageUnlimited ? "100%" : `${Math.min(100, imageUsagePercent)}%` }}
                         />
                       </div>
                     </div>

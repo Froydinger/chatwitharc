@@ -261,7 +261,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
   const imagePreviewUrls = useAttachmentPreviews(selectedImages);
   const [allImagesEditMode, setAllImagesEditMode] = useState(false);
   const [showLimitsModal, setShowLimitsModal] = useState(false);
-  const { usagePercent: imageUsagePercent } = useImageQuota();
+  const { usagePercent: imageUsagePercent, remainingCredits: imageRemainingCredits } = useImageQuota();
   const [selectedDocuments, setSelectedDocuments] = useState<File[]>([]);
   const [isActive, setIsActive] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -1180,7 +1180,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
       })(),
       ...getExecutionModelChoices(user.id, hasBoost || isAdmin),
       reasoningSelection: useModelStore.getState().reasoningEffort,
-      imageOptions: { aspect: imageGenAspect, editAspect: imageEditAspect, count: imageGenCount, generationModel: imageGenModel, editModel: imageEditModel },
+      imageOptions: { aspect: imageGenAspect, editAspect: imageEditAspect, count: imageGenCount, generationModel: imageGenModel, editModel: imageEditModel, quality: useImageGenStore.getState().imageMode === "low" ? "low" : "medium" },
     });
   }
 
@@ -1208,6 +1208,7 @@ export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
     const requestEditAspect = captured?.imageOptions.editAspect ?? imageEditAspect;
     const requestImageModel = captured?.imageOptions.generationModel ?? imageGenModel;
     const requestEditModel = captured?.imageOptions.editModel ?? imageEditModel;
+    const requestQuality = captured?.imageOptions.quality ?? (useImageGenStore.getState().imageMode === "low" ? "low" : "medium");
     const requestImageCount = captured?.imageOptions.count ?? imageGenCount;
     let handedOffToCloudRun = false;
     const activity = createComposerActivity({
@@ -1741,7 +1742,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
           setGeneratingImage(true);
 
           try {
-            const editResult = await ai.editImage(finalMessage, imageUrls, requestEditModel, requestEditAspect, Math.max(1, Math.min(3, requestImageCount || 1)));
+            const editResult = await ai.editImage(finalMessage, imageUrls, requestEditModel, requestEditAspect, Math.max(1, Math.min(3, requestImageCount || 1)), requestQuality);
             const finalUrls = editResult.imageUrls;
             const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
             await replaceLastMessage({
@@ -1866,7 +1867,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
         try {
           const apiPrompt = `Generate an image: ${imagePrompt}`;
           const requestedCount = Math.max(1, Math.min(3, requestImageCount || 1));
-          const generationResult = await ai.generateImage(apiPrompt, requestImageModel, requestImageAspect, requestedCount);
+          const generationResult = await ai.generateImage(apiPrompt, requestImageModel, requestImageAspect, requestedCount, requestQuality);
           const genUrls = generationResult.imageUrls;
 
           // Replace placeholder with a single message containing all generated images
@@ -1941,7 +1942,7 @@ Feel free to send another message or test a prompt to see the animation again!`,
           setGeneratingImage(true);
 
           try {
-            const editResult = await ai.editImage(finalMessage, sourceImageUrls, requestEditModel, requestEditAspect, Math.max(1, Math.min(3, requestImageCount || 1)));
+            const editResult = await ai.editImage(finalMessage, sourceImageUrls, requestEditModel, requestEditAspect, Math.max(1, Math.min(3, requestImageCount || 1)), requestQuality);
             const finalUrls = editResult.imageUrls;
             const fallbackModel = ((): string | null => { try { const v = (window as any).__lastImageFallback || null; (window as any).__lastImageFallback = null; return v; } catch { return null; } })();
             await replaceLastMessage({
@@ -3212,6 +3213,7 @@ ${safeCode}
       />
 
       <ComposerOverlays
+        imageUnlimited={imageRemainingCredits === Infinity}
         showLimitsModal={showLimitsModal}
         isBoostTier={isBoostTier}
         hasBoost={hasBoost}

@@ -1,5 +1,6 @@
 /** Nano Banana 2 via Google's Interactions API. Chat still uses OpenAI compatibility. */
 export const ARC_IMAGE_FLASH_MODEL = "gemini-3.1-flash-image";
+export const ARC_IMAGE_LITE_MODEL = "gemini-3.1-flash-lite-image";
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions";
 const ASPECTS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"];
 type ImageInput = { data: string; mime_type: string };
@@ -40,6 +41,7 @@ export function extractImageFlashOutput(payload: unknown): string | null {
 
 export async function callImageFlash(options: {
   apiKey: string | undefined;
+  model?: string;
   prompt: string;
   aspect: string;
   count: number;
@@ -51,8 +53,10 @@ export async function callImageFlash(options: {
   if (!Number.isInteger(options.count) || options.count < 1 || options.count > 3) {
     return { ok: false, status: 400, rawText: "Invalid image count." };
   }
+  const model = options.model ?? ARC_IMAGE_FLASH_MODEL;
+  if (![ARC_IMAGE_FLASH_MODEL, ARC_IMAGE_LITE_MODEL].includes(model)) return { ok: false, status: 400, rawText: "Invalid image model." };
   const body = JSON.stringify({
-    model: ARC_IMAGE_FLASH_MODEL,
+    model,
     input: [{ type: "text", text: options.prompt }, ...(options.images ?? []).map(image => ({ type: "image", ...image }))],
     response_format: { type: "image", mime_type: "image/jpeg", aspect_ratio: imageFlashAspect(options.aspect), image_size: "1K" },
     store: false,

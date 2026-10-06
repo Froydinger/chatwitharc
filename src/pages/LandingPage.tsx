@@ -41,7 +41,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is ArcAI free?",
-    a: "Yes. Free includes Arc Think and Arc Flash with less usage, Canvas, living memory, images with less usage, research, GitHub Normal, and 3 voice sessions per UTC day up to 10 minutes each. Boost adds unlimited usage, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each.",
+    a: "Yes. Free includes Arc Think and Arc Flash with less usage, Canvas, living memory, images with less usage, research, GitHub Normal, and 3 voice sessions per UTC day up to 10 minutes each. Boost adds unlimited chat and research, 250 shared monthly image credits, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each.",
   },
   {
     q: "Is there a paid tier?",
@@ -73,7 +73,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Can ArcAI generate images?",
-    a: "Yes. Free accounts include image generation with less usage. Boost accounts receive unlimited Arc Image creation and precision editing with Arc Image.",
+    a: "Yes. Free accounts include image generation with less usage. Boost accounts receive 250 shared image credits monthly across available image models.",
   },
   {
     q: "Does ArcAI have voice mode?",
@@ -355,7 +355,7 @@ function MarketingLandingPage() {
             { category: "Create", icon: Code2, title: "Code Canvas", body: "Canvas and GitHub Normal are available on Free and Boost. Prepare repository changes as a branch and pull request; Boost unlocks GitHub Pro with GPT-6.1 Sol." },
             { category: "Ask", icon: Sparkles, title: "Arc Work · Boost", body: "Available with Boost. Hand Arc a longer task to run in the cloud, with progress in your chat and requests for input when needed." },
             { category: "Create", icon: Code2, title: "App Builder · Boost", body: "Available with Boost. Build, preview, refine, publish or export an app. Fast uses Luna by default; choose Pro for GPT-6.1 Sol with light reasoning." },
-            { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create and edit images with Arc Image or Arc Image Flash. Less usage on Free; unlimited generation and editing on Boost." },
+            { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create and edit images with Arc Image or Arc Image Flash. 30 Flare Low images monthly on Free; 250 shared monthly image credits on Boost." },
           ].map((f, i) => (
             <div
               key={f.title}
@@ -401,7 +401,7 @@ function MarketingLandingPage() {
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               {[
-                { icon: ImageIcon, title: "Create images for free", body: "Create images with less usage on Free, or upgrade to Boost for unlimited generation and editing." },
+                { icon: ImageIcon, title: "Create images for free", body: "Create images with less usage on Free, or upgrade to Boost for 250 shared monthly image credits and more models." },
                 { icon: Mic, title: "Natural voice conversations", body: "Speak naturally with low-latency, interruptible audio. Free accounts get 3 voice sessions per UTC day, up to 10 minutes each, and Boost includes unlimited live voice sessions up to 2 hours each." },
                 { icon: Search, title: "Research with live sources", body: "Deep Search cites live sources; Ultra Deep Search browses and cross-checks first. Less usage on Free, unlimited usage on Boost." },
                 { icon: Code2, title: "GitHub Mode", body: "Normal is available on Free and Boost. Connect a repository for branch-and-pull-request changes; Boost adds Pro with GPT-6.1 Sol." },
@@ -515,7 +515,7 @@ function MarketingLandingPage() {
           Give your next idea to Arc.
         </h2>
         <p className="mx-auto mt-4 max-w-md text-white/[0.55]">
-          Start with less usage for chat and images, and 3 voice sessions per UTC day up to 10 minutes each. Upgrade to Boost for unlimited usage, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each.
+          Start with less usage for chat and images, and 3 voice sessions per UTC day up to 10 minutes each. Upgrade to Boost for unlimited chat and research, 250 shared monthly image credits, Arc Work, App Builder, GitHub Pro, and unlimited voice sessions up to 2 hours each.
         </p>
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <button

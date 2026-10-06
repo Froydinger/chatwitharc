@@ -2,9 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-export const FREE_DAILY_IMAGE_CREDITS = 8;
+export const FREE_MONTHLY_IMAGE_ALLOWANCE = 30;
+export const FREE_DAILY_IMAGE_CREDITS = FREE_MONTHLY_IMAGE_ALLOWANCE;
 
-import { useImageGenStore, useResolvedImageModel } from "@/store/useImageGenStore";
+import { imageCreditCost, useImageGenStore, useResolvedImageModel } from "@/store/useImageGenStore";
 import { useSubscription } from "@/hooks/useSubscription";
 
 interface ImageQuotaSnapshot {
@@ -12,6 +13,12 @@ interface ImageQuotaSnapshot {
   remaining: number | null;
   limit: number | null;
   isBoost: boolean;
+  unlimited: boolean;
+  refillEnabled: boolean;
+  canRefill: boolean;
+  baseRemaining: number;
+  bonusRemaining: number;
+  refillOffers: { id: string; title: string; endsAt: string }[];
   usage_percent: number;
   resetAt: string;
 }
@@ -30,6 +37,13 @@ interface ImageQuotaState {
   resetAt: string | null;
   refreshQuota: () => Promise<void>;
   FREE_DAILY_IMAGE_LIMIT: number;
+  refillEnabled: boolean;
+  canRefill: boolean;
+  baseRemaining: number;
+  bonusRemaining: number;
+  refillOffers: { id: string; title: string; endsAt: string }[];
+  claimRefill: (offerId?: string) => Promise<void>;
+  unitCost: number;
 }
 
 const ImageQuotaContext = createContext<ImageQuotaState | null>(null);
@@ -40,6 +54,8 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
   const [quota, setQuota] = useState<(ImageQuotaSnapshot & { ownerId: string }) | null>(null);
   const { hasBoost, isAdmin } = useSubscription();
   const selectedModel = useResolvedImageModel(hasBoost || isAdmin);
+  const aspect = useImageGenStore(state => state.aspectRatio);
+  const mode = useImageGenStore(state => state.imageMode);
   const count = useImageGenStore(state => state.count);
 
   const refreshQuota = useCallback(async () => {
@@ -61,6 +77,11 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
     }
   }, [isAnonymous, user]);
 
+  const claimRefill = useCallback(async (offerId?: string) => {
+    const { error } = await supabase.rpc("claim_arc_image_refill" as never, { claim_key: crypto.randomUUID(), campaign_id: offerId ?? null } as never);
+    await refreshQuota();
+    if (error) throw new Error(error.message);
+  }, [refreshQuota]);
   useEffect(() => { void refreshQuota(); }, [refreshQuota]);
 
   useEffect(() => {
@@ -75,13 +96,19 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
 
   const value = useMemo<ImageQuotaState>(() => {
     const snapshot = quota?.ownerId === user?.id ? quota : null;
-    const isUnlimited = snapshot?.isBoost === true || snapshot?.remaining === null;
+    const isUnlimited = snapshot?.unlimited === true;
     const remaining = isUnlimited ? Infinity : snapshot?.remaining ?? 0;
     const limit = isUnlimited ? Infinity : snapshot?.limit ?? FREE_DAILY_IMAGE_CREDITS;
-    const unitCost = selectedModel === 'gemini-3.1-flash-image' ? 2 : 1;
+    const unitCost = imageCreditCost(selectedModel, aspect, !hasBoost || mode === 'low' ? 'low' : 'medium');
     return {
       loading,
       isAdmin,
+      refillEnabled: snapshot?.refillEnabled ?? false,
+      canRefill: snapshot?.canRefill ?? false,
+      baseRemaining: snapshot?.baseRemaining ?? 0,
+      bonusRemaining: snapshot?.bonusRemaining ?? 0,
+      refillOffers: snapshot?.refillOffers ?? [],
+      claimRefill, unitCost,
       creditsUsed: snapshot?.used ?? 0,
       remainingCredits: remaining,
       creditLimit: limit,
@@ -95,7 +122,7 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
       refreshQuota,
       FREE_DAILY_IMAGE_LIMIT: FREE_DAILY_IMAGE_CREDITS,
     };
-  }, [count, isAdmin, isAnonymous, loading, quota, refreshQuota, selectedModel, user]);
+  }, [aspect, claimRefill, count, hasBoost, mode, isAdmin, isAnonymous, loading, quota, refreshQuota, selectedModel, user]);
 
   return <ImageQuotaContext.Provider value={value}>{children}</ImageQuotaContext.Provider>;
 }

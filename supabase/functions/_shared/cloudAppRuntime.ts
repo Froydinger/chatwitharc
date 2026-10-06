@@ -1,3 +1,4 @@
+import { cloudImageRuntime } from "./cloudImageRuntime.ts";
 import { appModelRoute } from "./durableModelRouting.ts";
 import {
   type AppDatabase,
@@ -34,6 +35,7 @@ export type CloudAppRuntimePorts = {
   };
   context(run: ClaimedCloudRun): Promise<{ instructions: string }>;
   provider(instructions: string, run: ClaimedCloudRun): Provider;
+  imageTools?: ReturnType<typeof cloudImageRuntime>["tools"];
 };
 
 /** Shared engine handles model IDs, raw reasoning/tool rounds, approvals, lease
@@ -136,7 +138,7 @@ export async function advanceCloudAppRun(
               cancelAgentSession: (...args) => provider.cancelAgentSession!(...args),
             } : {}),
           },
-          tools: cloudAppTools(ports.app),
+          tools: { ...cloudAppTools(ports.app), ...ports.imageTools },
         };
       },
     });
@@ -165,23 +167,28 @@ export function cloudAppAdvance(
     enabled?: boolean;
     fetcher?: typeof fetch;
     publisher?: CloudPublisherConfig;
+    imageConfig?: { supabaseUrl: string; serviceRoleKey: string; r2WorkerUrl: string; r2WorkerSecret: string };
   } = {},
 ) {
   return async (id: string) => {
     if (options.enabled !== true) {
       throw new Error("Durable App Builder is not enabled.");
     }
+    const app = cloudAppPersistence(db, { publisher: options.publisher });
+    const images = options.imageConfig ? cloudImageRuntime({ ...options.imageConfig, openaiApiKey: apiKey,
+      builder: true, authorizeOwner: run => app.authorize(run) }) : null;
     return await advanceCloudAppRun(id, {
       store: cloudWorkerStore(db),
-      app: cloudAppPersistence(db, { publisher: options.publisher }),
+      app,
+      imageTools: images?.tools,
       context: (run) => loadCloudRunContext(db, run),
       provider: (instructions, run) =>
         cloudAgentsProvider({
           apiKey,
-          instructions,
+          instructions: instructions + (images ? "\nBuilder images default to Flare Low, including transparent assets. Only use Sunburst when the current user explicitly requests better images. Use generate_image/edit_image and save returned asset URLs into project files. Image safety caps apply." : ""),
           model: appModelRoute((run.request ?? {}) as Record<string, unknown>).model,
           reasoningEffort: "low",
-          tools: CLOUD_APP_DEFINITIONS,
+          tools: [...CLOUD_APP_DEFINITIONS, ...(images?.definitions ?? [])],
           fetcher: options.fetcher,
         }),
     });

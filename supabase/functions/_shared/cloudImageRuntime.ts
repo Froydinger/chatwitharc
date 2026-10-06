@@ -29,6 +29,7 @@ export function cloudImageRuntime(
     r2WorkerSecret: string;
     authorizeOwner(run: ClaimedCloudRun): Promise<boolean>;
     fetch?: typeof fetch;
+    builder?: boolean;
   },
 ) {
   const store = cloudImageStore(options);
@@ -46,6 +47,13 @@ export function cloudImageRuntime(
     provider,
     media,
     authorizeOwner: options.authorizeOwner,
+    configure: (run, args) => {
+      if (!options.builder) return { ...args, quality: args.model === 'gpt-image-2.5-sunburst' ? 'high' : 'medium' };
+      const user = [...run.request.messages].reverse().find((m: any) => m?.role === 'user') as { content?: unknown } | undefined;
+      const better = /(better|higher quality|premium|pro) (images?|pictures?|assets?)|sunburst/i.test(String(user?.content ?? ''));
+      const model = better ? 'gpt-image-2.5-sunburst' : 'gpt-image-2.5-flare';
+      return { ...args, model, quality: better ? 'high' : 'low' };
+    },
   });
   return {
     definitions: CLOUD_IMAGE_DEFINITIONS,

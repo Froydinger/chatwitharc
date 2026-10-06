@@ -1,0 +1,69 @@
+import { useCallback, useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
+type Tier = 'free' | 'boost';
+type Policy = { free_refill_enabled: boolean; boost_refill_enabled: boolean; builder_daily_limit: number; builder_run_limit: number; builder_pro_daily_limit: number; builder_pro_run_limit: number };
+type Offer = { id: string; title: string; tier: Tier; kind: string; amount: number; starts_at: string; ends_at: string; status: string };
+type Usage = { user_id: string; tier: string; model: string; quality: string; scope: string; reserved_outputs: number; saved_outputs: number; pending_outputs: number; failed_outputs: number; reserved_cost: number };
+type Balance = { user_id: string; tier: string; kind: string; remaining: number; capacity: number; expires_at: string };
+type Preview = { id: string; payload: Record<string, unknown>; preview: { affectedUsers: number; credits: number | null; estimatedOutputEnvelopeUSD: number | null; exposure: string; unusedBaseForfeited: number; audience: string } };
+type Audit = { id: string; actor: string; action: string; payload: { reason: string }; applied_at: string | null; created_at: string };
+type Dashboard = { policy: Policy; offers: Offer[]; usage: Usage[]; balances: Balance[]; audit: Audit[]; claims: { user_id: string; created_at: string; offer_id: string | null }[] };
+async function imageAdmin<T>(action: string, payload: Record<string, unknown> = {}, key?: string): Promise<T> {
+ const { data, error } = await supabase.rpc('admin_arc_images' as never, { action, payload, request_key: key ?? null } as never);
+ if (error) throw new Error(error.message);
+ return data as unknown as T;
+}
+const utcInput = (date: Date) => date.toISOString().slice(0,16);
+export function ImageUsageAdmin() {
+ const [page,setPage] = useState(0);
+ const [data,setData] = useState<Dashboard | null>(null);
+ const [settings,setSettings] = useState<Policy | null>(null);
+ const [error,setError] = useState('');const [busy,setBusy] = useState(false);
+ const [tier,setTier] = useState<Tier>('free');const [kind,setKind] = useState('bonus');const [amount,setAmount] = useState(30);
+ const [title,setTitle] = useState('');const [reason,setReason] = useState('');
+ const [start,setStart] = useState(utcInput(new Date()));const [end,setEnd] = useState(utcInput(new Date(Date.now()+7*86400000)));
+ const [preview,setPreview] = useState<Preview | null>(null);const [query,setQuery] = useState('');const [filter,setFilter] = useState('all');
+ const load = useCallback(async () => { try {const x=await imageAdmin<Dashboard>('dashboard',{offset:page*200});setData(x);setSettings(Object.fromEntries(Object.entries(x.policy).filter(([k]) => k !== 'id' && k !== 'free_limit' && k !== 'boost_limit')) as Policy);} catch(e){setError(String(e instanceof Error ? e.message : e));}},[page]);
+ useEffect(()=>{void load();},[load]);
+ const review = async (payload: Record<string,unknown>) => {
+  setBusy(true);setError('');
+  try {setPreview(await imageAdmin<Preview>('preview',payload,crypto.randomUUID()));}catch(e){setError(e instanceof Error ? e.message : 'Preview failed');}finally{setBusy(false);}
+ };
+ const confirm = async () => {
+  if(!preview)return;setBusy(true);setError('');
+  try{await imageAdmin('confirm',{previewId:preview.id,confirm:true});setPreview(null);await load();}catch(e){setError(e instanceof Error ? e.message : 'Action failed');}finally{setBusy(false);}
+ };
+ const field='rounded-xl border border-border bg-background p-2 text-sm';
+ if(!data||!settings)return <div className="p-6"><p>Loading image usage…</p>{error&&<p role="alert">{error}</p>}</div>;
+ const usages=data.usage.filter(x=>(filter==='all'||x.tier===filter)&&x.user_id.includes(query.trim()));
+ return <section className="space-y-6" aria-label="Admin image usage">
+  <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-semibold">Images & offers</h2><p className="text-sm text-muted-foreground">Monthly balances renew at 00:00 UTC on the first. Admins are unlimited.</p></div><Button disabled={busy} variant="outline" onClick={()=>void load()}>Refresh</Button></div>
+  {error&&<p role="alert" className="text-sm">{error}</p>}
+  <div className="glass-card p-5 space-y-4"><h3 className="font-semibold">Refills & Builder controls</h3><p className="text-xs text-muted-foreground">Disabling monthly refill removes the user control and stops future claims. Existing refilled balances remain. Builder caps count attempted outputs to limit retry abuse.</p>
+   {(['free_refill_enabled','boost_refill_enabled'] as const).map(k=><label key={k} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={settings[k]} onChange={e=>setSettings({...settings,[k]:e.target.checked})}/>{k==='free_refill_enabled'?'Free promotional monthly refill':'Boost monthly refill'}</label>)}
+   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{(['builder_daily_limit','builder_run_limit','builder_pro_daily_limit','builder_pro_run_limit'] as const).map(k=><label key={k} className="text-xs">{k.replace(/_/g,' ')}<Input type="number" min={k.includes('pro')?0:1} value={settings[k]} onChange={e=>setSettings({...settings,[k]:Number(e.target.value)})}/></label>)}</div>
+   <Button disabled={busy||!reason.trim()} onClick={()=>void review({operation:'policy',...settings,reason})}>Review setting changes</Button>
+  </div>
+  <div className="glass-card p-5 space-y-4"><h3 className="font-semibold">Reset balances or schedule an offer</h3>
+   <label className="block text-sm">Reason for change<Input value={reason} maxLength={500} onChange={e=>setReason(e.target.value)} placeholder="Update, holiday, or support reason"/></label>
+   <div className="flex flex-wrap gap-3"><label className="text-sm">Audience <select aria-label="Offer audience" className={field} value={tier} onChange={e=>setTier(e.target.value as Tier)}><option value="free">Free</option><option value="boost">Boost</option></select></label><Button disabled={busy||!reason.trim()} variant="outline" onClick={()=>void review({operation:'reset',tier,reason})}>Preview base reset</Button></div>
+   <p className="text-xs text-muted-foreground">Base resets discard unused base balance. Bonuses stay separate. Unlimited offers do not unlock models for Free.</p>
+   <div className="grid md:grid-cols-2 gap-3"><label className="text-sm">Offer title<Input value={title} maxLength={120} onChange={e=>setTitle(e.target.value)}/></label><label className="text-sm">Benefit<select aria-label="Offer benefit" className={'block w-full '+field} value={kind} onChange={e=>setKind(e.target.value)}><option value="bonus">Expiring bonus usage</option><option value="refill">Extra refill opportunity</option><option value="unlimited">Temporary unlimited generation</option></select></label>
+   {kind==='bonus'&&<label className="text-sm">{tier==='free'?'Extra Flare Low outputs':'Extra credits'}<Input type="number" min={1} max={100000} value={amount} onChange={e=>setAmount(Number(e.target.value))}/></label>}
+   <label className="text-sm">Starts (UTC)<Input type="datetime-local" value={start} onChange={e=>setStart(e.target.value)}/></label><label className="text-sm">Ends (UTC)<Input type="datetime-local" value={end} onChange={e=>setEnd(e.target.value)}/></label></div>
+   <Button disabled={busy||!reason.trim()||!title.trim()||!start||!end} onClick={()=>void review({operation:'offer',tier,kind,title,amount:kind==='bonus'?amount:0,startsAt:new Date(start+'Z').toISOString(),endsAt:new Date(end+'Z').toISOString(),reason})}>Preview offer</Button>
+  </div>
+  <div className="glass-card p-5 space-y-3"><h3 className="font-semibold">Scheduled & past offers</h3>{!data.offers.length&&<p className="text-sm text-muted-foreground">No offers created.</p>}{data.offers.map(o=><div key={o.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-3"><div><p>{o.title} · {o.tier} · {o.kind}{o.kind==='bonus'?` +${o.amount}`:''}</p><p className="text-xs text-muted-foreground">{o.status} · {o.starts_at} → {o.ends_at} · UTC</p></div><div className="flex gap-2">{o.status!=='revoked'&&<><Button size="sm" variant="outline" disabled={busy||!reason.trim()} onClick={()=>void review({operation:'offer_status',offerId:o.id,status:o.status==='paused'?'active':'paused',reason})}>{o.status==='paused'?'Resume':'Pause'}</Button><Button size="sm" variant="outline" disabled={busy||!reason.trim()} onClick={()=>void review({operation:'offer_status',offerId:o.id,status:'revoked',reason})}>Revoke</Button></>}</div></div>)}</div>
+  <div className="glass-card p-5 space-y-3"><h3 className="font-semibold">Current month usage</h3><div className="flex flex-wrap gap-2"><Input aria-label="Filter user ID" placeholder="Filter this page by user ID" value={query} onChange={e=>setQuery(e.target.value)}/><select className={field} aria-label="Usage tier" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All accounts</option><option value="free">Free</option><option value="boost">Boost</option><option value="admin">Admin</option></select></div>
+   <p className="text-xs text-muted-foreground">Page {page+1} of grouped usage/balance rows; use the page controls to inspect more accounts. Reserved credits estimate configuration cost, not an API invoice. Failed or unsaved outputs may still incur provider cost.</p>
+   <div className="overflow-x-auto"><table className="w-full text-xs text-left"><thead><tr>{['User / tier','Model / quality','Scope','Saved / pending / failed','Reserved credits'].map(h=><th key={h} className="p-2">{h}</th>)}</tr></thead><tbody>{usages.map((x,i)=><tr key={i} className="border-t border-border"><td className="p-2"><button onClick={()=>setQuery(x.user_id)}>{x.user_id}</button><br/>{x.tier}</td><td className="p-2">{x.model}<br/>{x.quality}</td><td className="p-2">{x.scope}</td><td className="p-2">{x.saved_outputs} / {x.pending_outputs} / {x.failed_outputs}</td><td className="p-2">{x.reserved_cost}</td></tr>)}</tbody></table>{!usages.length&&<p className="text-sm py-3">No image usage matches.</p>}</div>
+   <div className="flex gap-2"><Button size="sm" variant="outline" disabled={page===0||busy} onClick={()=>setPage(page-1)}>Previous page</Button><Button size="sm" variant="outline" disabled={busy||(data.usage.length<200&&data.balances.length<200&&data.claims.length<200)} onClick={()=>setPage(page+1)}>Next page</Button></div>
+   <h4 className="font-medium">Balances & refill claims</h4><div className="max-h-64 overflow-auto space-y-2">{data.balances.filter(x=>(filter==='all'||x.tier===filter)&&x.user_id.includes(query.trim())).map((x,i)=><p key={i} className="text-xs">{x.user_id} · {x.tier} · {x.kind}: {x.remaining}/{x.capacity} · expires {x.expires_at}</p>)}{data.claims.filter(x=>x.user_id.includes(query.trim())).map((x,i)=><p key={'c'+i} className="text-xs">{x.user_id} · {x.offer_id?'Offer':'Monthly'} refill claimed {x.created_at}</p>)}</div>
+  </div>
+  <div className="glass-card p-5 space-y-3"><h3 className="font-semibold">Audit trail</h3>{data.audit.map(x=><p key={x.id} className="text-xs">{x.applied_at?'Applied':'Preview'} · {x.action} · {x.payload.reason} · actor {x.actor} · {x.created_at}</p>)}</div>
+  <AlertDialog open={preview!==null} onOpenChange={open=>!open&&!busy&&setPreview(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirm image policy action</AlertDialogTitle><AlertDialogDescription asChild><div className="space-y-2 text-sm"><p>{preview?.preview.affectedUsers} current accounts affected. {preview?.preview.audience}</p><p>Usage granted/reset: {preview?.preview.credits??'Variable'} · Unused base forfeited: {preview?.preview.unusedBaseForfeited}</p><p>Output estimate: {preview?.preview.estimatedOutputEnvelopeUSD==null?'Uncapped':`$${preview.preview.estimatedOutputEnvelopeUSD.toFixed(2)}`}. {preview?.preview.exposure}</p><pre className="max-h-40 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(preview?.payload,null,2)}</pre><p>Review this action before applying. Previews expire in 10 minutes.</p></div></AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel><AlertDialogAction disabled={busy} onClick={e=>{e.preventDefault();void confirm();}}>{busy?'Applying…':'Apply confirmed action'}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+ </section>;
+}

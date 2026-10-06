@@ -1,18 +1,32 @@
+import { useState } from 'react';
 import { useImageQuota } from '@/hooks/useImageQuota';
 import { useSubscription } from '@/hooks/useSubscription';
-
-/** Both image modes spend the same daily credit balance. */
+import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 export function ImageCreditSummary() {
-  const quota = useImageQuota();
-  const { hasBoost, isAdmin, loading } = useSubscription();
-  if (loading || quota.loading) return <p className="text-xs text-muted-foreground">Loading image credits…</p>;
-  if (hasBoost || isAdmin) return <p className="text-xs text-muted-foreground">Unlimited images with Boost.</p>;
-  if (!quota.resetAt) return <p className="text-xs text-muted-foreground">Image credits unavailable.</p>;
-  const remaining = Math.max(0, quota.remainingCredits);
-  return <div className="space-y-1 text-xs text-muted-foreground" aria-label="Image credits">
-    <p className="font-medium text-foreground">{remaining} of {quota.creditLimit} image credits left today</p>
-    <p>Arc Image: 1 credit per image · up to {Math.floor(remaining)} left</p>
-    <p>Arc Image Flash: 2 credits per image · up to {Math.floor(remaining / 2)} left</p>
-    <p>Shared balance, not separate allowances. Resets at midnight UTC.</p>
-  </div>;
+ const quota = useImageQuota();
+ const { hasBoost, isAdmin } = useSubscription();
+ const [offer, setOffer] = useState<string | null>(null);
+ const [busy, setBusy] = useState(false);
+ const [error, setError] = useState('');
+ if (quota.loading) return <p className="text-xs text-muted-foreground">Loading image allowance…</p>;
+ if (isAdmin || quota.remainingCredits === Infinity) return <p className="text-xs text-muted-foreground">Unlimited images{isAdmin ? ' for admins' : ' during this offer'}.</p>;
+ if (!quota.resetAt) return <p className="text-xs text-muted-foreground">Image allowance unavailable.</p>;
+ const refill = async () => {
+  setBusy(true);setError('');
+  try { await quota.claimRefill(offer || undefined);setOffer(null); } catch(e) {setError(e instanceof Error ? e.message : 'Refill unavailable');} finally {setBusy(false);}
+ };
+ return <div className="space-y-1 text-xs text-muted-foreground" aria-label="Image allowance">
+  <p className="font-medium text-foreground">{quota.baseRemaining} of {quota.creditLimit} {hasBoost ? 'base credits' : 'images'} remaining</p>
+  {quota.bonusRemaining > 0 && <p>Plus {quota.bonusRemaining} bonus {hasBoost ? 'credits' : 'images'}; offers expire separately.</p>}
+  {hasBoost && <p>This selection: {quota.unitCost} credits per image. Edits matching the original may cost more.</p>}
+  <p>Renews {new Date(quota.resetAt).toLocaleDateString()} at 00:00 UTC.</p>
+  {quota.refillEnabled && <Button size="sm" variant="outline" disabled={!quota.canRefill || busy} onClick={() => setOffer('')}>{quota.canRefill ? 'Refill monthly allowance' : 'Monthly refill used'}</Button>}
+  {quota.refillOffers.map(o => <Button key={o.id} size="sm" variant="outline" disabled={busy} onClick={() => setOffer(o.id)}>{o.title}: refill</Button>)}
+  {error && <p role="alert">{error}</p>}
+  <AlertDialog open={offer !== null} onOpenChange={open => !open && !busy && setOffer(null)}><AlertDialogContent>
+   <AlertDialogHeader><AlertDialogTitle>Refill your base allowance?</AlertDialogTitle><AlertDialogDescription>This replaces your remaining base balance with the full monthly allowance. Unused base usage is forfeited. Bonus balances and the normal renewal date stay the same.</AlertDialogDescription></AlertDialogHeader>
+   <AlertDialogFooter><AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel><AlertDialogAction disabled={busy} onClick={e => {e.preventDefault();void refill();}}>{busy ? 'Refilling…' : 'Refill'}</AlertDialogAction></AlertDialogFooter>
+  </AlertDialogContent></AlertDialog>
+ </div>;
 }

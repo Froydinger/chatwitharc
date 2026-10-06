@@ -10,6 +10,7 @@ export type CloudImageArgs = {
   count: number;
   sourceUrls: string[];
   transparent: boolean;
+  quality?: string;
 };
 export type CloudImageSlot = {
   state: "ready" | "submitting" | "pending" | "done" | "failed";
@@ -159,7 +160,7 @@ export function cloudImageArguments(call: ToolCall): CloudImageArgs {
       typeof u !== "string" || u.length > 2048
     ) || typeof a.transparent !== "boolean"
   ) throw new Error("Invalid image arguments");
-  const model = kind === "edit" ? "gpt-image-2.5-sunburst" : "gpt-image-2.5-flare";
+  const model = a.model === "pro" || kind === "edit" ? "gpt-image-2.5-sunburst" : "gpt-image-2.5-flare";
   if (
     !model ||
     !["1:1", "3:2", "4:3", "16:9", "21:9", "2:3", "3:4", "9:16", "source"]
@@ -187,6 +188,7 @@ export function cloudImageTool(
     provider: CloudImageProvider;
     media: CloudImageMedia;
     authorizeOwner(run: ClaimedCloudRun): Promise<boolean>;
+    configure?(run: ClaimedCloudRun, args: CloudImageArgs): CloudImageArgs;
   },
 ): RegisteredCloudTool {
   return {
@@ -201,7 +203,8 @@ export function cloudImageTool(
           "Image authorization denied",
         );
       }
-      const args = cloudImageArguments(call);
+      const parsed = cloudImageArguments(call);
+      const args = options.configure ? options.configure(run, parsed) : parsed;
       const step = async (
         action: CloudImageAction,
         index = 0,

@@ -225,16 +225,20 @@ spreads this map and overrides only the typography keys.
   `is_git`) marks a conversation that was handed to Arc Work, and dashboard
   history badges each chat accordingly. It used to live only in localStorage, so
   it was device-local and invisible to the dashboard.
-- **Images: Arc Image and Arc Image Flash.** Arc Image keeps OpenAI
-  `gpt-image-2.5-flare` for generation and `gpt-image-2.5-sunburst` for edits.
-  Arc Image Flash uses Nano Banana 2 (`gemini-3.1-flash-image`) through Google's
-  Interactions API. Free accounts share 8 image credits per UTC day: OpenAI
-  costs 1 credit per output and Nano Banana costs 2; batches multiply that cost.
-  Failed or unsaved outputs refund reservations once against the original date.
-  Boost keeps unlimited images. Preserve private storage and source-aspect edits.
-  Transparent alpha requests use Arc Image; do not silently switch providers.
+- **Images: monthly policy.** Free receives 30 Flare Low outputs per UTC calendar month.
+  Boost receives 250 shared credits per month across Flare Low/Medium, Sunburst High,
+  Nano Banana 2 and Nano Banana 2 Lite. Admins are unlimited. Square output costs:
+  Flare 1, Lite 3, Sunburst High 4, Nano Banana 2 5; larger Flare Medium costs 2
+  and larger/source Sunburst High costs 6. Google output stays 1K. No silent fallback.
+  Optional once-monthly refill replaces base balance, forfeits unused base credits,
+  and is independently switchable for Free/Boost. Bonuses have separate expiries.
+  Atomic reservations and generation-fenced refunds protect concurrent usage.
+  Private storage and true alpha transparency remain; use Flare/Sunburst for alpha.
+  Builder images use a separate server-verified owned app-run allowance with
+  configurable attempt caps: Flare Low by default, Sunburst only on explicit better
+  image request. Do not advertise this exception. Preserve legacy in-flight settlement.
 - **Limits advertising:** say “Less usage” on Free and “Unlimited usage” on Boost.
-  Show percentages for Flash and images in dashboard content, not numeric caps.
+  Show Flash percentages. Images show monthly balances, costs and refill availability; never call finite Boost images unlimited.
   Exact enforcement values stay in backend/internal technical docs. Voice names,
   providers, session limits and behavior stay unchanged. Dashboard navigation
   and the notification bell are outside the animation/layout change scope.

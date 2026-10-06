@@ -44,7 +44,7 @@ export default function TermsPage() {
               </p>
               <p className="text-muted-foreground mt-3">
                 <strong>Boost</strong> is an optional paid subscription that raises those allowances — unlimited Deep
-                Search and Ultra Deep Search, unlimited voice sessions up to 2 hours each, unlimited image and chat usage. Boost and administrators have unlimited voice sessions up to 2
+                Search and Ultra Deep Search, unlimited voice sessions up to 2 hours each, 250 shared monthly image credits and unlimited chat usage. Boost and administrators have unlimited voice sessions up to 2
                 hours each. It is available with a 7-day free trial when a payment method is provided, then billed
                 through Stripe on a monthly or annual term. It renews automatically until cancelled and can be
                 cancelled at any time from your account settings; access continues to the end of the paid period.
@@ -93,7 +93,7 @@ export default function TermsPage() {
                 <li>
                   Use the service to build a competing product, train competing models on outputs, or resell access.
                 </li>
-                <li>Bypass the daily image or voice limits, authentication, or any other technical guardrail.</li>
+                <li>Bypass the image or daily voice limits, authentication, or any other technical guardrail.</li>
               </ul>
               <p className="text-muted-foreground mt-3">
                 If you abuse the free service, your account may be suspended or terminated. 99.99% of people

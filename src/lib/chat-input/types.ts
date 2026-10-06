@@ -20,7 +20,7 @@ export interface ComposerRequestSnapshot {
   gitModelMode?: 'normal' | 'pro';
   appModelMode?: 'fast' | 'pro';
   reasoningSelection: LunaReasoningSelection;
-  imageOptions: Readonly<{ aspect: string; editAspect: string; count: number; generationModel?: string; editModel?: string }>;
+  imageOptions: Readonly<{ aspect: string; editAspect: string; count: number; generationModel?: string; editModel?: string; quality?: string }>;
 }
 
 export interface ComposerDispatchScope {

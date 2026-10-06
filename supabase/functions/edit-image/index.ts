@@ -1,3 +1,4 @@
+import { imageConfiguration, imageRequestIdentity, isGoogleImage } from "../_shared/imagePolicy.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -18,11 +19,6 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const OPENAI_TIMEOUT_MS = 180_000;
-const DEFAULT_IMAGE_MODEL = 'gpt-image-2.5-sunburst';
-function pickModel(requested?: string): string {
-  return requested === ARC_IMAGE_FLASH_MODEL ? ARC_IMAGE_FLASH_MODEL : DEFAULT_IMAGE_MODEL;
-}
-
 function toOpenAIModel(model: string): string {
   return model.startsWith('openai/') ? model.slice('openai/'.length) : model;
 }
@@ -277,7 +273,7 @@ async function fetchImageAsBlob(url: string, idx: number, supabaseAdmin: any, ow
   }
 }
 
-async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, size: string) {
+async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, size: string, quality: string) {
   const endpoint = 'https://api.openai.com/v1/images/edits';
   const headers = { 'Authorization': `Bearer ${OPENAI_API_KEY}` };
   const modelName = toOpenAIModel(model);
@@ -289,6 +285,7 @@ async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filena
     form.append('model', modelName);
     form.append('prompt', prompt);
     form.append('size', size);
+    form.append('quality', quality);
     form.append('n', '1');
     if (wantsTransparentBackground(prompt)) {
       form.append('background', 'transparent');
@@ -307,14 +304,14 @@ async function callOpenAIEditsSingle(prompt: string, blobs: { blob: Blob; filena
   }
 }
 
-async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, size: string, count: number) {
+async function callOpenAIEdits(prompt: string, blobs: { blob: Blob; filename: string }[], model: string, size: string, count: number, quality: string) {
   if (count <= 1) {
-    return callOpenAIEditsSingle(prompt, blobs, model, size);
+    return callOpenAIEditsSingle(prompt, blobs, model, size, quality);
   }
 
   // Issue parallel requests for count > 1 to avoid serial OpenAI 60s+ gateway timeouts
   const results = await Promise.all(
-    Array.from({ length: count }, () => callOpenAIEditsSingle(prompt, blobs, model, size))
+    Array.from({ length: count }, () => callOpenAIEditsSingle(prompt, blobs, model, size, quality))
   );
 
   const successful = results.filter((r) => r.ok);
@@ -354,7 +351,7 @@ function extractOpenAIImageUrls(parsed: any): string[] {
   return out;
 }
 
-async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], aspect: string, count: number, selectedModel: string) {
+async function processEditJob(jobId: string, userId: string, prompt: string, imageArray: string[], aspect: string, count: number, selectedModel: string, quality: string) {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   let successfulCount = 0;
   try {
@@ -370,11 +367,11 @@ async function processEditJob(jobId: string, userId: string, prompt: string, ima
     }
 
     console.log(`[job ${jobId}] Image edit attempt (${size}, n=${count})`);
-    const primary = selectedModel === ARC_IMAGE_FLASH_MODEL
-      ? await callImageFlash({ apiKey: GEMINI_API_KEY, prompt, count,
+    const primary = isGoogleImage(selectedModel)
+      ? await callImageFlash({ apiKey: GEMINI_API_KEY, model: selectedModel, prompt, count,
         aspect: imageFlashAspect(aspect, sources[0]?.width, sources[0]?.height),
         images: await imageFlashInputs(sources) })
-      : await callOpenAIEdits(prompt, sources, selectedModel, size, count);
+      : await callOpenAIEdits(prompt, sources, selectedModel, size, count, quality);
 
     let urls: string[] = [];
     let primaryErr: ReturnType<typeof classifyError> | null = null;
@@ -463,12 +460,15 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, baseImageUrl, baseImageUrls, aspectRatio, imageModel, count } = await req.json();
-    const selectedModel = pickModel(imageModel);
-    if (!(selectedModel === ARC_IMAGE_FLASH_MODEL ? GEMINI_API_KEY : OPENAI_API_KEY)) {
+    const { prompt, baseImageUrl, baseImageUrls, aspectRatio, imageModel, quality, count, requestKey } = await req.json();
+    const { data: policy, error: policyError } = await supabase.rpc("arc_image_snapshot", { u: user.id });
+    if (policyError || !policy) throw new Error("Image policy unavailable");
+    const config = imageConfiguration(imageModel, quality, policy.tier, aspectRatio === '1:1' ? '1024x1024' : 'auto');
+    const selectedModel = config.model;
+    if (!(isGoogleImage(selectedModel) ? GEMINI_API_KEY : OPENAI_API_KEY)) {
       return jsonResponse({ success: false, error: "The selected image mode is unavailable.", errorType: "configuration_error" });
     }
-    if (selectedModel === ARC_IMAGE_FLASH_MODEL && typeof prompt === "string" && wantsTransparentBackground(prompt)) {
+    if (isGoogleImage(selectedModel) && typeof prompt === "string" && wantsTransparentBackground(prompt)) {
       return jsonResponse({ success: false, error: "For a transparent background, choose Arc Image.", errorType: "invalid_request" });
     }
     // Edits default to keeping the source image's shape. Only an explicit,
@@ -483,10 +483,13 @@ serve(async (req) => {
     if (imageArray.length === 0) return jsonResponse({ error: 'At least one image is required', errorType: 'invalid_request', success: false });
     if (imageArray.length > 10) return jsonResponse({ error: 'Maximum 10 source images allowed', errorType: 'invalid_request', success: false });
 
+    const identity = await imageRequestIdentity(requestKey, { prompt, imageArray, aspect, config, requestedCount });
     const { data: jobData, error: jobError } = await supabase
       .from('image_generation_jobs')
-      .insert({
+      .upsert({
         user_id: user.id,
+        image_request_key: identity.key,
+        image_request_hash: identity.hash,
         job_type: 'edit',
         prompt,
         // Source images are only needed by this invocation. Persisting data URLs
@@ -494,13 +497,20 @@ serve(async (req) => {
         base_image_urls: null,
         aspect_ratio: aspect,
         preferred_model: selectedModel,
+        image_quality: config.quality,
+        image_size: config.size,
         status: 'processing',
         last_attempt_at: new Date().toISOString(),
         attempts: 1,
-      })
+      }, { onConflict: 'user_id,image_request_key', ignoreDuplicates: true })
       .select('id')
-      .single();
+      .maybeSingle();
 
+    if (!jobError && !jobData) {
+      const { data: existing, error } = await supabase.from('image_generation_jobs').select('id,image_request_hash').eq('user_id',user.id).eq('image_request_key',identity.key).single();
+      if (error || existing?.image_request_hash !== identity.hash) throw new Error('Image request conflict');
+      return jsonResponse({ success: true, jobId: existing.id, status: 'pending' });
+    }
     if (jobError || !jobData) {
       console.error('Failed to create edit job:', jobError);
       return jsonResponse({ error: 'Failed to start image editing', errorType: 'queue_error', success: false });
@@ -514,13 +524,13 @@ serve(async (req) => {
     });
     if (quotaError) {
       await updateJob(supabase, jobId, { status: 'failed', error_message: 'Could not reserve image quota', error_type: 'quota_error' });
-      return jsonResponse({ success: false, error: "Could not check today's image allowance.", errorType: 'quota_error' });
+      return jsonResponse({ success: false, error: "Could not check your monthly image allowance.", errorType: 'quota_error' });
     }
     if (!quota?.allowed) {
       await updateJob(supabase, jobId, { status: 'failed', error_message: 'Free image limit reached', error_type: 'daily_limit' });
       return jsonResponse({
         success: false,
-        error: `Image usage limit reached. Upgrade to ArcAI Boost for unlimited usage.`,
+        error: `Monthly image allowance reached. Check your refill or choose a lower-cost model.`,
         errorType: 'daily_limit',
         quota,
       });
@@ -529,7 +539,7 @@ serve(async (req) => {
 
     // Kick off processing in background; respond immediately so we never get killed
     // by the platform's per-request wall timeout.
-    const task = processEditJob(jobId, user.id, editPrompt, imageArray, aspect, requestedCount, selectedModel);
+    const task = processEditJob(jobId, user.id, editPrompt, imageArray, aspect, requestedCount, selectedModel, config.quality);
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) {
       EdgeRuntime.waitUntil(task);
     } else {

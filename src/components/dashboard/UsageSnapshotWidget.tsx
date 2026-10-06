@@ -61,7 +61,7 @@ export function UsageSnapshotWidget({ onOpenPlan }: { onOpenPlan: () => void }) 
       <div className="mt-4 grid grid-cols-3 gap-3">
         <UsageLine label="Arc Flash" used={flashUsagePercent ?? 0} limit={unlimited ? Infinity : 100} showPercent />
         <UsageLine label="Voice" used={dailyVoiceSessionsUsed} limit={unlimited ? Infinity : FREE_DAILY_VOICE_LIMIT} />
-        <UsageLine label="Images" used={dailyImagesUsed} limit={unlimited ? Infinity : imageLimit} showPercent />
+        <UsageLine label="Images" used={dailyImagesUsed} limit={imageLimit} showPercent />
       </div>
 
       <button
