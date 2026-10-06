@@ -406,7 +406,7 @@ grant execute on function public.cloud_image_step(uuid,uuid,uuid,text,jsonb,text
 -- Staged by default: installing this migration does not activate a finite Boost
 -- transition or assert that the provider account can use Lite.
 ALTER TABLE public.arc_image_policy
- ADD COLUMN owner_confirmed_transition_grants uuid[] NOT NULL DEFAULT ARRAY['6b9f8eb1-11fe-4472-bdc8-786110442800'::uuid,'e5692ce0-0c72-4645-9bf2-695601d68096'::uuid],
+ ADD COLUMN owner_confirmed_transition_grants uuid[] NOT NULL DEFAULT '{}'::uuid[],
  ADD COLUMN transition_mode text NOT NULL DEFAULT 'staged' CHECK(transition_mode IN ('staged','grandfather','immediate')),
  ADD COLUMN transition_captured_at timestamptz,
  ADD COLUMN transition_missing_action text CHECK(transition_missing_action IN ('reject','finite')),

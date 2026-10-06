@@ -131,6 +131,7 @@ try{
  sql(`INSERT INTO auth.users(id,email) VALUES('${lifetime}','lifetime-fixture@example.test'),('${unknownLifetime}','unknown-fixture@example.test'),('6b9f8eb1-11fe-4472-bdc8-786110442800','owner-grant-one@example.test'),('e5692ce0-0c72-4645-9bf2-695601d68096','owner-grant-two@example.test');
  INSERT INTO account_entitlement_grants VALUES('lifetime-fixture@example.test',true);
  INSERT INTO subscriptions VALUES('${lifetime}','arcai_boost_monthly','active','9999-12-31T23:59:59Z'),('${unknownLifetime}','arcai_boost_monthly','active','9999-12-31T23:59:59Z'),('6b9f8eb1-11fe-4472-bdc8-786110442800','arcai_boost_monthly','active',NULL),('e5692ce0-0c72-4645-9bf2-695601d68096','arcai_boost_monthly','active',NULL);`);
+ sql(`UPDATE arc_image_policy SET owner_confirmed_transition_grants=ARRAY['6b9f8eb1-11fe-4472-bdc8-786110442800'::uuid,'e5692ce0-0c72-4645-9bf2-695601d68096'::uuid] WHERE id;`);
  assert.equal(report().counts.grant,3,'Known grants are distinct from unknown paid renewals');
  assert.equal(report().counts.missing,2);assert.equal(report().counts.expired,1);
  assert.throws(()=>sql(svc+`SELECT arc_image_activate_transition('grandfather','reject',true);`),/Missing renewal/);
