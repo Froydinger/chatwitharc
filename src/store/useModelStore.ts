@@ -81,10 +81,11 @@ export const useModelStore = create<ModelStore>()(
     }),
     {
       name: 'arc-model-family',
-      version: 7,
+      version: 8,
       migrate: (persisted: unknown) => {
-        const state = (persisted ?? {}) as { reasoningEffort?: string };
-        const reasoningEffort: LunaReasoningSelection = state.reasoningEffort === 'flynn' ? 'flynn' : 'auto';
+        void persisted;
+        // Reset existing chat selections once for the Arc Think default rollout.
+        const reasoningEffort: LunaReasoningSelection = 'auto';
         return {
           modelFamily: 'openai' as const,
           chatModel: LUNA_MODEL,

@@ -83,7 +83,7 @@ export function GitModeDock() {
           onClick={() => setGitModelMode(ownerId, 'normal', canUsePro)}
           className={cn(
             'rounded-full px-2 py-1 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-60',
-            activeGitModelMode === 'normal' ? 'bg-foreground text-background shadow-sm' : 'text-muted-foreground hover:text-foreground',
+            activeGitModelMode === 'normal' ? 'bg-primary/10 text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
           )}
         >
           Normal
@@ -97,7 +97,7 @@ export function GitModeDock() {
           title={canUsePro ? 'Use Pro Git execution' : 'Pro mode requires Boost or admin access'}
           className={cn(
             'rounded-full px-2 py-1 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-50',
-            activeGitModelMode === 'pro' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+            activeGitModelMode === 'pro' ? 'bg-primary/10 text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
           )}
         >
           Pro

@@ -71,7 +71,8 @@ export function SearchCanvas() {
   } = useSearchStore();
 
   const { toast } = useToast();
-  const { openCheckout } = useSubscription();
+  const { openCheckout, hasBoost, isAdmin } = useSubscription();
+  const unlimitedSearch = hasBoost || isAdmin;
   const isMobile = useIsMobile();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const followUpInputRef = useRef<HTMLInputElement>(null);
@@ -589,7 +590,10 @@ export function SearchCanvas() {
 
           <div className="flex items-center gap-2">
             <Search className="w-5 h-5 text-primary" fill="currentColor" strokeWidth={1.5} />
-            <span className="font-semibold text-foreground">Deep Search™</span>
+            <div className="min-w-0">
+              <span className="font-semibold text-foreground">Deep Search™</span>
+              <p className="text-[11px] text-muted-foreground">{unlimitedSearch ? 'Deep & Ultra Deep: Unlimited' : 'Deep: 4/week · Ultra Deep: 1/week'}</p>
+            </div>
           </div>
         </div>
 
@@ -1418,6 +1422,7 @@ export function SearchCanvas() {
                     )}
                   >
                     Deep Search
+                    <span className="block mt-1 text-xs font-normal">{unlimitedSearch ? 'Unlimited' : '4 per week'}</span>
                   </button>
                   <button
                     onClick={() => setUltraMode(true)}
@@ -1429,6 +1434,7 @@ export function SearchCanvas() {
                     )}
                   >
                     Ultra Deep Search
+                    <span className="block mt-1 text-xs font-normal">{unlimitedSearch ? 'Unlimited' : '1 per week'}</span>
                   </button>
                 </div>
 

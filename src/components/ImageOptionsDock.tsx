@@ -52,7 +52,7 @@ export function ImageOptionsContent({
     setCount,
   } = useImageGenStore();
 
-  const { hasBoost, isAdmin } = useSubscription();
+  const { hasBoost, isAdmin, openCheckout } = useSubscription();
   const { liteAvailable } = useImageQuota();
   const [openMenu, setOpenMenu] = useState<null | "aspect" | "count">(null);
 
@@ -80,11 +80,17 @@ export function ImageOptionsContent({
       )}
 
       <div className="flex flex-wrap gap-1 mb-3" role="group" aria-label="Image mode">
-        {IMAGE_MODEL_OPTIONS.filter(option => (!option.boostOnly || hasBoost || isAdmin) && (option.mode !== 'lite' || liteAvailable)).map(option => {
+        {IMAGE_MODEL_OPTIONS.filter(option => option.mode !== 'lite' || liteAvailable).map(option => {
           const mode = option.mode;
           return <button key={mode} type="button" aria-pressed={(hasBoost || isAdmin ? imageMode : 'low') === mode}
-            title={option.blurb} onClick={() => setImageMode(mode)}
-            className={cn("rounded-full px-3 py-1.5 text-xs border transition-colors", imageMode === mode ? "bg-primary/10 border-primary/40 text-foreground" : "border-border/40 text-muted-foreground hover:bg-muted/40")}>
+            title={option.blurb} onClick={() => {
+              if (option.boostOnly && !hasBoost && !isAdmin) {
+                openCheckout(undefined, `${option.label} is included with Boost.`);
+                return;
+              }
+              setImageMode(mode);
+            }}
+            className={cn("rounded-full px-3 py-1.5 text-xs border transition-colors", (hasBoost || isAdmin ? imageMode : 'low') === mode ? "bg-primary/10 border-primary/40 text-foreground" : "border-border/40 text-muted-foreground hover:bg-muted/40")}>
             {option.label}
           </button>;
         })}

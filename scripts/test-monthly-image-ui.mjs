@@ -62,7 +62,7 @@ try{
  transition='grandfather';await page.reload();await page.waitForFunction(()=>document.body.innerText.includes('Then 250 monthly credits apply'));assert(!(await text()).includes('Refill monthly allowance'));await page.screenshot({path:`docs/qa/image-policy/grandfather-${width}.png`,fullPage:true});
  transition='immediate';lite=true;
  tier='free';claimed=false;enabled=true;await page.goto('http://127.0.0.1:5174/image-policy-qa.html');await page.waitForFunction(()=>document.body.innerText.includes('30 images remaining'));
- assert(!(await text()).includes('Nano Banana 2 Lite'));assert((await text()).includes('GPT Image 2.5 Flare'));await page.screenshot({path:`docs/qa/image-policy/free-${width}.png`,fullPage:true});
+ assert((await text()).includes('Nano Banana 2 Lite'));assert((await text()).includes('GPT Image 2.5 Flare'));await page.evaluate(()=>window.addEventListener('open-upgrade-modal',e=>{window.fixtureUpgrade=e.detail;},{once:true}));await button('Nano Banana 2 Lite');assert((await page.evaluate(()=>window.fixtureUpgrade.reason)).includes('Nano Banana 2 Lite'));assert.equal(await page.$eval('[aria-pressed="true"]',x=>x.textContent.trim()),'GPT Image 2.5 Flare');await page.screenshot({path:`docs/qa/image-policy/free-${width}.png`,fullPage:true});
  tier='admin';await page.goto('http://127.0.0.1:5174/image-policy-qa.html?admin');await page.waitForFunction(()=>document.body.innerText.includes('Images & offers'));
  assert((await text()).includes('Unlimited images for admins'));
  const reason=await page.$('input[placeholder="Update, holiday, or support reason"]');await reason.type('Fixture test');
