@@ -4,7 +4,7 @@
 
 Arc Matrix™ powers ArcAI chat, code, writing and analysis. The model picker offers Auto, Ava (fast & agile), Maya (everyday powerhouse) and River (deep reasoning); Auto starts with Ava and steps up for clearly harder requests. Natural, interruptible voice conversations are powered by Voxi. Free accounts get 3 voice sessions per UTC day, up to 10 minutes each; Boost subscribers and administrators get unlimited voice sessions up to 2 hours each. Living memory, Deep Search, web search, file uploads, document analysis, canvases, shared chats, code generation and one-tap publishing are also included.
 
-Free accounts receive 30 GPT Image 2.5 Flare image outputs per UTC calendar month. Boost includes 250 shared monthly image credits for generation and editing across available models, with an optional monthly refill when enabled. Existing Boost users may keep their current unlimited allowance until their fixed transition expiry. Admins have unlimited images. GPT Image 2.5 Flare, GPT Image 2.5 Flare HQ, and GPT Image 2.5 Sunburst, Nano Banana 2, and verified-available Nano Banana 2 Lite use their actual model names.
+Free accounts receive 30 GPT 2.5 Flare image outputs per UTC calendar month. Boost includes 250 shared monthly image credits for generation and editing across available models, with an optional monthly refill when enabled. Existing Boost users may keep their current unlimited allowance until their fixed transition expiry. Admins have unlimited images. GPT 2.5 Flare, GPT 2.5 Flare HQ, and GPT 2.5 Sunburst, Nano Banana 2, and verified-available Nano Banana 2 Lite use their actual model names.
 
 Published code creations use the `*.froydingermedia.online` domain and stay live until their owner unpublishes them.
 

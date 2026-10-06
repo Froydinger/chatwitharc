@@ -1,7 +1,7 @@
 export const FREE_PLAN_FEATURES = [
   "Arc Think and Arc Flash: Less usage",
   "Deep Search and Ultra Deep Search: Less usage",
-  "30 GPT Image 2.5 Flare images per month",
+  "30 GPT 2.5 Flare images per month",
   "3 natural voice sessions per UTC day, up to 10 minutes each (powered by Voxi)",
   "Living memory summary, file uploads, canvases, reminders, and shared chats",
 ];

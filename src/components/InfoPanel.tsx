@@ -20,7 +20,7 @@ export function InfoPanel() {
     {
       icon: ImagePlus,
       title: "AI Image Generation",
-      description: "Create and edit with GPT Image 2.5, or choose Nano Banana 2 for faster images"
+      description: "Create and edit with GPT 2.5, or choose Nano Banana 2 for faster images"
     },
     // Voice feature temporarily hidden
     // {

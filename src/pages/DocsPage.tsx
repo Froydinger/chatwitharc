@@ -70,7 +70,7 @@ export function DocsPage() {
             <li><strong className="text-foreground">Arc Work</strong>: Uses GPT only for work and tools, with OpenAI image models. Choosing Flash for chat does not change the Work provider.</li>
           </ul>
           <p>Arc Matrix™ is the orchestrator behind Auto routing. The small Arc button beside a response opens its model and tool details.</p>
-          <p>For images, choose GPT Image 2.5 Flare, GPT Image 2.5 Flare HQ, GPT Image 2.5 Sunburst, Nano Banana 2, or Nano Banana 2 Lite. All image modes share your plan’s usage.</p>
+          <p>For images, choose GPT 2.5 Flare, GPT 2.5 Flare HQ, GPT 2.5 Sunburst, Nano Banana 2, or Nano Banana 2 Lite. All image modes share your plan’s usage.</p>
         </div>
       ),
       keywords: ["switch model", "change model", "select model", "reasoning", "picker", "dropdown", "arc matrix", "auto", "think", "flash", "images"]
