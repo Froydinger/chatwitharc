@@ -1,3 +1,4 @@
+import { loadOrdinaryChatTurns, mergeOrdinaryChatTurns, discardOrdinaryChatTurns } from '@/services/ordinaryChatPersistence';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase, isSupabaseConfigured } from '@/integrations/supabase/client';
@@ -525,7 +526,7 @@ export const useArcStore = create<ArcState>()(
         if (latest?.isLocalOnly || (latest?.persistenceOwnerId && latest.persistenceOwnerId !== owner)) throw new Error('Session owner mismatch.');
         if (row.id !== sessionId || row.user_id !== owner) throw new Error('Server session identity mismatch.');
         if (!Array.isArray(row.messages)) throw new Error('Invalid server transcript.');
-        const messages = (row.messages as unknown as Message[]).map(message => ({
+        const messages = (mergeOrdinaryChatTurns(row.messages as unknown as Message[], await loadOrdinaryChatTurns(sessionId,owner)) as unknown as Message[]).map(message => ({
           ...message, timestamp: new Date(message.timestamp),
         }));
         if (messages.some(message => !Number.isFinite(message.timestamp.getTime()))) throw new Error('Invalid server message timestamp.');
@@ -1066,7 +1067,7 @@ export const useArcStore = create<ArcState>()(
             return;
           }
 
-          const remoteMessages: Message[] = Array.isArray(data?.messages) ? (data.messages as any) : [];
+          const remoteMessages: Message[] = mergeOrdinaryChatTurns(Array.isArray(data?.messages) ? (data.messages as any) : [], await loadOrdinaryChatTurns(sessionId,user.id)) as unknown as Message[];
           const remoteCanvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
           const remotePersonaId = data?.persona_id || remoteMessages.find((m: any) => typeof m?.personaId === 'string')?.personaId;
           const canvasContent = remoteCanvasContent;
@@ -1147,7 +1148,7 @@ export const useArcStore = create<ArcState>()(
             return;
           }
 
-          const remoteMessages: Message[] = Array.isArray(data?.messages) ? (data.messages as any) : [];
+          const remoteMessages: Message[] = mergeOrdinaryChatTurns(Array.isArray(data?.messages) ? (data.messages as any) : [], await loadOrdinaryChatTurns(sessionId,user.id)) as unknown as Message[];
           const remoteCanvasContent = typeof data?.canvas_content === 'string' ? data.canvas_content : '';
           const remotePersonaId = data?.persona_id || remoteMessages.find((m: any) => typeof m?.personaId === 'string')?.personaId;
 
@@ -1739,6 +1740,8 @@ export const useArcStore = create<ArcState>()(
           const targetSessionId = options?.sessionId || state.currentSessionId;
           // Session-scoped completion must never append into a different open chat.
           if (options?.sessionId && !state.chatSessions.some(s => s.id === options.sessionId)) return state;
+          const existingMessages = targetSessionId === state.currentSessionId ? state.messages : state.chatSessions.find(s => s.id === targetSessionId)?.messages;
+          if (message.id && existingMessages?.some(m => m.id === messageId)) return state;
           const isActiveSession = !targetSessionId || targetSessionId === state.currentSessionId;
           const activePersonaId = targetSessionId
             ? state.chatSessions.find(s => s.id === targetSessionId)?.personaId
@@ -2115,6 +2118,10 @@ export const useArcStore = create<ArcState>()(
       },
 
       editMessage: (messageId, newContent) => {
+        const snapshot = get();
+        const editedIndex = snapshot.messages.findIndex(m => m.id === messageId);
+        if (snapshot.currentSessionId && editedIndex >= 0) void discardOrdinaryChatTurns(snapshot.currentSessionId,
+          snapshot.messages.slice(editedIndex).filter(m => m.role === 'user').map(m => m.id),snapshot.syncedUserId);
         set((state) => {
           const messageIndex = state.messages.findIndex(m => m.id === messageId);
           if (messageIndex === -1) return state;

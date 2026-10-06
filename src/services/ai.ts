@@ -1,3 +1,5 @@
+import { registerOrdinaryChat, unregisterOrdinaryChat, ordinaryChatEnabled } from '@/services/ordinaryChatPersistence';
+import { useArcStore } from '@/store/useArcStore';
 import { useLiveAnswerStore } from '@/store/useLiveAnswerStore';
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { FLYNN_MODEL, getModelForTask, resolveReasoningEffort, useModelStore, type LunaReasoningEffort, type LunaReasoningSelection } from "@/store/useModelStore";
@@ -164,6 +166,9 @@ export interface CodeUpdate {
 }
 
 export interface SendMessageResult {
+  persistentMessageId?: string;
+  persistentTimestamp?: string;
+  cloudPersisted?: boolean;
   streamedAnswer?: boolean;
   content: string;
   browserSession?: BrowserbaseChatSession;
@@ -233,6 +238,11 @@ export class AIService {
     forceGit: boolean = false,
   ): Promise<SendMessageResult> {
     const submissionId = crypto.randomUUID();
+    const currentUserMessage = sessionId ? useArcStore.getState().chatSessions.find(s => s.id === sessionId)?.messages.filter(m => m.role === 'user').at(-1) : undefined;
+    const persistentInput = ordinaryChatEnabled(useArcStore.getState().syncedUserId) && !guestMode && arcMode === 'chat' && !forceGit && !forceCanvas && !forceCode
+      && currentUserMessage?.type === 'text' && !currentUserMessage.imageUrls?.length
+      ? {id:currentUserMessage.id,content:currentUserMessage.content} : undefined;
+    if (persistentInput && sessionId) registerOrdinaryChat(sessionId, submissionId, persistentInput.id);
     const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content || '';
     const requestsBugReport = /\b(open|create|start|show|file|submit|send|make)\b[\s\S]{0,80}\b(bug\s*report|feedback|suggestion|support\s*(message|report)|message\s+(to|for)\s+(the\s+)?(team|support))\b/i.test(latestUserMessage);
     if (requestsBugReport) {
@@ -253,6 +263,7 @@ export class AIService {
       // Always fetch the freshest profile to include latest memory/context
       let effectiveProfile = profile || {};
       try {
+        if (!persistentInput) {
         // Session is local; the edge function still verifies the token.
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
@@ -262,6 +273,7 @@ export class AIService {
           if (data) effectiveProfile = { ...effectiveProfile, ...data };
           // Canonical living memory is loaded once by the trusted backend.
         }
+        }
       } catch (e) {
         console.warn('Falling back to provided profile:', e);
       }
@@ -269,9 +281,13 @@ export class AIService {
       // Auto-inject user location when the latest message implies it's relevant.
       // Uses a cached approximate city or a short first-party IP lookup; never prompts for GPS.
       let usedLocation: import('@/lib/userLocation').UserLocation | null = null;
+      let locationContextPrompt: string | undefined;
+      let locationIsUnavailable = false;
+      let currentLocationRequested = false;
       try {
         const lastUserText = messages.filter(m => m.role === 'user').pop()?.content || '';
         const asksForCurrentLocation = requestsCurrentLocation(lastUserText);
+        currentLocationRequested = asksForCurrentLocation;
         let loc = getCachedLocation();
         if (!loc && detectsLocationIntent(lastUserText)) {
           loc = await getUserLocation();
@@ -279,6 +295,7 @@ export class AIService {
         if (loc) {
           usedLocation = loc;
           const locLine = formatLocationForContext(loc);
+          locationContextPrompt = locLine;
           const existing = (effectiveProfile as any).context_info || '';
           (effectiveProfile as any).context_info = existing
             ? `${existing}\n\n${locLine}`
@@ -294,6 +311,8 @@ export class AIService {
           const unavailableLine = asksForCurrentLocation
             ? "Approximate network location is unavailable. Do not substitute a location from memory, profile, or old chats. Ask for a city or ZIP code; do not ask the user to enable device permissions."
             : "Approximate network location is unavailable. Use a city explicitly supplied by the user, or ask which city to use; do not ask for device permissions.";
+          locationContextPrompt = unavailableLine;
+          locationIsUnavailable = true;
           const existing = (effectiveProfile as any).context_info || '';
           (effectiveProfile as any).context_info = existing
             ? `${existing}\n\n${unavailableLine}`
@@ -368,6 +387,7 @@ export class AIService {
                 body: JSON.stringify({
                   messages: [UI_CONTEXT_PROMPT, ARC_MODE_CONTEXT[arcMode], ...messages],
                   submissionId, arcMode,
+                  ...(persistentInput ? {persistentChat:true,userMessage:persistentInput,locationContextPrompt,locationIsUnavailable,currentLocationRequested} : {}),
                   profile: effectiveProfile,
                   model: selectedModel,
                   reasoningEffort,
@@ -466,6 +486,8 @@ export class AIService {
                     if (browserSession?.sessionHandle === event.sessionHandle) browserSession = undefined;
                   } else if (event.type === 'subagent' && event.event && typeof event.event === 'object') {
                     onStatus?.({ type: 'subagent', subagent: event.event as Record<string, unknown> });
+                  } else if (event.type === 'accepted') {
+                    window.dispatchEvent(new CustomEvent('ordinary-chat-accepted', {detail:{sessionId,submissionId}}));
                   } else if (event.type === 'answer' && typeof event.text === 'string' && sessionId && onStatus && !forceCanvas && !forceCode) {
                     streamedAnswer = true;
                     useLiveAnswerStore.getState().show(liveRequestId, sessionId, event.text);
@@ -517,7 +539,11 @@ export class AIService {
           }
 
 
+          if (sessionId && persistentInput) unregisterOrdinaryChat(sessionId, submissionId, persistentInput.id);
           return {
+            persistentMessageId: data.persistent_message_id,
+            persistentTimestamp: data.persistent_timestamp,
+            cloudPersisted: data.cloud_persisted === true,
             streamedAnswer,
             content: data.choices[0]?.message?.content || 'Sorry, I could not generate a response.',
             ...(browserSession ? { browserSession } : {}),

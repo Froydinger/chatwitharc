@@ -1,3 +1,4 @@
+import { useOrdinaryChatRecovery } from '@/hooks/useOrdinaryChatRecovery';
 import { captureCloudLocationContext } from '@/lib/cloudLocationContext';
 import { hasSessionCloudProgress } from '@/lib/chatPresentation';
 import { useMacDecorationsActive } from '@/hooks/useMacDecorationsActive';
@@ -441,6 +442,7 @@ export function MobileChatApp() {
   // If Boost is removed while Work is selected, return the control to the safe
   // Chat default before another message can be queued.
   const cloudExecutionMode = cloudModeChoice && cloudModeChoice.ownerId === user?.id ? cloudModeChoice.mode : 'ask';
+  useOrdinaryChatRecovery(user?.id ?? null, currentSessionId);
   const cloudWorkEnabled = cloudTextEnabled && cloudExecutionMode === 'auto';
   // Boost users can hand an explicit app request from regular Chat to the
   // durable builder. Keep the coordinator alive for that one-shot handoff so

@@ -1,3 +1,4 @@
+import { ordinaryChatIntake } from '../_shared/ordinaryChatIntake.ts';
 import { SEARCH_EVIDENCE_RULES, searchWithVerification } from '../_shared/searchFreshness.ts';
 import { browserPreflightIntent } from '../_shared/chatBrowserbaseIntent.ts';
 import { SITE_DESIGN_PROMPT } from "../_shared/siteDesignPrompt.ts";
@@ -872,7 +873,7 @@ async function fallbackChatSearch(
   return context;
 }
 
-serve(async (req) => {
+async function handleChat(req: Request, verifiedUser?: any): Promise<Response> {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -890,7 +891,9 @@ serve(async (req) => {
     if (authHeader) {
       // Verify user token
       const token = authHeader.replace('Bearer ', '');
-      const { data: userData, error: authError } = await supabase.auth.getUser(token);
+      const { data: userData, error: authError } = verifiedUser
+        ? { data: { user: verifiedUser }, error: null }
+        : await supabase.auth.getUser(token);
       user = userData?.user;
 
       if (authError) {
@@ -3654,4 +3657,8 @@ product and is helping someone with it. Stay in that voice completely.`;
       }
     );
   }
-});
+}
+
+serve(req => ordinaryChatIntake({ req, db: supabase, headers: corsHeaders, handle: handleChat,
+  waitUntil: (globalThis as any).EdgeRuntime?.waitUntil?.bind((globalThis as any).EdgeRuntime),
+}));

@@ -1,3 +1,4 @@
+import { cancelOrdinaryChat } from '@/services/ordinaryChatPersistence';
 import { getExecutionModelChoices } from '@/store/useExecutionModelStore';
 import { AppBuilderModelChoice } from '@/components/app-builder/AppBuilderModelChoice';
 import { useComposerDictation } from "@/hooks/chat-input/useComposerDictation";
@@ -103,6 +104,7 @@ export const cancelCurrentRequest = () => {
   // Pause before clearing loading: becoming idle otherwise drains the queue.
   useMessageQueueStore.getState().pause();
   cancelRequested = true;
+  void cancelOrdinaryChat(useArcStore.getState().currentSessionId);
   activeForegroundRequestId = null;
   // Abort any ongoing fetch request FIRST to prevent more data arriving
   if (currentAbortController) {
@@ -2706,6 +2708,8 @@ ${safeCode}
 
               // Add the authoritative complete response with source tag
               await addMessage({
+                id: result.persistentMessageId,
+                timestamp: result.persistentTimestamp ? new Date(result.persistentTimestamp) : undefined,
                 streamedAnswer: result.streamedAnswer,
                 content: result.content,
                 role: "assistant",
@@ -2726,7 +2730,7 @@ ${safeCode}
                 modelUsed: result.modelUsed,
                 toolsUsed: result.toolsUsed,
                 reasoningEffortUsed: result.reasoningEffortUsed,
-              });
+              }, { deferCloudPersistence: result.cloudPersisted });
 
               // Intelligently generate a title if it's the first assistant message or still has default title.
               // Keyed to the session that was answered, not the one on screen.
