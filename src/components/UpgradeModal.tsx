@@ -61,6 +61,12 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
     ? isRealUser && !!selectedPlayItem && !loadingPlayDetails
     : paymentsAvailable() && isRealUser;
   const isVoiceLimit = reason === 'voice_daily_limit' || reason === 'voice_session_timeout';
+  useEffect(() => {
+    if (!isOpen || reason !== 'app_builder') return;
+    const closeOnBack = () => onClose();
+    window.addEventListener('popstate', closeOnBack);
+    return () => window.removeEventListener('popstate', closeOnBack);
+  }, [isOpen, reason, onClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -212,6 +218,7 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
           <GlassButton className="w-full rounded-xl font-semibold" onClick={canCheckout ? handleInitiateCheckout : isRealUser ? handleClose : handleSignIn} disabled={loadingCheckout}>
             {loadingCheckout ? 'Preparing checkout…' : canCheckout ? isPlayCheckout ? 'Subscribe with Google Play' : 'Upgrade to Boost' : isRealUser ? 'Got it' : 'Sign in to upgrade'}
           </GlassButton>
+          {reason === 'app_builder' && <button type="button" onClick={handleClose} className="mt-2 w-full rounded-xl py-2 text-sm text-muted-foreground hover:text-foreground">Not now</button>}
           <p className="mt-2 text-center text-[11px] text-muted-foreground">{!isPlayCheckout && !paymentsAvailable() ? 'Checkout is currently unavailable.' : 'Cancel anytime.'}</p>
           {isPlayCheckout && <button type="button" onClick={() => void handleRestorePlayPurchases()} disabled={loadingCheckout || loadingPlayDetails} className="mt-2 w-full text-center text-xs text-muted-foreground underline underline-offset-4 disabled:opacity-50">Restore Google Play purchases</button>}
         </footer>

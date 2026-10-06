@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import ts from 'typescript';
+const exports={};
+new Function('exports',ts.transpileModule(readFileSync(new URL('../src/lib/imageRefillVisibility.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(exports);
+const eligible=(remaining,limit=30,extra={})=>exports.imageRefillVisible({loading:false,isAdmin:false,remaining,limit,...extra});
+assert.equal(eligible(4),false);assert.equal(eligible(3),true);assert.equal(eligible(2),true);assert.equal(eligible(0),true);
+assert.equal(eligible(26,250),false);assert.equal(eligible(25,250),true);assert.equal(eligible(24,250),true);
+assert.equal(eligible(0,0),false);assert.equal(eligible(Infinity,Infinity),false);assert.equal(eligible(NaN),false);assert.equal(eligible(-1),false);
+assert.equal(eligible(0,30,{loading:true}),false);assert.equal(eligible(0,30,{isAdmin:true}),false);
+assert.equal(eligible(3+2),false,'usable bonuses keep refill hidden above threshold');
+console.log('Refill presentation boundary checks passed: above/at/below10%, zero, bonus, loading, admin, unlimited and invalid capacity.');

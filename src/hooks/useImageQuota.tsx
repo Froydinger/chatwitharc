@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { imageRefillVisible } from "@/lib/imageRefillVisibility";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -27,6 +28,7 @@ interface ImageQuotaSnapshot {
 }
 
 interface ImageQuotaState {
+  showRefill: boolean;
   liteAvailable: boolean;
   unlimitedReason: string | null;
   grandfatheredUntil: string | null;
@@ -112,6 +114,7 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
     const unitCost = imageCreditCost(selectedModel, aspect, !hasBoost || mode === 'low' ? 'low' : 'medium');
     return {
       loading,
+      showRefill: !!snapshot && imageRefillVisible({loading, isAdmin, remaining, limit}),
       liteAvailable: snapshot?.liteAvailable === true,
       unlimitedReason: snapshot?.unlimitedReason ?? null,
       grandfatheredUntil: snapshot?.grandfatheredUntil ?? null,

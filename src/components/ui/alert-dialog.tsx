@@ -28,12 +28,16 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & {
+    /** Nested confirmations sit above their owning dialog. */
+    layer?: number;
+  }
+>(({ className, children, layer, style, ...props }, ref) => (
   <AlertDialogPortal>
-    <AlertDialogOverlay />
+    <AlertDialogOverlay style={layer === undefined ? undefined : { zIndex: layer - 1 }} />
     <AlertDialogPrimitive.Content
       ref={ref}
+      style={{ ...style, ...(layer === undefined ? {} : { zIndex: layer }) }}
       className={cn(
         "arc-modal liquid-metal-surface fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 glass-panel border border-border/40 p-6 shadow-2xl rounded-2xl",
         className

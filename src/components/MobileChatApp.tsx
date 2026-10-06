@@ -407,7 +407,7 @@ export function MobileChatApp() {
   // Arc Chat is the safe default and stays on the normal conversational
   // request path. Git tasks use durable cloud execution when that capability
   // is available so Actions dispatch can pause for an explicit approval.
-  const { hasBoost, isAdmin, openCheckout } = useSubscription();
+  const { hasBoost, isAdmin, loading: subscriptionLoading, openCheckout } = useSubscription();
   const gitConnected = useGitStore((s) => s.connected);
   const gitSelectedRepo = useGitStore((s) => s.selectedRepo);
   const cloudTextEnabled = !authLoading
@@ -1307,7 +1307,12 @@ export function MobileChatApp() {
               >
                 <ArcModeTabs
                   onChat={() => requestWorkMode('ask')}
-                  onBuild={() => navigate('/build', { state: { returnTo: '/' } })}
+                  buildLoading={authLoading || subscriptionLoading}
+                  onBuild={() => {
+                    if (authLoading || subscriptionLoading) return;
+                    if (!hasBoost && !isAdmin) { openCheckout(undefined, 'app_builder'); return; }
+                    navigate('/build', { state: { returnTo: '/' } });
+                  }}
                 />
               </div>
             )}

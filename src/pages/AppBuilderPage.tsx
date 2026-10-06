@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIDEStore } from "@/store/useIDEStore";
 import { AppBuilderWorkspace } from "@/components/app-builder/AppBuilderWorkspace";
 import { useSubscription } from "@/hooks/useSubscription";
-import { Button } from "@/components/ui/button";
 
 export function AppBuilderPage() {
   const { projectId } = useParams<{ projectId?: string }>();
@@ -21,6 +20,13 @@ export function AppBuilderPage() {
       setIdeProjectId(projectId);
     }
   }, [projectId, setIdeProjectId]);
+
+  const accessDenied = !localDemo && !authLoading && !subscriptionLoading && (!user || (!hasBoost && !isAdmin));
+  useEffect(() => {
+    if (!accessDenied) return;
+    navigate('/', { replace: true });
+    openCheckout(undefined, 'app_builder');
+  }, [accessDenied, navigate, openCheckout]);
 
   const handleClose = () => {
     useIDEStore.getState().closeIDE();
@@ -44,29 +50,8 @@ export function AppBuilderPage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="flex h-[100dvh] items-center justify-center bg-[#08090c] px-6 text-center text-white">
-        <div className="max-w-sm">
-          <p className="text-lg font-semibold">Sign in to open App Builder</p>
-          <p className="mt-2 text-sm text-white/45">Your apps are private to your account.</p>
-          <Button onClick={() => navigate("/")} className="app-builder-action mt-5 rounded-full bg-white px-5 text-black hover:bg-white/90">Go to Arc</Button>
-        </div>
-      </div>
-    );
-  }
 
-  if (!hasBoost && !isAdmin) {
-    return (
-      <div className="flex h-[100dvh] items-center justify-center bg-[#08090c] px-6 text-center text-white">
-        <div className="max-w-sm">
-          <p className="text-lg font-semibold">App Builder is part of Boost</p>
-          <p className="mt-2 text-sm text-white/45">Upgrade to build, edit, and publish private Arc apps.</p>
-          <Button onClick={() => openCheckout()} className="app-builder-action mt-5 rounded-full bg-white px-5 text-black hover:bg-white/90">Explore Boost</Button>
-        </div>
-      </div>
-    );
-  }
+  if (accessDenied) return null;
 
   return (
     <div className="fixed inset-0 z-[200] bg-[#08090c] h-[100dvh] max-h-[100dvh] w-screen max-w-full overflow-hidden flex flex-col">
