@@ -1297,9 +1297,7 @@ export function MobileChatApp() {
               )}
             </div>
 
-            {/* The mode switch only shows on an empty chat, outside canvas. Once a
-                chat is running, switching to Work happens from within the chat so the
-                conversation's context carries over. */}
+            {/* Build opens its own workspace. Work is selected from the composer menu. */}
             {!isVoiceActive && !isCanvasOpen && messages.length === 0 && (
               <div
                 className="fixed left-1/2 z-40 flex h-16 -translate-x-1/2 items-center pointer-events-auto"
@@ -1308,10 +1306,8 @@ export function MobileChatApp() {
                 }}
               >
                 <ArcModeTabs
-                  mode={cloudExecutionMode}
-                  available={arcCloudAvailable}
-                  onChange={requestWorkMode}
-                  onUnavailable={openCheckout}
+                  onChat={() => requestWorkMode('ask')}
+                  onBuild={() => navigate('/build', { state: { returnTo: '/' } })}
                 />
               </div>
             )}
@@ -1540,6 +1536,7 @@ export function MobileChatApp() {
                       <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
                         cloudExecutionMode={cloudExecutionMode}
                         onWorkSessionCreated={claimNewWorkSession}
+                        onWorkModeToggle={() => arcCloudAvailable ? requestWorkMode(cloudExecutionMode === 'auto' ? 'ask' : 'auto') : openCheckout()}
                         onCloudTextSubmit={cloudRunObserverEnabled ? submitCloudText : undefined} />
                     </div>
                   </ArcInputEffects>
@@ -1772,6 +1769,7 @@ export function MobileChatApp() {
                     <ChatInput ref={chatInputRef} onImagesChange={setHasSelectedImages} rightPanelOpen={false}
                       cloudExecutionMode={cloudExecutionMode}
                       onWorkSessionCreated={claimNewWorkSession}
+                      onWorkModeToggle={() => arcCloudAvailable ? requestWorkMode(cloudExecutionMode === 'auto' ? 'ask' : 'auto') : openCheckout()}
                       onCloudTextSubmit={cloudRunObserverEnabled ? submitCloudText : undefined} />
                   </div>
                 </ArcInputEffects>

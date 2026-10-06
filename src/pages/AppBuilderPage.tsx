@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useIDEStore } from "@/store/useIDEStore";
 import { AppBuilderWorkspace } from "@/components/app-builder/AppBuilderWorkspace";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 export function AppBuilderPage() {
   const { projectId } = useParams<{ projectId?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { hasBoost, isAdmin, loading: subscriptionLoading, openCheckout } = useSubscription();
@@ -23,7 +24,8 @@ export function AppBuilderPage() {
 
   const handleClose = () => {
     useIDEStore.getState().closeIDE();
-    navigate('/dashboard?tab=apps');
+    const returnTo = location.state?.returnTo === '/' ? '/' : '/dashboard?tab=apps';
+    navigate(returnTo);
   };
 
   // The local-only design route makes it possible to inspect desktop and phone

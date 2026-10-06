@@ -134,7 +134,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
   const [copied, setCopied] = useState(false);
   const [previewSize, setPreviewSize] = useState<PreviewSize>(isMobile ? 'phone' : 'desktop');
   const [desktopPane, setDesktopPane] = useState<DesktopPane>('chat');
-  const [mobilePane, setMobilePane] = useState<'preview' | 'chat'>('preview');
+  const [mobilePane, setMobilePane] = useState<'preview' | 'chat'>('chat');
   const [prompt, setPrompt] = useState('');
   const [selectedFile, setSelectedFile] = useState('src/App.tsx');
   const [attachments, setAttachments] = useState<string[]>([]);
@@ -177,7 +177,7 @@ export function AppBuilderWorkspace({ projectId: propProjectId, onClose, demo = 
   }, [isMobile]);
 
   useEffect(() => {
-    setMobilePane('preview');
+    setMobilePane('chat');
   }, [activeProjectId]);
 
   useEffect(() => {

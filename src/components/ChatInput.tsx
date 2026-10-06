@@ -37,6 +37,7 @@ import {
   Smartphone,
   ListPlus,
   Clapperboard,
+  Briefcase,
 } from "lucide-react";
 import { ComposerTextarea } from "@/components/chat-input/ComposerTextarea";
 import { useComposerViewport, composerDockStyle } from "@/hooks/chat-input/useComposerViewport";
@@ -162,6 +163,8 @@ type Props = {
    * choose the tools and order of operations instead of the composer routing
    * natural-language requests through legacy image/search UI. */
   cloudExecutionMode?: 'ask' | 'auto';
+  /** Parent retains the existing explicit Work handoff and access checks. */
+  onWorkModeToggle?: () => void;
   /** Text-only durable submission. Parent owns observation across composer mounts.
    * Omitted until the cloud rollout is enabled; never used by voice delegation. */
   onCloudTextSubmit?: (submission: CloudTextSubmitIntent) => Promise<void>;
@@ -198,7 +201,7 @@ export interface ChatInputRef {
 }
 
 export const ChatInput = forwardRef<ChatInputRef, Props>(function ChatInput(
-  { onImagesChange, rightPanelOpen = false, inline = false, cloudExecutionMode = 'ask', onCloudTextSubmit, onWorkSessionCreated },
+  { onImagesChange, rightPanelOpen = false, inline = false, cloudExecutionMode = 'ask', onCloudTextSubmit, onWorkSessionCreated, onWorkModeToggle },
   ref,
 ) {
   const portalRoot = useSafePortalRoot();
@@ -2826,11 +2829,11 @@ ${safeCode}
   };
 
   const createActions = [
-    { id: "attach", label: "Attach File", description: "Add files or images", keywords: "upload file image document", icon: Paperclip, tileClass: "border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/10", iconClass: "bg-blue-500/15 text-blue-500 dark:text-blue-400", run: () => { fileInputRef.current?.click(); setShowMenu(false); } },
+    { id: "attach", section: "Chat & Create", label: "Attach File", description: "Add files or images", keywords: "upload file image document", icon: Paperclip, tileClass: "border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/10", iconClass: "bg-blue-500/15 text-blue-500 dark:text-blue-400", run: () => { fileInputRef.current?.click(); setShowMenu(false); } },
     { id: "generate", label: "Create Image", description: "Create or edit an image", keywords: "image draw picture art", icon: ImagePlus, tileClass: "border-rose-500/20 hover:border-rose-500/40 hover:bg-rose-500/10", iconClass: "bg-rose-500/15 text-rose-500 dark:text-rose-400", run: () => { setForceImageMode(true); setInputValue("image/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "write", label: "Writing Canvas", description: "Open a live writing canvas", keywords: "canvas prose draft document", icon: PenLine, tileClass: "border-sky-500/20 hover:border-sky-500/40 hover:bg-sky-500/10", iconClass: "bg-sky-500/15 text-sky-600 dark:text-sky-400", run: () => { setForceCanvasMode(true); setInputValue("write/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "prompts", label: "Prompts & Ideas", description: "Browse saved prompt starters", keywords: "prompt library templates starters", icon: ListPlus, tileClass: "border-sky-500/20 hover:border-sky-500/40 hover:bg-sky-500/10", iconClass: "bg-sky-500/15 text-sky-500 dark:text-sky-400", run: () => { setShowPromptLibrary(true); setShowMenu(false); } },
-    { id: "app", label: "Build an app", description: "Create or edit a web app with Arc", keywords: "app builder website web app", icon: Smartphone, tileClass: "border-white/15 hover:border-white/25 hover:bg-white/10", iconClass: "bg-white/10 text-white/75", run: () => { setForceRegularChatMode(false); setInputValue("/app "); setShowMenu(false); textareaRef.current?.focus(); } },
+    { id: "work", section: "Work & Build", label: "Work Mode", description: "Run a task with Arc Work", keywords: "work task background", icon: Briefcase, tileClass: "border-foreground/15 hover:border-foreground/25 hover:bg-foreground/10", iconClass: "bg-foreground/10 text-foreground/75", active: cloudExecutionMode === 'auto', run: () => { setShowMenu(false); onWorkModeToggle?.(); } },
     { id: "code", label: "Code Canvas", description: "Work in a code canvas", keywords: "programming developer code editor", icon: Code2, tileClass: "border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-500/10", iconClass: "bg-amber-500/15 text-amber-600 dark:text-amber-400", run: () => { setForceCodingMode(true); setInputValue("code/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "git", label: "Github Mode", description: "Update a remote repo via a pull request", keywords: "github git repository pull request branch", icon: GitHubMark, tileClass: "border-zinc-500/20 hover:border-zinc-500/40 hover:bg-zinc-500/10", iconClass: "bg-zinc-500/15 text-zinc-600 dark:text-zinc-300", run: () => { setForceGitMode(true); setInputValue("git/ "); setShowMenu(false); textareaRef.current?.focus(); } },
     { id: "search", label: "Instant Web Search", description: "Search the web inline", keywords: "web browse lookup sources", icon: Globe, tileClass: "border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10", iconClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", run: () => { setForceSearchMode(true); setInputValue("search/ "); setShowMenu(false); textareaRef.current?.focus(); } },
@@ -2841,7 +2844,7 @@ ${safeCode}
   const createMenuActions = createActions;
 
   const menuPanelWidth = typeof window !== "undefined" ? Math.min(312, window.innerWidth - 24) : 312;
-  const menuPanelHeight = Math.min(520, 28 + createMenuActions.length * 44);
+  const menuPanelHeight = Math.min(520, 84 + createMenuActions.length * 44);
   const menuPosition = menuOrigin && typeof window !== "undefined"
     ? {
         left: `${Math.min(

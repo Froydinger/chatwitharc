@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 export function ComposerActions({ showMenu, position, actions, onClose }: {
   showMenu: boolean;
   position: CSSProperties;
-  actions: { id: string; icon: ComponentType<{ className?: string }>; iconClass: string; label: string; badge?: string; run: () => void }[];
+  actions: { id: string; icon: ComponentType<{ className?: string }>; iconClass: string; label: string; section?: string; active?: boolean; badge?: string; run: () => void }[];
   onClose: () => void;
 }) {
   return createPortal(
@@ -37,13 +37,18 @@ export function ComposerActions({ showMenu, position, actions, onClose }: {
                           <LiquidMetalOverlay preset="chromatic" strength={0.28} />
                         </div>
                         <div className="relative z-10 flex flex-col gap-0.5">
-                          {actions.map((action) => {
+                          {actions.map((action, index) => {
                             const Icon = action.icon;
                             return (
                               <React.Fragment key={action.id}>
+                              {action.section && <>
+                                {index > 0 && <div role="separator" className="mx-3 my-1.5 h-px bg-border" />}
+                                <p className="px-3 pb-1 pt-1.5 text-[10px] font-medium tracking-wide text-muted-foreground">{action.section}</p>
+                              </>}
                               <button
                                 type="button"
                                 onClick={action.run}
+                                aria-pressed={action.active}
                                 className="ci-create-row group flex min-h-10 w-full items-center gap-3 rounded-full px-3 py-1.5 text-left text-[15px] text-foreground transition-colors hover:bg-black/[0.06] focus-visible:bg-black/[0.08] dark:hover:bg-white/[0.09] dark:focus-visible:bg-white/[0.1] focus-visible:outline-none"
                               >
                                 <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105", action.iconClass)}>
