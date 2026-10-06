@@ -326,13 +326,13 @@ export function ImageEditModal({ isOpen, onClose, imageUrl, originalPrompt, last
             <div>
               <label className="text-sm font-medium mb-2 block">Output options</label>
               <div className="flex flex-wrap items-center gap-2">
-                {/* Precision image editing via Arc Imagix Edit */}
+                {/* Precision image editing via Image editing */}
                 <div
                   className="flex items-center gap-2 px-3 h-9 rounded-full border border-border/50 bg-muted/30 text-sm text-foreground select-none"
-                  title="Precision image editing via Arc Imagix Edit"
+                  title="Precision image editing via Image editing"
                 >
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  <span className="font-medium">Arc Imagix Edit</span>
+                  <span className="font-medium">Image editing</span>
                 </div>
 
                 {/* Aspect picker */}

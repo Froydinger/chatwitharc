@@ -117,7 +117,7 @@ DECLARE u uuid:=auth.uid(); p date:=(date_trunc('month',now() AT TIME ZONE 'UTC'
 BEGIN
  IF u IS NULL OR NOT EXISTS(SELECT 1 FROM auth.users WHERE id=u AND NOT coalesce(is_anonymous,false)) OR claim_key IS NULL OR length(claim_key) NOT BETWEEN 1 AND 150 THEN RAISE EXCEPTION 'Invalid refill claim'; END IF;
  PERFORM arc_image_prepare(u); tier:=arc_image_tier(u);
- IF EXISTS(SELECT 1 FROM arc_image_refill_claims c WHERE c.user_id=u AND c.claim_key=claim_arc_image_refill.claim_key) THEN RETURN arc_image_snapshot(u); END IF;
+ IF EXISTS(SELECT 1 FROM arc_image_refill_claims c WHERE c.user_id=u AND c.claim_key=$1) THEN RETURN arc_image_snapshot(u); END IF;
  IF tier='admin' THEN RAISE EXCEPTION 'Already unlimited'; END IF;
  IF campaign_id IS NULL THEN
  SELECT CASE WHEN tier='free' THEN free_refill_enabled ELSE boost_refill_enabled END INTO enabled FROM arc_image_policy WHERE id FOR SHARE;
@@ -273,7 +273,7 @@ BEGIN
  RETURN to_jsonb(record);
  END IF;
  IF action='confirm' THEN
- SELECT * INTO record FROM arc_image_admin_actions WHERE id=(admin_arc_images.payload->>'previewId')::uuid AND arc_image_admin_actions.actor=admin_arc_images.actor FOR UPDATE;
+ SELECT * INTO record FROM arc_image_admin_actions WHERE id=($2->>'previewId')::uuid AND arc_image_admin_actions.actor=admin_arc_images.actor FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'Preview unavailable'; END IF;
  IF record.applied_at IS NOT NULL THEN RETURN to_jsonb(record); END IF;
  IF record.created_at<now()-interval '10 minutes' THEN RAISE EXCEPTION 'Preview expired; preview again'; END IF;
@@ -402,3 +402,127 @@ end;
 $$;
 revoke all on function public.cloud_image_step(uuid,uuid,uuid,text,jsonb,text,jsonb,integer,text) from public,anon,authenticated;
 grant execute on function public.cloud_image_step(uuid,uuid,uuid,text,jsonb,text,jsonb,integer,text) to service_role;
+
+-- Staged by default: installing this migration does not activate a finite Boost
+-- transition or assert that the provider account can use Lite.
+ALTER TABLE public.arc_image_policy
+ ADD COLUMN transition_mode text NOT NULL DEFAULT 'staged' CHECK(transition_mode IN ('staged','grandfather','immediate')),
+ ADD COLUMN transition_captured_at timestamptz,
+ ADD COLUMN transition_missing_action text CHECK(transition_missing_action IN ('reject','finite')),
+ ADD COLUMN lite_available boolean NOT NULL DEFAULT false,
+ ADD COLUMN lite_evidence jsonb,
+ ADD COLUMN lite_checked_at timestamptz;
+CREATE TABLE public.arc_image_transition_cohort (
+ user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+ captured_at timestamptz NOT NULL, expires_at timestamptz,
+ date_status text NOT NULL CHECK(date_status IN ('valid','missing','expired'))
+);
+ALTER TABLE public.arc_image_transition_cohort ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.arc_image_transition_cohort FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.arc_image_transition_cohort TO service_role;
+
+-- Match existing entitlement eligibility; never mutate subscription/billing rows.
+CREATE FUNCTION public.arc_image_transition_candidates() RETURNS TABLE(user_id uuid,expires_at timestamptz,date_status text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
+ SELECT u.id,d.expires_at,CASE WHEN d.expires_at IS NULL THEN 'missing' WHEN d.expires_at<=now() THEN 'expired' ELSE 'valid' END
+ FROM auth.users u LEFT JOIN LATERAL (
+  SELECT max(e.expiry) expires_at FROM (
+   SELECT s.current_period_end expiry FROM subscriptions s WHERE s.user_id=u.id
+    AND s.price_id IN ('arcai_boost_monthly','arcai_boost_annual')
+    AND (s.status IN ('active','trialing','past_due') OR (s.status='canceled' AND s.current_period_end>now()))
+   UNION ALL SELECT g.expiry_time FROM google_play_subscriptions g WHERE g.user_id=u.id
+    AND g.subscription_state IN ('SUBSCRIPTION_STATE_ACTIVE','SUBSCRIPTION_STATE_IN_GRACE_PERIOD','SUBSCRIPTION_STATE_CANCELED') AND g.expiry_time>now()
+  ) e
+ ) d ON true WHERE NOT coalesce(u.is_anonymous,false) AND arc_image_tier(u.id)='boost'
+$$;
+CREATE FUNCTION public.arc_image_transition_report() RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public AS $$
+DECLARE captured timestamptz; rows jsonb;
+BEGIN
+ SELECT transition_captured_at INTO captured FROM arc_image_policy WHERE id;
+ IF captured IS NULL THEN SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.user_id),'[]') INTO rows FROM arc_image_transition_candidates() c;
+ ELSE SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.user_id),'[]') INTO rows FROM arc_image_transition_cohort c; END IF;
+ RETURN jsonb_build_object('capturedAt',captured,'counts',jsonb_build_object(
+ 'valid',(SELECT count(*) FROM jsonb_array_elements(rows) r WHERE r->>'date_status'='valid'),
+ 'missing',(SELECT count(*) FROM jsonb_array_elements(rows) r WHERE r->>'date_status'='missing'),
+ 'expired',(SELECT count(*) FROM jsonb_array_elements(rows) r WHERE r->>'date_status'='expired')),
+ 'dateExceptions',(SELECT coalesce(jsonb_agg(r),'[]') FROM (SELECT r FROM jsonb_array_elements(rows) r WHERE r->>'date_status'<>'valid' LIMIT 200) e),
+ 'exceptionListLimit',200);
+END $$;
+CREATE FUNCTION public.arc_image_activate_transition(mode text,missing_date_action text DEFAULT 'reject',confirmed boolean DEFAULT false)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE policy public.arc_image_policy%ROWTYPE;
+BEGIN
+ IF coalesce(auth.jwt()->>'role','')<>'service_role' OR confirmed IS DISTINCT FROM true THEN RAISE EXCEPTION 'Approved service configuration required'; END IF;
+ IF mode IS NULL OR mode NOT IN ('grandfather','immediate') OR missing_date_action IS NULL OR missing_date_action NOT IN ('reject','finite') THEN RAISE EXCEPTION 'Explicit transition and missing-date decision required'; END IF;
+ SELECT * INTO policy FROM arc_image_policy WHERE id FOR UPDATE;
+ IF policy.transition_captured_at IS NOT NULL THEN
+  IF policy.transition_mode<>mode OR policy.transition_missing_action<>missing_date_action THEN RAISE EXCEPTION 'Transition already captured; cannot replace or extend cohort'; END IF;
+  RETURN arc_image_transition_report();
+ END IF;
+ -- The inserted cohort is the activation-time snapshot, not a preview or a webhook.
+ INSERT INTO arc_image_transition_cohort SELECT user_id,now(),expires_at,date_status FROM arc_image_transition_candidates();
+ IF mode='grandfather' AND missing_date_action='reject' AND EXISTS(SELECT 1 FROM arc_image_transition_cohort WHERE date_status='missing') THEN
+  RAISE EXCEPTION 'Missing renewal dates: review transition report and explicitly choose finite treatment before activation';
+ END IF;
+ UPDATE arc_image_policy SET transition_mode=mode,transition_captured_at=now(),transition_missing_action=missing_date_action WHERE id;
+ RETURN arc_image_transition_report();
+END $$;
+-- Available only after an operator supplies account-specific read-only evidence.
+CREATE FUNCTION public.arc_image_set_lite_readiness(available boolean,evidence jsonb,confirmed boolean DEFAULT false)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+ IF coalesce(auth.jwt()->>'role','')<>'service_role' OR confirmed IS DISTINCT FROM true OR available IS NULL THEN RAISE EXCEPTION 'Approved service configuration required'; END IF;
+ IF available AND (evidence->>'model' IS DISTINCT FROM 'gemini-3.1-flash-lite-image' OR evidence->>'method' IS DISTINCT FROM 'account-model-lookup'
+  OR coalesce(evidence->>'reference','')='' OR (evidence->>'checkedAt')::timestamptz IS NULL
+  OR (evidence->>'checkedAt')::timestamptz<now()-interval '24 hours' OR (evidence->>'checkedAt')::timestamptz>now()+interval '5 minutes') THEN
+  RAISE EXCEPTION 'Recent account-specific read-only Lite model evidence required';
+ END IF;
+ UPDATE arc_image_policy SET lite_available=available,lite_evidence=evidence,lite_checked_at=now() WHERE id;
+END $$;
+
+ALTER FUNCTION public.arc_image_snapshot(uuid) RENAME TO arc_image_snapshot_finite;
+CREATE FUNCTION public.arc_image_snapshot(u uuid) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE snapshot jsonb; policy public.arc_image_policy%ROWTYPE; expiry timestamptz; inherited boolean;
+BEGIN
+ snapshot:=arc_image_snapshot_finite(u); SELECT * INTO policy FROM arc_image_policy WHERE id;
+ SELECT expires_at INTO expiry FROM arc_image_transition_cohort WHERE user_id=u AND date_status='valid';
+ inherited:=snapshot->>'tier'='boost' AND (policy.transition_mode='staged' OR (policy.transition_mode='grandfather' AND expiry>now()));
+ snapshot:=snapshot||jsonb_build_object('liteAvailable',policy.lite_available,'transitionMode',policy.transition_mode,
+ 'grandfatheredUntil',CASE WHEN inherited AND policy.transition_mode='grandfather' THEN expiry ELSE NULL END,
+ 'unlimitedReason',CASE WHEN snapshot->>'tier'='admin' THEN 'admin' WHEN inherited THEN policy.transition_mode WHEN (snapshot->>'unlimited')::boolean THEN 'offer' ELSE NULL END);
+ IF inherited THEN RETURN snapshot||jsonb_build_object('unlimited',true,'remaining',NULL,'limit',NULL,'usage_percent',0,'refillEnabled',false,'canRefill',false,'refillOffers','[]'::jsonb); END IF;
+ RETURN snapshot;
+END $$;
+ALTER FUNCTION public.reserve_arc_image_credits(uuid,uuid,integer) RENAME TO reserve_arc_image_credits_finite;
+CREATE FUNCTION public.reserve_arc_image_credits(target_user_id uuid,target_job_id uuid,requested_count integer) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+ IF coalesce(auth.jwt()->>'role','')<>'service_role' THEN RAISE EXCEPTION 'Not authorized'; END IF;
+ IF EXISTS(SELECT 1 FROM image_generation_jobs WHERE id=target_job_id AND user_id=target_user_id AND preferred_model='gemini-3.1-flash-lite-image')
+  AND NOT (SELECT lite_available FROM arc_image_policy WHERE id) THEN RETURN jsonb_build_object('allowed',false,'error','This image model is currently unavailable'); END IF;
+ RETURN reserve_arc_image_credits_finite(target_user_id,target_job_id,requested_count);
+END $$;
+ALTER FUNCTION public.claim_arc_image_refill(text,uuid) RENAME TO claim_arc_image_refill_finite;
+CREATE FUNCTION public.claim_arc_image_refill(claim_key text,campaign_id uuid DEFAULT NULL) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+ IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Registered account required'; END IF;
+ IF (arc_image_snapshot(auth.uid())->>'unlimited')::boolean THEN RAISE EXCEPTION 'Refill unavailable while image allowance is unlimited'; END IF;
+ RETURN claim_arc_image_refill_finite(claim_key,campaign_id);
+END $$;
+ALTER FUNCTION public.admin_arc_images(text,jsonb,text) RENAME TO admin_arc_images_finite;
+CREATE FUNCTION public.admin_arc_images(action text,payload jsonb DEFAULT '{}',request_key text DEFAULT NULL) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE result jsonb;
+BEGIN
+ result:=admin_arc_images_finite(action,payload,request_key); -- includes actual admin authorization
+ IF action='dashboard' THEN RETURN result||jsonb_build_object('transition',arc_image_transition_report()); END IF;
+ RETURN result;
+END $$;
+REVOKE ALL ON FUNCTION public.arc_image_transition_candidates(),public.arc_image_transition_report(),public.arc_image_activate_transition(text,text,boolean),public.arc_image_set_lite_readiness(boolean,jsonb,boolean),
+ public.arc_image_snapshot_finite(uuid),public.arc_image_snapshot(uuid),public.reserve_arc_image_credits_finite(uuid,uuid,integer),public.reserve_arc_image_credits(uuid,uuid,integer),
+ public.claim_arc_image_refill_finite(text,uuid),public.admin_arc_images_finite(text,jsonb,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.arc_image_transition_candidates(),public.arc_image_transition_report(),public.arc_image_activate_transition(text,text,boolean),public.arc_image_set_lite_readiness(boolean,jsonb,boolean),
+ public.arc_image_snapshot(uuid),public.reserve_arc_image_credits(uuid,uuid,integer) TO service_role;
+REVOKE ALL ON FUNCTION public.claim_arc_image_refill(text,uuid),public.admin_arc_images(text,jsonb,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.claim_arc_image_refill(text,uuid),public.admin_arc_images(text,jsonb,text) TO authenticated;

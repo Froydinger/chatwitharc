@@ -16,3 +16,7 @@ export async function imageRequestIdentity(key: unknown, input: unknown) {
  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(input))));
  return { key: typeof key === 'string' ? key : crypto.randomUUID(), hash: [...digest].map(x => x.toString(16).padStart(2,'0')).join('') };
 }
+
+export function assertImageModelReady(model: string, policy: { liteAvailable?: boolean }) {
+ if (model === IMAGE_LITE && policy.liteAvailable !== true) throw new Error('This image model is currently unavailable');
+}

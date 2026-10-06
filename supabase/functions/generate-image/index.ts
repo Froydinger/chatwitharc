@@ -1,4 +1,4 @@
-import { imageConfiguration, imageRequestIdentity, isGoogleImage } from "../_shared/imagePolicy.ts";
+import { assertImageModelReady, imageConfiguration, imageRequestIdentity, isGoogleImage } from "../_shared/imagePolicy.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
@@ -19,7 +19,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "
 const REQUEST_TIMEOUT_MS = 180_000;
 const RETRY_DELAY_MS = 3_000;
 
-// Arc Image keeps its existing OpenAI model; Arc Image Flash is explicitly selected.
+// Existing OpenAI models and explicit Google image selection.
 // GPT Image 2.5 accepts custom dimensions in multiples of 16.
 function aspectToSize(aspectRatio: string): string {
   if (aspectRatio === "16:9") return "1536x864";
@@ -353,12 +353,13 @@ serve(async (req) => {
     if (policyError || !policy) throw new Error("Image policy unavailable");
     const config = imageConfiguration(body?.preferredModel, body?.quality, policy.tier, aspectToSize(aspectRatio));
     const selectedModel = config.model;
+    assertImageModelReady(selectedModel, policy);
     const size = config.size;
     if (!(isGoogleImage(selectedModel) ? GEMINI_API_KEY : OPENAI_API_KEY)) {
       return jsonResponse({ success: false, error: "The selected image mode is unavailable.", errorType: "configuration_error" });
     }
     if (isGoogleImage(selectedModel) && wantsTransparentBackground(rawPrompt)) {
-      return jsonResponse({ success: false, error: "For a transparent background, choose Arc Image.", errorType: "invalid_request" });
+      return jsonResponse({ success: false, error: "For a transparent background, choose Flare or Sunburst.", errorType: "invalid_request" });
     }
     const requestedCount = Number(body?.count);
     const count = Number.isFinite(requestedCount)

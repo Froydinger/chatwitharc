@@ -3,14 +3,15 @@ import { useImageQuota } from '@/hooks/useImageQuota';
 import { useSubscription } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
-export function ImageCreditSummary() {
+export function ImageCreditSummary({ compact = false }: { compact?: boolean }) {
  const quota = useImageQuota();
  const { hasBoost, isAdmin } = useSubscription();
  const [offer, setOffer] = useState<string | null>(null);
  const [busy, setBusy] = useState(false);
  const [error, setError] = useState('');
  if (quota.loading) return <p className="text-xs text-muted-foreground">Loading image allowance…</p>;
- if (isAdmin || quota.remainingCredits === Infinity) return <p className="text-xs text-muted-foreground">Unlimited images{isAdmin ? ' for admins' : ' during this offer'}.</p>;
+ if (compact) return <p className="text-xs text-muted-foreground">{quota.remainingCredits === Infinity ? `Unlimited images${isAdmin ? ' for admins' : ''}` : `${quota.remainingCredits} ${hasBoost ? 'credits' : 'images'} remaining${hasBoost ? ` · ${quota.unitCost} per image` : ''}`}</p>;
+ if (isAdmin || quota.remainingCredits === Infinity) return <p className="text-xs text-muted-foreground">{isAdmin ? 'Unlimited images for admins.' : quota.unlimitedReason === 'grandfather' && quota.grandfatheredUntil ? `Your existing Boost image allowance remains unlimited until ${new Date(quota.grandfatheredUntil).toLocaleString()} (${quota.grandfatheredUntil}). Then 250 monthly credits apply.` : quota.unlimitedReason === 'staged' ? 'Your existing Boost image allowance remains unlimited while the transition is staged.' : 'Unlimited images during this offer.'}</p>;
  if (!quota.resetAt) return <p className="text-xs text-muted-foreground">Image allowance unavailable.</p>;
  const refill = async () => {
   setBusy(true);setError('');

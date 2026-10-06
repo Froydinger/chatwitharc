@@ -60,7 +60,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/welcome": {
     title: "ArcAI — Free AI Assistant with Voice, Images & Memory",
     description:
-      "ArcAI is a free multimodal AI assistant with natural voice conversations, 3 voice sessions per UTC day up to 10 minutes each, Arc Imagix image generation, code and living memory. A free ChatGPT, Gemini and Claude alternative.",
+      "ArcAI is a free multimodal AI assistant with natural voice conversations, 3 voice sessions per UTC day up to 10 minutes each, image generation, code and living memory. A free ChatGPT, Gemini and Claude alternative.",
   },
   "/blog": {
     title: "ArcAI Guides & FAQs — Free AI Assistant",
@@ -70,7 +70,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   "/upgrade": {
     title: "ArcAI • Upgrade to Boost",
     description:
-      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited Ava, Maya, and River reasoning, unlimited Arc Imagix generation & editing, and unlimited voice sessions up to 2 hours each.",
+      "Upgrade your ArcAI account to Boost for unlimited Deep Search and Ultra Deep Search, unlimited Ava, Maya, and River reasoning, 250 shared monthly image credits for generation and editing, and unlimited voice sessions up to 2 hours each.",
   },
   "/share": {
     title: "ArcAI • Shared Conversation",

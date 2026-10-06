@@ -198,7 +198,7 @@ export function UpgradeModal({ isOpen, onClose, priceId, reason }: UpgradeModalP
               ['Arc Work', 'Your agent carries out longer tasks in the cloud, with progress saved to your chat.'],
               ['App Builder', 'Build and refine working apps with Arc, then publish or export.'],
               ['Arc Think + Arc Flash', 'Unlimited usage, with advanced reasoning.'],
-              ['Arc Image + Arc Image Flash', 'Unlimited generation and editing.'],
+              ['Image generation & editing', '250 shared monthly credits across available models.'],
               ['Deep Search + Ultra Deep Search', 'Unlimited research.'],
               ['Natural voice', 'Unlimited sessions, up to 2 hours each.'],
             ].map(([title, detail]) => <li key={title} className="flex gap-2.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-foreground" /><div><p className="text-sm font-medium">{title}</p><p className="text-xs leading-relaxed text-muted-foreground">{detail}</p></div></li>)}

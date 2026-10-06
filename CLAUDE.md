@@ -238,6 +238,13 @@ spreads this map and overrides only the typography keys.
   configurable attempt caps: Flare Low by default, Sunburst only on explicit better
   image request. Do not advertise this exception. Preserve legacy in-flight settlement.
 - **Limits advertising:** say “Less usage” on Free and “Unlimited usage” on Boost.
+  Image rollout defaults to staged: Boost retains unlimited quantity until approved
+  one-time transition capture. Grandfathering stores each existing eligible Boost
+  account's fixed current-period expiry; webhook updates never extend it. Missing
+  renewal dates require an explicit release decision. Immediate transition is a
+  separate explicit release option. Lite stays hidden and server-blocked until
+  account-specific read-only model readiness is recorded. Keep picker balance/cost
+  concise; detailed refill and transition explanations belong in the dashboard.
   Show Flash percentages. Images show monthly balances, costs and refill availability; never call finite Boost images unlimited.
   Exact enforcement values stay in backend/internal technical docs. Voice names,
   providers, session limits and behavior stay unchanged. Dashboard navigation

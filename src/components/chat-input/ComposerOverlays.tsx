@@ -48,7 +48,7 @@ export function ComposerOverlays({ showLimitsModal, isBoostTier, hasBoost, image
                   </div>
 
                   <div className="flex flex-col gap-4 py-1">
-                    <ImageCreditSummary />
+                    <ImageCreditSummary compact />
                     {/* Active Model Progress Card */}
                     <div className="space-y-2.5 p-4 rounded-2xl bg-white/5 border border-black/10 dark:border-white/5 backdrop-blur-md">
                       <div className="flex justify-between items-center text-xs font-semibold text-muted-foreground">

@@ -45,7 +45,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Is there a paid tier?",
-    a: "Yes. We offer a Boost upgrade with a 7-day free trial (card required), then $10/month or a limited-time $95/year annual rate, normally $120/year. The annual rate renews at $95/year while you keep Boost and adds Arc Work, App Builder, GitHub Pro, unlimited usage for Arc Think and Arc Flash across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, unlimited Arc Image generation & editing, and unlimited voice sessions up to 2 hours each.",
+    a: "Yes. We offer a Boost upgrade with a 7-day free trial (card required), then $10/month or a limited-time $95/year annual rate, normally $120/year. The annual rate renews at $95/year while you keep Boost and adds Arc Work, App Builder, GitHub Pro, unlimited usage for Arc Think and Arc Flash across Arc Matrix™, unlimited Deep Search and Ultra Deep Search, 250 shared monthly image credits for generation and editing, and unlimited voice sessions up to 2 hours each.",
   },
   {
     q: "How does Arc's memory work?",
@@ -61,7 +61,7 @@ const LANDING_FAQ = [
   },
   {
     q: "Which AI models power ArcAI?",
-    a: "Arc Think uses GPT-6 Luna with adaptive reasoning: none for quick answers, then low, medium or high when the task needs more thought. Arc Flash uses Gemini Flash. App Builder Fast uses Luna; App Builder Pro and GitHub Pro use GPT-6.1 Sol with light reasoning. Arc Image uses GPT Image 2.5; Arc Image Flash uses Nano Banana 2. Natural voice runs through Voxi; live research uses Deep Search.",
+    a: "Arc Think uses GPT-6 Luna with adaptive reasoning: none for quick answers, then low, medium or high when the task needs more thought. Arc Flash uses Gemini Flash. App Builder Fast uses Luna; App Builder Pro and GitHub Pro use GPT-6.1 Sol with light reasoning. Images use GPT Image 2.5 Flare or Sunburst and Nano Banana 2. Natural voice runs through Voxi; live research uses Deep Search.",
   },
   {
     q: "Is ArcAI private?",
@@ -355,7 +355,7 @@ function MarketingLandingPage() {
             { category: "Create", icon: Code2, title: "Code Canvas", body: "Canvas and GitHub Normal are available on Free and Boost. Prepare repository changes as a branch and pull request; Boost unlocks GitHub Pro with GPT-6.1 Sol." },
             { category: "Ask", icon: Sparkles, title: "Arc Work · Boost", body: "Available with Boost. Hand Arc a longer task to run in the cloud, with progress in your chat and requests for input when needed." },
             { category: "Create", icon: Code2, title: "App Builder · Boost", body: "Available with Boost. Build, preview, refine, publish or export an app. Fast uses Luna by default; choose Pro for GPT-6.1 Sol with light reasoning." },
-            { category: "Create", icon: ImageIcon, title: "Image Studio", body: "Create and edit images with Arc Image or Arc Image Flash. 30 Flare Low images monthly on Free; 250 shared monthly image credits on Boost." },
+            { category: "Create", icon: ImageIcon, title: "Images", body: "Create and edit images with GPT Image 2.5 or Nano Banana 2. 30 Flare Low images monthly on Free; 250 shared monthly image credits on Boost." },
           ].map((f, i) => (
             <div
               key={f.title}

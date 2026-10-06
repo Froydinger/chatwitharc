@@ -44,6 +44,13 @@ try{
  // Existing cloud RPC is separately tested with full cloud schema; test this ledger in isolation.
  sql(`CREATE TABLE fixture_clock(at timestamptz NOT NULL); INSERT INTO fixture_clock VALUES(now()); CREATE FUNCTION fixture_now() RETURNS timestamptz LANGUAGE sql SECURITY DEFINER AS $$SELECT at FROM fixture_clock$$;`);
  sql(readFileSync('supabase/migrations/20261006031918_monthly_image_policy.sql','utf8').replaceAll('now()','public.fixture_now()'));
+ assert.equal(snapshot(boost).unlimited,true,'Staged migration preserves existing Boost quantity');
+ assert.equal(snapshot(boost).transitionMode,'staged');assert.equal(snapshot(boost).liteAvailable,false);
+ assert.throws(()=>claim(boost),/unavailable while/,'Stale refill client is rejected');
+ assert.equal(reserve(boost,job(boost,'gemini-3.1-flash-lite-image','native')).allowed,false,'Unverified Lite is denied even for Boost');
+ assert.throws(()=>sql(auth(admin)+`SELECT arc_image_activate_transition('immediate','reject',true);`),/permission denied/);
+ sql(svc+`SELECT arc_image_activate_transition('immediate','reject',true);`);
+ sql(svc+`SELECT arc_image_set_lite_readiness(true,jsonb_build_object('model','gemini-3.1-flash-lite-image','method','account-model-lookup','reference','fixture-only','checkedAt',fixture_now()),true);`);
  assert.equal(snapshot(free).remaining,30);assert.equal(snapshot(boost).remaining,250);assert.equal(snapshot(admin).remaining,null);
  const a=job(free);assert.equal(reserve(free,a,3).remaining,27);assert.equal(reserve(free,a,3).remaining,27);assert.throws(()=>reserve(free,a,2),/conflict/);assert.throws(()=>reserve(boost,a),/Invalid image job/);
  assert.equal(reserve(free,job(free,'gemini-3.1-flash-lite-image','native')).allowed,false);
@@ -111,5 +118,43 @@ try{
  confirm(preview({operation:'policy',reason:'enable refill',free_refill_enabled:true,boost_refill_enabled:true}));
  assert.equal(snapshot(free).canRefill,true,'New UTC month re-enables once-monthly refill');claim(free);assert.equal(snapshot(free).canRefill,false);
  const anon=randomUUID();sql(`INSERT INTO auth.users(id,is_anonymous) VALUES('${anon}',true);`);assert.throws(()=>snapshot(anon),/Registered account/);assert.throws(()=>claim(anon),/Invalid refill/);
+ // Fresh release configuration fixture: production activation cannot reset these fields.
+ sql(`DELETE FROM arc_image_transition_cohort; UPDATE arc_image_policy SET transition_mode='staged',transition_captured_at=NULL,transition_missing_action=NULL;`);
+ const trial=randomUUID(),canceled=randomUUID(),missing=randomUUID(),expired=randomUUID(),google=randomUUID(),newboost=randomUUID();
+ for(const u of [trial,canceled,missing,expired,google,newboost])sql(`INSERT INTO auth.users(id) VALUES('${u}');`);
+ sql(`UPDATE fixture_clock SET at='2026-12-31T23:59:59Z';
+ INSERT INTO subscriptions VALUES('${trial}','arcai_boost_monthly','trialing','2027-01-01T00:00:00Z'),('${canceled}','arcai_boost_monthly','canceled','2027-01-02T00:00:00Z'),('${missing}','arcai_boost_monthly','active',NULL),('${expired}','arcai_boost_monthly','active','2026-12-01T00:00:00Z');
+ INSERT INTO google_play_subscriptions VALUES('${google}','SUBSCRIPTION_STATE_IN_GRACE_PERIOD','2027-01-03T00:00:00Z');`);
+ const report=()=>parse(sql(svc+`SELECT arc_image_transition_report();`));
+ assert.equal(report().counts.missing,1);assert.equal(report().counts.expired,1);
+ assert.throws(()=>sql(svc+`SELECT arc_image_activate_transition('grandfather','reject',true);`),/Missing renewal/);
+ assert.equal(sql('SELECT count(*) FROM arc_image_transition_cohort;').trim(),'0','Failed activation rolls back cohort');
+ assert.throws(()=>sql(svc+`SELECT arc_image_activate_transition('grandfather','finite',false);`),/Approved/);
+ sql(svc+`SELECT arc_image_activate_transition('grandfather','finite',true);`);
+ assert.equal(new Date(snapshot(trial).grandfatheredUntil).toISOString(),'2027-01-01T00:00:00.000Z');assert.equal(snapshot(trial).unlimited,true);
+ assert.equal(snapshot(canceled).unlimited,true);assert.equal(snapshot(google).unlimited,true);
+ assert.equal(snapshot(missing).unlimited,false);assert.equal(snapshot(expired).unlimited,false);
+ const before=report();sql(svc+`SELECT arc_image_activate_transition('grandfather','finite',true);`);assert.deepEqual(report(),before);
+ assert.throws(()=>sql(svc+`SELECT arc_image_activate_transition('immediate','finite',true);`),/cannot replace/);
+ sql(`UPDATE subscriptions SET status='active',current_period_end='2028-01-01T00:00:00Z' WHERE user_id='${trial}';
+ INSERT INTO subscriptions VALUES('${newboost}','arcai_boost_monthly','active','2028-01-01T00:00:00Z');`);
+ assert.equal(snapshot(newboost).unlimited,false,'Upgrade after capture is finite');
+ const replayJob=job(trial);assert.equal(reserve(trial,replayJob).unlimited,true);assert.equal(snapshot(trial).baseRemaining,250,'Inherited usage does not debit finite bucket');
+ sql(`DELETE FROM subscriptions WHERE user_id='${canceled}';`);assert.equal(snapshot(canceled).unlimited,false,'Downgrade removes inherited bypass');assert.equal(snapshot(canceled).remaining,30);
+ sql(`INSERT INTO subscriptions VALUES('${canceled}','arcai_boost_monthly','active','2028-01-01T00:00:00Z');`);assert.equal(new Date(snapshot(canceled).grandfatheredUntil).toISOString(),'2027-01-02T00:00:00.000Z','Reupgrade does not extend captured date');
+ sql(`SET TIME ZONE 'America/Los_Angeles'; UPDATE fixture_clock SET at='2027-01-01T00:00:00Z';`);
+ assert.equal(parse(sql(auth(trial)+`SET TIME ZONE 'America/Los_Angeles'; SELECT get_my_arc_image_credits();`)).unlimited,false,'Exact UTC expiry despite renewed subscription');assert.equal(snapshot(trial).remaining,250);assert.equal(snapshot(trial).canRefill,true);
+ assert.equal(reserve(trial,replayJob).unlimited,true,'Replay retains original reservation but creates no new request');
+ assert.equal(reserve(trial,job(trial)).remaining,249,'Stale client cannot bypass current expiry');
+ const campaign=confirm(preview({operation:'offer',tier:'boost',kind:'unlimited',title:'Fixture after renewal',startsAt:'2027-01-01T00:00:00Z',endsAt:'2027-01-02T00:00:00Z',reason:'fixture campaign'}));
+ assert.equal(snapshot(trial).unlimitedReason,'offer');assert.equal(snapshot(trial).unlimited,true,'Independent campaign takes precedence after inherited expiry');
+ const offerid=sql(`SELECT id FROM arc_image_offers WHERE title='Fixture after renewal';`).trim();confirm(preview({operation:'offer_status',offerId:offerid,status:'revoked',reason:'fixture revoke'}));assert.equal(snapshot(trial).unlimited,false);
+ sql(`UPDATE fixture_clock SET at='2027-01-02T00:00:00Z';`);assert.equal(snapshot(canceled).unlimited,false);
+ assert.throws(()=>sql(svc+`SELECT arc_image_set_lite_readiness(true,'{}',true);`),/evidence required/);
+ sql(svc+`SELECT arc_image_set_lite_readiness(false,'{"reason":"fixture disable"}',true);`);
+ assert.equal(snapshot(trial).liteAvailable,false);assert.equal(reserve(trial,job(trial,'gemini-3.1-flash-lite-image','native')).allowed,false,'Stale Lite selection is denied');
+ assert.throws(()=>sql(auth(admin)+`SELECT arc_image_set_lite_readiness(true,'{}',true);`),/permission denied/);
+ assert.throws(()=>sql(auth(admin)+`SELECT reserve_arc_image_credits_finite('${trial}','${replayJob}',1);`),/permission denied/,'Browser cannot bypass readiness wrapper');
+ console.log('Release transition: staged default, fixed cohort, trials/canceled/grace, immediate option, missing/expired dates, renewal immutability, downgrade/upgrade, UTC expiry, campaigns, stale requests and Lite readiness passed.');
  console.log('Monthly image policy Postgres: tier/model restrictions, weights, idempotency, ownership, partial refunds, refill fencing/toggle, admin grants/revocation, extra refill, unlimited campaigns, privilege checks and concurrent cap passed.');
 }finally{if(started)run('pg_ctl',['-D',data,'-m','immediate','-w','stop']);rmSync(dir,{recursive:true,force:true});}

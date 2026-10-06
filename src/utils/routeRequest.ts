@@ -1,3 +1,4 @@
+import { imageModelName } from '@/lib/imageModelNames';
 /**
  * Smart request router for Arc Local.
  * Decides whether a user request runs on a local model or in the cloud,
@@ -129,15 +130,15 @@ export function getRouteLabel(route: RouteDestination, modelUsed?: string, effor
 
     case 'cloud-image':
     case 'cloud-image-pro': {
-      const name = modelUsed === 'gemini-3.1-flash-image' ? 'Arc Image Flash' : 'Arc Image';
+      const name = imageModelName(modelUsed);
       return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `Image generation — ${name}.` };
     }
     case 'cloud-image-edit': {
-      const name = modelUsed === 'gemini-3.1-flash-image' ? 'Arc Image Flash' : 'Arc Image';
+      const name = imageModelName(modelUsed);
       return { label: `Cloud · ${name}`, icon: 'cloud', tooltip: `Image editing — ${name}.` };
     }
     case 'cloud-image-edit-fallback':
-      return { label: 'Cloud · Arc Image (Fallback)', icon: 'cloud', tooltip: 'Image editing served by Arc Matrix fallback provider.' };
+      return { label: 'Cloud · Image editing (Fallback)', icon: 'cloud', tooltip: 'Image editing served by Arc Matrix fallback provider.' };
     case 'cloud-video':
       return { label: 'Cloud · Video', icon: 'cloud', tooltip: 'Video generation.' };
     case 'cloud-ide':

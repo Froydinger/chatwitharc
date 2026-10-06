@@ -202,7 +202,7 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
     : null;
 
 
-  const { usagePercent: imagePercent } = useImageQuota();
+  const { usagePercent: imagePercent, remainingCredits: imageRemaining } = useImageQuota();
 
   const getSyncStatus = () => {
     if (!user) return { icon: CloudOff, color: "text-muted-foreground", text: "Not signed in" };
@@ -301,8 +301,8 @@ export function AccountHub({ isOpen, onClose }: AccountHubProps) {
                     <div className="space-y-2">
                       <div>
                         <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                          <span>🖼️ Images (today)</span>
-                          <span>{quotaAdmin || hasBoost ? "Unlimited usage" : `${imagePercent}% used`}</span>
+                          <span>🖼️ Images (monthly)</span>
+                          <span>{imageRemaining === Infinity ? "Unlimited" : `${imagePercent}% used`}</span>
                         </div>
                         <Progress value={imagePercent} className="h-1.5" />
                       </div>

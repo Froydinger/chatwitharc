@@ -44,7 +44,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI free?",
-        a: "Yes. The free tier includes Arc Matrix™ chat with less usage on Free, image generation with Arc Image, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost adds unlimited usage, including unlimited research, plus 250 shared monthly image credits for generation and editing, and unlimited voice sessions up to 2 hours each.",
+        a: "Yes. The free tier includes Arc Matrix™ chat with less usage on Free, image generation with GPT Image 2.5, weekly research, and 3 voice sessions per UTC day, up to 10 minutes each. Boost adds unlimited usage, including unlimited research, plus 250 shared monthly image credits for generation and editing, and unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "Can I use ArcAI for coding?",
@@ -64,7 +64,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Which AI models does ArcAI use?",
-        a: "ArcAI is powered by Arc Matrix™—our proprietary orchestration engine combining frontier language models, multimodal vision, and deep reasoning architectures. Chat and analysis use Arc Think and Arc Flash; visual generation and precision editing are powered by Arc Image and Arc Image Flash; natural voice conversations run on Voxi; and live web research is powered by Deep Search.",
+        a: "ArcAI is powered by Arc Matrix™—our proprietary orchestration engine combining frontier language models, multimodal vision, and deep reasoning architectures. Chat and analysis use Arc Think and Arc Flash; visual generation and precision editing are powered by GPT Image 2.5 and Nano Banana 2; natural voice conversations run on Voxi; and live web research is powered by Deep Search.",
       },
     ],
     cta: "Try ArcAI now",
@@ -93,7 +93,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Is ArcAI as good as ChatGPT Plus?",
-        a: "Boost adds unlimited Deep Search and Ultra Deep Search, unlimited usage for Arc Think and Arc Flash, premium Arc Image tools, and unlimited voice sessions up to 2 hours each.",
+        a: "Boost adds unlimited Deep Search and Ultra Deep Search, unlimited usage for Arc Think and Arc Flash, 250 shared monthly image credits, and unlimited voice sessions up to 2 hours each.",
       },
       {
         q: "Does the free tier have message limits?",
@@ -259,11 +259,11 @@ const RAW_BLOG_POSTS: BlogPost[] = [
     keywords: ["AI image generator", "AI image free", "GPT image free", "image creator"],
     updated: UPDATED,
     intro:
-      "ArcAI includes a built-in AI image studio with Arc Image (powered by GPT Image 2.5) and Arc Image Flash (powered by Nano Banana 2) for generation and editing. Free accounts get less usage; Boost accounts get 250 shared monthly image credits across image models.",
+      "ArcAI includes image generation and editing with GPT Image 2.5 Flare or Sunburst and Nano Banana 2 for generation and editing. Free accounts get less usage; Boost accounts get 250 shared monthly image credits across image models.",
     faq: [
       {
         q: "What is the best AI image generator?",
-        a: "ArcAI is a strong option because it integrates Arc Image for fast creative synthesis and Arc Image for precision editing directly into your chat and workspace.",
+        a: "ArcAI is a strong option because it integrates GPT Image 2.5 for fast creative synthesis and GPT Image 2.5 for precision editing directly into your chat and workspace.",
       },
       {
         q: "Can I use generated images in my chats and canvases?",
@@ -275,7 +275,7 @@ const RAW_BLOG_POSTS: BlogPost[] = [
       },
       {
         q: "Can I edit generated images?",
-        a: "Yes. Full image editing (combining, inpainting, and precision variations) is powered by Arc Image and included in Boost’s shared monthly image credits.",
+        a: "Yes. Full image editing (combining, inpainting, and precision variations) is powered by GPT Image 2.5 and included in Boost’s shared monthly image credits.",
       },
     ],
     cta: "Generate AI images",

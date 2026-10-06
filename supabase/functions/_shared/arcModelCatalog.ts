@@ -24,7 +24,7 @@ export const ARC_FREE_IMAGE_DAILY_CREDITS = 30;
 export const ARC_IMAGE_MODELS = [
   { id: 'gpt-image-2.5-flare', name: 'GPT Image 2.5 Flare', creditsPerImage: 1 },
   { id: 'gpt-image-2.5-sunburst', name: 'GPT Image 2.5 Sunburst High', creditsPerImage: 4 },
-  { id: 'gemini-3.1-flash-lite-image', name: 'Nano Banana 2 Lite', creditsPerImage: 3 },
+  { id: 'gemini-3.1-flash-lite-image', name: 'Nano Banana 2 Lite (only if account readiness is enabled; otherwise unavailable)', creditsPerImage: 3 },
   { id: 'gemini-3.1-flash-image', name: 'Nano Banana 2', creditsPerImage: 5 },
 ] as const;
 /** Public plan wording deliberately does not expose numeric quotas. */
@@ -97,9 +97,9 @@ export function arcModelContext(options: {
     `Account plan: ${options.hasBoost ? 'Boost or administrator' : 'Free'}.`,
     ...descriptions,
     `Available image models: ${images.map(model => `${model.name} (${model.creditsPerImage} credit${model.creditsPerImage === 1 ? '' : 's'} per image)`).join(', ') || 'none in this request'}.`,
-    ...(images.length ? [`Free image allowance: ${ARC_FREE_IMAGE_DAILY_CREDITS} Flare Low outputs per calendar month UTC. Boost has 250 shared monthly image credits across available models; only admins are unlimited. Optional monthly refill restores base allowance and forfeits unused base credits, when enabled. Failed generation reservations are refunded; credit costs apply per output image, including batches.`] : []),
+    ...(images.length ? [`Free image allowance: ${ARC_FREE_IMAGE_DAILY_CREDITS} Flare Low outputs per calendar month UTC. Boost has 250 shared monthly image credits across available models; existing Boost can retain unlimited images until a fixed transition expiry; admins and active unlimited offers also bypass quantity limits. Optional monthly refill restores base allowance and forfeits unused base credits, when enabled. Failed generation reservations are refunded; credit costs apply per output image, including batches.`] : []),
     ...(options.voiceModel === ARC_VOICE_MODEL.id ? [`Live voice uses ${ARC_VOICE_MODEL.name}; tool delegation uses GPT 6 Luna. Voice choice names are separate from the provider model.`] : []),
-    'Use Arc Think, Arc Flash, Arc Image and Arc Image Flash in product guidance. Advertise Free as Less usage and Boost as Unlimited usage; do not advertise numeric chat allowances; image access is monthly and Boost has a finite credit allowance. Explain actual limits when needed to resolve a usage error. Do not claim a tool was used, a different model was called, or an upgrade happened without a confirmed result.',
+    'Use Arc Think, Arc Flash, GPT Image 2.5 and Nano Banana 2 in product guidance. Advertise Free as Less usage and Boost as Unlimited usage; do not advertise numeric chat allowances; image access is monthly and Boost has a finite credit allowance. Explain actual limits when needed to resolve a usage error. Do not claim a tool was used, a different model was called, or an upgrade happened without a confirmed result.',
     'Daily limits reset at UTC midnight. Do not claim faster measured latency, unlimited context, or an unavailable model. Offer the actual picker or upgrade route when access is limited.',
   ].join('\n');
 }

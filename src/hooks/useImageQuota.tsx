@@ -9,6 +9,9 @@ import { imageCreditCost, useImageGenStore, useResolvedImageModel } from "@/stor
 import { useSubscription } from "@/hooks/useSubscription";
 
 interface ImageQuotaSnapshot {
+  liteAvailable?: boolean;
+  unlimitedReason?: string;
+  grandfatheredUntil?: string | null;
   used: number;
   remaining: number | null;
   limit: number | null;
@@ -24,6 +27,9 @@ interface ImageQuotaSnapshot {
 }
 
 interface ImageQuotaState {
+  liteAvailable: boolean;
+  unlimitedReason: string | null;
+  grandfatheredUntil: string | null;
   loading: boolean;
   creditsUsed: number;
   remainingCredits: number;
@@ -94,6 +100,10 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
     };
   }, [refreshQuota]);
 
+  useEffect(() => {
+    if (!loading && quota?.ownerId === user?.id && quota?.liteAvailable !== true && mode === 'lite') useImageGenStore.getState().setImageMode('low');
+  }, [loading, mode, quota, user]);
+
   const value = useMemo<ImageQuotaState>(() => {
     const snapshot = quota?.ownerId === user?.id ? quota : null;
     const isUnlimited = snapshot?.unlimited === true;
@@ -102,6 +112,9 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
     const unitCost = imageCreditCost(selectedModel, aspect, !hasBoost || mode === 'low' ? 'low' : 'medium');
     return {
       loading,
+      liteAvailable: snapshot?.liteAvailable === true,
+      unlimitedReason: snapshot?.unlimitedReason ?? null,
+      grandfatheredUntil: snapshot?.grandfatheredUntil ?? null,
       isAdmin,
       refillEnabled: snapshot?.refillEnabled ?? false,
       canRefill: snapshot?.canRefill ?? false,
@@ -117,7 +130,7 @@ export function ImageQuotaProvider({ children }: { children: React.ReactNode }) 
       dailyImagesUsed: snapshot?.used ?? 0,
       remainingImages: isUnlimited ? Infinity : Math.floor(remaining / unitCost),
       limit,
-      canGenerateImage: !!user && !isAnonymous && (isUnlimited || remaining >= unitCost * count),
+      canGenerateImage: !!user && !isAnonymous && (selectedModel !== 'gemini-3.1-flash-lite-image' || snapshot?.liteAvailable === true) && (isUnlimited || remaining >= unitCost * count),
       resetAt: snapshot?.resetAt ?? null,
       refreshQuota,
       FREE_DAILY_IMAGE_LIMIT: FREE_DAILY_IMAGE_CREDITS,

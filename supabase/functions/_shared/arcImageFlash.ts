@@ -49,7 +49,7 @@ export async function callImageFlash(options: {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
 }): Promise<GatewayResult> {
-  if (!options.apiKey?.trim()) return { ok: false, status: 503, rawText: "Arc Image Flash is unavailable." };
+  if (!options.apiKey?.trim()) return { ok: false, status: 503, rawText: "The selected image model is unavailable." };
   if (!Number.isInteger(options.count) || options.count < 1 || options.count > 3) {
     return { ok: false, status: 400, rawText: "Invalid image count." };
   }
@@ -74,15 +74,15 @@ export async function callImageFlash(options: {
       if (!response.ok) {
         await response.body?.cancel();
         return { ok: false, status: response.status, rawText: response.status === 400
-          ? "Arc Image Flash could not process this image request."
-          : "Arc Image Flash could not finish the image. Please try again." };
+          ? "The selected image model could not process this image request."
+          : "The selected image model could not finish the image. Please try again." };
       }
       const image = extractImageFlashOutput(await response.json());
       return image ? { ok: true, status: 200, rawText: JSON.stringify({ data: [{ url: `data:image/jpeg;base64,${image}` }] }) }
-        : { ok: false, status: 502, rawText: "Arc Image Flash returned no completed image. Please try again." };
+        : { ok: false, status: 502, rawText: "The selected image model returned no completed image. Please try again." };
     } catch {
       return { ok: false, status: controller.signal.aborted ? 408 : 502,
-        rawText: controller.signal.aborted ? "Image request timed out." : "Arc Image Flash could not finish the image. Please try again." };
+        rawText: controller.signal.aborted ? "Image request timed out." : "The selected image model could not finish the image. Please try again." };
     } finally { clearTimeout(timer); }
   };
   // No automatic retry after a POST: it could create another paid image.

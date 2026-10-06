@@ -15,14 +15,14 @@ Base: `86a32b3c5972d247861a0f701d69322409ab9b89` (`origin/main` at inspection). 
 
 GPT models remain `gpt-image-2.5-flare` and `gpt-image-2.5-sunburst`. Quality is now captured explicitly: Flare Low/Medium or Sunburst High. Supported sizes are 1024x1024, 1536x1024, 1024x1536, 1536x864; matching-source edits use auto and conservative larger-shape cost.
 
-Google models are `gemini-3.1-flash-lite-image` and existing `gemini-3.1-flash-image`, using the existing Interactions adapter, native 1K JPEG output. Lite has no invented medium/high API quality switch. Free starts with Flare Low; paid users can choose all five picker configurations. Saved valid paid choices are preserved.
+Google models are `gemini-3.1-flash-lite-image` and existing `gemini-3.1-flash-image`, using the existing Interactions adapter, native 1K JPEG output. Lite has no invented medium/high API quality switch. Free starts with Flare Low; paid users can choose verified available picker configurations. Lite is hidden and rejected server-side until account readiness is enabled. Saved valid paid choices are preserved.
 
 Code expects existing `OPENAI_API_KEY` and `GEMINI_API_KEY`, existing private image storage, Supabase auth/service configuration and existing cloud-run infrastructure. Production secret presence, Lite model access and real provider/storage completion have **not** been verified. No secrets were copied into the clone. Provider fixture tests cannot prove paid account readiness.
 
 ## Validation
 
 - `node scripts/test-monthly-image-policy.mjs`: PASS against a disposable local PostgreSQL cluster, compiling the complete migration and exercising actual RPCs. Includes concurrent admission, tier cycling, month rollover, late refunds, real Work/Builder receipt paths, admin privilege boundaries, campaigns and refill fencing. Requires PostgreSQL binaries on PATH; no remote database.
-- `deno test --allow-env --allow-net supabase/functions/_shared/imagePolicy_test.ts supabase/functions/_shared/arcImageFlash_test.ts`: 8 passed, 0 failed; provider calls are mocked.
+- `deno test --allow-env --allow-net supabase/functions/_shared/imagePolicy_test.ts supabase/functions/_shared/arcImageFlash_test.ts`: 10 passed, 0 failed; provider calls are mocked.
 - Deno check of changed generation/edit/cloud-worker endpoints and shared runtime files: PASS.
 - `VITE_SUPABASE_URL=https://fixture.example.test VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_fixture npm run build`: PASS, including blog prerender.
 - Focused ESLint: 0 errors, one existing-style Fast Refresh warning for the quota hook's exported constants.
@@ -35,8 +35,12 @@ Browser reproduction: start Vite on 5174 with fixture.supabase.co and a fixture 
 
 ## Release gates and iOS coordination
 
-The migration changes existing unlimited Boost to a finite monthly balance. Decide the transition/grandfathering and announcement policy before applying it. Defaults enable both refill controls; no campaign is created by the migration. The accepted base-plus-one-refill Boost output-only estimate is approximately $6.72/month, not a total invoice or input/storage estimate.
+The candidate migration defaults to `transition_mode=staged`: Boost quantity stays unlimited until explicit release configuration is approved. It includes a one-time, fixed-expiry grandfathering path and an explicit immediate-transition choice; see RELEASE-TRANSITION.md. The gates are in the same migration transaction, so there is no intervening finite-Boost migration. Defaults enable both refill controls; no campaign is created by the migration. The accepted base-plus-one-refill Boost output-only estimate is approximately $6.72/month, not a total invoice or input/storage estimate.
 
 Release the SQL migration and compatible backend/frontend together after review and account readiness checks. Old native clients assume unlimited Boost and may request Sunburst edits on Free; server restrictions will reject unsupported requests. Validate an actual authenticated image/edited image through private storage after release authorization.
 
 The inspected build21 archive contains bundled `dist-ios` web assets, no server.url and no live updater. UI changes require a new native/TestFlight build. The existing release thread **Resume Arc Fixes and Signing** (`01a10204-95e6-7189-921e-63efc1c350cf`) owns native packaging/signing. This task supplies source only; do not duplicate its archive or upload work.
+
+The picker now shows only a short balance/cost or unlimited status. Refill controls and transition explanations remain in Dashboard → Plan & usage details. Admin release readiness stays in the admin dashboard. Lite uses the exact label **Nano Banana 2 Lite**; the separate full model remains **Nano Banana 2**.
+
+Public image branding has been retired in landing/pricing/modals, settings, docs/blogs, SEO/static HTML/llms.txt, source badges and provider error messages. Copy uses actual model names, while unavailable Lite remains hidden. No Image Studio product is introduced.

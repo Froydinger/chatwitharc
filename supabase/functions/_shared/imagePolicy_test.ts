@@ -1,4 +1,5 @@
-import { imageConfiguration, imageRequestIdentity, isGoogleImage } from './imagePolicy.ts';
+import { imageModelName } from '../../../src/lib/imageModelNames.ts';
+import { assertImageModelReady, imageConfiguration, imageRequestIdentity, isGoogleImage } from './imagePolicy.ts';
 import { callImageFlash, ARC_IMAGE_LITE_MODEL } from './arcImageFlash.ts';
 function assert(v: unknown, message='Assertion failed'): asserts v { if(!v)throw new Error(message); }
 Deno.test('image policy makes Free low, validates model, preserves explicit Boost settings',()=>{
@@ -21,4 +22,17 @@ Deno.test('Lite uses explicit supported model with native1K and no implicit fall
  calls++;const b=JSON.parse(String(init?.body));assert(b.model===ARC_IMAGE_LITE_MODEL&&b.response_format.image_size==='1K'&&b.store===false);
  return Response.json({status:'completed',steps:[{type:'model_output',content:[{type:'image',mime_type:'image/jpeg',data:btoa('bytes')}]}]});
  }});assert(r.ok&&calls===1);
+});
+
+Deno.test('unverified Lite is rejected before any provider call, readiness does not affect GPT/Nano',()=>{
+ for (const policy of [{},{liteAvailable:false}]) { let denied=false;try{assertImageModelReady(ARC_IMAGE_LITE_MODEL,policy);}catch{denied=true;}assert(denied); }
+ assertImageModelReady(ARC_IMAGE_LITE_MODEL,{liteAvailable:true});assertImageModelReady('gpt-image-2.5-flare',{});assertImageModelReady('gemini-3.1-flash-image',{});
+});
+
+Deno.test('recorded image model labels distinguish Lite from full Nano and retire image branding',()=>{
+ assert(imageModelName('gemini-3.1-flash-lite-image')==='Nano Banana 2 Lite');
+ assert(imageModelName('gemini-3.1-flash-image')==='Nano Banana 2');
+ assert(imageModelName('gpt-image-2.5-flare')==='GPT Image 2.5 Flare');
+ assert(imageModelName('gpt-image-2.5-sunburst')==='GPT Image 2.5 Sunburst');
+ assert(imageModelName(undefined)==='Image generation');
 });

@@ -1,4 +1,4 @@
-import { imageConfiguration, imageRequestIdentity, isGoogleImage } from "../_shared/imagePolicy.ts";
+import { assertImageModelReady, imageConfiguration, imageRequestIdentity, isGoogleImage } from "../_shared/imagePolicy.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
@@ -465,11 +465,12 @@ serve(async (req) => {
     if (policyError || !policy) throw new Error("Image policy unavailable");
     const config = imageConfiguration(imageModel, quality, policy.tier, aspectRatio === '1:1' ? '1024x1024' : 'auto');
     const selectedModel = config.model;
+    assertImageModelReady(selectedModel, policy);
     if (!(isGoogleImage(selectedModel) ? GEMINI_API_KEY : OPENAI_API_KEY)) {
       return jsonResponse({ success: false, error: "The selected image mode is unavailable.", errorType: "configuration_error" });
     }
     if (isGoogleImage(selectedModel) && typeof prompt === "string" && wantsTransparentBackground(prompt)) {
-      return jsonResponse({ success: false, error: "For a transparent background, choose Arc Image.", errorType: "invalid_request" });
+      return jsonResponse({ success: false, error: "For a transparent background, choose Flare or Sunburst.", errorType: "invalid_request" });
     }
     // Edits default to keeping the source image's shape. Only an explicit,
     // recognized aspect ratio overrides that.

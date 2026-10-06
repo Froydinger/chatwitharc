@@ -1,3 +1,4 @@
+import { useImageQuota } from '@/hooks/useImageQuota';
 import { useState, useEffect } from "react";
 import { PlanUsageBreakdown } from "@/components/PlanUsageBreakdown";
 import { SequencedTransition } from "@/components/transitions/SequencedTransition";
@@ -225,11 +226,10 @@ function Tile({
 
 function ImageDefaultsCard() {
   const { aspectRatio, setAspectRatio } = useImageGenStore();
-  const { hasBoost, isAdmin } = useSubscription();
-  const isBoost = Boolean(hasBoost || isAdmin);
+  const { remainingCredits, liteAvailable } = useImageQuota();
 
   return (
-    <SectionCard icon={ImageIcon} title="Image Studio" subtitle="Defaults and model specifications">
+    <SectionCard icon={ImageIcon} title="Images" subtitle="Defaults and model specifications">
       <div className="space-y-4 pt-1">
         <div>
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1 mb-2">Aspect Ratio</div>
@@ -255,17 +255,18 @@ function ImageDefaultsCard() {
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground px-1">Image modes</div>
           <div className="p-3 rounded-xl bg-muted/20 border border-border/40 space-y-2 text-xs">
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Arc Image</span>
-              <span className="font-medium text-foreground">GPT Image 2.5</span>
+              <span className="text-muted-foreground">GPT Image 2.5</span>
+              <span className="font-medium text-foreground">Flare · Sunburst</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Arc Image Flash</span>
-              <span className="font-medium text-foreground">Nano Banana 2</span>
+              <span className="text-muted-foreground">Nano Banana 2</span>
+              <span className="font-medium text-foreground">Native 1K</span>
             </div>
+            {liteAvailable && <div className="flex justify-between items-center"><span className="text-muted-foreground">Nano Banana 2 Lite</span><span className="font-medium text-foreground">Native 1K</span></div>}
             <div className="flex justify-between items-center pt-1 border-t border-border/30">
               <span className="text-muted-foreground">Allowance</span>
               <span className="font-medium text-primary">
-                {isBoost ? "Unlimited usage" : "Less usage"}
+                {remainingCredits === Infinity ? "Unlimited" : `${remainingCredits} remaining`}
               </span>
             </div>
           </div>
