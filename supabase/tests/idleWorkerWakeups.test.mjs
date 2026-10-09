@@ -51,7 +51,7 @@ await functionsFrom('20260912085941_durable_cloud_runs', ['list_claimable_cloud_
 await db.exec(await readMigration('20260912113905_cloud_run_completion_email_notifications'));
 await db.exec(await readMigration('20260912170000_cloud_run_completion_push_notifications'));
 await functionsFrom('20260928234345_browserbase_idle_timeout', ['touch_browserbase_session', 'claim_idle_browserbase_sessions']);
-const migration = await readMigration('20261009220000_gate_idle_worker_wakeups');
+const migration = await readMigration('20261009224456_gate_idle_worker_wakeups');
 assert.doesNotMatch(migration, /cron\.(un)?schedule\s*\(/i, 'Minute schedules and legacy scheduler remain unchanged');
 await db.exec(migration);
 await db.exec(migration); // Repeat deploy is safe.

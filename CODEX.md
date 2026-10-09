@@ -36,15 +36,20 @@ from here:
 ## Branching & deploys
 
 Commit work directly to **`main`** — no feature branches or PRs needed.
-**Pushing to `main` deploys**, including edge functions **and SQL migrations in
-`supabase/migrations/`**, so treat a push as a release: make sure changes build
-cleanly before pushing.
+**Pushing to `main` deploys the frontend through Netlify**, so treat a push as
+a release: make sure changes build cleanly before pushing.
 
-Migrations apply automatically. This runs through Supabase's own GitHub
-integration, which is configured in the Supabase dashboard rather than in this
-repo — so there is no workflow file to find, and the absence of `.github/` does
-NOT mean migrations need applying by hand. Netlify only builds the frontend; it
-is not the thing deploying edge functions or migrations.
+Deployment wiring verified October 9, 2026: this Supabase project has **no
+connected GitHub repository**. Edge Functions and SQL migrations do **not**
+deploy automatically with a push. Explicitly deploy changed functions and apply
+reviewed migrations through the approved Supabase release path, then verify the
+live result. Do not redeploy unchanged functions or assume the absence of
+`.github/` proves an external integration exists. Recheck deployment wiring
+before future releases.
+
+Migration filenames must match the versions recorded by the actual deployment.
+If the migration connector generates a timestamp, reconcile the committed
+filename after a successful apply; do not edit migration-history rows by hand.
 
 ## Common commands
 

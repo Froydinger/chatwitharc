@@ -19,7 +19,7 @@ create table public.push_notification_history(id integer);
 create publication supabase_realtime for table public.push_notification_history;
 `);
 await db.exec(await readFile(new URL('../migrations/20260714150000_add_mac_desktop_notifications.sql', import.meta.url), 'utf8'));
-const migration = await readFile(new URL('../migrations/20261009220100_desktop_notifications_realtime.sql', import.meta.url), 'utf8');
+const migration = await readFile(new URL('../migrations/20261009224516_desktop_notifications_realtime.sql', import.meta.url), 'utf8');
 await db.exec(migration);
 await db.exec(migration);
 assert.deepEqual((await db.query("select tablename from pg_publication_tables where pubname='supabase_realtime' order by tablename")).rows.map(r => r.tablename), ['desktop_notifications','push_notification_history']);

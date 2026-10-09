@@ -1,5 +1,5 @@
 -- Rollback idle-worker gate functions to verified production base 14c650d75a8f3e1f722885cb4292e183295ed728.
--- Apply only if rolling back 20261009220000_gate_idle_worker_wakeups.
+-- Apply only if rolling back 20261009224456_gate_idle_worker_wakeups.
 -- Leaves cron schedules, outboxes, claims, and publication unchanged.
 
 create or replace function public.invoke_cloud_worker()

@@ -1,4 +1,4 @@
--- Optional publication rollback for 20261009220100 only, after reverting the
+-- Optional publication rollback for 20261009224516 only, after reverting the
 -- frontend to the previous polling build. Preflight established this table was
 -- not previously published. Do not use if another consumer now depends on it.
 -- No notification rows, policies, or grants are changed.
