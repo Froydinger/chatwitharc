@@ -1,21 +1,18 @@
-import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { useState, useEffect, useCallback, useSyncExternalStore, createContext, useContext } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
-
-interface Profile {
-  id: string;
-  user_id: string;
-  display_name: string | null;
-  context_info: string | null;
-  created_at: string;
-  updated_at: string;
-  welcome_email_sent?: boolean;
-}
+import { createProfileCache, type Profile, type ProfileUpdates } from "@/lib/profileCache";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
+  profileLoading: boolean;
+  profileUpdating: boolean;
+  profileError: Error | null;
+  updateProfile: (updates: ProfileUpdates) => Promise<Profile>;
+  refetchProfile: () => Promise<Profile | null>;
+  invalidateProfile: (userId: string) => Promise<Profile | null>;
   loading: boolean;
   needsOnboarding: boolean;
   /** True when the active session is an anonymous Supabase user (guest mode). */
@@ -31,103 +28,74 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   profile: null,
+  profileLoading: false,
+  profileUpdating: false,
+  profileError: null,
+  updateProfile: async () => { throw new Error('No authenticated user found'); },
+  refetchProfile: async () => null,
+  invalidateProfile: async () => null,
   loading: true,
   needsOnboarding: false,
   isAnonymous: false,
   continueAsGuest: async () => ({ error: null }),
 });
 
+async function loadProfile(user: User, isCurrent: () => boolean): Promise<Profile | null> {
+  if (!supabase || !isSupabaseConfigured) return null;
+  const { data, error } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
+  if (error) throw error;
+  if (data || !isCurrent()) return data;
+
+  // Only a confirmed missing row warrants creation. A failed read must never
+  // trigger a write, and metadata must belong to the same captured account.
+  const displayName = user.user_metadata?.display_name || user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'New User';
+  const { data: created, error: createError } = await supabase.from('profiles').insert({
+    user_id: user.id,
+    display_name: displayName,
+    welcome_email_sent: false,
+  }).select().single();
+  if (!createError) return created;
+  // A sign-up trigger or another tab may have created the row after our read.
+  if (createError.code === '23505' && isCurrent()) {
+    const { data: existing, error: retryError } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
+    if (retryError) throw retryError;
+    return existing;
+  }
+  throw createError;
+}
+
+async function saveProfile(userId: string, updates: ProfileUpdates): Promise<Profile> {
+  if (!supabase || !isSupabaseConfigured) throw new Error('Supabase is not configured');
+  const { data, error } = await supabase.from('profiles').update(updates).eq('user_id', userId).select().single();
+  if (error) throw error;
+  return data;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
-
-  const fetchProfile = async (userId: string) => {
-    if (!supabase) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        // If profile doesn't exist, create it
-        if (error.code === 'PGRST116') {
-          await createProfile(userId);
-          return;
-        }
-        return;
-      }
-
-      setProfile(data);
-
-      // Check if user needs onboarding (no display name set)
-      if (data && (!data.display_name || data.display_name === 'New User')) {
-        setNeedsOnboarding(true);
-      } else {
-        setNeedsOnboarding(false);
-      }
-
-    } catch (error) {
-      console.error('Profile fetch error:', error);
-      // Fallback: try to create profile if fetch fails
-      await createProfile(userId);
-    }
-  };
-
-  const createProfile = async (userId: string) => {
-    if (!supabase) return;
-
-    try {
-      // Get current user to extract metadata
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const displayName = user.user_metadata?.full_name ||
-                         user.user_metadata?.name ||
-                         user.email?.split('@')[0] ||
-                         'New User';
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: userId,
-          display_name: displayName,
-          welcome_email_sent: false
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating profile:', error);
-        return;
-      }
-
-      setProfile(data);
-      setNeedsOnboarding(displayName === 'New User');
-
-    } catch (error) {
-      console.error('Profile creation error:', error);
-    }
-  };
+  const [profileCache] = useState(() => createProfileCache({ load: loadProfile, update: saveProfile }));
+  const profileState = useSyncExternalStore(profileCache.subscribe, profileCache.getSnapshot, profileCache.getSnapshot);
+  // Bind actions to this account generation. An old component callback must
+  // never save to a different account (or a later sign-in of the same account).
+  const updateProfile = useCallback((updates: ProfileUpdates) => profileCache.update(updates, profileState.generation), [profileCache, profileState.generation]);
+  // Explicit refresh follows external writes such as avatar uploads, so fence
+  // any read that started before the write instead of joining its stale result.
+  const refetchProfile = useCallback(() => profileState.userId
+    ? profileCache.invalidate(profileState.userId, profileState.generation)
+    : Promise.resolve(null), [profileCache, profileState.generation, profileState.userId]);
 
   useEffect(() => {
     let mounted = true;
-    let subscription: any = null;
+    let authEventVersion = 0;
+    let profileTimer: ReturnType<typeof setTimeout> | undefined;
 
-    // If Supabase is not configured, skip auth initialization
     if (!isSupabaseConfigured || !supabase) {
-      console.log('Supabase not configured, running in offline mode');
       setLoading(false);
       return;
     }
 
-    // Timeout to ensure we don't hang forever
     const timeout = setTimeout(() => {
       if (mounted) {
         console.warn('Auth initialization timed out, continuing anyway');
@@ -135,82 +103,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }, 5000);
 
-    const initAuth = async () => {
-      try {
-        // Set up auth state listener
-        const { data } = supabase.auth.onAuthStateChange(
-          (event, session) => {
-            if (!mounted) return;
-
-            setSession(session);
-            setUser(session?.user ?? null);
-
-            // Skip profile/onboarding for anonymous (guest) users
-            if (session?.user && !session.user.is_anonymous) {
-              // Defer profile fetch to avoid deadlock
-              setTimeout(() => {
-                if (mounted) {
-                  fetchProfile(session.user.id);
-                }
-              }, 0);
-            } else {
-              setProfile(null);
-              setNeedsOnboarding(false);
-            }
-
-            setLoading(false);
-          }
-        );
-
-        subscription = data.subscription;
-
-        // Check for existing session
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!mounted) return;
-
-        // No session: stay unauthenticated. Chat screens are only for real
-        // signed-in accounts; logged-out visitors remain on the lander.
-        if (!session) {
-          setLoading(false);
-          clearTimeout(timeout);
-          return;
-        }
-
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user && !session.user.is_anonymous) {
-          setTimeout(() => {
-            if (mounted) {
-              fetchProfile(session.user.id);
-            }
+    const applySession = (nextSession: Session | null) => {
+      if (!mounted) return;
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      // Repeated SIGNED_IN, INITIAL_SESSION and TOKEN_REFRESHED events for the
+      // same account must not fetch the profile again.
+      if (profileCache.activate(nextSession?.user ?? null)) {
+        clearTimeout(profileTimer);
+        const generation = profileCache.getSnapshot().generation;
+        // Keep Supabase queries outside the synchronous auth callback.
+        if (profileCache.getSnapshot().userId) {
+          profileTimer = setTimeout(() => {
+            if (mounted) void profileCache.ensure(generation);
           }, 0);
         }
-
-        setLoading(false);
-        clearTimeout(timeout);
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        if (mounted) {
-          setLoading(false);
-          clearTimeout(timeout);
-        }
       }
+      setLoading(false);
+      clearTimeout(timeout);
     };
 
-    initAuth();
+    const versionBeforeRead = authEventVersion;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      authEventVersion += 1;
+      applySession(nextSession);
+    });
+
+    let reconnectPending = false;
+    const revalidateProfile = (event: Event) => {
+      if (event.type === 'online') reconnectPending = true;
+      if (document.visibilityState === 'hidden') return;
+      const reconnected = reconnectPending;
+      reconnectPending = false;
+      void profileCache.revalidate(reconnected);
+    };
+    window.addEventListener('focus', revalidateProfile);
+    window.addEventListener('online', revalidateProfile);
+    document.addEventListener('visibilitychange', revalidateProfile);
+
+    void supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      // A late bootstrap result must not undo a newer logout/account change.
+      if (mounted && authEventVersion === versionBeforeRead) applySession(initialSession);
+    }).catch(error => {
+      console.error('Auth initialization error:', error);
+      if (mounted) {
+        setLoading(false);
+        clearTimeout(timeout);
+      }
+    });
 
     return () => {
       mounted = false;
       clearTimeout(timeout);
-      if (subscription) {
-        subscription.unsubscribe();
-      }
+      clearTimeout(profileTimer);
+      subscription.unsubscribe();
+      window.removeEventListener('focus', revalidateProfile);
+      window.removeEventListener('online', revalidateProfile);
+      document.removeEventListener('visibilitychange', revalidateProfile);
+      profileCache.activate(null);
     };
-  }, []);
+  }, [profileCache]);
 
   const isAnonymous = !!user?.is_anonymous;
+  const profile = profileState.userId === user?.id ? profileState.profile : null;
+  const needsOnboarding = !!profile && (!profile.display_name || profile.display_name === 'New User');
 
   const continueAsGuest = useCallback(async () => {
     try {
@@ -228,6 +184,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       session,
       profile,
+      profileLoading: loading || profileState.loading,
+      profileUpdating: profileState.updating,
+      profileError: profileState.error,
+      updateProfile,
+      refetchProfile,
+      invalidateProfile: profileCache.invalidate,
       loading,
       needsOnboarding,
       isAnonymous,

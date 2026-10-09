@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/useProfile";
 import { User, MessageCircle } from "lucide-react";
 
 interface OnboardingScreenProps {
@@ -18,6 +18,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const [contextInfo, setContextInfo] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { updateProfile } = useProfile();
 
   const handleComplete = async () => {
     if (!displayName.trim()) {
@@ -32,25 +33,10 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     setLoading(true);
 
     try {
-      if (!supabase || !isSupabaseConfigured) {
-        throw new Error("Profile setup is not available. Please try again later.");
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error("No authenticated user found");
-      }
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          display_name: displayName.trim(),
-          context_info: contextInfo.trim() || null,
-        })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+      await updateProfile({
+        display_name: displayName.trim(),
+        context_info: contextInfo.trim() || null,
+      });
 
       toast({
         title: "Welcome!",
@@ -58,11 +44,11 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
       });
 
       onComplete();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Profile update error:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update profile",
+        description: error instanceof Error ? error.message : "Failed to update profile",
         variant: "destructive"
       });
     } finally {

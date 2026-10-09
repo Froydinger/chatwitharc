@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { DesktopNotificationDelivery } from "@/lib/desktopNotificationDelivery";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -19,7 +21,6 @@ type DesktopNotificationBridge = {
 };
 
 const DESKTOP_NOTIFICATIONS_KEY = "arcai-desktop-notifications-enabled";
-let desktopNotificationPollTimer: number | null = null;
 
 function getDesktopNotificationBridge(): DesktopNotificationBridge | null {
   if (typeof window === "undefined" || !/ArcAIInternalAuth\//i.test(navigator.userAgent)) return null;
@@ -28,38 +29,96 @@ function getDesktopNotificationBridge(): DesktopNotificationBridge | null {
   }).arcaiDesktop?.notifications ?? null;
 }
 
-async function pollDesktopNotifications() {
-  const bridge = getDesktopNotificationBridge();
-  if (!bridge || localStorage.getItem(DESKTOP_NOTIFICATIONS_KEY) !== "true") return;
+// These tables predate the generated application schema; keep their narrow API typed here.
+type DesktopNotificationRow = {
+  id: string; user_id: string; title: string; body: string; url: string;
+  tag: string | null; created_at: string; delivered_at: string | null;
+};
+type DesktopDeviceRow = {
+  device_id: string; user_id: string; enabled: boolean; last_seen_at: string; created_at: string;
+};
+type DesktopDatabase = {
+  public: {
+    Tables: {
+      desktop_notifications: {
+        Row: DesktopNotificationRow;
+        Insert: never;
+        Update: { delivered_at?: string | null };
+        Relationships: [];
+      };
+      desktop_notification_devices: {
+        Row: DesktopDeviceRow;
+        Insert: Omit<DesktopDeviceRow, "created_at">;
+        Update: Partial<DesktopDeviceRow>;
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+  };
+};
+const desktopClient = supabase as unknown as SupabaseClient<DesktopDatabase>;
 
-  const client = supabase as any;
-  const { data: pending } = await client
-    .from("desktop_notifications")
-    .select("id,title,body,url,tag")
-    .is("delivered_at", null)
-    .order("created_at", { ascending: true })
-    .limit(10);
-
-  for (const item of pending ?? []) {
-    const { data: claimed } = await client
-      .from("desktop_notifications")
-      .update({ delivered_at: new Date().toISOString() })
-      .eq("id", item.id)
-      .is("delivered_at", null)
-      .select("id")
-      .maybeSingle();
-    if (!claimed) continue;
-    await bridge.show(item).catch(() => null);
-  }
-}
-
-function startDesktopNotificationPolling() {
-  if (desktopNotificationPollTimer !== null || !getDesktopNotificationBridge()) return;
-  void pollDesktopNotifications();
-  desktopNotificationPollTimer = window.setInterval(() => {
-    void pollDesktopNotifications();
-  }, 10000);
-}
+let desktopChannelGeneration = 0;
+const desktopDelivery = new DesktopNotificationDelivery({
+  enabled: () => getDesktopNotificationBridge() !== null && localStorage.getItem(DESKTOP_NOTIFICATIONS_KEY) === "true",
+  online: () => navigator.onLine !== false,
+  owner: async () => (await supabase.auth.getSession()).data.session?.user.id ?? null,
+  onOwner: (callback) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => callback(session?.user.id ?? null));
+    return () => subscription.unsubscribe();
+  },
+  onWake: (callback) => {
+    const onVisible = () => { if (document.visibilityState === "visible") callback(); };
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === DESKTOP_NOTIFICATIONS_KEY || event.key === null) callback();
+    };
+    window.addEventListener("focus", callback);
+    window.addEventListener("online", callback);
+    window.addEventListener("storage", onStorage);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", callback);
+      window.removeEventListener("online", callback);
+      window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  },
+  connect: (owner, callbacks) => {
+    // A unique topic avoids reusing a channel whose asynchronous leave is still pending.
+    const channel = supabase.channel(`desktop-notifications:${owner}:${++desktopChannelGeneration}`)
+      .on("postgres_changes", {
+        event: "INSERT", schema: "public", table: "desktop_notifications", filter: `user_id=eq.${owner}`,
+      }, callbacks.change)
+      .on("system", {}, callbacks.system)
+      .subscribe(callbacks.status);
+    return () => { void supabase.removeChannel(channel).catch(() => undefined); };
+  },
+  pending: async (owner, limit, signal) => {
+    const { data, error } = await desktopClient.from("desktop_notifications")
+      .select("id,user_id,title,body,url,tag").eq("user_id", owner).is("delivered_at", null)
+      .order("created_at", { ascending: true }).limit(limit).abortSignal(signal);
+    if (error) throw error;
+    return data ?? [];
+  },
+  claim: async (owner, id, signal) => {
+    const { data, error } = await desktopClient.from("desktop_notifications")
+      .update({ delivered_at: new Date().toISOString() }).eq("user_id", owner).eq("id", id)
+      .is("delivered_at", null).select("id").abortSignal(signal).maybeSingle();
+    if (error) throw error;
+    return !!data;
+  },
+  show: async (item) => getDesktopNotificationBridge()?.show({ ...item, tag: item.tag ?? undefined }),
+  register: async (owner, signal) => {
+    const deviceId = await getDesktopNotificationBridge()?.getDeviceId();
+    if (!deviceId || signal.aborted) return;
+    await desktopClient.from("desktop_notification_devices").upsert({
+      device_id: deviceId, user_id: owner, enabled: true, last_seen_at: new Date().toISOString(),
+    }).abortSignal(signal);
+  },
+  setTimer: (callback, delay) => setTimeout(callback, delay),
+  clearTimer: (timer) => clearTimeout(timer),
+});
 
 let vapidPublicKeyPromise: Promise<string> | null = null;
 
@@ -243,19 +302,7 @@ export function usePushNotifications() {
       setSupported(true);
       setPermission(enabled ? "granted" : "default");
       setSubscribed(enabled);
-      if (enabled) {
-        startDesktopNotificationPolling();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const deviceId = await desktopBridge.getDeviceId();
-          await (supabase as any).from("desktop_notification_devices").upsert({
-            device_id: deviceId,
-            user_id: user.id,
-            enabled: true,
-            last_seen_at: new Date().toISOString(),
-          });
-        }
-      }
+      desktopDelivery.refresh();
       return;
     }
     const reason = computeAvailability();
@@ -283,6 +330,10 @@ export function usePushNotifications() {
   }, [computeAvailability]);
 
   useEffect(() => {
+    if (getDesktopNotificationBridge()) return desktopDelivery.acquire();
+  }, []);
+
+  useEffect(() => {
     refresh();
   }, [refresh]);
 
@@ -296,7 +347,7 @@ export function usePushNotifications() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Sign in before enabling notifications.");
         const deviceId = await desktopBridge.getDeviceId();
-        const { error } = await (supabase as any).from("desktop_notification_devices").upsert({
+        const { error } = await desktopClient.from("desktop_notification_devices").upsert({
           device_id: deviceId,
           user_id: user.id,
           enabled: true,
@@ -306,7 +357,7 @@ export function usePushNotifications() {
         localStorage.setItem(DESKTOP_NOTIFICATIONS_KEY, "true");
         setPermission("granted");
         setSubscribed(true);
-        startDesktopNotificationPolling();
+        desktopDelivery.refresh();
         return true;
       }
 
@@ -396,14 +447,16 @@ export function usePushNotifications() {
     try {
       const desktopBridge = getDesktopNotificationBridge();
       if (desktopBridge) {
+        // Fence queued/in-flight alerts as soon as the user disables delivery.
+        localStorage.removeItem(DESKTOP_NOTIFICATIONS_KEY);
+        desktopDelivery.refresh();
+        setPermission("default");
+        setSubscribed(false);
         const deviceId = await desktopBridge.getDeviceId();
-        await (supabase as any)
+        await desktopClient
           .from("desktop_notification_devices")
           .delete()
           .eq("device_id", deviceId);
-        localStorage.removeItem(DESKTOP_NOTIFICATIONS_KEY);
-        setPermission("default");
-        setSubscribed(false);
         return;
       }
       const reg = await navigator.serviceWorker.getRegistration("/");

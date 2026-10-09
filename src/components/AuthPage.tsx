@@ -4,6 +4,7 @@ import { GlassButton } from "@/components/ui/glass-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase, isSupabaseConfigured } from "@/integrations/supabase/client";
 import { getAuthRedirectUrl, signInWithGoogle } from "@/integrations/auth";
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, User } from "lucide-react";
@@ -19,6 +20,7 @@ export function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { invalidateProfile } = useAuth();
 
   const handleAuth = async () => {
     if (!supabase || !isSupabaseConfigured) {
@@ -85,18 +87,19 @@ export function AuthPage() {
         
         // Create/update profile with display name
         if (data.user) {
-          await supabase.from('profiles').upsert({
+          const { error: profileError } = await supabase.from('profiles').upsert({
             user_id: data.user.id,
             display_name: name.trim(),
           }, { onConflict: 'user_id' });
+          if (!profileError) await invalidateProfile(data.user.id);
         }
         
         toast({ title: "Account created!", description: "Welcome to ArcAI!" });
       }
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error?.message || "An error occurred",
+        description: error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -109,10 +112,10 @@ export function AuthPage() {
     try {
       const { error } = await signInWithGoogle();
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error?.message || "An error occurred with Google sign in",
+        description: error instanceof Error ? error.message : "An error occurred with Google sign in",
         variant: "destructive",
       });
       setLoading(false);
