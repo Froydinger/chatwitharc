@@ -42,7 +42,8 @@ import { notifyTextUsageChanged } from '@/services/arcTextUsage';
 import { showModelSwitchNotice } from '@/services/modelSwitchNotice';
 import { normalizeModelSelection, useModelStore } from "@/store/useModelStore";
 import { getQueryComplexity } from "@/services/ai";
-import { WelcomeSection, CyclingGreeting } from "@/components/WelcomeSection";
+import { WelcomeSection } from "@/components/WelcomeSection";
+import { WorkspaceChatWelcome } from "@/components/WorkspaceChatWelcome";
 import { ChatResponseStatus } from "@/components/ChatResponseStatus";
 import { useLiveAnswerStore } from "@/store/useLiveAnswerStore";
 import { ThinkingIndicator } from "@/components/ThinkingIndicator";
@@ -1782,10 +1783,19 @@ export function MobileChatApp() {
                 </div>
               )}</ConditionalTransition>
 
-              {/* Greeting - above quick prompts on empty state */}
-              {!isVoiceActive && messages.length === 0 && (
+              {/* Keep the rotating greeting and its quick prompts together in the Workspace welcome area. */}
+              {!isVoiceActive && messages.length === 0 && workspaceUI && (
+                <WorkspaceChatWelcome
+                  suggestions={staticSuggestions}
+                  onSelectPrompt={triggerPrompt}
+                  onShowMore={() => setShowLibrary(true)}
+                />
+              )}
+
+              {/* Legacy chat keeps its existing greeting and prompt placement. */}
+              {!isVoiceActive && messages.length === 0 && !workspaceUI && (
                 <Transition preset="fade" delay={0.1}><div
-                  className={cn("flex justify-center mb-4", workspaceUI && "ws-live-greeting")}
+                  className="flex justify-center mb-4"
                 >
                   <div className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-center">
                     <span className="relative inline-block">
@@ -1793,17 +1803,6 @@ export function MobileChatApp() {
                     </span>
                   </div>
                 </div></Transition>
-              )}
-
-              {/* Quick prompts sit immediately below the unchanged time-based greeting. */}
-              {!isVoiceActive && messages.length === 0 && (
-                <div className="pointer-events-auto mb-4 flex justify-center">
-                  <SmartSuggestions
-                    suggestions={staticSuggestions}
-                    onSelectPrompt={triggerPrompt}
-                    onShowMore={() => setShowLibrary(true)}
-                  />
-                </div>
               )}
 
               {/* Voice mode replaces the dock outright rather than collapsing
@@ -1840,6 +1839,15 @@ export function MobileChatApp() {
                 </ArcInputEffects>
               </div>
               )}</ConditionalTransition>
+              {!workspaceUI && !isVoiceActive && messages.length === 0 && (
+                <div className="pointer-events-auto mt-4 flex justify-center">
+                  <SmartSuggestions
+                    suggestions={staticSuggestions}
+                    onSelectPrompt={triggerPrompt}
+                    onShowMore={() => setShowLibrary(true)}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

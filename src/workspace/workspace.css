@@ -226,18 +226,28 @@ html[data-workspace-theme=light] .workspace-ui { --ws-bg:#fcfcfa; --ws-sidebar:#
   .ci-workspace-create-menu,.ci-workspace-create-menu * { animation:none!important; transition:none!important; }
 }
 
-/* Keep the existing rotating greeting in the preview's calm empty-chat area.
-   Only its position changes; the single CyclingGreeting instance stays mounted. */
-.ws-live-content .ws-live-greeting {
-  position:fixed; top:clamp(120px,24vh,230px); left:16px; right:16px;
-  margin:0; pointer-events:none;
+/* Keep the existing rotating greeting and its quick prompts in one calm
+   welcome group above the bottom-anchored Workspace composer. */
+.ws-live-content .ws-chat-welcome {
+  position:fixed; top:clamp(120px,24vh,230px); left:16px; right:16px; z-index:20;
+  display:flex; flex-direction:column; align-items:center; gap:8px; pointer-events:none;
 }
-.ws-live-greeting>div { font-size:32px; line-height:1.2; }
+.ws-live-content .ws-chat-welcome .ws-live-greeting { position:static; margin:0; pointer-events:none; }
+.ws-live-content .ws-live-greeting>div { font-size:32px; line-height:1.2; }
+.ws-chat-welcome>.ws-quick-prompts { width:100%; max-width:100%; gap:8px; pointer-events:auto; }
+.ws-quick-prompts>.flex { padding-left:0; padding-right:0; }
+.ws-quick-prompts .ws-quick-prompt { border-color:var(--ws-line); background:var(--ws-canvas); color:var(--ws-text); backdrop-filter:none; }
+.ws-quick-prompts .ws-quick-prompt:hover { border-color:var(--ws-text); background:var(--ws-surface); }
+.ws-quick-prompts .ws-quick-prompt>span { color:var(--ws-text); }
+.ws-quick-prompts .ws-quick-prompt>div { display:none; }
+.ws-quick-prompts .ws-quick-ideas { color:var(--ws-muted); }
+.ws-quick-prompts .ws-quick-ideas:hover { color:var(--ws-text); background:var(--ws-hover); }
 @media(max-width:650px) {
-  .ws-live-content .ws-live-greeting { top:calc(12vh + 72px); }
-  .ws-live-greeting>div { font-size:28px; }
+  .ws-live-content .ws-chat-welcome { top:calc(12vh + 72px); }
+  .ws-live-content .ws-live-greeting>div { font-size:28px; }
+  .ws-quick-prompts .ws-quick-prompt { padding:8px 12px; }
 }
-@media(max-height:520px) { .ws-live-content .ws-live-greeting { position:static; margin-bottom:14px; } }
+@media(max-height:520px) { .ws-live-content .ws-chat-welcome { top:16px; } }
 
 /* Keep the real dashboard account/notification header and handlers. */
 .ws-live-dashboard .dashboard-preview-shell { min-height:100%; }
