@@ -1,6 +1,6 @@
 import { BoostIcon } from '@/components/BoostIcon';
 import { useImageQuota } from '@/hooks/useImageQuota';
-import { useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { PlanUsageBreakdown } from "@/components/PlanUsageBreakdown";
 import { SequencedTransition } from "@/components/transitions/SequencedTransition";
 import {
@@ -28,6 +28,9 @@ import {
   Lock,
   Cpu,
   ChevronDown,
+  Monitor,
+  Moon,
+  Sun,
   ArrowRight,
   Plug,
   Database,
@@ -104,8 +107,11 @@ import { isMobileLocalDevice } from "@/utils/mobileLocal";
 import { useStarfieldStore } from "@/store/useStarfieldStore";
 import { BOOST_PLAN_SUMMARY, FREE_PLAN_SUMMARY } from "@/lib/planCopy";
 import { BOOST_NEW_SUBSCRIBER_PRICE_COPY } from "@/lib/boostPricing";
+import { WorkspaceSettingsPage } from "@/workspace/WorkspaceSettingsPage";
+import { resolveSettingsSectionQuery, searchParamsForSettingsSection, type SettingsSectionId } from "@/workspace/settingsSections";
 
-type SectionId = "account" | "appearance" | "ai" | "connectors" | "privacy" | "plan";
+type SectionId = SettingsSectionId;
+const WorkspaceSettingsRowsContext = createContext(false);
 
 const SECTIONS: { id: SectionId; label: string; icon: LucideIcon; subtitle: string }[] = [
   { id: "account",    label: "Account",       icon: User,        subtitle: "Identity & login" },
@@ -160,6 +166,15 @@ function SectionCard({
   children: React.ReactNode;
   className?: string;
 }) {
+  const workspacePresentation = useContext(WorkspaceSettingsRowsContext);
+  if (workspacePresentation) {
+    return (
+      <section className={cn("workspace-settings-group", className)}>
+        <header><h3>{title}</h3></header>
+        <div className="workspace-settings-group-body">{children}</div>
+      </section>
+    );
+  }
   return (
     <GlassCard className={cn("rounded-[28px] border border-white/[0.08] bg-white/[0.025] p-5 shadow-[0_22px_80px_rgba(0,0,0,0.12)] space-y-4", className)}>
       <div className="flex items-start gap-3">
@@ -195,7 +210,27 @@ function Tile({
   className?: string;
   children?: React.ReactNode;
 }) {
+  const workspacePresentation = useContext(WorkspaceSettingsRowsContext);
   const Comp: any = onClick ? "button" : "div";
+  if (workspacePresentation) {
+    const hasRowHeading = Boolean(Icon || title || description || right);
+    return (
+      <Comp
+        type={onClick ? "button" : undefined}
+        onClick={onClick}
+        className={cn("workspace-settings-row", !hasRowHeading && children && "workspace-settings-row--content", className)}
+      >
+        {hasRowHeading && (
+          <div className="workspace-settings-row-copy">
+            {title && <div className="workspace-settings-row-title">{title}</div>}
+            {description && <div className="workspace-settings-row-description">{description}</div>}
+          </div>
+        )}
+        {right && <div className="workspace-settings-row-control">{right}</div>}
+        {children && <div className="workspace-settings-row-content">{children}</div>}
+      </Comp>
+    );
+  }
   return (
     <Comp
       onClick={onClick}
@@ -273,10 +308,10 @@ function ImageDefaultsCard() {
   );
 }
 
-export function SettingsPanel() {
+export function SettingsPanel({ workspacePresentation = false }: { workspacePresentation?: boolean } = {}) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [section, setSection] = useState<SectionId>("account");
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const {
     clearAllSessions,
@@ -296,6 +331,9 @@ export function SettingsPanel() {
   } = useSubscription();
   const { toast } = useToast();
   const themeMode = useAccentStore((s) => s.themeMode);
+  const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
+  const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
+  const themeLabel = themeMode === "light" ? "Light" : themeMode === "system" ? "System" : "Dark";
 
 
 
@@ -331,18 +369,14 @@ export function SettingsPanel() {
   }, []);
 
   useEffect(() => {
-    const sectionParam = searchParams.get("section")?.toLowerCase();
-    if (!sectionParam) return;
-    if (SECTIONS.some((s) => s.id === sectionParam)) {
-      setSection(sectionParam as SectionId);
-    } else if (sectionParam === "billing" || sectionParam === "subscription") {
-      setSection("plan");
-    } else if (sectionParam === "profile" || sectionParam === "general") {
-      setSection("account");
-    } else if (sectionParam === "models" || sectionParam === "voice") {
-      setSection("ai");
+    const sectionParam = searchParams.get("section");
+    if (!sectionParam) {
+      if (workspacePresentation) setSection("account");
+      return;
     }
-  }, [searchParams]);
+    const resolvedSection = resolveSettingsSectionQuery(sectionParam);
+    if (resolvedSection) setSection(resolvedSection);
+  }, [searchParams, workspacePresentation]);
 
   useEffect(() => {
     if (!displayNameDirty) setDisplayNameDraft(profile?.display_name || "");
@@ -691,6 +725,16 @@ export function SettingsPanel() {
       />
     </SectionCard>
   );
+  const ThemeCard = (
+    <SectionCard icon={ThemeIcon} title="Theme">
+      <Tile
+        icon={ThemeIcon}
+        title="Color mode"
+        description="Choose light, dark, or follow your device."
+        right={<button type="button" className="workspace-settings-choice" aria-label={`Theme: ${themeLabel}`} onClick={cycleThemeMode}>{themeLabel}</button>}
+      />
+    </SectionCard>
+  );
   const FontCard = (
     <SectionCard
       icon={Stars}
@@ -929,6 +973,7 @@ export function SettingsPanel() {
       case "appearance":
         return (
           <>
+            {workspacePresentation && ThemeCard}
             {StarfieldCard}
             {FontCard}
           </>
@@ -1041,6 +1086,34 @@ export function SettingsPanel() {
       </div>
     </div>
   );
+
+  if (workspacePresentation) {
+    const changeSection = (nextSection: string) => {
+      const next = searchParamsForSettingsSection(searchParams, nextSection as SectionId);
+      setSearchParams(next);
+      setSection(nextSection as SectionId);
+    };
+
+    return (
+      <WorkspaceSettingsRowsContext.Provider value>
+        <WorkspaceSettingsPage
+          sections={SECTIONS}
+          activeSection={section}
+          onSectionChange={changeSection}
+          footer={Footer}
+        >
+          <SequencedTransition contentKey={section} className="workspace-settings-groups">
+            {renderSection()}
+          </SequencedTransition>
+        </WorkspaceSettingsPage>
+        <DeleteDataModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          onDeleted={handleDataDeleted}
+        />
+      </WorkspaceSettingsRowsContext.Provider>
+    );
+  }
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-20 pt-2">
