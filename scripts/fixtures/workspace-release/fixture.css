@@ -1,0 +1,17 @@
+html,body,#root { height:100%; margin:0; }
+.qa-release-tools { min-height:56px; padding:7px 12px; display:flex; align-items:center; flex-wrap:wrap; gap:8px; border-bottom:1px solid #777; background:#161616; color:white; font:13px system-ui; }
+.qa-release-tools label { display:flex; align-items:center; gap:5px; }
+.qa-release-tools select,.qa-release-tools button { min-height:36px; border:1px solid #666; border-radius:8px; background:#202020; color:white; padding:4px 8px; font:inherit; }
+.qa-release-tools strong { margin-right:8px; }
+.qa-release-viewport { position:relative; margin:auto; height:calc(100dvh - 58px); overflow:hidden; border-inline:1px solid #555; }
+.qa-release-viewport>.ws-frame { height:100%; min-height:0; }
+.qa-release-note { position:fixed; right:10px; bottom:6px; z-index:12100; max-width:min(450px,75vw); padding:6px 9px; border:1px solid #777; border-radius:8px; background:#161616; color:white; font:11px system-ui; pointer-events:none; }
+.qa-release-chat { display:flex; height:100%; position:relative; }
+.qa-release-chat .ws-original-message-scroll { position:absolute; inset:0; overflow-y:auto; padding-bottom:230px; }
+.qa-release-chat .ws-original-composer-dock { position:fixed; left:0; right:0; z-index:30; pointer-events:none; }
+.qa-release-chat .arc-input-shell { pointer-events:auto; }
+.qa-release-chat .glass-dock { min-height:116px; }
+.qa-release-chat .qa-send { width:40px; height:40px; border-radius:50%; border:1px solid var(--ws-line); }
+.qa-release-settings { height:100%; overflow:auto; }
+.qa-release-settings-note { padding:10px 28px; font-size:12px; color:var(--ws-muted); }
+.qa-release-empty { padding:36px; }
