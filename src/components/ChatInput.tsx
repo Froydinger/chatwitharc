@@ -3076,12 +3076,15 @@ ${safeCode}
                       });
                     }
                     setShowMenu(!showMenu);
+                    if (workspaceUI && showMenu) menuButtonRef.current?.focus({ preventScroll: true });
                   }}
                   className={cn(
                     "ci-menu-btn flex items-center justify-center w-9 h-9 rounded-full transition-all hover:bg-muted/15 active:scale-95 shrink-0 overflow-hidden",
                     (shouldShowSearchMode || shouldShowBanana || shouldShowCodeMode || shouldShowGitMode || shouldShowAppMode || showCanvasIndicator) && !showMenu && "text-primary"
                   )}
                   aria-label={shouldShowAppMode ? "Build an app mode" : "Add content"}
+                  aria-expanded={showMenu}
+                  aria-haspopup="menu"
                 >
                   {showMenu ? (
                     <X className="h-4 w-4 transition-transform duration-300" />
@@ -3128,7 +3131,7 @@ ${safeCode}
                   </button>
                 )}
 
-                <ComposerActions showMenu={showMenu} position={menuPosition} actions={createMenuActions} onClose={() => setShowMenu(false)} />
+                <ComposerActions showMenu={showMenu} position={menuPosition} actions={createMenuActions} onClose={() => setShowMenu(false)} workspaceUI={workspaceUI} anchorRef={menuButtonRef} />
               </div>
         )}
         field={(

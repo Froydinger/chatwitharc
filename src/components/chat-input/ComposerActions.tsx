@@ -4,14 +4,35 @@ import { ConditionalTransition } from "@/components/transitions/ConditionalTrans
 import { TransitionPart } from "@/components/transitions/TransitionPart";
 import { LiquidMetalOverlay } from "@/components/ui/liquid-metal-overlay";
 import { cn } from "@/lib/utils";
+import { WorkspaceComposerActions } from "@/components/chat-input/WorkspaceComposerActions";
+
+export type ComposerAction = {
+  id: string;
+  icon: ComponentType<{ className?: string }>;
+  iconClass: string;
+  label: string;
+  section?: string;
+  active?: boolean;
+  badge?: string;
+  description?: string;
+  keywords?: string;
+  tileClass?: string;
+  run: () => void;
+};
 
 /** Controlled create menu. Access, routing and side effects stay in ChatInput. */
-export function ComposerActions({ showMenu, position, actions, onClose }: {
+export function ComposerActions({ showMenu, position, actions, onClose, workspaceUI = false, anchorRef }: {
   showMenu: boolean;
   position: CSSProperties;
-  actions: { id: string; icon: ComponentType<{ className?: string }>; iconClass: string; label: string; section?: string; active?: boolean; badge?: string; run: () => void }[];
+  actions: ComposerAction[];
   onClose: () => void;
+  workspaceUI?: boolean;
+  anchorRef?: React.RefObject<HTMLButtonElement>;
 }) {
+  if (workspaceUI && anchorRef) {
+    return <WorkspaceComposerActions showMenu={showMenu} actions={actions} onClose={onClose} anchorRef={anchorRef} />;
+  }
+
   return createPortal(
                   <>
                   <ConditionalTransition preset="fade">{showMenu && (
