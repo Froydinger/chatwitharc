@@ -276,10 +276,10 @@ function MarketingLandingPage() {
       {/* Hero */}
       <section className="relative z-10 mx-auto max-w-5xl px-6 pt-20 pb-24 text-center md:pt-32 md:pb-32">
         <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/70 animate-in fade-in zoom-in-95 duration-500">
-          <Sparkles className="h-3.5 w-3.5" /> Ask, Reflect, Create
+          <Sparkles className="h-3.5 w-3.5" /> Powered by GPT 6 &amp; 6.1
         </div>
         <h1 className="mx-auto max-w-4xl text-5xl font-semibold tracking-tight md:text-7xl lg:text-8xl animate-in fade-in slide-in-from-bottom-3 duration-700">
-          Powered by GPT 6 &amp; 6.1
+          Ask. Reflect. Create.
         </h1>
         <p
           className="mx-auto mt-6 max-w-xl text-lg text-white/60 md:text-xl animate-in fade-in slide-in-from-bottom-3 duration-700"
