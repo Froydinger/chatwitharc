@@ -134,6 +134,21 @@ function ComingSoonConnector({
   name: string;
   description: string;
 }) {
+  const workspacePresentation = useContext(WorkspaceSettingsRowsContext);
+  if (workspacePresentation) {
+    return (
+      <section className="workspace-settings-group workspace-coming-connector">
+        <div className="workspace-settings-row">
+          <div className="workspace-coming-connector-icon"><Icon aria-hidden="true" /></div>
+          <div className="workspace-settings-row-copy">
+            <div className="workspace-settings-row-title">{name}</div>
+            <p className="workspace-settings-row-description">{description}</p>
+          </div>
+          <span className="workspace-coming-connector-status">Coming soon</span>
+        </div>
+      </section>
+    );
+  }
   return (
     <GlassCard className="rounded-[28px] border border-white/[0.06] bg-white/[0.015] p-5 shadow-[0_22px_80px_rgba(0,0,0,0.12)]">
       <div className="flex items-start gap-3">
@@ -332,6 +347,7 @@ export function SettingsPanel({ workspacePresentation = false }: { workspacePres
   const { toast } = useToast();
   const themeMode = useAccentStore((s) => s.themeMode);
   const cycleThemeMode = useAccentStore((s) => s.cycleThemeMode);
+  const setThemeMode = useAccentStore((s) => s.setThemeMode);
   const ThemeIcon = themeMode === "light" ? Sun : themeMode === "system" ? Monitor : Moon;
   const themeLabel = themeMode === "light" ? "Light" : themeMode === "system" ? "System" : "Dark";
 
@@ -731,7 +747,23 @@ export function SettingsPanel({ workspacePresentation = false }: { workspacePres
         icon={ThemeIcon}
         title="Color mode"
         description="Choose light, dark, or follow your device."
-        right={<button type="button" className="workspace-settings-choice" aria-label={`Theme: ${themeLabel}`} onClick={cycleThemeMode}>{themeLabel}</button>}
+        right={workspacePresentation ? (
+          <div className="workspace-theme-options" role="group" aria-label="Theme">
+            {(['dark', 'light', 'system'] as const).map(mode => (
+              <button
+                key={mode}
+                type="button"
+                className="workspace-settings-choice"
+                aria-pressed={themeMode === mode}
+                onClick={() => setThemeMode(mode)}
+              >
+                {mode[0].toUpperCase() + mode.slice(1)}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button type="button" className="workspace-settings-choice" aria-label={`Theme: ${themeLabel}`} onClick={cycleThemeMode}>{themeLabel}</button>
+        )}
       />
     </SectionCard>
   );
@@ -1009,7 +1041,7 @@ export function SettingsPanel({ workspacePresentation = false }: { workspacePres
       case "connectors":
         return (
           <>
-            <GitHubIntegrationCard />
+            <GitHubIntegrationCard presentation={workspacePresentation ? 'workspace' : 'legacy'} />
             <ComingSoonConnector
               icon={Database}
               name="Supabase"

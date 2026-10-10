@@ -271,6 +271,28 @@ test('Workspace canvas artifact is persisted, survives New chat and reload, and 
   }, 'library reopen hydrates the document from its owner session');
 });
 
+test('a Workspace canvas carries its initiating account into the first save', async () => {
+  const f = await fixture({ protectedSession: false });
+  f.remote.persistence_version = 0;
+  const sessionId = f.store.getState().createNewSession();
+
+  // Simulate switching accounts after the empty chat shell exists but before
+  // its first canvas artifact save begins.
+  const otherOwner = '33333333-3333-4333-8333-333333333333';
+  f.owner(otherOwner);
+  await assert.rejects(
+    f.store.getState().upsertCanvasMessage('', 'Untitled canvas', undefined, {
+      sessionId, awaitPersistence: true, ownerId: owner,
+    }),
+    /owner changed before saving/i,
+  );
+
+  const session = f.store.getState().chatSessions.find(item => item.id === sessionId);
+  assert.equal(session?.persistenceOwnerId, owner, 'the draft remains scoped to its initiating owner');
+  assert.ok(session?.messages.some(message => message.type === 'canvas'), 'the local draft is retained for its owner');
+  assert.equal(f.calls.some(call => call.upsert || call.insert || call.name), false, 'a switched account receives no cloud write');
+});
+
 test('authoritative reload accepts shorter transcript and never changes another selected chat', async () => {
   const f = await fixture();
   f.remote.messages = [];

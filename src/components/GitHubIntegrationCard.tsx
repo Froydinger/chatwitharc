@@ -8,7 +8,8 @@ import { useGitStore } from '@/store/useGitStore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-export function GitHubIntegrationCard() {
+export function GitHubIntegrationCard({ presentation = 'legacy' }: { presentation?: 'legacy' | 'workspace' } = {}) {
+  const workspacePresentation = presentation === 'workspace';
   const { toast } = useToast();
   const {
     connected,
@@ -102,15 +103,17 @@ export function GitHubIntegrationCard() {
     mode !== repoAccessMode ||
     JSON.stringify([...selectedList].sort()) !== JSON.stringify([...(allowedRepos || [])].sort());
 
+  const Card = workspacePresentation ? 'section' : GlassCard;
+
   return (
-    <GlassCard className="rounded-[28px] border border-white/[0.08] bg-white/[0.025] p-5 shadow-[0_22px_80px_rgba(0,0,0,0.12)] space-y-4">
-      <div className="flex items-start justify-between gap-3">
+    <Card className={workspacePresentation ? 'workspace-settings-group workspace-github-group' : 'rounded-[28px] border border-white/[0.08] bg-white/[0.025] p-5 shadow-[0_22px_80px_rgba(0,0,0,0.12)] space-y-4'}>
+      <div className={cn('flex items-start justify-between gap-3', workspacePresentation && 'workspace-github-header')}>
         <div className="flex items-start gap-3 min-w-0">
-          <div className="p-2 rounded-xl bg-primary/15 border border-primary/30 shrink-0">
-            <GitHubMark className="h-5 w-5 text-primary" />
+          <div className={workspacePresentation ? 'workspace-github-mark' : 'p-2 rounded-xl bg-primary/15 border border-primary/30 shrink-0'}>
+            <GitHubMark className={workspacePresentation ? 'h-4 w-4' : 'h-5 w-5 text-primary'} />
           </div>
           <div className="min-w-0">
-            <h3 className="font-semibold text-foreground">GitHub Integration</h3>
+            <h3 className={workspacePresentation ? 'workspace-github-title' : 'font-semibold text-foreground'}>GitHub Integration</h3>
 
           </div>
         </div>
@@ -123,6 +126,7 @@ export function GitHubIntegrationCard() {
               disabled={loading}
               className={cn(
                 'rounded-full p-2 text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors',
+                workspacePresentation && 'workspace-github-action',
                 loading && 'animate-spin'
               )}
               title="Refresh repositories"
@@ -135,7 +139,7 @@ export function GitHubIntegrationCard() {
               size="sm"
               onClick={() => void disconnect()}
               disabled={loading}
-              className="text-xs text-muted-foreground hover:text-destructive gap-1"
+              className={cn('text-xs text-muted-foreground hover:text-destructive gap-1', workspacePresentation && 'workspace-github-disconnect')}
             >
               <Unplug className="h-3.5 w-3.5" />
               Disconnect
@@ -145,8 +149,8 @@ export function GitHubIntegrationCard() {
       </div>
 
       {!connected ? (
-        <div className="p-4 rounded-xl border border-border/40 bg-muted/20 space-y-3">
-          <p className="text-sm text-foreground">
+        <div className={workspacePresentation ? 'workspace-github-connect-row' : 'p-4 rounded-xl border border-border/40 bg-muted/20 space-y-3'}>
+          <p className={workspacePresentation ? 'workspace-github-copy' : 'text-sm text-foreground'}>
             Connect your GitHub account to let Arc inspect repositories, write code on dedicated branches, and create pull requests.
           </p>
           <div className="flex items-center gap-3 pt-1">
@@ -155,7 +159,7 @@ export function GitHubIntegrationCard() {
               size="sm"
               onClick={() => void connect()}
               disabled={loading}
-              className="gap-2"
+              className={cn('gap-2', workspacePresentation && 'workspace-github-connect-button')}
             >
               <GitHubMark className="h-4 w-4" />
               {loading ? 'Connecting…' : 'Connect GitHub'}
@@ -163,9 +167,9 @@ export function GitHubIntegrationCard() {
           </div>
         </div>
       ) : (
-        <div className="space-y-4 pt-1">
+        <div className={workspacePresentation ? 'workspace-github-body' : 'space-y-4 pt-1'}>
           {/* Account status */}
-          <div className="flex items-center justify-between p-3 rounded-xl border border-border/40 bg-muted/20">
+          <div className={workspacePresentation ? 'workspace-github-status' : 'flex items-center justify-between p-3 rounded-xl border border-border/40 bg-muted/20'}>
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
               <div className="min-w-0">
@@ -181,19 +185,20 @@ export function GitHubIntegrationCard() {
           </div>
 
           {/* Repository Access Selection */}
-          <div className="space-y-2.5">
-            <label className="text-xs font-semibold text-foreground uppercase tracking-wider">
+          <div className={workspacePresentation ? 'workspace-github-access' : 'space-y-2.5'}>
+            <label className={workspacePresentation ? 'workspace-github-label' : 'text-xs font-semibold text-foreground uppercase tracking-wider'}>
               Repository Access
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className={workspacePresentation ? 'workspace-github-modes' : 'grid grid-cols-1 sm:grid-cols-2 gap-2'}>
               <button
                 type="button"
                 onClick={() => handleModeChange('all')}
                 className={cn(
-                  'flex items-start gap-3 p-3 rounded-xl border text-left transition-all',
+                  workspacePresentation ? 'workspace-github-mode' : 'flex items-start gap-3 p-3 rounded-xl border text-left transition-all',
+                  workspacePresentation && mode === 'all' && 'is-selected',
                   mode === 'all'
-                    ? 'bg-primary/10 border-primary/50 text-foreground shadow-[0_0_15px_hsl(var(--primary)/0.15)]'
-                    : 'bg-muted/20 border-border/40 text-muted-foreground hover:bg-muted/30 hover:text-foreground'
+                    ? workspacePresentation ? '' : 'bg-primary/10 border-primary/50 text-foreground shadow-[0_0_15px_hsl(var(--primary)/0.15)]'
+                    : workspacePresentation ? '' : 'bg-muted/20 border-border/40 text-muted-foreground hover:bg-muted/30 hover:text-foreground'
                 )}
               >
                 <ShieldCheck className={cn('h-4 w-4 mt-0.5 shrink-0', mode === 'all' ? 'text-primary' : 'text-muted-foreground')} />
@@ -209,10 +214,11 @@ export function GitHubIntegrationCard() {
                 type="button"
                 onClick={() => handleModeChange('selected')}
                 className={cn(
-                  'flex items-start gap-3 p-3 rounded-xl border text-left transition-all',
+                  workspacePresentation ? 'workspace-github-mode' : 'flex items-start gap-3 p-3 rounded-xl border text-left transition-all',
+                  workspacePresentation && mode === 'selected' && 'is-selected',
                   mode === 'selected'
-                    ? 'bg-primary/10 border-primary/50 text-foreground shadow-[0_0_15px_hsl(var(--primary)/0.15)]'
-                    : 'bg-muted/20 border-border/40 text-muted-foreground hover:bg-muted/30 hover:text-foreground'
+                    ? workspacePresentation ? '' : 'bg-primary/10 border-primary/50 text-foreground shadow-[0_0_15px_hsl(var(--primary)/0.15)]'
+                    : workspacePresentation ? '' : 'bg-muted/20 border-border/40 text-muted-foreground hover:bg-muted/30 hover:text-foreground'
                 )}
               >
                 <ShieldAlert className={cn('h-4 w-4 mt-0.5 shrink-0', mode === 'selected' ? 'text-primary' : 'text-muted-foreground')} />
@@ -228,7 +234,7 @@ export function GitHubIntegrationCard() {
 
           {/* Specific repositories checklist */}
           {mode === 'selected' && (
-            <div className="p-3.5 rounded-2xl border border-border/40 bg-muted/15 space-y-3">
+            <div className={workspacePresentation ? 'workspace-github-repos' : 'p-3.5 rounded-2xl border border-border/40 bg-muted/15 space-y-3'}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -236,7 +242,7 @@ export function GitHubIntegrationCard() {
                     placeholder="Search repositories…"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-8 pl-8 text-xs bg-background/50 border-border/40 rounded-lg"
+                          className={cn('h-8 pl-8 text-xs bg-background/50 border-border/40 rounded-lg', workspacePresentation && 'workspace-github-search')}
                   />
                 </div>
                 <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 text-xs">
@@ -280,10 +286,10 @@ export function GitHubIntegrationCard() {
                         key={repo.full_name}
                         onClick={() => handleToggleRepo(repo.full_name)}
                         className={cn(
-                          'flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-all',
+                          workspacePresentation ? 'workspace-github-repo' : 'flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-all',
                           isSelected
-                            ? 'bg-primary/15 border-primary/40 text-foreground font-medium'
-                            : 'bg-background/40 border-border/30 text-muted-foreground hover:bg-background/70 hover:text-foreground'
+                            ? workspacePresentation ? 'is-selected' : 'bg-primary/15 border-primary/40 text-foreground font-medium'
+                            : workspacePresentation ? '' : 'bg-background/40 border-border/30 text-muted-foreground hover:bg-background/70 hover:text-foreground'
                         )}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
@@ -333,13 +339,13 @@ export function GitHubIntegrationCard() {
                 </div>
               )}
 
-              <p className="text-[11px] text-muted-foreground/80 leading-relaxed pt-1">
+              <p className={workspacePresentation ? 'workspace-github-note' : 'text-[11px] text-muted-foreground/80 leading-relaxed pt-1'}>
                 💡 <span className="font-medium">Reminder:</span> If you ask Arc to work in a repository that isn't selected above, Arc will remind you to enable it here or toggle access to "All Repositories".
               </p>
             </div>
           )}
         </div>
       )}
-    </GlassCard>
+    </Card>
   );
 }

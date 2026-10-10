@@ -305,7 +305,7 @@ export interface ArcState {
   patchOwnedMessage: (sessionId: string, messageId: string, patch: Partial<Message>, persist?: boolean) => Promise<void>;
   editMessage: (messageId: string, newContent: string) => void;
   updateMessageMemoryAction: (messageId: string, memoryAction: MemoryAction) => void;
-  upsertCanvasMessage: (canvasContent: string, label?: string, memoryAction?: MemoryAction, options?: { sessionId?: string; awaitPersistence?: boolean }) => Promise<string>;
+  upsertCanvasMessage: (canvasContent: string, label?: string, memoryAction?: MemoryAction, options?: { sessionId?: string; awaitPersistence?: boolean; ownerId?: string }) => Promise<string>;
   upsertCodeMessage: (codeContent: string, language: string, label?: string, memoryAction?: MemoryAction, options?: { sessionId?: string }) => Promise<string>;
   clearCurrentMessages: () => void;
 
@@ -1959,6 +1959,10 @@ export const useArcStore = create<ArcState>()(
         const state = get();
         const sessionId = options?.sessionId || state.currentSessionId;
         if (options?.sessionId && !state.chatSessions.some(s => s.id === options.sessionId)) return '';
+        const sessionOwner = sessionId && state.chatSessions.find(session => session.id === sessionId)?.persistenceOwnerId;
+        if (options?.ownerId && sessionOwner && options.ownerId !== sessionOwner) {
+          throw new Error('Canvas owner changed before saving.');
+        }
 
         // Generate a fallback label from content if none provided
         const displayLabel = label || extractCanvasTitle(canvasContent) || 'Canvas Draft';
@@ -2006,6 +2010,7 @@ export const useArcStore = create<ArcState>()(
           sessionToSave = {
             ...existingSession,
             id: sessionId,
+            ...(options?.ownerId && !existingSession?.persistenceOwnerId ? { persistenceOwnerId: options.ownerId } : {}),
             title: existingSession?.title || 'New Chat',
             createdAt: existingSession?.createdAt || new Date(),
             lastMessageAt: new Date(),

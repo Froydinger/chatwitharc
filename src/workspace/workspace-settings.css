@@ -73,6 +73,41 @@ button.workspace-settings-row:hover .workspace-settings-row-title { color: var(-
 .workspace-settings-footer a { color: var(--ws-text); }
 .workspace-settings-page .workspace-settings-group .glass-card { border-color: var(--ws-line); background: var(--ws-canvas); box-shadow: none; }
 .workspace-settings-page .workspace-settings-group .glass-card > div:first-child { color: var(--ws-text); }
+.workspace-theme-options { display: inline-flex; align-items: center; gap: 3px; padding: 3px; border: 1px solid var(--ws-line); border-radius: 999px; background: var(--ws-canvas); }
+.workspace-theme-options .workspace-settings-choice { min-height: 34px; padding: 6px 11px; border-color: transparent; background: transparent; color: var(--ws-muted); font-size: 12px; }
+.workspace-theme-options .workspace-settings-choice[aria-pressed="true"] { border-color: var(--ws-line); background: var(--ws-bg); color: var(--ws-text); }
+.workspace-settings-page .workspace-coming-connector { margin-bottom: 0; }
+.workspace-coming-connector .workspace-settings-row { align-items: center; }
+.workspace-coming-connector-icon { display: flex; width: 34px; height: 34px; flex: none; align-items: center; justify-content: center; border: 1px solid var(--ws-line); border-radius: 10px; color: var(--ws-muted); }
+.workspace-coming-connector-icon svg { width: 16px; height: 16px; }
+.workspace-coming-connector-status { flex: none; color: var(--ws-muted); font-size: 11px; }
+.workspace-settings-page .workspace-github-group { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 0; }
+.workspace-github-header { align-items: center; padding: 0 0 14px; border-bottom: 1px solid var(--ws-line); }
+.workspace-github-mark { display: flex; width: 34px; height: 34px; flex: none; align-items: center; justify-content: center; border: 1px solid var(--ws-line); border-radius: 10px; color: var(--ws-text); }
+.workspace-github-title { color: var(--ws-text); font-size: 15px; font-weight: 550; }
+.workspace-github-action { width: 40px; height: 40px; border: 1px solid var(--ws-line); border-radius: 999px; }
+.workspace-github-disconnect { min-height: 40px; border: 1px solid var(--ws-line); border-radius: 999px; padding: 0 13px; }
+.workspace-github-connect-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 21px 0; border-bottom: 1px solid var(--ws-line); }
+.workspace-github-copy { max-width: 570px; color: var(--ws-muted); font-size: 14px; line-height: 1.6; }
+.workspace-github-connect-button { min-height: 42px; flex: none; }
+.workspace-github-body { display: block; }
+.workspace-github-status { display: flex; min-height: 67px; align-items: center; justify-content: space-between; gap: 18px; padding: 21px 0; border-bottom: 1px solid var(--ws-line); }
+.workspace-github-status > span:last-child { border-color: var(--ws-line); background: transparent; color: var(--ws-muted); font-size: 11px; }
+.workspace-github-access { padding: 21px 0; border-bottom: 1px solid var(--ws-line); }
+.workspace-github-label { display: block; margin-bottom: 12px; color: var(--ws-text); font-size: 14px; font-weight: 500; }
+.workspace-github-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.workspace-github-mode { display: flex; min-height: 58px; align-items: flex-start; gap: 11px; padding: 12px 0; border: 0; border-bottom: 1px solid var(--ws-line); color: var(--ws-muted); background: transparent; text-align: left; cursor: pointer; }
+.workspace-github-mode.is-selected { color: var(--ws-text); border-bottom-color: var(--ws-text); }
+.workspace-github-mode > div > div:first-child { color: var(--ws-text); font-size: 14px; font-weight: 500; }
+.workspace-github-mode > div > div:last-child { color: var(--ws-muted); font-size: 12px; line-height: 1.5; }
+.workspace-github-mode svg { width: 16px; height: 16px; }
+.workspace-github-repos { padding: 21px 0; border-bottom: 1px solid var(--ws-line); }
+.workspace-github-repos > div:first-child { gap: 16px; }
+.workspace-github-search { height: 42px; border-color: var(--ws-line); border-radius: 8px; background: var(--ws-canvas); color: var(--ws-text); }
+.workspace-github-repos > div:nth-child(2) { padding: 10px 0; color: var(--ws-muted); font-size: 12px; }
+.workspace-github-repo { display: flex; width: 100%; min-height: 42px; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border: 0; border-bottom: 1px solid var(--ws-line); color: var(--ws-muted); background: transparent; font-size: 13px; }
+.workspace-github-repo.is-selected { color: var(--ws-text); }
+.workspace-github-note { padding-top: 14px; color: var(--ws-muted); font-size: 12px; line-height: 1.6; }
 
 @media (max-width: 700px) {
   .workspace-settings-page { padding: 28px 20px; }
@@ -87,4 +122,9 @@ button.workspace-settings-row:hover .workspace-settings-row-title { color: var(-
   .workspace-settings-page input,
   .workspace-settings-page textarea,
   .workspace-settings-page select { font-size: 16px !important; }
+  .workspace-github-connect-row { align-items: flex-start; flex-direction: column; gap: 14px; }
+  .workspace-github-modes { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .workspace-github-status { align-items: flex-start; flex-direction: column; }
+  .workspace-theme-options { max-width: 100%; }
+  .workspace-theme-options .workspace-settings-choice { padding-right: 9px; padding-left: 9px; }
 }

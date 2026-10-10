@@ -2,7 +2,7 @@ import { useTextUsage } from "@/hooks/useTextUsage";
 import { TextUsageMeters } from "@/components/TextUsageMeters";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   MessageSquare, Image, Rocket, Brain,
@@ -65,6 +65,7 @@ import { useAppBuilderDesktopAvailability } from "@/hooks/useAppBuilderDesktopAv
 import { AppBuilderDesktopNotice } from "@/components/app-builder/AppBuilderDesktopNotice";
 import { WorkspaceDashboardPage, type WorkspaceDashboardModel } from "@/workspace/WorkspaceDashboardPages";
 import { requestWorkspaceCanvasOpen } from "@/workspace/workspaceCanvasOpenIntent";
+import { WorkspaceCanvasCreationCoordinator, type WorkspaceCanvasCreationContext } from "@/workspace/workspaceCanvasCreation";
 
 type DashboardTab = "overview" | "apps" | "chats" | "images" | "canvases" | "memories";
 type CanvasDetailTab = "canvas" | "deployed";
@@ -125,6 +126,7 @@ function extractCodeBlocks(content: string): Array<{ code: string; language: str
 
 export function DashboardPageInner({ embedded = false, workspacePresentation = false, activeTabOverride }: { embedded?: boolean; workspacePresentation?: boolean; activeTabOverride?: DashboardTab } = {}) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = activeTabOverride || (searchParams.get("tab") as DashboardTab) || "overview";
   const initialTab = requestedTab;
@@ -314,8 +316,32 @@ useEffect(() => {
   const [hasMountedBuilder, setHasMountedBuilder] = useState(false);
   const [openingAppId, setOpeningAppId] = useState<string | null>(null);
   const openingAppRequestRef = useRef(false);
-  const creatingCanvasRef = useRef(false);
+  const workspaceCanvasCoordinatorRef = useRef(new WorkspaceCanvasCreationCoordinator());
+  const workspaceCanvasMountedRef = useRef(true);
+  const workspaceCanvasContextRef = useRef<WorkspaceCanvasCreationContext>({
+    routeKey: location.key,
+    pathname: location.pathname,
+    search: location.search,
+    ownerId: user?.id ?? null,
+    currentSessionId: useArcStore.getState().currentSessionId,
+  });
+  workspaceCanvasContextRef.current = {
+    routeKey: location.key,
+    pathname: location.pathname,
+    search: location.search,
+    ownerId: user?.id ?? null,
+    currentSessionId: useArcStore.getState().currentSessionId,
+  };
   const [creatingCanvas, setCreatingCanvas] = useState(false);
+
+  useEffect(() => {
+    const coordinator = workspaceCanvasCoordinatorRef.current;
+    workspaceCanvasMountedRef.current = true;
+    return () => {
+      workspaceCanvasMountedRef.current = false;
+      coordinator.invalidate();
+    };
+  }, []);
 
   useEffect(() => {
     if (builderDesktopAvailable) setHasMountedBuilder(true);
@@ -1392,39 +1418,40 @@ useEffect(() => {
       openWorkspaceChat(item.sessionId);
     };
     const createCanvas = async () => {
-      if (!user || creatingCanvasRef.current) return;
-      creatingCanvasRef.current = true;
+      if (!user || workspaceCanvasCoordinatorRef.current.isInFlight) return;
       setCreatingCanvas(true);
-      let id: string | null = null;
-      let saveError: unknown = null;
-      try {
-        const { data: { user: authUser }, error } = await supabase.auth.getUser();
-        if (error) throw error;
-        if (!authUser || authUser.id !== user.id) throw new Error('Your account could not be confirmed. Sign in again and retry.');
-
-        id = createNewSession();
-        const artifactId = await useArcStore.getState().upsertCanvasMessage('', 'Untitled canvas', undefined, {
-          sessionId: id,
+      const result = await workspaceCanvasCoordinatorRef.current.create({
+        readContext: () => ({
+          ...workspaceCanvasContextRef.current,
+          currentSessionId: useArcStore.getState().currentSessionId,
+        }),
+        getAuthenticatedOwnerId: async () => {
+          const { data: { user: authUser }, error } = await supabase.auth.getUser();
+          if (error) throw error;
+          return authUser?.id ?? null;
+        },
+        createSession: () => createNewSession(),
+        persistCanvas: (sessionId, ownerId) => useArcStore.getState().upsertCanvasMessage('', 'Untitled canvas', undefined, {
+          sessionId,
           awaitPersistence: true,
-        });
-        if (!artifactId) throw new Error('The new canvas could not be attached to its chat.');
-      } catch (error) {
-        saveError = error;
-      }
+          ownerId,
+        }),
+        openCanvas: sessionId => requestWorkspaceCanvasOpen({ sessionId, kind: 'new' }),
+        navigate,
+      });
 
-      if (id) {
-        // Keep the local draft open if its first cloud save failed; subsequent
-        // edits use the normal session canvas autosave path.
-        requestWorkspaceCanvasOpen({ sessionId: id, kind: 'new' });
-        navigate(`/chat/${encodeURIComponent(id)}`);
-      }
-      if (saveError) toast({
-        title: id ? 'Canvas opened; save needs a retry' : 'Could not create canvas',
-        description: saveError instanceof Error ? saveError.message : 'Please try again.',
+      if (result.status === 'opened-unsaved') toast({
+        title: 'Canvas opened; save needs a retry',
+        description: result.error instanceof Error ? result.error.message : 'Please try again.',
         variant: 'destructive',
       });
-      creatingCanvasRef.current = false;
-      setCreatingCanvas(false);
+      else if (result.status === 'failed') toast({
+        title: 'Could not create canvas',
+        description: result.error instanceof Error ? result.error.message : 'Please try again.',
+        variant: 'destructive',
+      });
+
+      if (workspaceCanvasMountedRef.current) setCreatingCanvas(false);
     };
 
     let workspacePage: WorkspaceDashboardModel;

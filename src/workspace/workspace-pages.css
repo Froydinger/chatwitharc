@@ -28,6 +28,11 @@
 .workspace-dashboard-page-actions,
 .workspace-dashboard-page-actions > * { display: flex; align-items: center; gap: 9px; }
 .workspace-dashboard-primary-action { background: var(--ws-text) !important; color: var(--ws-bg) !important; }
+.workspace-dashboard-page .workspace-dashboard-primary-action.glass-btn {
+  border-color: var(--ws-line) !important; background: var(--ws-canvas) !important;
+  background-image: none !important; color: var(--ws-text) !important;
+  box-shadow: none !important; backdrop-filter: none;
+}
 .workspace-dashboard-primary-action svg,
 .workspace-dashboard-page svg { flex: none; }
 .workspace-dashboard-page button { min-height: 40px; }
