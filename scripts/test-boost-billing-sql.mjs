@@ -12,7 +12,7 @@ try { dependency = require.resolve('@electric-sql/pglite'); }
 catch { dependency = createRequire('/tmp/arc-db-tests/package.json').resolve('@electric-sql/pglite'); }
 const { PGlite } = await import(dependency);
 const db = new PGlite();
-const migrationName = '20261010041102_boost_price_catalog_v2.sql';
+const migrationName = '20261010051816_boost_price_catalog_v2.sql';
 const readMigration = name => readFileSync(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8');
 const migration = readMigration(migrationName);
 assert.ok(migration.trim(), 'The billing migration must not be empty');

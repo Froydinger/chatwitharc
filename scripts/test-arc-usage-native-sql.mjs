@@ -17,7 +17,7 @@ try {
     CREATE TABLE public.admin_users(user_id uuid PRIMARY KEY);
     CREATE FUNCTION public.user_has_boost(u uuid) RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$SELECT boost FROM auth.users WHERE id=u$$;
     INSERT INTO auth.users VALUES('00000000-0000-4000-8000-000000000001',false,false);`;
-  const migration=readFileSync('supabase/migrations/20261010040518_arc_usage_ledger.sql','utf8');
+  const migration=readFileSync('supabase/migrations/20261010051758_arc_usage_ledger.sql','utf8');
   const checks=`SET request.jwt.claim.role='service_role';
     DO $test$ DECLARE r jsonb; a uuid; result jsonb; u uuid:='00000000-0000-4000-8000-000000000001'; BEGIN
       IF (public.arc_usage_snapshot(u,'sol')->>'enforcementEnabled')::boolean THEN RAISE EXCEPTION 'Unexpected initial enforcement'; END IF;

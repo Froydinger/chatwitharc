@@ -37,7 +37,7 @@ try {
     CREATE FUNCTION public.user_has_boost(u uuid) RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$SELECT boost FROM auth.users WHERE id=u$$;
     INSERT INTO auth.users(id,boost) VALUES('${free}',false),('${other}',false),('${boost}',true),('${admin}',true);
     INSERT INTO public.admin_users VALUES('${admin}');`);
-  sql(readFileSync('supabase/migrations/20261010040518_arc_usage_ledger.sql','utf8'));
+  sql(readFileSync('supabase/migrations/20261010051758_arc_usage_ledger.sql','utf8'));
   sql(`UPDATE arc_usage_policy SET enforcement_enabled=true,free_daily_nanos=100,free_monthly_nanos=250,boost_daily_nanos=1000,boost_monthly_nanos=2000 WHERE pool='sol';`);
   const key=randomUUID();
   const duplicates=await Promise.all(Array.from({length:20},()=>concurrent(reserve(free,key))));

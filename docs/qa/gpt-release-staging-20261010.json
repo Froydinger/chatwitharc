@@ -1,0 +1,711 @@
+{
+  "sourceCommit": "ceaf3b4ac9e210258623efb163bd2e76c9f341cd",
+  "project": "jpqtoixhjnfdubvqshwk",
+  "stage": "additive schema and model backends only",
+  "observedAt": "2026-10-10T05:25:00Z",
+  "migrations": [
+    {
+      "version": "20261010051758",
+      "name": "arc_usage_ledger"
+    },
+    {
+      "version": "20261010051816",
+      "name": "boost_price_catalog_v2"
+    }
+  ],
+  "allPolicyEnforcementEnabled": false,
+  "functions": [
+    {
+      "slug": "analyze-image",
+      "version": 37,
+      "sha256": "0274e78cc11fc38cb666cad8673da8561ecbf4b0dbca6430c77ce6cad1e33946",
+      "verify_jwt": true,
+      "expectedRuntimeFiles": 9,
+      "readbackFiles": 9,
+      "omittedTypeOnlyFiles": [
+        "functions/_shared/cloudRunArtifacts.ts",
+        "functions/_shared/cloudRunProvider.ts"
+      ],
+      "files": [
+        {
+          "name": "functions/analyze-image/index.ts",
+          "sha256": "f93c60eba77a175c56d92d58156526d2e489a0e9d631f975e01dd49e82e89575"
+        },
+        {
+          "name": "functions/_shared/arcTextCompletion.ts",
+          "sha256": "37054bbd66fc55681f0a18faeffe75e8c5a83364b230bd3b4af4ad4b3f17ab7a"
+        },
+        {
+          "name": "functions/_shared/arcModelRouting.ts",
+          "sha256": "8556670cd6aa1aa834b0e62f2198b12aa79916649303d2747ed3537b1951acf0"
+        },
+        {
+          "name": "functions/_shared/arcModelUsage.ts",
+          "sha256": "8aef970fb701569bef57dbb1c836c3174af94e8d5a12bf64fb3b06d67aadedba"
+        },
+        {
+          "name": "functions/_shared/arcUsageAccounting.ts",
+          "sha256": "79f10df486c469724c9ba6e83375795a3af221e37938b4ef1b873ba1d0078a4d"
+        },
+        {
+          "name": "functions/_shared/arcUsageLedger.ts",
+          "sha256": "34334f512a7ee3a38af4ad3687a2b04ed1c58fe27285d86bb9f1a87de10d5150"
+        },
+        {
+          "name": "functions/_shared/cloudAgentsProvider.ts",
+          "sha256": "d1601be0678ef082cac60aa4925fc4b1d79fc64ab7cbfc15f9e7b10a1e40b3fd"
+        },
+        {
+          "name": "functions/_shared/cloudRunEngine.ts",
+          "sha256": "78f921f0e76a493e217bc03f8a26fd4e0366f444a47139bebe39b1e0cb73fbb8"
+        },
+        {
+          "name": "functions/_shared/arcModelAccess.ts",
+          "sha256": "2a808a552600a3972e067984f377621201baaf285d6c0872ef17c96fb4a49c36"
+        }
+      ]
+    },
+    {
+      "slug": "analyze-document",
+      "version": 37,
+      "sha256": "4a15a1e5c0f07f2d438fef5a75d98bd819625ec20721f299f85e01adf8eb7e50",
+      "verify_jwt": true,
+      "expectedRuntimeFiles": 9,
+      "readbackFiles": 9,
+      "omittedTypeOnlyFiles": [
+        "functions/_shared/cloudRunArtifacts.ts",
+        "functions/_shared/cloudRunProvider.ts"
+      ],
+      "files": [
+        {
+          "name": "functions/analyze-document/index.ts",
+          "sha256": "0f5863a6a8daf60937e189844dace739d4dba5ad7bceda8bf2438b521dd4b9f6"
+        },
+        {
+          "name": "functions/_shared/arcTextCompletion.ts",
+          "sha256": "37054bbd66fc55681f0a18faeffe75e8c5a83364b230bd3b4af4ad4b3f17ab7a"
+        },
+        {
+          "name": "functions/_shared/arcModelRouting.ts",
+          "sha256": "8556670cd6aa1aa834b0e62f2198b12aa79916649303d2747ed3537b1951acf0"
+        },
+        {
+          "name": "functions/_shared/arcModelUsage.ts",
+          "sha256": "8aef970fb701569bef57dbb1c836c3174af94e8d5a12bf64fb3b06d67aadedba"
+        },
+        {
+          "name": "functions/_shared/arcUsageAccounting.ts",
+          "sha256": "79f10df486c469724c9ba6e83375795a3af221e37938b4ef1b873ba1d0078a4d"
+        },
+        {
+          "name": "functions/_shared/arcUsageLedger.ts",
+          "sha256": "34334f512a7ee3a38af4ad3687a2b04ed1c58fe27285d86bb9f1a87de10d5150"
+        },
+        {
+          "name": "functions/_shared/cloudAgentsProvider.ts",
+          "sha256": "d1601be0678ef082cac60aa4925fc4b1d79fc64ab7cbfc15f9e7b10a1e40b3fd"
+        },
+        {
+          "name": "functions/_shared/cloudRunEngine.ts",
+          "sha256": "78f921f0e76a493e217bc03f8a26fd4e0366f444a47139bebe39b1e0cb73fbb8"
+        },
+        {
+          "name": "functions/_shared/arcModelAccess.ts",
+          "sha256": "2a808a552600a3972e067984f377621201baaf285d6c0872ef17c96fb4a49c36"
+        }
+      ]
+    },
+    {
+      "slug": "generate-file",
+      "version": 37,
+      "sha256": "004cc0c382a88fa17f2b0eb60d3b1ef294df509ead293ff87ab6d822918ed2d4",
+      "verify_jwt": true,
+      "expectedRuntimeFiles": 9,
+      "readbackFiles": 9,
+      "omittedTypeOnlyFiles": [
+        "functions/_shared/cloudRunArtifacts.ts",
+        "functions/_shared/cloudRunProvider.ts"
+      ],
+      "files": [
+        {
+          "name": "functions/generate-file/index.ts",
+          "sha256": "75a0597949e93b4dc5d6e5c5451cbf0218a06c8f8bd183c6a65349055fe50adf"
+        },
+        {
+          "name": "functions/_shared/arcTextCompletion.ts",
+          "sha256": "37054bbd66fc55681f0a18faeffe75e8c5a83364b230bd3b4af4ad4b3f17ab7a"
+        },
+        {
+          "name": "functions/_shared/arcModelRouting.ts",
+          "sha256": "8556670cd6aa1aa834b0e62f2198b12aa79916649303d2747ed3537b1951acf0"
+        },
+        {
+          "name": "functions/_shared/arcModelUsage.ts",
+          "sha256": "8aef970fb701569bef57dbb1c836c3174af94e8d5a12bf64fb3b06d67aadedba"
+        },
+        {
+          "name": "functions/_shared/arcUsageAccounting.ts",
+          "sha256": "79f10df486c469724c9ba6e83375795a3af221e37938b4ef1b873ba1d0078a4d"
+        },
+        {
+          "name": "functions/_shared/arcUsageLedger.ts",
+          "sha256": "34334f512a7ee3a38af4ad3687a2b04ed1c58fe27285d86bb9f1a87de10d5150"
+        },
+        {
+          "name": "functions/_shared/cloudAgentsProvider.ts",
+          "sha256": "d1601be0678ef082cac60aa4925fc4b1d79fc64ab7cbfc15f9e7b10a1e40b3fd"
+        },
+        {
+          "name": "functions/_shared/cloudRunEngine.ts",
+          "sha256": "78f921f0e76a493e217bc03f8a26fd4e0366f444a47139bebe39b1e0cb73fbb8"
+        },
+        {
+          "name": "functions/_shared/arcModelAccess.ts",
+          "sha256": "2a808a552600a3972e067984f377621201baaf285d6c0872ef17c96fb4a49c36"
+        }
+      ]
+    },
+    {
+      "slug": "generate-image",
+      "version": 43,
+      "sha256": "128ad3d8bef6d2307f533dad3ed407a6e9a15363de5c39aff4d7e36e2db77d55",
+      "verify_jwt": true,
+      "expectedRuntimeFiles": 3,
+      "readbackFiles": 3,
+      "omittedTypeOnlyFiles": [],
+      "files": [
+        {
+          "name": "functions/generate-image/index.ts",
+          "sha256": "20921da68898247f904f45914f4f5615c05b2499322268de464546d06e35cddb"
+        },
+        {
+          "name": "functions/_shared/imagePolicy.ts",
+          "sha256": "6260e88aaad2eb95a23f7d94f49bd78628ce946547939b5996c7751866cf5a12"
+        },
+        {
+          "name": "functions/_shared/privateImageStorage.ts",
+          "sha256": "fbcc4a4087586a4e36ae0ee6bc15b78a069b1289bc4ce06b7bb6ac7bb3690336"
+        }
+      ]
+    },
+    {
+      "slug": "edit-image",
+      "version": 46,
+      "sha256": "5873e7a2738bf2f01ffeb43448c22883c27c49c379651987485328e80a6c6946",
+      "verify_jwt": true,
+      "expectedRuntimeFiles": 4,
+      "readbackFiles": 4,
+      "omittedTypeOnlyFiles": [],
+      "files": [
+        {
+          "name": "functions/edit-image/index.ts",
+          "sha256": "95e82d2408e95bd8ee78baba81ce9a913a48a8dd1447595556794ab91b6984c1"
+        },
+        {
+          "name": "functions/_shared/imagePolicy.ts",
+          "sha256": "6260e88aaad2eb95a23f7d94f49bd78628ce946547939b5996c7751866cf5a12"
+        },
+        {
+          "name": "functions/_shared/privateImageStorage.ts",
+          "sha256": "fbcc4a4087586a4e36ae0ee6bc15b78a069b1289bc4ce06b7bb6ac7bb3690336"
+        },
+        {
+          "name": "functions/_shared/safeRemoteMedia.ts",
+          "sha256": "cc02e39fbae7e60e69d7b1147004ae38492430c4634184c8be925e8404f980b9"
+        }
+      ]
+    },
+    {
+      "slug": "cloud-run",
+      "version": 51,
+      "sha256": "0f5ded5a6ab94378940e395ad7b8dda0b1ce4484f543b70bad16cdf474ce71a7",
+      "verify_jwt": false,
+      "expectedRuntimeFiles": 6,
+      "readbackFiles": 6,
+      "omittedTypeOnlyFiles": [],
+      "files": [
+        {
+          "name": "functions/cloud-run/index.ts",
+          "sha256": "6309ca6f8fe7532b211f5b50012589ebdcef271cbaf9f93acb6fee95fb8c1f4f"
+        },
+        {
+          "name": "functions/_shared/arcModelAccess.ts",
+          "sha256": "2a808a552600a3972e067984f377621201baaf285d6c0872ef17c96fb4a49c36"
+        },
+        {
+          "name": "functions/_shared/arcModelRouting.ts",
+          "sha256": "8556670cd6aa1aa834b0e62f2198b12aa79916649303d2747ed3537b1951acf0"
+        },
+        {
+          "name": "functions/_shared/arcModelCatalog.ts",
+          "sha256": "9ffa2a361fea3b2214a70fd7f76f1b34cd2ff186dd32c1274a188884903ed454"
+        },
+        {
+          "name": "functions/_shared/cloudAppIngress.ts",
+          "sha256": "a0f456a3fbdb4938ee8b870643082d3fec6de282ecd8a2095f0f8b3ff3c0fc9d"
+        },
+        {
+          "name": "functions/_shared/cloudMedia.ts",
+          "sha256": "5b1a2eb3a57cbfae54b66a80e8b2387a8382ed6bebbc49258db37139ee790aa4"
+        }
+      ]
+    },
+    {
+      "slug": "cloud-worker",
+      "version": 69,
+      "sha256": "18b1a0ab9426421dce5c4ac8493f07475fd561754630403a9e312d995de16444",
+      "verify_jwt": false,
+      "expectedRuntimeFiles": 64,
+      "readbackFiles": 64,
+      "omittedTypeOnlyFiles": [],
+      "files": [
+        {
+          "name": "functions/cloud-worker/index.ts",
+          "sha256": "2992a12be20338442d2babc8e1fb0eba3fcf467016e7e518028eb7a30eeddaf2"
+        },
+        {
+          "name": "functions/_shared/cloudRunBurst.ts",
+          "sha256": "562e207841318129e5b3b6b0184cbf9e0a2e0fd0e7f931d0bb32ab83c43921d3"
+        },
+        {
+          "name": "functions/_shared/cloudRunRuntime.ts",
+          "sha256": "3985a378b9630d3433aac4c429fb49d77e66c556a53efbfc9b4887b62d1b1fb4"
+        },
+        {
+          "name": "functions/_shared/arcModelUsage.ts",
+          "sha256": "8aef970fb701569bef57dbb1c836c3174af94e8d5a12bf64fb3b06d67aadedba"
+        },
+        {
+          "name": "functions/_shared/arcModelRouting.ts",
+          "sha256": "8556670cd6aa1aa834b0e62f2198b12aa79916649303d2747ed3537b1951acf0"
+        },
+        {
+          "name": "functions/_shared/arcUsageAccounting.ts",
+          "sha256": "79f10df486c469724c9ba6e83375795a3af221e37938b4ef1b873ba1d0078a4d"
+        },
+        {
+          "name": "functions/_shared/arcUsageLedger.ts",
+          "sha256": "34334f512a7ee3a38af4ad3687a2b04ed1c58fe27285d86bb9f1a87de10d5150"
+        },
+        {
+          "name": "functions/_shared/arcModelAccess.ts",
+          "sha256": "2a808a552600a3972e067984f377621201baaf285d6c0872ef17c96fb4a49c36"
+        },
+        {
+          "name": "functions/_shared/durableModelRouting.ts",
+          "sha256": "45ddaf1e3c499ea3c2c2e93333e8734a09853a97a7bc1c5626c35d602805dc2f"
+        },
+        {
+          "name": "functions/_shared/multiPageIntent.ts",
+          "sha256": "0a66087390b585ad265fdd38e209c9450b5c362295cc32987c5725cf8431bc14"
+        },
+        {
+          "name": "functions/_shared/cloudRunContext.ts",
+          "sha256": "4a0263e48a679a8a13a146c69379d748307ae435632d5e5a02fd4cf18cae53c6"
+        },
+        {
+          "name": "functions/_shared/siteDesignPrompt.ts",
+          "sha256": "ab85ffab46e5fb5dde9e40df397192ec88a2a2ccf5620387bf8b8a73880a47ae"
+        },
+        {
+          "name": "functions/_shared/arcChatPrompts.ts",
+          "sha256": "7fdb820ebbf811113c6593db8df7ed1d10768f3446bf3b9626aabbda47fd6b77"
+        },
+        {
+          "name": "functions/_shared/cloudRunCanvasTools.ts",
+          "sha256": "d959e064a79c7dd322f634f37cc8fa6e6c271c6adc5016301d2cf18d53c5a967"
+        },
+        {
+          "name": "functions/_shared/cloudReadTools.ts",
+          "sha256": "5eaa8d7a1456017f78a3b54929b76aac3f5b94e41bb553c2506f65bf49db040b"
+        },
+        {
+          "name": "functions/_shared/cloudWeatherTool.ts",
+          "sha256": "b45a973c0db50946ac83abc36c49f6e39770c550440d294b2334c5f7a6b75f54"
+        },
+        {
+          "name": "functions/_shared/cloudMemoryTool.ts",
+          "sha256": "cc1d4322f03c2db5feee6a501ff7b46cfeb6400e52849a0d9ed4a31dc53e7101"
+        },
+        {
+          "name": "functions/_shared/cloudMemoryProvider.ts",
+          "sha256": "5aa933216eb125c1165dfef90c1675e66b5d57011d92624380c790c219cb21f2"
+        },
+        {
+          "name": "functions/_shared/cloudNotificationTool.ts",
+          "sha256": "483abc8e7f3e2aa39cc0d3628d27c8d70f298850b4fd0376bad756e4921f160f"
+        },
+        {
+          "name": "functions/_shared/cloudAgentsProvider.ts",
+          "sha256": "d1601be0678ef082cac60aa4925fc4b1d79fc64ab7cbfc15f9e7b10a1e40b3fd"
+        },
+        {
+          "name": "functions/_shared/cloudRunEngine.ts",
+          "sha256": "78f921f0e76a493e217bc03f8a26fd4e0366f444a47139bebe39b1e0cb73fbb8"
+        },
+        {
+          "name": "functions/_shared/arcModelCatalog.ts",
+          "sha256": "9ffa2a361fea3b2214a70fd7f76f1b34cd2ff186dd32c1274a188884903ed454"
+        },
+        {
+          "name": "functions/_shared/cloudInitialTool.ts",
+          "sha256": "3b398d07ce3380d6fc1c3a95c5b421854fed28adf8e6369cb1abd71810565f31"
+        },
+        {
+          "name": "functions/_shared/cloudFileTool.ts",
+          "sha256": "d687e1d8b134d6ab8cfa652a0e8db67c668bc97e3bb071ffba1b4bf9c8e5639a"
+        },
+        {
+          "name": "functions/_shared/cloudFileRenderers.ts",
+          "sha256": "4cd6b67852c796e7bd7e245d3975800eaef778c682c3062b8dea377ae4847fca"
+        },
+        {
+          "name": "functions/_shared/cloudScheduledTools.ts",
+          "sha256": "7dc66a7bcb3e94cff13cd160035dcd98ca9a35a48d80c02e4eb83947859d5a1b"
+        },
+        {
+          "name": "functions/_shared/cloudRunStore.ts",
+          "sha256": "c6688ba412f3a11aed3daee74c19f897f37d95936bf3b17934c186f4fc1dc6c2"
+        },
+        {
+          "name": "functions/_shared/cloudRunWorker.ts",
+          "sha256": "f115de2cbe2e715cbd3358e7b80f0d25c2673f17a69bda625393b24daee8a1b0"
+        },
+        {
+          "name": "functions/_shared/cloudRunArtifacts.ts",
+          "sha256": "62718d75d928457cc28f23b18c30720213c00143e90f883f49c356d419808e27"
+        },
+        {
+          "name": "functions/_shared/cloudImageRuntime.ts",
+          "sha256": "0428a5ddb098a4de4c6abd0f68c358fa6b8efb5ff69364702705dd0d9997c844"
+        },
+        {
+          "name": "functions/_shared/cloudImageTool.ts",
+          "sha256": "911bb95d78a9e59d4f44b24eb0bf2ea29948ab624c881b8650acdc7a7d7d0aed"
+        },
+        {
+          "name": "functions/_shared/cloudImageProvider.ts",
+          "sha256": "33ef9949d9e6455c98fc5a198e6f9d0bbbc79a86187ed18026bfdb119ed80bbb"
+        },
+        {
+          "name": "functions/_shared/cloudImageHttp.ts",
+          "sha256": "b842981d26c94f74666c395927a9a39a8867e754e4868ce4837c4e1830cea4cd"
+        },
+        {
+          "name": "functions/_shared/privateImageStorage.ts",
+          "sha256": "fbcc4a4087586a4e36ae0ee6bc15b78a069b1289bc4ce06b7bb6ac7bb3690336"
+        },
+        {
+          "name": "functions/_shared/cloudImageStore.ts",
+          "sha256": "dfcce2cc2e2b35cd3c7b17e4dfca20d05e8be36856369e8d32cccc99aadaffaf"
+        },
+        {
+          "name": "functions/_shared/cloudImageMedia.ts",
+          "sha256": "cbe4ec5dd0a1f009723d45fee51eb0037b0ad5e6bf4b26533a512a1112680c6c"
+        },
+        {
+          "name": "functions/_shared/cloudMediaInput.ts",
+          "sha256": "4129b9dec0cf637549d5840a128ae6ff4030c587bff5d1dae50cf5250089843d"
+        },
+        {
+          "name": "functions/_shared/cloudMedia.ts",
+          "sha256": "5b1a2eb3a57cbfae54b66a80e8b2387a8382ed6bebbc49258db37139ee790aa4"
+        },
+        {
+          "name": "functions/_shared/cloudMediaDocuments.ts",
+          "sha256": "526a9ebbdb6085d305c4081ddd52032c76f630f7ab0fe57e30b75486f33d524b"
+        },
+        {
+          "name": "functions/_shared/cloudGitTools.ts",
+          "sha256": "85ba824d6f8d9b2d5ee23fdc357468a131f3844cd47ec0974305200ad5263151"
+        },
+        {
+          "name": "functions/_shared/github.ts",
+          "sha256": "5c352b98e13930f9460a27c45de088c12ada8f7e7a09e685945b5fb1c447ee79"
+        },
+        {
+          "name": "functions/_shared/githubActions.ts",
+          "sha256": "3bd0c852a4c3664e3ab82e141356e2eed582e533c46b4653a2c30365f3392c31"
+        },
+        {
+          "name": "functions/_shared/gitFeature.ts",
+          "sha256": "27687f48697f971b989663e3c2f31917cc4a3d1fb3f4242813dcd952d31a9cf9"
+        },
+        {
+          "name": "functions/_shared/cloudAppBuildTool.ts",
+          "sha256": "95a289f8da6296871e1d0266ebcdaa7ac26d5bb22e6e71e4af1973a294602b9b"
+        },
+        {
+          "name": "functions/_shared/cloudAppCore.ts",
+          "sha256": "5b3b6804651a7f1ff49d11aa27570c8dc4a2b443ccaf6b44c1a8cc4f3b9d04f5"
+        },
+        {
+          "name": "functions/_shared/cloudBrowserbaseTools.ts",
+          "sha256": "59d347a919939f937ab400737a54f6393de467f2b617b7f19029f35915fa6b49"
+        },
+        {
+          "name": "functions/_shared/chatBrowserbaseTools.ts",
+          "sha256": "5c296efb7537e4c3df00e3f4db7e291894a1d232f7d13e8a494aa46b5cc02384"
+        },
+        {
+          "name": "functions/_shared/cloudRunScheduler.ts",
+          "sha256": "0526f4521c538cf7eca9af872238ce7d41e375b6248f4d09612a96b212c91b8f"
+        },
+        {
+          "name": "functions/_shared/cloudAppRuntime.ts",
+          "sha256": "fd185ce8ba87a777081a0a47cfd5e87f87de0ae76a1a20b8c9d965a171a9a6fb"
+        },
+        {
+          "name": "functions/_shared/cloudAppPersistence.ts",
+          "sha256": "86457faa8bdb95221e004dfd31385b29a02056509c0e442efb1f58ed400adca3"
+        },
+        {
+          "name": "functions/_shared/cloudAppPrompts.ts",
+          "sha256": "f5bd6d8805133c4ab160c3b224a9366f6871091f4473acdc5b8cdd467b783e63"
+        },
+        {
+          "name": "functions/_shared/cloudRunDispatch.ts",
+          "sha256": "fa0693fa16aba4ad75968995c7642a0d8e668cc200c8f35a65ac5df37fa8b044"
+        },
+        {
+          "name": "functions/_shared/cloudFileStore.ts",
+          "sha256": "99026de18f91c3ccf6d20b12c5bfecb346253839b15abfd587e7fb093fdd90aa"
+        },
+        {
+          "name": "functions/_shared/cloudScheduledRuntime.ts",
+          "sha256": "638502a206501d9ceae5e8c8e357acd0b5187a0021dff3cda5a24a673bb7111b"
+        },
+        {
+          "name": "functions/_shared/cloudRunProvider.ts",
+          "sha256": "1e0ce464957f414e52259a8fecfd5f8d1f9542bf688bfd95121de4f8a70e1079"
+        },
+        {
+          "name": "functions/_shared/cloudScheduledDispatcher.ts",
+          "sha256": "d838d573d029d3202aa42e60fee29ce570c9d0e14ff2d96d393eff67926bb33d"
+        },
+        {
+          "name": "functions/_shared/cloudRunEmail.ts",
+          "sha256": "dad0eb63f1345f4251e03deffad115371721b60b11c494659a53fba92e5fa031"
+        },
+        {
+          "name": "functions/_shared/cloudRunPush.ts",
+          "sha256": "8b5f6a5f5f7e45f23d8a07807f1e48e73507d32f7d2583ef45813c5cf1d45b0f"
+        },
+        {
+          "name": "functions/_shared/browserbaseStore.ts",
+          "sha256": "6ea405bd2a9db57331d82fe5ddfb5a07569c1faa2d4ed13c3334880d5d82e90c"
+        },
+        {
+          "name": "functions/_shared/browserProvider.ts",
+          "sha256": "4f5c8c2da22f469bd5ce1e524c27539d4669d8622c71ebb9c85c499798fbe243"
+        },
+        {
+          "name": "functions/_shared/browserbaseSessions.ts",
+          "sha256": "93f4090ed10322888b69bb6259a07631c6b414098444c970405be744c35b02a4"
+        },
+        {
+          "name": "functions/_shared/browserbaseCdp.ts",
+          "sha256": "9f70a4fde00d6d1b658bd50f530a88e9e6035363048a1b10899aaa48fc7cd622"
+        },
+        {
+          "name": "functions/_shared/cloudAppPublisher.ts",
+          "sha256": "b7e4041672727e52099728c1c8f5574e30d851ddfaa3a60867b6725c7d8ea6ad"
+        },
+        {
+          "name": "functions/_shared/cloudZip.ts",
+          "sha256": "dc2b8a1f4b5e04e65499c685b48f669dd20e7fd08a551d71ab588de21469aff0"
+        }
+      ]
+    },
+    {
+      "slug": "chat",
+      "version": 106,
+      "sha256": "e5b82a5fc7ad4abfd92d200df175c6032d018229a4367101b9b6809e6fc57cbd",
+      "verify_jwt": false,
+      "expectedRuntimeFiles": 26,
+      "readbackFiles": 26,
+      "omittedTypeOnlyFiles": [
+        "functions/_shared/cloudRunArtifacts.ts",
+        "functions/_shared/cloudRunProvider.ts"
+      ],
+      "files": [
+        {
+          "name": "functions/chat/index.ts",
+          "sha256": "7903cdec3b63475eab12458e32a62bf03ad9747d017bec92fc86dea8af0843bf"
+        },
+        {
+          "name": "functions/_shared/arcModelUsage.ts",
+          "sha256": "8aef970fb701569bef57dbb1c836c3174af94e8d5a12bf64fb3b06d67aadedba"
+        },
+        {
+          "name": "functions/_shared/arcModelRouting.ts",
+          "sha256": "8556670cd6aa1aa834b0e62f2198b12aa79916649303d2747ed3537b1951acf0"
+        },
+        {
+          "name": "functions/_shared/arcUsageAccounting.ts",
+          "sha256": "79f10df486c469724c9ba6e83375795a3af221e37938b4ef1b873ba1d0078a4d"
+        },
+        {
+          "name": "functions/_shared/arcUsageLedger.ts",
+          "sha256": "34334f512a7ee3a38af4ad3687a2b04ed1c58fe27285d86bb9f1a87de10d5150"
+        },
+        {
+          "name": "functions/_shared/arcTextCompletion.ts",
+          "sha256": "37054bbd66fc55681f0a18faeffe75e8c5a83364b230bd3b4af4ad4b3f17ab7a"
+        },
+        {
+          "name": "functions/_shared/cloudAgentsProvider.ts",
+          "sha256": "d1601be0678ef082cac60aa4925fc4b1d79fc64ab7cbfc15f9e7b10a1e40b3fd"
+        },
+        {
+          "name": "functions/_shared/cloudRunEngine.ts",
+          "sha256": "78f921f0e76a493e217bc03f8a26fd4e0366f444a47139bebe39b1e0cb73fbb8"
+        },
+        {
+          "name": "functions/_shared/ordinaryChatIntake.ts",
+          "sha256": "7e202dacbe12e2e99ad496853b17c64f1ab458f30603d75f6d6e2269c3496d52"
+        },
+        {
+          "name": "functions/_shared/persistentChatStream.ts",
+          "sha256": "c8f67c1a5d5823c34cc0c1feb62f2e8b10a3dcdc2357bfa732e6b4cab3fb1f75"
+        },
+        {
+          "name": "functions/_shared/ordinaryChatResponse.ts",
+          "sha256": "7072aae6f2a12cbc8b49383eb248341ea593d28bfcbb68c1ce1ca96cd0be3cd1"
+        },
+        {
+          "name": "functions/_shared/searchFreshness.ts",
+          "sha256": "6b646033057c0554b3fd469da0a7a93e4051be3b1bf2f2bce6633dd2f9cd3e1f"
+        },
+        {
+          "name": "functions/_shared/chatBrowserbaseIntent.ts",
+          "sha256": "cbcf3f1ce0ff44a29b2b85adb76b84b3342b13445dd9a551b72ad952e9768f3a"
+        },
+        {
+          "name": "functions/_shared/siteDesignPrompt.ts",
+          "sha256": "ab85ffab46e5fb5dde9e40df397192ec88a2a2ccf5620387bf8b8a73880a47ae"
+        },
+        {
+          "name": "functions/_shared/github.ts",
+          "sha256": "5c352b98e13930f9460a27c45de088c12ada8f7e7a09e685945b5fb1c447ee79"
+        },
+        {
+          "name": "functions/_shared/gitFeature.ts",
+          "sha256": "27687f48697f971b989663e3c2f31917cc4a3d1fb3f4242813dcd952d31a9cf9"
+        },
+        {
+          "name": "functions/_shared/chatBrowserbaseTools.ts",
+          "sha256": "5c296efb7537e4c3df00e3f4db7e291894a1d232f7d13e8a494aa46b5cc02384"
+        },
+        {
+          "name": "functions/_shared/browserbaseStore.ts",
+          "sha256": "6ea405bd2a9db57331d82fe5ddfb5a07569c1faa2d4ed13c3334880d5d82e90c"
+        },
+        {
+          "name": "functions/_shared/browserProvider.ts",
+          "sha256": "4f5c8c2da22f469bd5ce1e524c27539d4669d8622c71ebb9c85c499798fbe243"
+        },
+        {
+          "name": "functions/_shared/browserbaseSessions.ts",
+          "sha256": "93f4090ed10322888b69bb6259a07631c6b414098444c970405be744c35b02a4"
+        },
+        {
+          "name": "functions/_shared/browserbaseCdp.ts",
+          "sha256": "9f70a4fde00d6d1b658bd50f530a88e9e6035363048a1b10899aaa48fc7cd622"
+        },
+        {
+          "name": "functions/_shared/cloudAgentAnswerStream.ts",
+          "sha256": "a9be0b1c84ddb9edce46929a12d535b42b9b7e15af420e1a5542c22565875982"
+        },
+        {
+          "name": "functions/_shared/multiPageIntent.ts",
+          "sha256": "0a66087390b585ad265fdd38e209c9450b5c362295cc32987c5725cf8431bc14"
+        },
+        {
+          "name": "functions/_shared/arcModelAccess.ts",
+          "sha256": "2a808a552600a3972e067984f377621201baaf285d6c0872ef17c96fb4a49c36"
+        },
+        {
+          "name": "functions/_shared/arcModelCatalog.ts",
+          "sha256": "9ffa2a361fea3b2214a70fd7f76f1b34cd2ff186dd32c1274a188884903ed454"
+        },
+        {
+          "name": "functions/_shared/chatArtifactStream.ts",
+          "sha256": "7028b2373fc00e9fbf0f72b590d7b5d90c5fb7a40032e746fb7bd8cc27c7e2b8"
+        }
+      ]
+    }
+  ],
+  "noSpendOptionsHealth": [
+    {
+      "slug": "analyze-image",
+      "method": "OPTIONS",
+      "http": "200",
+      "curlExit": 0,
+      "error": ""
+    },
+    {
+      "slug": "analyze-document",
+      "method": "OPTIONS",
+      "http": "200",
+      "curlExit": 0,
+      "error": ""
+    },
+    {
+      "slug": "generate-file",
+      "method": "OPTIONS",
+      "http": "200",
+      "curlExit": 0,
+      "error": ""
+    },
+    {
+      "slug": "generate-image",
+      "method": "OPTIONS",
+      "http": "200",
+      "curlExit": 0,
+      "error": ""
+    },
+    {
+      "slug": "edit-image",
+      "method": "OPTIONS",
+      "http": "200",
+      "curlExit": 0,
+      "error": ""
+    },
+    {
+      "slug": "cloud-run",
+      "method": "OPTIONS",
+      "http": "204",
+      "curlExit": 0,
+      "error": ""
+    },
+    {
+      "slug": "cloud-worker",
+      "method": "OPTIONS",
+      "http": "405",
+      "curlExit": 0,
+      "error": ""
+    },
+    {
+      "slug": "chat",
+      "method": "OPTIONS",
+      "http": "200",
+      "curlExit": 0,
+      "error": ""
+    }
+  ],
+  "unchangedScheduledWorker": {
+    "version": 21,
+    "reason": "Registered path is Luna-only. Live and candidate boundary fixtures verify no premium path; avoid unrelated inherited import changes."
+  },
+  "billingFunctionsDeployed": false,
+  "frontendPushed": false,
+  "premiumActivated": false,
+  "knownGaps": [
+    "No live paid model or checkout call",
+    "Native multi-connection SQL concurrency blocked by environment",
+    "Final independent runtime recheck incomplete under platform restriction",
+    "Final nine-entrypoint Deno check result unavailable after cancelled review/session loss",
+    "Full application TypeScript has inherited AdminSettingsPanel JSX errors"
+  ]
+}

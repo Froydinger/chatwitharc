@@ -155,8 +155,11 @@ facts. See `docs/qa/arc-usage-ledger.md`.
   final runtime recheck stopped under a platform restriction. That final
   independent gate remains incomplete; subsequent ordinary mocked functional
   regression checks pass and are not a substitute for that review.
-- No paid model calls, production migration, Edge deployment or Git push were
-  made for this implementation. Live provider execution is unverified.
+- No paid model calls or Git push were made. After release-owner approval,
+  the two additive migrations and eight model Edge bundles were staged in
+  production; all policy flags remain off. Retrieved runtime source matches
+  the reviewed commit byte-for-byte. Billing Edge functions and the frontend
+  are still pending their coordinated stage. Live provider execution is unverified.
 
 ## Verified production baseline
 
@@ -179,13 +182,16 @@ or gateway redesign and does not change credentials.
 
 1. Review this patch, the billing patch and the explicit gaps above. Keep
    unchanged voice functions out of every deployment list.
-2. Apply `20261010040518_arc_usage_ledger.sql` observation-only. Apply the
-   additive `20261010041102_boost_price_catalog_v2.sql` billing migration. Snapshot policy/rollout state first; never change current
+2. Apply `20261010051758_arc_usage_ledger.sql` observation-only. Apply the
+   additive `20261010051816_boost_price_catalog_v2.sql` billing migration. Snapshot policy/rollout state first; never change current
    subscriptions or replace old Stripe prices.
 3. Deploy covered backend bundles before the frontend: `chat`,
    `analyze-image`, `analyze-document`, `generate-file`, `generate-image`,
-   `edit-image`, `cloud-run`, `cloud-worker`, `cloud-scheduled-worker`. The
-   scheduled worker imports the same durable runtime and must not be missed.
+   `edit-image`, `cloud-run`, `cloud-worker`. Leave `cloud-scheduled-worker`
+   v21 unchanged: although it imports the worker module, its registered sweep
+   is the unchanged Luna-only reminder path. Both retrieved-live and candidate
+   boundary tests prove fixed Luna/low/4096/no tools and no premium selector.
+   Updating its unrelated older import closure is deliberately excluded.
    Deploy `create-checkout` and `payments-webhook` for the current purchase
    catalog; keep `payments-portal` and the existing Stripe authentication path unchanged. Shared modules ship inside these bundles.
    `perplexity-search` has a comment-only correction; no behavior deployment
@@ -211,8 +217,9 @@ or gateway redesign and does not change credentials.
    in release notes. For a problem, keep Luna available and block new premium
    admission; do not turn off quotas to disguise a failing premium route.
 
-No release step above is permission to deploy; the release owner controls the
-go/no-go decision and records actual production evidence.
+The release owner controls each stage and records actual production evidence.
+Stages 1–3 were approved for additive schema/model staging only; that does not
+authorize billing deployment, frontend publication or allowance activation.
 
 ### Stage rollback and verification
 

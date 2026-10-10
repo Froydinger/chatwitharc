@@ -84,7 +84,7 @@ new credential/configuration changes under a pricing rollout.
 - `scripts/test-gpt-aeo-contract.mjs` preserves semantic hidden content,
   structured data, title/canonical/robots/sitemap contracts and all 16 prerenders.
 
-Apply `20261010041102_boost_price_catalog_v2.sql` before deploying
+Apply `20261010051816_boost_price_catalog_v2.sql` before deploying
 `create-checkout` and `payments-webhook`, then release matching frontend prices.
 Keep existing JWT settings. The additive migration updates only recognition
 functions, not subscription rows or image transition state. Keep both old/new

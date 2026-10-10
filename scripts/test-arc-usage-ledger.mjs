@@ -32,7 +32,7 @@ try {
     INSERT INTO public.admin_users VALUES('${admin}');
     CREATE TABLE fixture_clock(at timestamptz); INSERT INTO fixture_clock VALUES('2026-10-10T23:59:00Z');
     CREATE FUNCTION public.fixture_now() RETURNS timestamptz LANGUAGE sql SECURITY DEFINER AS $$SELECT at FROM public.fixture_clock$$;`);
-  await sql(readFileSync('supabase/migrations/20261010040518_arc_usage_ledger.sql','utf8').replaceAll('now()', 'public.fixture_now()'));
+  await sql(readFileSync('supabase/migrations/20261010051758_arc_usage_ledger.sql','utf8').replaceAll('now()', 'public.fixture_now()'));
   let view = await snapshot(free);
   assert.equal(view.enforcementEnabled, false); assert.equal(view.configured, true);
   assert.equal(view.daily.limitNanos, null); assert.equal(view.monthly.usagePercent, null);
