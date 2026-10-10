@@ -1,5 +1,5 @@
 import { Transition } from "@/components/transitions/Transition";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, Pause, Play, Trash2, Calendar, Clock, Repeat, CheckCircle2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { useToast } from "@/hooks/use-toast";
 import { describeCronSchedule } from "@/lib/scheduleLabels";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useWorkspaceUI } from "@/workspace/WorkspaceContext";
+import { WorkspaceRemindersView } from "@/workspace/WorkspaceRemindersView";
 
 interface Task {
   id: string;
@@ -92,11 +94,14 @@ function describeNext(task: Task): string {
 }
 
 export function TasksPage() {
+  const workspaceUI = useWorkspaceUI();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const userId = user?.id;
   const { toast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [expiredTask, setExpiredTask] = useState<Task | null>(null);
   const [resumeSchedule, setResumeSchedule] = useState("in 5 minutes");
@@ -114,30 +119,36 @@ export function TasksPage() {
     if (!authLoading && !user) navigate("/");
   }, [authLoading, user, navigate]);
 
-  useEffect(() => {
-    if (!user) return;
-    void load();
-    const ch = supabase
-      .channel(`tasks-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_tasks", filter: `user_id=eq.${user.id}` }, () => void load())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [user?.id]);
-
-  async function load() {
-    if (!user) return;
+  const load = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("scheduled_tasks")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
+    if (error) {
+      setLoadError(error.message);
+      setLoading(false);
+      return;
+    }
+    setLoadError(null);
     setTasks((data as Task[] | null) ?? []);
     setLoading(false);
-  }
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    void load();
+    const ch = supabase
+      .channel(`tasks-${userId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "scheduled_tasks", filter: `user_id=eq.${userId}` }, () => void load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [userId, load]);
 
   async function create() {
-    if (!user) return;
+    if (!user || creating) return;
     if (!title.trim() || !prompt.trim()) {
       toast({ title: "Missing fields", description: "Give your task a title and prompt." });
       return;
@@ -197,7 +208,7 @@ export function TasksPage() {
   }
 
   async function rescheduleExpiredTask() {
-    if (!expiredTask) return;
+    if (!expiredTask || resuming) return;
     const parsed = parseSchedule(resumeSchedule);
     if (!parsed) {
       toast({ title: "When should I remind you?", description: "Try ‘in 5 minutes’ or ‘every day at 8am’.", variant: "destructive" });
@@ -224,17 +235,36 @@ export function TasksPage() {
 
   async function remove(t: Task) {
     if (!confirm(`Delete "${t.title}"?`)) return;
-    await supabase.from("scheduled_tasks").delete().eq("id", t.id);
+    const { error } = await supabase.from("scheduled_tasks").delete().eq("id", t.id);
+    if (error) {
+      toast({ title: "Couldn't delete reminder", description: error.message, variant: "destructive" });
+      return;
+    }
     void load();
   }
 
   async function runNow(t: Task) {
-    await supabase.from("scheduled_tasks").update({ next_run_at: new Date().toISOString(), status: "active" }).eq("id", t.id);
+    const { error } = await supabase.from("scheduled_tasks").update({ next_run_at: new Date().toISOString(), status: "active" }).eq("id", t.id);
+    if (error) {
+      toast({ title: "Couldn't run reminder", description: error.message, variant: "destructive" });
+      return;
+    }
     toast({ title: "Queued", description: "Your task will run within ~1 minute." });
     void load();
   }
 
   if (authLoading || !user) return null;
+
+  if (workspaceUI) return <WorkspaceRemindersView
+    tasks={tasks} loading={loading} error={loadError} onRetry={() => void load()}
+    showNew={showNew} onShowNewChange={setShowNew}
+    title={title} onTitleChange={setTitle} prompt={prompt} onPromptChange={setPrompt}
+    scheduleText={scheduleText} onScheduleChange={setScheduleText} pushOn={pushOn} onPushChange={setPushOn}
+    creating={creating} onCreate={create} onToggleStatus={toggleStatus} onRunNow={runNow} onRemove={remove}
+    onOpenResults={chatId => navigate(`/chat/${chatId}`)}
+    expiredTask={expiredTask} onCloseReschedule={() => setExpiredTask(null)}
+    resumeSchedule={resumeSchedule} onResumeScheduleChange={setResumeSchedule} resuming={resuming} onReschedule={rescheduleExpiredTask}
+  />;
 
   return (
     <div className="relative z-10 min-h-screen w-full text-foreground" style={{ paddingTop: "calc(var(--arcai-safe-area-top) + var(--arcai-desktop-titlebar-safe-area, 30px))" }}>
